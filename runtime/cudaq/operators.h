@@ -639,34 +639,60 @@ public:
     using pointer = const HandlerTy *;
     using reference = const HandlerTy &;
 
+    /// @brief Constructs a const_iterator for a given product operator.
+    /// @param prod Pointer to the product operator containing the operators.
+    /// @param idx Starting index for the iterator (default is 0).
     const_iterator(const product_op<HandlerTy> *prod, std::size_t idx = 0)
         : prod(prod), current_idx(idx) {}
 
+    /// @brief Compares this iterator with another for equality.
+    /// @param other Another const_iterator to compare with.
+    /// @return True if both iterators refer to the same product operator and
+    /// current index, false otherwise.
     bool operator==(const const_iterator &other) const {
       return prod == other.prod && current_idx == other.current_idx;
     }
 
+    /// @brief Compares this iterator with another for inequality.
+    /// @param other Another const_iterator to compare with.
+    /// @return True if the iterators do not refer to the same product operator
+    /// or index.
     bool operator!=(const const_iterator &other) const {
       return !(*this == other);
     }
 
+    /// @brief Dereferences the iterator to access the current operator.
+    /// @return A constant reference to the current operator.
     reference operator*() const { return prod->operators[current_idx]; }
+
+    /// @brief Provides pointer-like access to the current operator.
+    /// @return A pointer to the current operator.
     pointer operator->() { return &(prod->operators[current_idx]); }
 
-    // prefix
+    /// @brief Advances the iterator to the next operator (prefix increment).
+    /// @return Reference to the updated iterator.
     const_iterator &operator++() {
       ++current_idx;
       return *this;
     }
+
+    /// @brief Moves the iterator to the previous operator (prefix decrement).
+    /// @return Reference to the updated iterator.
     const_iterator &operator--() {
       --current_idx;
       return *this;
     }
 
-    // postfix
+    /// @brief Advances the iterator (postfix increment) and returns the
+    /// iterator state before increment.
+    /// @return A const_iterator representing the state prior to increment.
     const_iterator operator++(int) {
       return const_iterator(prod, current_idx++);
     }
+
+    /// @brief Moves the iterator (postfix decrement) and returns the iterator
+    /// state before decrement.
+    /// @return A const_iterator representing the state prior to decrement.
     const_iterator operator--(int) {
       return const_iterator(prod, current_idx--);
     }
@@ -708,6 +734,8 @@ public:
   // about the coefficient.
   std::string get_term_id() const;
 
+  /// Retrieves the coefficient associated with this operator instance.
+  /// @return A scalar_operator representing the operator's coefficient.
   scalar_operator get_coefficient() const;
 
   // constructors and destructors
@@ -725,18 +753,46 @@ public:
       this->operators.push_back(HandlerTy(degree));
   }
 
+  /// @brief Constructs a product operator with the given coefficient.
+  /// @param coefficient A double representing the scaling factor for the
+  /// product operator.
   product_op(double coefficient);
 
+  /// @brief Constructs a product operator with the given coefficient.
+  /// @param coefficient A complex of double representing the scaling factor for
+  /// the product operator.
   product_op(std::complex<double> coefficient);
 
+  /// @brief Constructs a product operator from a given atomic operator handler.
+  /// @tparam HandlerTy The type of the underlying atomic operator handler.
+  /// @param atomic An rvalue reference to the atomic operator handler.
+  /// @return An appropriate product operator instance constructed with the
+  /// provided handler.
   product_op(HandlerTy &&atomic);
 
+  /// @brief Constructs a product_op from another product_op instance.
+  /// This constructor is enabled only if T is not equivalent to HandlerTy and
+  /// if HandlerTy can be constructed from T. It allows implicit conversion
+  /// between different instantiations of product_op.
+  /// @param other The product_op instance to copy from.
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
   product_op(const product_op<T> &other);
 
+  /// @brief Constructs a product operator from an existing product operator
+  /// with a different type. This constructor enables the creation of a new
+  /// product_op object when the HandlerTy is a matrix_handler, provided that
+  /// the type T is not the same as HandlerTy but is convertible to HandlerTy.
+  /// It allows for proper handling of commutation behavior during the
+  /// construction.
+  /// @tparam T The type of the operand from which the new product_op is
+  /// constructed.
+  /// @param other The source product_op instance from which to create this new
+  /// object.
+  /// @param behavior The commutation behavior to be used with the
+  /// matrix_handler.
   template <typename T,
             std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
                                  !std::is_same<T, HandlerTy>::value &&
@@ -745,16 +801,33 @@ public:
   product_op(const product_op<T> &other,
              const matrix_handler::commutation_behavior &behavior);
 
-  // copy constructor
+  /// @brief Constructs a new product_op by copying an existing product_op
+  /// instance.
+  /// @param other The product_op instance to be copied.
+  /// @param size An optional parameter to specify the size; defaults to 0.
   product_op(const product_op<HandlerTy> &other, std::size_t size = 0);
 
-  // move constructor
+  /// @brief Constructs a product_op by moving the resources from an existing
+  /// product_op instance.
+  /// @param other An rvalue reference to the product_op to move from.
+  /// @param size An optional size parameter, defaulting to 0, that may be used
+  /// to adjust or specify internal dimensions.
   product_op(product_op<HandlerTy> &&other, std::size_t size = 0);
 
+  /// @brief Default destructor for product_op.
+  /// @details The explicit default destructor allowing the compiler for proper
+  /// resource cleanup.
   ~product_op() = default;
 
   // assignments
 
+  /// @brief Templated assignment operator that enables assigning from a
+  /// product_op with a different but convertible type. This operator is only
+  /// enabled when the template parameter T is not the same as HandlerTy and is
+  /// constructible as a HandlerTy. It allows for copying or converting a
+  /// product_op instance of type T into one of type HandlerTy.
+  /// @tparam T The type of the product_op to be assigned from, which must
+  /// satisfy that it is not HandlerTy and is constructible as HandlerTy.
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
@@ -859,8 +932,16 @@ public:
 
   // left-hand arithmetics
 
-  // Being a bit permissive here, since otherwise the explicit template
-  // instantiation is a nightmare.
+  /// @brief Overloads the multiplication operator to multiply a scalar operator
+  /// with a product operator. This function enables left-sided multiplication
+  /// of a scalar operator (provided as an rvalue reference) with an existing
+  /// product operator, producing a new product operator that encapsulates the
+  /// resultant state.
+  /// @tparam T The type parameter used within the product operator.
+  /// @param other The scalar operator to be multiplied (rvalue reference).
+  /// @param self The product operator to be multiplied.
+  /// @return A new product operator that is the result of multiplying the
+  /// scalar operator with the product operator.
   template <typename T>
   friend product_op<T> operator*(scalar_operator &&other,
                                  const product_op<T> &self);
@@ -872,6 +953,7 @@ public:
   template <typename T>
   friend product_op<T> operator*(const scalar_operator &other,
                                  product_op<T> &&self);
+
   template <typename T>
   friend sum_op<T> operator+(scalar_operator &&other,
                              const product_op<T> &self);
@@ -883,6 +965,7 @@ public:
   template <typename T>
   friend sum_op<T> operator+(const scalar_operator &other,
                              product_op<T> &&self);
+
   template <typename T>
   friend sum_op<T> operator-(scalar_operator &&other,
                              const product_op<T> &self);
