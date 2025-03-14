@@ -40,10 +40,11 @@ enum class pauli;
                              bool> = true>                                     \
   [[deprecated(deprecation_message)]]
 
-/// @brief Represents an operator expression consisting of a sum of terms, where
-/// each term is a product of elementary and scalar operators. Operator
-/// expressions cannot be used within quantum kernels, but they provide methods
-/// to convert them to data types that can.
+/// @brief Represents a sum of operator products in a quantum operator algebra.
+///
+/// The sum_op class is a templated container that encapsulates a linear
+/// combination of product operators, where each term is defined by a specific
+/// configuration of operator components paired with a scalar coefficient.
 template <typename HandlerTy>
 class sum_op {
   template <typename T>
@@ -77,10 +78,20 @@ protected:
   sum_op(sum_op<HandlerTy> &&other, bool is_default, std::size_t size);
 
 public:
-  // called const_iterator because it will *not* modify the sum,
-  // regardless of what is done with the products/iterator
+  /// @brief Constant iterator for traversing product operations within a
+  /// sum_op.
+  ///
+  /// This const_iterator class provides read-only access to individual
+  /// product_op elements constructed from the components stored in a sum_op
+  /// object. Each product_op is created by combining the corresponding
+  /// coefficient and term found via an index mapping in an unordered_map. The
+  /// iterator encapsulates the internal state needed for sequential access,
+  /// including a pointer to the associated sum_op, an iterator over the term
+  /// mapping, and the current product_op value.
   struct const_iterator {
   private:
+    /// @brief A pointer to the sum_op instance whose terms are being iterated
+    /// over.
     const sum_op<HandlerTy> *sum;
     product_op<HandlerTy> current_val;
     std::size_t current_idx;
@@ -105,20 +116,25 @@ public:
                                             sum->terms[current_idx]);
     }
 
+    /// @brief Equality operator which compares iterators based on the
+    /// underlying sum_op pointer and the current position in term_map.
     bool operator==(const const_iterator &other) const {
       return sum == other.sum && current_idx == other.current_idx;
     }
 
+    /// @brief Non-equality operator which compares iterators
     bool operator!=(const const_iterator &other) const {
       return !(*this == other);
     }
 
-    reference operator*() {
-      return current_val;
-    } // not const - allow to move current_value
+    /// @brief Dereferences the iterator to yield a reference to current_val,
+    /// allowing access to the current product_op.
+    reference operator*() { return current_val; }
+    /// @brief Provides pointer access to the current product_op.
     pointer operator->() { return &current_val; }
 
-    // prefix
+    /// @brief Advances the iterator to the next term in the term_map and
+    /// updates current_val accordingly.
     const_iterator &operator++() {
       if (++current_idx < sum->num_terms())
         current_val = product_op<HandlerTy>(sum->coefficients[current_idx],

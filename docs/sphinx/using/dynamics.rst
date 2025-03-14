@@ -35,8 +35,17 @@ Using CUDA-Q `operator`, the above time-dependent Hamiltonian can be set up as f
         :start-after: [Begin Transmon]
         :end-before: [End Transmon]
 
-In particular, `ScalarOperator` provides an easy way to model arbitrary time-dependent control signals.   
-Details about CUDA-Q `operator`, including builtin operators that it supports can be found :ref:`here <operators>`.
+  In particular, `ScalarOperator` provides an easy way to model arbitrary time-dependent control signals.
+  Details about CUDA-Q `operator`, including builtin operators that it supports can be found :ref:`here <operators>`.
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin Transmon]
+        :end-before: [End Transmon]
+
+  Details about CUDA-Q `operator`, including builtin operators that it supports can be found :ref:`here <operators>`.
 
 2. Setup the evolution simulation
 
@@ -47,6 +56,13 @@ with `cudaq.evolve`.
 
   .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
+        :start-after: [Begin Evolve]
+        :end-before: [End Evolve]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
         :start-after: [Begin Evolve]
         :end-before: [End Evolve]
 
@@ -83,8 +99,15 @@ For example, we can plot the Pauli expectation value for the above simulation as
         :start-after: [Begin Plot]
         :end-before: [End Plot]
 
-In particular, for each time step, `evolve` captures an array of expectation values, one for each  
-observable. Hence, we convert them into sequences for plotting purposes.
+  In particular, for each time step, `evolve` captures an array of expectation values, one for each
+  observable. Hence, we convert them into sequences for plotting purposes.
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin Print]
+        :end-before: [End Print]
 
 Examples that illustrate how to use the ``dynamics`` target are available 
 in the `CUDA-Q repository <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics>`__. 
@@ -155,6 +178,13 @@ This Hamiltonian can be converted to CUDA-Q `Operator` representation with
         :start-after: [Begin Jaynes-Cummings]
         :end-before: [End Jaynes-Cummings]
 
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin Jaynes-Cummings]
+        :end-before: [End Jaynes-Cummings]
+
 In the above code snippet, we map the cavity light field to degree index 1 and the two-level atom to degree index 0. 
 The description of composite quantum system dynamics is independent from the Hilbert space of the system components.
 The latter is specified by the dimension map that is provided to the `cudaq.evolve` call. 
@@ -172,7 +202,7 @@ CUDA-Q provides multiple ways to construct time-dependent operators.
 
 1. Time-dependent coefficient
 
-CUDA-Q `ScalarOperator` can be used to wrap a Python function that returns the coefficient value at a specific time.
+CUDA-Q `ScalarOperator` can be used to wrap a Python/C++ function that returns the coefficient value at a specific time.
 
 As an example, we will look at a time-dependent Hamiltonian of the form :math:`H = H_0 + f(t)H_1`, 
 where :math:`f(t)` is the time-dependent driving strength given as :math:`cos(\omega t)`.
@@ -183,6 +213,13 @@ The following code sets up the problem
 
   .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
+        :start-after: [Begin Hamiltonian]
+        :end-before: [End Hamiltonian]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
         :start-after: [Begin Hamiltonian]
         :end-before: [End Hamiltonian]
 
