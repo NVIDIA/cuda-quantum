@@ -33,8 +33,8 @@ TEST(EvolveTester, checkSimple) {
   cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
-  EXPECT_TRUE(result.get_expectation_values().has_value());
-  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  EXPECT_TRUE(result.expectation_values.has_value());
+  EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
     const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
@@ -42,7 +42,7 @@ TEST(EvolveTester, checkSimple) {
   }
 
   int count = 0;
-  for (auto expVals : result.get_expectation_values().value()) {
+  for (auto expVals : result.expectation_values.value()) {
     EXPECT_EQ(expVals.size(), 1);
     EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
   }
@@ -66,8 +66,8 @@ TEST(EvolveTester, checkSimpleRK4) {
   cudaq::integrators::runge_kutta integrator(4, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
-  EXPECT_TRUE(result.get_expectation_values().has_value());
-  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  EXPECT_TRUE(result.expectation_values.has_value());
+  EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
     const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
@@ -75,7 +75,7 @@ TEST(EvolveTester, checkSimpleRK4) {
   }
 
   int count = 0;
-  for (auto expVals : result.get_expectation_values().value()) {
+  for (auto expVals : result.expectation_values.value()) {
     EXPECT_EQ(expVals.size(), 1);
     EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
   }
@@ -99,8 +99,8 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
   cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
-  EXPECT_TRUE(result.get_expectation_values().has_value());
-  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  EXPECT_TRUE(result.expectation_values.has_value());
+  EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
   for (const auto &t : schedule) {
     const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
@@ -108,7 +108,7 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
   }
 
   int count = 0;
-  for (auto expVals : result.get_expectation_values().value()) {
+  for (auto expVals : result.expectation_values.value()) {
     EXPECT_EQ(expVals.size(), 1);
     EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
   }
@@ -152,11 +152,11 @@ TEST(EvolveTester, checkCompositeSystem) {
   auto result = cudaq::__internal__::evolveSingle(
       hamiltonian, dims, schedule, initialState, integrator, {},
       {cavity_occ_op, atom_occ_op}, true);
-  EXPECT_TRUE(result.get_expectation_values().has_value());
-  EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
+  EXPECT_TRUE(result.expectation_values.has_value());
+  EXPECT_EQ(result.expectation_values.value().size(), num_steps);
 
   int count = 0;
-  for (auto expVals : result.get_expectation_values().value()) {
+  for (auto expVals : result.expectation_values.value()) {
     EXPECT_EQ(expVals.size(), 2);
     std::cout << expVals[0] << " | ";
     std::cout << expVals[1] << "\n";
@@ -208,11 +208,11 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   cudaq::evolve_result result = cudaq::__internal__::evolveSingle(
       hamiltonian, dims, schedule, initialState, integrator, {collapsedOp},
       {cavity_occ_op, atom_occ_op}, true);
-  EXPECT_TRUE(result.get_expectation_values().has_value());
-  EXPECT_EQ(result.get_expectation_values().value().size(), num_steps);
+  EXPECT_TRUE(result.expectation_values.has_value());
+  EXPECT_EQ(result.expectation_values.value().size(), num_steps);
 
   int count = 0;
-  for (auto expVals : result.get_expectation_values().value()) {
+  for (auto expVals : result.expectation_values.value()) {
     EXPECT_EQ(expVals.size(), 2);
     const double totalParticleCount = expVals[0] + expVals[1];
     const auto time = timeSteps[count++];
@@ -254,8 +254,8 @@ TEST(EvolveTester, checkScalarTd) {
   cudaq::integrators::runge_kutta integrator(4, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {collapseOp}, {obs}, true);
-  EXPECT_TRUE(result.get_expectation_values().has_value());
-  EXPECT_EQ(result.get_expectation_values().value().size(), numSteps);
+  EXPECT_TRUE(result.expectation_values.has_value());
+  EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
   int idx = 0;
   for (const auto &t : schedule) {
@@ -264,7 +264,7 @@ TEST(EvolveTester, checkScalarTd) {
   }
 
   int count = 0;
-  for (auto expVals : result.get_expectation_values().value()) {
+  for (auto expVals : result.expectation_values.value()) {
     EXPECT_EQ(expVals.size(), 1);
     std::cout << "Result = " << (double)expVals[0]
               << "; expected = " << theoryResults[count] << "\n";

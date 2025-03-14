@@ -1,0 +1,73 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -cc-sroa %s | FileCheck %s
+// RUN: cudaq-opt -canonicalize -cc-sroa %s | FileCheck %s
+
+func.func private @g(i32, f64)
+
+func.func @f() {
+  %0 = cc.alloca !cc.struct<{i32, f64}>
+  %1 = cc.compute_ptr %0[0] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<i32>
+  %2 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
+  %3 = cc.load %1 : !cc.ptr<i32>
+  %4 = cc.load %2 : !cc.ptr<f64>
+  call @g(%3, %4) : (i32, f64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @f() {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_1:.*]] = cc.alloca f64
+// CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_1]] : !cc.ptr<f64>
+// CHECK:           call @g(%[[VAL_2]], %[[VAL_3]]) : (i32, f64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func @h() {
+  %0 = cc.alloca !cc.struct<{i32, f64}>
+  %1 = cc.undef !cc.struct<{i32, f64}>
+  %2 = arith.constant 354 : i32
+  %3 = cc.insert_value %1[0], %2 : (!cc.struct<{i32, f64}>, i32) -> !cc.struct<{i32, f64}>
+  %4 = arith.constant 84.0 : f64
+  %5 = cc.insert_value %3[1], %4 : (!cc.struct<{i32, f64}>, f64) -> !cc.struct<{i32, f64}>
+  cc.store %5, %0 : !cc.ptr<!cc.struct<{i32, f64}>>
+  return
+}
+
+// CHECK-LABEL:   func.func @h() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 8.400000e+01 : f64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 354 : i32
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_3:.*]] = cc.alloca f64
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<i32>
+// CHECK:           return
+// CHECK:         }
+
+func.func private @j(i32, i32)
+
+func.func @i() {
+  %0 = cc.alloca !cc.array<i32 x 2>
+  %1 = cc.compute_ptr %0[0] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  %2 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  %3 = cc.load %1 : !cc.ptr<i32>
+  %4 = cc.load %2 : !cc.ptr<i32>
+  call @j(%3, %4) : (i32, i32) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @i() {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_1:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i32>
+// CHECK:           call @j(%[[VAL_2]], %[[VAL_3]]) : (i32, i32) -> ()
+// CHECK:           return
+// CHECK:         }

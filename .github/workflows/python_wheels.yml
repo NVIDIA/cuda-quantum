@@ -250,7 +250,7 @@ jobs:
               echo "::error file=python_wheel.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-            python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite openfermionpyscf==0.5
+            python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite
             for backendTest in /tmp/tests/backends/*.py; do 
               python${{ inputs.python_version }} -m pytest $backendTest
               pytest_status=$?

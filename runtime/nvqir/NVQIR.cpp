@@ -10,6 +10,7 @@
 #include "QIRTypes.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
+#include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
 #include <cmath>
 #include <complex>
@@ -750,6 +751,32 @@ void __quantum__qis__apply_kraus_channel_generalized(
     throw std::runtime_error("apply_noise: unknown data kind.");
   }
   va_end(args);
+}
+
+namespace details {
+struct FakeQubit {
+  std::int8_t *id;
+  bool negated;
+};
+static_assert(sizeof(FakeQubit) == sizeof(cudaq::qudit<2>) &&
+              "FakeQubit must have the same memory layout as cudaq::qudit<>");
+} // namespace details
+
+std::vector<details::FakeQubit> *
+__quantum__qis__convert_array_to_stdvector(Array *arr) {
+  const std::size_t size = arr->size();
+  std::vector<details::FakeQubit> *result = new std::vector<details::FakeQubit>;
+  result->reserve(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    (*result)[i].id = (*arr)[i];
+    (*result)[i].negated = false;
+  }
+  return result;
+}
+
+void __quantum__qis__free_converted_stdvector(
+    std::vector<details::FakeQubit> *veq) {
+  delete veq;
 }
 
 void __quantum__qis__custom_unitary(std::complex<double> *unitary,

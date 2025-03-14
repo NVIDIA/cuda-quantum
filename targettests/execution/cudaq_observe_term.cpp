@@ -59,9 +59,10 @@ int main() {
     // Observe the kernel and make sure we get the expected energy
     // This tests implementation of observing X op.
     double energy = cudaq::observe(10000, ansatz_x{}, h);
-    printf("Energy is %d.\n", (int)(energy + 0.5));
-
-    assert(isClose(energy, 0.0) && "observe of X failed");
+    if (isClose(energy, 0.0))
+      printf("Energy is %d.\n", (int)(energy + 0.5));
+    else
+      printf("Observe of X failed. Energy is %.16lf\n", energy);
   }
 
   {
@@ -71,9 +72,10 @@ int main() {
     // Observe the kernel and make sure we get the expected energy
     // This tests implementation of observing Y op.
     double energy = cudaq::observe(10000, ansatz_y{}, h);
-    printf("Energy is %d.\n", (int)(energy + 0.5));
-
-    assert(isClose(energy, 0.0) && "observe of Y failed");
+    if (isClose(energy, 0.0))
+      printf("Energy is %d.\n", (int)(energy + 0.5));
+    else
+      printf("Observe of Y failed. Energy is %.16lf\n", energy);
   }
 
   {
@@ -86,10 +88,13 @@ int main() {
     double energy = cudaq::observe(10000, ansatz_z{}, h);
     double expectation = cudaq::sample(10000, ansatz_z{}).expectation();
 
-    printf("Energy is %d.\n", (int)(energy + 0.5));
-    printf("Expectation is %d.\n", (int)(expectation + 0.5));
-
-    assert(isClose(energy, expectation) && "observe of Z failed");
+    if (isClose(energy, expectation)) {
+      printf("Energy is %d.\n", (int)(energy + 0.5));
+      printf("Expectation is %d.\n", (int)(expectation + 0.5));
+    } else
+      printf("Observe of Z failed. "
+             " Energy is %.16lf, expectation is %.16lf\n",
+             energy, expectation);
   }
 
   return 0;

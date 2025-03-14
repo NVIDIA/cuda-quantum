@@ -30,8 +30,7 @@ struct SystemDynamics {
       : modeExtents(extents), hamiltonian(ham), collapseOps(cOps),
         parameters(params) {}
 
-  SystemDynamics()
-      : hamiltonian(sum_op<cudaq::matrix_handler>(cudaq::matrix_op::empty())){};
+  SystemDynamics() : hamiltonian(cudaq::matrix_op::empty()){};
 };
 
 class base_time_stepper;
