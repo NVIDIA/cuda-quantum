@@ -396,12 +396,6 @@ def test_spin_op_serialization():
             h2 = h1.serialize()
             h3 = cudaq.SpinOperator(h2)
             assert (h1 == h3)
-    # Note that serializing and deserializing will identity-
-    # pad the operator such that after serialization/deserialization
-    # it acts on all degrees from 0 to n, where n = max_degree.
-    # Alternatively, we could drop identities on deserialization...
-    # FIXME: The proper fix for this is to accurately represent 
-    # the target degree in the serialization format, and not pad it.
 
 def test_spin_op_random():
     # Make sure that the user gets all the random terms that they ask for.
