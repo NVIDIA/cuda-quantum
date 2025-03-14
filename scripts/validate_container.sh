@@ -160,7 +160,7 @@ do
     do
         # Skipping dynamics examples if target is not dynamics and ex is dynamics
         # or gpu is unavailable
-        if [ "$t" != "dynamics" ] && [[ "$ex" == *"dynamics"* ]]; then
+        if { [ "$t" != "dynamics" ] && [[ "$ex" == *"dynamics"* ]]; } || { [ "$t" == "dynamics" ] && [[ "$ex" != *"dynamics"* ]]; }; then
             let "skipped+=1"
             echo "Skipping $t target for $ex.";
             echo ":white_flag: $filename: Not intended for this target. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"

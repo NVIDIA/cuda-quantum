@@ -65,7 +65,7 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
-def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
+def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::ModuleOp"> {
   let summary = "Specialize a function by replacing arguments with constants";
   let description = [{
     This pass takes a list of functions and argument substitutions. For each
@@ -443,7 +443,7 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
   ];
 }
 
-def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::func::FuncOp"> {
+def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::ModuleOp"> {
   let summary =
     "Replace the unitary matrix generator function with a constant matrix.";
   let description = [{
@@ -951,7 +951,8 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
 
 def PySynthCallableBlockArgs :
     Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
-  let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
+  let summary =
+    "Synthesize / Inline cc.callable_func on function block arguments.";
   let description = [{
     This pass is leveraged by the Python bindings to synthesize any 
     cc.callable block arguments. By synthesis we mean replace all uses of the 
@@ -974,7 +975,7 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
 }
 
 def QuakeAddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
- let summary = "Add quake deallocs to functions before they return.";
+  let summary = "Add quake deallocs to functions before they return.";
   let description = [{
     This pass ensures that a dealloc is inserted before functions return
     if the function contains a AllocaOp. It should be run before converting
@@ -985,7 +986,7 @@ def QuakeAddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
 }
 
 def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
- let summary = "Add various metadata attributes to a Quake function.";
+  let summary = "Add various metadata attributes to a Quake function.";
   let description = [{
    This pass provides a hook for adding various metadata to a Quake
    function's list of compile-time attributes. This type of metadata
@@ -1009,6 +1010,17 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
     type values.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
+def SROA : Pass<"cc-sroa"> {
+  let summary = "Scalar replacement of aggregates.";
+  let description = [{
+    Simple scalar replacement of aggregates. This pass will rewrite simple use
+    cases by replacing aggregates with scalars.
+
+    To be implemented: handling recursive compositions of aggregate types.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
 // UnitarySynthesis is a module pass because it may modify the `ModuleOp` by
