@@ -459,7 +459,7 @@ public:
         // created from a kernel that generated the state argument.
         // Traverse the list and collect substitutions for all those
         // functions.
-        auto argCon = cudaq::opt::ArgumentConverter(kernelName, moduleOp);
+        cudaq::opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
 
         // Store kernel and substitution strings on the stack.
