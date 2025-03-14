@@ -232,7 +232,7 @@ class OperatorSum:
             if converted == 0:
                 return cudaq_runtime.SpinOperator.empty()
             else:
-                return converted * cudaq_runtime.SpinOperator.identity()
+                return converted * cudaq_runtime.SpinOperator()
         else:
             return converted
 
