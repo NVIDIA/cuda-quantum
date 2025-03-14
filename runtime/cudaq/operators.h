@@ -69,10 +69,11 @@ protected:
                 // terms)
   std::vector<std::vector<HandlerTy>> terms;
   std::vector<scalar_operator> coefficients;
+  bool is_default = false;
 
-  constexpr sum_op(){};
-  sum_op(const sum_op<HandlerTy> &other, bool sized, int size);
-  sum_op(sum_op<HandlerTy> &&other, bool sized, int size);
+  constexpr sum_op(bool is_default) : is_default(is_default){};
+  sum_op(const sum_op<HandlerTy> &other, bool is_default, int size);
+  sum_op(sum_op<HandlerTy> &&other, bool is_default, int size);
 
 public:
   // called const_iterator because it will *not* modify the sum,
@@ -145,6 +146,11 @@ public:
   std::size_t num_terms() const;
 
   // constructors and destructors
+
+  // A default initialized sum will act as both the additive
+  // and multiplicative identity. To construct a true "0" value
+  // (neutral element for addition only), use sum_op<T>::empty().
+  constexpr sum_op() : is_default(true){};
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
@@ -886,10 +892,8 @@ typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
 typedef std::unordered_map<int, int> dimension_map;
 typedef sum_op<matrix_handler> matrix_op;
 typedef product_op<matrix_handler> matrix_op_term;
-// commented out since this will require the complete replacement of spin ops
-// everywhere
-// typedef sum_op<spin_handler> spin_op;
-// typedef product_op<spin_handler> spin_op_term;
+typedef sum_op<spin_handler> spin_op;
+typedef product_op<spin_handler> spin_op_term;
 typedef sum_op<boson_handler> boson_op;
 typedef product_op<boson_handler> boson_op_term;
 typedef sum_op<fermion_handler> fermion_op;
@@ -906,4 +910,13 @@ extern template class sum_op<spin_handler>;
 extern template class sum_op<boson_handler>;
 extern template class sum_op<fermion_handler>;
 #endif
+
+// Here only for backward compatibility
+namespace spin {
+sum_op<spin_handler> i(std::size_t target);
+sum_op<spin_handler> x(std::size_t target);
+sum_op<spin_handler> y(std::size_t target);
+sum_op<spin_handler> z(std::size_t target);
+} // namespace spin
+
 } // namespace cudaq

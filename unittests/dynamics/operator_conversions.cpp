@@ -18,7 +18,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   auto matrix_elementary = cudaq::matrix_op::parity(1);
   auto matrix_elementary_expected = utils::parity_matrix(2);
-  auto spin_elementary = cudaq::sum_op<cudaq::spin_handler>::y(1);
+  auto spin_elementary = cudaq::spin_op::y(1);
   auto spin_elementary_expected = utils::PauliY_matrix();
   auto boson_elementary = cudaq::boson_op::annihilate(1);
   auto boson_elementary_expected = utils::annihilate_matrix(2);
@@ -147,8 +147,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
       cudaq::matrix_op::squeeze(0) * cudaq::matrix_op::displace(1);
   auto matrix_product_expected = cudaq::kronecker(
       utils::displace_matrix(2, 0.25), utils::squeeze_matrix(2, 0.5));
-  auto spin_product = cudaq::sum_op<cudaq::spin_handler>::y(1) *
-                      cudaq::sum_op<cudaq::spin_handler>::x(0);
+  auto spin_product = cudaq::spin_op::y(1) * cudaq::spin_op::x(0);
   auto spin_product_expected =
       cudaq::kronecker(utils::PauliY_matrix(), utils::PauliX_matrix());
   auto boson_product =
@@ -279,8 +278,7 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
       cudaq::matrix_op::squeeze(0) * cudaq::matrix_op::displace(1);
   auto matrix_product_expected = cudaq::kronecker(
       utils::displace_matrix(2, 0.25), utils::squeeze_matrix(2, 0.5));
-  auto spin_product = cudaq::sum_op<cudaq::spin_handler>::y(1) *
-                      cudaq::sum_op<cudaq::spin_handler>::x(0);
+  auto spin_product = cudaq::spin_op::y(1) * cudaq::spin_op::x(0);
   auto spin_product_expected =
       cudaq::kronecker(utils::PauliY_matrix(), utils::PauliX_matrix());
   auto boson_product =
@@ -293,8 +291,7 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
   auto matrix_sum_expected =
       cudaq::kronecker(utils::displace_matrix(2, 0.25), utils::id_matrix(2)) +
       cudaq::kronecker(utils::id_matrix(2), utils::squeeze_matrix(2, 0.5));
-  auto spin_sum = cudaq::sum_op<cudaq::spin_handler>::y(1) +
-                  cudaq::sum_op<cudaq::spin_handler>::x(0);
+  auto spin_sum = cudaq::spin_op::y(1) + cudaq::spin_op::x(0);
   auto spin_sum_expected =
       cudaq::kronecker(utils::PauliY_matrix(), utils::id_matrix(2)) +
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix());

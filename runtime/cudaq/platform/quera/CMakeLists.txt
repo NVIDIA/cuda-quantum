@@ -19,7 +19,7 @@ target_include_directories(${LIBRARY_NAME} PRIVATE .
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-serverhelper-braket 
-    cudaq-spin 
+    cudaq-operator
     cudaq-common 
   PRIVATE
     pthread

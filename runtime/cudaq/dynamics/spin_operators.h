@@ -13,10 +13,11 @@
 #include <vector>
 
 #include "cudaq/operators.h"
-#include "cudaq/spin_op.h" // for pauli
 #include "cudaq/utils/matrix.h"
 
 namespace cudaq {
+
+enum class pauli { I, X, Y, Z };
 
 class spin_handler : public operator_handler {
   template <typename T>

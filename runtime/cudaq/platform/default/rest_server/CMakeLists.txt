@@ -90,6 +90,7 @@ target_link_libraries(rest-remote-platform-server
   PRIVATE
     rest_server_impl
     cudaq 
+    cudaq-operator
     cudaq-em-default 
     cudaq-mlir-runtime
     cudaq-platform-default

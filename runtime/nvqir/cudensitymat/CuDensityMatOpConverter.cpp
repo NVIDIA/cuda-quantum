@@ -244,17 +244,13 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     opNames.emplace_back(opNames.back() + "_dagger");
     opNames.emplace_back(cudaq::boson_op::number(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::sum_op<cudaq::spin_handler>::i(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::spin_op::i(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::sum_op<cudaq::spin_handler>::x(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::spin_op::x(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::sum_op<cudaq::spin_handler>::y(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::spin_op::y(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::sum_op<cudaq::spin_handler>::z(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::spin_op::z(0).begin()->to_string(false));
     return opNames;
   }();
 

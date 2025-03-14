@@ -921,8 +921,10 @@ PRODUCT_ADDITION_PRODUCT(-)
 template <typename HandlerTy>
 sum_op<HandlerTy>
 product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
-  sum_op<HandlerTy>
-      sum; // everything needs to be updated, so creating a new sum makes sense
+  if (other.is_default)
+    return *this;
+  sum_op<HandlerTy> sum(false); // everything needs to be updated, so creating a
+                                // new sum makes sense
   sum.coefficients.reserve(other.coefficients.size());
   sum.term_map.reserve(other.terms.size());
   sum.terms.reserve(other.terms.size());
@@ -939,7 +941,9 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(                        \
       const sum_op<HandlerTy> &other) const & {                                \
-    sum_op<HandlerTy> sum;                                                     \
+    if (other.is_default)                                                      \
+      return *this;                                                            \
+    sum_op<HandlerTy> sum(false);                                              \
     sum.coefficients.reserve(other.coefficients.size() + 1);                   \
     sum.term_map = other.term_map;                                             \
     sum.terms = other.terms;                                                   \
@@ -952,7 +956,9 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(                        \
       const sum_op<HandlerTy> &other) && {                                     \
-    sum_op<HandlerTy> sum;                                                     \
+    if (other.is_default)                                                      \
+      return *this;                                                            \
+    sum_op<HandlerTy> sum(false);                                              \
     sum.coefficients.reserve(other.coefficients.size() + 1);                   \
     sum.term_map = other.term_map;                                             \
     sum.terms = other.terms;                                                   \
@@ -964,6 +970,8 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(                        \
       sum_op<HandlerTy> &&other) const & {                                     \
+    if (other.is_default)                                                      \
+      return *this;                                                            \
     sum_op<HandlerTy> sum(op std::move(other));                                \
     sum.insert(*this);                                                         \
     return std::move(sum);                                                     \
@@ -972,6 +980,8 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(                        \
       sum_op<HandlerTy> &&other) && {                                          \
+    if (other.is_default)                                                      \
+      return *this;                                                            \
     sum_op<HandlerTy> sum(op std::move(other));                                \
     sum.insert(std::move(*this));                                              \
     return std::move(sum);                                                     \
@@ -1325,12 +1335,10 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
   return bsf; // always little endian order by definition of the bsf
 }
 
-#if !defined(__clang__)
 template std::size_t product_op<spin_handler>::num_qubits() const;
 template std::string product_op<spin_handler>::get_pauli_word() const;
 template std::vector<bool>
 product_op<spin_handler>::get_binary_symplectic_form() const;
-#endif
 
 // utility functions for backwards compatibility
 
@@ -1346,10 +1354,8 @@ std::string product_op<HandlerTy>::to_string(bool printCoeffs) const {
   return sum_op(*this).to_string(printCoeffs);
 }
 
-#if !defined(__clang__)
 template std::string
 product_op<spin_handler>::to_string(bool printCoeffs) const;
-#endif
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class product_op<matrix_handler>;
