@@ -1335,12 +1335,10 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
   return bsf; // always little endian order by definition of the bsf
 }
 
-#if !defined(__clang__)
 template std::size_t product_op<spin_handler>::num_qubits() const;
 template std::string product_op<spin_handler>::get_pauli_word() const;
 template std::vector<bool>
 product_op<spin_handler>::get_binary_symplectic_form() const;
-#endif
 
 // utility functions for backwards compatibility
 
@@ -1356,10 +1354,8 @@ std::string product_op<HandlerTy>::to_string(bool printCoeffs) const {
   return sum_op(*this).to_string(printCoeffs);
 }
 
-#if !defined(__clang__)
 template std::string
 product_op<spin_handler>::to_string(bool printCoeffs) const;
-#endif
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class product_op<matrix_handler>;

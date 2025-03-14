@@ -306,7 +306,7 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
 
 #define INSTANTIATE_SUM_CONSTRUCTORS(HandlerTy)                                \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(bool is_identity);                        \
+  template sum_op<HandlerTy>::sum_op(bool is_default);                         \
                                                                                \
   template sum_op<HandlerTy>::sum_op(const product_op<HandlerTy> &item2);      \
                                                                                \
@@ -335,8 +335,14 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
 // to be available to those.
 #define INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(HandlerTy)                 \
                                                                                \
+  template sum_op<HandlerTy>::sum_op(product_op<HandlerTy> &&item2);           \
+                                                                               \
   template sum_op<HandlerTy>::sum_op(product_op<HandlerTy> &&item1,            \
-                                     product_op<HandlerTy> &&item2);
+                                     product_op<HandlerTy> &&item2);           \
+                                                                               \
+  template sum_op<HandlerTy>::sum_op(product_op<HandlerTy> &&item1,            \
+                                     product_op<HandlerTy> &&item2,            \
+                                     product_op<HandlerTy> &&item3);           \
 
 template sum_op<matrix_handler>::sum_op(const sum_op<spin_handler> &other);
 template sum_op<matrix_handler>::sum_op(const sum_op<boson_handler> &other);
@@ -1703,7 +1709,6 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits,
   return std::move(sum);
 }
 
-#if !defined(__clang__)
 template std::size_t sum_op<spin_handler>::num_qubits() const;
 template sum_op<spin_handler>::sum_op(const std::vector<double> &input_vec);
 template product_op<spin_handler>
@@ -1711,7 +1716,6 @@ sum_op<spin_handler>::from_word(const std::string &word);
 template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
                                                            std::size_t nTerms,
                                                            unsigned int seed);
-#endif
 
 // utility functions for backwards compatibility
 
@@ -1941,7 +1945,6 @@ bool sum_op<HandlerTy>::is_identity() const {
   return true;
 }
 
-#if !defined(__clang__)
 template sum_op<spin_handler>::sum_op(const std::vector<double> &input_vec,
                                       std::size_t nQubits);
 template sum_op<spin_handler>::sum_op(
@@ -1958,7 +1961,6 @@ template void sum_op<spin_handler>::for_each_term(
 template void sum_op<spin_handler>::for_each_pauli(
     std::function<void(pauli, std::size_t)> &&functor) const;
 template bool sum_op<spin_handler>::is_identity() const;
-#endif
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class sum_op<matrix_handler>;
