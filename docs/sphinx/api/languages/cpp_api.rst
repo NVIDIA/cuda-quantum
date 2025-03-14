@@ -1,12 +1,6 @@
 CUDA-Q C++ API
 ******************************
 
-Operators 
-=============
-
-.. doxygenclass:: cudaq::spin_op
-    :members:
-
 Quantum
 =========
 
