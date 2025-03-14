@@ -127,7 +127,7 @@ public:
       return !(*this == other);
     }
 
-    /// @brief Dereferences the iterator to yield a reference to current_val,
+    /// @brief `Dereferences` the iterator to yield a reference to current_val,
     /// allowing access to the current product_op.
     reference operator*() { return current_val; }
     /// @brief Provides pointer access to the current product_op.
