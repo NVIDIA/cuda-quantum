@@ -235,9 +235,6 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
     // Update nQubits so we only measure the requested qubits.
     nQubits = termBSF.size() / 2;
 
-    // Update nQubits so we only measure the requested qubits.
-    nQubits = termBSF.size() / 2;
-
     // If the mapping pass was not run, we expect no pre-existing measurements.
     if (!iter->second.mappingPassRan && !iter->second.measurements.empty())
       return funcOp.emitOpError("Cannot observe kernel with measures in it.");
