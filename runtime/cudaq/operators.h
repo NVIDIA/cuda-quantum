@@ -587,7 +587,7 @@ public:
       return !(*this == other);
     }
 
-    /// @brief Dereferences the iterator to access the current operator.
+    /// @brief `Dereferences` the iterator to access the current operator.
     /// @return A constant reference to the current operator.
     reference operator*() const { return prod->operators[current_idx]; }
 
@@ -609,14 +609,14 @@ public:
       return *this;
     }
 
-    /// @brief Advances the iterator (postfix increment) and returns the
+    /// @brief Advances the iterator (`postfix` increment) and returns the
     /// iterator state before increment.
     /// @return A const_iterator representing the state prior to increment.
     const_iterator operator++(int) {
       return const_iterator(prod, current_idx++);
     }
 
-    /// @brief Moves the iterator (postfix decrement) and returns the iterator
+    /// @brief Moves the iterator (`postfix` decrement) and returns the iterator
     /// state before decrement.
     /// @return A const_iterator representing the state prior to decrement.
     const_iterator operator--(int) {
