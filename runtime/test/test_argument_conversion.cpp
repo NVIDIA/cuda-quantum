@@ -644,7 +644,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 
   {
     // @cudaq.kernel
-    // def init(n: int):
+    // def init1(n: int):
     //    q = cudaq.qvector(n)
     //    x(q[0])
     //
@@ -655,7 +655,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
     // def kernel(s: cudaq.State):
     //   ...
     //
-    // s0 = cudaq.get_state(init, 2)
+    // s0 = cudaq.get_state(init1, 2)
     // s1 = cudaq.get_state(state_param, s0)
     // cudaq.sample(kernel, s1)
     auto init = "init1";
@@ -771,7 +771,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
 
   {
     // @cudaq.kernel
-    // def init(n: int):
+    // def init2(n: int):
     //    q0 = cudaq.qvector(n)
     //    x(q0[0])
     //    r = mz(q0[0])
@@ -783,7 +783,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
     // def kernel(s: cudaq.State):
     //   ...
     //
-    // s = cudaq.get_state(init, 2)
+    // s = cudaq.get_state(init2, 2)
     // cudaq.sample(kernel, s)
     auto init = "init2";
     auto initCode =
@@ -865,7 +865,7 @@ void test_quantum_state(mlir::MLIRContext *ctx) {
   // clang-format on
 
   {
-    // (No memtoreg pass before synthesis)
+    // (No memtoreg pass before argument conversion)
     // @cudaq.kernel
     // def init3(n: int):
     //    q0 = cudaq.qvector(n)

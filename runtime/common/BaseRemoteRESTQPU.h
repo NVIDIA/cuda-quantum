@@ -452,12 +452,10 @@ public:
     if (!rawArgs.empty()) {
       mlir::PassManager pm(&context);
       cudaq::info("Run Argument Synth.\n");
-      // For quantum devices, create a list of ArgumentConverters
-      // with nodes corresponding to `init` and `num_qubits` functions
-      // created from a kernel that generated the state argument.
-      // Traverse the list and collect substitutions for all those
-      // functions.
-      auto argCon = cudaq::opt::ArgumentConverter(kernelName, moduleOp);
+      // For quantum devices, we generate a collection of `init` and
+      // `num_qubits` functions and their substitutions created
+      // from a kernel and arguments that generated a state argument.
+      cudaq::opt::ArgumentConverter argCon(kernelName, moduleOp);
       argCon.gen(rawArgs);
 
       // Store kernel and substitution strings on the stack.
@@ -714,7 +712,6 @@ public:
             if (hasConditionals && isObserve)
               throw std::runtime_error("error: spin_ops not yet supported with "
                                        "kernels containing conditionals");
-
             if (hasConditionals) {
               executor->setShots(1); // run one shot at a time
 

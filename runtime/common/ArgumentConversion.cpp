@@ -100,17 +100,16 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
 
 /// Create callee.init_N that initializes the state
-/// Callee (the kernel captured by state):
+///
 // clang-format off
+/// Callee (the kernel captured by state):
 /// func.func @callee(%arg0: i64) {
-///   %0 = cc.alloca i64
-///   cc.store %arg0, %0 : !cc.ptr<i64>
-///   %1 = cc.load %0 : !cc.ptr<i64>
-///   %2 = quake.alloca !quake.veq<?>[%1 : i64]
+///   %2 = quake.alloca !quake.veq<?>[%arg0 : i64]
 ///   %3 = quake.extract_ref %2[1] : (!quake.veq<?>) -> !quake.ref
 ///   quake.x %3 : (!quake.ref) -> ()
 ///   return
 /// }
+///
 /// callee.init_N:
 /// func.func private @callee.init_0(%arg0: !quake.veq<?>, %arg0: i64) ->
 /// !!quake.veq<?> {
@@ -228,13 +227,11 @@ static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
 
 /// Create callee.num_qubits_N that calculates the number of qubits to
 /// initialize the state
-/// Callee: (the kernel captured by state):
+///
 // clang-format off
+/// Callee: (the kernel captured by state):
 /// func.func @callee(%arg0: i64) {
-///   %0 = cc.alloca i64
-///   cc.store %arg0, %0 : !cc.ptr<i64>
-///   %1 = cc.load %0 : !cc.ptr<i64>
-///   %2 = quake.alloca !quake.veq<?>[%1 : i64]
+///   %2 = quake.alloca !quake.veq<?>[%arg0 : i64]
 ///   %3 = quake.extract_ref %2[1] : (!quake.veq<?>) -> !quake.ref
 ///   quake.x %3 : (!quake.ref) -> ()
 ///   return
@@ -242,10 +239,7 @@ static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
 ///
 /// callee.num_qubits_0:
 /// func.func private @callee.num_qubits_0(%arg0: i64) -> i64 {
-///   %0 = cc.alloca i64
-///   cc.store %arg0, %0 : !cc.ptr<i64>
-///   %1 = cc.load %0 : !cc.ptr<i64>
-///   return %1 : i64
+///   return %arg0 : i64
 /// }
 // clang-format on
 static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
@@ -306,15 +300,22 @@ static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
     SmallVector<Operation *> keep;
     while (!used.empty()) {
       auto *op = used.pop_back_val();
+      if (std::find(keep.begin(), keep.end(), op) != keep.end())
+        continue;
+
       keep.push_back(op);
 
+      // Collect ops creating operands used in ops we already collected
       for (auto opnd : op->getOperands())
         if (auto defOp = opnd.getDefiningOp())
           used.push_back(defOp);
 
+      // Collect ops that store into memory used in ops we already collected.
       for (auto user : op->getUsers())
-        if (auto store = dyn_cast<cudaq::cc::StoreOp>(user))
-          keep.push_back(user);
+        if (auto iface = dyn_cast<MemoryEffectOpInterface>(user))
+          if (iface.hasEffect<MemoryEffects::Write>() &&
+              !iface.hasEffect<MemoryEffects::Allocate>())
+            used.push_back(user);
     }
 
     // Remove the rest of the ops
@@ -723,10 +724,9 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
   // We should look up the input type signature here.
   auto fun = sourceModule.lookupSymbol<func::FuncOp>(
       cudaq::runtime::cudaqGenPrefixName + kernelName.str());
-  if (!fun) {
+  if (!fun)
     throw std::runtime_error("missing fun in argument conversion: " +
                              kernelName.str());
-  }
 
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :
