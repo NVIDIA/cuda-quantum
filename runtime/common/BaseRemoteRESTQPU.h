@@ -137,8 +137,9 @@ protected:
     delete jit;
   }
 
-  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
-  extractQuakeCodeAndContext(const std::string &kernelName) = 0;
+  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
+  extractQuakeCodeAndContext(const std::string &kernelName, void *data) = 0;
+
   virtual void cleanupContext(mlir::MLIRContext *context) { return; }
 
 public:
@@ -402,7 +403,8 @@ public:
   lowerQuakeCode(const std::string &kernelName, void *kernelArgs,
                  const std::vector<void *> &rawArgs) {
 
-    auto [m_module, contextPtr] = extractQuakeCodeAndContext(kernelName);
+    auto [m_module, contextPtr, updatedArgs] =
+        extractQuakeCodeAndContext(kernelName, kernelArgs);
 
     mlir::MLIRContext &context = *contextPtr;
 
@@ -449,43 +451,48 @@ public:
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
 
-    if (!rawArgs.empty()) {
+    if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(&context);
-      cudaq::info("Run Argument Synth.\n");
-      // For quantum devices, we generate a collection of `init` and
-      // `num_qubits` functions and their substitutions created
-      // from a kernel and arguments that generated a state argument.
-      cudaq::opt::ArgumentConverter argCon(kernelName, moduleOp);
-      argCon.gen(rawArgs);
+      if (!rawArgs.empty()) {
+        cudaq::info("Run Argument Synth.\n");
+        // For quantum devices, we generate a collection of `init` and
+        // `num_qubits` functions and their substitutions created
+        // from a kernel and arguments that generated a state argument.
+        cudaq::opt::ArgumentConverter argCon(kernelName, moduleOp);
+        argCon.gen(rawArgs);
 
-      // Store kernel and substitution strings on the stack.
-      // We pass string references to the `createArgumentSynthesisPass`.
-      mlir::SmallVector<std::string> kernels;
-      mlir::SmallVector<std::string> substs;
-      for (auto &kInfo : argCon.getKernelSubstitutions()) {
-        {
-          std::string kernName =
-              cudaq::runtime::cudaqGenPrefixName + kInfo.getKernelName().str();
-          kernels.emplace_back(kernName);
+        // Store kernel and substitution strings on the stack.
+        // We pass string references to the `createArgumentSynthesisPass`.
+        mlir::SmallVector<std::string> kernels;
+        mlir::SmallVector<std::string> substs;
+        for (auto &kInfo : argCon.getKernelSubstitutions()) {
+          {
+            std::string kernName = cudaq::runtime::cudaqGenPrefixName +
+                                   kInfo.getKernelName().str();
+            kernels.emplace_back(kernName);
+          }
+          {
+            std::string substBuff;
+            llvm::raw_string_ostream ss(substBuff);
+            ss << kInfo.getSubstitutionModule();
+            substs.emplace_back(substBuff);
+          }
         }
-        {
-          std::string substBuff;
-          llvm::raw_string_ostream ss(substBuff);
-          ss << kInfo.getSubstitutionModule();
-          substs.emplace_back(substBuff);
-        }
+
+        // Collect references for the argument synthesis.
+        mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
+                                                      kernels.end()};
+        mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
+                                                     substs.end()};
+        pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
+        pm.addPass(opt::createDeleteStates());
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createReplaceStateWithKernel());
+        pm.addPass(mlir::createSymbolDCEPass());
+      } else if (updatedArgs) {
+        cudaq::info("Run Quake Synth.\n");
+        pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
-
-      // Collect references for the argument synthesis.
-      mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
-                                                    kernels.end()};
-      mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
-                                                   substs.end()};
-      pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
-      pm.addPass(opt::createDeleteStates());
-      pm.addNestedPass<mlir::func::FuncOp>(opt::createReplaceStateWithKernel());
-      pm.addPass(mlir::createSymbolDCEPass());
-
       pm.addPass(mlir::createCanonicalizerPass());
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();

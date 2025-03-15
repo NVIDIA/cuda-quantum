@@ -21,8 +21,10 @@ namespace {
 /// execution of CUDA-Q kernels on the Fermioniq simulator via a REST Client.
 class FermioniqRestQPU : public cudaq::FermioniqBaseQPU {
 protected:
-  std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
-  extractQuakeCodeAndContext(const std::string &kernelName) override {
+  std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
+  extractQuakeCodeAndContext(const std::string &kernelName,
+                             void *data) override {
+
     auto contextPtr = cudaq::initializeMLIR();
     MLIRContext &context = *contextPtr.get();
 
@@ -32,7 +34,7 @@ protected:
     if (!m_module)
       throw std::runtime_error("module cannot be parsed");
 
-    return std::make_tuple(m_module.release(), contextPtr.release());
+    return std::make_tuple(m_module.release(), contextPtr.release(), data);
   }
 
   void cleanupContext(MLIRContext *context) override { delete context; }

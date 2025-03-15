@@ -67,6 +67,27 @@ private:
     auto context = std::make_unique<MLIRContext>(registry);
     context->loadAllAvailableDialects();
     registerLLVMDialectTranslation(*context);
+    return context;
+  }
+
+protected:
+  std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
+  extractQuakeCodeAndContext(const std::string &kernelName,
+                             void *data) override {
+    auto [mod, ctx] = extractQuakeCodeAndContextImpl(kernelName);
+    void *updatedArgs = nullptr;
+    if (data) {
+      auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(data);
+      updatedArgs = wrapper->rawArgs;
+    }
+    return {mod, ctx, updatedArgs};
+  }
+
+  std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
+  extractQuakeCodeAndContextImpl(const std::string &kernelName) {
+
+    auto contextPtr = createContext();
+    MLIRContext *context = contextPtr.get();
 
     static bool initOnce = [&] {
       registerToQIRTranslation();
@@ -75,15 +96,6 @@ private:
       return true;
     }();
     (void)initOnce;
-    return context;
-  }
-
-protected:
-  std::tuple<mlir::ModuleOp, mlir::MLIRContext *>
-  extractQuakeCodeAndContext(const std::string &kernelName) override {
-
-    auto contextPtr = createContext();
-    MLIRContext *context = contextPtr.get();
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(kernelName);
