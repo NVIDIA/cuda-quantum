@@ -139,7 +139,6 @@ protected:
 
   virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName, void *data) = 0;
-
   virtual void cleanupContext(mlir::MLIRContext *context) { return; }
 
 public:
@@ -767,7 +766,6 @@ public:
                 }
               }
             }
-
             localJIT.clear();
             return cudaq::sample_result(results);
           }));

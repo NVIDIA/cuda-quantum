@@ -28,7 +28,7 @@ namespace {
 /// backends as well as those that take OpenQASM2 as input.
 class RemoteRESTQPU : public cudaq::BaseRemoteRESTQPU {
 protected:
-  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
+  std::tuple<ModuleOp, MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
 
