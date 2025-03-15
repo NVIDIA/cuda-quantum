@@ -144,9 +144,12 @@ def test_quantinuum_state_synthesis():
     state = cudaq.State.from_data(
         np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
 
-    with pytest.raises(RuntimeError) as e:
-        counts = cudaq.sample(kernel, state)
-    assert 'Could not successfully apply quake-synth.' in repr(e)
+    counts = cudaq.sample(kernel, state)
+    print(counts)
+    assert "00" in counts
+    assert "10" in counts
+    assert "01" not in counts
+    assert "11" not in counts
 
 
 def test_exp_pauli():
