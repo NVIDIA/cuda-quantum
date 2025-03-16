@@ -190,38 +190,38 @@ public:
 
   /// @brief Constructs a product operator representing a number operator for
   /// the given degree.
-  /// @arg degree The degree or power to which the number operator is
+  /// @arg degree : The degree or power to which the number operator is
   /// constructed.
   /// @return A matrix_handler instance that encapsulates the
   /// constructed number operator matrix.
   static matrix_handler number(std::size_t degree);
   /// @brief Creates a parity operator using a product operator with
   /// matrix_handler.
-  /// @arg degree The degree of the parity transformation, which may correspond
-  /// to the number of qubits or the order of the operation.
+  /// @arg degree : The degree of the parity transformation, which may
+  /// correspond to the number of qubits or the order of the operation.
   /// @return A product operator that encapsulates the parity transformation.
   static matrix_handler parity(std::size_t degree);
   /// @brief Constructs a product operator representing the position operator.
-  /// @arg degree Specifies the operator's degree, which may determine the
+  /// @arg degree : Specifies the operator's degree, which may determine the
   /// approximation order or related numerical properties.
   /// @return A product operator constructed with a matrix handler that embodies
   /// the position operator.
   static matrix_handler position(std::size_t degree);
   /// @brief Constructs a momentum operator based on the specified degree.
-  /// @arg degree The degree of the momentum operator, influencing its
+  /// @arg degree : The degree of the momentum operator, influencing its
   /// construction.
   /// @return A product_op object containing a matrix_handler that represents
   /// the momentum operator.
   static matrix_handler momentum(std::size_t degree);
   /// Operators that accept parameters at runtime.
   /// @brief Creates a squeeze operator with a specific degree.
-  /// @arg degree The degree indicating the intensity of the squeeze
+  /// @arg degree : The degree indicating the intensity of the squeeze
   /// transformation.
   /// @return matrix_handler An operator representing the squeeze
   /// transformation.
   static matrix_handler squeeze(std::size_t degree);
   /// @brief Creates a displacement operator based on a specified degree.
-  /// @arg degree The magnitude or extent of the displacement.
+  /// @arg degree : The magnitude or extent of the displacement.
   /// @return A product operator (with a matrix handler) representing the
   /// displacement.
   static matrix_handler displace(std::size_t degree);
