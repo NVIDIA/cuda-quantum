@@ -16,9 +16,21 @@
 #include "cudaq/utils/matrix.h"
 
 namespace cudaq {
-
+/// @brief The matrix_handler class manages matrix-based quantum operators.
+/// It derives from operator_handler and facilitates the definition,
+/// instantiation, evaluation, and manipulation of elementary as well as custom
+/// operators that can be represented in matrix form.
 class matrix_handler : public operator_handler {
 public:
+  /// @brief The commutation_behavior struct encapsulates the commutation
+  /// properties for a matrix operator:
+  ///   - group: Specifies the commutation relations group (using
+  ///   commutation_relations enum),
+  ///            defaulting to the operator_handler's
+  ///            default_commutation_relations.
+  ///   - commutes_across_degrees: A flag indicating whether the operator
+  ///   commutes across
+  ///            different degrees of freedom.
   struct commutation_behavior {
     commutation_relations group =
         operator_handler::default_commutation_relations;
@@ -176,12 +188,42 @@ public:
 
   // predefined operators
 
+  /// @brief Constructs a product operator representing a number operator for
+  /// the given degree.
+  /// @arg degree The degree or power to which the number operator is
+  /// constructed.
+  /// @return A matrix_handler instance that encapsulates the
+  /// constructed number operator matrix.
   static matrix_handler number(std::size_t degree);
+  /// @brief Creates a parity operator using a product operator with
+  /// matrix_handler.
+  /// @arg degree The degree of the parity transformation, which may correspond
+  /// to the number of qubits or the order of the operation.
+  /// @return A product operator that encapsulates the parity transformation.
   static matrix_handler parity(std::size_t degree);
+  /// @brief Constructs a product operator representing the position operator.
+  /// @arg degree Specifies the operator's degree, which may determine the
+  /// approximation order or related numerical properties.
+  /// @return A product operator constructed with a matrix handler that embodies
+  /// the position operator.
   static matrix_handler position(std::size_t degree);
+  /// @brief Constructs a momentum operator based on the specified degree.
+  /// @arg degree The degree of the momentum operator, influencing its
+  /// construction.
+  /// @return A product_op object containing a matrix_handler that represents
+  /// the momentum operator.
   static matrix_handler momentum(std::size_t degree);
   /// Operators that accept parameters at runtime.
+  /// @brief Creates a squeeze operator with a specific degree.
+  /// @arg degree The degree indicating the intensity of the squeeze
+  /// transformation.
+  /// @return matrix_handler An operator representing the squeeze
+  /// transformation.
   static matrix_handler squeeze(std::size_t degree);
+  /// @brief Creates a displacement operator based on a specified degree.
+  /// @arg degree The magnitude or extent of the displacement.
+  /// @return A product operator (with a matrix handler) representing the
+  /// displacement.
   static matrix_handler displace(std::size_t degree);
 };
 } // namespace cudaq
