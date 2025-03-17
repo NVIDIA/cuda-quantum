@@ -1027,10 +1027,10 @@
 <dd><p>Constructs a scalar callback from a callable object. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>Callable</strong> – The type of the callable object. It must satisfy the signature: std::complex&lt;double&gt;(<code class="docutils literal notranslate"><span class="pre">const</span></code> std::unordered_map&lt;std::string, std::complex&lt;double&gt;&gt; &amp;). <ul class="simple">
-<li><p>callable The callable object to be wrapped and stored for later invocation. </p></li>
-</ul>
-</p>
+<dd class="field-odd"><p><strong>Callable</strong> – The type of the callable object. It must satisfy the signature: std::complex&lt;double&gt;(<code class="docutils literal notranslate"><span class="pre">const</span></code> std::unordered_map&lt;std::string, std::complex&lt;double&gt;&gt; &amp;). </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>callable</strong> – The callable object to be wrapped and stored for later invocation. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -1063,13 +1063,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_callbackclERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">
 <span class="target" id="classcudaq_1_1scalar__callback_1afff4c30e4c7ebe0aa9cbdfbca8cb81bf"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">parameters</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_callbackclERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Evaluates the callback with the provided parameters. </p>
-<p><ul class="simple">
-<li><p>parameters A mapping from parameter names to their complex values. </p></li>
-</ul>
-</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>std::complex&lt;double&gt; The computed complex result based on the input parameters. </p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – A mapping from parameter names to their complex values. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>std::complex&lt;double&gt; The computed complex result based on the input parameters. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -1157,13 +1156,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_operator8evaluateERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">
 <span class="target" id="classcudaq_1_1scalar__operator_1aabf777fce3c2e626bb6a0761092cde86"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evaluate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">parameters</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_operator8evaluateERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Evaluates the scalar operator using the given parameters. </p>
-<p><ul class="simple">
-<li><p>parameters A map of parameter names to complex values. </p></li>
-</ul>
-</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The evaluated complex value. </p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – A map of parameter names to complex values. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The evaluated complex value. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -1172,13 +1170,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_operator9to_matrixERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">
 <span class="target" id="classcudaq_1_1scalar__operator_1aa0086320701a3cb117dfbd83404d9106"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_matrix</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">parameters</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_operator9to_matrixERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Converts the scalar operator to a 1x1 matrix. </p>
-<p><ul class="simple">
-<li><p>parameters A map of parameter names to complex values. </p></li>
-</ul>
-</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The 1x1 complex matrix representation. </p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameters</strong> – A map of parameter names to complex values. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The 1x1 complex matrix representation. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -1198,13 +1195,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_operatoreqE15scalar_operator">
 <span class="target" id="classcudaq_1_1scalar__operator_1aecc3ebb468cda1f4caa80c91f36f0cd4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_operatoreqE15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Compares two scalar operators for equality. </p>
-<p><ul class="simple">
-<li><p>other The scalar operator to compare against. </p></li>
-</ul>
-</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>True if both operators are equal, false otherwise. </p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> – The scalar operator to compare against. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if both operators are equal, false otherwise. </p>
 </dd>
 </dl>
 </dd></dl>
