@@ -897,8 +897,10 @@ For example from Python one can use the <a class="reference external" href="http
 </pre></div>
 </div>
 </section>
-<section id="submission-from-python">
-<h3>Submission from Python<a class="headerlink" href="#submission-from-python" title="Permalink to this heading">¶</a></h3>
+<section id="id2">
+<h3>Submitting<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;pasqal&#39;</span><span class="p">)</span>
@@ -923,10 +925,10 @@ The <code class="code docutils literal notranslate"><span class="pre">hamiltonia
 other supported parameters are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
 <p>For example,</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evolution_result</span> <span class="o">=</span> <span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="n">atom_sites</span><span class="o">=</span><span class="n">register</span><span class="p">,</span>
-                                             <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
-                                             <span class="n">phase</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
-                                             <span class="n">delta_global</span><span class="o">=</span><span class="n">delta</span><span class="p">),</span>
-                           <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">)</span>
+                                            <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
+                                            <span class="n">phase</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
+                                            <span class="n">delta_global</span><span class="o">=</span><span class="n">delta</span><span class="p">),</span>
+                        <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
@@ -936,6 +938,47 @@ set to 100.</p>
 </pre></div>
 </div>
 <p>To see a complete example for using Pasqal’s backend, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">Python examples</span></a>.</p>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<p>To target quantum kernel code for execution on Pasqal QPU or simulators,
+pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">pasqal</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>pasqal<span class="w"> </span>src.cpp
+</pre></div>
+</div>
+<p>You can also pass the flag <code class="docutils literal notranslate"><span class="pre">--pasqal-machine</span></code> to select the corresponding Pasqal QPU or emulator to execute on.
+See the <a class="reference external" href="https://portal.pasqal.cloud/">Pasqal cloud portal</a> for an up to date list.
+The default value is <code class="docutils literal notranslate"><span class="pre">EMU_MPS</span></code> which is an open-source tensor network emulator based on the
+Matrix Product State formalism running in Pasqal’s cloud platform. You can see the
+documentation for the publicly accessible emulator <a class="reference external" href="https://pasqal-io.github.io/emulators/latest/emu_mps/">here</a>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>pasqal<span class="w"> </span>--pasqal-machine<span class="w"> </span>EMU_FREE<span class="w"> </span>src.cpp
+</pre></div>
+</div>
+<p>To target the QPU use the FRESNEL machine name. Note that there are restrictions
+regarding the values of the pulses as well as the register layout. We invite you to
+consult our <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job">documentation</a>. Note that
+the CUDA-Q integration currently only works with <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job/#arbitrary-layouts">arbitrary layouts</a>
+which are implemented with automatic calibration for less than 30 qubits. For jobs
+larger than 30 qubits please use the <code class="code docutils literal notranslate"><span class="pre">atom_sites</span></code> to define the layout, and use the
+<code class="code docutils literal notranslate"><span class="pre">atom_filling</span></code> to select sites as filled or not filled in order to define the register.</p>
+<p>Due to the nature of the underlying hardware, this target only supports the
+<code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
+The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be of the type <code class="code docutils literal notranslate"><span class="pre">rydberg_hamiltonian</span></code>. Only
+other parameters supported are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
+<p>For example,</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(</span><span class="n">register_sites</span><span class="p">,</span><span class="w"> </span><span class="n">omega</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">delta</span><span class="p">),</span>
+<span class="w">    </span><span class="n">schedule</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
+argument to <code class="docutils literal notranslate"><span class="pre">evolve</span></code> or <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is
+set to 100.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(...),</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>To see a complete example for using Pasqal’s backend, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">C++ examples</span></a>.</p>
+</div>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Local emulation via <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag is not yet supported on the <code class="code docutils literal notranslate"><span class="pre">pasqal</span></code> target.</p>
@@ -945,7 +988,7 @@ set to 100.</p>
 <section id="quera-computing">
 <h2>QuEra Computing<a class="headerlink" href="#quera-computing" title="Permalink to this heading">¶</a></h2>
 <section id="quera-backend">
-<span id="id2"></span><h3>Setting Credentials<a class="headerlink" href="#quera-backend" title="Permalink to this heading">¶</a></h3>
+<span id="id3"></span><h3>Setting Credentials<a class="headerlink" href="#quera-backend" title="Permalink to this heading">¶</a></h3>
 <p>Programmers of CUDA-Q may access Aquila, QuEra’s first generation of quantum
 processing unit (QPU) via Amazon Braket. Hence, users must first enable Braket by
 following <a class="reference external" href="https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html">these instructions</a>.
@@ -962,28 +1005,32 @@ One of the simplest ways is to use <a class="reference external" href="https://a
 </pre></div>
 </div>
 </section>
-<section id="id3">
-<h3>Submission from Python<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
+<section id="about-aquila">
+<h3>About Aquila<a class="headerlink" href="#about-aquila" title="Permalink to this heading">¶</a></h3>
+<p>Aquila is a “field programmable qubit array” operated as an analog
+Hamiltonian simulator on a user-configurable architecture, executing
+programmable coherent quantum dynamics on up to 256 neutral-atom qubits.
+Refer to QuEra’s <a class="reference external" href="https://cdn.prod.website-files.com/643b94c382e84463a9e52264/648f5bf4d19795aaf36204f7_Whitepaper%20June%2023.pdf">whitepaper</a> for details.</p>
+</section>
+<section id="id4">
+<h3>Submitting<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quera&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>By default, analog Hamiltonian will be submitted to the Aquila system.</p>
-<p>Aquila is a “field programmable qubit array” operated as an analog
-Hamiltonian simulator on a user-configurable architecture, executing
-programmable coherent quantum dynamics on up to 256 neutral-atom qubits.
-Refer to QuEra’s <a class="reference external" href="https://cdn.prod.website-files.com/643b94c382e84463a9e52264/648f5bf4d19795aaf36204f7_Whitepaper%20June%2023.pdf">whitepaper</a> for details.</p>
 <p>Due to the nature of the underlying hardware, this target only supports the
 <code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
 The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be an <code class="code docutils literal notranslate"><span class="pre">Operator</span></code> of the type <code class="code docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code>. Only
 other parameters supported are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
 <p>For example,</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evolution_result</span> <span class="o">=</span> <span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="n">atom_sites</span><span class="o">=</span><span class="n">register</span><span class="p">,</span>
-                                             <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
-                                             <span class="n">phase</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
-                                             <span class="n">delta_global</span><span class="o">=</span><span class="n">delta</span><span class="p">),</span>
-                           <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">)</span>
+                                            <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
+                                            <span class="n">phase</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
+                                            <span class="n">delta_global</span><span class="o">=</span><span class="n">delta</span><span class="p">),</span>
+                        <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
@@ -993,6 +1040,32 @@ set to 100.</p>
 </pre></div>
 </div>
 <p>To see a complete example for using QuEra’s backend, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">Python examples</span></a>.</p>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<p>To target quantum kernel code for execution on QuEra’s Aquila,
+pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">quera</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quera<span class="w"> </span>src.cpp
+</pre></div>
+</div>
+<p>Due to the nature of the underlying hardware, this target only supports the
+<code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
+The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be of the type <code class="code docutils literal notranslate"><span class="pre">rydberg_hamiltonian</span></code>. Only
+other parameters supported are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
+<p>For example,</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(</span><span class="n">register_sites</span><span class="p">,</span><span class="w"> </span><span class="n">omega</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">delta</span><span class="p">),</span>
+<span class="w">    </span><span class="n">schedule</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
+argument to <code class="docutils literal notranslate"><span class="pre">evolve</span></code> or <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is
+set to 100.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(...),</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>To see a complete example for using QuEra’s backend, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">C++ examples</span></a>.</p>
+</div>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Local emulation via <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag is not yet supported on the <code class="code docutils literal notranslate"><span class="pre">quera</span></code> target.</p>
