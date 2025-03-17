@@ -1015,6 +1015,562 @@
 
 </dd></dl>
 
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_callbackE">
+<span class="target" id="classcudaq_1_1scalar__callback"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scalar_callback</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_callbackE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A callback wrapper that encapsulates a user-provided function taking a set of complex parameters and returning a complex result. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0_NSt11enable_if_tINSt16is_invocable_r_vINSt7complexIdEE8CallableRKNSt13unordered_mapINSt6stringENSt7complexIdEEEEEEbEEEN5cudaq15scalar_callback15scalar_callbackERR8Callable">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Callable</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">is_invocable_r_v</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_NSt11enable_if_tINSt16is_invocable_r_vINSt7complexIdEE8CallableRKNSt13unordered_mapINSt6stringENSt7complexIdEEEEEEbEEEN5cudaq15scalar_callback15scalar_callbackERR8Callable" title="cudaq::scalar_callback::scalar_callback::Callable"><span class="n"><span class="pre">Callable</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1scalar__callback_1aaad65125d5f0ee216f57b724c63308c7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scalar_callback</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0_NSt11enable_if_tINSt16is_invocable_r_vINSt7complexIdEE8CallableRKNSt13unordered_mapINSt6stringENSt7complexIdEEEEEEbEEEN5cudaq15scalar_callback15scalar_callbackERR8Callable" title="cudaq::scalar_callback::scalar_callback::Callable"><span class="n"><span class="pre">Callable</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callable</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0_NSt11enable_if_tINSt16is_invocable_r_vINSt7complexIdEE8CallableRKNSt13unordered_mapINSt6stringENSt7complexIdEEEEEEbEEEN5cudaq15scalar_callback15scalar_callbackERR8Callable" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Constructs a scalar callback from a callable object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Callable</strong> – The type of the callable object. It must satisfy the signature: std::complex&lt;double&gt;(<code class="docutils literal notranslate"><span class="pre">const</span></code> std::unordered_map&lt;std::string, std::complex&lt;double&gt;&gt; &amp;). <ul class="simple">
+<li><p>callable The callable object to be wrapped and stored for later invocation. </p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_callback15scalar_callbackERK15scalar_callback">
+<span class="target" id="classcudaq_1_1scalar__callback_1a2de016ab25e7eefb94fbeae51a5ea6a9"></span><span class="sig-name descname"><span class="n"><span class="pre">scalar_callback</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_callback15scalar_callbackERK15scalar_callback" title="cudaq::scalar_callback::scalar_callback"><span class="n"><span class="pre">scalar_callback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_callback15scalar_callbackERK15scalar_callback" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Default copy constructor for <a class="reference internal" href="#classcudaq_1_1scalar__callback"><span class="std std-ref">scalar_callback</span></a>. Creates a new <a class="reference internal" href="#classcudaq_1_1scalar__callback"><span class="std std-ref">scalar_callback</span></a> instance as a copy of an existing instance. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_callback15scalar_callbackERR15scalar_callback">
+<span class="target" id="classcudaq_1_1scalar__callback_1a39696d32a328caa3ad4abfa52f6136ff"></span><span class="sig-name descname"><span class="n"><span class="pre">scalar_callback</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_callback15scalar_callbackERR15scalar_callback" title="cudaq::scalar_callback::scalar_callback"><span class="n"><span class="pre">scalar_callback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_callback15scalar_callbackERR15scalar_callback" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Move constructor for the <a class="reference internal" href="#classcudaq_1_1scalar__callback"><span class="std std-ref">scalar_callback</span></a> class. Transfers ownership from the provided source instance to the new instance. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_callbackaSERK15scalar_callback">
+<span class="target" id="classcudaq_1_1scalar__callback_1a716fba398c4d96b4ce9f164e09e74fcf"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_callbackE" title="cudaq::scalar_callback"><span class="n"><span class="pre">scalar_callback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_callbackE" title="cudaq::scalar_callback"><span class="n"><span class="pre">scalar_callback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_callbackaSERK15scalar_callback" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Default copy assignment operator for <a class="reference internal" href="#classcudaq_1_1scalar__callback"><span class="std std-ref">scalar_callback</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_callbackaSERR15scalar_callback">
+<span class="target" id="classcudaq_1_1scalar__callback_1a9834ba42c2e3913d956602cf9e87aab5"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_callbackE" title="cudaq::scalar_callback"><span class="n"><span class="pre">scalar_callback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_callbackE" title="cudaq::scalar_callback"><span class="n"><span class="pre">scalar_callback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_callbackaSERR15scalar_callback" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Default move assignment operator for <a class="reference internal" href="#classcudaq_1_1scalar__callback"><span class="std std-ref">scalar_callback</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_callbackclERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">
+<span class="target" id="classcudaq_1_1scalar__callback_1afff4c30e4c7ebe0aa9cbdfbca8cb81bf"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">parameters</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_callbackclERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluates the callback with the provided parameters. </p>
+<p><ul class="simple">
+<li><p>parameters A mapping from parameter names to their complex values. </p></li>
+</ul>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>std::complex&lt;double&gt; The computed complex result based on the input parameters. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatorE">
+<span class="target" id="classcudaq_1_1scalar__operator"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scalar_operator</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operator15scalar_operatorEv">
+<span class="target" id="classcudaq_1_1scalar__operator_1a5f295062c255f01713acc2e9695ffe46"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scalar_operator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operator15scalar_operatorEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Default constructor that initializes the scalar operator with a value of 1. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operator15scalar_operatorEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a3d91354bf310d0f8109b4ba3e5105abf"></span><span class="sig-name descname"><span class="n"><span class="pre">scalar_operator</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operator15scalar_operatorEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Constructs a scalar operator with a double value. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_operator11is_constantEv">
+<span class="target" id="classcudaq_1_1scalar__operator_1a4052baf2e1a7f9e88dcaa3fccda7abf0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_constant</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_operator11is_constantEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Checks if the scalar operator represents a constant value. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the operator is constant, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operator15scalar_operatorENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a0ed85d955b883fffc238de73681a9015"></span><span class="sig-name descname"><span class="n"><span class="pre">scalar_operator</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operator15scalar_operatorENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Constructs a scalar operator with a complex double value. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operator15scalar_operatorERK15scalar_callback">
+<span class="target" id="classcudaq_1_1scalar__operator_1a668857d75f31743d2bc2c9ea9584b1b2"></span><span class="sig-name descname"><span class="n"><span class="pre">scalar_operator</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_callbackE" title="cudaq::scalar_callback"><span class="n"><span class="pre">scalar_callback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">create</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operator15scalar_operatorERK15scalar_callback" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Constructs a scalar operator from a scalar callback. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operator15scalar_operatorERR15scalar_callback">
+<span class="target" id="classcudaq_1_1scalar__operator_1afff790597ba4e96a9b143c408ad32962"></span><span class="sig-name descname"><span class="n"><span class="pre">scalar_operator</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_callbackE" title="cudaq::scalar_callback"><span class="n"><span class="pre">scalar_callback</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">create</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operator15scalar_operatorERR15scalar_callback" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Constructs a scalar operator from an rvalue scalar callback. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operator15scalar_operatorERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a70548cb2a214911d34f1319087697043"></span><span class="sig-name descname"><span class="n"><span class="pre">scalar_operator</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operator15scalar_operatorERK15scalar_operator" title="cudaq::scalar_operator::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operator15scalar_operatorERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Copy constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operator15scalar_operatorERR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1ad5528906c0e4719237bcfe2b5b867733"></span><span class="sig-name descname"><span class="n"><span class="pre">scalar_operator</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operator15scalar_operatorERR15scalar_operator" title="cudaq::scalar_operator::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operator15scalar_operatorERR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Move constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatorD0Ev">
+<span class="target" id="classcudaq_1_1scalar__operator_1a5470638cce3e71cb59cd87b3e6b436af"></span><span class="sig-name descname"><span class="n"><span class="pre">~scalar_operator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatorD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Default destructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatoraSERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1aef6666b15c612f81bc0be658d714f35b"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatoraSERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Copy assignment operator. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatoraSERR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a7bd39a2959296a32e0f5c46888efadde"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatoraSERR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Move assignment operator. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_operator8evaluateERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1aabf777fce3c2e626bb6a0761092cde86"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evaluate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">parameters</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_operator8evaluateERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluates the scalar operator using the given parameters. </p>
+<p><ul class="simple">
+<li><p>parameters A map of parameter names to complex values. </p></li>
+</ul>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The evaluated complex value. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_operator9to_matrixERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1aa0086320701a3cb117dfbd83404d9106"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_matrix</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">parameters</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_operator9to_matrixERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Converts the scalar operator to a 1x1 matrix. </p>
+<p><ul class="simple">
+<li><p>parameters A map of parameter names to complex values. </p></li>
+</ul>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The 1x1 complex matrix representation. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_operator9to_stringEv">
+<span class="target" id="classcudaq_1_1scalar__operator_1a51b4209e719af212426b1f40387f3605"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_string</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_operator9to_stringEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns a string representation of the scalar operator. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The string representation. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq15scalar_operatoreqE15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1aecc3ebb468cda1f4caa80c91f36f0cd4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq15scalar_operatoreqE15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Compares two scalar operators for equality. </p>
+<p><ul class="simple">
+<li><p>other The scalar operator to compare against. </p></li>
+</ul>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if both operators are equal, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatormiEv">
+<span class="target" id="classcudaq_1_1scalar__operator_1ac317fad3edc2ac0c36823fee6ca9c43c"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatormiEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Unary minus operator (lvalue). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A new scalar operator representing the negation. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatormiEv">
+<span class="target" id="classcudaq_1_1scalar__operator_1af51656bc66aea4442f1f721d0753cb2d"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatormiEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Unary minus operator (rvalue). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A new scalar operator representing the negation. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatorplEv">
+<span class="target" id="classcudaq_1_1scalar__operator_1a0db30656df923504a9f22f144e1b4ea2"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatorplEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Unary plus operator (lvalue). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A copy of the current scalar operator. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatorplEv">
+<span class="target" id="classcudaq_1_1scalar__operator_1a08cd180cb44bacc479db0e63d4518c30"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatorplEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Unary plus operator (rvalue). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A moved copy of the current scalar operator. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatormlEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a2ff947cd0d1b29d2bc00cd153bd9f4e1"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatormlEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies the scalar operator by a double (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatormlEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a124d1b417d6d2194b67e985098ae0b8d"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatormlEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies the scalar operator by a double (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatordvEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a2e943bdd1f01653a0a70bfe8a91d23fd"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatordvEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides the scalar operator by a double (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatordvEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1aee7c22888958827a94113d0f8bf47641"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatordvEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides the scalar operator by a double (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatorplEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1aaece17da7874d1b271d27116d1e644e5"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatorplEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a double to the scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatorplEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1aba94d1e87c43a4672db60d7ae8a0c22c"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatorplEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a double to the scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatormiEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a7f87c06892f14627cdf4c8f531e1e65b"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatormiEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a double from the scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatormiEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a5d526e6ba145c3bd250882910e10dd1e"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatormiEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a double from the scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormLEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a6efcdb24ce7fec5abcd2582e81b7dba6"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*=</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormLEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies the scalar operator by a double in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatordVEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a55c2097aa8c54d50c86a179c54432160"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/=</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatordVEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides the scalar operator by a double in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatorpLEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a74a7e446c1a37ec3fc6164c5652203d8"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatorpLEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a double to the scalar operator in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormIEd">
+<span class="target" id="classcudaq_1_1scalar__operator_1a6221520603cff6e4b5fdc48c70a15487"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-=</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormIEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a double from the scalar operator in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatormlENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a82365ea8e0a59f755a5dc835b18aed16"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatormlENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies the scalar operator by a complex number (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatormlENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a8de84f14f563dc21e2428e1a2f649afa"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatormlENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies the scalar operator by a complex number (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatordvENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1abc75f22e857196422b9698c56a098536"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatordvENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides the scalar operator by a complex number (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatordvENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a4394fe9b2bf0604946b447b88ae7a3ff"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatordvENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides the scalar operator by a complex number (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatorplENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1ab3302c008364b56375b93174c7f78c1c"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatorplENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a complex number to the scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatorplENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a5bdf3a369e3aff0ae03b6ab7740f3e24"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatorplENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a complex number to the scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatormiENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a9967edec5fb278107dbee8dfa1099a96"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatormiENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a complex number from the scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatormiENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a304192b819eb0444b7bdaaec672f2117"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatormiENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a complex number from the scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormLENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a7af2d0e707b717990141d2fb9d059f0c"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*=</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormLENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies the scalar operator by a complex number in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatordVENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a1a4800d991e4afcaf4a3098c0c35c593"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/=</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatordVENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides the scalar operator by a complex number in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatorpLENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1a744e00573a641f4ab2c64056d87db906"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatorpLENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a complex number to the scalar operator in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormIENSt7complexIdEE">
+<span class="target" id="classcudaq_1_1scalar__operator_1aba2a98398c6aba04df3ef2b1e48c860e"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-=</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormIENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a complex number from the scalar operator in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatormlERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a2aca843965b9e012db0ffa53ccbaadbe"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatormlERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies two scalar operators (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatormlERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a34a4e16eac45978942bdd5ae646ea5fc"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatormlERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies two scalar operators (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatordvERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a0c1cfee667a9ac32e48e42aabf4c7201"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatordvERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides two scalar operators (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatordvERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1ab372f5608d6c2d3b257b5f399976153e"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatordvERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides two scalar operators (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatorplERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1ae79752e3d4743f75d1fc67f3cc1a88fe"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatorplERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds two scalar operators (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatorplERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1af6575decf15dc1000a49929686a2bd84"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatorplERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds two scalar operators (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NKR5cudaq15scalar_operatormiERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1ae7c4d35f4450457e1cf151a8df3f4ad7"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><a class="headerlink" href="#_CPPv4NKR5cudaq15scalar_operatormiERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts two scalar operators (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NO5cudaq15scalar_operatormiERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a964810bd33b05f033ed2106bceb88efe"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">&amp;&amp;</span></span><a class="headerlink" href="#_CPPv4NO5cudaq15scalar_operatormiERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts two scalar operators (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormLERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1af8f685b4b82c2ee4693e8dd903b4a676"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormLERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies two scalar operators in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatordVERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a4b07233afedf806e4f8e342d308edc9d"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatordVERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides two scalar operators in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatorpLERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1aef52df9bf0e8568bbd18fb06917d4407"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatorpLERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds two scalar operators in-place. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormIERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a12912727113b9d877b85ab1eadeb86eb"></span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormIERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts two scalar operators in-place. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-friends">Friends</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormlEdRK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1aee2267efa84e7271304d7559b520e554"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormlEdRK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies a double with a scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormlEdRR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a65f758b7b63cdaf7b661cfcccda84f96"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormlEdRR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies a double with a scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatordvEdRK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a7c464babb4a29915b599cf935ea3c299"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatordvEdRK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides a double by a scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatordvEdRR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a48a280d31e864a35f84b21c943d35543"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatordvEdRR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides a double by a scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatorplEdRK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a364ba00a2938636429f240399f5a5219"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatorplEdRK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a double to a scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatorplEdRR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a6cedbc643063e1a9798649b824926904"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatorplEdRR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a double to a scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormiEdRK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a04d6b3436188dacc79b1bbaae27e46cb"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormiEdRK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a scalar operator from a double (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormiEdRR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a308e647a21ac74207183040feb5cead3"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormiEdRR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a scalar operator from a double (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormlENSt7complexIdEERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a5eb36dbe11bc346716452bbc890ffaf9"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormlENSt7complexIdEERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies a complex number with a scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormlENSt7complexIdEERR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a895d1f423ea665bc011a95d24301af3c"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormlENSt7complexIdEERR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplies a complex number with a scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatordvENSt7complexIdEERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a06b93e876ba97e15fc8fe1fbad8db820"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatordvENSt7complexIdEERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides a complex number by a scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatordvENSt7complexIdEERR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a3d6291e321397bf035354f548f32cc0b"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatordvENSt7complexIdEERR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divides a complex number by a scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatorplENSt7complexIdEERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1a964b050f685e4190f32a3eab645642cc"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatorplENSt7complexIdEERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a complex number to a scalar operator (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatorplENSt7complexIdEERR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1ae177a930d749c3c11af0b339f22bdcca"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatorplENSt7complexIdEERR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Adds a complex number to a scalar operator (rvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormiENSt7complexIdEERK15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1ac665b74ec9063c6b320a26ba490b4bf0"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormiENSt7complexIdEERK15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a scalar operator from a complex number (lvalue). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15scalar_operatormiENSt7complexIdEERR15scalar_operator">
+<span class="target" id="classcudaq_1_1scalar__operator_1ac9617b20a7208eb46d9709c71dffe17d"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq15scalar_operatorE" title="cudaq::scalar_operator"><span class="n"><span class="pre">scalar_operator</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15scalar_operatormiENSt7complexIdEERR15scalar_operator" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtracts a scalar operator from a complex number (rvalue). </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
 </section>
 <section id="quantum">
 <h2>Quantum<a class="headerlink" href="#quantum" title="Permalink to this heading">¶</a></h2>
