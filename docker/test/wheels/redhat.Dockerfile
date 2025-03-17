@@ -31,16 +31,12 @@ COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
 COPY python/README*.md /tmp/
 
-# FIXME: remove the following line before merging to public repo
-ENV PIP_EXTRA_INDEX_URL=http://localhost:8080
 
 # Working around issue https://github.com/pypa/pip/issues/11153.
 RUN wget https://github.com/rapidsai/gha-tools/releases/latest/download/tools.tar.gz -O - | tar -xz -C /usr/local/bin && \
     RAPIDS_PIP_EXE="python${python_version} -m pip" \
     /usr/local/bin/rapids-pip-retry install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 
-# FIXME: remove the following line before merging to public repo
-ENV PIP_EXTRA_INDEX_URL=
 
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \

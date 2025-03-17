@@ -125,8 +125,3 @@ ENV AWS_INSTALL_PREFIX=/usr/local/aws
 ENV CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
 ENV CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
 RUN bash /scripts/install_prerequisites.sh
-
-# FIXME: remove the following line before merging to the public repo
-# We need to pre-install cuquantum pip package as the downstream GitLab 
-# pipeline will install cuda-q pip package.
-RUN python3.10 -m pip install cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)~=25.03 --extra-index-url http://localhost:8080 

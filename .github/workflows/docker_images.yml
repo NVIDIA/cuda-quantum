@@ -165,16 +165,7 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
-
-      # FIXME: remove this before merging to public repo
-      - name: Start private PyPI server
-        if: github.event.repository.private == true
-        id: pypi_server
-        uses: ./.github/actions/start-pypi-server
-        with:
-          release_name: 'cuquantum-25.03'
-          port: 8080
-      
+   
       - name: Build Open MPI
         id: docker_build
         uses: docker/build-push-action@v5
@@ -604,15 +595,6 @@ jobs:
         run: |
           docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
 
-      # FIXME: remove this before merging to public repo
-      - name: Start private PyPI server
-        if: github.event.repository.private == true
-        id: pypi_server
-        uses: ./.github/actions/start-pypi-server
-        with:
-          release_name: 'cuquantum-25.03'
-          port: 8080
-
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
@@ -714,15 +696,6 @@ jobs:
           key: ${{ needs.cudaq_image.outputs.tar_cache }}
           fail-on-cache-miss: true
 
-      # FIXME: remove this before merging to public repo
-      - name: Start private PyPI server
-        if: github.event.repository.private == true
-        id: pypi_server
-        uses: ./.github/actions/start-pypi-server
-        with:
-          release_name: 'cuquantum-25.03'
-          port: 8080
-      
       - name: Build documentation
         id: docs_build
         run: |
@@ -751,8 +724,7 @@ jobs:
           # Unfortunately, we need to install cuquantum for docs generation to work properly, 
           # since using mock imports in the autodocs configuration doesn't work properly. 
           # See also https://github.com/sphinx-doc/sphinx/issues/11211. 
-          # FIXME: remove extra-index-url before merging to public repo
-          docker exec cuda-quantum-dev bash -c "python3 -m pip install cuquantum-python-cu12~=25.03 --extra-index-url ${{ steps.pypi_server.outputs.local_pypi_server_url }}"
+          docker exec cuda-quantum-dev bash -c "python3 -m pip install cuquantum-python-cu12~=25.03"
           
           (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \

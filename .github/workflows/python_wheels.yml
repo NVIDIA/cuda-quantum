@@ -61,15 +61,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # FIXME: remove this before merging to public repo
-      - name: Start private PyPI server
-        if: github.event.repository.private == true
-        id: pypi_server
-        uses: ./.github/actions/start-pypi-server
-        with:
-          release_name: 'cuquantum-25.03'
-          port: 8080
-
       - name: Log in to DockerHub
         uses: docker/login-action@v3
         with:
@@ -203,15 +194,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # FIXME: remove this before merging to public repo
-      - name: Start private PyPI server
-        if: github.event.repository.private == true
-        id: pypi_server
-        uses: ./.github/actions/start-pypi-server
-        with:
-          release_name: 'cuquantum-25.03'
-          port: 8080  
-
       - name: Log in to GitHub CR
         if: inputs.environment == ''
         uses: docker/login-action@v3
@@ -287,9 +269,6 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            # FIXME: remove the following line before merging to public repo
-            export PIP_EXTRA_INDEX_URL=http://localhost:8080
-            
             # Uninstall pip-installed cuda-quantum in the `wheel_validation:local` image.
             # In this step, we test the full installation workflow with conda; 
             # hence we don't want to mix conda and pip packages.

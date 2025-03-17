@@ -71,13 +71,11 @@ if [ "$1" == "install-cuquantum" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuQuantumInstall]
-    CUQUANTUM_VERSION=25.03.0.10
+    CUQUANTUM_VERSION=25.03.0.11
     CUQUANTUM_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
 
     cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
-    # wget "${CUQUANTUM_DOWNLOAD_URL}/linux-${CUDA_ARCH_FOLDER}/${cuquantum_archive}"
-    # FIXME: Revert this before migrating to the public repo
-    wget "http://localhost:5555/${cuquantum_archive}" 
+    wget "${CUQUANTUM_DOWNLOAD_URL}/linux-${CUDA_ARCH_FOLDER}/${cuquantum_archive}"
     mkdir -p "${CUQUANTUM_INSTALL_PREFIX}" 
     tar xf "${cuquantum_archive}" --strip-components 1 -C "${CUQUANTUM_INSTALL_PREFIX}" 
     rm -rf "${cuquantum_archive}"
@@ -93,9 +91,7 @@ if [ "$1" == "install-cutensor" ]; then
     CUTENSOR_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor
 
     cutensor_archive=libcutensor-linux-${CUDA_ARCH_FOLDER}-${CUTENSOR_VERSION}-archive.tar.xz
-    # wget "${CUTENSOR_DOWNLOAD_URL}/linux-${CUDA_ARCH_FOLDER}/${cutensor_archive}"
-    # FIXME: Revert this before migrating to the public repo
-    wget "http://localhost:5555/${cutensor_archive}" 
+    wget "${CUTENSOR_DOWNLOAD_URL}/linux-${CUDA_ARCH_FOLDER}/${cutensor_archive}"
     mkdir -p "${CUTENSOR_INSTALL_PREFIX}" && tar xf "${cutensor_archive}" --strip-components 1 -C "${CUTENSOR_INSTALL_PREFIX}"
     mv "${CUTENSOR_INSTALL_PREFIX}"/lib/$(echo ${CUDA_VERSION} | cut -d . -f1)/* ${CUTENSOR_INSTALL_PREFIX}/lib/
     ls -d ${CUTENSOR_INSTALL_PREFIX}/lib/*/ | xargs rm -rf && rm -rf "${cutensor_archive}"

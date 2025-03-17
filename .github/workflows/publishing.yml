@@ -683,15 +683,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      # FIXME: remove this before merging to public repo
-      - name: Start private PyPI server
-        if: github.event.repository.private == true
-        id: pypi_server
-        uses: ./.github/actions/start-pypi-server
-        with:
-          release_name: 'cuquantum-25.03'
-          port: 8080
-
       - name: Log in to DockerHub
         uses: docker/login-action@v3
         with:
@@ -1041,17 +1032,6 @@ jobs:
           path: /tmp/wheels
           merge-multiple: true
 
-      # FIXME: remove this before merging to public
-      - name: Load cuQuantum assets
-        shell: bash
-        run: |
-          apt-get update && apt-get install -y --no-install-recommends ca-certificates gh
-          mkdir /tmp/packages && cd /tmp/packages
-          gh release download cuquantum-25.03 -R ${{ github.repository }}
-          rm -rf *archive.tar* && cd -
-        env:
-          GH_TOKEN: ${{ github.token }}
-      
       - name: Load metapackage
         if: ${{ matrix.cuda_major == '' }}
         uses: actions/download-artifact@v4
@@ -1147,17 +1127,6 @@ jobs:
           pattern: '*-wheels'
           path: /tmp/wheels
           merge-multiple: true
-
-      # FIXME: remove this before merging to public
-      - name: Load cuQuantum assets
-        shell: bash
-        run: |
-          apt-get update && apt-get install -y --no-install-recommends ca-certificates gh
-          mkdir /tmp/packages && cd /tmp/packages
-          gh release download cuquantum-25.03 -R ${{ github.repository }}
-          rm -rf *archive.tar* && cd -
-        env:
-          GH_TOKEN: ${{ github.token }}
       
       - name: Load metapackage
         uses: actions/download-artifact@v4

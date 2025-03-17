@@ -149,26 +149,6 @@ jobs:
             org.opencontainers.image.title=cuda-quantum-assets
             org.opencontainers.image.description=Pre-built Linux binaries for CUDA Quantum
 
-      # FIXME: remove this step before merging to public main
-      - name: Pre-release tarball file host
-        id: tarball_host
-        run: | 
-          cd /tmp && mkdir cuquantum-assets && cd cuquantum-assets 
-          echo "Download cuquantum-25.03 assets..."
-          gh release download cuquantum-25.03 -R ${{ github.repository }}
-          python3 -m http.server 5555 &
-        env:
-          GH_TOKEN: ${{ github.token }}
-      
-      # FIXME: remove this before merging to public repo
-      - name: Start private PyPI server
-        if: github.event.repository.private == true
-        id: pypi_server
-        uses: ./.github/actions/start-pypi-server
-        with:
-          release_name: 'cuquantum-25.03'
-          port: 8080
-          
       - name: Build assets
         id: docker_build
         uses: docker/build-push-action@v5
@@ -373,15 +353,6 @@ jobs:
             exit 1
           fi
 
-      # FIXME: remove this before merging to public repo
-      - name: Start private PyPI server
-        if: github.event.repository.private == true
-        id: pypi_server
-        uses: ./.github/actions/start-pypi-server
-        with:
-          release_name: 'cuquantum-25.03'
-          port: 8080
-      
       - name: Side-by-side installation of Python support
         uses: ./.github/actions/run-in-docker
         with:
@@ -401,9 +372,6 @@ jobs:
               sudo zypper --non-interactive in --no-recommends $(echo $PYTHON | tr -d .)
               $PYTHON -m ensurepip --upgrade            
             fi
-
-            # FIXME: remove the following line before merging to public main
-            export PIP_EXTRA_INDEX_URL=http://localhost:8080
 
             ${PYTHON} -m pip install cuda_quantum*.whl
             ${PYTHON} -m pip install pytest numpy psutil

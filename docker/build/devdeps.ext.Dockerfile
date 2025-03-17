@@ -161,9 +161,6 @@ ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 
 # Install cuQuantum dependencies, including cuTensor.
-# FIXME: remove the following line before merging to public repo
-ENV PIP_EXTRA_INDEX_URL=http://localhost:8080
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
@@ -171,9 +168,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.10" ]; then \
         echo "expecting Python version 3.10"; \
     fi
-
-# FIXME: remove the following line before merging to public repo
-ENV PIP_EXTRA_INDEX_URL=
 
 ARG CUQUANTUM_INSTALL_PREFIX=/usr/local/lib/python3.10/dist-packages/cuquantum
 ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
