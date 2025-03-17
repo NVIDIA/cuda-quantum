@@ -7,6 +7,12 @@ Operators
 .. doxygenclass:: cudaq::spin_op
     :members:
 
+.. doxygenclass:: cudaq::scalar_callback
+    :members:
+
+.. doxygenclass:: cudaq::scalar_operator
+    :members:
+
 Quantum
 =========
 
