@@ -183,7 +183,7 @@ public:
 
   /// @brief Constructs a new sum operator instance from product operator
   /// arguments.
-  /// @tparam Args Variadic template parameters representing
+  /// @tparam `Args` Variadic template parameters representing
   /// product_op<HandlerTy> types.
   /// @param args One or more product operator objects used in the summation
   /// operation.
@@ -398,7 +398,7 @@ public:
   /// @return A sum operator that represents the result of the multiplication.
   sum_op<HandlerTy> operator*(const product_op<HandlerTy> &other) const;
   /// @brief Adds a product operation to the current sum operation.
-  /// @param other A const reference to the product operation to be added.
+  /// @param other A `const` reference to the product operation to be added.
   /// @return A new sum operation that encapsulates the result of the addition.
   sum_op<HandlerTy> operator+(const product_op<HandlerTy> &other) const &;
   /// @brief Constructs a sum operation by adding a product operation to the
