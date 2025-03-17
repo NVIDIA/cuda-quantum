@@ -101,7 +101,7 @@ You can then launch the container and connect to it via SSH by executing the fol
 Known Blackwell Issues
 ++++++++++++++++++++++++++++++++++++
 
-There are some known blackwell issues when using CUDA-Q.
+There are some known Blackwell issues when using CUDA-Q.
 
 .. _blackwell-cuda-dependencies:
 
