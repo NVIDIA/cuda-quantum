@@ -1176,7 +1176,7 @@ jobs:
   create_release:
     name: CUDA-Q Release
     needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages]
-    if: needs.assets.outputs.release_title && inputs.github_commit == '' # FIXME: add back && inputs.nvidia_mgpu_commit == ''
+    if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
     environment:
