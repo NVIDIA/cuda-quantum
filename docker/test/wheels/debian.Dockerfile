@@ -42,13 +42,10 @@ RUN if [ -n "$pip_install_flags" ]; then \
         sed -i 's/include-system-site-packages = false/include-system-site-packages = true/' $VIRTUAL_ENV/pyvenv.cfg; \
     fi
 
-
 # Working around issue https://github.com/pypa/pip/issues/11153.
 RUN wget https://github.com/rapidsai/gha-tools/releases/latest/download/tools.tar.gz -O - | tar -xz -C /usr/local/bin && \
     RAPIDS_PIP_EXE="python${python_version} -m pip" \
     /usr/local/bin/rapids-pip-retry install ${pip_install_flags} /tmp/$cuda_quantum_wheel
-
-
 RUN if [ -n "$optional_dependencies" ]; then \
         cudaq_package=$(echo $cuda_quantum_wheel | cut -d '-' -f1 | tr _ -) && \
         RAPIDS_PIP_EXE="python${python_version} -m pip" \
