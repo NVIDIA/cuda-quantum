@@ -245,6 +245,7 @@ Submitting
         documentation for the publicly accessible emulator `here <https://pasqal-io.github.io/emulators/latest/emu_mps/>`__.
 
         .. code:: bash
+
             nvq++ --target pasqal --pasqal-machine EMU_FREE src.cpp
 
         To target the QPU use the FRESNEL machine name. Note that there are restrictions
@@ -263,6 +264,7 @@ Submitting
         For example,
 
         .. code:: cpp
+
             auto evolution_result = cudaq::evolve(
                 cudaq::rydberg_hamiltonian(register_sites, omega, phi, delta),
                 schedule);
@@ -272,6 +274,7 @@ Submitting
         set to 100.
 
         .. code:: cpp
+
             auto evolution_result = cudaq::evolve(cudaq::rydberg_hamiltonian(...), schedule, 1000);
 
         To see a complete example for using Pasqal's backend, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
@@ -371,6 +374,7 @@ Submitting
         For example,
 
         .. code:: cpp
+
             auto evolution_result = cudaq::evolve(
                 cudaq::rydberg_hamiltonian(register_sites, omega, phi, delta),
                 schedule);
@@ -380,6 +384,7 @@ Submitting
         set to 100.
 
         .. code:: cpp
+
             auto evolution_result = cudaq::evolve(cudaq::rydberg_hamiltonian(...), schedule, 1000);
 
         To see a complete example for using QuEra's backend, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
