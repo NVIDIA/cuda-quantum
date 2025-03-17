@@ -766,8 +766,6 @@ public:
   /// @brief Constructs a product operator from a given atomic operator handler.
   /// @tparam HandlerTy The type of the underlying atomic operator handler.
   /// @param atomic An rvalue reference to the atomic operator handler.
-  /// @return An appropriate product operator instance constructed with the
-  /// provided handler.
   product_op(HandlerTy &&atomic);
 
   /// @brief Constructs a product_op from another product_op instance.
