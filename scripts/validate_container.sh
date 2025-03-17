@@ -160,7 +160,7 @@ do
     do
         # Skipping dynamics examples if target is not dynamics and ex is dynamics
         # or gpu is unavailable
-        if [ "$t" != "dynamics" ] && [[ "$ex" == *"dynamics"* ]]; then
+        if { [ "$t" != "dynamics" ] && [[ "$ex" == *"dynamics"* ]]; } || { [ "$t" == "dynamics" ] && [[ "$ex" != *"dynamics"* ]]; }; then
             let "skipped+=1"
             echo "Skipping $t target for $ex.";
             echo ":white_flag: $filename: Not intended for this target. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -295,7 +295,6 @@ dynamics_backend_skipped_examples=(\
 # purposes of the container validation. The divisive_clustering_src Python
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
 # elsewhere and should be excluded from this test.
-# Same with afqmc.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 for ex in `find examples/ targets/ -name '*.py' | sort`;
 do 

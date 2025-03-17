@@ -145,9 +145,10 @@ fi
 echo "Creating README.md for cudaq package"
 package_name=cudaq
 cuda_version_requirement="11.x (where x >= 8) or 12.x"
-cuda_version_conda=11.8.0 # only used as example in the install script
+cuda_version_conda=12.4.0 # only used as example in the install script
+deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."
 cat "$repo_root/python/README.md.in" > "$repo_root/python/README.md"
-for variable in package_name cuda_version_requirement cuda_version_conda; do
+for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do
     sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" "$repo_root/python/README.md"
 done
 if [ -n "$(cat "$repo_root/python/README.md" | grep -e '.{{.*}}')" ]; then 
