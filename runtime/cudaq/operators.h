@@ -181,6 +181,12 @@ public:
 
   sum_op(std::size_t size);
 
+  /// @brief Constructs a new sum operator instance from product operator
+  /// arguments.
+  /// @tparam Args Variadic template parameters representing
+  /// product_op<HandlerTy> types.
+  /// @param args One or more product operator objects used in the summation
+  /// operation.
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
                                  product_op<HandlerTy>, Args>...>::value &&
@@ -188,14 +194,27 @@ public:
                              bool> = true>
   sum_op(Args &&...args);
 
+  /// @brief Constructs a sum_op instance from a given product_op instance.
+  /// @param other A reference to the product_op object used to construct this
+  /// sum_op.
   sum_op(const product_op<HandlerTy> &other);
 
+  /// @brief Copy constructor for sum_op that enables conversion from a sum_op
+  /// instantiated with a different type.
+  /// @tparam T The type of the other sum_op object, which must not be HandlerTy
+  /// and must be constructible to HandlerTy.
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
   sum_op(const sum_op<T> &other);
 
+  /// @brief Constructs a new sum_op object from an existing sum_op of a
+  /// different, constructible type.
+  /// @param other The source sum_op object whose contents are used for
+  /// construction.
+  /// @param behavior The commutation behavior to be applied during
+  /// construction.
   template <typename T,
             std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
                                  !std::is_same<T, HandlerTy>::value &&
@@ -204,49 +223,73 @@ public:
   sum_op(const sum_op<T> &other,
          const matrix_handler::commutation_behavior &behavior);
 
-  // copy constructor
+  /// @brief Copy constructor for sum_op.
   sum_op(const sum_op<HandlerTy> &other) = default;
 
-  // move constructor
+  /// @brief Move constructor for sum_op.
   sum_op(sum_op<HandlerTy> &&other) = default;
 
+  /// @brief Default destructor.
   ~sum_op() = default;
 
   // assignments
 
+  /// @brief Assigns a product_op to a sum_op.
+  /// This operator overload enables assignment from a product_op<T> to a
+  /// sum_op<HandlerTy>. It is only enabled when T is not the same as HandlerTy
+  /// and when HandlerTy is constructible from T. This constraint ensures that
+  /// only compatible types are allowed in the assignment operation.
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
   sum_op<HandlerTy> &operator=(const product_op<T> &other);
 
+  /// @brief Assign a product_op object to a sum_op object.
+  /// @param other A constant reference to the product_op object to be assigned.
+  /// @return A reference to the sum_op object after the assignment.
   sum_op<HandlerTy> &operator=(const product_op<HandlerTy> &other);
 
+  /// @brief Assigns the contents of a product operation to the current sum
+  /// operation using move semantics.
+  /// @param other An rvalue reference to a product_op instance whose resources
+  /// will be transferred.
+  /// @return A reference to the updated sum_op instance.
   sum_op<HandlerTy> &operator=(product_op<HandlerTy> &&other);
 
+  /// @brief Template assignment operator allowing conversion between different
+  /// sum_op types.
+  /// @tparam T The type of the sum_op object being assigned from.
+  /// @param other The sum_op object with type T to be assigned.
+  /// @return A reference to the current sum_op object after assignment.
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
                                  std::is_constructible<HandlerTy, T>::value,
                              bool> = true>
   sum_op<HandlerTy> &operator=(const sum_op<T> &other);
 
-  // assignment operator
+  /// @brief Performs a copy assignment of one sum_op to another.
+  /// @param other A constant reference to the sum_op object whose data is to be
+  /// copied.
+  /// @return A reference to the current sum_op object after the assignment.
   sum_op<HandlerTy> &operator=(const sum_op<HandlerTy> &other) = default;
 
-  // move assignment operator
+  /// @brief Move assignment operator.
+  /// @param other A rvalue reference to a sum_op object whose resources will be
+  /// moved.
+  /// @return A reference to this sum_op instance after the move.
   sum_op<HandlerTy> &operator=(sum_op<HandlerTy> &&other) = default;
 
   // evaluations
 
   /// @brief Return the matrix representation of the operator.
-  /// The matrix is ordered according to the convention (endianness)
-  /// used in CUDA-Q, and the ordering returned by `degrees`. See
-  /// the documentation for `degrees` for more detail.
-  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// @param `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
-  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// @param `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   complex_matrix
@@ -271,116 +314,385 @@ public:
 
   // unary operators
 
+  /// @brief Returns a new sum_op instance representing the negation of this
+  /// object.
   sum_op<HandlerTy> operator-() const &;
+  /// @brief Applies the unary negation to a sum_op object using move semantics.
   sum_op<HandlerTy> operator-() &&;
+  /// @brief Returns a new sum_op instance using the unary plus operator.
+  /// @return A new instance of sum_op<HandlerTy> representing the unary plus
+  /// operation.
   sum_op<HandlerTy> operator+() const &;
+  /// @brief Applies the unary plus operator to a temporary instance.
   sum_op<HandlerTy> operator+() &&;
 
   // right-hand arithmetics
 
+  /// @brief Multiplies the current operator with a scalar operator.
+  /// @param other The scalar_operator to multiply with.
+  /// @return A new sum_op instance encapsulating the result of the
+  /// multiplication.
   sum_op<HandlerTy> operator*(const scalar_operator &other) const &;
+  /// @brief Overloads the multiplication operator to combine a temporary sum
+  /// operator with a scalar operator.
+  /// @param other A constant reference to a scalar_operator that will be
+  /// multiplied with the current temporary sum operator.
+  /// @return A new sum_op<HandlerTy> representing the resulting operator after
+  /// applying the multiplication.
   sum_op<HandlerTy> operator*(const scalar_operator &other) &&;
+  /// @brief Performs division of the current sum operator by a scalar operator.
+  /// @param other The scalar operator serving as the divisor.
+  /// @return A new sum operator resulting from the division operation.
   sum_op<HandlerTy> operator/(const scalar_operator &other) const &;
+  /// @brief Overloaded division operator for a temporary instance of the
+  /// operator.
+  /// @param other The scalar_operator divisor used in the division.
+  /// @return A sum_op representing the result of the division operation.
   sum_op<HandlerTy> operator/(const scalar_operator &other) &&;
+  /// @brief Combines the current operator with a scalar operator to form a new
+  /// sum operator.
+  /// @param other The scalar operator to be incorporated into the sum.
+  /// @return A sum_op instance representing the combined operator.
   sum_op<HandlerTy> operator+(scalar_operator &&other) const &;
+  /// @brief Combines the current sum_op with an additional scalar_operator.
+  /// @param other An rvalue reference to a scalar_operator to be added.
+  /// @return A new sum_op representing the sum of the current operator and the
+  /// provided scalar_operator.
   sum_op<HandlerTy> operator+(scalar_operator &&other) &&;
+  /// @brief Overloads the addition operator to combine the current sum operator
+  /// with a scalar operator.
+  /// @param other The scalar_operator instance to be added to the sum operator.
+  /// @return A sum_op<HandlerTy> representing the result of combining the
+  /// current operator with the specified scalar operator.
   sum_op<HandlerTy> operator+(const scalar_operator &other) const &;
+  /// @brief Adds a scalar operator to the current operator instance.
+  /// @param other The scalar operator to be added to this operator.
+  /// @return A new sum_op<HandlerTy> representing the sum of the current
+  /// operator and the provided scalar operator.
   sum_op<HandlerTy> operator+(const scalar_operator &other) &&;
+  /// @brief Subtracts a temporary scalar operator from the current operator
+  /// instance.
+  /// @param other An rvalue reference to a scalar_operator that will be
+  /// subtracted from the current instance.
+  /// @return A sum_op<HandlerTy> object that represents the result of the
+  /// subtraction.
   sum_op<HandlerTy> operator-(scalar_operator &&other) const &;
+  /// @brief Overloads the subtraction operator to subtract a scalar_operator
+  /// from an rvalue instance.
+  /// @param other A rvalue reference to a scalar_operator object to subtract.
+  /// @return A sum_op object representing the result of the subtraction.
   sum_op<HandlerTy> operator-(scalar_operator &&other) &&;
+  /// @brief Subtracts a scalar operator from the current operator.
+  /// @param other The scalar_operator instance to subtract.
+  /// @return A new sum_op object representing the result of the subtraction.
   sum_op<HandlerTy> operator-(const scalar_operator &other) const &;
+  /// @brief Subtract a scalar operator from the current operator (rvalue
+  /// context).
+  /// @param other The scalar operator to subtract.
+  /// @return sum_op<HandlerTy> The resultant operator after performing the
+  /// subtraction.
   sum_op<HandlerTy> operator-(const scalar_operator &other) &&;
+  /// @brief Multiplies this operator with a product operator, yielding a sum
+  /// operator.
+  /// @param other The product operator to be multiplied with this operator.
+  /// @return A sum operator that represents the result of the multiplication.
   sum_op<HandlerTy> operator*(const product_op<HandlerTy> &other) const;
+  /// @brief Adds a product operation to the current sum operation.
+  /// @param other A const reference to the product operation to be added.
+  /// @return A new sum operation that encapsulates the result of the addition.
   sum_op<HandlerTy> operator+(const product_op<HandlerTy> &other) const &;
+  /// @brief Constructs a sum operation by adding a product operation to the
+  /// current rvalue product operation.
+  /// @param other A constant reference to a product_op instance to be added.
+  /// @return A sum_op instance representing the result of the addition.
   sum_op<HandlerTy> operator+(const product_op<HandlerTy> &other) &&;
+  /// @brief Overloads the addition operator to combine a product operation with
+  /// the current sum operation.
+  /// @param other A rvalue reference to the product operation to be added.
+  /// @return A new sum operation representing the result of adding the provided
+  /// product operation.
   sum_op<HandlerTy> operator+(product_op<HandlerTy> &&other) const &;
+  /// @brief Overloads the addition operator to combine a product operation into
+  /// a sum operation.
+  /// @param other An rvalue reference to a product operation to be added.
+  /// @return A sum operation resulting from the addition of the current
+  /// instance and the given product operation.
   sum_op<HandlerTy> operator+(product_op<HandlerTy> &&other) &&;
+  /// @brief Subtracts a product operator from the current sum operator.
+  /// @param other A constant reference to the product operator to subtract.
+  /// @return A new sum operator resulting from the subtraction.
   sum_op<HandlerTy> operator-(const product_op<HandlerTy> &other) const &;
+  /// @brief Subtracts a product operation from a sum operation.
+  /// @param other The product operation to subtract from the current sum
+  /// operation.
+  /// @return A new sum_op instance representing the result of the subtraction.
   sum_op<HandlerTy> operator-(const product_op<HandlerTy> &other) &&;
+  /// @brief Subtracts a product operator from the current object to form a sum
+  /// operator.
+  /// @param other The product operator to subtract, provided as an rvalue to
+  /// enable move semantics.
+  /// @return A sum operator resulting from the subtraction operation.
   sum_op<HandlerTy> operator-(product_op<HandlerTy> &&other) const &;
+  /// @brief Subtracts a product operator from a sum operator.
+  /// @param other An rvalue reference to the product operator to be subtracted.
+  /// @return A new sum operator representing the result of the subtraction.
   sum_op<HandlerTy> operator-(product_op<HandlerTy> &&other) &&;
+  /// @brief Multiplies two sum_op objects.
+  /// @param other The sum_op object to multiply with.
+  /// @return A new sum_op object representing the result of the multiplication.
   sum_op<HandlerTy> operator*(const sum_op<HandlerTy> &other) const;
+  /// @brief Computes the sum of the current and another sum_op instance.
+  /// @param other A constant reference to another sum_op instance to be added.
+  /// @return A new sum_op instance representing the result of the addition.
   sum_op<HandlerTy> operator+(const sum_op<HandlerTy> &other) const &;
+  /// @brief Combines the current sum_op with another sum_op.
+  /// @param other A constant reference to another sum_op to be added.
+  /// @return A new sum_op representing the result of the addition.
   sum_op<HandlerTy> operator+(const sum_op<HandlerTy> &other) &&;
+  /// @brief Adds the current sum_op with another sum_op object.
+  /// @param other An rvalue reference to another sum_op object to be added.
+  /// @return A new sum_op instance representing the sum of the two operands.
   sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) const &;
+  /// @brief Overloads the addition operator for a temporary sum_op object.
+  /// @param other An rvalue reference to a sum_op object that is to be combined
+  /// with the current object.
+  /// @return A new sum_op object representing the result of the summation.
   sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) &&;
+  /// @brief Subtracts the specified sum_op from this instance.
+  /// @param other The sum_op to be subtracted from this instance.
+  /// @return A new sum_op representing the result of the subtraction.
   sum_op<HandlerTy> operator-(const sum_op<HandlerTy> &other) const &;
+  /// @brief Subtracts another sum_op instance from the current rvalue sum_op.
+  /// @param other A constant reference to another sum_op instance to subtract.
+  /// @return A new sum_op instance resulting from the subtraction of other.
   sum_op<HandlerTy> operator-(const sum_op<HandlerTy> &other) &&;
+  /// @brief Subtracts the provided temporary sum_op from this sum_op instance.
+  /// @param other An rvalue reference to a sum_op object that will be
+  /// subtracted from this instance.
+  /// @return A new sum_op representing the result of the subtraction.
   sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) const &;
+  /// @brief Subtracts another temporary sum_op from this instance.
+  /// @param other A temporary (rvalue) sum_op instance to subtract.
+  /// @return A new sum_op instance containing the difference.
   sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) &&;
 
+  /// @brief Multiplies the current sum operator by a scalar operator.
+  /// @param other The scalar operator to multiply with.
+  /// @return A reference to the modified sum operator.
   sum_op<HandlerTy> &operator*=(const scalar_operator &other);
+  /// @brief Performs an in-place division of this operator by the given scalar
+  /// operator.
+  /// @param other The scalar operator to divide by.
+  /// @return A reference to this sum_op after the division.
   sum_op<HandlerTy> &operator/=(const scalar_operator &other);
+  /// @brief Adds a scalar operator to the current sum operator.
+  /// @param other The scalar operator to add, provided as an rvalue reference.
+  /// @return A reference to the updated sum operator.
   sum_op<HandlerTy> &operator+=(scalar_operator &&other);
+  /// @brief Adds a scalar operator to the current sum_op instance.
+  /// @param other The scalar_operator to be added.
+  /// @return A reference to the updated sum_op instance.
   sum_op<HandlerTy> &operator+=(const scalar_operator &other);
+  /// @brief Subtracts a scalar operator from the current sum operator.
+  /// @param other An rvalue reference to a scalar_operator that will be
+  /// subtracted.
+  /// @return A reference to the updated sum_op instance.
   sum_op<HandlerTy> &operator-=(scalar_operator &&other);
+  /// @brief Subtracts a scalar operator from this sum operator.
+  /// @param other The scalar operator to subtract from this instance.
+  /// @return A reference to this sum operator after subtraction.
   sum_op<HandlerTy> &operator-=(const scalar_operator &other);
+  /// @brief Updates the current sum operator by multiplying it with a given
+  /// product operator.
+  /// @param other A constant reference to the product operator to multiply
+  /// with.
+  /// @return A reference to the updated sum operator instance.
   sum_op<HandlerTy> &operator*=(const product_op<HandlerTy> &other);
+  /// @brief Adds the specified product operation to the current sum operation.
+  /// @param other The product operation to be incorporated into the sum
+  /// operation.
+  /// @return A reference to the updated sum operation.
   sum_op<HandlerTy> &operator+=(const product_op<HandlerTy> &other);
+  /// @brief Adds the given product operation to the current sum operation.
+  /// @param other The product operation to be added (provided as an rvalue
+  /// reference).
+  /// @return A reference to the updated sum operation.
   sum_op<HandlerTy> &operator+=(product_op<HandlerTy> &&other);
+  /// @brief Subtracts the specified product operator from the current sum
+  /// operator.
+  /// @param other The product operator to subtract.
+  /// @return A reference to the modified sum operator.
   sum_op<HandlerTy> &operator-=(const product_op<HandlerTy> &other);
+  /// @brief Subtracts a product operator from this sum operator using move
+  /// semantics.
+  /// @param other The product operator to subtract (rvalue reference).
+  /// @return A reference to the modified sum operator.
   sum_op<HandlerTy> &operator-=(product_op<HandlerTy> &&other);
+  /// @brief Performs compound assignment multiplication with another sum_op
+  /// object.
+  /// @param other The sum_op instance to multiply with.
+  /// @return A reference to the modified sum_op instance.
   sum_op<HandlerTy> &operator*=(const sum_op<HandlerTy> &other);
+  /// @brief Adds the contents of the given sum_op instance to this sum_op.
+  /// @param other The sum_op instance to be added.
+  /// @return A reference to this sum_op after combining with the provided
+  /// instance.
   sum_op<HandlerTy> &operator+=(const sum_op<HandlerTy> &other);
+  /// @brief Adds the state of another sum_op object into the current instance
+  /// using move semantics.
+  /// @param other An rvalue reference to a sum_op object whose state is to be
+  /// merged into the current instance.
+  /// @return A reference to the modified sum_op object.
   sum_op<HandlerTy> &operator+=(sum_op<HandlerTy> &&other);
+  /// @brief Subtracts the provided sum operator from this instance.
+  /// @param other A constant reference to the sum operator to subtract.
+  /// @return A reference to this sum operator after subtraction.
   sum_op<HandlerTy> &operator-=(const sum_op<HandlerTy> &other);
+  /// @brief Subtracts the contents of the provided sum_op from this sum_op.
+  /// @param other An rvalue reference to the sum_op whose contents will be
+  /// subtracted from this sum_op.
+  /// @return A reference to the current sum_op after subtraction.
   sum_op<HandlerTy> &operator-=(sum_op<HandlerTy> &&other);
 
   // left-hand arithmetics
 
-  // Being a bit permissive here, since otherwise the explicit template
-  // instantiation is a nightmare.
+  /// @brief Multiplies a scalar_operator with a sum_op.
+  /// @param other The scalar_operator to multiply.
+  /// @param self The sum_op to be multiplied.
+  /// @return A new sum_op that is the result of the multiplication.
   template <typename T>
   friend sum_op<T> operator*(const scalar_operator &other,
                              const sum_op<T> &self);
+  /// @brief Multiplies a scalar operator with a sum operator.
+  /// @param other The scalar operator to multiply.
+  /// @param self The sum operator to be multiplied.
+  /// @return A new sum operator that is the result of the multiplication.
   template <typename T>
   friend sum_op<T> operator*(const scalar_operator &other, sum_op<T> &&self);
+  /// @brief Overloads the + operator to add a scalar_operator to a sum_op.
+  /// @param other The scalar_operator to be added.
+  /// @param self The sum_op to which the scalar_operator is added.
+  /// @return A new sum_op that is the result of the addition.
   template <typename T>
   friend sum_op<T> operator+(scalar_operator &&other, const sum_op<T> &self);
+  /// @brief Overloads the addition operator for combining a scalar_operator
+  /// with a sum_op.
+  /// @param other The scalar_operator to be added.
+  /// @param self The sum_op to which the scalar_operator is added.
+  /// @return A new sum_op that is the result of the addition.
   template <typename T>
   friend sum_op<T> operator+(scalar_operator &&other, sum_op<T> &&self);
+  /// @brief Overloads the addition operator to add a scalar_operator to a
+  /// sum_op.
+  /// @tparam T The type of the elements in the sum_op.
+  /// @param other The scalar_operator to be added.
+  /// @param self The sum_op to which the scalar_operator is added.
+  /// @return A new sum_op that is the result of the addition.
   template <typename T>
   friend sum_op<T> operator+(const scalar_operator &other,
                              const sum_op<T> &self);
+  /// @brief Overloads the addition operator to add a scalar_operator to a
+  /// sum_op object.
+  /// @param other The scalar_operator to be added.
+  /// @param self The sum_op object to which the scalar_operator is added.
+  /// @return A new sum_op object that is the result of the addition.
   template <typename T>
   friend sum_op<T> operator+(const scalar_operator &other, sum_op<T> &&self);
+  /// @brief Overloads the subtraction operator for a scalar_operator and a
+  /// sum_op.
+  /// @param other The scalar_operator to be subtracted.
+  /// @param self The sum_op from which the scalar_operator is subtracted.
+  /// @return A new sum_op<T> representing the result of the subtraction.
   template <typename T>
   friend sum_op<T> operator-(scalar_operator &&other, const sum_op<T> &self);
+
   template <typename T>
   friend sum_op<T> operator-(scalar_operator &&other, sum_op<T> &&self);
+
   template <typename T>
   friend sum_op<T> operator-(const scalar_operator &other,
                              const sum_op<T> &self);
+
   template <typename T>
   friend sum_op<T> operator-(const scalar_operator &other, sum_op<T> &&self);
-
+  /// @brief Overloads the addition operator to add a scalar_operator to a
+  /// sum_op.
+  /// @tparam T The type of the elements in the sum_op.
+  /// @param other The scalar_operator to be added.
+  /// @param self The sum_op to which the scalar_operator is added.
+  /// @return A new sum_op that is the result of adding the scalar_operator to
+  /// the sum_op.
   template <typename T>
   friend sum_op<T> operator+(scalar_operator &&other,
                              const product_op<T> &self);
+  /// @brief Overloads the + operator to add a scalar_operator and a product_op.
+  /// @param other The scalar_operator to be added.
+  /// @param self The product_op to be added.
+  /// @return A sum_op object representing the result of the addition.
   template <typename T>
   friend sum_op<T> operator+(scalar_operator &&other, product_op<T> &&self);
+  /// @brief Overloads the addition operator to add a scalar_operator and a
+  /// product_op.
+  /// @param other The scalar_operator to be added.
+  /// @param self The product_op to be added.
+  /// @return A sum_op object representing the result of the addition.
   template <typename T>
   friend sum_op<T> operator+(const scalar_operator &other,
                              const product_op<T> &self);
+  /// @brief Overloads the addition operator to add a scalar_operator to a
+  /// product_op.
+  /// @tparam T The type of the product_op.
+  /// @param other The scalar_operator to be added.
+  /// @param self The product_op to which the scalar_operator is added.
+  /// @return A sum_op object representing the result of the addition.
   template <typename T>
   friend sum_op<T> operator+(const scalar_operator &other,
                              product_op<T> &&self);
+  /// @brief Overloads the subtraction operator for scalar_operator and
+  /// product_op.
+  /// @param other A scalar_operator object to be subtracted.
+  /// @param self A constant reference to a product_op object.
+  /// @return A sum_op object representing the result of the subtraction.
   template <typename T>
   friend sum_op<T> operator-(scalar_operator &&other,
                              const product_op<T> &self);
+  /// @brief Overloads the subtraction operator for a scalar_operator and a
+  /// product_op.
+  /// @param other The scalar_operator to be subtracted.
+  /// @param self The product_op from which the scalar_operator is subtracted.
+  /// @return A sum_op object representing the result of the subtraction.
   template <typename T>
   friend sum_op<T> operator-(scalar_operator &&other, product_op<T> &&self);
+  /// @brief Subtracts a product operator from a scalar operator.
+  /// @tparam T The type of the product operator.
+  /// @param other The scalar operator to subtract from.
+  /// @param self The product operator to be subtracted.
+  /// @return The result of the subtraction as a sum_op<T> object.
   template <typename T>
   friend sum_op<T> operator-(const scalar_operator &other,
                              const product_op<T> &self);
+  /// @brief Overloads the subtraction operator for a scalar_operator and a
+  /// product_op.
+  /// @param other The scalar_operator on the left-hand side of the subtraction.
+  /// @param self The product_op on the right-hand side of the subtraction,
+  /// passed as an rvalue reference.
+  /// @return A sum_op<T> representing the result of the subtraction.
   template <typename T>
   friend sum_op<T> operator-(const scalar_operator &other,
                              product_op<T> &&self);
 
   // common operators
 
+  /// @brief Creates and returns an empty sum operator.
+  /// @return An empty sum operator of type sum_op<HandlerTy>.
   static sum_op<HandlerTy> empty();
+  /// @brief Creates and returns an identity product operator.
+  /// @return A product_op<HandlerTy> representing the identity operator.
   static product_op<HandlerTy> identity();
+  /// @brief Creates an identity product operator for the specified target.
+  /// @param target The target index for which the identity operator is created.
+  /// @return A product_op object representing the identity operator for the
+  /// given target.
   static product_op<HandlerTy> identity(std::size_t target);
 
   // handler specific operators
@@ -472,6 +784,9 @@ public:
   static sum_op<HandlerTy> canonicalize(const sum_op<HandlerTy> &orig,
                                         const std::set<std::size_t> &degrees);
 
+  /// @brief Distributes the terms into a specified number of chunks.
+  /// @param numChunks The number of chunks to distribute the terms into.
+  /// @return A vector of sum_op<HandlerTy> representing the distributed terms.
   std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
   // handler specific utility functions
@@ -764,7 +1079,7 @@ public:
   product_op(std::complex<double> coefficient);
 
   /// @brief Constructs a product operator from a given atomic operator handler.
-  /// @targ HandlerTy The type of the underlying atomic operator handler.
+  /// @tparam HandlerTy The type of the underlying atomic operator handler.
   /// @param atomic An rvalue reference to the atomic operator handler.
   product_op(HandlerTy &&atomic);
 
@@ -785,7 +1100,7 @@ public:
   /// the type T is not the same as HandlerTy but is convertible to HandlerTy.
   /// It allows for proper handling of commutation behavior during the
   /// construction.
-  /// @targ T The type of the operand from which the new product_op is
+  /// @tparam T The type of the operand from which the new product_op is
   /// constructed.
   /// @param other The source product_op instance from which to create this new
   /// object.
@@ -824,7 +1139,7 @@ public:
   /// enabled when the template parameter T is not the same as HandlerTy and is
   /// constructible as a HandlerTy. It allows for copying or converting a
   /// product_op instance of type T into one of type HandlerTy.
-  /// @targ T The type of the product_op to be assigned from, which must
+  /// @tparam T The type of the product_op to be assigned from, which must
   /// satisfy that it is not HandlerTy and is constructible as HandlerTy.
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
@@ -832,11 +1147,15 @@ public:
                              bool> = true>
   product_op<HandlerTy> &operator=(const product_op<T> &other);
 
-  // assignment operator
+  /// @brief Assignment operator for the product_op class.
+  /// @param other The product_op instance to be assigned.
+  /// @return A reference to the assigned product_op instance.
   product_op<HandlerTy> &
   operator=(const product_op<HandlerTy> &other) = default;
 
-  // move assignment operator
+  /// @brief Move assignment operator for product_op.
+  /// @param other The product_op instance to move from.
+  /// @return A reference to the assigned product_op instance.
   product_op<HandlerTy> &operator=(product_op<HandlerTy> &&other) = default;
 
   // evaluations
@@ -847,13 +1166,12 @@ public:
 
   /// @brief Return the matrix representation of the operator.
   /// By default, the matrix is ordered according to the convention (endianness)
-  /// used in CUDA-Q, and the ordering returned by `degrees`. See
-  /// the documentation for `degrees` for more detail.
-  /// @arg  `dimensions` : A mapping that specifies the number of levels,
+  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// @param  `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
-  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// @param `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   complex_matrix
@@ -878,9 +1196,17 @@ public:
 
   // unary operators
 
+  /// @brief Unary negation operator for the product_op class.
+  /// @return A new product_op object with the negated value.
   product_op<HandlerTy> operator-() const &;
+  /// @brief Unary negation operator for product_op.
+  /// @return A new product_op object with the negated value.
   product_op<HandlerTy> operator-() &&;
+  /// @brief Unary plus operator for the product_op class.
+  /// @return A new product_op object.
   product_op<HandlerTy> operator+() const &;
+  /// @brief Overloaded unary plus operator for product_op.
+  /// @return A product_op object with the current handler type.
   product_op<HandlerTy> operator+() &&;
 
   // right-hand arithmetics
@@ -935,7 +1261,7 @@ public:
   /// of a scalar operator (provided as an rvalue reference) with an existing
   /// product operator, producing a new product operator that encapsulates the
   /// resultant state.
-  /// @targ T The type parameter used within the product operator.
+  /// @tparam T The type parameter used within the product operator.
   /// @param other The scalar operator to be multiplied (rvalue reference).
   /// @param self The product operator to be multiplied.
   /// @return A new product operator that is the result of multiplying the
@@ -1006,9 +1332,9 @@ public:
 
   // general utility functions
 
-  // Checks if all operators in the product are the identity.
-  // Note: this function returns true regardless of the value
-  // of the coefficient.
+  /// @brief Checks if all operators in the product are the identity.
+  /// Note: this function returns true regardless of the value
+  /// of the coefficient.
   bool is_identity() const;
 
   /// @brief Return the string representation of the operator.
