@@ -130,36 +130,69 @@ public:
   const commutation_relations &commutation_group = this->group;
   const bool &commutes_across_degrees = this->commutes;
 
+  /// @brief Returns a unique identifier string for this operator instance.
+  /// @return A string representing the unique ID of the operator.
   virtual std::string unique_id() const override;
 
+  /// @brief Returns the degrees of freedom on which the operator acts.
+  /// @return A vector of std::size_t representing the degrees of freedom.
   virtual std::vector<std::size_t> degrees() const override;
 
   // constructors and destructors
 
+  /// @brief Constructs a matrix_handler from a given target index.
+  /// @arg target A std::size_t representing the target index relevant for the
+  /// operator.
   matrix_handler(std::size_t target);
 
+  /// @brief Constructs a matrix_handler by copying from an
+  /// operator_handler-derived instance.
+  /// @targ T A type derived from operator_handler.
+  /// @arg other A constant reference to the source operator instance.
   template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
                                          bool> = true>
   matrix_handler(const T &other);
 
+  /// @brief Constructs a matrix_handler from an operator_handler-derived
+  /// instance with specified commutation behavior.
+  /// @targ T A type derived from operator_handler.
+  /// @arg other A constant reference to the source operator instance.
+  /// @arg behavior A commutation_behavior object specifying the commutation
+  /// properties.
   template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
                                          bool> = true>
   matrix_handler(const T &other, const commutation_behavior &behavior);
 
-  // copy constructor
+  /// @brief Copy constructs a matrix_handler from another matrix_handler
+  /// instance.
+  /// @arg other A constant reference to the other matrix_handler instance.
   matrix_handler(const matrix_handler &other);
 
-  // move constructor
+  /// @brief Move constructs a matrix_handler by transferring resources from
+  /// another instance.
+  /// @arg other An rvalue reference to the other matrix_handler instance.
   matrix_handler(matrix_handler &&other);
 
+  /// @brief Default destructor for matrix_handler.
   ~matrix_handler() = default;
 
   // assignments
 
+  /// @brief Move assigns a matrix_handler instance by transferring resources
+  /// from another instance.
+  /// @arg other An rvalue reference to the other matrix_handler instance.
+  /// @return A reference to the assigned matrix_handler.
   matrix_handler &operator=(matrix_handler &&other);
 
+  /// @brief Copy assigns a matrix_handler instance from another matrix_handler.
+  /// @arg other A constant reference to the other matrix_handler instance.
+  /// @return A reference to the assigned matrix_handler.
   matrix_handler &operator=(const matrix_handler &other);
 
+  /// @brief Assigns a base operator to a matrix_handler instance.
+  /// @targ T A type derived from operator_handler and not matrix_handler.
+  /// @arg other A constant reference to the operator_handler-derived instance.
+  /// @return A reference to the assigned matrix_handler.
   template <typename T,
             std::enable_if_t<!std::is_same<T, matrix_handler>::value &&
                                  std::is_base_of_v<operator_handler, T>,
@@ -178,6 +211,10 @@ public:
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 
+  /// @brief Generates a string representation of the matrix_handler.
+  /// @arg include_degrees A flag indicating whether to include degree
+  /// information in the string.
+  /// @return A string describing the operator.
   virtual std::string to_string(bool include_degrees) const override;
 
   // comparisons

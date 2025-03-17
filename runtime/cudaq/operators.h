@@ -764,7 +764,7 @@ public:
   product_op(std::complex<double> coefficient);
 
   /// @brief Constructs a product operator from a given atomic operator handler.
-  /// @tparam HandlerTy The type of the underlying atomic operator handler.
+  /// @targ HandlerTy The type of the underlying atomic operator handler.
   /// @param atomic An rvalue reference to the atomic operator handler.
   product_op(HandlerTy &&atomic);
 
@@ -785,7 +785,7 @@ public:
   /// the type T is not the same as HandlerTy but is convertible to HandlerTy.
   /// It allows for proper handling of commutation behavior during the
   /// construction.
-  /// @tparam T The type of the operand from which the new product_op is
+  /// @targ T The type of the operand from which the new product_op is
   /// constructed.
   /// @param other The source product_op instance from which to create this new
   /// object.
@@ -824,7 +824,7 @@ public:
   /// enabled when the template parameter T is not the same as HandlerTy and is
   /// constructible as a HandlerTy. It allows for copying or converting a
   /// product_op instance of type T into one of type HandlerTy.
-  /// @tparam T The type of the product_op to be assigned from, which must
+  /// @targ T The type of the product_op to be assigned from, which must
   /// satisfy that it is not HandlerTy and is constructible as HandlerTy.
   template <typename T,
             std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
@@ -935,7 +935,7 @@ public:
   /// of a scalar operator (provided as an rvalue reference) with an existing
   /// product operator, producing a new product operator that encapsulates the
   /// resultant state.
-  /// @tparam T The type parameter used within the product operator.
+  /// @targ T The type parameter used within the product operator.
   /// @param other The scalar operator to be multiplied (rvalue reference).
   /// @param self The product operator to be multiplied.
   /// @return A new product operator that is the result of multiplying the
