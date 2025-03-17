@@ -57,8 +57,8 @@ public:
 
   /// @brief Return the matrix representation of the operator in the eigenbasis
   /// of the number operator.
-  /// @arg  `dimensions` : A map specifying the dimension, that is the number of
-  /// eigenstates, for each degree of freedom.
+  /// @param  `dimensions` : A map specifying the dimension, that is the number
+  /// of eigenstates, for each degree of freedom.
   virtual complex_matrix
   to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>

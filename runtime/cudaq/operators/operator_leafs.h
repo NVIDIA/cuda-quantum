@@ -64,14 +64,14 @@ public:
   scalar_operator &operator=(scalar_operator &&other) = default;
 
   /// @brief Evaluates the scalar operator using the given parameters.
-  /// @arg parameters A map of parameter names to complex values.
+  /// @param parameters A map of parameter names to complex values.
   /// @return The evaluated complex value.
   std::complex<double>
   evaluate(const std::unordered_map<std::string, std::complex<double>>
                &parameters = {}) const;
 
   /// @brief Converts the scalar operator to a 1x1 matrix.
-  /// @arg parameters A map of parameter names to complex values.
+  /// @param parameters A map of parameter names to complex values.
   /// @return The 1x1 complex matrix representation.
   complex_matrix
   to_matrix(const std::unordered_map<std::string, std::complex<double>>
@@ -82,7 +82,7 @@ public:
   std::string to_string() const;
 
   /// @brief Compares two scalar operators for equality.
-  /// @arg other The scalar operator to compare against.
+  /// @param other The scalar operator to compare against.
   /// @return True if both operators are equal, false otherwise.
   bool operator==(scalar_operator other) const;
 
@@ -439,7 +439,7 @@ public:
   virtual std::vector<std::size_t> degrees() const = 0;
 
   /// @brief Return the `matrix_handler` as a matrix.
-  /// @arg  `dimensions` : A map specifying the number of levels,
+  /// @param  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
