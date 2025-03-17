@@ -66,7 +66,7 @@ public:
                                   bool invert_order = false);
 
   /// @brief Return the `matrix_handler` as a matrix.
-  /// @arg  `dimensions` : A map specifying the number of levels,
+  /// @param  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.

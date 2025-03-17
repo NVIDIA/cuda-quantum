@@ -31,10 +31,10 @@ private:
 
 public:
   /// @brief Constructs a scalar callback from a callable object.
-  /// @targ Callable The type of the callable object. It must satisfy the
+  /// @tparam Callable The type of the callable object. It must satisfy the
   /// signature: std::complex<double>(`const` std::unordered_map<std::string,
   /// std::complex<double>> &).
-  /// @arg callable The callable object to be wrapped and stored for later
+  /// @param callable The callable object to be wrapped and stored for later
   /// invocation.
   template <typename Callable,
             std::enable_if_t<
@@ -59,7 +59,7 @@ public:
   scalar_callback &operator=(scalar_callback &&other) = default;
 
   /// @brief Evaluates the callback with the provided parameters.
-  /// @arg parameters A mapping from parameter names to their complex values.
+  /// @param parameters A mapping from parameter names to their complex values.
   /// @return std::complex<double> The computed complex result based on the
   /// input parameters.
   std::complex<double> operator()(
