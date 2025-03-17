@@ -73,6 +73,15 @@ the container, for example:
 
 .. _NVIDIA container toolkit: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 
+.. note::
+
+    If you are using CUDA 12.8 on Blackwell, you may need to install additional
+    dependencies to use the python wheels.
+
+    .. code-block:: console
+
+        pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 nvidia-nvjitlink-cu12 nvidia-curand-cu12
+
 You can stop and exit the container by typing the command :code:`exit`. If you did not specify
 :code:`--rm` flag when launching the container, the container still exists after exiting, as well as any 
 changes you made in it. You can get back to it using
