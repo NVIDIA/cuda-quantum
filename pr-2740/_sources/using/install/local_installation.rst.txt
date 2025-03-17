@@ -73,10 +73,20 @@ the container, for example:
 
 .. _NVIDIA container toolkit: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 
+.. _blackwell-cuda-dependencies:
+
 .. note::
 
     If you are using CUDA 12.8 on Blackwell, you may need to install additional
     dependencies to use the python wheels.
+
+    If you see the following error:
+
+    .. code-block:: console
+
+       cupy_backends.cuda.api.driver.CUDADriverError: CUDA_ERROR_NO_BINARY_FOR_GPU: no kernel image is available for execution on the device
+
+    You may need to install the more updated python wheels.
 
     .. code-block:: console
 

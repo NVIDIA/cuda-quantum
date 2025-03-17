@@ -806,10 +806,15 @@ the container, for example:</p>
 version is insufficient. To improve compatibility with older drivers, you may need to install the
 <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA container toolkit</a>.</p>
 </div>
-<div class="admonition note">
+<div class="admonition note" id="blackwell-cuda-dependencies">
 <p class="admonition-title">Note</p>
 <p>If you are using CUDA 12.8 on Blackwell, you may need to install additional
 dependencies to use the python wheels.</p>
+<p>If you see the following error:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cupy_backends.cuda.api.driver.CUDADriverError: CUDA_ERROR_NO_BINARY_FOR_GPU: no kernel image is available for execution on the device</span>
+</pre></div>
+</div>
+<p>You may need to install the more updated python wheels.</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 nvidia-nvjitlink-cu12 nvidia-curand-cu12</span>
 </pre></div>
 </div>

@@ -17,7 +17,9 @@ found in our complete :doc:`Installation Guide <install/install>`.
 .. note::
 
     If you are using CUDA 12.8 on Blackwell, you may need to install additional
-    dependencies to use the python wheels. See :doc:`Installation Guide <install/install>`
+    dependencies to use the python wheels.
+
+    See :ref:`Blackwell CUDA Dependencies <blackwell-cuda-dependencies>` for more information.
 
 Install CUDA-Q
 ----------------------------
