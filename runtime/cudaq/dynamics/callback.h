@@ -31,7 +31,7 @@ private:
 
 public:
   /// @brief Constructs a scalar callback from a callable object.
-  /// @tparam Callable The type of the callable object. It must satisfy the
+  /// @targ Callable The type of the callable object. It must satisfy the
   /// signature: std::complex<double>(`const` std::unordered_map<std::string,
   /// std::complex<double>> &).
   /// @arg callable The callable object to be wrapped and stored for later
