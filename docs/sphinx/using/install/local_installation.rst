@@ -80,6 +80,14 @@ the container, for example:
     If you are using CUDA 12.8 on Blackwell, you may need to install additional
     dependencies to use the python wheels.
 
+    If you see the following error:
+
+    .. code-block:: console
+
+       cupy_backends.cuda.api.driver.CUDADriverError: CUDA_ERROR_NO_BINARY_FOR_GPU: no kernel image is available for execution on the device
+
+    You may need to install the more updated python wheels.
+
     .. code-block:: console
 
         pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 nvidia-nvjitlink-cu12 nvidia-curand-cu12
