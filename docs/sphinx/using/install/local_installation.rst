@@ -73,6 +73,8 @@ the container, for example:
 
 .. _NVIDIA container toolkit: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 
+.. _blackwell-cuda-dependencies:
+
 .. note::
 
     If you are using CUDA 12.8 on Blackwell, you may need to install additional
