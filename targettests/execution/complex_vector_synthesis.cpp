@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
+// RUN: nvq++ %cpp_std --enable-mlir %s -o %t | FileCheck %s
 // TODO-FIX-KERNEL-EXEC
 // RUN: nvq++ %cpp_std --target quantinuum --emulate -fkernel-exec-kind=2 %s -o %t  && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target quantinuum --emulate                      %s -o %t  && %t | FileCheck %s
@@ -17,7 +18,6 @@
 #include <iostream>
 #include <vector>
 
-#define CUDAQ_SIMULATION_SCALAR_FP64 1
 __qpu__ void test(std::vector<std::complex<double>> &v) {
   cudaq::qvector q(2);
   for (std::size_t i = 0; i < v.size(); i++) {
