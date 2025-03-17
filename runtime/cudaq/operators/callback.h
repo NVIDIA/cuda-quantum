@@ -20,8 +20,7 @@
 namespace cudaq {
 
 /// @brief A callback wrapper that encapsulates a user-provided function taking
-/// a set of complex parameters
-///        and returning a complex result.
+/// a set of complex parameters and returning a complex result.
 class scalar_callback {
 private:
   // The user provided callback function that takes a map of complex
