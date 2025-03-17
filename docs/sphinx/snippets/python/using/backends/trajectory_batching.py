@@ -7,24 +7,24 @@
 # ============================================================================ #
 
 #[Begin Docs]
+import time
 import cudaq
-from cudaq import spin
-
 # Use the `nvidia` target
-# Other targets capable of trajectory simulation are:
-# - `tensornet`
-# - `tensornet-mps`
 cudaq.set_target("nvidia")
+
+# Let's define a simple kernel that we will add noise to.
+qubit_count = 10
 
 
 @cudaq.kernel
-def kernel():
-    q = cudaq.qubit()
-    x(q)
+def kernel(qubit_count: int):
+    qvector = cudaq.qvector(qubit_count)
+    x(qvector)
+    mz(qvector)
 
 
 # Add a simple bit-flip noise channel to X gate
-error_probability = 0.1
+error_probability = 0.01
 bit_flip = cudaq.BitFlipChannel(error_probability)
 
 # Add noise channels to our noise model.
@@ -32,16 +32,15 @@ noise_model = cudaq.NoiseModel()
 # Apply the bit-flip channel to any X-gate on any qubits
 noise_model.add_all_qubit_channel("x", bit_flip)
 
-noisy_exp_val = cudaq.observe(kernel,
-                              spin.z(0),
-                              noise_model=noise_model,
-                              num_trajectories=1024).expectation()
-# True expectation: 0.1 - 0.9 = -0.8 (|1> has <Z> of -1 and |1> has <Z> of +1)
-print("Noisy <Z> with 1024 trajectories =", noisy_exp_val)
+ideal_counts = cudaq.sample(kernel, qubit_count, shots_count=1000)
 
-# Rerun with a higher number of trajectories
-noisy_exp_val = cudaq.observe(kernel,
-                              spin.z(0),
-                              noise_model=noise_model,
-                              num_trajectories=8192).expectation()
-print("Noisy <Z> with 8192 trajectories =", noisy_exp_val)
+start = time.time()
+# Due to the impact of noise, our measurements will no longer be uniformly
+# in the |1...1> state.
+noisy_counts = cudaq.sample(kernel,
+                            qubit_count,
+                            noise_model=noise_model,
+                            shots_count=1000)
+end = time.time()
+noisy_counts.dump()
+print(f"Simulation elapsed time: {(end - start) * 1000} ms")
