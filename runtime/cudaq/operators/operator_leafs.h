@@ -27,127 +27,248 @@ private:
 
 public:
   // constructors and destructors
-
+  /// @brief Default constructor that initializes the scalar operator
   constexpr scalar_operator() = default;
 
+  /// @brief Constructs a scalar operator with a double value.
   scalar_operator(double value);
 
+  /// @brief Checks if the scalar operator represents a constant value.
+  /// @return True if the operator is constant, false otherwise.
   bool is_constant() const;
 
-  /// @brief Constructor that just takes and returns a complex double value.
+  /// @brief Constructs a scalar operator with a complex double value.
   scalar_operator(std::complex<double> value);
 
+  /// @brief Constructs a scalar operator from a scalar callback.
   scalar_operator(const scalar_callback &create);
 
-  /// @brief Constructor that just takes a callback function with no
-  /// arguments.
+  /// @brief Constructs a scalar operator from an rvalue scalar callback.
   scalar_operator(scalar_callback &&create);
 
-  // copy constructor
+  /// @brief Copy constructor.
   scalar_operator(const scalar_operator &other) = default;
 
-  // move constructor
+  /// @brief Move constructor.
   scalar_operator(scalar_operator &&other) = default;
 
+  /// @brief Default destructor.
   ~scalar_operator() = default;
 
   // assignments
 
-  // assignment operator
+  /// @brief Copy assignment operator.
   scalar_operator &operator=(const scalar_operator &other) = default;
 
-  // move assignment operator
+  /// @brief Move assignment operator.
   scalar_operator &operator=(scalar_operator &&other) = default;
 
-  // evaluations
-
-  /// @brief Return the scalar operator as a concrete complex value.
+  /// @brief Evaluates the scalar operator using the given parameters.
+  /// @arg parameters A map of parameter names to complex values.
+  /// @return The evaluated complex value.
   std::complex<double>
   evaluate(const std::unordered_map<std::string, std::complex<double>>
                &parameters = {}) const;
 
-  // Return the scalar operator as a 1x1 matrix. This is needed for
-  // compatibility with the other inherited classes.
+  /// @brief Converts the scalar operator to a 1x1 matrix.
+  /// @arg parameters A map of parameter names to complex values.
+  /// @return The 1x1 complex matrix representation.
   complex_matrix
   to_matrix(const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const;
 
+  /// @brief Returns a string representation of the scalar operator.
+  /// @return The string representation.
   std::string to_string() const;
 
-  // comparisons
-
+  /// @brief Compares two scalar operators for equality.
+  /// @arg other The scalar operator to compare against.
+  /// @return True if both operators are equal, false otherwise.
   bool operator==(scalar_operator other) const;
 
   // unary operators
 
+  /// @brief Unary minus operator (lvalue).
+  /// @return A new scalar operator representing the negation.
   scalar_operator operator-() const &;
+
+  /// @brief Unary minus operator (rvalue).
+  /// @return A new scalar operator representing the negation.
   scalar_operator operator-() &&;
+
+  /// @brief Unary plus operator (lvalue).
+  /// @return A copy of the current scalar operator.
   scalar_operator operator+() const &;
+
+  /// @brief Unary plus operator (rvalue).
+  /// @return A moved copy of the current scalar operator.
   scalar_operator operator+() &&;
 
   // right-hand arithmetics
 
+  /// @brief Multiplies the scalar operator by a double (lvalue).
   scalar_operator operator*(double other) const &;
+
+  /// @brief Multiplies the scalar operator by a double (rvalue).
   scalar_operator operator*(double other) &&;
+
+  /// @brief Divides the scalar operator by a double (lvalue).
   scalar_operator operator/(double other) const &;
+
+  /// @brief Divides the scalar operator by a double (rvalue).
   scalar_operator operator/(double other) &&;
+
+  /// @brief Adds a double to the scalar operator (lvalue).
   scalar_operator operator+(double other) const &;
+
+  /// @brief Adds a double to the scalar operator (rvalue).
   scalar_operator operator+(double other) &&;
+
+  /// @brief Subtracts a double from the scalar operator (lvalue).
   scalar_operator operator-(double other) const &;
+
+  /// @brief Subtracts a double from the scalar operator (rvalue).
   scalar_operator operator-(double other) &&;
+
+  /// @brief Multiplies the scalar operator by a double in-place.
   scalar_operator &operator*=(double other);
+
+  /// @brief Divides the scalar operator by a double in-place.
   scalar_operator &operator/=(double other);
+
+  /// @brief Adds a double to the scalar operator in-place.
   scalar_operator &operator+=(double other);
+
+  /// @brief Subtracts a double from the scalar operator in-place.
   scalar_operator &operator-=(double other);
+
+  /// @brief Multiplies the scalar operator by a complex number (lvalue).
   scalar_operator operator*(std::complex<double> other) const &;
+
+  /// @brief Multiplies the scalar operator by a complex number (rvalue).
   scalar_operator operator*(std::complex<double> other) &&;
+
+  /// @brief Divides the scalar operator by a complex number (lvalue).
   scalar_operator operator/(std::complex<double> other) const &;
+
+  /// @brief Divides the scalar operator by a complex number (rvalue).
   scalar_operator operator/(std::complex<double> other) &&;
+
+  /// @brief Adds a complex number to the scalar operator (lvalue).
   scalar_operator operator+(std::complex<double> other) const &;
+
+  /// @brief Adds a complex number to the scalar operator (rvalue).
   scalar_operator operator+(std::complex<double> other) &&;
+
+  /// @brief Subtracts a complex number from the scalar operator (lvalue).
   scalar_operator operator-(std::complex<double> other) const &;
+
+  /// @brief Subtracts a complex number from the scalar operator (rvalue).
   scalar_operator operator-(std::complex<double> other) &&;
+
+  /// @brief Multiplies the scalar operator by a complex number in-place.
   scalar_operator &operator*=(std::complex<double> other);
+
+  /// @brief Divides the scalar operator by a complex number in-place.
   scalar_operator &operator/=(std::complex<double> other);
+
+  /// @brief Adds a complex number to the scalar operator in-place.
   scalar_operator &operator+=(std::complex<double> other);
+
+  /// @brief Subtracts a complex number from the scalar operator in-place.
   scalar_operator &operator-=(std::complex<double> other);
+
+  /// @brief Multiplies two scalar operators (lvalue).
   scalar_operator operator*(const scalar_operator &other) const &;
+
+  /// @brief Multiplies two scalar operators (rvalue).
   scalar_operator operator*(const scalar_operator &other) &&;
+
+  /// @brief Divides two scalar operators (lvalue).
   scalar_operator operator/(const scalar_operator &other) const &;
+
+  /// @brief Divides two scalar operators (rvalue).
   scalar_operator operator/(const scalar_operator &other) &&;
+
+  /// @brief Adds two scalar operators (lvalue).
   scalar_operator operator+(const scalar_operator &other) const &;
+
+  /// @brief Adds two scalar operators (rvalue).
   scalar_operator operator+(const scalar_operator &other) &&;
+
+  /// @brief Subtracts two scalar operators (lvalue).
   scalar_operator operator-(const scalar_operator &other) const &;
+
+  /// @brief Subtracts two scalar operators (rvalue).
   scalar_operator operator-(const scalar_operator &other) &&;
+
+  /// @brief Multiplies two scalar operators in-place.
   scalar_operator &operator*=(const scalar_operator &other);
+
+  /// @brief Divides two scalar operators in-place.
   scalar_operator &operator/=(const scalar_operator &other);
+
+  /// @brief Adds two scalar operators in-place.
   scalar_operator &operator+=(const scalar_operator &other);
+
+  /// @brief Subtracts two scalar operators in-place.
   scalar_operator &operator-=(const scalar_operator &other);
 
   // left-hand arithmetics
 
+  /// @brief Multiplies a double with a scalar operator (lvalue).
   friend scalar_operator operator*(double other, const scalar_operator &self);
+
+  /// @brief Multiplies a double with a scalar operator (rvalue).
   friend scalar_operator operator*(double other, scalar_operator &&self);
+
+  /// @brief Divides a double by a scalar operator (lvalue).
   friend scalar_operator operator/(double other, const scalar_operator &self);
+
+  /// @brief Divides a double by a scalar operator (rvalue).
   friend scalar_operator operator/(double other, scalar_operator &&self);
+
+  /// @brief Adds a double to a scalar operator (lvalue).
   friend scalar_operator operator+(double other, const scalar_operator &self);
+
+  /// @brief Adds a double to a scalar operator (rvalue).
   friend scalar_operator operator+(double other, scalar_operator &&self);
+
+  /// @brief Subtracts a scalar operator from a double (lvalue).
   friend scalar_operator operator-(double other, const scalar_operator &self);
+
+  /// @brief Subtracts a scalar operator from a double (rvalue).
   friend scalar_operator operator-(double other, scalar_operator &&self);
+
+  /// @brief Multiplies a complex number with a scalar operator (lvalue).
   friend scalar_operator operator*(std::complex<double> other,
                                    const scalar_operator &self);
+
+  /// @brief Multiplies a complex number with a scalar operator (rvalue).
   friend scalar_operator operator*(std::complex<double> other,
                                    scalar_operator &&self);
+
+  /// @brief Divides a complex number by a scalar operator (lvalue).
   friend scalar_operator operator/(std::complex<double> other,
                                    const scalar_operator &self);
+
+  /// @brief Divides a complex number by a scalar operator (rvalue).
   friend scalar_operator operator/(std::complex<double> other,
                                    scalar_operator &&self);
+
+  /// @brief Adds a complex number to a scalar operator (lvalue).
   friend scalar_operator operator+(std::complex<double> other,
                                    const scalar_operator &self);
+
+  /// @brief Adds a complex number to a scalar operator (rvalue).
   friend scalar_operator operator+(std::complex<double> other,
                                    scalar_operator &&self);
+
+  /// @brief Subtracts a scalar operator from a complex number (lvalue).
   friend scalar_operator operator-(std::complex<double> other,
                                    const scalar_operator &self);
+
+  /// @brief Subtracts a scalar operator from a complex number (rvalue).
   friend scalar_operator operator-(std::complex<double> other,
                                    scalar_operator &&self);
 };
