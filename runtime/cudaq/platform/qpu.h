@@ -88,13 +88,13 @@ protected:
         // Loop over each term and compute coeff * <term>
         for (const auto &term : H) {
           if (term.is_identity())
-            sum += term.get_coefficient().evaluate().real();
+            sum += term.evaluate_coefficient().real();
           else {
             // This takes a longer time for the first iteration unless
             // flushGateQueue() is called above.
             auto [exp, data] = cudaq::measure(term);
             results.emplace_back(data.to_map(), term.get_term_id(), exp);
-            sum += term.get_coefficient().evaluate().real() * exp;
+            sum += term.evaluate_coefficient().real() * exp;
           }
         };
 

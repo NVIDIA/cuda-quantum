@@ -124,10 +124,10 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
     double sum = 0.0;
     for (const auto &term : h) {
       if (term.is_identity())
-        sum += term.get_coefficient().evaluate().real();
+        sum += term.evaluate_coefficient().real();
       else
         sum += data.expectation(term.get_term_id()) *
-               term.get_coefficient().evaluate().real();
+               term.evaluate_coefficient().real();
     }
     expectationValue = sum;
   }

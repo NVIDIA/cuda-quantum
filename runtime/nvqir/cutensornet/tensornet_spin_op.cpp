@@ -90,7 +90,7 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
     }
 
     for (const auto &term : spinOp) {
-      auto coeff = term.get_coefficient().evaluate();
+      auto coeff = term.evaluate_coefficient();
       if (term.is_identity()) {
         // Note: we don't add I Pauli.
         m_identityCoeff = coeff;

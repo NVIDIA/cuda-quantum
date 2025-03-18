@@ -148,10 +148,10 @@ public:
           // will work perfectly fine as long as there is no user error, but
           // the passed observable should really be validated properly and not
           // processed here as is making assumptions about correctness.
-          sum += term.get_coefficient().evaluate().real();
+          sum += term.evaluate_coefficient().real();
         else
           sum += data.expectation(term.get_term_id()) *
-                 term.get_coefficient().evaluate().real();
+                 term.evaluate_coefficient().real();
       }
       return observe_result(sum, *spinOp, data);
     }

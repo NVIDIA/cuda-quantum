@@ -533,7 +533,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product_op = cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
-    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product_op.evaluate_coefficient() ==
                 std::complex<double>(1.));
 
     auto product = 2.0 * product_op;
@@ -541,9 +541,9 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     ASSERT_TRUE(product.num_ops() == 2);
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product.evaluate_coefficient() ==
                 std::complex<double>(2.));
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
+    ASSERT_TRUE(reverse.evaluate_coefficient() ==
                 std::complex<double>(2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -572,7 +572,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product_op = cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
-    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product_op.evaluate_coefficient() ==
                 std::complex<double>(1.));
 
     auto product = value_0 * product_op;
@@ -580,8 +580,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     ASSERT_TRUE(product.num_ops() == 2);
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == value_0);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() == value_0);
+    ASSERT_TRUE(product.evaluate_coefficient() == value_0);
+    ASSERT_TRUE(reverse.evaluate_coefficient() == value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -617,8 +617,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     ASSERT_TRUE(product.num_ops() == 2);
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() == scalar_op.evaluate());
+    ASSERT_TRUE(product.evaluate_coefficient() == scalar_op.evaluate());
+    ASSERT_TRUE(reverse.evaluate_coefficient() == scalar_op.evaluate());
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -653,8 +653,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     ASSERT_TRUE(product.num_ops() == 2);
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() == scalar_op.evaluate());
+    ASSERT_TRUE(product.evaluate_coefficient() == scalar_op.evaluate());
+    ASSERT_TRUE(reverse.evaluate_coefficient() == scalar_op.evaluate());
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -679,13 +679,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product_op = cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
-    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product_op.evaluate_coefficient() ==
                 std::complex<double>(1.));
 
     auto reverse = product_op / 2.0;
 
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
+    ASSERT_TRUE(reverse.evaluate_coefficient() ==
                 std::complex<double>(1. / 2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -710,13 +710,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product_op = cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
-    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product_op.evaluate_coefficient() ==
                 std::complex<double>(1.));
 
     auto reverse = product_op / value_0;
 
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() == 1. / value_0);
+    ASSERT_TRUE(reverse.evaluate_coefficient() == 1. / value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(reverse.degrees() == want_degrees);
@@ -746,7 +746,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto reverse = product_op / scalar_op;
 
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
+    ASSERT_TRUE(reverse.evaluate_coefficient() ==
                 1. / scalar_op.evaluate());
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -776,7 +776,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto reverse = product_op / scalar_op;
 
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
+    ASSERT_TRUE(reverse.evaluate_coefficient() ==
                 1. / scalar_op.evaluate());
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -801,7 +801,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product *= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product.evaluate_coefficient() ==
                 std::complex<double>(2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -827,7 +827,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product *= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product.evaluate_coefficient() ==
                 std::complex<double>(2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -851,7 +851,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product *= value_0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == value_0);
+    ASSERT_TRUE(product.evaluate_coefficient() == value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -879,7 +879,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product *= scalar_op;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
+    ASSERT_TRUE(product.evaluate_coefficient() == scalar_op.evaluate());
     ASSERT_TRUE(scalar_op.evaluate() == value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -906,7 +906,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product /= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product.evaluate_coefficient() ==
                 std::complex<double>(1. / 2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -932,7 +932,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product /= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product.evaluate_coefficient() ==
                 std::complex<double>(1. / 2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -956,7 +956,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product /= value_0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == 1. / value_0);
+    ASSERT_TRUE(product.evaluate_coefficient() == 1. / value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -984,7 +984,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product /= scalar_op;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product.evaluate_coefficient() ==
                 1. / scalar_op.evaluate());
     ASSERT_TRUE(scalar_op.evaluate() == value_0);
 

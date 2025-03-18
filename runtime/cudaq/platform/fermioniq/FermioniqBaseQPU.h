@@ -87,7 +87,7 @@ public:
 
         terms.push_back(termStr);
 
-        auto coeff = term.get_coefficient().evaluate();
+        auto coeff = term.evaluate_coefficient();
         auto coeff_str =
             fmt::format("{}{}{}j", coeff.real(), coeff.imag() < 0.0 ? "-" : "+",
                         std::fabs(coeff.imag()));

@@ -355,6 +355,12 @@ scalar_operator product_op<HandlerTy>::get_coefficient() const {
   return this->coefficient;
 }
 
+template <typename HandlerTy>
+std::complex<double> product_op<HandlerTy>::evaluate_coefficient(
+  const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+  return this->coefficient.evaluate(parameters);
+}
+
 #define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                              \
                                                                                \
   template std::vector<std::size_t> product_op<HandlerTy>::degrees(            \

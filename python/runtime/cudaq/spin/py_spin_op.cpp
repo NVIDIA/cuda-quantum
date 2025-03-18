@@ -89,7 +89,7 @@ void bindSpinOperator(py::module &mod) {
       .def(
           "get_coefficient",
           [](cudaq::spin_op_term &op) {
-            return op.get_coefficient().evaluate();
+            return op.evaluate_coefficient();
           },
           "Return the coefficient of this :class:`SpinOperatorTerm`.")
       .def("is_identity", &cudaq::spin_op_term::is_identity,

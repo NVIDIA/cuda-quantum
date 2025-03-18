@@ -98,7 +98,7 @@ public:
   double id_coefficient() {
     for (const auto &term : spinOp)
       if (term.is_identity())
-        return term.get_coefficient().evaluate().real();
+        return term.evaluate_coefficient().real();
     return 0.0;
   }
 

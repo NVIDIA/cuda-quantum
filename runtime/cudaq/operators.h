@@ -623,6 +623,10 @@ public:
 
   scalar_operator get_coefficient() const;
 
+  std::complex<double> evaluate_coefficient(
+    const std::unordered_map<std::string, std::complex<double>>
+    &parameters = {}) const;
+
   // constructors and destructors
 
   constexpr product_op() {}

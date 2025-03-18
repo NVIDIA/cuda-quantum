@@ -45,10 +45,10 @@ public:
             cached = ::qpp::apply(cached, Z, {convertQubitIndex(i)});
         }
 
-        sum += term.get_coefficient().evaluate().real() *
+        sum += term.evaluate_coefficient().real() *
                state.transpose().dot(cached).real();
       } else {
-        sum += term.get_coefficient().evaluate().real();
+        sum += term.evaluate_coefficient().real();
       }
     }
 

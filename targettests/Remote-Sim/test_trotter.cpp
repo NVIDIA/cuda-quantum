@@ -60,7 +60,7 @@ struct initState {
 std::vector<double> term_coefficients(cudaq::spin_op op) {
   std::vector<double> result{};
   for (const auto &term : op) {
-    const auto coeff = term.get_coefficient().evaluate().real();
+    const auto coeff = term.evaluate_coefficient().real();
     result.push_back(coeff);
   }
   return result;
