@@ -682,7 +682,7 @@ jobs:
           echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-      
+
       - name: Log in to DockerHub
         uses: docker/login-action@v3
         with:
@@ -1127,7 +1127,7 @@ jobs:
           pattern: '*-wheels'
           path: /tmp/wheels
           merge-multiple: true
-
+      
       - name: Load metapackage
         uses: actions/download-artifact@v4
         with:
@@ -1214,10 +1214,16 @@ jobs:
           for installer in `find installers/ -type f -not -name '*.whl'`; do 
             mv -v "$installer" "$(basename -- "$installer")"
           done
-          for dir in `ls wheelhouse/`; do 
-            mv -v "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
+          # A single wheelhouse.zip file is too big. Split it up by platform.
+          platforms=$(ls wheelhouse | cut -d- -f1 | sort | uniq)
+          for p in $platforms; do
+            mkdir wheelhouse-${p}
+            for fulldir in wheelhouse/${p}-*; do
+              dir=$(basename $fulldir)
+              mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
+            done
+            zip -r wheelhouse-${p}.zip wheelhouse-${p}
           done
-          zip -r wheelhouse.zip wheelhouse
           zip -r metapackages.zip metapackages
 
           release_id=${{ inputs.assets_from_run || github.run_id }}
@@ -1234,7 +1240,7 @@ jobs:
             --target $github_commit --draft $prerelease \
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum* --clobber
-          gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
+          gh release upload $release_id -R ${{ github.repository }} wheelhouse-*.zip --clobber
           gh release upload $release_id -R ${{ github.repository }} metapackages.zip --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
