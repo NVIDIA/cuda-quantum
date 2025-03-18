@@ -13,7 +13,6 @@
 #include "cudaq/qis/state.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"
-#include <list>
 #include <unordered_set>
 #include <vector>
 

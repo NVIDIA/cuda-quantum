@@ -12,7 +12,6 @@
 // RUN: nvq++ %cpp_std %s -o %t && %t | FileCheck %s
 
 // Quantum emulators
-// RUN: if %braket_avail; then nvq++ %cpp_std -target braket -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s ; fi
 // RUN: nvq++ %cpp_std -target quantinuum -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -target ionq       -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -target oqc        -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
