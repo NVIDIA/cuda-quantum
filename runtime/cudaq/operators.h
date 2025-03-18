@@ -84,6 +84,10 @@ public:
     std::size_t current_idx;
     product_op<HandlerTy> current_val;
 
+    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx, 
+                   product_op<Handlerty> &&value)
+        : sum(sum), current_idx(idx), current_val(std::move(value)) {}
+
   public:
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
@@ -123,7 +127,9 @@ public:
 
     // postfix
     const_iterator operator++(int) {
-      return const_iterator(sum, current_idx++);
+      auto iter = const_iterator(sum, current_idx, std::move(current_val));
+      ++this;
+      return iter;
     }
   };
 
