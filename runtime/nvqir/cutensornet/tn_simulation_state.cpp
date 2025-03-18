@@ -95,16 +95,28 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
             /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
             /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
       }
-    } else if (op.unitaryChannel.has_value()) {
-      HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
-          cutnHandle, tempQuantumState,
-          /*numStateModes=*/op.targetQubitIds.size(),
-          /*stateModes=*/op.targetQubitIds.data(),
-          /*numTensors=*/op.unitaryChannel->tensorData.size(),
-          /*tensorData=*/op.unitaryChannel->tensorData.data(),
-          /*tensorModeStrides=*/nullptr,
-          /*probabilities=*/op.unitaryChannel->probabilities.data(),
-          &tensorId));
+    } else if (op.noiseChannel.has_value()) {
+      const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                    op.noiseChannel->probabilities.size();
+      if (isGeneralChannel) {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyGeneralChannel(
+            cutnHandle, tempQuantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr, &tensorId));
+      } else {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
+            cutnHandle, tempQuantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr,
+            /*probabilities=*/op.noiseChannel->probabilities.data(),
+            &tensorId));
+      }
     } else {
       throw std::runtime_error("Invalid AppliedTensorOp encountered.");
     }

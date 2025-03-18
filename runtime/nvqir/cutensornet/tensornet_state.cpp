@@ -110,6 +110,19 @@ void TensorNetState::applyUnitaryChannel(
   m_hasNoiseChannel = true;
 }
 
+void TensorNetState::applyGeneralChannel(const std::vector<int32_t> &qubits,
+                                         const std::vector<void *> &krausOps) {
+  LOG_API_TIME();
+  HANDLE_CUTN_ERROR(cutensornetStateApplyGeneralChannel(
+      m_cutnHandle, m_quantumState, /*numStateModes=*/qubits.size(),
+      /*stateModes=*/qubits.data(),
+      /*numTensors=*/krausOps.size(),
+      /*tensorData=*/const_cast<void **>(krausOps.data()),
+      /*tensorModeStrides=*/nullptr, &m_tensorId));
+  m_tensorOps.emplace_back(AppliedTensorOp{qubits, krausOps, {}});
+  m_hasNoiseChannel = true;
+}
+
 void TensorNetState::applyQubitProjector(void *proj_d,
                                          const std::vector<int32_t> &qubitIdx) {
   LOG_API_TIME();
@@ -155,16 +168,28 @@ void TensorNetState::addQubits(std::size_t numQubits) {
             /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
             /*unitary*/ static_cast<int32_t>(op.isUnitary), &m_tensorId));
       }
-    } else if (op.unitaryChannel.has_value()) {
-      HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
-          m_cutnHandle, m_quantumState,
-          /*numStateModes=*/op.targetQubitIds.size(),
-          /*stateModes=*/op.targetQubitIds.data(),
-          /*numTensors=*/op.unitaryChannel->tensorData.size(),
-          /*tensorData=*/op.unitaryChannel->tensorData.data(),
-          /*tensorModeStrides=*/nullptr,
-          /*probabilities=*/op.unitaryChannel->probabilities.data(),
-          &m_tensorId));
+    } else if (op.noiseChannel.has_value()) {
+      const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                    op.noiseChannel->probabilities.size();
+      if (isGeneralChannel) {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyGeneralChannel(
+            m_cutnHandle, m_quantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr, &m_tensorId));
+      } else {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
+            m_cutnHandle, m_quantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr,
+            /*probabilities=*/op.noiseChannel->probabilities.data(),
+            &m_tensorId));
+      }
     } else {
       throw std::runtime_error("Invalid AppliedTensorOp encountered.");
     }
@@ -942,6 +967,14 @@ TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
   return ket;
 }
 
+bool TensorNetState::hasGeneralChannelApplied() const {
+  for (const auto &op : m_tensorOps)
+    if (op.noiseChannel.has_value() && op.noiseChannel->probabilities.empty())
+      return true;
+
+  return false;
+}
+
 void TensorNetState::applyCachedOps() {
   int64_t tensorId = 0;
   for (auto &op : m_tensorOps)
@@ -965,16 +998,28 @@ void TensorNetState::applyCachedOps() {
             /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
             /*unitary*/ static_cast<int32_t>(op.isUnitary), &m_tensorId));
       }
-    } else if (op.unitaryChannel.has_value()) {
-      HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
-          m_cutnHandle, m_quantumState,
-          /*numStateModes=*/op.targetQubitIds.size(),
-          /*stateModes=*/op.targetQubitIds.data(),
-          /*numTensors=*/op.unitaryChannel->tensorData.size(),
-          /*tensorData=*/op.unitaryChannel->tensorData.data(),
-          /*tensorModeStrides=*/nullptr,
-          /*probabilities=*/op.unitaryChannel->probabilities.data(),
-          &m_tensorId));
+    } else if (op.noiseChannel.has_value()) {
+      const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                    op.noiseChannel->probabilities.size();
+      if (isGeneralChannel) {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyGeneralChannel(
+            m_cutnHandle, m_quantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr, &m_tensorId));
+      } else {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
+            m_cutnHandle, m_quantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr,
+            /*probabilities=*/op.noiseChannel->probabilities.data(),
+            &m_tensorId));
+      }
     } else {
       throw std::runtime_error("Invalid AppliedTensorOp encountered.");
     }
