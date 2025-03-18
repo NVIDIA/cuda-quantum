@@ -81,7 +81,7 @@ public:
   struct const_iterator {
   private:
     const sum_op<HandlerTy> *sum;
-    typename std::unordered_map<std::string, int>::const_iterator iter;
+    std::size_t current_idx;
     product_op<HandlerTy> current_val;
 
   public:
@@ -92,18 +92,17 @@ public:
     using reference = product_op<HandlerTy> &;
 
     const_iterator(const sum_op<HandlerTy> *sum)
-        : const_iterator(sum, sum->term_map.begin()) {}
+        : const_iterator(sum, 0) {}
 
-    const_iterator(const sum_op<HandlerTy> *sum,
-                   std::unordered_map<std::string, int>::const_iterator &&it)
-        : sum(sum), iter(std::move(it)), current_val(1.) {
-      if (iter != sum->term_map.end())
-        current_val = product_op<HandlerTy>(sum->coefficients[iter->second],
-                                            sum->terms[iter->second]);
+    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx)
+        : sum(sum), current_idx(idx), current_val(1.) {
+      if (idx < sum->num_terms())
+        current_val = product_op<HandlerTy>(sum->coefficients[current_idx],
+                                            sum->terms[current_idx]);
     }
 
     bool operator==(const const_iterator &other) const {
-      return sum == other.sum && iter == other.iter;
+      return sum == other.sum && current_idx == other.current_idx;
     }
 
     bool operator!=(const const_iterator &other) const {
@@ -117,14 +116,14 @@ public:
 
     // prefix
     const_iterator &operator++() {
-      if (++iter != sum->term_map.end())
-        current_val = product_op<HandlerTy>(sum->coefficients[iter->second],
-                                            sum->terms[iter->second]);
+      if (++current_idx < sum->num_terms())
+        current_val = product_op<HandlerTy>(sum->coefficients[current_idx],
+                                            sum->terms[current_idx]);
       return *this;
     }
 
     // postfix
-    const_iterator operator++(int) { return const_iterator(sum, iter++); }
+    const_iterator operator++(int) { return const_iterator(sum, current_idx++); }
   };
 
   /// @brief Get iterator to beginning of operator terms
@@ -132,7 +131,7 @@ public:
 
   /// @brief Get iterator to end of operator terms
   const_iterator end() const {
-    return const_iterator(this, this->term_map.cend());
+    return const_iterator(this, this->num_terms());
   }
 
   // read-only properties
