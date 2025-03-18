@@ -7,17 +7,10 @@
  ******************************************************************************/
 
 #include "qpu_state.h"
-#include "common/Logger.h"
 
 namespace cudaq {
 
 QPUState::~QPUState() {
-  if (!platformExecutionLog.empty()) {
-    // Flush any info log from the remote execution
-    printf("%s\n", platformExecutionLog.c_str());
-    platformExecutionLog.clear();
-  }
-
   for (std::size_t counter = 0; auto &ptr : args)
     deleters[counter++](ptr);
 

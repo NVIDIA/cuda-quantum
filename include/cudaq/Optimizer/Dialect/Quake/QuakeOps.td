@@ -1659,7 +1659,7 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
     pass.
 
     ```mlir
-      %0 = quake.materialize_state @num_qubits @init : !cc.ptr<!cc.state>
+      %0 = quake.materialize_state @num_qubits, @init : !cc.ptr<!cc.state>
     ```
   }];
 
@@ -1669,7 +1669,7 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
   );
   let results = (outs PointerOf<[cc_StateType]>:$result);
   let assemblyFormat = [{
-     $numQubitsFunc $initFunc `:` qualified(type(results)) attr-dict
+     $numQubitsFunc `,` $initFunc `:` qualified(type(results)) attr-dict
   }];
 }
 

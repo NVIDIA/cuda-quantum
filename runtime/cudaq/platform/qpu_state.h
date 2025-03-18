@@ -13,21 +13,13 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 namespace cudaq {
-/// Implementation of `SimulationState` for quantum device backends.
-// The state is represented by a quantum kernel.
-// Quantum state contains all the information we need to replicate a
-// call to kernel that created the state.
+/// @brief Implementation of `SimulationState` for quantum device backends.
+/// The state is represented by a quantum kernel.
+/// Quantum state contains all the information we need to replicate a
+/// call to kernel that created the state.
 class QPUState : public cudaq::SimulationState {
 protected:
   std::string kernelName;
-  // Lazily-evaluated state data (just keeping the kernel name and arguments).
-  // e.g., to be evaluated at amplitude accessor APIs (const APIs, hence needs
-  // to be mutable) or overlap calculation with another remote state (combining
-  // the IR of both states for remote evaluation)
-  mutable std::unique_ptr<cudaq::SimulationState> state;
-  // Cache log messages from the remote execution.
-  // Mutable to support lazy execution during `const` API calls.
-  mutable std::string platformExecutionLog;
   using ArgDeleter = std::function<void(void *)>;
   /// @brief  Vector of arguments
   // Note: we create a copy of all arguments except pointers.

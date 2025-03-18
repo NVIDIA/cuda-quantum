@@ -33,7 +33,7 @@ namespace {
 /// that computes the number of qubits for a state.
 ///
 /// ```mlir
-///  %0 = quake.materialize_state @callee.num_qubits_0 @callee.init_0 : !cc.ptr<!cc.state>
+///  %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0 : !cc.ptr<!cc.state>
 ///  %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
 /// ───────────────────────────────────────────
 ///  %1 = call @callee.num_qubits_0() : () -> i64
@@ -47,11 +47,14 @@ public:
   LogicalResult matchAndRewrite(quake::GetNumberOfQubitsOp numQubits,
                                 PatternRewriter &rewriter) const override {
 
-    auto stateOp = numQubits.getOperand();
+    auto stateOp = numQubits.getState();
     auto materializeState = stateOp.getDefiningOp<quake::MaterializeStateOp>();
-    if (!materializeState)
-      return numQubits->emitError(
-          "ReplaceStateWithKernel: failed to replace `quake.get_num_qubits`");
+    if (!materializeState) {
+      LLVM_DEBUG(llvm::dbgs() << "ReplaceStateWithKernel: failed to replace "
+                                 "`quake.get_num_qubits`: "
+                              << stateOp << '\n');
+      return failure();
+    }
 
     auto numQubitsFunc = materializeState.getNumQubitsFunc();
     rewriter.setInsertionPoint(numQubits);
@@ -66,7 +69,7 @@ public:
 /// the state.
 ///
 /// ```mlir
-///  %0 = quake.materialize_state @callee.num_qubits_0 @callee.init_0 : !cc.ptr<!cc.state>
+///  %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0 : !cc.ptr<!cc.state>
 ///  %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
 /// ───────────────────────────────────────────
 /// %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
@@ -79,16 +82,19 @@ public:
 
   LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
                                 PatternRewriter &rewriter) const override {
-    auto allocaOp = initState.getOperand(0);
-    auto stateOp = initState.getOperand(1);
+    auto allocaOp = initState.getTargets();
+    auto stateOp = initState.getState();
 
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateOp.getType())) {
       if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
         auto materializeState =
             stateOp.getDefiningOp<quake::MaterializeStateOp>();
-        if (!materializeState)
-          return initState->emitError(
-              "ReplaceStateWithKernel: failed to replace `quake.init_state`");
+        if (!materializeState) {
+          LLVM_DEBUG(llvm::dbgs() << "ReplaceStateWithKernel: failed to "
+                                     "replace `quake.init_state`: "
+                                  << stateOp << '\n');
+          return failure();
+        }
 
         auto initName = materializeState.getInitFunc();
         rewriter.setInsertionPoint(initState);

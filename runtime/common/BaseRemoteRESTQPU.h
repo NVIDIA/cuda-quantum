@@ -464,18 +464,14 @@ public:
         // We pass string references to the `createArgumentSynthesisPass`.
         mlir::SmallVector<std::string> kernels;
         mlir::SmallVector<std::string> substs;
-        for (auto &kInfo : argCon.getKernelSubstitutions()) {
-          {
-            std::string kernName = cudaq::runtime::cudaqGenPrefixName +
-                                   kInfo.getKernelName().str();
-            kernels.emplace_back(kernName);
-          }
-          {
-            std::string substBuff;
-            llvm::raw_string_ostream ss(substBuff);
-            ss << kInfo.getSubstitutionModule();
-            substs.emplace_back(substBuff);
-          }
+        for (auto *kInfo : argCon.getKernelSubstitutions()) {
+          std::string kernName =
+              cudaq::runtime::cudaqGenPrefixName + kInfo->getKernelName().str();
+          kernels.emplace_back(kernName);
+          std::string substBuff;
+          llvm::raw_string_ostream ss(substBuff);
+          ss << kInfo->getSubstitutionModule();
+          substs.emplace_back(substBuff);
         }
 
         // Collect references for the argument synthesis.

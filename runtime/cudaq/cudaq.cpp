@@ -19,7 +19,6 @@
 #include "distributed/mpi_plugin.h"
 #include <dlfcn.h>
 #include <filesystem>
-#include <list>
 #include <map>
 #include <regex>
 #include <shared_mutex>

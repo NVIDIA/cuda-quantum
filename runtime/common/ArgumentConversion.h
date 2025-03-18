@@ -13,7 +13,6 @@
 #include "cudaq/qis/state.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"
-#include <list>
 #include <unordered_set>
 #include <vector>
 
@@ -53,6 +52,12 @@ public:
   /// kernelName in \p sourceModule.
   ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule);
 
+  ~ArgumentConverter() {
+    for (auto *kInfo : kernelSubstitutions) {
+      delete kInfo;
+    }
+  }
+
   /// Generate a substitution ModuleOp for the vector of arguments presented.
   /// The arguments are those presented to the kernel, kernelName.
   void gen(const std::vector<void *> &arguments);
@@ -72,32 +77,32 @@ public:
   void gen_drop_front(const std::vector<void *> &arguments, unsigned numDrop);
 
   /// Get the kernel info that were collected by `gen()`.
-  std::list<KernelSubstitutionInfo> &getKernelSubstitutions() {
+  mlir::SmallVector<KernelSubstitutionInfo *> &getKernelSubstitutions() {
     return kernelSubstitutions;
   }
 
-  bool isRegisteredKernel(const std::string &kernelName) {
-    return std::find(nameRegistry.begin(), nameRegistry.end(), kernelName) !=
-           nameRegistry.end();
+  bool isRegisteredKernel(mlir::StringRef kernelName) {
+    return std::find(nameRegistry.begin(), nameRegistry.end(),
+                     kernelName.str()) != nameRegistry.end();
   }
 
-  std::string &registerKernel(const std::string &kernelName) {
-    return nameRegistry.emplace_back(kernelName);
+  mlir::StringRef registerKernel(mlir::StringRef kernelName) {
+    return nameRegistry.emplace_back(
+        mlir::StringAttr::get(sourceModule.getContext(), kernelName));
   }
 
 private:
-  KernelSubstitutionInfo &addKernelInfo(mlir::StringRef kernelName,
+  KernelSubstitutionInfo *addKernelInfo(mlir::StringRef kernelName,
                                         mlir::ModuleOp substModule) {
-    return kernelSubstitutions.emplace_back(kernelName, substModule);
+    return kernelSubstitutions.emplace_back(
+        new KernelSubstitutionInfo(kernelName, substModule));
   }
 
   /// Memory to store new kernel names generated during argument conversion.
-  /// Use list here to keep references to those elements valid.
-  std::list<std::string> nameRegistry;
+  mlir::SmallVector<mlir::StringAttr> nameRegistry;
 
   /// Memory to store new kernel info generated during argument conversion.
-  /// Use list here to keep elements sorted in order of creation.
-  std::list<KernelSubstitutionInfo> kernelSubstitutions;
+  mlir::SmallVector<KernelSubstitutionInfo *> kernelSubstitutions;
 
   /// Original module before substitutions.
   mlir::ModuleOp sourceModule;
