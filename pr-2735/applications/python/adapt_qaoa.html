@@ -33,7 +33,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Quantum edge detection" href="edge-detection.html" />
+    <link rel="next" title="ADAPT-VQE algorithm" href="adapt-vqe.html" />
     <link rel="prev" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" href="logical_aim_sqale.html" /> 
 </head>
 
@@ -357,6 +357,20 @@
 <li class="toctree-l3"><a class="reference internal" href="#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="adapt-vqe.html">ADAPT-VQE algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="adapt-vqe.html#Single-excitation">Single excitation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="adapt-vqe.html#Double-excitation">Double excitation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Reference-State:">Reference State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="edge-detection.html">Quantum edge detection</a><ul>
@@ -764,7 +778,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="logical_aim_sqale.html" class="btn btn-neutral float-left" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="edge-detection.html" class="btn btn-neutral float-right" title="Quantum edge detection" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="adapt-vqe.html" class="btn btn-neutral float-right" title="ADAPT-VQE algorithm" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -791,7 +805,7 @@ using general variational quantum algorithm methods. If the norm of the gradient
 parameter</p>
 <p>3- Optimize all parameters currently in the Ansatz <span class="math notranslate nohighlight">\(\beta_m, \gamma_m = 1, 2, ...k\)</span> such that <span class="math notranslate nohighlight">\(\braket{\psi (k)|H_C|\psi(k)}\)</span> is minimized, and return to the second step.</p>
 <p>Below is a schematic representation of the ADAPT-QAOA algorithm explained above.</p>
-<div><p><img alt="02ec56c6c612415e853062de1cfc6bcb" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 600px;" /></p>
+<div><p><img alt="470ab1ade5a24ecdb12d7f37826a7990" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 600px;" /></p>
 </div><div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -1236,7 +1250,7 @@ CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 5e9dc6aebbcf9
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="logical_aim_sqale.html" class="btn btn-neutral float-left" title="Anderson Impurity Model ground state solver on Infleqtion’s Sqale" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="edge-detection.html" class="btn btn-neutral float-right" title="Quantum edge detection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="adapt-vqe.html" class="btn btn-neutral float-right" title="ADAPT-VQE algorithm" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
