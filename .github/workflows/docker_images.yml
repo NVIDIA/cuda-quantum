@@ -165,7 +165,7 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
-
+   
       - name: Build Open MPI
         id: docker_build
         uses: docker/build-push-action@v5
@@ -483,6 +483,9 @@ jobs:
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          if [ "$cuda_major" == "11" ]; then
+            deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."
+          fi
           image_tag=${platform_tag:+$platform_tag-}${cuda_major:+cu${cuda_major}-}
           if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
             pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
@@ -502,6 +505,7 @@ jobs:
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "devdeps_image=$devdeps_image" >> $GITHUB_OUTPUT
           echo "dev_image_name=$dev_image_name" >> $GITHUB_OUTPUT
+          echo "deprecation_notice=$deprecation_notice" >> $GITHUB_OUTPUT
 
           if ${{ inputs.environment == '' }}; then
             tar_archive=/tmp/cuda-quantum.tar
@@ -602,6 +606,7 @@ jobs:
             cudaqdev_image=${{ steps.prereqs.outputs.dev_image_name }}@${{ steps.release_build.outputs.digest }}
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ steps.prereqs.outputs.image_tag }}
+            deprecation_notice=${{ steps.prereqs.outputs.deprecation_notice }}
           tags: ${{ steps.cudaq_metadata.outputs.tags }}
           labels: ${{ steps.cudaq_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
@@ -719,7 +724,7 @@ jobs:
           # Unfortunately, we need to install cuquantum for docs generation to work properly, 
           # since using mock imports in the autodocs configuration doesn't work properly. 
           # See also https://github.com/sphinx-doc/sphinx/issues/11211. 
-          docker exec cuda-quantum-dev bash -c "python3 -m pip install cuquantum-python-cu12~=24.11"
+          docker exec cuda-quantum-dev bash -c "python3 -m pip install cuquantum-python-cu12~=25.03"
           
           (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \

@@ -11,6 +11,10 @@ import pytest
 import os
 import numpy as np
 
+skipIfBraketNotInstalled = pytest.mark.skipif(
+    not (cudaq.has_target("braket")),
+    reason='Could not find `braket` in installation')
+
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -230,10 +234,8 @@ def test_simulators(target):
 
 
 @pytest.mark.parametrize("target, env_var",
-                         [("anyon", ""), ("braket", ""),
-                          ("infleqtion", "SUPERSTAQ_API_KEY"),
-                          ("ionq", "IONQ_API_KEY"), ("quantinuum", ""),
-                          ("quera", "")])
+                         [("anyon", ""), ("infleqtion", "SUPERSTAQ_API_KEY"),
+                          ("ionq", "IONQ_API_KEY"), ("quantinuum", "")])
 def test_unsupported_targets(target, env_var):
     if env_var:
         os.environ[env_var] = "foobar"
@@ -244,6 +246,16 @@ def test_unsupported_targets(target, env_var):
         test_simple_kernel()
     assert "not supported on this target" in repr(e)
     os.environ.pop(env_var, None)
+    cudaq.reset_target()
+
+
+@skipIfBraketNotInstalled
+@pytest.mark.parametrize("target", ["braket", "quera"])
+def test_unsupported_targets2(target):
+    cudaq.set_target(target)
+    with pytest.raises(RuntimeError) as e:
+        test_simple_kernel()
+    assert "not supported on this target" in repr(e)
     cudaq.reset_target()
 
 

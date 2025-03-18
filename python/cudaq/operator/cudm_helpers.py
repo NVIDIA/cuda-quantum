@@ -13,12 +13,18 @@ from .expressions import ElementaryOperator, ScalarOperator
 from .manipulation import OperatorArithmetics
 import logging
 from .schedule import Schedule
+import warnings
 
 cudm = None
 CudmStateType = None
 try:
-    from cuquantum import densitymat as cudm
-    from cuquantum.densitymat._internal.callbacks import CallbackCoefficient
+    # Suppress deprecation warnings on `cuquantum` import.
+    # FIXME: remove this after `cuquantum` no longer warns on import.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        from cuquantum import densitymat as cudm
+        from cuquantum.densitymat.callbacks import Callback as CallbackCoefficient
+        from cuquantum.densitymat.callbacks import CPUCallback
     CudmStateType = Union[cudm.DensePureState, cudm.DenseMixedState]
     CudmOperator = cudm.Operator
     CudmOperatorTerm = cudm.OperatorTerm
@@ -45,17 +51,35 @@ class CuDensityMatOpConversion(
         self._dimensions = dimensions
         self._schedule = schedule
 
-    def _callback_mult_op(self, scalar: CallbackCoefficient,
-                          op: CudmOperatorTerm) -> CudmOperatorTerm:
-        new_opterm = CudmOperatorTerm(dtype=op.dtype)
-        for term, modes, duals, coeff in zip(op.terms, op.modes, op.duals,
-                                             op._coefficients):
-            combined_terms = []
-            for sub_op, degrees, duals in zip(term, modes, duals):
-                combined_terms.append((sub_op, degrees, duals))
-            new_opterm += cudm.tensor_product(*combined_terms,
-                                              coeff=coeff * scalar)
-        return new_opterm
+    def _scalar_mult(
+            self, scalar1: CallbackCoefficient | Number,
+            scalar2: CallbackCoefficient | Number
+    ) -> CallbackCoefficient | Number:
+        if isinstance(scalar1, Number) and isinstance(scalar2, Number):
+            return scalar1 * scalar2
+
+        if isinstance(scalar1, CallbackCoefficient) and isinstance(
+                scalar2, CallbackCoefficient):
+            return CPUCallback(lambda t, args: scalar1.callback(t, args) *
+                               scalar2.callback(t, args))
+
+        if isinstance(scalar1, CallbackCoefficient):
+            if not isinstance(scalar2, Number):
+                raise ValueError(
+                    f"Unexpected scalar type {type(scalar2)} in multiplication")
+            return CPUCallback(
+                lambda t, args: scalar1.callback(t, args) * scalar2)
+
+        if isinstance(scalar2, CallbackCoefficient):
+            if not isinstance(scalar1, Number):
+                raise ValueError(
+                    f"Unexpected scalar type {type(scalar1)} in multiplication")
+            return CPUCallback(
+                lambda t, args: scalar2.callback(t, args) * scalar1)
+
+        raise ValueError(
+            f"Unexpected scalar types: {type(scalar1)} and {type(scalar2)} in multiplication"
+        )
 
     def tensor(
         self, op1: CudmOperatorTerm | CallbackCoefficient | Number,
@@ -70,29 +94,12 @@ class CuDensityMatOpConversion(
             logger.info(f" {op2}:")
             for term, coeff in zip(op2.terms, op2._coefficients):
                 logger.info(f"  {coeff} * {term}")
-        if isinstance(op1, Number) or isinstance(op2, Number):
-            return op1 * op2
-        if isinstance(op1, CallbackCoefficient) and isinstance(
-                op2, CallbackCoefficient):
-            return op1 * op2
-        if isinstance(op1, CallbackCoefficient):
-            return self._callback_mult_op(op1, op2)
-        if isinstance(op2, CallbackCoefficient):
-            return self._callback_mult_op(op2, op1)
-        new_opterm = CudmOperatorTerm(dtype=op1.dtype)
-        for term2, modes2, duals2, coeff2 in zip(op2.terms, op2.modes,
-                                                 op2.duals, op2._coefficients):
-            for term1, modes1, duals1, coeff1 in zip(op1.terms, op1.modes,
-                                                     op1.duals,
-                                                     op1._coefficients):
-                combined_terms = []
-                for sub_op, degrees, duals in zip(term1, modes1, duals1):
-                    combined_terms.append((sub_op, degrees, duals))
-                for sub_op, degrees, duals in zip(term2, modes2, duals2):
-                    combined_terms.append((sub_op, degrees, duals))
-                new_opterm += cudm.tensor_product(*combined_terms,
-                                                  coeff=coeff1 * coeff2)
-        return new_opterm
+        if isinstance(op1, Number | CallbackCoefficient) and isinstance(
+                op2, Number | CallbackCoefficient):
+            return self._scalar_mult(op1, op2)
+
+        # IMPORTANT: `op1 * op2` as written means `op2` to be applied first then `op1`.
+        return op2 * op1
 
     def mul(
         self, op1: CudmOperatorTerm | CallbackCoefficient | Number,
@@ -108,31 +115,12 @@ class CuDensityMatOpConversion(
             for term, coeff in zip(op2.terms, op2._coefficients):
                 logger.info(f"  {coeff} * {term}")
 
-        if isinstance(op1, Number) or isinstance(op2, Number):
-            return op1 * op2
-        if isinstance(op1, CallbackCoefficient) and isinstance(
-                op2, CallbackCoefficient):
-            return op1 * op2
-        if isinstance(op1, CallbackCoefficient):
-            return self._callback_mult_op(op1, op2)
-        if isinstance(op2, CallbackCoefficient):
-            return self._callback_mult_op(op2, op1)
-        new_opterm = CudmOperatorTerm(dtype=op1.dtype)
-        for term2, modes2, duals2, coeff2 in zip(op2.terms, op2.modes,
-                                                 op2.duals, op2._coefficients):
-            for term1, modes1, duals1, coeff1 in zip(op1.terms, op1.modes,
-                                                     op1.duals,
-                                                     op1._coefficients):
-                combined_terms = []
-                for sub_op, degrees, duals in zip(term2, modes2, duals2):
-                    combined_terms.append((sub_op, degrees, duals))
+        if isinstance(op1, Number | CallbackCoefficient) and isinstance(
+                op2, Number | CallbackCoefficient):
+            return self._scalar_mult(op1, op2)
 
-                for sub_op, degrees, duals in zip(term1, modes1, duals1):
-                    combined_terms.append((sub_op, degrees, duals))
-
-                new_opterm += cudm.tensor_product(*combined_terms,
-                                                  coeff=coeff1 * coeff2)
-        return new_opterm
+        # IMPORTANT: `op1 * op2` as written means `op2` to be applied first then `op1`.
+        return op2 * op1
 
     def _scalar_to_op(self,
                       scalar: CallbackCoefficient | Number) -> CudmOperatorTerm:
@@ -210,7 +198,7 @@ class CuDensityMatOpConversion(
         logger.info(f"Evaluating {op}")
         if isinstance(op, ScalarOperator):
             if op._constant_value is None:
-                return CallbackCoefficient(
+                return CPUCallback(
                     self._wrap_callback(op.generator, op.parameters))
             else:
                 return op._constant_value
@@ -223,7 +211,7 @@ class CuDensityMatOpConversion(
                         raise ValueError(
                             f"Parameter '{param}' of operator '{op._id}' not found in schedule. Valid schedule parameters are: {self._schedule._parameters}"
                         )
-                cudm_callback = self._wrap_callback_tensor(op)
+                cudm_callback = CPUCallback(self._wrap_callback_tensor(op))
                 c_representative_tensor = cudm_callback(0.0, ())
                 return cudm.tensor_product((cudm.DenseOperator(
                     c_representative_tensor, cudm_callback), op.degrees),
@@ -234,73 +222,15 @@ class CuDensityMatOpConversion(
                     (cudm.DenseOperator(op_mat), op.degrees), coeff=1.0)
 
 
-def computeLindladOp(hilbert_space_dims: List[int], l1: CudmOperatorTerm,
-                     l2: CudmOperatorTerm):
+def computeLindladOp(hilbert_space_dims: List[int], l_op: CudmOperatorTerm):
     """
     Helper function to compute the Lindlad (super-)operator 
     """
-    D_terms = []
-
-    def conjugate_coeff(coeff: CallbackCoefficient):
-        if coeff.is_callable:
-            return CallbackCoefficient(
-                lambda t, args: numpy.conjugate(coeff.callback(t, args)))
-        return numpy.conjugate(coeff.scalar)
-
-    for term1, modes1, duals1, coeff1 in zip(l1.terms, l1.modes, l1.duals,
-                                             l1._coefficients):
-        for term2, modes2, duals2, coeff2 in zip(l2.terms, l2.modes, l2.duals,
-                                                 l2._coefficients):
-            coeff = coeff1 * conjugate_coeff(coeff2)
-            d1_terms = []
-            for sub_op_1, degrees, duals in zip(term1, modes1, duals1):
-                op_mat = sub_op_1.to_array()
-                d1_terms.append((op_mat, degrees, duals))
-            for sub_op_2, degrees, duals in zip(reversed(term2),
-                                                reversed(modes2),
-                                                reversed(duals2)):
-                op_mat = sub_op_2.to_array()
-                flipped_duals = tuple((not elem for elem in duals))
-                d1_terms.append(
-                    (numpy.ascontiguousarray(numpy.conj(op_mat).T).copy(),
-                     degrees, flipped_duals))
-            D1 = cudm.tensor_product(*d1_terms, coeff=coeff)
-            D_terms.append(tuple((D1, 1.0)))
-
-            d2_terms = []
-            for sub_op_2, degrees, duals in zip(reversed(term2),
-                                                reversed(modes2),
-                                                reversed(duals2)):
-                op_mat = sub_op_2.to_array()
-                flipped_duals = tuple((not elem for elem in duals))
-                d2_terms.append(
-                    (numpy.ascontiguousarray(numpy.conj(op_mat).T).copy(),
-                     degrees, flipped_duals))
-            for sub_op_1, degrees, duals in zip(term1, modes1, duals1):
-                op_mat = sub_op_1.to_array()
-                flipped_duals = tuple((not elem for elem in duals))
-                d2_terms.append((op_mat, degrees, flipped_duals))
-            D2 = cudm.tensor_product(*d2_terms,
-                                     coeff=-0.5 * coeff1 *
-                                     conjugate_coeff(coeff2))
-            D_terms.append(tuple((D2, 1.0)))
-
-            d3_terms = []
-            for sub_op_1, degrees, duals in zip(term1, modes1, duals1):
-                op_mat = sub_op_1.to_array()
-                d3_terms.append((op_mat, degrees, duals))
-            for sub_op_2, degrees, duals in zip(reversed(term2),
-                                                reversed(modes2),
-                                                reversed(duals2)):
-                op_mat = sub_op_2.to_array()
-                d3_terms.append(
-                    (numpy.ascontiguousarray(numpy.conj(op_mat).T).copy(),
-                     degrees, duals))
-            D3 = cudm.tensor_product(*d3_terms,
-                                     coeff=-0.5 * coeff1 *
-                                     conjugate_coeff(coeff2))
-            D_terms.append(tuple((D3, 1.0)))
-    lindblad = cudm.Operator(hilbert_space_dims, *D_terms)
+    term_d1 = l_op * l_op.dag().dual()
+    term_d2 = l_op * l_op.dag()
+    term_d3 = (term_d2).dual()
+    lindblad = cudm.Operator(hilbert_space_dims, (term_d1, 1.0),
+                             (term_d2, -0.5), (term_d3, -0.5))
     return lindblad
 
 
@@ -319,7 +249,7 @@ def constructLiouvillian(hilbert_space_dims: List[int], ham: CudmOperatorTerm,
         liouvillian = hamiltonian - hamiltonian.dual()
 
         for c_op in c_ops:
-            lindbladian = computeLindladOp(hilbert_space_dims, c_op, c_op)
+            lindbladian = computeLindladOp(hilbert_space_dims, c_op)
             liouvillian += lindbladian
     else:
         # Schrodinger equation: `d/dt psi = -iH psi`

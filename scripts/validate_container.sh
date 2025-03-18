@@ -295,7 +295,6 @@ dynamics_backend_skipped_examples=(\
 # purposes of the container validation. The divisive_clustering_src Python
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
 # elsewhere and should be excluded from this test.
-# Same with afqmc.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 for ex in `find examples/ targets/ -name '*.py' | sort`;
 do 

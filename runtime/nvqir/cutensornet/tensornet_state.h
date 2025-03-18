@@ -30,15 +30,20 @@ struct MPSTensor {
   std::vector<int64_t> extents;
 };
 
-struct UnitaryChannel {
+// Struct captures noise channel data.
+struct NoiseChannelData {
+  // Device memory tensors represent general Kraus ops or unitary matrices.
   std::vector<void *> tensorData;
+  // If tensorData represents unitary matrices, a list of probabilities (same
+  // length) can be supplied in this field. If empty, the tensors are treated as
+  // general Kraus ops.
   std::vector<double> probabilities;
 };
 
 /// Track gate tensors that were appended to the tensor network.
 struct AppliedTensorOp {
   void *deviceData = nullptr;
-  std::optional<UnitaryChannel> unitaryChannel;
+  std::optional<NoiseChannelData> noiseChannel;
   std::vector<int32_t> targetQubitIds;
   std::vector<int32_t> controlQubitIds;
   bool isAdjoint;
@@ -54,7 +59,7 @@ struct AppliedTensorOp {
                   const std::vector<void *> &krausOps,
                   const std::vector<double> &probabilities)
       : targetQubitIds(qubits),
-        unitaryChannel(UnitaryChannel(krausOps, probabilities)) {}
+        noiseChannel(NoiseChannelData(krausOps, probabilities)) {}
 };
 
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDA-Q
@@ -134,7 +139,9 @@ public:
   void applyUnitaryChannel(const std::vector<int32_t> &qubits,
                            const std::vector<void *> &krausOps,
                            const std::vector<double> &probabilities);
-
+  /// @brief Apply a general noise channel
+  void applyGeneralChannel(const std::vector<int32_t> &qubits,
+                           const std::vector<void *> &krausOps);
   /// @brief Apply a projector matrix (non-unitary)
   /// @param proj_d Projector matrix (expected a 2x2 matrix in column major)
   /// @param qubitIdx Qubit operand
@@ -209,6 +216,9 @@ public:
 
   /// @brief Set the state to a zero state
   void setZeroState();
+
+  /// @brief Returns true if the state has at least one general channel applied.
+  bool hasGeneralChannelApplied() const;
 
   /// @brief Destructor
   ~TensorNetState();
