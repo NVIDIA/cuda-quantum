@@ -29,4 +29,6 @@ Applications that give an in depth view of CUDA-Q and its applications in Python
     /applications/python/hadamard_test.ipynb
     /applications/python/logical_aim_sqale.ipynb
     /applications/python/adapt_qaoa.ipynb
+    /applications/python/adapt-vqe.ipynb
+    /applications/python/edge-detection.ipynb
 
