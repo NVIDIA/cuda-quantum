@@ -18,7 +18,7 @@ requires-python = ">=3.10"
 license = { file="LICENSE" }
 dependencies = [
   'astpretty ~= 3.0',
-  'cuquantum-python-cu12 >= 24.11',
+  'cuquantum-python-cu12 >= 25.03',
   'numpy >= 1.24',
   'scipy >= 1.10.1',
   'requests >= 2.31',
