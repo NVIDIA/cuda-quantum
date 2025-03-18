@@ -137,7 +137,7 @@ def test_quantinuum_state_preparation():
     assert not '111' in counts
 
 
-def test_quantinuum_state_synthesis():
+def test_quantinuum_state_synthesis_from_simulator():
     kernel, state = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(state)
 
@@ -145,11 +145,27 @@ def test_quantinuum_state_synthesis():
         np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
 
     counts = cudaq.sample(kernel, state)
-    print(counts)
     assert "00" in counts
     assert "10" in counts
-    assert "01" not in counts
-    assert "11" not in counts
+    assert len(counts) == 2
+
+
+def test_quantinuum_state_synthesis():
+
+    init, n = cudaq.make_kernel(int)
+    qubits = init.qalloc(n)
+    init.x(qubits[0])
+
+    s = cudaq.get_state(init, 2)
+
+    kernel, state = cudaq.make_kernel(cudaq.State)
+    qubits = kernel.qalloc(state)
+    kernel.x(qubits[1])
+
+    s = cudaq.get_state(kernel, s)
+    counts = cudaq.sample(kernel, s)
+    assert '10' in counts
+    assert len(counts) == 1
 
 
 def test_exp_pauli():
