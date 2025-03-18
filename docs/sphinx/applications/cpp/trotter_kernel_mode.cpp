@@ -75,7 +75,7 @@ std::vector<cudaq::pauli_word> term_words(cudaq::spin_op op) {
       op *= cudaq::spin::i(i);
   std::vector<cudaq::pauli_word> result;
   for (const auto &term : op)
-    result.push_back(term.get_term_id());
+    result.push_back(term.get_pauli_word());
   return result;
 }
 
