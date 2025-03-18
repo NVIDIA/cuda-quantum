@@ -39,8 +39,9 @@ private:
       if (1 == digits)
         return OutputType::BOOL;
       return OutputType::INT;
-    } else if ('f' == label[0])
+    } else if ('f' == label[0]) {
       return OutputType::DOUBLE;
+    }
     throw std::runtime_error("Unknown datatype in label");
   }
 
