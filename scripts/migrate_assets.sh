@@ -214,7 +214,7 @@ if $install; then
             chmod a+rX "$plugin_path/libcudaq_distributed_interface_mpi.so"
         else
             echo -e "\e[01;31mWarning: Failed to build MPI plugin.\e[0m" >&2
-            echo -e "Please make sure the necessary libraries and header files are discoverable and then build the MPI plugin by running the script `${plugin_path}/activate_custom_mpi.sh`."
+            echo -e "\e[01;31mPlease make sure the necessary libraries and header files are discoverable and then build the MPI plugin by running the script `${plugin_path}/activate_custom_mpi.sh`.\e[0m" >&2
         fi
     fi
 
@@ -234,4 +234,6 @@ if [ ! ${#remaining_files[@]} -eq 0 ]; then
     rel_paths=(${remaining_files[@]##$assets/})
     components=(`echo "${rel_paths[@]%%/*}" | tr ' ' '\n' | uniq`)
     echo -e "\e[01;31mWarning: Some files in $assets have not been migrated since they already exit in their intended destination. To avoid compatibility issues, please make sure the following packages are not already installed on your system: ${components[@]}\e[0m" >&2
+elif $install; then
+    echo "Successfully installed CUDA-Q."
 fi
