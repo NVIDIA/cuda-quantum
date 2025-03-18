@@ -14,6 +14,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/builder/kernel_builder.h"
 #include "cudaq/qis/pauli_word.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -334,7 +335,7 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           addArgument(argData, arg.cast<cudaq::pauli_word>().str());
         })
         .Case([&](cudaq::cc::PointerType ty) {
-          if (isa<cudaq::cc::StateType>(ty.getElementType())) {
+          if (isa<quake::StateType>(ty.getElementType())) {
             valueArgument(argData, arg.cast<cudaq::state *>());
           } else {
             throw std::runtime_error("Invalid pointer type argument: " +
