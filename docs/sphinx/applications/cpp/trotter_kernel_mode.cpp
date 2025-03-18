@@ -57,7 +57,7 @@ struct initState {
   }
 };
 
-std::vector<double> term_coefficients(cudaq::spin_op op) {
+std::vector<double> term_coefficients(const cudaq::spin_op &op) {
   std::vector<double> result{};
   for (const auto &term : op) {
     const auto coeff = term.get_coefficient().evaluate().real();
@@ -66,16 +66,13 @@ std::vector<double> term_coefficients(cudaq::spin_op op) {
   return result;
 }
 
-std::vector<cudaq::pauli_word> term_words(cudaq::spin_op op) {
+std::vector<cudaq::pauli_word> term_words(const cudaq::spin_op &op) {
   // Our kernel uses these words to apply exp_pauli to the entire state.
-  // we hence ensure that each term acts on the entire space before getting
-  // the Pauli-word representation for each term.
+  // we hence ensure that each pauli word covers the entire space.
   auto n_spins = op.num_qubits();
-  for (std::size_t i = 0; i < n_spins; ++i)
-      op *= cudaq::spin::i(i);
   std::vector<cudaq::pauli_word> result;
   for (const auto &term : op)
-    result.push_back(term.get_pauli_word());
+    result.push_back(term.get_pauli_word(n_spins));
   return result;
 }
 

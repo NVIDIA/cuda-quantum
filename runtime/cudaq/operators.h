@@ -836,7 +836,7 @@ public:
   std::size_t num_qubits() const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  std::string get_pauli_word() const;
+  std::string get_pauli_word(std::size_t pad_identities = 0) const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<bool> get_binary_symplectic_form() const;
