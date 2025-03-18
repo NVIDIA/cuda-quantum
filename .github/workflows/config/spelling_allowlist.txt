@@ -147,6 +147,7 @@ bmatrix
 bool
 boolean
 boson
+bosonic
 broadcasted
 buildable
 callable
