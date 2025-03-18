@@ -18,7 +18,6 @@
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/state.h"
 #include "mlir/Parser/Parser.h"
-#include <cassert>
 #include <memory>
 #include <numeric>
 
@@ -109,8 +108,13 @@ public:
   operator()(std::size_t tensorIdx,
              const std::vector<std::size_t> &indices) override {
     if (hasData()) {
-      assert(tensorIdx == 0);
-      assert(indices.size() == 1);
+      if (tensorIdx != 0)
+        throw std::runtime_error("Non-zero tensor index is not supported");
+
+      if (indices.size() != 1)
+        throw std::runtime_error(
+            "Multi-dimensional tensor index is not supported");
+
       return *(static_cast<std::complex<double> *>(data) + indices[0]);
     }
     throw std::runtime_error("Not implemented");
