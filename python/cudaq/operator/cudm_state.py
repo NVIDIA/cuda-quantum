@@ -6,13 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from cuquantum.densitymat import DenseMixedState, DensePureState, WorkStream
 import numpy, cupy, atexit
 from typing import Sequence
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cuquantum.bindings import cudensitymat as cudm
 from .helpers import InitialState
+import warnings
+
+# Suppress deprecation warnings on `cuquantum` import.
+# FIXME: remove this after `cuquantum` no longer warns on import.
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    from cuquantum.densitymat import DenseMixedState, DensePureState, WorkStream
+    from cuquantum.bindings import cudensitymat as cudm
 
 
 def is_multi_processes():
@@ -49,13 +55,8 @@ class CuDensityMatState(object):
                 dev = cupy.cuda.Device(rank % NUM_DEVICES)
                 dev.use()
                 self.__ctx = WorkStream(device_id=cupy.cuda.runtime.getDevice())
-                # FIXME: use the below once `cudensitymat` supports raw MPI Comm pointer.
-                # `ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(), provider="MPI")`
-                # At the moment, only `mpi4py` communicator objects are supported, thus we use the underlying `reset_distributed_configuration` API.
-                _comm_ptr, _size = cudaq_runtime.mpi.comm_dup()
-                cudm.reset_distributed_configuration(
-                    self.__ctx._handle._validated_ptr,
-                    cudm.DistributedProvider.MPI, _comm_ptr, _size)
+                self.__ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(),
+                                            provider="MPI")
                 CuDensityMatState.__is_multi_process = True
             else:
                 self.__ctx = WorkStream()

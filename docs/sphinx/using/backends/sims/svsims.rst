@@ -96,8 +96,8 @@ To execute a program on the :code:`nvidia` backend, use the following commands:
 
 
 In the single-GPU mode, the :code:`nvidia` backend provides the following
-environment variable options. Any environment variables must be set prior to
-setting the target. It is worth drawing attention to gate fusion, a powerful tool for improving simulation performance which is discussed in greater detail `here <https://nvidia.github.io/cuda-quantum/latest/examples/python/performance_optimizations.html>`__.
+environment variable options. Any environment variables must be set prior to setting the target or running "`import cudaq`".
+It is worth drawing attention to gate fusion, a powerful tool for improving simulation performance which is discussed in greater detail `here <https://nvidia.github.io/cuda-quantum/latest/examples/python/performance_optimizations.html>`__.
 
 .. list-table:: **Environment variable options supported in single-GPU mode**
   :widths: 20 30 50
@@ -120,6 +120,7 @@ setting the target. It is worth drawing attention to gate fusion, a powerful too
   * - ``CUDAQ_MAX_GPU_MEMORY_GB``
     - positive integer, or `NONE`
     - GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. `NONE` means unlimited (up to physical memory constraints). This is the default.
+
 
 .. deprecated:: 0.8
     The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
@@ -212,8 +213,8 @@ See the `Divisive Clustering <https://nvidia.github.io/cuda-quantum/latest/appli
 
 In addition to those environment variable options supported in the single-GPU mode,
 the :code:`nvidia` backend provides the following environment variable options particularly for 
-the multi-node multi-GPU configuration. Any environment variables must be set
-prior to setting the target.
+the multi-node multi-GPU configuration. Any environment variables must be set prior to setting the target or running "`import cudaq`".
+
 
 .. list-table:: **Additional environment variable options for multi-node multi-GPU mode**
   :widths: 20 30 50
@@ -276,3 +277,8 @@ environment variable to another integer value as shown below.
         nvq++ --target nvidia --target-option mgpu,fp64 program.cpp [...] -o program.x
         CUDAQ_MGPU_FUSE=5 mpiexec -np 2 ./program.x
 
+
+.. note:: 
+  
+  On multi-node systems without `MNNVL` support, the `nvidia` target in `mgpu` mode may fail to allocate memory. 
+  Users can disable `MNNVL` fabric-based memory sharing by setting the environment variable `UBACKEND_USE_FABRIC_HANDLE=0`.  

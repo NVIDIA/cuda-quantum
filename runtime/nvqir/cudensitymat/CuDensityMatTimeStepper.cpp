@@ -9,6 +9,7 @@
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
 namespace cudaq {
 CuDensityMatTimeStepper::CuDensityMatTimeStepper(
     cudensitymatHandle_t handle, cudensitymatOperator_t liouvillian)
@@ -67,18 +68,20 @@ state CuDensityMatTimeStepper::compute(
   // Apply the operator action
   std::map<std::string, std::complex<double>> sortedParameters(
       parameters.begin(), parameters.end());
-  std::vector<double> paramValues;
+  std::vector<std::complex<double>> paramValues;
   for (const auto &[k, v] : sortedParameters) {
-    paramValues.emplace_back(v.real());
-    paramValues.emplace_back(v.imag());
+    paramValues.emplace_back(v);
   }
+  double *param_d =
+      static_cast<double *>(cudaq::dynamics::createArrayGpu(paramValues));
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   HANDLE_CUDM_ERROR(cudensitymatOperatorComputeAction(
-      m_handle, m_liouvillian, t, paramValues.size(), paramValues.data(),
+      m_handle, m_liouvillian, t, 1, paramValues.size() * 2, param_d,
       state.get_impl(), next_state.get_impl(), workspace, 0x0));
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
 
   // Cleanup
+  cudaq::dynamics::destroyArrayGpu(param_d);
   HANDLE_CUDM_ERROR(cudensitymatDestroyWorkspace(workspace));
 
   return cudaq::state(

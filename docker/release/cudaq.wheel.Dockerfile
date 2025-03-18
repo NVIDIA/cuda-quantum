@@ -52,7 +52,10 @@ RUN cd cuda-quantum && cat python/README.md.in > python/README.md && \
     package_name=cuda-quantum-cu$(echo ${CUDA_VERSION} | cut -d . -f1) && \
     cuda_version_requirement="\>= ${CUDA_VERSION}" && \
     cuda_version_conda=${CUDA_VERSION}.0 && \
-    for variable in package_name cuda_version_requirement cuda_version_conda; do \
+    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
+        deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."; \
+    fi && \
+    for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do \
         sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/README.md; \
     done && \
     if [ -n "$(cat python/README.md | grep -e '.{{.*}}')" ]; then \

@@ -180,6 +180,11 @@ public:
     for (auto &tensor : m_mpsTensors_d) {
       HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
     }
+
+    if (m_state->hasGeneralChannelApplied() && m_state->getNumQubits() <= 1)
+      throw std::runtime_error(
+          "MPS noisy simulation currently does not support the case where "
+          "number of qubit is equal to 1");
     m_mpsTensors_d.clear();
     m_mpsTensors_d =
         m_state->setupMPSFactorize(m_settings.maxBond, m_settings.absCutoff,
@@ -411,7 +416,7 @@ public:
   }
 
   bool requireCacheWorkspace() const override { return false; }
-
+  bool canHandleGeneralNoiseChannel() const override { return true; }
   virtual ~SimulatorMPS() noexcept {
     for (auto &tensor : m_mpsTensors_d) {
       HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
