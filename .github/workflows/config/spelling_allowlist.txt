@@ -210,7 +210,6 @@ enqueuing
 entangler
 entanglers
 enum
-env
 et
 excitations
 executables
@@ -333,7 +332,6 @@ unitarity
 unitary
 unoptimized
 upvote
-usr
 variadic
 variational
 vdots
