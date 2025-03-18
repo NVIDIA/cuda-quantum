@@ -1286,13 +1286,13 @@ public:
   /// @param other R-value reference to scalar_operator.
   /// @return A sum_op instance representing the subtraction.
   sum_op<HandlerTy> operator-(scalar_operator &&other) &&;
-  /// @brief Subtracts a scalar operator (by const reference) from this instance
-  /// (l-value reference).
+  /// @brief Subtracts a scalar operator (by `const` reference) from this
+  /// instance (l-value reference).
   /// @param other Constant reference to scalar_operator.
   /// @return A sum_op instance representing the subtraction.
   sum_op<HandlerTy> operator-(const scalar_operator &other) const &;
-  /// @brief Subtracts a scalar operator (by const reference) from this instance
-  /// (r-value reference).
+  /// @brief Subtracts a scalar operator (by `const` reference) from this
+  /// instance (r-value reference).
   /// @param other Constant reference to scalar_operator.
   /// @return A sum_op instance representing the subtraction.
   sum_op<HandlerTy> operator-(const scalar_operator &other) &&;
