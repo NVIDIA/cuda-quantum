@@ -96,6 +96,55 @@ You can then launch the container and connect to it via SSH by executing the fol
     docker exec -d cuda-quantum bash -c "sudo -E /usr/sbin/sshd -D"
     ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null
 
+.. _known_blackwell_issues:
+
+Known Blackwell Issues
+++++++++++++++++++++++++++++++++++++
+
+There are some known Blackwell issues when using CUDA-Q.
+
+.. _blackwell-cuda-dependencies:
+
+.. note::
+
+    If you are using CUDA 12.8 on Blackwell, you may need to install additional
+    dependencies to use the python wheels.
+
+    If you see the following error:
+
+    .. code-block:: console
+
+       cupy_backends.cuda.api.driver.CUDADriverError: CUDA_ERROR_NO_BINARY_FOR_GPU: no kernel image is available for execution on the device
+
+    You may need to install the more updated python wheels.
+
+    .. code-block:: console
+
+        pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 nvidia-nvjitlink-cu12 nvidia-curand-cu12
+
+.. _blackwell-torch-dependences:
+
+.. note::
+
+    If you are attempting to use torch integrators on Blackwell, you will need to install the nightly torch version.
+
+    .. code-block:: console
+
+        python3 -m pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
+
+    With this new version of torch, you may see:
+
+    .. code-block:: console
+
+        Module 'torch' was found, but when imported by pytest it raised:
+        ImportError('/home/cudaq/.local/lib/python3.10/site-packages/torch/lib/../../nvidia/cusparse/lib/libcusparse.so.12: undefined symbol: __nvJitLinkCreate_12_8, version libnvJitLink.so.12')
+
+    This may be caused by an incorrectly linked shared object. If you encounter this, try adding the shared object to the LD_LIBRARY_PATH:
+
+    .. code-block:: console
+
+        export LD_LIBRARY_PATH=$(pip show nvidia-nvjitlink-cu12 | sed -nE 's/Location: (.*)$/\1/p')/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
+
 
 .. _install-singularity-image:
 
