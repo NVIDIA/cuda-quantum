@@ -124,9 +124,8 @@ static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
   builder.setInsertionPointToEnd(moduleOp.getBody());
 
   auto ctx = builder.getContext();
-  auto loc = builder.getUnknownLoc();
-
   auto initFunc = cast<func::FuncOp>(builder.clone(*calleeFunc));
+  auto loc = initFunc.getLoc();
 
   auto argTypes = calleeFunc.getArgumentTypes();
   auto retTy = quake::VeqType::getUnsized(ctx);
@@ -249,9 +248,8 @@ static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
   builder.setInsertionPointToEnd(moduleOp.getBody());
 
   auto ctx = builder.getContext();
-  auto loc = builder.getUnknownLoc();
-
   auto numQubitsFunc = cast<func::FuncOp>(builder.clone(*calleeFunc));
+  auto loc = numQubitsFunc.getLoc();
 
   auto argTypes = calleeFunc.getArgumentTypes();
   auto retType = builder.getI64Type();
@@ -515,11 +513,11 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
       createNumQubitsFunc(builder, substMod, calleeFunc, numQubitsKernelName);
 
       // Convert arguments for `callee.init_N`.
-      auto &registeredInitName = converter.registerKernel(initName);
+      auto registeredInitName = converter.registerKernel(initName);
       converter.gen(registeredInitName, substMod, calleeArgs);
 
       // Convert arguments for `callee.num_qubits_N`.
-      auto &registeredNumQubitsName = converter.registerKernel(numQubitsName);
+      auto registeredNumQubitsName = converter.registerKernel(numQubitsName);
       converter.gen(registeredNumQubitsName, substMod, calleeArgs);
     }
 
@@ -719,7 +717,7 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
   OpBuilder builder(ctx);
   ModuleOp substModule =
       builder.create<mlir::ModuleOp>(builder.getUnknownLoc());
-  auto &kernelInfo = addKernelInfo(kernelName, substModule);
+  auto *kernelInfo = addKernelInfo(kernelName, substModule);
 
   // We should look up the input type signature here.
   auto fun = sourceModule.lookupSymbol<func::FuncOp>(
@@ -813,7 +811,7 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
             })
             .Default({});
     if (subst)
-      kernelInfo.getSubstitutions().emplace_back(std::move(subst));
+      kernelInfo->getSubstitutions().emplace_back(std::move(subst));
   }
 }
 

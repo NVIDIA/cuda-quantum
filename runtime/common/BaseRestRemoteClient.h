@@ -190,18 +190,14 @@ public:
           // We pass string references to the `createArgumentSynthesisPass`.
           mlir::SmallVector<std::string> kernels;
           mlir::SmallVector<std::string> substs;
-          for (auto &kInfo : argCon.getKernelSubstitutions()) {
-            {
-              std::string kernName = cudaq::runtime::cudaqGenPrefixName +
-                                     kInfo.getKernelName().str();
-              kernels.emplace_back(kernName);
-            }
-            {
-              std::string substBuff;
-              llvm::raw_string_ostream ss(substBuff);
-              ss << kInfo.getSubstitutionModule();
-              substs.emplace_back(substBuff);
-            }
+          for (auto *kInfo : argCon.getKernelSubstitutions()) {
+            std::string kernName = cudaq::runtime::cudaqGenPrefixName +
+                                   kInfo->getKernelName().str();
+            kernels.emplace_back(kernName);
+            std::string substBuff;
+            llvm::raw_string_ostream ss(substBuff);
+            ss << kInfo->getSubstitutionModule();
+            substs.emplace_back(substBuff);
           }
 
           // Collect references for the argument synthesis.
@@ -349,6 +345,10 @@ public:
       if (!castedState1 || !castedState2)
         throw std::runtime_error(
             "Invalid execution context: input states are not compatible");
+      if (!castedState1->getKernelInfo().has_value())
+        throw std::runtime_error("Missing first input state in state-overlap");
+      if (!castedState2->getKernelInfo().has_value())
+        throw std::runtime_error("Missing second input state in state-overlap");
       auto [kernelName1, args1] = castedState1->getKernelInfo().value();
       auto [kernelName2, args2] = castedState2->getKernelInfo().value();
       cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;

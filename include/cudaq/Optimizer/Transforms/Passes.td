@@ -898,7 +898,7 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
       ```
 
     This optimization performs the replacements for the the following operations 
-    that use a state produced by  `quake.materialize_state @num_qubits @init`
+    that use a state produced by  `quake.materialize_state @num_qubits, @init`
     operation:
 
     - Replace `quake.get_number_of_qubits` operation by call to `@num_qubits`
@@ -910,7 +910,7 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::Func
     Before ReplaceStateWithKernel (replace-state-with-kernel):
     ```
     func.func @foo() {
-      %0 = quake.materialize_state @callee.num_qubits_0 @callee.init_0: !cc.ptr<!cc.state>
+      %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0: !cc.ptr<!cc.state>
       %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
       %2 = quake.alloca !quake.veq<?>[%1 : i64]
       %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
