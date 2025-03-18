@@ -4,15 +4,12 @@ Noisy Simulators
 Trajectory Noisy Simulation
 ++++++++++++++++++++++++++++++++++
 
-The :code:`nvidia` target supports noisy quantum circuit simulations using 
-quantum trajectory method across all configurations: single GPU, multi-node 
-multi-GPU, and with host memory. When simulating many trajectories with small 
-state vectors, the simulation is batched for optimal performance.
+CUDA-Q GPU simulator backends, :code:`nvidia`, :code:`tensornet`, and :code:`tensornet-mps`,
+supports noisy quantum circuit simulations using quantum trajectory method.
 
-When a :code:`noise_model` is provided to CUDA-Q, the :code:`nvidia` target 
+When a :code:`noise_model` is provided to CUDA-Q, the backend target 
 will incorporate quantum noise into the quantum circuit simulation according 
-to the noise model specified.
-
+to the noise model specified, as shown in the below example.
 
 .. tab:: Python
 
@@ -33,14 +30,70 @@ to the noise model specified.
 
     .. code:: bash 
 
+        # nvidia target
         nvq++ --target nvidia program.cpp [...] -o program.x
         ./program.x
         { 00:15 01:92 10:81 11:812 }
+        # tensornet target
+        nvq++ --target tensornet program.cpp [...] -o program.x
+        ./program.x
+        { 00:10 01:108 10:73 11:809 }
+        # tensornet-mps target
+        nvq++ --target tensornet-mps program.cpp [...] -o program.x
+        ./program.x
+        { 00:5 01:86 10:102 11:807 }
 
 
-In the case of bit-string measurement sampling as in the above example, each measurement 'shot' is executed as a trajectory, whereby Kraus operators specified in the noise model are sampled.
+In the case of bit-string measurement sampling as in the above example, each measurement 'shot' is executed as a trajectory, 
+whereby Kraus operators specified in the noise model are sampled.
 
-For observable expectation value estimation, the statistical error scales asymptotically as :math:`1/\sqrt{N_{trajectories}}`, where :math:`N_{trajectories}` is the number of trajectories.
+
+Unitary Mixture vs. General Noise Channel
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Quantum noise channels can be classified into two categories:
+
+(1) Unitary mixture
+
+The noise channel can be defined by a set of unitary matrices along with list of probabilities associated with those matrices.
+The depolarizing channel is an example of unitary mixture, whereby `I` (no noise), `X`, `Y`, or `Z` unitaries may occur to the
+quantum state at pre-defined probabilities.
+
+(2) General noise channel
+
+The channel is defined as a set of non-unitary Kraus matrices, satisfying the completely positive and trace preserving (CPTP) condition.
+An example of this type of channels is the amplitude damping noise channel.
+
+In trajectory simulation method, simulating unitary mixture noise channels is more efficient than
+general noise channels since the trajectory sampling of the latter requires probability calculation based
+on the immediate quantum state. 
+
+.. note::
+    CUDA-Q noise channel utility automatically detects whether a list of Kraus matrices can be converted to
+    the unitary mixture representation for more efficient simulation.
+
+.. list-table:: **Noise Channel Support**
+  :widths: 20 30 50
+
+  * - Backend
+    - Unitary Mixture
+    - General Channel
+  * - :code:`nvidia`
+    - YES
+    - YES
+  * - :code:`tensornet`
+    - YES
+    - NO
+  * - :code:`tensornet-mps`
+    - YES
+    - YES (number of qubits > 1)
+
+
+Trajectory Expectation Value Calculation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In trajectory simulation method, the statistical error of observable expectation value estimation scales asymptotically 
+as :math:`1/\sqrt{N_{trajectories}}`, where :math:`N_{trajectories}` is the number of trajectories.
 Hence, depending on the required level of accuracy, the number of trajectories can be specified accordingly.
 
 .. tab:: Python
@@ -63,14 +116,47 @@ Hence, depending on the required level of accuracy, the number of trajectories c
 
     .. code:: bash 
 
+        # nvidia target
         nvq++ --target nvidia program.cpp [...] -o program.x
         ./program.x
         Noisy <Z> with 1024 trajectories = -0.810547
         Noisy <Z> with 8192 trajectories = -0.800049
 
+        # tensornet target
+        nvq++ --target tensornet program.cpp [...] -o program.x
+        ./program.x
+        Noisy <Z> with 1024 trajectories = -0.777344
+        Noisy <Z> with 8192 trajectories = -0.800537
+        
+        # tensornet-mps target
+        nvq++ --target tensornet-mps program.cpp [...] -o program.x
+        ./program.x
+        Noisy <Z> with 1024 trajectories = -0.828125
+        Noisy <Z> with 8192 trajectories = -0.801758
 
-The following environment variable options are applicable to the :code:`nvidia` target for trajectory noisy simulation. Any environment variables must be set
-prior to setting the target.
+In the above example, as we increase the number of trajectories, 
+the result of CUDA-Q `observe` approaches the true value.
+
+.. note::
+    With trajectory noisy simulation, the result of CUDA-Q `observe` is inherently stochastic.  
+    For a small number of qubits, the true expectation value can be simulated by the :ref:`density matrix <density-matrix-cpu-backend>` simulator. 
+
+Batched Trajectory Simulation 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On the :code:`nvidia` target, when simulating many trajectories with small 
+state vectors, the simulation is batched for optimal performance.
+
+.. note::
+    
+    Batched trajectory simulation is only available on the single-GPU execution mode of the :code:`nvidia` target. 
+    
+    If batched trajectory simulation is not activated, e.g., due to problem size, number of trajectories, 
+    or the nature of the circuit (dynamic circuits with mid-circuit measurements and conditional branching), 
+    the required number of trajectories will be executed sequentially.  
+
+The following environment variable options are applicable to the :code:`nvidia` target for batched trajectory noisy simulation. 
+Any environment variables must be set prior to setting the target or running "`import cudaq`".
 
 .. list-table:: **Additional environment variable options for trajectory simulation**
   :widths: 20 30 50
@@ -78,9 +164,6 @@ prior to setting the target.
   * - Option
     - Value
     - Description
-  * - ``CUDAQ_OBSERVE_NUM_TRAJECTORIES``
-    - positive integer
-    - The default number of trajectories for observe simulation if none was provided in the `observe` call. The default value is 1000.
   * - ``CUDAQ_BATCH_SIZE``
     - positive integer or `NONE`
     - The number of state vectors in the batched mode. If `NONE`, the batch size will be calculated based on the available device memory. Default is `NONE`.
@@ -95,11 +178,45 @@ prior to setting the target.
     - The minimum number of trajectories for batching. If the number of trajectories is less than this value, batched trajectory simulation will be disabled. Default value is 4.
 
 .. note::
-    
-    Batched trajectory simulation is only available on the single-GPU execution mode of the :code:`nvidia` target. 
-    
-    If batched trajectory simulation is not activated, e.g., due to problem size, number of trajectories, or the nature of the circuit (dynamic circuits with mid-circuit measurements and conditional branching), the required number of trajectories will be executed sequentially.  
+    The default batched trajectory simulation parameters have been chosen for optimal performance.
 
+In the below example, we demonstrate the use of these parameters to control trajectory batching.
+
+.. tab:: Python
+
+    .. literalinclude:: ../../../snippets/python/using/backends/trajectory_batching.py
+        :language: python
+        :start-after: [Begin Docs]
+
+    .. code:: bash 
+        
+        # Default batching parameter
+        python3 program.py
+        Simulation elapsed time: 45.75657844543457 ms
+        
+        # Disable batching by setting batch size to 1
+        CUDAQ_BATCH_SIZE=1 python3 program.py
+        Simulation elapsed time: 716.090202331543 ms
+
+.. tab:: C++
+
+    .. literalinclude:: ../../../snippets/cpp/using/backends/trajectory_batching.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+
+    .. code:: bash 
+
+        nvq++ --target nvidia program.cpp [...] -o program.x
+        # Default batching parameter
+        ./program.x
+        Simulation elapsed time: 45.47ms
+        # Disable batching by setting batch size to 1
+        Simulation elapsed time: 558.66ms
+
+.. note::
+
+    The :code:`CUDAQ_LOG_LEVEL` :doc:`environment variable <../../basics/troubleshooting>` can be used to 
+    view detailed logs of batched trajectory simulation, e.g., the batch size. 
 
 
 Density Matrix 
