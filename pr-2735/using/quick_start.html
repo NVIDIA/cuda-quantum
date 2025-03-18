@@ -358,6 +358,22 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/edge-detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/edge-detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/edge-detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="backends/backends.html">   Backends</a><ul>
@@ -775,6 +791,7 @@ If you have an NVIDIA GPU, make sure to also follow the instructions for enablin
 <p>Getting started with CUDA-Q simply requires <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cudaq</span></code>. Please make sure your <code class="docutils literal notranslate"><span class="pre">pip</span></code> version is &gt;= 24.0.
 If you have an NVIDIA GPU on your host system, you will be
 able to use it without any further installation steps.</p>
+<p><strong>Note</strong>: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12.</p>
 <blockquote>
 <div><p><strong>Important:</strong>
 Please check if you have an existing installation of the <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package, and uninstall it prior to installation. Different CUDA-Q binary distributions may conflict with each other causing issues.</p>
@@ -785,7 +802,7 @@ not already using Conda, you can install a minimal version following the
 instructions <a class="reference external" href="https://docs.anaconda.com/miniconda/">here</a>. The following
 commands will create and activate a complete environment for CUDA-Q with all its
 dependencies:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=11.8.0 # set this variable to version 11.x (where x &gt;= 8) or 12.x</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=12.4.0 # set this variable to version 11.x (where x &gt;= 8) or 12.x</span>
 <span class="go">conda create -y -n cudaq-env python=3.11 pip</span>
 <span class="go">conda install -y -n cudaq-env -c &quot;nvidia/label/cuda-${cuda_version}&quot; cuda</span>
 <span class="go">conda install -y -n cudaq-env -c conda-forge mpi4py openmpi&quot;&gt;=5.0.3&quot; cxx-compiler</span>

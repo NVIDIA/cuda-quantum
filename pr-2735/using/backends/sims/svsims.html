@@ -356,6 +356,22 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/edge-detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/edge-detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/edge-detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../backends.html">   Backends</a><ul class="current">
@@ -819,8 +835,8 @@ the <code class="code docutils literal notranslate"><span class="pre">cuStateVec
 <p>This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
 <p>In the single-GPU mode, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend provides the following
-environment variable options. Any environment variables must be set prior to
-setting the target. It is worth drawing attention to gate fusion, a powerful tool for improving simulation performance which is discussed in greater detail <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/examples/python/performance_optimizations.html">here</a>.</p>
+environment variable options. Any environment variables must be set prior to setting the target or running “<code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>”.
+It is worth drawing attention to gate fusion, a powerful tool for improving simulation performance which is discussed in greater detail <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/examples/python/performance_optimizations.html">here</a>.</p>
 <table class="docutils align-default" id="id1">
 <caption><span class="caption-text"><strong>Environment variable options supported in single-GPU mode</strong></span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
 <colgroup>
@@ -925,8 +941,7 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 </div>
 <p>In addition to those environment variable options supported in the single-GPU mode,
 the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend provides the following environment variable options particularly for
-the multi-node multi-GPU configuration. Any environment variables must be set
-prior to setting the target.</p>
+the multi-node multi-GPU configuration. Any environment variables must be set prior to setting the target or running “<code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>”.</p>
 <table class="docutils align-default" id="id2">
 <caption><span class="caption-text"><strong>Additional environment variable options for multi-node multi-GPU mode</strong></span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
 <colgroup>
@@ -1001,6 +1016,11 @@ environment variable to another integer value as shown below.</p>
 </pre></div>
 </div>
 </div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On multi-node systems without <code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code> support, the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target in <code class="code docutils literal notranslate"><span class="pre">mgpu</span></code> mode may fail to allocate memory.
+Users can disable <code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code> fabric-based memory sharing by setting the environment variable <code class="code docutils literal notranslate"><span class="pre">UBACKEND_USE_FABRIC_HANDLE=0</span></code>.</p>
 </div>
 </section>
 </section>
