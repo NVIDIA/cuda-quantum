@@ -773,6 +773,27 @@ and is also available as a Docker image. More information about installing the n
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples">Examples</a></p></li>
 </ul>
+<p><strong>0.10.0</strong></p>
+<p>In this release we have added a range of tools for simulating noisy quantum systems.
+It includes support for trajectory based noise simulation for our GPU-accelerated statevector
+and tensor network simulators, and a new sampling option for better <code class="code docutils literal notranslate"><span class="pre">stim</span></code> performance. We have
+also expanded the range of noise models, and added an <code class="code docutils literal notranslate"><span class="pre">apply_noise</span></code> “gate”. This release adds
+the C++ support for the CUDA-Q <code class="code docutils literal notranslate"><span class="pre">dynamics</span></code> backend (a master equation solver), as well as operator
+classes for fermionic, bosonic and custom operators. This release also includes support for
+submitting to <a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.10.0/using/backends/hardware/neutralatom.html#pasqal">Pasqal</a>
+backends, and adds C++ support for
+<a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.10.0/using/backends/hardware/neutralatom.html#quera-computing">QuEra</a>
+backends. Check out our <a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.10.0">documentation</a>, including
+new tutorials and examples, for more information.</p>
+<p><em>Note</em>: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cudaq/0.10.0">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.10.0">C++ installer</a></p></li>
+<li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.10.0">Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.10.0/docs/sphinx/examples">Examples</a></p></li>
+</ul>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.10.0">here</a>.</p>
 <p><strong>0.9.1</strong></p>
 <p>This release adds support for using
 <a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.1/using/backends/hardware.html#amazon-braket">Amazon Braket</a> and
@@ -784,7 +805,7 @@ could be used when executing on a simulator only. The previous behavior can be f
 flag to the compiler. Please note that if you do so, however, the code will never be executable outside of a simulator
 and may not be supported even on simulators.</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">Docker image</a></p></li>
 <li><p><a class="reference external" href="https://pypi.org/project/cudaq/0.9.1">Python wheel</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.9.1">C++ installer</a></p></li>
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.9.1">Documentation</a></p></li>
