@@ -204,6 +204,14 @@ INSTANTIATE_SUM_PROPERTIES(fermion_handler);
 // constructors
 
 template <typename HandlerTy>
+sum_op<HandlerTy>::sum_op(std::size_t size)
+    : is_default(true) {
+  this->coefficients.reserve(size);
+  this->term_map.reserve(size);
+  this->terms.reserve(size);
+}
+
+template <typename HandlerTy>
 sum_op<HandlerTy>::sum_op(const product_op<HandlerTy> &prod)
     : is_default(false) {
   this->insert(prod);
@@ -307,6 +315,8 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
 #define INSTANTIATE_SUM_CONSTRUCTORS(HandlerTy)                                \
                                                                                \
   template sum_op<HandlerTy>::sum_op(bool is_default);                         \
+                                                                               \
+  template sum_op<HandlerTy>::sum_op(std::size_t size);                        \
                                                                                \
   template sum_op<HandlerTy>::sum_op(const product_op<HandlerTy> &item2);      \
                                                                                \

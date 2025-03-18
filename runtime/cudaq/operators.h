@@ -84,8 +84,8 @@ public:
     std::size_t current_idx;
     product_op<HandlerTy> current_val;
 
-    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx, 
-                   product_op<Handlerty> &&value)
+    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx,
+                   product_op<HandlerTy> &&value)
         : sum(sum), current_idx(idx), current_val(std::move(value)) {}
 
   public:
@@ -128,7 +128,7 @@ public:
     // postfix
     const_iterator operator++(int) {
       auto iter = const_iterator(sum, current_idx, std::move(current_val));
-      ++this;
+      ++(*this);
       return iter;
     }
   };
@@ -155,6 +155,8 @@ public:
   // and multiplicative identity. To construct a true "0" value
   // (neutral element for addition only), use sum_op<T>::empty().
   constexpr sum_op() : is_default(true){};
+
+  sum_op(std::size_t size);
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
