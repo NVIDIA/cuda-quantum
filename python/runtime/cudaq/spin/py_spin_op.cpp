@@ -113,8 +113,10 @@ void bindSpinOperator(py::module &mod) {
       .def("get_term_id", &cudaq::spin_op_term::get_term_id,
            "Gets the id with which counts and expectation values for this term "
            "can be retrieved.")
-      .def("get_pauli_word",
-           &cudaq::spin_op_term::get_pauli_word<cudaq::spin_handler>,
+      .def("get_pauli_word", [](cudaq::spin_op_term &op, int pad_identities) {
+             return op.get_pauli_word(pad_identities);
+           },
+           py::arg("pad_identities") = 0,
            "Gets the Pauli word representation of this "
            ":class:`SpinOperatorTerm`.")
       .def(
@@ -291,6 +293,8 @@ void bindSpinOperator(py::module &mod) {
       // FIXME: deprecate this one
       .def(py::init([]() { return cudaq::spin_op::identity(); }),
            "Empty constructor, creates the identity term.")
+      .def(py::init([](int size) { return cudaq::spin_op(size); }),
+           "Empty constructor, creates a sum operator with no terms, reserving memory for the given number of terms.")
       // FIXME: deprecate name
       .def_static("empty_op", &cudaq::spin_op::empty)
       .def_static("empty", &cudaq::spin_op::empty)
@@ -351,9 +355,11 @@ void bindSpinOperator(py::module &mod) {
       .def(
           "get_coefficient",
           [](cudaq::spin_op &op) {
+            if (op.num_terms() == 0)
+              return std::complex<double>(0.);
             if (op.num_terms() != 1)
               throw std::runtime_error(
-                  "expecting a spin op with exactly one term");
+                  "expecting a spin op with at most one term");
             return op.begin()->get_coefficient().evaluate();
           },
           "Return the coefficient of this :class:`SpinOperator`. Must be a "

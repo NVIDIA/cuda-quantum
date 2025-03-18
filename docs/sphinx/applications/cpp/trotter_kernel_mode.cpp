@@ -110,7 +110,7 @@ int run_steps(int steps, int spins) {
     return tdOp;
   };
   // Observe the average magnetization of all spins (<Z>)
-  auto average_magnetization = cudaq::spin_op::empty();
+  cudaq::spin_op average_magnetization(n_spins);
   for (int i = 0; i < n_spins; ++i)
     average_magnetization += ((1.0 / n_spins) * cudaq::spin::z(i));
   average_magnetization -= 1.0;
