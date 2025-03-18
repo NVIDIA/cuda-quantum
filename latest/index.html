@@ -287,15 +287,6 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -362,6 +353,22 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="applications/python/edge-detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/edge-detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/edge-detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -460,6 +467,7 @@
 <li class="toctree-l2"><a class="reference internal" href="using/install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#known-blackwell-issues">Known Blackwell Issues</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#singularity">Singularity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#python-wheels">Python wheels</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#pre-built-binaries">Pre-built binaries</a></li>
@@ -812,7 +820,6 @@ programming in Python and in C++.</p>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/qaoa.html">Max-Cut with QAOA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a></li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/quantum_teleportation.html">Quantum Teleporation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/quantum_transformer.html">Quantum Transformer</a></li>
@@ -823,6 +830,7 @@ programming in Python and in C++.</p>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a></li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/logical_aim_sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a></li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/python/edge-detection.html">Quantum edge detection</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/backends/backends.html">   Backends</a><ul>

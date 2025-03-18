@@ -290,15 +290,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -365,6 +356,22 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/edge-detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/edge-detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/edge-detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -463,6 +470,7 @@
 <li class="toctree-l2"><a class="reference internal" href="install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install/local_installation.html#introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="install/local_installation.html#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="install/local_installation.html#known-blackwell-issues">Known Blackwell Issues</a></li>
 <li class="toctree-l4"><a class="reference internal" href="install/local_installation.html#singularity">Singularity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="install/local_installation.html#python-wheels">Python wheels</a></li>
 <li class="toctree-l4"><a class="reference internal" href="install/local_installation.html#pre-built-binaries">Pre-built binaries</a></li>
@@ -773,6 +781,12 @@ If you have already installed and configured CUDA-Q, or if you are using our
 <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum">Docker image</a>, you can move directly to our
 <a class="reference internal" href="basics/basics.html"><span class="doc">Basics Section</span></a>. More information about working with containers and Docker alternatives can be
 found in our complete <a class="reference internal" href="install/install.html"><span class="doc">Installation Guide</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are using CUDA 12.8 on Blackwell, you may need to install additional
+dependencies to use the python wheels.</p>
+<p>See <a class="reference internal" href="install/local_installation.html#blackwell-cuda-dependencies"><span class="std std-ref">Blackwell CUDA Dependencies</span></a> for more information.</p>
+</div>
 <section id="install-cuda-q">
 <h2>Install CUDA-Q<a class="headerlink" href="#install-cuda-q" title="Permalink to this heading">¶</a></h2>
 <div class="tab-set docutils">
@@ -784,6 +798,7 @@ If you have an NVIDIA GPU, make sure to also follow the instructions for enablin
 <p>Getting started with CUDA-Q simply requires <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cudaq</span></code>. Please make sure your <code class="docutils literal notranslate"><span class="pre">pip</span></code> version is &gt;= 24.0.
 If you have an NVIDIA GPU on your host system, you will be
 able to use it without any further installation steps.</p>
+<p><strong>Note</strong>: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12.</p>
 <blockquote>
 <div><p><strong>Important:</strong>
 Please check if you have an existing installation of the <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package, and uninstall it prior to installation. Different CUDA-Q binary distributions may conflict with each other causing issues.</p>
@@ -794,7 +809,7 @@ not already using Conda, you can install a minimal version following the
 instructions <a class="reference external" href="https://docs.anaconda.com/miniconda/">here</a>. The following
 commands will create and activate a complete environment for CUDA-Q with all its
 dependencies:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=11.8.0 # set this variable to version 11.x (where x &gt;= 8) or 12.x</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=12.4.0 # set this variable to version 11.x (where x &gt;= 8) or 12.x</span>
 <span class="go">conda create -y -n cudaq-env python=3.11 pip</span>
 <span class="go">conda install -y -n cudaq-env -c &quot;nvidia/label/cuda-${cuda_version}&quot; cuda</span>
 <span class="go">conda install -y -n cudaq-env -c conda-forge mpi4py openmpi&quot;&gt;=5.0.3&quot; cxx-compiler</span>

@@ -288,15 +288,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -363,6 +354,22 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/edge-detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -461,6 +468,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#known-blackwell-issues">Known Blackwell Issues</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#singularity">Singularity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#python-wheels">Python wheels</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#pre-built-binaries">Pre-built binaries</a></li>
@@ -2356,57 +2364,9 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrixE">
 <span class="target" id="classcudaq_1_1complex__matrix"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">complex_matrix</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrixE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The <a class="reference internal" href="#classcudaq_1_1complex__matrix"><span class="std std-ref">complex_matrix</span></a> provides an abstraction for describing a matrix with N rows and M columns containing complex elements. </p>
+<dd><p>This is a minimalist matrix container. It is two-dimensional. It owns its data. Elements are of type <code class="docutils literal notranslate"><span class="pre">complex&lt;double&gt;</span></code>. Typically, it will contain a two-by-two set of values. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix14complex_matrixEKNSt6size_tEKNSt6size_tE">
-<span class="target" id="classcudaq_1_1complex__matrix_1afc709728054288800d83c362714d7571"></span><span class="sig-name descname"><span class="n"><span class="pre">complex_matrix</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rows</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">cols</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix14complex_matrixEKNSt6size_tEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Create a matrix of the given sizes, all elements initialized to 0.0. The <a class="reference internal" href="#classcudaq_1_1complex__matrix"><span class="std std-ref">complex_matrix</span></a> owns the matrix data and will delete it upon destruction. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix14complex_matrixEP10value_typeKNSt6size_tEKNSt6size_tE">
-<span class="target" id="classcudaq_1_1complex__matrix_1a680edda8dad30affa4b28c83d6b49573"></span><span class="sig-name descname"><span class="n"><span class="pre">complex_matrix</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">rawData</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rows</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">cols</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix14complex_matrixEP10value_typeKNSt6size_tEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Create a matrix from an existing data pointer. The <a class="reference internal" href="#classcudaq_1_1complex__matrix"><span class="std std-ref">complex_matrix</span></a> does not own this memory and will not delete it upon destruction. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrix4dataEv">
-<span class="target" id="classcudaq_1_1complex__matrix_1a807081f855a6780dfeda25627c1d9cae"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrix4dataEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return the internal data representation. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrix4rowsEv">
-<span class="target" id="classcudaq_1_1complex__matrix_1a46f26ea0e1b0ab761b8bc16a25dc753c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rows</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrix4rowsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return the number of rows. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrix4colsEv">
-<span class="target" id="classcudaq_1_1complex__matrix_1a7676167f15afd42963e189e96f1628f6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cols</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrix4colsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return the number of columns. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrixmlER14complex_matrix">
-<span class="target" id="classcudaq_1_1complex__matrix_1a4bd641605635b405f6627f00198331f0"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrixmlER14complex_matrix" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Multiply this matrix with the provided other matrix. This does not modify this matrix but instead returns a new matrix value. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrixmlERNSt6vectorI10value_typeEE">
-<span class="target" id="classcudaq_1_1complex__matrix_1afc56d7e45004ac896d20f7b86aac63fb"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrixmlERNSt6vectorI10value_typeEE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Multiply this matrix by a vector (A*x) such that x is provided as a std vector of the correct size. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrixclENSt6size_tENSt6size_tE">
-<span class="target" id="classcudaq_1_1complex__matrix_1a83cebaf41d1000f8e92078eb9f4a5018"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">j</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrixclENSt6size_tENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return the element at the row <code class="docutils literal notranslate"><span class="pre">i</span></code> and column <code class="docutils literal notranslate"><span class="pre">j</span></code>. </p>
-</dd></dl>
-
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrix18minimal_eigenvalueEv">
 <span class="target" id="classcudaq_1_1complex__matrix_1ad4e60a0ac829f448a26f7f5e869e540b"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">minimal_eigenvalue</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrix18minimal_eigenvalueEv" title="Permalink to this definition">¶</a><br /></dt>
@@ -2422,25 +2382,127 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrix12eigenvectorsEv">
 <span class="target" id="classcudaq_1_1complex__matrix_1a8c4268a30ace97758990c16f2c6e6e21"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eigenvectors</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrix12eigenvectorsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return the eigenvectors of this matrix. They are returned as the columns of a new matrix. </p>
+<dd><p>Return the eigenvectors of this matrix. They are returned as the rows of a new matrix. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix8set_zeroEv">
 <span class="target" id="classcudaq_1_1complex__matrix_1aa6f1e9da2a940a56319d97723dd694b8"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_zero</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix8set_zeroEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Set all elements in this matrix to 0.0. </p>
+<dd><p>Resets the matrix to all zero entries. Not needed after construction since the matrix will be initialized to zero. </p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix4dumpERNSt7ostreamE">
-<span class="target" id="classcudaq_1_1complex__matrix_1af7a3f8bb36d85f5714cde14105aa6463"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dump</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">os</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix4dumpERNSt7ostreamE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix11exponentialEv">
+<span class="target" id="classcudaq_1_1complex__matrix_1a0bac7616799a0a3ea96ef1881fb5eda5"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exponential</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix11exponentialEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Matrix exponential, uses 20 terms of Taylor Series approximation. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix5powerEi">
+<span class="target" id="classcudaq_1_1complex__matrix_1a0b873a03d5b5ffdbd46bf3c20741d5e5"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">power</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">powers</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix5powerEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Matrix power. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix7adjointEv">
+<span class="target" id="classcudaq_1_1complex__matrix_1a5ec13561da6610bfbd90b56831763167"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">adjoint</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix7adjointEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the conjugate transpose of a matrix. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrixixERKNSt6vectorINSt6size_tEEE">
+<span class="target" id="classcudaq_1_1complex__matrix_1a6bbbbd3f4ebd75e983b61348fc21b9a8"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">at</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrixixERKNSt6vectorINSt6size_tEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Operator to get the value at a particular index in the matrix. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrixixERKNSt6vectorINSt6size_tEEE">
+<span class="target" id="classcudaq_1_1complex__matrix_1a94249f188080fc21dfc57e03307941c9"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">at</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrixixERKNSt6vectorINSt6size_tEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Operator to get the value at a particular index in the matrix. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrixclENSt6size_tENSt6size_tE">
+<span class="target" id="classcudaq_1_1complex__matrix_1aaf8ccc6947168f21f344e3e80f173fcb"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">j</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrixclENSt6size_tENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Operator to get the value at a particular index in the matrix. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrixclENSt6size_tENSt6size_tE">
+<span class="target" id="classcudaq_1_1complex__matrix_1aee8aaadb80bb1f5c696cbc8ce179086a"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">j</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrixclENSt6size_tENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Operator to get the value at a particular index in the matrix. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrix9to_stringEv">
+<span class="target" id="classcudaq_1_1complex__matrix_1a9f64f7e2aa5ff8e69f0db5f39e9a8325"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_string</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrix9to_stringEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns a string representation of the matrix. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrix4dumpEv">
+<span class="target" id="classcudaq_1_1complex__matrix_1a7f97cf8357297f3d6c7dc258c2cfb7ad"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dump</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrix4dumpEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Print this matrix to the standard output stream. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq14complex_matrix4dumpERNSt7ostreamE">
+<span class="target" id="classcudaq_1_1complex__matrix_1a5230d45fc0537d7be3833226cdbc88aa"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dump</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">os</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq14complex_matrix4dumpERNSt7ostreamE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Print this matrix to the given output stream. </p>
 </dd></dl>
 
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix4dumpEv">
-<span class="target" id="classcudaq_1_1complex__matrix_1aa024a067b22061a372f51114e4ca94ff"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dump</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix4dumpEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Print this matrix to standard out. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix8identityEKNSt6size_tE">
+<span class="target" id="classcudaq_1_1complex__matrix_1a3368e06f12944f4a1afa23caf0d96a0c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">identity</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rows</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix8identityEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return a square identity matrix for the given size. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-friends">Friends</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrixmlERK14complex_matrixRK14complex_matrix">
+<span class="target" id="classcudaq_1_1complex__matrix_1a1034bc076d929eb4140c42f80a9b73c8"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrixmlERK14complex_matrixRK14complex_matrix" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Multiplication (cross-product) of two matrices. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrixmlERK14complex_matrixRKNSt6vectorIN14complex_matrix10value_typeEEE">
+<span class="target" id="classcudaq_1_1complex__matrix_1a728dba2743ba321de0049980b4aa928f"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrixmlERK14complex_matrixRKNSt6vectorIN14complex_matrix10value_typeEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Right-side multiplication with a vector. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrixmlEN14complex_matrix10value_typeERK14complex_matrix">
+<span class="target" id="classcudaq_1_1complex__matrix_1a0707b39f97fd924486e2c8fe38a6ff50"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrix10value_typeE" title="cudaq::complex_matrix::value_type"><span class="n"><span class="pre">value_type</span></span></a>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrixmlEN14complex_matrix10value_typeERK14complex_matrix" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Scalar Multiplication with matrices. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrixplERK14complex_matrixRK14complex_matrix">
+<span class="target" id="classcudaq_1_1complex__matrix_1aa028dded445acb713119b8038f18b137"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrixplERK14complex_matrixRK14complex_matrix" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Addition of two matrices. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrixmiERK14complex_matrixRK14complex_matrix">
+<span class="target" id="classcudaq_1_1complex__matrix_1afac269457ceb68805e6c91fdb441fc33"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrixmiERK14complex_matrixRK14complex_matrix" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subtraction of two matrices. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix9kroneckerERK14complex_matrixRK14complex_matrix">
+<span class="target" id="classcudaq_1_1complex__matrix_1a3449044003fbd8c609fdfca860074771"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kronecker</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix9kroneckerERK14complex_matrixRK14complex_matrix" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Kronecker of two matrices. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I00EN5cudaq14complex_matrix9kroneckerE14complex_matrix8Iterable8Iterable">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Iterable</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1complex__matrix_1a43c097201b8a95009f209c1294a1984b"></span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kronecker</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I00EN5cudaq14complex_matrix9kroneckerE14complex_matrix8Iterable8Iterable" title="cudaq::complex_matrix::kronecker::Iterable"><span class="n"><span class="pre">Iterable</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">begin</span></span>, <a class="reference internal" href="#_CPPv4I00EN5cudaq14complex_matrix9kroneckerE14complex_matrix8Iterable8Iterable" title="cudaq::complex_matrix::kronecker::Iterable"><span class="n"><span class="pre">Iterable</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">end</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN5cudaq14complex_matrix9kroneckerE14complex_matrix8Iterable8Iterable" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Kronecker a list of matrices. The list can be any container that has iterators defined. </p>
 </dd></dl>
 
 </div>

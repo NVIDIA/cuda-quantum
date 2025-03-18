@@ -261,6 +261,12 @@ backend target.
     To use Torch-based integrators, users need to install `torchdiffeq` (e.g., with `pip install torchdiffeq`).
     This is an optional dependency of CUDA-Q, thus will not be installed by default.
 
+.. note::
+
+    If you are using CUDA 12.8 on Blackwell, you may need to install nightly torch.
+
+    See :ref:`Blackwell Torch Dependencies <blackwell-torch-dependences>` for more information.
+
 .. warning:: 
     Torch-based integrators require a CUDA-enabled Torch installation. Depending on your platform (e.g., `aarch64`),
     the default Torch pip package may not have CUDA support. 
