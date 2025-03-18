@@ -183,7 +183,7 @@ sum_op<HandlerTy>::degrees(bool application_order) const {
 }
 
 template <typename HandlerTy>
-std::size_t sum_op<HandlerTy>::num_terms() const {
+int sum_op<HandlerTy>::num_terms() const {
   return this->terms.size();
 }
 
@@ -192,7 +192,7 @@ std::size_t sum_op<HandlerTy>::num_terms() const {
   template std::vector<std::size_t> sum_op<HandlerTy>::degrees(                \
       bool application_order) const;                                           \
                                                                                \
-  template std::size_t sum_op<HandlerTy>::num_terms() const;
+  template int sum_op<HandlerTy>::num_terms() const;
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_PROPERTIES(matrix_handler);
@@ -204,7 +204,7 @@ INSTANTIATE_SUM_PROPERTIES(fermion_handler);
 // constructors
 
 template <typename HandlerTy>
-sum_op<HandlerTy>::sum_op(std::size_t size)
+sum_op<HandlerTy>::sum_op(int size)
     : is_default(true) {
   this->coefficients.reserve(size);
   this->term_map.reserve(size);
@@ -1543,7 +1543,7 @@ void sum_op<HandlerTy>::dump() const {
 
 template <typename HandlerTy>
 std::vector<sum_op<HandlerTy>>
-sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
+sum_op<HandlerTy>::distribute_terms(int numChunks) const {
   // Calculate how many terms we can equally divide amongst the chunks
   auto nTermsPerChunk = num_terms() / numChunks;
   auto leftover = num_terms() % numChunks;
@@ -1571,7 +1571,7 @@ sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
 
 #define INSTANTIATE_SUM_UTILITY_FUNCTIONS(HandlerTy)                           \
   template std::vector<sum_op<HandlerTy>> sum_op<HandlerTy>::distribute_terms( \
-      std::size_t numChunks) const;                                            \
+      int numChunks) const;                                                    \
   template void sum_op<HandlerTy>::dump() const;
 
 #if !defined(__clang__)
@@ -1664,7 +1664,7 @@ product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits,
-                                            std::size_t nTerms,
+                                            int nTerms,
                                             unsigned int seed) {
   if (nQubits <= 30) {
     // For the given algorithm below that sets bool=true for 1/2 of the the
@@ -1724,7 +1724,7 @@ template sum_op<spin_handler>::sum_op(const std::vector<double> &input_vec);
 template product_op<spin_handler>
 sum_op<spin_handler>::from_word(const std::string &word);
 template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
-                                                           std::size_t nTerms,
+                                                           int nTerms,
                                                            unsigned int seed);
 
 // utility functions for backwards compatibility

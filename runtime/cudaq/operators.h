@@ -81,12 +81,12 @@ public:
   struct const_iterator {
   private:
     const sum_op<HandlerTy> *sum;
-    std::size_t current_idx;
     product_op<HandlerTy> current_val;
+    int current_idx;
 
-    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx,
+    const_iterator(const sum_op<HandlerTy> *sum, int idx,
                    product_op<HandlerTy> &&value)
-        : sum(sum), current_idx(idx), current_val(std::move(value)) {}
+        : sum(sum), current_val(std::move(value)), current_idx(idx) {}
 
   public:
     using iterator_category = std::forward_iterator_tag;
@@ -97,9 +97,9 @@ public:
 
     const_iterator(const sum_op<HandlerTy> *sum) : const_iterator(sum, 0) {}
 
-    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx)
-        : sum(sum), current_idx(idx), current_val(1.) {
-      if (idx < sum->num_terms())
+    const_iterator(const sum_op<HandlerTy> *sum, int idx)
+        : sum(sum), current_val(1.), current_idx(idx) {
+      if (current_idx < sum->num_terms())
         current_val = product_op<HandlerTy>(sum->coefficients[current_idx],
                                             sum->terms[current_idx]);
     }
@@ -147,7 +147,7 @@ public:
   std::vector<std::size_t> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
-  std::size_t num_terms() const;
+  int num_terms() const;
 
   // constructors and destructors
 
@@ -156,7 +156,7 @@ public:
   // (neutral element for addition only), use sum_op<T>::empty().
   constexpr sum_op() : is_default(true){};
 
-  sum_op(std::size_t size);
+  sum_op(int size);
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
@@ -427,7 +427,7 @@ public:
 
   void dump() const;
 
-  std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
+  std::vector<sum_op<HandlerTy>> distribute_terms(int numChunks) const;
 
   // handler specific utility functions
 
@@ -441,7 +441,7 @@ public:
   static product_op<HandlerTy> from_word(const std::string &word);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static sum_op<HandlerTy> random(std::size_t nQubits, std::size_t nTerms,
+  static sum_op<HandlerTy> random(std::size_t nQubits, int nTerms,
                                   unsigned int seed);
 
   // utility functions for backward compatibility
