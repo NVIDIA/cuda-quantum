@@ -356,6 +356,36 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt-vqe.html">ADAPT-VQE algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Single-excitation">Single excitation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Double-excitation">Double excitation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Reference-State:">Reference State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/edge-detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -452,6 +482,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../install/local_installation.html#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../install/local_installation.html#known-blackwell-issues">Known Blackwell Issues</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../install/local_installation.html#singularity">Singularity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../install/local_installation.html#python-wheels">Python wheels</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../install/local_installation.html#pre-built-binaries">Pre-built binaries</a></li>
@@ -1628,6 +1659,80 @@ parameters of the time bin interferometer.</p>
 </pre></div>
 </div>
 </div>
+<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ --target pasqal pasqal.cpp -o out.x</span>
+<span class="c1">// ./out.x</span>
+<span class="c1">// ```</span>
+<span class="c1">// Assumes a valid set of credentials (PASQAL_AUTH_TOKEN, PASQAL_PROJECT_ID)</span>
+<span class="c1">// have been set. To set PASQAL_AUTH_TOKEN from Pasqal Cloud username and</span>
+<span class="c1">// password, use pasqal_auth.py in this folder.</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/dynamics_integrators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/operators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/schedule.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cmath&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
+
+<span class="c1">// This example illustrates how to use Pasqal&#39;s EMU_MPS emulator over Pasqal&#39;s</span>
+<span class="c1">// cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through</span>
+<span class="c1">// https://community.pasqal.com for assistance.</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Topology initialization</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5e-6</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">register_sites</span><span class="p">;</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">));</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">));</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span><span class="mi">3</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">));</span>
+
+<span class="w">  </span><span class="c1">// Simulation Timing</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.000001</span><span class="p">;</span><span class="w"> </span><span class="c1">// seconds</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">time_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.000003</span><span class="p">;</span><span class="w">  </span><span class="c1">// seconds</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">omega_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000000</span><span class="p">;</span><span class="w">  </span><span class="c1">// rad/sec</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">delta_end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000000</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">delta_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="n">time_ramp</span><span class="p">,</span>
+<span class="w">                                             </span><span class="n">time_max</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">};</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;t&quot;</span><span class="p">},</span><span class="w"> </span><span class="p">{});</span>
+
+<span class="w">  </span><span class="c1">// Basic Rydberg Hamiltonian</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">omega</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">scalar_operator</span><span class="p">(</span>
+<span class="w">      </span><span class="p">[</span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">,</span>
+<span class="w">       </span><span class="n">omega_max</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
+<span class="w">                      </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">));</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">            </span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">time_max</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">omega_max</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
+<span class="w">      </span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">phi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">scalar_operator</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">delta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">scalar_operator</span><span class="p">(</span>
+<span class="w">      </span><span class="p">[</span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">,</span><span class="w"> </span><span class="n">delta_start</span><span class="p">,</span>
+<span class="w">       </span><span class="n">delta_end</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
+<span class="w">                      </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">));</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">            </span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">time_max</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">delta_end</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">delta_start</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
+<span class="w">      </span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">hamiltonian</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(</span><span class="n">register_sites</span><span class="p">,</span><span class="w"> </span><span class="n">omega</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">delta</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Evolve the system</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">);</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">get_sampling_result</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
 </div>
 </section>
 <section id="quantinuum">
@@ -1830,6 +1935,92 @@ parameters of the time bin interferometer.</p>
 <span class="c1"># `__global__` has the aggregate of the state counts from all the successful</span>
 <span class="c1"># shots. The value is 0 if site is empty, 1 if atom is in Rydberg state (up</span>
 <span class="c1"># state spin) and 2 if atom is in ground state (down state spin).</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--8-input--2" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ --target quera quera_basic.cpp -o out.x</span>
+<span class="c1">// ./out.x</span>
+<span class="c1">// ```</span>
+<span class="c1">// Assumes a valid set of credentials have been stored.</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/dynamics_integrators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/schedule.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cmath&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
+
+<span class="c1">// NOTE: QuEra Aquila system is available via Amazon Braket.</span>
+<span class="c1">// Credentials must be set before running this program.</span>
+<span class="c1">// Amazon Braket costs apply.</span>
+
+<span class="c1">// This example illustrates how to use QuEra&#39;s Aquila device on Braket with</span>
+<span class="c1">// CUDA-Q. It is a CUDA-Q implementation of the getting started materials for</span>
+<span class="c1">// Braket available here:</span>
+<span class="c1">// https://docs.aws.amazon.com/braket/latest/developerguide/braket-get-started-hello-ahs.html</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Topology initialization</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.7e-6</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">register_sites</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">make_coord</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="n">a</span><span class="p">](</span><span class="kt">double</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a</span><span class="p">);</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">make_coord</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)));</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">make_coord</span><span class="p">(</span><span class="mf">0.5</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="w"> </span><span class="mf">0.5</span><span class="p">));</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">make_coord</span><span class="p">(</span><span class="mf">0.5</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="w"> </span><span class="mf">-0.5</span><span class="p">));</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">make_coord</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.5</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)));</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">make_coord</span><span class="p">(</span><span class="mf">-0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.5</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)));</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">make_coord</span><span class="p">(</span><span class="mf">-0.5</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="w"> </span><span class="mf">-0.5</span><span class="p">));</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">make_coord</span><span class="p">(</span><span class="mf">-0.5</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="w"> </span><span class="mf">0.5</span><span class="p">));</span>
+<span class="w">  </span><span class="n">register_sites</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">make_coord</span><span class="p">(</span><span class="mf">-0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)));</span>
+
+<span class="w">  </span><span class="c1">// Simulation Timing</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">time_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4e-6</span><span class="p">;</span><span class="w">   </span><span class="c1">// seconds</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1e-7</span><span class="p">;</span><span class="w">  </span><span class="c1">// seconds</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">omega_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">6.3e6</span><span class="p">;</span><span class="w"> </span><span class="c1">// rad/sec</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">delta_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">omega_max</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">delta_end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">omega_max</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="n">time_ramp</span><span class="p">,</span>
+<span class="w">                                             </span><span class="n">time_max</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">};</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;t&quot;</span><span class="p">},</span><span class="w"> </span><span class="p">{});</span>
+
+<span class="w">  </span><span class="c1">// Basic Rydberg Hamiltonian</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">omega</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">scalar_operator</span><span class="p">(</span>
+<span class="w">      </span><span class="p">[</span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">,</span>
+<span class="w">       </span><span class="n">omega_max</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
+<span class="w">                      </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">));</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">            </span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">time_max</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">omega_max</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
+<span class="w">      </span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">phi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">scalar_operator</span><span class="p">(</span><span class="mf">0.0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">delta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">scalar_operator</span><span class="p">(</span>
+<span class="w">      </span><span class="p">[</span><span class="n">time_ramp</span><span class="p">,</span><span class="w"> </span><span class="n">time_max</span><span class="p">,</span><span class="w"> </span><span class="n">delta_start</span><span class="p">,</span>
+<span class="w">       </span><span class="n">delta_end</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span>
+<span class="w">                      </span><span class="o">&amp;</span><span class="n">parameters</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">real</span><span class="p">(</span><span class="n">parameters</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">));</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">            </span><span class="p">(</span><span class="n">t</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">time_ramp</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">time_max</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">delta_end</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">delta_start</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
+<span class="w">      </span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">hamiltonian</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(</span><span class="n">register_sites</span><span class="p">,</span><span class="w"> </span><span class="n">omega</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">delta</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Evolve the system</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve_async</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">).</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">get_sampling_result</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
