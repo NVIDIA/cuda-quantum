@@ -204,8 +204,7 @@ INSTANTIATE_SUM_PROPERTIES(fermion_handler);
 // constructors
 
 template <typename HandlerTy>
-sum_op<HandlerTy>::sum_op(int size)
-    : is_default(true) {
+sum_op<HandlerTy>::sum_op(int size) : is_default(true) {
   this->coefficients.reserve(size);
   this->term_map.reserve(size);
   this->terms.reserve(size);
@@ -1663,8 +1662,7 @@ product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits,
-                                            int nTerms,
+sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, int nTerms,
                                             unsigned int seed) {
   if (nQubits <= 30) {
     // For the given algorithm below that sets bool=true for 1/2 of the the

@@ -357,7 +357,8 @@ scalar_operator product_op<HandlerTy>::get_coefficient() const {
 
 template <typename HandlerTy>
 std::complex<double> product_op<HandlerTy>::evaluate_coefficient(
-  const std::unordered_map<std::string, std::complex<double>> &parameters) const {
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
   return this->coefficient.evaluate(parameters);
 }
 
@@ -1287,7 +1288,8 @@ std::size_t product_op<HandlerTy>::num_qubits() const {
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-std::string product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) const {
+std::string
+product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) const {
   std::unordered_map<int, int> dims;
   auto terms = std::move(
       this->evaluate(
@@ -1302,18 +1304,22 @@ std::string product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) co
     if (operator_handler::canonical_order(1, 0) !=
         operator_handler::user_facing_order(1, 0))
       std::reverse(str.begin(), str.end());
-    return str;  
-  } else  {
+    return str;
+  } else {
     auto degrees = this->degrees(
-      false); // degrees in canonical order to match the evaluation
+        false); // degrees in canonical order to match the evaluation
     if (degrees.size() != 0) {
       auto max_target =
           operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
       if (pad_identities <= max_target)
-        throw std::invalid_argument("requested padding must be larger than the largest degree the operator is defined for; the largest degree is " + std::to_string(max_target));
+        throw std::invalid_argument(
+            "requested padding must be larger than the largest degree the "
+            "operator is defined for; the largest degree is " +
+            std::to_string(max_target));
     }
     auto get_user_index = [&degrees](std::size_t idx) {
-      return (operator_handler::canonical_order(1, 0) == operator_handler::user_facing_order(1, 0))
+      return (operator_handler::canonical_order(1, 0) ==
+              operator_handler::user_facing_order(1, 0))
                  ? idx
                  : degrees.size() - 1 - idx;
     };
@@ -1362,7 +1368,8 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
 }
 
 template std::size_t product_op<spin_handler>::num_qubits() const;
-template std::string product_op<spin_handler>::get_pauli_word(std::size_t pad_identities) const;
+template std::string
+product_op<spin_handler>::get_pauli_word(std::size_t pad_identities) const;
 template std::vector<bool>
 product_op<spin_handler>::get_binary_symplectic_form() const;
 

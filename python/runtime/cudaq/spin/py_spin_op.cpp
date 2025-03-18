@@ -88,9 +88,7 @@ void bindSpinOperator(py::module &mod) {
            "Return the number of terms in this :class:`SpinOperator`.")
       .def(
           "get_coefficient",
-          [](cudaq::spin_op_term &op) {
-            return op.evaluate_coefficient();
-          },
+          [](cudaq::spin_op_term &op) { return op.evaluate_coefficient(); },
           "Return the coefficient of this :class:`SpinOperatorTerm`.")
       .def("is_identity", &cudaq::spin_op_term::is_identity,
            "Returns a bool indicating if this :class:`SpinOperatorTerm` is "
@@ -113,12 +111,14 @@ void bindSpinOperator(py::module &mod) {
       .def("get_term_id", &cudaq::spin_op_term::get_term_id,
            "Gets the id with which counts and expectation values for this term "
            "can be retrieved.")
-      .def("get_pauli_word", [](cudaq::spin_op_term &op, int pad_identities) {
-             return op.get_pauli_word(pad_identities);
-           },
-           py::arg("pad_identities") = 0,
-           "Gets the Pauli word representation of this "
-           ":class:`SpinOperatorTerm`.")
+      .def(
+          "get_pauli_word",
+          [](cudaq::spin_op_term &op, int pad_identities) {
+            return op.get_pauli_word(pad_identities);
+          },
+          py::arg("pad_identities") = 0,
+          "Gets the Pauli word representation of this "
+          ":class:`SpinOperatorTerm`.")
       .def(
           "get_binary_symplectic_form",
           &cudaq::spin_op_term::get_binary_symplectic_form<cudaq::spin_handler>,
@@ -294,7 +294,8 @@ void bindSpinOperator(py::module &mod) {
       .def(py::init([]() { return cudaq::spin_op::identity(); }),
            "Empty constructor, creates the identity term.")
       .def(py::init([](int size) { return cudaq::spin_op(size); }),
-           "Empty constructor, creates a sum operator with no terms, reserving memory for the given number of terms.")
+           "Empty constructor, creates a sum operator with no terms, reserving "
+           "memory for the given number of terms.")
       // FIXME: deprecate name
       .def_static("empty_op", &cudaq::spin_op::empty)
       .def_static("empty", &cudaq::spin_op::empty)
