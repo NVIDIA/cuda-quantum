@@ -356,6 +356,36 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt-vqe.html">ADAPT-VQE algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Single-excitation">Single excitation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Double-excitation">Double excitation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Reference-State:">Reference State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/edge-detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -452,6 +482,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#known-blackwell-issues">Known Blackwell Issues</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#singularity">Singularity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#python-wheels">Python wheels</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#pre-built-binaries">Pre-built binaries</a></li>
@@ -2341,7 +2372,7 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq8QPUStateE">
 <span class="target" id="classcudaq_1_1QPUState"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QPUState</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq8QPUStateE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Implementation of <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> for quantum device backends. </p>
+<dd><p>Implementation of <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> for quantum device backends. The state is represented by a quantum kernel. Quantum state contains all the information we need to replicate a call to kernel that created the state. </p>
 </dd></dl>
 
 <dl class="cpp class">
