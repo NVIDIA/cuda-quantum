@@ -342,7 +342,7 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
                                                                                \
   template sum_op<HandlerTy>::sum_op(product_op<HandlerTy> &&item1,            \
                                      product_op<HandlerTy> &&item2,            \
-                                     product_op<HandlerTy> &&item3);           \
+                                     product_op<HandlerTy> &&item3);
 
 template sum_op<matrix_handler>::sum_op(const sum_op<spin_handler> &other);
 template sum_op<matrix_handler>::sum_op(const sum_op<boson_handler> &other);

@@ -91,8 +91,7 @@ public:
     using pointer = product_op<HandlerTy> *;
     using reference = product_op<HandlerTy> &;
 
-    const_iterator(const sum_op<HandlerTy> *sum)
-        : const_iterator(sum, 0) {}
+    const_iterator(const sum_op<HandlerTy> *sum) : const_iterator(sum, 0) {}
 
     const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx)
         : sum(sum), current_idx(idx), current_val(1.) {
@@ -123,16 +122,16 @@ public:
     }
 
     // postfix
-    const_iterator operator++(int) { return const_iterator(sum, current_idx++); }
+    const_iterator operator++(int) {
+      return const_iterator(sum, current_idx++);
+    }
   };
 
   /// @brief Get iterator to beginning of operator terms
   const_iterator begin() const { return const_iterator(this); }
 
   /// @brief Get iterator to end of operator terms
-  const_iterator end() const {
-    return const_iterator(this, this->num_terms());
-  }
+  const_iterator end() const { return const_iterator(this, this->num_terms()); }
 
   // read-only properties
 
