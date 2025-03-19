@@ -796,14 +796,15 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   // NOTE: The logic in the loop below relies on the following:
   // Spin operator terms are canonically ordered. Specifically, we can
   // assume that every operator does not act on the same target more than
-  // once. That assumption is not enforced by the code below.
+  // once. That assumption is only checked via an assertion.
   // Additionally, the loops that inject identities rely on the ordering
   // starting with the smallest index/degree. We could write it agnostic
-  // by querying cudaq::operator_handler::canonical_order, but it was late,
-  // so I kept it at putting an assert here.
+  // by querying cudaq::operator_handler::canonical_order, but I kept it
+  // at putting an assert in for that one, too.
   assert(cudaq::operator_handler::canonical_order(0, 1));
   constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
   for (const auto &prod : product_terms) {
+    assert(prod.is_canonicalized());
     bool allIdOps = true;
     auto offset = 0;
     for (const auto &p : prod) {

@@ -67,9 +67,12 @@ std::vector<double> term_coefficients(cudaq::spin_op op) {
 }
 
 std::vector<cudaq::pauli_word> pauli_words(cudaq::spin_op op) {
+  // The kernel code above is written to assume that each term acts on
+  // all qubits. We hence expand each pauli word to extend to all qubits.
+  auto nr_qubits = op.num_qubits(); // relying on qubits being consecutive
   std::vector<cudaq::pauli_word> result{};
   for (const auto &term : op)
-    result.push_back(term.get_pauli_word());
+    result.push_back(term.get_pauli_word(nr_qubits));
   return result;
 }
 
@@ -104,11 +107,6 @@ int run_steps(int steps, int spins) {
     }
     for (int i = 0; i < n_spins; ++i)
       tdOp += (std::cos(omega * t) * cudaq::spin_op::x(i));
-
-    // The kernel code above is written to assume that each term acts on
-    // all qubits. We hence need to make this explicit in the operator definition.
-    for (int i = 0; i < n_spins; ++i)
-      tdOp *= cudaq::spin_op::i(i);
     return tdOp;
   };
   // Observe the average magnetization of all spins (<Z>)

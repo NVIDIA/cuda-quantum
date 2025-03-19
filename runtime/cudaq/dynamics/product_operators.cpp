@@ -26,20 +26,6 @@ namespace cudaq {
 // check canonicalization by default, individual handlers can set it to false to
 // disable the check
 bool operator_handler::can_be_canonicalized = true;
-
-// returns true if and only if applying the operators in sequence acts only once
-// on each degree of freedom and in canonical order
-template <typename HandlerTy>
-bool product_op<HandlerTy>::is_canonicalized() const {
-  auto canon_degrees = this->degrees(false);
-  std::vector<std::size_t> degrees;
-  degrees.reserve(canon_degrees.size());
-  for (const auto &op : this->operators) {
-    for (auto d : op.degrees())
-      degrees.push_back(d);
-  }
-  return degrees == canon_degrees;
-}
 #endif
 
 template <typename HandlerTy>
@@ -317,6 +303,22 @@ INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_handler,
                                      operator_handler::matrix_evaluation);
 
 // read-only properties
+
+#if !defined(NDEBUG)
+// returns true if and only if applying the operators in sequence acts only once
+// on each degree of freedom and in canonical order
+template <typename HandlerTy>
+bool product_op<HandlerTy>::is_canonicalized() const {
+  auto canon_degrees = this->degrees(false);
+  std::vector<std::size_t> degrees;
+  degrees.reserve(canon_degrees.size());
+  for (const auto &op : this->operators) {
+    for (auto d : op.degrees())
+      degrees.push_back(d);
+  }
+  return degrees == canon_degrees;
+}
+#endif
 
 template <typename HandlerTy>
 std::vector<std::size_t>

@@ -497,10 +497,6 @@ private:
       !std::is_same<decltype(handler_mult<HandlerTy>(0)),
                     std::false_type>::value;
 
-#if !defined(NDEBUG)
-  bool is_canonicalized() const;
-#endif
-
   typename std::vector<HandlerTy>::const_iterator
   find_insert_at(const HandlerTy &other);
 
@@ -599,6 +595,10 @@ public:
   }
 
   // read-only properties
+
+#if !defined(NDEBUG)
+  bool is_canonicalized() const;
+#endif
 
   /// @brief The degrees of freedom that the operator acts on.
   /// By default, degrees reflect the ordering convention (endianness) used in
