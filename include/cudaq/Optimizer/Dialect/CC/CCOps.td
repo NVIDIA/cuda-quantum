@@ -24,7 +24,8 @@ def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::CallableType, "
                           "mlir::FunctionType>()">, "any callable type">;
 
 def AnyAggregateType : Type<CPred<"$_self.isa<cudaq::cc::StructType, "
-                            "cudaq::cc::ArrayType>()">, "any aggregate type">;
+                            "cudaq::cc::ArrayType, mlir::ComplexType>()">,
+                            "any aggregate type">;
 
 //===----------------------------------------------------------------------===//
 // Base operation definition.
@@ -1008,7 +1009,7 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
     Example:
 
     ```mlir
-      %s = cc.insert_value %i16, %r[1, 0] :
+      %s = cc.insert_value %r[1, 0], %i16 :
            (!cc.struct<{i32, !cc.struct<{i16, f32}>}>, i16) ->
            !cc.struct<{i32, !cc.struct<{i16, f32}>}>
     ```
@@ -1022,9 +1023,11 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
   let results = (outs AnyAggregateType);
 
   let assemblyFormat = [{
-    $value `,` $container `` $position `:` functional-type(operands, results)
+    $container `` $position `,` $value `:` functional-type(operands, results)
       attr-dict
   }];
+
+  let hasVerifier = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
@@ -1033,6 +1036,10 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
                    mlir::ArrayRef<std::int64_t>{index});
     }]>
   ];
+
+  let extraClassDeclaration = [{
+    std::size_t getNumIndices() { return getPosition().size(); }
+  }];
 }
 
 def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
@@ -1085,6 +1092,8 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
     bool llvmNormalForm();
 
     std::optional<std::int32_t> getConstantIndex(std::size_t arg);
+
+    std::size_t getNumIndices() { return getRawConstantIndices().size(); }
   }];
 }
 
@@ -1456,8 +1465,8 @@ def cc_CallCallableOp : CCOp<"call_callable", [CallOpInterface]> {
   }];
 }
 
-def cc_CallIndirectCallableOp : CCOp<"call_indirect_callable",
-    [CallOpInterface]> {
+def cc_CallIndirectCallableOp :
+    CCOp<"call_indirect_callable", [CallOpInterface]> {
   let summary = "Call a C++ callable, unresolved, at run-time.";
   let description = [{
     This effectively connects a call from one kernel to another kernel, which
@@ -1643,6 +1652,43 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
 
   let assemblyFormat = [{
     $callable `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def cc_VarargCallOp :
+    CCOp<"call_vararg", [CallOpInterface, SymbolUserOpInterface]> {
+  let summary = "Create a call to an llvm.func with variadic arguments.";
+  let description = [{
+    This operation lets us create a call to an LLVMIR FuncOp with variadic
+    arguments without the restriction that all the arguments have to be
+    converted to LLVMIR types first. These conversions are just code bloat and
+    make the code harder to read.
+  }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$callee,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>);
+
+  let assemblyFormat = [{
+    $callee `(` $args `)` `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    mlir::CallInterfaceCallable getCallableForCallee() {
+      return getCalleeAttr();
+    }
+
+    mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
   }];
 }
 

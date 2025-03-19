@@ -106,6 +106,14 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addPass(createSymbolDCEPass());
     cudaq::opt::addPipelineConvertToQIR(pm);
 
+    auto enablePrintMLIREachPass =
+        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+
+    if (enablePrintMLIREachPass) {
+      cloned.getContext()->disableMultithreading();
+      pm.enableIRPrinting();
+    }
+
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
@@ -544,8 +552,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   ss << argCon.getSubstitutionModule();
   SmallVector<StringRef> substs = {substBuff};
   PassManager pm(context);
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createArgumentSynthesisPass(kernels, substs));
+  pm.addPass(opt::createArgumentSynthesisPass(kernels, substs));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(opt::createDeleteStates());
 
@@ -653,7 +660,7 @@ std::string getASM(const std::string &name, MlirModule module,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createGetConcreteMatrix());
+  pm.addPass(cudaq::opt::createGetConcreteMatrix());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
   cudaq::opt::addAggressiveEarlyInlining(pm);

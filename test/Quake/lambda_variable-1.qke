@@ -56,11 +56,11 @@ func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cud
 
 // CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.0(
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.ref) {
+// CHECK-SAME:        %[[VAL_1:.*]]: !quake.ref) {{.*}}{
 // CHECK:           call @__nvqpp__lifted.lambda.0(%[[VAL_1]]) : (!quake.ref) -> ()
 
 // CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref) {
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref) {{.*}}{
 // CHECK:           quake.h %[[VAL_0]] :
 // CHECK:           quake.y %[[VAL_0]] :
 

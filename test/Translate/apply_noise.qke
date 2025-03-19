@@ -1,0 +1,25 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir %s | FileCheck %s
+
+func.func @test0() {
+  %key = arith.constant 123456789 : i64
+  %1 = quake.alloca !quake.ref
+  quake.apply_noise %key() %1 : (i64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @test0() local_unnamed_addr {
+// CHECK:         %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 1)
+// CHECK:         %[[VAL_2:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = load %Qubit*, %Qubit** %[[VAL_2]]
+// CHECK:         tail call void (i64, i64, i64, i64, i64, ...) @__quantum__qis__apply_kraus_channel_generalized(i64 1, i64 123456789, i64 0, i64 0, i64 1, %Qubit* %[[VAL_4]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
+// CHECK:         ret void
+// CHECK:       }

@@ -24,24 +24,21 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
         cutensornet_libs = get_library_path(f"cutensornet-cu{cuda_major}")
         cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
 
-        os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
+        cutensor_libs = get_library_path(f"cutensor-cu{cuda_major}")
+        cutensor_path = os.path.join(cutensor_libs, "libcutensor.so.2")
 
-        # The following package is only available on `x86_64` (not `aarch64`). For
-        # `aarch64`, the library must be provided another way (likely with
-        # LD_LIBRARY_PATH).
-        # Note: platform.processor does not work in all cases (if `uname -p` returns
-        # unknown, e.g. on WSL)
-        if platform.processor() == "x86_64" or platform.uname(
-        ).machine == "x86_64":
-            cudart_libs = get_library_path(
-                f"nvidia-cuda_runtime-cu{cuda_major}")
-            cudart_path = os.path.join(cudart_libs,
-                                       f"libcudart.so.{cuda_major}")
-            cuda_nvrtc_libs = get_library_path(
-                f"nvidia-cuda_nvrtc-cu{cuda_major}")
-            cuda_nvrtc_path = os.path.join(cuda_nvrtc_libs,
-                                           f"libnvrtc.so.{cuda_major}")
-            os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}:{cuda_nvrtc_path}"
+        curand_libs = get_library_path(f"nvidia-curand-cu{cuda_major}")
+        curand_path = os.path.join(curand_libs, "libcurand.so.10")
+
+        cudart_libs = get_library_path(f"nvidia-cuda_runtime-cu{cuda_major}")
+        cudart_path = os.path.join(cudart_libs, f"libcudart.so.{cuda_major}")
+
+        cuda_nvrtc_libs = get_library_path(f"nvidia-cuda_nvrtc-cu{cuda_major}")
+        cuda_nvrtc_path = os.path.join(cuda_nvrtc_libs,
+                                       f"libnvrtc.so.{cuda_major}")
+
+        os.environ[
+            "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}"
     except:
         import importlib.util
         package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
@@ -122,11 +119,20 @@ unset_noise = cudaq_runtime.unset_noise
 # Noise Modeling
 KrausChannel = cudaq_runtime.KrausChannel
 KrausOperator = cudaq_runtime.KrausOperator
+NoiseModelType = cudaq_runtime.NoiseModelType
 NoiseModel = cudaq_runtime.NoiseModel
 DepolarizationChannel = cudaq_runtime.DepolarizationChannel
 AmplitudeDampingChannel = cudaq_runtime.AmplitudeDampingChannel
 PhaseFlipChannel = cudaq_runtime.PhaseFlipChannel
 BitFlipChannel = cudaq_runtime.BitFlipChannel
+PhaseDamping = cudaq_runtime.PhaseDamping
+ZError = cudaq_runtime.ZError
+XError = cudaq_runtime.XError
+YError = cudaq_runtime.YError
+Pauli1 = cudaq_runtime.Pauli1
+Pauli2 = cudaq_runtime.Pauli2
+Depolarization1 = cudaq_runtime.Depolarization1
+Depolarization2 = cudaq_runtime.Depolarization2
 
 # Functions
 sample_async = cudaq_runtime.sample_async

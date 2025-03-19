@@ -6,13 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from cuquantum.densitymat import DenseMixedState, DensePureState, WorkStream
 import numpy, cupy, atexit
 from typing import Sequence
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cuquantum.bindings import cudensitymat as cudm
 from .helpers import InitialState
+import warnings
+
+# Suppress deprecation warnings on `cuquantum` import.
+# FIXME: remove this after `cuquantum` no longer warns on import.
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    from cuquantum.densitymat import DenseMixedState, DensePureState, WorkStream
+    from cuquantum.bindings import cudensitymat as cudm
 
 
 def is_multi_processes():
@@ -39,18 +45,19 @@ def to_cupy_array(state):
 # A Python wrapper of `CuDensityMatState` state.
 class CuDensityMatState(object):
     __ctx = None
+    __is_multi_process = False
 
     def __init__(self, data):
         if self.__ctx is None:
             if (is_multi_processes()):
+                NUM_DEVICES = cupy.cuda.runtime.getDeviceCount()
+                rank = cudaq_runtime.mpi.rank()
+                dev = cupy.cuda.Device(rank % NUM_DEVICES)
+                dev.use()
                 self.__ctx = WorkStream(device_id=cupy.cuda.runtime.getDevice())
-                # FIXME: use the below once `cudensitymat` supports raw MPI Comm pointer.
-                # `ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(), provider="MPI")`
-                # At the moment, only `mpi4py` communicator objects are supported, thus we use the underlying `reset_distributed_configuration` API.
-                _comm_ptr, _size = cudaq_runtime.mpi.comm_dup()
-                cudm.reset_distributed_configuration(
-                    self.__ctx._handle._validated_ptr,
-                    cudm.DistributedProvider.MPI, _comm_ptr, _size)
+                self.__ctx.set_communicator(comm=cudaq_runtime.mpi.comm_dup(),
+                                            provider="MPI")
+                CuDensityMatState.__is_multi_process = True
             else:
                 self.__ctx = WorkStream()
 
@@ -62,6 +69,11 @@ class CuDensityMatState(object):
         else:
             self.raw_data = data
             self.state = None
+
+    @staticmethod
+    def is_multi_process():
+        # Returns true if MPI distribution is activated
+        return CuDensityMatState.__is_multi_process
 
     def try_init_state(self, shape):
         """Try initialize state according to a shape, e.g., density matrix or state vector."""
@@ -146,8 +158,7 @@ class CuDensityMatState(object):
                     break
             if bitstring_is_local:
                 buffer[0] = 1.0
-            new_state.state.raw_data = cupy.asfortranarray(
-                buffer.reshape(slice_shape))
+            new_state.state.raw_data = cupy.asfortranarray(buffer)
             new_state.state.attach_storage(new_state.state.raw_data)
         elif type == InitialState.UNIFORM:
             buffer = cupy.asfortranarray(
@@ -173,8 +184,7 @@ class CuDensityMatState(object):
             else:
                 buffer[:] = 1. / numpy.sqrt(hilberg_space_size)
 
-            new_state.state.raw_data = cupy.asfortranarray(
-                buffer.reshape(slice_shape))
+            new_state.state.raw_data = cupy.asfortranarray(buffer)
             new_state.state.attach_storage(new_state.state.raw_data)
         else:
             raise ValueError("Unsupported initial state type")

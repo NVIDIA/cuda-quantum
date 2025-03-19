@@ -163,6 +163,9 @@ public:
     return codegenTranslation == "qir-adaptive";
   }
 
+  /// @brief Return true if the current backend supports explicit measurements
+  bool supportsExplicitMeasurements() override { return false; }
+
   /// Provide the number of shots
   void setShots(int _nShots) override {
     nShots = _nShots;
@@ -293,8 +296,11 @@ public:
     }
     std::string allowEarlyExitSetting =
         (codegenTranslation == "qir-adaptive") ? "1" : "0";
-    passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
-                         allowEarlyExitSetting + "}," + passPipelineConfig;
+
+    passPipelineConfig =
+        std::string(
+            "func.func(memtoreg{quantum=0},cc-loop-unroll{allow-early-exit=") +
+        allowEarlyExitSetting + "})," + passPipelineConfig;
 
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
@@ -455,8 +461,7 @@ public:
         llvm::raw_string_ostream ss(substBuff);
         ss << argCon.getSubstitutionModule();
         mlir::SmallVector<mlir::StringRef> substs = {substBuff};
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createArgumentSynthesisPass(kernels, substs));
+        pm.addPass(opt::createArgumentSynthesisPass(kernels, substs));
         pm.addPass(opt::createDeleteStates());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
@@ -566,7 +571,8 @@ public:
     }
 
     if (emulate && combineMeasurements)
-      runPassPipeline("func.func(combine-measurements)", moduleOp);
+      for (auto &[name, module] : modules)
+        runPassPipeline("func.func(combine-measurements)", module);
 
     // Get the code gen translation
     auto translation = cudaq::getTranslation(codegenTranslation);

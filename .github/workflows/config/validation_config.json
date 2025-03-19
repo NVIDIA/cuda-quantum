@@ -6,8 +6,7 @@
             "operating_systems": 
             [
                 "ubuntu:22.04",
-                "fedora:39",
-                "opensuse/leap:15.5"
+                "fedora:39"
             ]
         },
         {
@@ -17,8 +16,7 @@
                 "ubuntu:22.04",
                 "debian:12",
                 "fedora:38",
-                "redhat/ubi9:9.2",
-                "opensuse/leap:15.5"
+                "redhat/ubi9:9.2"
             ]
         },
         {
@@ -27,8 +25,7 @@
             [
                 "ubuntu:24.04",
                 "fedora:39",
-                "redhat/ubi9:9.2",
-                "opensuse/leap:15.6"
+                "redhat/ubi9:9.2"
             ]
         }
     ],

@@ -16,7 +16,7 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 # Operators as defined here (watch out of differences in convention):
-# https://www.dynamiqs.org/python_api/utils/operators/sigmay.html
+# https://www.dynamiqs.org/stable/python_api/utils/operators/create.html
 class operators:
 
     class matrices:
@@ -193,6 +193,14 @@ class SpinOperator(OperatorSum):
     def __init__(self):
         # This should never be called. We have `__new__` method instead.
         raise ValueError("Not supported")
+
+    @staticmethod
+    def empty() -> OperatorSum:
+        return OperatorSum()
+
+    @staticmethod
+    def identity() -> OperatorSum:
+        return ProductOperator(ScalarOperator.const(1.))
 
     # Convert from a Pauli word to an Operator
     @staticmethod

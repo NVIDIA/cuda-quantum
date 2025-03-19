@@ -477,6 +477,59 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   }];
 }
 
+def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
+  let summary = "Apply a noise operation to qubits.";
+  let description = [{
+    This operation provides support for the `cudaq::apply_noise` template
+    function. This function is only valid is simulation contexts where the
+    simulator is part of the same process as the C++ host executable itself.
+
+    A noise operator is the application of a Kraus channel to a selected set
+    of qubits. This is a point-wise annotation approach that a user might
+    deploy to introduce "noise" to their circuit under simulation. It is unlike
+    a general (unitary) gate application in that there is no notion of controls
+    or an adjoint.
+  }];
+
+  let arguments = (ins
+    OptionalAttr<FlatSymbolRefAttr>:$noise_func,
+    Optional<AnySignlessInteger>:$key,
+    Variadic<AnyType>:$parameters,
+    Variadic<NonStruqRefType>:$qubits
+  );
+
+  let hasVerifier = 1;
+  let hasCustomAssemblyFormat = 1;
+
+  let builders = [
+    OpBuilder<(ins "mlir::StringRef":$noise_func,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, mlir::TypeRange{},
+        mlir::FlatSymbolRefAttr::get($_builder.getContext(), noise_func), {},
+        parameters, targets);
+    }]>,
+    OpBuilder<(ins "mlir::FlatSymbolRefAttr":$noise_func,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, mlir::TypeRange{}, noise_func, {},
+        parameters, targets);
+    }]>,
+    OpBuilder<(ins "mlir::Value":$key,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, mlir::TypeRange{},
+        mlir::FlatSymbolRefAttr{}, key, parameters, targets);
+    }]>
+  ];
+
+  let extraClassDeclaration = [{
+    static constexpr mlir::StringRef getNoiseFuncAttrNameStr() {
+      return "noise_func";
+    }
+  }];
+}
+
 //===----------------------------------------------------------------------===//
 // Memory and register conversion instructions: These operations are useful for
 // intermediate conversions between memory-SSA and value-SSA semantics and vice
@@ -1027,7 +1080,9 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
 // Unitary quantum transformations
 //===----------------------------------------------------------------------===//
 
-def quake_ExpPauliOp : QuakeOp<"exp_pauli"> {
+def quake_ExpPauliOp : QuakeOp<"exp_pauli",
+    [QuantumGate, AttrSizedOperandSegments, OperatorInterface,
+     DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
   let summary = "General Pauli tensor product rotation";
   let description = [{
     This operation affects a general Pauli tensor product rotation on 
@@ -1037,16 +1092,138 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli"> {
   }];
   
   let arguments = (ins
-    AnyFloat:$parameter,
-    VeqType:$qubits,
-    Optional<AnyTypeOf<[cc_PointerType, cc_StdVectorType, cc_CharSpanType]>>:$pauli,
-    OptionalAttr<StrAttr>:$constantPauli
+    UnitAttr:$is_adj,
+    Variadic<AnyFloat>:$parameters,
+    Variadic<AnyQType>:$controls,
+    Variadic<AnyQTargetType>:$targets,
+    OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls,
+    Optional<AnyTypeOf<[cc_PointerType, cc_CharSpanType]>>:$pauli,
+    OptionalAttr<StrAttr>:$pauliLiteral
   );
-  let results = (outs);
+  let results = (outs
+    Variadic<WireType>:$wires
+  );
 
   let assemblyFormat = [{
-    $parameter `,` $qubits `,` $pauli `:` functional-type(operands, results)
-      attr-dict
+    ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
+      ( `[` $controls^ ( `neg` $negated_qubit_controls^ )? `]` )? $targets
+      `to` custom<RawString>($pauli, $pauliLiteral) `:`
+      functional-type(operands, results) attr-dict
+  }];
+
+  let hasCanonicalizer = 1;
+  let hasVerifier = 1;
+
+  let builders = [
+    OpBuilder<(ins "mlir::UnitAttr":$is_adj,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::DenseBoolArrayAttr":$negates,
+                   "mlir::Value":$pauli), [{
+      return build($_builder, $_state, mlir::TypeRange{}, is_adj, parameters,
+                   controls, targets, negates, pauli, mlir::StringAttr{});
+    }]>,
+    OpBuilder<(ins "mlir::UnitAttr":$is_adj,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::DenseBoolArrayAttr":$negates,
+                   "mlir::StringRef":$pauliLiteral), [{
+      return build($_builder, $_state, mlir::TypeRange{}, is_adj, parameters,
+                   controls, targets, negates, mlir::Value{},
+                   $_builder.getStringAttr(pauliLiteral));
+    }]>,
+    OpBuilder<(ins "bool":$is_adj,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::Value":$pauli), [{
+      return build($_builder, $_state, mlir::TypeRange{}, is_adj, parameters,
+                   controls, targets, {}, pauli, mlir::StringAttr{});
+    }]>,
+    OpBuilder<(ins "bool":$is_adj,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::StringRef":$pauliLiteral), [{
+      return build($_builder, $_state, mlir::TypeRange{}, is_adj, parameters,
+                   controls, targets, {}, mlir::Value{},
+                   $_builder.getStringAttr(pauliLiteral));
+    }]>,
+    OpBuilder<(ins "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::Value":$pauli), [{
+      return build($_builder, $_state, mlir::TypeRange{}, /*is_adj=*/false,
+                   parameters, controls, targets, {}, pauli,
+                   mlir::StringAttr{});
+    }]>,
+    OpBuilder<(ins "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::StringRef":$pauliLiteral), [{
+      return build($_builder, $_state, mlir::TypeRange{}, /*is_adj=*/false,
+                   parameters, controls, targets, {}, mlir::Value{},
+                   $_builder.getStringAttr(pauliLiteral));
+    }]>,
+    OpBuilder<(ins "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::Value":$pauli), [{
+      return build($_builder, $_state, mlir::TypeRange{}, /*is_adj=*/false,
+                   {}, controls, targets, {}, pauli, mlir::StringAttr{});
+    }]>,
+    OpBuilder<(ins "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::StringRef":$pauliLiteral), [{
+      return build($_builder, $_state, mlir::TypeRange{}, /*is_adj=*/false,
+                   {}, controls, targets, {}, mlir::Value{},
+                   $_builder.getStringAttr(pauliLiteral));
+    }]>,
+    OpBuilder<(ins "mlir::ValueRange":$targets,
+                   "mlir::Value":$pauli), [{
+      return build($_builder, $_state, mlir::TypeRange{}, /*is_adj=*/false,
+                   {}, {}, targets, {}, pauli, mlir::StringAttr{});
+    }]>,
+    OpBuilder<(ins "mlir::ValueRange":$targets,
+                   "mlir::StringRef":$pauliLiteral), [{
+      return build($_builder, $_state, mlir::TypeRange{}, /*is_adj=*/false,
+                   {}, {}, targets, {}, mlir::Value{},
+                   $_builder.getStringAttr(pauliLiteral));
+    }]>
+  ];
+
+  code extraClassDeclaration = [{
+    //===------------------------------------------------------------------===//
+    // MemoryEffects interface
+    //===------------------------------------------------------------------===//
+
+    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
+      mlir::MemoryEffects::Effect>> &effects) {
+      quake::getOperatorEffectsImpl(effects, getControls(), getTargets());
+    }
+
+    //===------------------------------------------------------------------===//
+    // Properties
+    //===------------------------------------------------------------------===//
+
+    bool isAdj() { return getIsAdj(); }
+
+    //===------------------------------------------------------------------===//
+    // Element Access
+    //===------------------------------------------------------------------===//
+
+    mlir::Value getParameter(unsigned i = 0u) { return getParameters()[i]; }
+
+    mlir::Value getTarget(unsigned i = 0u) { return getTargets()[i]; }
+
+    //===------------------------------------------------------------------===//
+    // Operator interface
+    //===------------------------------------------------------------------===//
+
+    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
+
+    void getOperatorMatrix(Matrix &matrix) { matrix.clear(); }
   }];
 }
 
@@ -1392,8 +1569,8 @@ def CustomUnitarySymbolOp :
 
   let assemblyFormat = [{ $generator
     ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
-    (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
-    $targets `:` functional-type(operands, results) attr-dict
+      (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
+      $targets `:` functional-type(operands, results) attr-dict
   }];
 }
 
@@ -1410,7 +1587,7 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
     by an intrinsic runtime call on simulators.
 
     ```mlir
-      %0 = quake.create_state %data %len : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+      %0 = quake.create_state %data %len : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!quake.state>
     ```
   }];
 
@@ -1432,7 +1609,7 @@ def QuakeOp_DeleteStateOp : QuakeOp<"delete_state", [] > {
     by an intrinsic runtime call on simulators.
 
     ```mlir
-      quake.delete_state %state : !cc.ptr<!cc.state>
+      quake.delete_state %state : !cc.ptr<!quake.state>
     ```
   }];
 
@@ -1452,7 +1629,7 @@ def quake_GetNumberOfQubitsOp : QuakeOp<"get_number_of_qubits", [Pure] > {
     intrinsic runtime call when the target is one of the simulators.
 
     ```mlir
-      %0 = quake.get_number_of_qubits %state : (!cc.ptr<!cc.state>) -> i64
+      %0 = quake.get_number_of_qubits %state : (!cc.ptr<!quake.state>) -> i64
     ```
   }];
 
@@ -1472,7 +1649,7 @@ def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
     to the kernel with the provided name in ReplaceStateByKernel pass.
 
     ```mlir
-      %0 = quake.get_state "callee" : !cc.ptr<!cc.state>
+      %0 = quake.get_state "callee" : !cc.ptr<!quake.state>
     ```
   }];
 

@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import time
 import os
 import re
 import sys
@@ -42,11 +43,14 @@ def execute(notebook_filename):
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')
     try:
+        start_time = time.perf_counter()
         subprocess.run([
             "jupyter", "nbconvert", "--to", "notebook", "--execute",
             notebook_filename
         ],
                        check=True)
+        elapsed = time.perf_counter() - start_time
+        print(f"Time taken for nbconvert: {elapsed:.2f} seconds")
         os.remove(notebook_filename_out)
         return True
     except subprocess.CalledProcessError:
@@ -98,13 +102,21 @@ if __name__ == "__main__":
 
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
+
+        ## `quantum_transformer`:
+        ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
+        notebooks_skipped = ['quantum_transformer.ipynb']
+
         for notebook_filename in notebook_filenames:
-            if (validate(notebook_filename, available_backends)):
-                if (execute(notebook_filename)):
-                    notebooks_success.append(notebook_filename)
-                else:
-                    notebooks_failed.append(notebook_filename)
+            base_name = os.path.basename(notebook_filename)
+            if base_name in notebooks_skipped:
+                continue  # Already skipped, no need to re-check
+            if not validate(notebook_filename, available_backends):
+                notebooks_skipped.append(base_name)
+                continue
+            if execute(notebook_filename):
+                notebooks_success.append(notebook_filename)
             else:
-                notebooks_skipped.append(notebook_filename)
+                notebooks_failed.append(notebook_filename)
 
         print_results(notebooks_success, notebooks_failed, notebooks_skipped)

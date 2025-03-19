@@ -63,6 +63,7 @@ MPI
 MPICH
 MPS
 MSB
+Mandel
 Max-Cut
 MyST
 NGC
@@ -78,14 +79,19 @@ OpenMPI
 OpenQASM
 OpenSSL
 OpenSUSE
+Ou
 POSIX
 PSIRT
+Pasqal
 Pauli
 Paulis
+Photonic
+Photonics
 PyPI
 Pygments
 QAOA
 QCaaS
+QEC
 QIR
 QIS
 QPP
@@ -106,6 +112,7 @@ SLED
 SLES
 SLURM
 SVD
+Sqale
 Stim
 Superpositions
 Superstaq
@@ -136,9 +143,11 @@ backends
 bitcode
 bitstring
 bitstrings
+bmatrix
 bool
 boolean
 boson
+bosonic
 broadcasted
 buildable
 callable
@@ -168,6 +177,7 @@ cuQuantum
 cuTensor
 cudaq
 dataflow
+ddots
 deallocate
 deallocated
 deallocates
@@ -184,6 +194,7 @@ discoverable
 discretization
 discretize
 discretized
+eigenbasis
 eigensolver
 eigensolvers
 eigenstate
@@ -193,6 +204,7 @@ eigenvalues
 eigenvector
 eigenvectors
 endian
+endianness
 enqueue
 enqueues
 enqueuing
@@ -255,6 +267,7 @@ parallelizing
 parameterization
 performant
 photonic
+photonics
 precompute
 precomputed
 prepend
@@ -322,6 +335,7 @@ unoptimized
 upvote
 variadic
 variational
+vdots
 verifier
 vertices
 waveforms

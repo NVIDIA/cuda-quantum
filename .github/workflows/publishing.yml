@@ -430,6 +430,10 @@ jobs:
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v3
+        with:
+          version: v0.19.0
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
 
       - name: Extract cuda-quantum metadata
         id: metadata
@@ -586,6 +590,10 @@ jobs:
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v3
+        with:
+          version: v0.19.0
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
 
       - name: Build installer
         uses: docker/build-push-action@v5
@@ -674,7 +682,7 @@ jobs:
           echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-      
+
       - name: Log in to DockerHub
         uses: docker/login-action@v3
         with:
@@ -696,7 +704,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
-          driver-opts: network=host
+          version: v0.19.0
+          driver-opts: |
+            network=host
+            image=moby/buildkit:v0.19.0
 
       - name: Build cuda-quantum wheel
         id: build_wheel
@@ -828,18 +839,17 @@ jobs:
       - name: Basic validation (GPU backends)
         shell: bash
         run: |
-          # We don't test the 'dynamics' target in these tests
           backends_to_test=`\
               for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
               do
-                  if [[ "$file" != *"dynamics"* ]] && [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
+                  if [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
                     basename $file | cut -d "." -f 1; \
                   elif [ -n "$(basename $file | grep mqpu)" ]; then \
                     echo remote-mqpu; \
                   fi; \
               done`
 
-          rm -rf examples applications targets && mv github-repo/docs/sphinx/examples examples && mv github-repo/docs/sphinx/applications applications && mv github-repo/docs/sphinx/targets targets
+          rm -rf examples applications targets snippets && mv github-repo/docs/sphinx/examples examples && mv github-repo/docs/sphinx/applications applications && mv github-repo/docs/sphinx/targets targets && mv github-repo/docs/sphinx/snippets/python snippets
           mv github-repo/docs/notebook_validation.py .
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
           bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
@@ -932,6 +942,7 @@ jobs:
           cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
           apt-get update && apt-get install -y --no-install-recommends \
             libcublas-$cuda_version_suffix \
+            libcurand-$cuda_version_suffix \
             cuda-cudart-$cuda_version_suffix \
             libcusolver-$cuda_version_suffix \
             cuda-nvrtc-$cuda_version_suffix
@@ -958,7 +969,7 @@ jobs:
           bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
           rm -rf ~/.miniconda3/miniconda.sh
           eval "$(~/.miniconda3/bin/conda shell.bash hook)"
-          conda install -y -c conda-forge openmpi
+          conda install -y -c conda-forge openmpi">=5.0.7"
 
           echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
           echo 'export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"' >> ~/.bashrc
@@ -990,14 +1001,16 @@ jobs:
   wheel_validation_piponly:
     name: Wheel validation, pip only
     needs: [assets, cudaq_wheels, cudaq_metapackages]
-    runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
 
     strategy:
       matrix:
+        platform: ['amd64-gpu-v100', 'arm64-gpu-a100']
         cuda_major: ['', '11', '12']
       fail-fast: false
+
+    runs-on: linux-${{ matrix.platform }}-latest-1
 
     container:
       image: ubuntu:22.04
@@ -1026,11 +1039,11 @@ jobs:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: /tmp/packages
 
-      - name: Run x86 validation
+      - name: Run basic validation
         shell: bash
         run: |
-          # These simple steps are only expected to work for x86 and only for
-          # targets and test cases that don't require MPI.
+          # These simple steps are only expected to work for
+          # test cases that don't require MPI.
           # Create clean python3 environment.
           apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
           mkdir -p /tmp/packages && mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
@@ -1114,7 +1127,7 @@ jobs:
           pattern: '*-wheels'
           path: /tmp/wheels
           merge-multiple: true
-
+      
       - name: Load metapackage
         uses: actions/download-artifact@v4
         with:
@@ -1141,9 +1154,6 @@ jobs:
           cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
           cp    $GITHUB_WORKSPACE/$readme /tmp/README.md
           # Target tests should not be run here either, since that requires credentials but doesn't require a GPU runner.
-
-          # The NVQC API key is needed to validate NVQC related snippets and examples.
-          export NVQC_API_KEY="${{ secrets.NVQC_PROD_SERVICE_KEY }}"
 
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
@@ -1204,10 +1214,16 @@ jobs:
           for installer in `find installers/ -type f -not -name '*.whl'`; do 
             mv -v "$installer" "$(basename -- "$installer")"
           done
-          for dir in `ls wheelhouse/`; do 
-            mv -v "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
+          # A single wheelhouse.zip file is too big. Split it up by platform.
+          platforms=$(ls wheelhouse | cut -d- -f1 | sort | uniq)
+          for p in $platforms; do
+            mkdir wheelhouse-${p}
+            for fulldir in wheelhouse/${p}-*; do
+              dir=$(basename $fulldir)
+              mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
+            done
+            zip -r wheelhouse-${p}.zip wheelhouse-${p}
           done
-          zip -r wheelhouse.zip wheelhouse
           zip -r metapackages.zip metapackages
 
           release_id=${{ inputs.assets_from_run || github.run_id }}
@@ -1224,7 +1240,7 @@ jobs:
             --target $github_commit --draft $prerelease \
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum* --clobber
-          gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
+          gh release upload $release_id -R ${{ github.repository }} wheelhouse-*.zip --clobber
           gh release upload $release_id -R ${{ github.repository }} metapackages.zip --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false

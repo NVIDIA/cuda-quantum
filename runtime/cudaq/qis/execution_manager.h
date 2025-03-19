@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/CustomOp.h"
+#include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "cudaq/host_config.h"
 #include "cudaq/spin_op.h"
@@ -132,6 +133,10 @@ public:
                      const std::vector<QuditInfo> &targets,
                      bool isAdjoint = false, const spin_op op = spin_op()) = 0;
 
+  /// @brief Apply a fine-grain noise operation within a kernel.
+  virtual void applyNoise(const kraus_channel &channelName,
+                          const std::vector<QuditInfo> &targets) = 0;
+
   /// Reset the qubit to the |0> state
   virtual void reset(const QuditInfo &target) = 0;
 
@@ -154,7 +159,7 @@ public:
 
   /// Measure the current state in the given Pauli basis, return the expectation
   /// value <term>.
-  virtual SpinMeasureResult measure(cudaq::spin_op &op) = 0;
+  virtual SpinMeasureResult measure(const cudaq::spin_op &op) = 0;
 
   /// Synchronize - run all queue-ed instructions
   virtual void synchronize() = 0;

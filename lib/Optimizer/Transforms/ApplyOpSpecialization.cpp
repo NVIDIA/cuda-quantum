@@ -304,18 +304,21 @@ public:
         // This is a quantum op. It should be updated with an additional control
         // argument, `newCond`.
         auto arrAttr = op->getAttr(segmentSizes).cast<DenseI32ArrayAttr>();
+        SmallVector<std::int32_t> arrRef{arrAttr.asArrayRef().begin(),
+                                         arrAttr.asArrayRef().end()};
         SmallVector<Value> operands(op->getOperands().begin(),
                                     op->getOperands().begin() + arrAttr[0]);
         operands.push_back(newCond);
         operands.append(op->getOperands().begin() + arrAttr[0],
                         op->getOperands().end());
-        auto newArrAttr = DenseI32ArrayAttr::get(
-            ctx, {arrAttr[0], arrAttr[1] + 1, arrAttr[2]});
+        ++arrRef[1];
+        auto newArrAttr = DenseI32ArrayAttr::get(ctx, arrRef);
         NamedAttrList attrs(op->getAttrs());
         attrs.set(segmentSizes, newArrAttr);
         OperationState res(op->getLoc(), op->getName().getStringRef(), operands,
                            op->getResultTypes(), attrs);
-        builder.create(res); // Quake quantum gates have no results
+        // FIXME: Quake quantum gates do have results.
+        builder.create(res);
         op->erase();
       } else if (auto apply = dyn_cast<quake::ApplyOp>(op)) {
         // If op is an apply and in the set `controlNotNeeded`, then skip it.
