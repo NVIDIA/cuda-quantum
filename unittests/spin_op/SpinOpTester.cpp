@@ -200,7 +200,6 @@ TEST(SpinOpTester, canBuildDeuteron) {
   EXPECT_EQ(2, H.num_qubits());
 }
 
-/*
 TEST(SpinOpTester, checkGetSparseMatrix) {
   auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
            2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
@@ -215,7 +214,6 @@ TEST(SpinOpTester, checkGetSparseMatrix) {
     i++;
   }
 }
-*/
 
 TEST(SpinOpTester, checkGetMatrix) {
   auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -

@@ -38,7 +38,13 @@ private:
 
   std::complex<double> inplace_mult(const spin_handler &other);
 
+  // helper function for matrix creations
+  static void create_matrix(const std::string &pauli_word,
+                            const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_element,
+                            bool invert_order);
+
 public:
+
   // read-only properties
 
   pauli as_pauli() const;
@@ -59,10 +65,17 @@ public:
 
   // evaluations
 
+  /// @brief Computes the sparse matrix representation of a Pauli string.
+  /// By default, the ordering of the matrix matches the ordering of the Pauli
+  /// string,
+  static csr_spmatrix to_sparse_matrix(const std::string &pauli,
+                                       std::complex<double> coeff = 1.,
+                                       bool invert_order = false);
+  
   /// @brief Computes the matrix representation of a Pauli string.
   /// By default, the ordering of the matrix matches the ordering of the Pauli
   /// string,
-  static complex_matrix to_matrix(std::string pauli,
+  static complex_matrix to_matrix(const std::string &pauli,
                                   std::complex<double> coeff = 1.,
                                   bool invert_order = false);
 

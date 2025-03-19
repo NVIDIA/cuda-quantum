@@ -93,10 +93,10 @@ spin_handler::spin_handler(int target, int op_id)
 
 // evaluations
 
-complex_matrix spin_handler::to_matrix(std::string pauli_word,
-                                       std::complex<double> coeff,
-                                       bool invert_order) {
-  auto map_state = [&pauli_word](char pauli, bool state) {
+void spin_handler::create_matrix(const std::string &pauli_word,
+                                 const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_element,
+                                 bool invert_order) {
+  auto map_state = [](char pauli, bool state) {
     if (state) {
       if (pauli == 'Z')
         return std::make_pair(std::complex<double>(-1., 0.), bool(state));
@@ -119,21 +119,48 @@ complex_matrix spin_handler::to_matrix(std::string pauli_word,
   auto dim = 1 << pauli_word.size();
   auto nr_deg = pauli_word.size();
 
-  complex_matrix matrix(dim, dim);
   for (std::size_t old_state = 0; old_state < dim; ++old_state) {
     std::size_t new_state = 0;
     std::complex<double> entry = 1.;
     for (auto degree = 0; degree < nr_deg; ++degree) {
-      auto canon_degree = degree;
-      auto state = (old_state & (1 << canon_degree)) >> canon_degree;
+      auto state = (old_state & (1 << degree)) >> degree;
       auto op = pauli_word[invert_order ? nr_deg - 1 - degree : degree];
       auto mapped = map_state(op, state);
       entry *= mapped.first;
-      new_state |= (mapped.second << canon_degree);
+      new_state |= (mapped.second << degree);
     }
-    matrix[{new_state, old_state}] = coeff * entry;
+    process_element(new_state, old_state, entry);
   }
-  return std::move(matrix);
+}
+
+csr_spmatrix spin_handler::to_sparse_matrix(
+  const std::string &pauli_word, std::complex<double> coeff, bool invert_order) {
+  std::vector<std::complex<double>> values;
+  std::vector<std::size_t> rows, cols;
+  auto dim = 1 << pauli_word.size();
+  values.reserve(dim);
+  rows.reserve(dim);
+  cols.reserve(dim);
+  auto process_entry = [&values, &rows, &cols, &coeff](
+    std::size_t new_state, std::size_t old_state, std::complex<double> entry) {
+    rows.push_back(new_state);
+    cols.push_back(old_state);
+    values.push_back(coeff * entry);
+  };
+  create_matrix(pauli_word, process_entry, invert_order);
+  return std::make_tuple(std::move(values), std::move(rows), std::move(cols));
+}
+
+complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
+                                       std::complex<double> coeff,
+                                       bool invert_order) {
+  auto dim = 1 << pauli_word.size();
+  complex_matrix matrix(dim, dim);
+  auto process_entry = [&matrix, &coeff](std::size_t new_state, std::size_t old_state, std::complex<double> entry) {
+    matrix[{new_state, old_state}] = coeff * entry;
+  };
+  create_matrix(pauli_word, process_entry, invert_order);
+  return matrix;
 }
 
 complex_matrix spin_handler::to_matrix(

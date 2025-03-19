@@ -1369,11 +1369,34 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
   return bsf; // always little endian order by definition of the bsf
 }
 
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
+    std::unordered_map<int, int> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool application_order) const {
+  auto terms = std::move(
+      this->evaluate(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+  bool invert_order =
+      application_order && operator_handler::canonical_order(1, 0) !=
+                               operator_handler::user_facing_order(1, 0);
+  auto matrix =
+      spin_handler::to_sparse_matrix(terms[0].second, terms[0].first, invert_order);
+  return std::move(matrix);
+}
+
 template std::size_t product_op<spin_handler>::num_qubits() const;
 template std::string
 product_op<spin_handler>::get_pauli_word(std::size_t pad_identities) const;
 template std::vector<bool>
 product_op<spin_handler>::get_binary_symplectic_form() const;
+template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
+  std::unordered_map<int, int> dimensions,
+  const std::unordered_map<std::string, std::complex<double>> &parameters,
+  bool application_order) const; 
 
 // utility functions for backwards compatibility
 

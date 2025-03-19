@@ -76,6 +76,7 @@ protected:
   sum_op(sum_op<HandlerTy> &&other, bool is_default, int size);
 
 public:
+
   // called const_iterator because it will *not* modify the sum,
   // regardless of what is done with the products/iterator
   struct const_iterator {
@@ -443,6 +444,22 @@ public:
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static sum_op<HandlerTy> random(std::size_t nQubits, int nTerms,
                                   unsigned int seed);
+
+  /// @brief Return the matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  csr_spmatrix
+  to_sparse_matrix(std::unordered_map<int, int> dimensions = {},
+                   const std::unordered_map<std::string, std::complex<double>>
+                       &parameters = {},
+                   bool application_order = true) const;
 
   // utility functions for backward compatibility
 
@@ -844,6 +861,22 @@ public:
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<bool> get_binary_symplectic_form() const;
+
+  /// @brief Return the matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  csr_spmatrix
+  to_sparse_matrix(std::unordered_map<int, int> dimensions = {},
+                   const std::unordered_map<std::string, std::complex<double>>
+                       &parameters = {},
+                   bool application_order = true) const;
 
   // utility functions for backward compatibility
 

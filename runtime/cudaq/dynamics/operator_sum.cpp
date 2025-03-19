@@ -10,6 +10,7 @@
 #include <iostream>
 #include <numeric>
 #include <set>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -1717,6 +1718,48 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, int nTerms,
   return std::move(sum);
 }
 
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
+    std::unordered_map<int, int> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool application_order) const {
+  auto evaluated = this->evaluate(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+
+  if (evaluated.terms.size() == 0)
+    return std::make_tuple<std::vector<std::complex<double>>, 
+                           std::vector<std::size_t>,
+                           std::vector<std::size_t>>({}, {}, {});
+
+  bool invert_order =
+      application_order && operator_handler::canonical_order(1, 0) !=
+                               operator_handler::user_facing_order(1, 0);
+  auto matrix = spin_handler::to_sparse_matrix(evaluated.terms[0].second,
+                                        evaluated.terms[0].first, invert_order);
+  for (auto i = 1; i < terms.size(); ++i) {
+    auto term_matrix = spin_handler::to_sparse_matrix(evaluated.terms[i].second,
+      evaluated.terms[i].first, invert_order);
+    // FIXME: WITH THE SUM PADDING, I THINK THE SEARCH MAY NOT BE NECESSARY
+    for (std::size_t term_idx = 0; term_idx < std::get<0>(term_matrix).size(); ++term_idx) {
+      auto not_processed = true;
+      for (std::size_t idx = 0; not_processed && idx < std::get<0>(matrix).size(); ++idx) {
+        if (std::get<1>(matrix)[idx] == std::get<1>(term_matrix)[term_idx] && 
+            std::get<2>(matrix)[idx] == std::get<2>(term_matrix)[term_idx]) {
+          std::get<0>(matrix)[idx] += std::get<0>(term_matrix)[term_idx];
+          not_processed = false;
+        }
+      }
+      if (not_processed) {
+        std::get<0>(matrix).push_back(std::get<0>(term_matrix)[term_idx]);
+        std::get<1>(matrix).push_back(std::get<1>(term_matrix)[term_idx]);
+        std::get<2>(matrix).push_back(std::get<2>(term_matrix)[term_idx]);
+      }
+    }
+  }
+  return std::move(matrix);
+}
+
 template std::size_t sum_op<spin_handler>::num_qubits() const;
 template sum_op<spin_handler>::sum_op(const std::vector<double> &input_vec);
 template product_op<spin_handler>
@@ -1724,6 +1767,10 @@ sum_op<spin_handler>::from_word(const std::string &word);
 template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
                                                            int nTerms,
                                                            unsigned int seed);
+template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
+  std::unordered_map<int, int> dimensions,
+  const std::unordered_map<std::string, std::complex<double>> &parameters,
+  bool application_order) const;                                                        
 
 // utility functions for backwards compatibility
 
