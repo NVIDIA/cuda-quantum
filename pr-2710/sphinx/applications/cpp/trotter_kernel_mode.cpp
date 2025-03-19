@@ -57,25 +57,22 @@ struct initState {
   }
 };
 
-std::vector<double> term_coefficients(cudaq::spin_op op) {
+std::vector<double> term_coefficients(const cudaq::spin_op &op) {
   std::vector<double> result{};
   for (const auto &term : op) {
-    const auto coeff = term.get_coefficient().evaluate().real();
+    const auto coeff = term.evaluate_coefficient().real();
     result.push_back(coeff);
   }
   return result;
 }
 
-std::vector<cudaq::pauli_word> term_words(cudaq::spin_op op) {
+std::vector<cudaq::pauli_word> term_words(const cudaq::spin_op &op) {
   // Our kernel uses these words to apply exp_pauli to the entire state.
-  // we hence ensure that each term acts on the entire space before getting
-  // the Pauli-word representation for each term.
+  // we hence ensure that each pauli word covers the entire space.
   auto n_spins = op.num_qubits();
-  for (std::size_t i = 0; i < n_spins; ++i)
-      op *= cudaq::spin::i(i);
   std::vector<cudaq::pauli_word> result;
   for (const auto &term : op)
-    result.push_back(term.get_term_id());
+    result.push_back(term.get_pauli_word(n_spins));
   return result;
 }
 
@@ -102,7 +99,7 @@ int run_steps(int steps, int spins) {
   const int n_spins = spins;
   const double omega = 2 * M_PI;
   const auto heisenbergModelHam = [&](double t) -> cudaq::spin_op {
-    auto tdOp = cudaq::spin_op::empty();
+    cudaq::spin_op tdOp(n_spins);
     for (int i = 0; i < n_spins - 1; ++i) {
       tdOp += (Jx * cudaq::spin::x(i) * cudaq::spin::x(i + 1));
       tdOp += (Jy * cudaq::spin::y(i) * cudaq::spin::y(i + 1));
@@ -113,7 +110,7 @@ int run_steps(int steps, int spins) {
     return tdOp;
   };
   // Observe the average magnetization of all spins (<Z>)
-  auto average_magnetization = cudaq::spin_op::empty();
+  cudaq::spin_op average_magnetization(n_spins);
   for (int i = 0; i < n_spins; ++i)
     average_magnetization += ((1.0 / n_spins) * cudaq::spin::z(i));
   average_magnetization -= 1.0;

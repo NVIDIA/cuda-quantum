@@ -198,7 +198,7 @@
    "source": [
     "def create_hamiltonian_heisenberg(n_spins: int, Jx: float, Jy: float, Jz: float, h_x: list[float], h_y: list[float], h_z: list[float]):\n",
     "    \"\"\"Create the Hamiltonian operator\"\"\"\n",
-    "    ham = cudaq.SpinOperator.empty()\n",
+    "    ham = 0\n",
     "\n",
     "    # Add two-qubit interaction terms for Heisenberg Hamiltonian\n",
     "    for i in range(0, n_spins - 1):\n",
@@ -228,7 +228,7 @@
    "source": [
     "def create_hamiltonian_tfim(n_spins: int, h_field: float):\n",
     "    \"\"\"Create the Hamiltonian operator\"\"\"\n",
-    "    ham = cudaq.SpinOperator.empty()\n",
+    "    ham = 0\n",
     "   \n",
     "    # Add single-qubit terms\n",
     "    for i in range(0, n_spins):\n",
@@ -266,14 +266,11 @@
     "\n",
     "def extractWords(hamiltonian: cudaq.SpinOperator):\n",
     "    # Our kernel uses these words to apply exp_pauli to the entire state.\n",
-    "    # we hence ensure that each term acts on the entire space before getting\n",
-    "    # the Pauli-word representation for each term.\n",
+    "    # we hence ensure that each pauli word covers the entire space.\n",
     "    n_spins = hamiltonian.get_qubit_count()\n",
-    "    for idx in range(n_spins):\n",
-    "        hamiltonian *= cudaq.spin.i(idx)    \n",
     "    result = []\n",
     "    for term in hamiltonian:\n",
-    "        result.append(term.get_pauli_word())\n",
+    "        result.append(term.get_pauli_word(n_spins))\n",
     "    return result"
    ]
   },
