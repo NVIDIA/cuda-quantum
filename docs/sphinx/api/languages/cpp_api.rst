@@ -113,6 +113,38 @@ Common
 Noise Modeling 
 ================
 
+.. cpp:function:: template <typename Channel, typename... Args> void cudaq::apply_noise(Args&&... args)
+
+    This function is a type-safe injection of noise into a quantum kernel,
+    occurring precisely at the call site of the function invocation. The
+    function should be called inside CUDA-Q kernels (those annotated with
+    `__qpu__`). The functionality is only supported for simulation targets, so
+    it is automatically (and silently) stripped from any programs submitted to
+    hardware targets.
+
+    :tparam Channel: A subtype of :cpp:class:`cudaq::kraus_channel` that
+        implements/defines the desired noise mechanisms as Kraus channels (e.g.
+        :cpp:class:`cudaq::depolarization2`). If you want to use a custom
+        :cpp:class:`cudaq::kraus_channel` (i.e. not built-in to CUDA-Q), it must
+        first be registered *outside the kernel* with
+        :cpp:func:`cudaq::noise_model::register_channel`, like this:
+
+        .. code-block:: cpp
+
+            cudaq::noise_model noise;
+            noise.register_channel<my_custom_kraus_channel_subtype>();
+
+    :param args: The precise argument pack depend on the concrete `Channel` being
+        used. The arguments are a concatenated list of parameters and targets.
+        For example, to apply a 2-qubit depolarization channel, which has
+        `num_parameters = 1` and `num_targets = 2`, one would write the call
+        like this:
+
+        .. code-block:: cpp
+
+            cudaq::qubit q, r;
+            cudaq::apply_noise<cudaq::depolarization2>(/*probability=*/0.1, q, r);
+
 .. doxygenstruct:: cudaq::kraus_op
     :members:
 
