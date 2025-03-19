@@ -1080,7 +1080,22 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
       0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
       0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
       1, 1, 3, 3, -0.0454063, -0, 15};
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
   cudaq::spin_op h(h2_data, 4);
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
   {
     auto [kernel, theta] = cudaq::make_kernel<double>();
     auto qubits = kernel.qalloc(4);

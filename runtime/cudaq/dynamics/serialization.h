@@ -28,6 +28,21 @@ public:
     input.seekg(0, std::ios_base::beg);
     std::vector<double> input_vec(size / sizeof(double));
     input.read((char *)&input_vec[0], size);
+    return spin_op(input_vec);
+  }
+
+  spin_op read(const std::string &data_filename, bool legacy_format) {
+    if (!legacy_format) return read(data_filename);
+
+    std::ifstream input(data_filename, std::ios::binary);
+    if (input.fail())
+      throw std::runtime_error(data_filename + " does not exist.");
+
+    input.seekg(0, std::ios_base::end);
+    std::size_t size = input.tellg();
+    input.seekg(0, std::ios_base::beg);
+    std::vector<double> input_vec(size / sizeof(double));
+    input.read((char *)&input_vec[0], size);
     auto n_terms = (int)input_vec.back();
     auto nQubits = (input_vec.size() - 1 - 2 * n_terms) / n_terms;
     spin_op s(input_vec, nQubits);

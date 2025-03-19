@@ -92,6 +92,15 @@ static cudaq::spin_op_term generate_cudaq_spin(int64_t id, int64_t num_qubits,
   return result;
 }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 TEST(SpinOpTester, checkConstruction) {
   cudaq::spin_op op = cudaq::spin_op::x(10);
   EXPECT_EQ(1, op.num_qubits());
@@ -300,3 +309,10 @@ TEST(SpinOpTester, checkDistributeTerms) {
   EXPECT_EQ(distributed[0].num_terms(), 3);
   EXPECT_EQ(distributed[1].num_terms(), 2);
 }
+
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif

@@ -141,7 +141,7 @@ inline void to_json(json &j, const ExecutionContext &context) {
 
   if (context.spin.has_value()) {
     const std::vector<double> spinOpRepr =
-        context.spin.value().getDataRepresentation();
+        context.spin.value().get_data_representation();
     j["spin"] = json();
     j["spin"]["data"] = spinOpRepr;
   }

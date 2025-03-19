@@ -33,11 +33,12 @@ enum class pauli;
 
 // utility functions for backward compatibility
 
-#define SPIN_OPS_BACKWARD_COMPATIBILITY                                        \
+#define SPIN_OPS_BACKWARD_COMPATIBILITY(deprecation_message)                   \
   template <typename T = HandlerTy,                                            \
             std::enable_if_t<std::is_same<HandlerTy, spin_handler>::value &&   \
                                  std::is_same<HandlerTy, T>::value,            \
-                             bool> = true>
+                             bool> = true>                                     \
+  [[deprecated(deprecation_message)]]
 
 /// @brief Represents an operator expression consisting of a sum of terms, where
 /// each term is a product of elementary and scalar operators. Operator
@@ -442,7 +443,7 @@ public:
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static sum_op<HandlerTy> random(std::size_t nQubits, int nTerms,
-                                  unsigned int seed);
+                                  unsigned int seed = std::random_device{}());
 
   /// @brief Return the matrix representation of the operator.
   /// By default, the matrix is ordered according to the convention (endianness)
@@ -460,32 +461,38 @@ public:
                        &parameters = {},
                    bool application_order = true) const;
 
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  std::vector<double> get_data_representation() const;
+
   // utility functions for backward compatibility
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY("serialization format changed - use the constructor without a size_t argument to create a spin_op from the new format")
   sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY("construction from binary symplectic form will no longer be supported")
   sum_op(const std::vector<std::vector<bool>> &bsf_terms,
          const std::vector<std::complex<double>> &coeffs);
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY("serialization format changed - use get_data_representation instead")
   std::vector<double> getDataRepresentation() const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY("data tuple is no longer used for serialization - use get_data_representation instead")
+  std::tuple<std::vector<double>, std::size_t> getDataTuple() const;
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY("raw data access will no longer be supported")
   std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
   get_raw_data() const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY("use to_string(), get_term_id or get_pauli_word depending on your use case - see release notes for more detail")
   std::string to_string(bool printCoeffs) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY("iterate over the operator instead to access each term")
   void for_each_term(std::function<void(sum_op<HandlerTy> &)> &&functor) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY("iterate over each term in the operator instead and use as_pauli to access each pauli")
   void for_each_pauli(std::function<void(pauli, std::size_t)> &&functor) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY("is_identity will no longer be supported on an entire sum_op, but will continue to be supported on each term")
   bool is_identity() const;
 };
 
@@ -879,7 +886,7 @@ public:
 
   // utility functions for backward compatibility
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY("use to_string(), get_term_id or get_pauli_word depending on your use case - see release notes for more detail")
   std::string to_string(bool printCoeffs) const;
 };
 
@@ -955,9 +962,13 @@ extern template class sum_op<fermion_handler>;
 
 // Here only for backward compatibility
 namespace spin {
+[[deprecated("Use spin_op::i instead.")]]
 sum_op<spin_handler> i(std::size_t target);
+[[deprecated("Use spin_op::x instead.")]]
 sum_op<spin_handler> x(std::size_t target);
+[[deprecated("Use spin_op::y instead.")]]
 sum_op<spin_handler> y(std::size_t target);
+[[deprecated("Use spin_op::z instead.")]]
 sum_op<spin_handler> z(std::size_t target);
 } // namespace spin
 

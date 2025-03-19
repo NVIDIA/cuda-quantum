@@ -1744,6 +1744,35 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
                                         1 << evaluated.terms[0].second.size());
 }
 
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+std::vector<double> sum_op<HandlerTy>::get_data_representation() const {
+  // This function prints a data representing the operator sum
+  std::vector<double> dataVec;
+  // dataVec.reserve(n_targets * padded.terms.size() + 2 * padded.terms.size() +
+  // 1);
+  dataVec.push_back(this->terms.size());
+  for (std::size_t i = 0; i < this->terms.size(); ++i) {
+    auto coeff = this->coefficients[i].evaluate();
+    dataVec.push_back(coeff.real());
+    dataVec.push_back(coeff.imag());
+    dataVec.push_back(this->terms[i].size());
+    for (std::size_t j = 0; j < this->terms[i].size(); ++j) {
+      auto op = this->terms[i][j];
+      dataVec.push_back(op.degrees()[0]);
+      auto pauli = op.as_pauli();
+      if (pauli == pauli::Z)
+        dataVec.push_back(1.);
+      else if (pauli == pauli::X)
+        dataVec.push_back(2.);
+      else if (pauli == pauli::Y)
+        dataVec.push_back(3.);
+      else
+        dataVec.push_back(0.);
+    }
+  }
+  return dataVec;
+}
+
 template std::size_t sum_op<spin_handler>::num_qubits() const;
 template sum_op<spin_handler>::sum_op(const std::vector<double> &input_vec);
 template product_op<spin_handler>
@@ -1755,6 +1784,8 @@ template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
     std::unordered_map<int, int> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const;
+template std::vector<double>
+sum_op<spin_handler>::get_data_representation() const;
 
 // utility functions for backwards compatibility
 
@@ -1834,31 +1865,51 @@ sum_op<HandlerTy>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::vector<double> sum_op<HandlerTy>::getDataRepresentation() const {
-  // This function prints a data representing the operator sum
+  // This function prints a data representing the operator sum that 
+  // includes the full representation for any degree in [0, max_degree),
+  // padding identities if necessary.
+  // NOTE: this is an imperfect representation that we will want to 
+  // deprecate because it does not capture targets accurately.
+  auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
+  auto le_order = std::less<int>();
+  auto get_le_index = [&degrees, &le_order](std::size_t idx) {
+    // For compatibility with existing code, the ordering for the term ops always
+    // needs to be from smallest to largest degree.
+    return (operator_handler::canonical_order(1, 0) == le_order(1, 0))
+      ? idx : degrees.size() - 1 - idx;
+  };
+
+  // number of degrees including the ones for any injected identities
+  auto n_targets = operator_handler::canonical_order(0, 1) ? degrees.back() + 1 : degrees[0] + 1;
+  auto padded = *this; // copy for identity padding
+  for (std::size_t j = 0; j < n_targets; ++j)
+    padded *= sum_op<HandlerTy>::identity(j);
+
   std::vector<double> dataVec;
-  // dataVec.reserve(n_targets * padded.terms.size() + 2 * padded.terms.size() +
-  // 1);
-  dataVec.push_back(this->terms.size());
-  for (std::size_t i = 0; i < this->terms.size(); ++i) {
-    auto coeff = this->coefficients[i].evaluate();
-    dataVec.push_back(coeff.real());
-    dataVec.push_back(coeff.imag());
-    dataVec.push_back(this->terms[i].size());
-    for (std::size_t j = 0; j < this->terms[i].size(); ++j) {
-      auto op = this->terms[i][j];
-      dataVec.push_back(op.degrees()[0]);
-      auto pauli = op.as_pauli();
-      if (pauli == pauli::Z)
+  dataVec.reserve(n_targets * padded.terms.size() + 2 * padded.terms.size() + 1);
+  for(std::size_t i = 0; i < padded.terms.size(); ++i) {
+    for(std::size_t j = 0; j < padded.terms[i].size(); ++j) {
+      auto pauli = padded.terms[i][get_le_index(j)].as_pauli();
+      if (pauli == pauli::X)
         dataVec.push_back(1.);
-      else if (pauli == pauli::X)
+      else if (pauli == pauli::Z)
         dataVec.push_back(2.);
       else if (pauli == pauli::Y)
         dataVec.push_back(3.);
       else
         dataVec.push_back(0.);
     }
+    auto coeff = padded.coefficients[i].evaluate();
+    dataVec.push_back(coeff.real());
+    dataVec.push_back(coeff.imag());
   }
+  dataVec.push_back(padded.terms.size());
   return dataVec;
+}
+
+SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
+std::tuple<std::vector<double>, std::size_t> sum_op<HandlerTy>::getDataTuple() const {
+  return std::make_tuple<std::vector<double>, std::size_t>(this->getDataRepresentation(), this->num_qubits());
 }
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
@@ -1991,6 +2042,8 @@ template sum_op<spin_handler>::sum_op(
     const std::vector<std::complex<double>> &coeffs);
 template std::vector<double>
 sum_op<spin_handler>::getDataRepresentation() const;
+template std::tuple<std::vector<double>, std::size_t> 
+sum_op<spin_handler>::getDataTuple() const;
 template std::pair<std::vector<std::vector<bool>>,
                    std::vector<std::complex<double>>>
 sum_op<spin_handler>::get_raw_data() const;

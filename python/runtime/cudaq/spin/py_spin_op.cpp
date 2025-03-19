@@ -42,6 +42,16 @@ spin_op fromOpenFermionQubitOperator(py::object &op) {
   return H;
 }
 
+// FIXME: add proper deprecation warnings to teh bindings
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 void bindSpinClass(py::module &mod) {
   // Binding the `cudaq::spin` class to `_pycudaq` as a submodule
   // so it's accessible directly in the cudaq namespace.
@@ -162,7 +172,7 @@ void bindSpinOperator(py::module &mod) {
           [](const cudaq::spin_op_term &p) {
             cudaq::spin_op op(p);
             py::object json = py::module_::import("json");
-            auto data = op.getDataRepresentation();
+            auto data = op.get_data_representation();
             return json.attr("dumps")(data);
           },
           "Convert spin_op to JSON string: '[d1, d2, d3, ...]'")
@@ -329,7 +339,7 @@ void bindSpinOperator(py::module &mod) {
           "to_json",
           [](const cudaq::spin_op &p) {
             py::object json = py::module_::import("json");
-            auto data = p.getDataRepresentation();
+            auto data = p.get_data_representation();
             return json.attr("dumps")(data);
           },
           "Convert spin_op to JSON string: '[d1, d2, d3, ...]]'")
@@ -429,7 +439,7 @@ void bindSpinOperator(py::module &mod) {
           "to each pauli element in the term. The function must have "
           "`void(pauli, int)` signature where `pauli` is the Pauli matrix "
           "type and the `int` is the qubit index.")
-      .def("serialize", &spin_op::getDataRepresentation<cudaq::spin_handler>,
+      .def("serialize", &spin_op::get_data_representation<cudaq::spin_handler>,
            "Return a serialized representation of the :class:`SpinOperator`. "
            "Specifically, this encoding is via a vector of doubles. The "
            "encoding is as follows: for each term, a list of doubles where the "
@@ -592,6 +602,13 @@ void bindSpinOperator(py::module &mod) {
            "return "
            "result as a new :class:`SpinOperator`.");
 }
+
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 void bindSpinWrapper(py::module &mod) {
   bindSpinClass(mod);
