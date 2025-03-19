@@ -93,9 +93,11 @@ spin_handler::spin_handler(int target, int op_id)
 
 // evaluations
 
-void spin_handler::create_matrix(const std::string &pauli_word,
-                                 const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_element,
-                                 bool invert_order) {
+void spin_handler::create_matrix(
+    const std::string &pauli_word,
+    const std::function<void(std::size_t, std::size_t, std::complex<double>)>
+        &process_element,
+    bool invert_order) {
   auto map_state = [](char pauli, bool state) {
     if (state) {
       if (pauli == 'Z')
@@ -133,15 +135,16 @@ void spin_handler::create_matrix(const std::string &pauli_word,
   }
 }
 
-Eigen::SparseMatrix<std::complex<double>> 
-spin_handler::to_sparse_matrix(
-  const std::string &pauli_word, std::complex<double> coeff, bool invert_order) {
+Eigen::SparseMatrix<std::complex<double>>
+spin_handler::to_sparse_matrix(const std::string &pauli_word,
+                               std::complex<double> coeff, bool invert_order) {
   using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1 << pauli_word.size();
   std::vector<Triplet> triplets;
   triplets.reserve(dim);
-  auto process_entry = [&triplets, &coeff](
-    std::size_t new_state, std::size_t old_state, std::complex<double> entry) {
+  auto process_entry = [&triplets, &coeff](std::size_t new_state,
+                                           std::size_t old_state,
+                                           std::complex<double> entry) {
     triplets.push_back(Triplet(new_state, old_state, coeff * entry));
   };
   create_matrix(pauli_word, process_entry, invert_order);
@@ -155,7 +158,9 @@ complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
                                        bool invert_order) {
   auto dim = 1 << pauli_word.size();
   complex_matrix matrix(dim, dim);
-  auto process_entry = [&matrix, &coeff](std::size_t new_state, std::size_t old_state, std::complex<double> entry) {
+  auto process_entry = [&matrix, &coeff](std::size_t new_state,
+                                         std::size_t old_state,
+                                         std::complex<double> entry) {
     matrix[{new_state, old_state}] = coeff * entry;
   };
   create_matrix(pauli_word, process_entry, invert_order);

@@ -1383,9 +1383,9 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
   bool invert_order =
       application_order && operator_handler::canonical_order(1, 0) !=
                                operator_handler::user_facing_order(1, 0);
-  auto matrix =
-      spin_handler::to_sparse_matrix(terms[0].second, terms[0].first, invert_order);
-  return cudaq::detail::to_csr_matrix(matrix, 1 << terms[0].second.size());
+  auto matrix = spin_handler::to_sparse_matrix(terms[0].second, terms[0].first,
+                                               invert_order);
+  return cudaq::detail::to_csr_spmatrix(matrix, 1 << terms[0].second.size());
 }
 
 template std::size_t product_op<spin_handler>::num_qubits() const;
@@ -1394,9 +1394,9 @@ product_op<spin_handler>::get_pauli_word(std::size_t pad_identities) const;
 template std::vector<bool>
 product_op<spin_handler>::get_binary_symplectic_form() const;
 template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
-  std::unordered_map<int, int> dimensions,
-  const std::unordered_map<std::string, std::complex<double>> &parameters,
-  bool application_order) const; 
+    std::unordered_map<int, int> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool application_order) const;
 
 // utility functions for backwards compatibility
 

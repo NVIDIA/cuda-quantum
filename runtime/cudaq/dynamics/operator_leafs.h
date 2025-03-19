@@ -213,8 +213,8 @@ template <typename HandlerTy>
 class sum_op;
 
 using csr_spmatrix =
-  std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>,
-            std::vector<std::size_t>>;
+    std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>,
+               std::vector<std::size_t>>;
 
 class operator_handler {
   template <typename T>

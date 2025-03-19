@@ -93,8 +93,9 @@ void permute_matrix(cudaq::complex_matrix &matrix,
   }
 }
 
-cudaq::csr_spmatrix to_csr_matrix(const Eigen::SparseMatrix<std::complex<double>> &matrix, 
-                                  std::size_t estimated_num_entries) {
+cudaq::csr_spmatrix
+to_csr_spmatrix(const Eigen::SparseMatrix<std::complex<double>> &matrix,
+                std::size_t estimated_num_entries) {
   std::vector<std::complex<double>> values;
   std::vector<std::size_t> rows, cols;
   values.reserve(estimated_num_entries);
@@ -107,7 +108,7 @@ cudaq::csr_spmatrix to_csr_matrix(const Eigen::SparseMatrix<std::complex<double>
       rows.emplace_back(it.row());
       cols.emplace_back(it.col());
     }
-  return std::make_tuple(values, rows, cols);                                      
+  return std::make_tuple(values, rows, cols);
 }
 
 } // namespace detail

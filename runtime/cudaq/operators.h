@@ -76,7 +76,6 @@ protected:
   sum_op(sum_op<HandlerTy> &&other, bool is_default, int size);
 
 public:
-
   // called const_iterator because it will *not* modify the sum,
   // regardless of what is done with the products/iterator
   struct const_iterator {

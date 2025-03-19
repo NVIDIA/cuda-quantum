@@ -1728,19 +1728,20 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
                                                                    parameters));
 
   if (evaluated.terms.size() == 0)
-    return std::make_tuple<std::vector<std::complex<double>>, 
-                           std::vector<std::size_t>,
-                           std::vector<std::size_t>>({}, {}, {});
+    return std::make_tuple<std::vector<std::complex<double>>,
+                           std::vector<std::size_t>, std::vector<std::size_t>>(
+        {}, {}, {});
 
   bool invert_order =
       application_order && operator_handler::canonical_order(1, 0) !=
                                operator_handler::user_facing_order(1, 0);
-  auto matrix = spin_handler::to_sparse_matrix(evaluated.terms[0].second,
-                                        evaluated.terms[0].first, invert_order);
+  auto matrix = spin_handler::to_sparse_matrix(
+      evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
-    matrix += spin_handler::to_sparse_matrix(evaluated.terms[i].second,
-                                      evaluated.terms[i].first, invert_order);
-  return cudaq::detail::to_csr_matrix(matrix, 1 << evaluated.terms[0].second.size());
+    matrix += spin_handler::to_sparse_matrix(
+        evaluated.terms[i].second, evaluated.terms[i].first, invert_order);
+  return cudaq::detail::to_csr_spmatrix(matrix,
+                                        1 << evaluated.terms[0].second.size());
 }
 
 template std::size_t sum_op<spin_handler>::num_qubits() const;
@@ -1751,9 +1752,9 @@ template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
                                                            int nTerms,
                                                            unsigned int seed);
 template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
-  std::unordered_map<int, int> dimensions,
-  const std::unordered_map<std::string, std::complex<double>> &parameters,
-  bool application_order) const;                                                        
+    std::unordered_map<int, int> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool application_order) const;
 
 // utility functions for backwards compatibility
 

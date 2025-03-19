@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/utils/matrix.h"
 #include "common/EigenSparse.h"
+#include "cudaq/utils/matrix.h"
 #include <unordered_map>
 #include <vector>
 
 namespace cudaq {
 using csr_spmatrix =
     std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>,
-              std::vector<std::size_t>>;
+               std::vector<std::size_t>>;
 
 namespace detail {
 
@@ -43,9 +43,10 @@ void permute_matrix(cudaq::complex_matrix &matrix,
 
 // FIXME: do we really want to stick with this tuple or should we rather switch
 // to just using the Eigen sparse matrix? Depends on our general usage of Eigen.
-/// Converts and Eigen sparse matrix to the csr format used in CUDA-Q.
-cudaq::csr_spmatrix to_csr_matrix(const Eigen::SparseMatrix<std::complex<double>> &matrix, 
-                                  std::size_t estimated_num_entries);
+/// Converts and Eigen sparse matrix to the `csr_spmatrix` format used in CUDA-Q.
+cudaq::csr_spmatrix
+to_csr_spmatrix(const Eigen::SparseMatrix<std::complex<double>> &matrix,
+                std::size_t estimated_num_entries);
 
 } // namespace detail
 } // namespace cudaq

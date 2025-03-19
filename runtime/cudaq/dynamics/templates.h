@@ -17,10 +17,10 @@
 #include <complex>
 #include <type_traits>
 
-#include "operator_leafs.h"
 #include "boson_operators.h"
 #include "fermion_operators.h"
 #include "matrix_operators.h"
+#include "operator_leafs.h"
 #include "spin_operators.h"
 
 namespace cudaq {
