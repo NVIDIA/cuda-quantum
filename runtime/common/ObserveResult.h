@@ -31,7 +31,7 @@ protected:
   sample_result data;
 
 public:
-  observe_result() : spinOp(cudaq::spin_op::empty()) {}
+  observe_result() = default;
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op.

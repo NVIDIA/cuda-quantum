@@ -6,10 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/EigenSparse.h"
 #include "cudaq/utils/matrix.h"
 #include <unordered_map>
 #include <vector>
+
+namespace Eigen {
+// forward declared here so that this header can be used even if the Eigen is
+// not used/found
+template<typename Scalar_, int Options_, typename StorageIndex_>
+class SparseMatrix;
+} // namespace Eigen
 
 namespace cudaq {
 using csr_spmatrix =
@@ -17,6 +23,9 @@ using csr_spmatrix =
                std::vector<std::size_t>>;
 
 namespace detail {
+
+// SparseMatrix really wants a *signed* type
+using EigenSparseMatrix = Eigen::SparseMatrix<std::complex<double>, 0x1, long>; // row major
 
 /// Generates all possible states for the given dimensions ordered according
 /// to the sequence of degrees (ordering is relevant if dimensions differ).
@@ -45,7 +54,7 @@ void permute_matrix(cudaq::complex_matrix &matrix,
 // to just using the Eigen sparse matrix? Depends on our general usage of Eigen.
 /// Converts and Eigen sparse matrix to the `csr_spmatrix` format used in CUDA-Q.
 cudaq::csr_spmatrix
-to_csr_spmatrix(const Eigen::SparseMatrix<std::complex<double>> &matrix,
+to_csr_spmatrix(const EigenSparseMatrix &matrix,
                 std::size_t estimated_num_entries);
 
 } // namespace detail

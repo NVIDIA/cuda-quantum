@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "common/EigenSparse.h"
 #include "cudaq/operators.h"
 #include "evaluation.h"
 #include "helpers.h"
@@ -1409,7 +1410,12 @@ template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::string product_op<HandlerTy>::to_string(bool printCoeffs) const {
+  #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  #endif
   return sum_op(*this).to_string(printCoeffs);
+  #pragma GCC diagnostic pop
 }
 
 template std::string

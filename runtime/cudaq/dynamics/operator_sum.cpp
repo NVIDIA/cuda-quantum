@@ -14,6 +14,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "common/EigenSparse.h"
 #include "cudaq/operators.h"
 #include "evaluation.h"
 #include "helpers.h"
@@ -1909,7 +1910,12 @@ std::vector<double> sum_op<HandlerTy>::getDataRepresentation() const {
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::tuple<std::vector<double>, std::size_t> sum_op<HandlerTy>::getDataTuple() const {
+  #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  #endif
   return std::make_tuple<std::vector<double>, std::size_t>(this->getDataRepresentation(), this->num_qubits());
+  #pragma GCC diagnostic pop  
 }
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION

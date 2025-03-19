@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/EigenSparse.h"
 #include "cudaq/utils/matrix.h"
 #include "spin_operators.h"
 
@@ -135,7 +136,7 @@ void spin_handler::create_matrix(
   }
 }
 
-Eigen::SparseMatrix<std::complex<double>>
+cudaq::detail::EigenSparseMatrix
 spin_handler::to_sparse_matrix(const std::string &pauli_word,
                                std::complex<double> coeff, bool invert_order) {
   using Triplet = Eigen::Triplet<std::complex<double>>;
@@ -148,7 +149,7 @@ spin_handler::to_sparse_matrix(const std::string &pauli_word,
     triplets.push_back(Triplet(new_state, old_state, coeff * entry));
   };
   create_matrix(pauli_word, process_entry, invert_order);
-  Eigen::SparseMatrix<std::complex<double>> matrix(dim, dim);
+  cudaq::detail::EigenSparseMatrix matrix(dim, dim);
   matrix.setFromTriplets(triplets.begin(), triplets.end());
   return matrix;
 }

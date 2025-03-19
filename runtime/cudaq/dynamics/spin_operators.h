@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/EigenSparse.h"
+#include "helpers.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
 
@@ -70,7 +70,7 @@ public:
   /// @brief Computes the sparse matrix representation of a Pauli string.
   /// By default, the ordering of the matrix matches the ordering of the Pauli
   /// string,
-  static Eigen::SparseMatrix<std::complex<double>>
+  static cudaq::detail::EigenSparseMatrix
   to_sparse_matrix(const std::string &pauli, std::complex<double> coeff = 1.,
                    bool invert_order = false);
 

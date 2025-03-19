@@ -6,9 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "helpers.h"
 #include <algorithm>
 #include <unordered_map>
+#include "common/EigenSparse.h"
+#include "helpers.h"
 
 namespace cudaq {
 namespace detail {
@@ -94,16 +95,15 @@ void permute_matrix(cudaq::complex_matrix &matrix,
 }
 
 cudaq::csr_spmatrix
-to_csr_spmatrix(const Eigen::SparseMatrix<std::complex<double>> &matrix,
+to_csr_spmatrix(const EigenSparseMatrix &matrix,
                 std::size_t estimated_num_entries) {
   std::vector<std::complex<double>> values;
   std::vector<std::size_t> rows, cols;
   values.reserve(estimated_num_entries);
   rows.reserve(estimated_num_entries);
   cols.reserve(estimated_num_entries);
-  using SparseMatrix = Eigen::SparseMatrix<std::complex<double>>;
   for (int k = 0; k < matrix.outerSize(); ++k)
-    for (SparseMatrix::InnerIterator it(matrix, k); it; ++it) {
+    for (EigenSparseMatrix::InnerIterator it(matrix, k); it; ++it) {
       values.emplace_back(it.value());
       rows.emplace_back(it.row());
       cols.emplace_back(it.col());
