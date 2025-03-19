@@ -7,10 +7,15 @@
  ******************************************************************************/
 
 #include "cudaq/utils/matrix.h"
+#include "common/EigenSparse.h"
 #include <unordered_map>
 #include <vector>
 
 namespace cudaq {
+using csr_spmatrix =
+    std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>,
+              std::vector<std::size_t>>;
+
 namespace detail {
 
 /// Generates all possible states for the given dimensions ordered according
@@ -28,13 +33,19 @@ compute_permutation(const std::vector<int> &op_degrees,
                     const std::vector<int> &canon_degrees,
                     const std::unordered_map<int, int> dimensions);
 
-// Permutes the given matrix according to the given permutation.
-// If states is the current order of vector entries on which the given matrix
-// acts, and permuted_states is the desired order of an array on which the
-// permuted matrix should act, then the permutation is defined such that
-// [states[i] for i in permutation] produces permuted_states.
+/// Permutes the given matrix according to the given permutation.
+/// If states is the current order of vector entries on which the given matrix
+/// acts, and permuted_states is the desired order of an array on which the
+/// permuted matrix should act, then the permutation is defined such that
+/// [states[i] for i in permutation] produces permuted_states.
 void permute_matrix(cudaq::complex_matrix &matrix,
                     const std::vector<int> &permutation);
+
+// FIXME: do we really want to stick with this tuple or should we rather switch
+// to just using the Eigen sparse matrix? Depends on our general usage of Eigen.
+/// Converts and Eigen sparse matrix to the csr format used in CUDA-Q.
+cudaq::csr_spmatrix to_csr_matrix(const Eigen::SparseMatrix<std::complex<double>> &matrix, 
+                                  std::size_t estimated_num_entries);
 
 } // namespace detail
 } // namespace cudaq

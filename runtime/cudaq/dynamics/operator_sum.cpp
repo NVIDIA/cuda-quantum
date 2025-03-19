@@ -1737,27 +1737,10 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
                                operator_handler::user_facing_order(1, 0);
   auto matrix = spin_handler::to_sparse_matrix(evaluated.terms[0].second,
                                         evaluated.terms[0].first, invert_order);
-  for (auto i = 1; i < terms.size(); ++i) {
-    auto term_matrix = spin_handler::to_sparse_matrix(evaluated.terms[i].second,
-      evaluated.terms[i].first, invert_order);
-    // FIXME: WITH THE SUM PADDING, I THINK THE SEARCH MAY NOT BE NECESSARY
-    for (std::size_t term_idx = 0; term_idx < std::get<0>(term_matrix).size(); ++term_idx) {
-      auto not_processed = true;
-      for (std::size_t idx = 0; not_processed && idx < std::get<0>(matrix).size(); ++idx) {
-        if (std::get<1>(matrix)[idx] == std::get<1>(term_matrix)[term_idx] && 
-            std::get<2>(matrix)[idx] == std::get<2>(term_matrix)[term_idx]) {
-          std::get<0>(matrix)[idx] += std::get<0>(term_matrix)[term_idx];
-          not_processed = false;
-        }
-      }
-      if (not_processed) {
-        std::get<0>(matrix).push_back(std::get<0>(term_matrix)[term_idx]);
-        std::get<1>(matrix).push_back(std::get<1>(term_matrix)[term_idx]);
-        std::get<2>(matrix).push_back(std::get<2>(term_matrix)[term_idx]);
-      }
-    }
-  }
-  return std::move(matrix);
+  for (auto i = 1; i < terms.size(); ++i)
+    matrix += spin_handler::to_sparse_matrix(evaluated.terms[i].second,
+                                      evaluated.terms[i].first, invert_order);
+  return cudaq::detail::to_csr_matrix(matrix, 1 << evaluated.terms[0].second.size());
 }
 
 template std::size_t sum_op<spin_handler>::num_qubits() const;

@@ -133,22 +133,21 @@ void spin_handler::create_matrix(const std::string &pauli_word,
   }
 }
 
-csr_spmatrix spin_handler::to_sparse_matrix(
+Eigen::SparseMatrix<std::complex<double>> 
+spin_handler::to_sparse_matrix(
   const std::string &pauli_word, std::complex<double> coeff, bool invert_order) {
-  std::vector<std::complex<double>> values;
-  std::vector<std::size_t> rows, cols;
+  using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1 << pauli_word.size();
-  values.reserve(dim);
-  rows.reserve(dim);
-  cols.reserve(dim);
-  auto process_entry = [&values, &rows, &cols, &coeff](
+  std::vector<Triplet> triplets;
+  triplets.reserve(dim);
+  auto process_entry = [&triplets, &coeff](
     std::size_t new_state, std::size_t old_state, std::complex<double> entry) {
-    rows.push_back(new_state);
-    cols.push_back(old_state);
-    values.push_back(coeff * entry);
+    triplets.push_back(Triplet(new_state, old_state, coeff * entry));
   };
   create_matrix(pauli_word, process_entry, invert_order);
-  return std::make_tuple(std::move(values), std::move(rows), std::move(cols));
+  Eigen::SparseMatrix<std::complex<double>> matrix(dim, dim);
+  matrix.setFromTriplets(triplets.begin(), triplets.end());
+  return matrix;
 }
 
 complex_matrix spin_handler::to_matrix(const std::string &pauli_word,

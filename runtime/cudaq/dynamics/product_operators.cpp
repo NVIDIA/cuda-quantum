@@ -1385,7 +1385,7 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
                                operator_handler::user_facing_order(1, 0);
   auto matrix =
       spin_handler::to_sparse_matrix(terms[0].second, terms[0].first, invert_order);
-  return std::move(matrix);
+  return cudaq::detail::to_csr_matrix(matrix, 1 << terms[0].second.size());
 }
 
 template std::size_t product_op<spin_handler>::num_qubits() const;
