@@ -1415,7 +1415,9 @@ std::string product_op<HandlerTy>::to_string(bool printCoeffs) const {
   #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   #endif
   return sum_op(*this).to_string(printCoeffs);
+  #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
   #pragma GCC diagnostic pop
+  #endif
 }
 
 template std::string

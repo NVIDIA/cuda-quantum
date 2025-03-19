@@ -1915,7 +1915,9 @@ std::tuple<std::vector<double>, std::size_t> sum_op<HandlerTy>::getDataTuple() c
   #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   #endif
   return std::make_tuple<std::vector<double>, std::size_t>(this->getDataRepresentation(), this->num_qubits());
+  #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
   #pragma GCC diagnostic pop  
+  #endif
 }
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
