@@ -129,7 +129,7 @@ Type cc::ArrayType::parse(AsmParser &parser) {
   }
   if (parser.parseKeyword("x"))
     return {};
-  SizeType size;
+  SizeType size = 0;
   if (succeeded(parser.parseOptionalQuestion())) {
     size = unknownSize;
   } else {
