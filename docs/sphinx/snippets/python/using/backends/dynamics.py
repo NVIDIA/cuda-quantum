@@ -7,11 +7,11 @@
 # ============================================================================ #
 
 # Made up values - not sure what values are reasonable here.
+#[Begin Transmon]
 omega_z = 6.5
 omega_x = 4.0
 omega_d = 0.5
 
-#[Begin Transmon]
 import numpy as np
 from cudaq.operator import *
 
