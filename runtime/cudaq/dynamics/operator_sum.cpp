@@ -315,7 +315,7 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
                                                                                \
   template sum_op<HandlerTy>::sum_op(bool is_default);                         \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(std::size_t size);                        \
+  template sum_op<HandlerTy>::sum_op(int size);                                \
                                                                                \
   template sum_op<HandlerTy>::sum_op(const product_op<HandlerTy> &item2);      \
                                                                                \
