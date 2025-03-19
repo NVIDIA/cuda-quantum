@@ -333,6 +333,36 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_QAOA.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt-vqe.html">ADAPT-VQE algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Single-excitation">Single excitation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Double-excitation">Double excitation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Reference-State:">Reference State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt-vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/edge-detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -427,6 +457,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#known-blackwell-issues">Known Blackwell Issues</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#singularity">Singularity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#python-wheels">Python wheels</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pre-built-binaries">Pre-built binaries</a></li>
@@ -799,6 +830,39 @@ You can then launch the container and connect to it via SSH by executing the fol
 <span class="go">docker exec -d cuda-quantum bash -c &quot;sudo -E /usr/sbin/sshd -D&quot;</span>
 <span class="go">ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null</span>
 </pre></div>
+</div>
+</section>
+<section id="known-blackwell-issues">
+<span id="id1"></span><h3>Known Blackwell Issues<a class="headerlink" href="#known-blackwell-issues" title="Permalink to this heading">¶</a></h3>
+<p>There are some known Blackwell issues when using CUDA-Q.</p>
+<div class="admonition note" id="blackwell-cuda-dependencies">
+<p class="admonition-title">Note</p>
+<p>If you are using CUDA 12.8 on Blackwell, you may need to install additional
+dependencies to use the python wheels.</p>
+<p>If you see the following error:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cupy_backends.cuda.api.driver.CUDADriverError: CUDA_ERROR_NO_BINARY_FOR_GPU: no kernel image is available for execution on the device</span>
+</pre></div>
+</div>
+<p>You may need to install the more updated python wheels.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 nvidia-nvjitlink-cu12 nvidia-curand-cu12</span>
+</pre></div>
+</div>
+</div>
+<div class="admonition note" id="blackwell-torch-dependences">
+<p class="admonition-title">Note</p>
+<p>If you are attempting to use torch integrators on Blackwell, you will need to install the nightly torch version.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128</span>
+</pre></div>
+</div>
+<p>With this new version of torch, you may see:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Module &#39;torch&#39; was found, but when imported by pytest it raised:</span>
+<span class="go">ImportError(&#39;/home/cudaq/.local/lib/python3.10/site-packages/torch/lib/../../nvidia/cusparse/lib/libcusparse.so.12: undefined symbol: __nvJitLinkCreate_12_8, version libnvJitLink.so.12&#39;)</span>
+</pre></div>
+</div>
+<p>This may be caused by an incorrectly linked shared object. If you encounter this, try adding the shared object to the LD_LIBRARY_PATH:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export LD_LIBRARY_PATH=$(pip show nvidia-nvjitlink-cu12 | sed -nE &#39;s/Location: (.*)$/\1/p&#39;)/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH</span>
+</pre></div>
+</div>
 </div>
 </section>
 <section id="singularity">
@@ -1248,7 +1312,7 @@ to help you get started. Take a look at <a class="reference internal" href="#nex
 </section>
 </section>
 <section id="additional-cuda-tools">
-<span id="id7"></span><h2>Additional CUDA Tools<a class="headerlink" href="#additional-cuda-tools" title="Permalink to this heading">¶</a></h2>
+<span id="id8"></span><h2>Additional CUDA Tools<a class="headerlink" href="#additional-cuda-tools" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q makes use of GPU-acceleration in certain backends and components.
 Depending on how you installed CUDA-Q, you may need to install
 certain CUDA libraries separately to take advantage of these.</p>
@@ -1290,7 +1354,8 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 <span class="w">    </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-nvrtc-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
+<span class="w">    </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libcurand-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
 <span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">11</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span>
 <span class="w">    </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
 <span class="w">        </span>libnvjitlink-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
@@ -1308,7 +1373,7 @@ built against version 11.8, and for CUDA 12, built against version 12.0.</p>
 </section>
 </section>
 <section id="distributed-computing-with-mpi">
-<span id="id8"></span><h2>Distributed Computing with MPI<a class="headerlink" href="#distributed-computing-with-mpi" title="Permalink to this heading">¶</a></h2>
+<span id="id9"></span><h2>Distributed Computing with MPI<a class="headerlink" href="#distributed-computing-with-mpi" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q supports the Message Passing Interface (MPI) parallelism via a plugin interface.
 It is possible to activate or replace such an MPI plugin without re-installing or re-compiling CUDA-Q.
 MPI calls via CUDA-Q API for C++ and Python will be delegated to the currently activated plugin at runtime.</p>
@@ -1393,7 +1458,7 @@ You can then download and install the new version of CUDA-Q following the
 instructions <a class="reference internal" href="#install-prebuilt-binaries"><span class="std std-ref">above</span></a>.</p>
 </section>
 <section id="dependencies-and-compatibility">
-<span id="id9"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
+<span id="id10"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also <a class="reference internal" href="../backends/simulators.html"><span class="doc">CUDA-Q Circuit Simulation Backends</span></a>.</p>
 <p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).</p>
 <div class="admonition note">
@@ -1401,8 +1466,8 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 <p>Some of the components included in the CUDA-Q Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA-Q Python wheels, take a look at <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">this section</span></a>.</p>
 </div>
 <p>The following table summarizes the required components.</p>
-<table class="docutils align-default" id="id10">
-<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id10" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id11" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
@@ -1422,8 +1487,8 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id11">
-<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id11" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id12">
+<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id12" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />

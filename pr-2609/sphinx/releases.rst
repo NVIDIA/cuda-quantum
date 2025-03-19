@@ -12,6 +12,30 @@ and is also available as a Docker image. More information about installing the n
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+**0.10.0**
+
+In this release we have added a range of tools for simulating noisy quantum systems.
+It includes support for trajectory based noise simulation for our GPU-accelerated statevector 
+and tensor network simulators, and a new sampling option for better `stim` performance. We have 
+also expanded the range of noise models, and added an `apply_noise` "gate". This release adds 
+the C++ support for the CUDA-Q `dynamics` backend (a master equation solver), as well as operator 
+classes for fermionic, bosonic and custom operators. This release also includes support for 
+submitting to `Pasqal <https://nvidia.github.io/cuda-quantum/0.10.0/using/backends/hardware/neutralatom.html#pasqal>`__ 
+backends, and adds C++ support for 
+`QuEra <https://nvidia.github.io/cuda-quantum/0.10.0/using/backends/hardware/neutralatom.html#quera-computing>`__ 
+backends. Check out our `documentation <https://nvidia.github.io/cuda-quantum/0.10.0>`__, including 
+new tutorials and examples, for more information.
+
+*Note*: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.10.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.10.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.10.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.10.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.10.0>`__.
+
 **0.9.1**
 
 This release adds support for using 
@@ -25,7 +49,7 @@ could be used when executing on a simulator only. The previous behavior can be f
 flag to the compiler. Please note that if you do so, however, the code will never be executable outside of a simulator 
 and may not be supported even on simulators.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cudaq/0.9.1>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.9.1>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.9.1>`__
