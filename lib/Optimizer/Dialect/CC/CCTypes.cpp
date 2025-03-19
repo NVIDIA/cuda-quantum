@@ -129,7 +129,7 @@ Type cc::ArrayType::parse(AsmParser &parser) {
   }
   if (parser.parseKeyword("x"))
     return {};
-  SizeType size;
+  SizeType size = 0;
   if (succeeded(parser.parseOptionalQuestion())) {
     size = unknownSize;
   } else {
@@ -207,7 +207,7 @@ CallableType CallableType::getNoSignature(MLIRContext *ctx) {
 
 void CCDialect::registerTypes() {
   addTypes<ArrayType, CallableType, CharspanType, IndirectCallableType,
-           PointerType, StdvecType, StateType, StructType>();
+           PointerType, StdvecType, StructType>();
 }
 
 } // namespace cudaq::cc

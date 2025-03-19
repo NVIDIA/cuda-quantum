@@ -1587,7 +1587,7 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
     by an intrinsic runtime call on simulators.
 
     ```mlir
-      %0 = quake.create_state %data %len : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+      %0 = quake.create_state %data %len : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!quake.state>
     ```
   }];
 
@@ -1609,7 +1609,7 @@ def QuakeOp_DeleteStateOp : QuakeOp<"delete_state", [] > {
     by an intrinsic runtime call on simulators.
 
     ```mlir
-      quake.delete_state %state : !cc.ptr<!cc.state>
+      quake.delete_state %state : !cc.ptr<!quake.state>
     ```
   }];
 
@@ -1629,7 +1629,7 @@ def quake_GetNumberOfQubitsOp : QuakeOp<"get_number_of_qubits", [Pure] > {
     intrinsic runtime call when the target is one of the simulators.
 
     ```mlir
-      %0 = quake.get_number_of_qubits %state : (!cc.ptr<!cc.state>) -> i64
+      %0 = quake.get_number_of_qubits %state : (!cc.ptr<!quake.state>) -> i64
     ```
   }];
 
@@ -1649,7 +1649,7 @@ def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
     to the kernel with the provided name in ReplaceStateByKernel pass.
 
     ```mlir
-      %0 = quake.get_state "callee" : !cc.ptr<!cc.state>
+      %0 = quake.get_state "callee" : !cc.ptr<!quake.state>
     ```
   }];
 
