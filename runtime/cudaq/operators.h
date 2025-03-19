@@ -104,8 +104,6 @@ public:
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = product_op<HandlerTy>;
-    using pointer = product_op<HandlerTy> *;
-    using reference = product_op<HandlerTy> &;
 
     const_iterator(const sum_op<HandlerTy> *sum) : const_iterator(sum, 0) {}
 
@@ -129,9 +127,9 @@ public:
 
     /// @brief `Dereferences` the iterator to yield a reference to current_val,
     /// allowing access to the current product_op.
-    reference operator*() { return current_val; }
+    product_op<HandlerTy> &operator*() { return current_val; }
     /// @brief Provides pointer access to the current product_op.
-    pointer operator->() { return &current_val; }
+    product_op<HandlerTy> *operator->() { return &current_val; }
 
     /// @brief Advances the iterator to the next term in the term_map and
     /// updates current_val accordingly.
@@ -951,8 +949,6 @@ public:
     using iterator_category = std::bidirectional_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = const HandlerTy;
-    using pointer = const HandlerTy *;
-    using reference = const HandlerTy &;
 
     /// @brief Constructs a const_iterator for a given product operator.
     /// @param prod Pointer to the product operator containing the operators.
@@ -978,11 +974,11 @@ public:
 
     /// @brief `Dereferences` the iterator to access the current operator.
     /// @return A constant reference to the current operator.
-    reference operator*() const { return prod->operators[current_idx]; }
+    const HandlerTy &operator*() const { return prod->operators[current_idx]; }
 
     /// @brief Provides pointer-like access to the current operator.
     /// @return A pointer to the current operator.
-    pointer operator->() { return &(prod->operators[current_idx]); }
+    const HandlerTy *operator->() { return &(prod->operators[current_idx]); }
 
     /// @brief Advances the iterator to the next operator (prefix increment).
     /// @return Reference to the updated iterator.
