@@ -431,6 +431,8 @@ public:
   virtual ~operator_handler() = default;
 
   // returns a unique string id for the operator
+  /// @brief Generates a unique identifier for the derived class.
+  /// @return A string representing the unique identifier.
   virtual std::string unique_id() const = 0;
 
   virtual std::vector<int> degrees() const = 0;
@@ -445,6 +447,10 @@ public:
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const = 0;
 
+  /// @brief Converts the object to a string representation.
+  /// @param include_degrees A boolean flag indicating whether to include
+  /// degrees in the string representation.
+  /// @return A string representation of the object.
   virtual std::string to_string(bool include_degrees = true) const = 0;
 };
 
