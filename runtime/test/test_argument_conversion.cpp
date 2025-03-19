@@ -367,18 +367,18 @@ void test_state(mlir::MLIRContext *ctx) {
                                            0.,        0.,        0., 0.};
     auto x = cudaq::state(new FakeSimulationState(data.size(), data.data()));
     std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "!cc.ptr<!cc.state>", v);
+    doSimpleTest(ctx, "!cc.ptr<!quake.state>", v);
   }
 
   // clang-format off
 // CHECK:       Source module:
-// CHECK:         func.func private @callee(!cc.ptr<!cc.state>)
+// CHECK:         func.func private @callee(!cc.ptr<!quake.state>)
 // CHECK:       Substitution module:
 
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK:           %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_2:.*]] = quake.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_2:.*]] = quake.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!quake.state>
 // CHECK:        }
 // CHECK-DAG:    cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
   // clang-format on
@@ -452,14 +452,14 @@ void test_combinations(mlir::MLIRContext *ctx) {
 
     std::vector<void *> v = {static_cast<void *>(&x), static_cast<void *>(&y),
                              static_cast<void *>(&z)};
-    std::vector<std::string> t = {"!cc.stdvec<f32>", "!cc.ptr<!cc.state>",
+    std::vector<std::string> t = {"!cc.stdvec<f32>", "!cc.ptr<!quake.state>",
                                   "!cc.stdvec<!cc.charspan>"};
     doTest(ctx, t, v);
   }
 
   // clang-format off
 // CHECK:       Source module:
-// CHECK:         func.func private @callee(!cc.stdvec<f32>, !cc.ptr<!cc.state>, !cc.stdvec<!cc.charspan>)
+// CHECK:         func.func private @callee(!cc.stdvec<f32>, !cc.ptr<!quake.state>, !cc.stdvec<!cc.charspan>)
 // CHECK:       Substitution module:
 
 // CHECK-LABEL:   cc.arg_subst[0] {
@@ -482,7 +482,7 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[1] {
 // CHECK:           %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_5:.*]] = quake.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_5:.*]] = quake.create_state %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!quake.state>
 // CHECK:         }
 // CHECK-DAG:     cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
 // CHECK-LABEL:   cc.arg_subst[2] {

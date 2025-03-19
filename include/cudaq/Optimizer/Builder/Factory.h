@@ -19,12 +19,15 @@
 #include <complex>
 #include <vector>
 
+namespace quake {
+class StateType;
+}
+
 namespace cudaq {
 namespace cc {
 class CharspanType;
 class LoopOp;
 class PointerType;
-class StateType;
 class StructType;
 } // namespace cc
 

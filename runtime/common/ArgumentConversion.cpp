@@ -140,7 +140,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                           : genConArray.template operator()<float>();
 
     auto arrSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
-    auto stateTy = cudaq::cc::StateType::get(ctx);
+    auto stateTy = quake::StateType::get(ctx);
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
 
     return builder.create<quake::CreateStateOp>(loc, statePtrTy, buffer,
@@ -400,7 +400,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
                                 substModule);
             })
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
-              if (ptrTy.getElementType() == cc::StateType::get(ctx))
+              if (ptrTy.getElementType() == quake::StateType::get(ctx))
                 return buildSubst(static_cast<const state *>(argPtr),
                                   substModule, dataLayout, kernelName,
                                   isSimulator);
