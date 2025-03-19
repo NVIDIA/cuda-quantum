@@ -287,7 +287,7 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
     <div class="notebook-entry" data-tags="chemistry,optimization,noiseless,gpu">
         <a href="/applications/python/digitized_counterdiabatic_QAOA.html" class="notebook-title">Digitized Counterdiabatic QAOA</a>
         <div class="notebook-content">
-            This notebook explores application of DC-QAOA to predict molecules that might be good candidates for drugs based on their interactions with proteins.
+            Learn how the DC-QAOA algorithm is used to predict molecules that might be good candidates for drugs based on their interactions with proteins.
         </div>
         <img src="/_static/app_title_images/dcqaoa_preview.png" alt="DC-QAOA Preview" class="notebook-image">
     </div>
