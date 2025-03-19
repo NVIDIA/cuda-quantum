@@ -221,6 +221,28 @@ def MeasureType : QuakeType<"Measure", "measure"> {
   let genStorageClass = 0;
 }
 
+//===----------------------------------------------------------------------===//
+// StateType
+//===----------------------------------------------------------------------===//
+
+def quake_StateType : QuakeType<"State", "state"> {
+  let summary = "Proxy for the cudaq::state class.";
+  let description = [{
+    The cudaq::state class is an abstraction for any data that may be used to
+    describe the initial state of a set of qubits. It would typically be used
+    in a simulation environment.
+
+    The CUDA-Q runtime will implement an ABI of intrinsic functions for the
+    compiler generated code to interface with this information in a generic
+    manner.
+
+    There are no legal operations in Quake/CC on a value of type `!quake.state`.
+    Only pointers to such values should exist in the IR for the purposes of
+    passing references to state objects to runtime functions at codegen.
+  }];
+  let genStorageClass = 0;
+}
+
 def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, VeqType.predicate,
         ControlType.predicate, RefType.predicate, StruqType.predicate]>,
         "quake quantum types">;

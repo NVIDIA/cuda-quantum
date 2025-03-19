@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
 #include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"
@@ -72,7 +73,7 @@ void cudaq::opt::populateCCTypeConversions(LLVMTypeConverter *converter) {
     return LLVM::LLVMArrayType::get(eleTy, type.getSize());
   });
   converter->addConversion(
-      [](cc::StateType type) { return factory::stateImplType(type); });
+      [](quake::StateType type) { return factory::stateImplType(type); });
   converter->addConversion([converter](cc::StructType type) -> Type {
     SmallVector<Type> members;
     for (auto t : type.getMembers())
