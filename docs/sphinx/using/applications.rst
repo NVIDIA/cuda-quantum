@@ -25,8 +25,8 @@ CUDA-Q Applications
    /applications/python/VQE_advanced
    /applications/python/quantum_transformer
    /applications/python/adapt_QAOA
-   /applications/python/adapt-vqe.ipynb
-   /applications/python/edge-detection.ipynb
+   /applications/python/adapt-vqe
+   /applications/python/edge-detection
 
 
 

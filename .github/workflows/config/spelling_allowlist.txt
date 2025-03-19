@@ -343,6 +343,7 @@ variational
 vdots
 verifier
 vertices
+vqe
 waveforms
 wavefunction
 workflow
