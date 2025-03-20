@@ -115,7 +115,7 @@ public:
       fromComplex = true;
       eleTy = complexTy.getElementType();
     }
-    if (isa<cudaq::cc::StateType>(eleTy))
+    if (isa<quake::StateType>(eleTy))
       functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
     if (eleTy == rewriter.getF64Type())
       functionName =

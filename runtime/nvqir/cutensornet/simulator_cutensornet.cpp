@@ -166,7 +166,18 @@ void SimulatorTensorNetBase::applyKrausChannel(
     m_state->applyUnitaryChannel(qubits, channelMats,
                                  krausChannel.probabilities);
   } else {
-    throw std::runtime_error("Non-unitary noise channels are not supported.");
+    if (!canHandleGeneralNoiseChannel())
+      throw std::runtime_error(
+          "General noise channels are not supported on simulator " + name());
+
+    std::vector<void *> channelMats;
+    for (const auto &op : krausChannel.get_ops()) {
+      const std::string cacheKey = fmt::format(
+          "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
+      channelMats.emplace_back(
+          getOrCacheMat(cacheKey, op.data, m_gateDeviceMemCache));
+    }
+    m_state->applyGeneralChannel(qubits, channelMats);
   }
 }
 
@@ -183,14 +194,14 @@ bool SimulatorTensorNetBase::isValidNoiseChannel(
   case cudaq::noise_model_type::pauli2:
   case cudaq::noise_model_type::depolarization1:
   case cudaq::noise_model_type::depolarization2:
+  case cudaq::noise_model_type::phase_damping:
   case cudaq::noise_model_type::unknown: // may be unitary, so return true
     return true;
-  // These are explicitly non-unitary and unsupported
+  // These are explicitly non-unitary
   case cudaq::noise_model_type::amplitude_damping_channel:
   case cudaq::noise_model_type::amplitude_damping:
-  case cudaq::noise_model_type::phase_damping:
   default:
-    return false;
+    return canHandleGeneralNoiseChannel();
   }
 }
 

@@ -2745,7 +2745,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       // lambda determines: is `t` a cudaq::state* ?
       auto isStateType = [&](Type t) {
         if (auto ptrTy = dyn_cast<cc::PointerType>(t))
-          return isa<cc::StateType>(ptrTy.getElementType());
+          return isa<quake::StateType>(ptrTy.getElementType());
         return false;
       };
 
@@ -2779,7 +2779,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           return pushValue(builder.create<quake::AllocaOp>(
               loc, quake::VeqType::getUnsized(ctx), initials));
         }
-        if (isa<cc::StateType>(initials.getType())) {
+        if (isa<quake::StateType>(initials.getType())) {
           if (auto load = initials.getDefiningOp<cudaq::cc::LoadOp>())
             initials = load.getPtrvalue();
         }

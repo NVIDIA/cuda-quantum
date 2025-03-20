@@ -47,12 +47,12 @@ static std::size_t getStateSize(Operation *op) {
 /// Replace `quake.get_number_of_qubits` by a constant.
 /// ```
 /// %c8_i64 = arith.constant 8 : i64
-/// %2 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %2 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!quake.state>
 /// %3 = quake.get_number_of_qubits %2 : i64
 /// ...
 /// ───────────────────────────────────────────
 /// %c8_i64 = arith.constant 8 : i64
-/// %2 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %2 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!quake.state>
 /// %3 = arith.constant 3 : i64
 /// ```
 // clang-format on
@@ -79,9 +79,9 @@ public:
 /// the `quake.state_init` instruction instead.
 /// ```
 /// %2 = cc.cast %1 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
-/// %3 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
+/// %3 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!quake.state>
 /// %4 = quake.alloca !quake.veq<?>[%0 : i64]
-/// %5 = quake.init_state %4, %3 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+/// %5 = quake.init_state %4, %3 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
 /// ───────────────────────────────────────────
 /// ...
 /// %4 = quake.alloca !quake.veq<?>[%0 : i64]

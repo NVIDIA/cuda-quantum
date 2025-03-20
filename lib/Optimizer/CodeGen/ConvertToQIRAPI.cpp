@@ -739,10 +739,10 @@ struct QmemRAIIOpRewrite : public OpConversionPattern<cudaq::codegen::RAIIOp> {
     // Cascade to set functionName.
     StringRef functionName;
     Type ptrTy;
-    if (isa<cudaq::cc::StateType>(eleTy)) {
+    if (isa<quake::StateType>(eleTy)) {
       functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
       ptrTy = cudaq::cc::PointerType::get(
-          cudaq::cc::StateType::get(rewriter.getContext()));
+          quake::StateType::get(rewriter.getContext()));
     } else if (eleTy == rewriter.getF64Type()) {
       if (fromComplex) {
         functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64;
