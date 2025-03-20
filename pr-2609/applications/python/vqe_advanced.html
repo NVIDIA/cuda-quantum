@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Readout Error Mitigation &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>VQE with gradients, active spaces, and gate fusion &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -35,8 +35,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Compiling Unitaries Using Diffusion Models" href="unitary_compilation_diffusion_models.html" />
-    <link rel="prev" title="Quantum Volume" href="quantum_volume.html" /> 
+    <link rel="next" title="Quantum Transformer" href="quantum_transformer.html" />
+    <link rel="prev" title="Compiling Unitaries Using Diffusion Models" href="unitary_compilation_diffusion_models.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -287,10 +287,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_volume.html">Quantum Volume</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Readout Error Mitigation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
@@ -305,13 +305,13 @@
 <li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">VQE with gradients, active spaces, and gate fusion</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#The-Basics-of-VQE">The Basics of VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Using-an-Active-Space">Using an Active Space</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_transformer.html">Quantum Transformer</a><ul>
@@ -747,40 +747,37 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active">Readout Error Mitigation</li>
+      <li class="breadcrumb-item active">VQE with gradients, active spaces, and gate fusion</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/applications/python/readout_error_mitigation.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/applications/python/vqe_advanced.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="quantum_volume.html" class="btn btn-neutral float-left" title="Quantum Volume" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="unitary_compilation_diffusion_models.html" class="btn btn-neutral float-right" title="Compiling Unitaries Using Diffusion Models" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="unitary_compilation_diffusion_models.html" class="btn btn-neutral float-left" title="Compiling Unitaries Using Diffusion Models" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quantum_transformer.html" class="btn btn-neutral float-right" title="Quantum Transformer" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Readout-Error-Mitigation">
-<h1>Readout Error Mitigation<a class="headerlink" href="#Readout-Error-Mitigation" title="Permalink to this heading">¶</a></h1>
-<p>Readout errors are caused by imperfect qubit measurement and are a common source of error in quantum computing. Properly modelling these errors in simulation can give the user tools to understand better what these errors are and how to mitigate them when running on actual quantum devices.</p>
-<p>Readout errors can be mitigated with a confusion matrix <span class="math notranslate nohighlight">\(A\)</span>. It is a square matrix of size <span class="math notranslate nohighlight">\(2^n \times 2^n\)</span> and tells about the probability of observing the state <span class="math notranslate nohighlight">\(|y\rangle\)</span> given the true state <span class="math notranslate nohighlight">\(|x\rangle\)</span>. The confusion matrix characterizes the readout error of the device and is circuit-independent. Once <span class="math notranslate nohighlight">\(A\)</span> is estimated, we can compute its pseudoinverse <span class="math notranslate nohighlight">\(A^+\)</span> which can be applied to the noisy probability distribution <span class="math notranslate nohighlight">\(p_{\text{noisy}}\)</span> to obtain an
-adjusted quasi-probability distribution</p>
-<div class="math notranslate nohighlight">
-\[p_{\text{mitigated}} = A^+ p_{\text{noisy}}\]</div>
-<p>In this tutorial, we show how to build a confusion matrix with the following approaches.</p>
-<ul class="simple">
-<li><p>Using a single qubit model</p></li>
-<li><p>Using <span class="math notranslate nohighlight">\(k\)</span> local confusion matrices</p></li>
-<li><p>A full confusion matrix for each <span class="math notranslate nohighlight">\(2^n\)</span> combination</p></li>
-</ul>
-<p>The last method works well for correcting correlated errors (which affect multiple qubits together). However, it becomes impractical for large numbers of qubits.</p>
+  <section id="VQE-with-gradients,-active-spaces,-and-gate-fusion">
+<h1>VQE with gradients, active spaces, and gate fusion<a class="headerlink" href="#VQE-with-gradients,-active-spaces,-and-gate-fusion" title="Permalink to this heading">¶</a></h1>
+<p>This tutorial will explore the Variational Quantum Eigensolver, a hybrid quantum classical algorithm for determining the ground state energy of molecules. The first part of this tutorial will walk through the key aspects of the VQE algorithm and how to implement it with CUDA-Q. The following sections explore advanced topics: parallel gradients, active spaces, and gate fusion</p>
+<section id="The-Basics-of-VQE">
+<h2>The Basics of VQE<a class="headerlink" href="#The-Basics-of-VQE" title="Permalink to this heading">¶</a></h2>
+<p>The VQE algorithm is hybrid quantum-classical algorithm, meaning some subroutines run on a quantum computer or quantum simulator and others run on a traditional (super)computer.</p>
+<p>The goal is to take a parameterized quantum circuit and a qubit form of the molecular Hamiltonian, measure an expectation value that corresponds to the ground state energy of the molecule, and then repeat the process to variationally minimize the energy with respect to the parameters in the quantum circuit. The optimization is performed on a classical device while the expectation values are determined on a quantum device. See the figure below.</p>
+<p><img alt="VQE.png" src="../../_images/VQE.png" /></p>
+<p>The next few cells will elaborate on each part of the VQE procedure and show you how to build a VQE simulation to compute the ground state energy of the water molecule.</p>
+</section>
+<section id="Installing/Loading-Relevant-Packages">
+<h2>Installing/Loading Relevant Packages<a class="headerlink" href="#Installing/Loading-Relevant-Packages" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install the relevant packages.</span>
-
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.8.4<span class="w"> </span><span class="nv">pandas</span><span class="o">==</span><span class="m">2</span>.2.2<span class="w"> </span><span class="nv">scipy</span><span class="o">==</span><span class="m">1</span>.13.1<span class="w"> </span><span class="nv">seaborn</span><span class="o">==</span><span class="m">0</span>.13.2<span class="w"> </span>-q
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">pyscf</span><span class="o">==</span><span class="m">2</span>.6.2<span class="w"> </span><span class="nv">openfermionpyscf</span><span class="o">==</span><span class="m">0</span>.5<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.8.4<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.6.1<span class="w"> </span>-q
 </pre></div>
 </div>
 </div>
@@ -788,224 +785,300 @@ adjusted quasi-probability distribution</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">openfermion</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">openfermionpyscf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openfermion.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner</span><span class="p">,</span> <span class="n">get_fermion_operator</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">timeit</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">reduce</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
-
-<span class="n">sns</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s2">&quot;dark&quot;</span><span class="p">)</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
-<span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </pre></div>
 </div>
 </div>
-<p>To model the readout error, we apply a bitflip channel on every qubit at the end of the circuit using an Identity gate. The probability of bitflip <code class="docutils literal notranslate"><span class="pre">probs</span></code> can be the same or different for all the qubits.</p>
-<div class="alert alert-block alert-success"><p>Note: In principle, readout error is applied to the measurement gate but we use the Identity gate because adding a quantum error on the measurement gate is not yet supported. Also, the Identity gate is not present in the add_channel method, so we model the Identity gate using a rotation gate with an angle of 0.0.</p>
-</div><div class="nbinput nblast docutils container">
+</section>
+<section id="Implementing-VQE-in-CUDA-Q">
+<h2>Implementing VQE in CUDA-Q<a class="headerlink" href="#Implementing-VQE-in-CUDA-Q" title="Permalink to this heading">¶</a></h2>
+<p>Like most quantum chemistry programs, the first step is to specify a molecular geometry, basis set, charge, and multiplicity.</p>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_noise</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">probs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Creates a noise model with specified probabilities of bit flip errors on each qubit.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        n_qubits (int): The number of qubits in the quantum circuit.</span>
-<span class="sd">        probs (Union[float, list[float]]): Probabilities of a bit flip error occurring on each qubit.</span>
-<span class="sd">        If a single probability value is provided, it will be applied to all qubits. If a list of</span>
-<span class="sd">        probabilities is provided, each qubit will have its own probability.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        cudaq noise model</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="p">[</span><span class="n">probs</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_qubits</span>
-
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">probs</span><span class="p">):</span>
-        <span class="n">bit_flip</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">BitFlipChannel</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-        <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s2">&quot;rx&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">bit_flip</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">noise</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.1173</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4691</span><span class="p">,</span> <span class="mf">0.7570</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4691</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.7570</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))]</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="s1">&#39;sto3g&#39;</span>
+<span class="n">multiplicity</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span>
 </pre></div>
 </div>
 </div>
-<p>We define a cudaq kernel which will help create a set of quantum circuits to take measurements of the basis states for <span class="math notranslate nohighlight">\(n\)</span> qubits. The kernel takes the number of qubits and the basis state as arguments.</p>
+<p>The VQE procedure requires some classical preprocessing. The code below uses the PySCF package and OpenFermion to compute the Hartree Fock reference state and compute the integrals required for the Hamiltonian.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">state_label</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
-    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">state_label</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="n">rx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">qvector</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-          <span class="p">)</span>  <span class="c1"># Identity gate at the end on each qubit to model readout error</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">molecule</span> <span class="o">=</span> <span class="n">openfermionpyscf</span><span class="o">.</span><span class="n">run_pyscf</span><span class="p">(</span>
+    <span class="n">openfermion</span><span class="o">.</span><span class="n">MolecularData</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">,</span> <span class="n">charge</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
-<p>For the tutorial, we will use the GHZ state on three qubits to test readout error mitigation. The GHZ state on 3 qubits is described as:</p>
-<div class="math notranslate nohighlight">
-\[\frac{|000\rangle + |111\rangle}{\sqrt{2}}\]</div>
+<p>Next, the Hamiltonian is built using <code class="docutils literal notranslate"><span class="pre">get_molecular_hamiltonian</span></code>. The Hamiltonian must then be converted to a qubit Hamiltonian consisting of qubit operators. The standard Jordan-Wigner transformation is used to perform this mapping.</p>
+<p>Finally, the Jordan-Wigner qubit Hamiltonian is converted into a CUDA-Q spin operator which can be used to evaluate an expectation value given a quantum circuit.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">ghz_kernel</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">molecular_hamiltonian</span> <span class="o">=</span> <span class="n">molecule</span><span class="o">.</span><span class="n">get_molecular_hamiltonian</span><span class="p">()</span>
 
-    <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_qubits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="n">cx</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">fermion_hamiltonian</span> <span class="o">=</span> <span class="n">get_fermion_operator</span><span class="p">(</span><span class="n">molecular_hamiltonian</span><span class="p">)</span>
 
-    <span class="c1"># Apply identity gates for readout error mitigation</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">):</span>
-        <span class="n">rx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">qvector</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+<span class="n">qubit_hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner</span><span class="p">(</span><span class="n">fermion_hamiltonian</span><span class="p">)</span>
 
-    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+<span class="n">spin_ham</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">qubit_hamiltonian</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<p>Next, the quantum circuit needs to be defined, which models the wavefunction. This is done in CUDA-Q by specifying a CUDA-Q kernel. The kernel takes as an input the number of qubits, the number of electrons, and the parameters of the circuit ansatz (form of the wavefunction) yet to be defined.</p>
+<p>The number of qubits corresponds to the potential positions of electrons and is therefore twice the number of spatial orbitals constructed with the chosen basis set, as each can be occupied by two electrons.</p>
+<p>The Hartree-Fock reference is constructed by applying <span class="math notranslate nohighlight">\(X\)</span> bitflip operations to each of the first <span class="math notranslate nohighlight">\(N\)</span> qubits where <span class="math notranslate nohighlight">\(N\)</span> is the number of electrons. Next, a parameterized ansatz is chosen. Theoretically, any set of operations can work as an ansatz, however, it is good practice to use an ansatz that captures the underlying physics of the problem. The most common choice for chemistry is the Unitary Coupled Cluster Ansatz with Single and Double excitations (UCCSD). This UCCSD hate
+operations are automatically added to the kernel with the <code class="docutils literal notranslate"><span class="pre">cudaq.kernels.uccsd(qubits,</span> <span class="pre">thetas,</span> <span class="pre">electron_num,</span> <span class="pre">qubit_num)</span></code> function.</p>
+<p>The STO-3G water molecuule UCCSD ansatz requires optimization of 140 parameters.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Function to draw the confusion matrix</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">plot_cmat</span><span class="p">(</span><span class="n">mat</span><span class="p">):</span>
-    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mat</span><span class="p">)</span>
-    <span class="n">im2</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">matshow</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Reds</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">])</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">])</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Confusion Matrix&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Prepared State&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_label_position</span><span class="p">(</span><span class="s2">&quot;top&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Measured State&quot;</span><span class="p">)</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im2</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">electron_count</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">7</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_num</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
+
+
+<span class="n">parameter_count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd_num_parameters</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span>
+                                                     <span class="n">qubit_count</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">parameter_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>It is possible that the adjusted quasi-probability distribution <span class="math notranslate nohighlight">\(p_{\text{mitigated}}\)</span> obtained by application of <span class="math notranslate nohighlight">\(A^+\)</span> to <span class="math notranslate nohighlight">\(p_{\text{noisy}}\)</span> may be non-positive. We need to find the closest positive probability distribution in such a case.</p>
-<div class="math notranslate nohighlight">
-\[p'' = \min_{p_{\rm positive}} \|p_{\rm noisy} - p_{\rm positive}\|_1\]</div>
-<p>Then, we can draw samples from <span class="math notranslate nohighlight">\(p''\)</span>.</p>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+140
+</pre></div></div>
+</div>
+<p>The classical optimizer requires a custom cost function which is defined below. The <code class="docutils literal notranslate"><span class="pre">cudaq.observe()</span></code> function computes an expectation given the Hamiltonian and the kernel defined above.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">find_closest_distribution</span><span class="p">(</span><span class="n">empirical_dist</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Find the closest distribution to an empirical distribution by minimizing the L1 norm.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">        empirical_dist: Empirical distribution that you want to find the closest distribution to.</span>
+    <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span>
+                            <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">        Closest distribution to `empirical_dist`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">exp_val</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">empirical_dist</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="c1"># Constraint: all elements of p must be positive, and the distribution must sum to 1</span>
-    <span class="n">cons</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="p">{</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;ineq&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;fun&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span>
-        <span class="p">},</span>
-        <span class="p">{</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;eq&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;fun&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="p">},</span>
-    <span class="p">)</span>
-    <span class="n">bnds</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">empirical_dist</span><span class="p">))]</span>
-    <span class="n">initial_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">empirical_dist</span><span class="p">))</span>
+<span class="n">exp_vals</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
-        <span class="n">objective</span><span class="p">,</span>
-        <span class="n">initial_value</span><span class="p">,</span>
-        <span class="n">method</span><span class="o">=</span><span class="s2">&quot;SLSQP&quot;</span><span class="p">,</span>
-        <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;maxiter&quot;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">},</span>
-        <span class="n">bounds</span><span class="o">=</span><span class="n">bnds</span><span class="p">,</span>
-        <span class="n">constraints</span><span class="o">=</span><span class="n">cons</span><span class="p">,</span>
-    <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
+    <span class="n">exp_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">(</span><span class="n">xk</span><span class="p">))</span>
+
+
+<span class="c1"># Initial variational parameters.</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<p>The final step is to run the optimization using the scipy minimize function and a selected optimizer, in this case COBYLA.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_counts_from_distribution</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">dist</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Generates samples based on a given distribution and returns the counts of each sample value.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia&#39;</span><span class="p">)</span>
+<span class="n">start_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span>
+                  <span class="n">x0</span><span class="p">,</span>
+                  <span class="n">method</span><span class="o">=</span><span class="s1">&#39;COBYLA&#39;</span><span class="p">,</span>
+                  <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span>
+                  <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">50</span><span class="p">})</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">        n_qubits: The number of qubits in the quantum circuit.</span>
-<span class="sd">        dist: The probability distribution from which samples are drawn.</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;UCCSD-VQE energy =  &#39;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of qubits = &#39;</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of parameters = &#39;</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of terms in the spin hamiltonian = &#39;</span><span class="p">,</span>
+      <span class="n">spin_ham</span><span class="o">.</span><span class="n">get_term_count</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total elapsed time (s) = &#39;</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">        An array of counts for each possible value in the distribution. The array has a length of 2^n_qubits.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n_qubits</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">dist</span><span class="p">)</span>
-    <span class="n">values</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-    <span class="n">res</span><span class="p">[</span><span class="n">values</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span>
-    <span class="k">return</span> <span class="n">res</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">exp_vals</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Epochs&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Energy&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;VQE&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
-<p>Let’s run the <code class="docutils literal notranslate"><span class="pre">ghz_kernel</span></code> with the noise model. We will perform two experiments. First, we keep the bitflip probability the same for all the qubits. In the second experiment, we use different bitflip probabilities for qubits.</p>
-<div class="nbinput nblast docutils container">
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+UCCSD-VQE energy =   -70.21455023422772
+Total number of qubits =  14
+Total number of parameters =  140
+Total number of terms in the spin hamiltonian =  1086
+Total elapsed time (s) =  3.9171073289999185
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/applications_python_vqe_advanced_21_1.png" src="../../_images/applications_python_vqe_advanced_21_1.png" />
+</div>
+</div>
+<p>The result of this procedure is an estimate of the ground state energy of water. However, the convergence behavior is not perfect, more iterations would greatly improve the result, but would take a few minutes to run.</p>
+</section>
+<section id="Parallel-Parameter-Shift-Gradients">
+<h2>Parallel Parameter Shift Gradients<a class="headerlink" href="#Parallel-Parameter-Shift-Gradients" title="Permalink to this heading">¶</a></h2>
+<p>One way to accelerate VQE is to use an optimizer that accepts a gradient. This can drastically lower the number of VQE iterations required at the cost of computing the gradient on the quantum side of the algorithm.</p>
+<p>The parameter shift rule is a common technique to compute the gradient for parameterized circuits. It is obtained by computing two expectation values for each parameter corresponding to a small forward and backward shift in the ith parameter. These results are used to estimate finite difference contribution to the gradient.</p>
+<p><img alt="parametershift.png" src="../../_images/parametershift.png" /></p>
+<p>This procedure can become cost prohibitive as the number of parameters becomes large.</p>
+<p>Each of the expectation values needed to evaluate a parameter shift gradient can be computed independently. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> backend is designed for parallel computations across multiple simulated QPUs. The function below uses <code class="docutils literal notranslate"><span class="pre">cudaq.observe_asynch</span></code> to distribute all of the expectation values evaluations across as many GPUs that are available. First, try it with <code class="docutils literal notranslate"><span class="pre">num_qpus</span></code> set to 1.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_qubits</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="n">shots</span> <span class="o">=</span> <span class="mi">1024</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
 
-<span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">repeat</span><span class="o">=</span><span class="n">n_qubits</span><span class="p">)))</span>
-<span class="n">states</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">label</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">label</span><span class="p">)),</span> <span class="n">labels</span><span class="p">))</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+
+<span class="n">num_qpus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
+
+<span class="n">epsilon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">):</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">xplus</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">epsilon</span><span class="p">)</span>
+
+    <span class="n">xminus</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">epsilon</span><span class="p">)</span>
+
+    <span class="n">g_plus</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">g_minus</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">gradients</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">qpu_counter</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Iterate over the number of GPU resources available</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+
+        <span class="n">g_plus</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                                <span class="n">hamiltonian</span><span class="p">,</span>
+                                <span class="n">qubit_count</span><span class="p">,</span>
+                                <span class="n">electron_count</span><span class="p">,</span>
+                                <span class="n">xplus</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu_counter</span><span class="o">%</span><span class="k">num_qpus</span>))
+        <span class="n">qpu_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">g_minus</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                                <span class="n">hamiltonian</span><span class="p">,</span>
+                                <span class="n">qubit_count</span><span class="p">,</span>
+                                <span class="n">electron_count</span><span class="p">,</span>
+                                <span class="n">xminus</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu_counter</span><span class="o">%</span><span class="k">num_qpus</span>))
+        <span class="n">qpu_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">gradients</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">g_plus</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="o">-</span> <span class="n">g_minus</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span> <span class="o">/</span>
+        <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">epsilon</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">g_minus</span><span class="p">))</span>
+    <span class="p">]</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">gradients</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+        <span class="n">parameters</span><span class="p">)</span> <span class="o">==</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">xplus</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">xminus</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">gradients</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput docutils container">
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[<span style="color: rgb(255,0,0)">warning</span>] Target <span style="color: rgb(0,0,255)">nvidia-mqpu</span>: <span style="color: rgb(0,0,255)">This target is deprecating. Please use the &#39;nvidia&#39; target with option &#39;mqpu,fp32&#39; or &#39;mqpu&#39; (fp32 is the default precision option) by adding the command line option &#39;--target-option mqpu,fp32&#39; or passing it as cudaq.set_target(&#39;nvidia&#39;, option=&#39;mqpu,fp32&#39;) in Python. Please refer to CUDA-Q ]8;;https://nvidia.github.io/cuda-quantum/latest/using/backends/platform\documentation]8;;\ for more information.</span>
+</pre></div></div>
+</div>
+<p>The cost function needs to be slightly updated to make use of the gradient in the optimization procedure and allow for a gradient based optimizer like L-BFGS-B to be used.</p>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="mf">0.1</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;bitflip probability: </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gradient</span> <span class="o">=</span> <span class="n">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
 
-<span class="n">noise_1</span> <span class="o">=</span> <span class="n">get_noise</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+<span class="n">exp_vals</span> <span class="o">=</span> <span class="p">[]</span>
 
-<span class="n">ghz_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz_kernel</span><span class="p">,</span>
-                          <span class="n">n_qubits</span><span class="p">,</span>
-                          <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span>
-                          <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_1</span><span class="p">)</span>
-<span class="n">noisy_dict_1</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ghz_result</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
 
-<span class="n">noisy_res_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-    <span class="p">[</span><span class="n">noisy_dict_1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">states</span><span class="p">)])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> \
+                       <span class="n">gradient</span><span class="o">=</span><span class="n">gradient</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="o">=</span><span class="n">spin_ham</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">):</span>
 
-<span class="n">noisy_dict_1</span>
+    <span class="n">get_result</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parameter_vector</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span>\
+        <span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">get_result</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
+    <span class="n">exp_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+    <span class="n">gradient_vector</span> <span class="o">=</span> <span class="n">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">,</span>
+                                                <span class="n">spin_ham</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">gradient_vector</span>
+</pre></div>
+</div>
+</div>
+<p>Run the code below. Notice how the result is converged to a lower energy using only 10% of the steps as optimization above without a gradient.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">init_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
+
+<span class="n">start_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
+<span class="n">result_vqe</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span>
+                      <span class="n">init_params</span><span class="p">,</span>
+                      <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span>
+                      <span class="n">jac</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+                      <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;VQE-UCCSD energy= &#39;</span><span class="p">,</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total elapsed time (s) = &#39;</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">exp_vals</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Epochs&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Energy&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;VQE&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -1014,152 +1087,82 @@ adjusted quasi-probability distribution</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-bitflip probability: 0.1
-
+VQE-UCCSD energy=  -73.19471262288755
+Total elapsed time (s) =  57.27010986900132
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-{&#39;000&#39;: 352,
- &#39;010&#39;: 43,
- &#39;111&#39;: 367,
- &#39;001&#39;: 47,
- &#39;011&#39;: 47,
- &#39;100&#39;: 54,
- &#39;101&#39;: 61,
- &#39;110&#39;: 53}
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_qubits</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;bitflip probability: </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-
-<span class="n">noise_2</span> <span class="o">=</span> <span class="n">get_noise</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
-
-<span class="n">ghz_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz_kernel</span><span class="p">,</span>
-                          <span class="n">n_qubits</span><span class="p">,</span>
-                          <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span>
-                          <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_2</span><span class="p">)</span>
-<span class="n">noisy_dict_2</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ghz_result</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
-
-<span class="n">noisy_res_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-    <span class="p">[</span><span class="n">noisy_dict_2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">states</span><span class="p">)])</span>
-
-<span class="n">noisy_dict_2</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<div class="highlight"><pre>
-bitflip probability: [0.149816047538945, 0.3802857225639665, 0.292797576724562]
-
-</pre></div></div>
+<img alt="../../_images/applications_python_vqe_advanced_30_1.png" src="../../_images/applications_python_vqe_advanced_30_1.png" />
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-{&#39;000&#39;: 212,
- &#39;010&#39;: 122,
- &#39;111&#39;: 189,
- &#39;001&#39;: 111,
- &#39;011&#39;: 87,
- &#39;100&#39;: 78,
- &#39;101&#39;: 131,
- &#39;110&#39;: 94}
-</pre></div></div>
-</div>
-<section id="Inverse-confusion-matrix-from-single-qubit-noise-model">
-<h2>Inverse confusion matrix from single-qubit noise model<a class="headerlink" href="#Inverse-confusion-matrix-from-single-qubit-noise-model" title="Permalink to this heading">¶</a></h2>
-<p>Here we assume that the readout error of each qubit is independent with the same confusion probabilities. Then, the confusion matrix <span class="math notranslate nohighlight">\(A_1\)</span> for a single qubit can be defined as</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}A_1 = \begin{bmatrix}
-P(0|0) &amp; P(0|1)\\
-P(1|0) &amp; P(1|1)
-\end{bmatrix}\end{split}\]</div>
-<p>where <span class="math notranslate nohighlight">\(P(y|x)\)</span> is the probability of observing state <span class="math notranslate nohighlight">\(|y\rangle\)</span> when measuring the true state <span class="math notranslate nohighlight">\(|x\rangle\)</span>. Using <span class="math notranslate nohighlight">\(A_1\)</span>, the full <span class="math notranslate nohighlight">\(2^n \times 2^n\)</span> confusion matrix <span class="math notranslate nohighlight">\(A\)</span> can be written as</p>
-<div class="math notranslate nohighlight">
-\[A = A_1 \otimes \dots \otimes A_1\]</div>
-<div class="nbinput docutils container">
+<p>Now, run the code again (the three previous cells) and specify <code class="docutils literal notranslate"><span class="pre">num_qpus</span></code> to be more than one if you have access to multiple GPUs and notice resulting speedup. Thanks to CUDA-Q, this code could be used without modification in a setting where multiple physical QPUs were available.</p>
+</section>
+<section id="Using-an-Active-Space">
+<h2>Using an Active Space<a class="headerlink" href="#Using-an-Active-Space" title="Permalink to this heading">¶</a></h2>
+<p>Performing electronic structure computations with all electrons and orbitals is often prohibitively expensive and unnecessary. Most of the interesting chemistry can be modeled by restricting simulations to the highest energy occupied molecular orbitals and lowest energy unoccupied molecular orbitals. This is known as the active space approximation.</p>
+<p>Below is an example of STO-3G water modeled with a 4 electron 3 orbital active space simulated with UCCSD-VQE. Using an active space means you can run VQE for the same molecule using fewer qubits and a more shallow circuit.</p>
+<p><img alt="cas.png" src="../../_images/cas.png" /></p>
+<p>The molecule is defined the same way, expect for you now include variables <code class="docutils literal notranslate"><span class="pre">nele_cas</span></code> and <code class="docutils literal notranslate"><span class="pre">norb_cas</span></code> to define the active space. The <code class="docutils literal notranslate"><span class="pre">ncore</span></code></p>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">single_qubit_labels</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-<span class="n">single_qubit_states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">]</span>  <span class="c1"># Used for dictionary keys</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.1173</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4691</span><span class="p">,</span> <span class="mf">0.7570</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.4691</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.7570</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))]</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="s1">&#39;sto3g&#39;</span>
+<span class="n">multiplicity</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">ncore</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">nele_cas</span><span class="p">,</span> <span class="n">norb_cas</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 
-<span class="c1"># we use noise_1 which has same bitflip probability for all qubits</span>
-<span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_1</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">single_qubit_labels</span>
-<span class="p">]</span>
-
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">single_qubit_states</span><span class="p">):</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2"> becomes </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">molecule</span> <span class="o">=</span> <span class="n">openfermionpyscf</span><span class="o">.</span><span class="n">run_pyscf</span><span class="p">(</span>
+    <span class="n">openfermion</span><span class="o">.</span><span class="n">MolecularData</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">,</span> <span class="n">charge</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-0 becomes {&#39;0&#39;: 924, &#39;1&#39;: 100}
-1 becomes {&#39;0&#39;: 104, &#39;1&#39;: 920}
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
+<p>The Hamiltonian is now constrcuted with the same steps, but only models the active space.</p>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Construct confusion matrix for single qubit</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">molecular_hamiltonian</span> <span class="o">=</span> <span class="n">molecule</span><span class="o">.</span><span class="n">get_molecular_hamiltonian</span><span class="p">(</span>
+    <span class="n">occupied_indices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">ncore</span><span class="p">),</span>
+    <span class="n">active_indices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">ncore</span><span class="p">,</span> <span class="n">ncore</span> <span class="o">+</span> <span class="n">norb_cas</span><span class="p">))</span>
 
-<span class="n">A_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">single_qubit_states</span><span class="p">):</span>
-    <span class="n">true_state</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">observed_state</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">A_1</span><span class="p">[</span><span class="n">observed_state</span><span class="p">][</span><span class="n">true_state</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span> <span class="o">/</span> <span class="n">shots</span>
+<span class="n">fermion_hamiltonian</span> <span class="o">=</span> <span class="n">get_fermion_operator</span><span class="p">(</span><span class="n">molecular_hamiltonian</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">A_1</span><span class="p">)</span>
+<span class="n">qubit_hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner</span><span class="p">(</span><span class="n">fermion_hamiltonian</span><span class="p">)</span>
+
+<span class="n">spin_ham</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">qubit_hamiltonian</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[[0.90234375 0.1015625 ]
- [0.09765625 0.8984375 ]]
-</pre></div></div>
-</div>
+<p>Similarly, the kernel is defined only by the orbitals and electrons in the active space. Notice how this means you only need to optimize 8 parameters now.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">A</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">,</span> <span class="p">[</span><span class="n">A_1</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">)</span>  <span class="c1"># joint confusion matrix</span>
-<span class="n">A_pinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>  <span class="c1"># Generate pseudoinverse confusion matrix.</span>
-<span class="n">mitigated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A_pinv</span><span class="p">,</span> <span class="n">noisy_res_1</span><span class="p">),</span>
-                     <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>  <span class="c1"># Obtain mitigated counts</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mitigated counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">electron_count</span> <span class="o">=</span> <span class="n">nele_cas</span>
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norb_cas</span>
 
-<span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
-    <span class="n">positive_dist</span> <span class="o">=</span> <span class="n">find_closest_distribution</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span>
-    <span class="n">mitigated</span> <span class="o">=</span> <span class="n">get_counts_from_distribution</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">shots</span><span class="p">,</span> <span class="n">positive_dist</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Corrected for negative counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_num</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">electron_num</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
+
+
+<span class="n">parameter_count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd_num_parameters</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span>
+                                                     <span class="n">qubit_count</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">parameter_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1168,148 +1171,61 @@ P(1|0) &amp; P(1|1)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Mitigated counts:
-[476   3   0   1  12  19   9 501]
+8
 </pre></div></div>
 </div>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s2">&quot;states&quot;</span><span class="p">:</span> <span class="n">states</span><span class="p">,</span>
-    <span class="s2">&quot;noisy&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">noisy_res_1</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">noisy_res_1</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
-    <span class="s2">&quot;mitigated_sg&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mitigated</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
-<span class="p">})</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
-<span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;states&quot;</span><span class="p">,</span>
-             <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="s2">&quot;mitigated_sg&quot;</span><span class="p">],</span>
-             <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span>
-             <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_sg&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;probabilities&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin_ham</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span>
+                            <span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+    <span class="n">thetas</span> <span class="o">=</span> <span class="n">theta</span>
+    <span class="k">return</span> <span class="n">exp_val</span>
+
+
+<span class="n">exp_vals</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
+    <span class="n">exp_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">(</span><span class="n">xk</span><span class="p">))</span>
+
+
+<span class="c1"># Initial variational parameters.</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../_images/applications_python_readout_error_mitigation_21_0.png" src="../../_images/applications_python_readout_error_mitigation_21_0.png" />
-</div>
-</div>
-</section>
-<section id="Inverse-confusion-matrix-from-k-local-confusion-matrices">
-<h2>Inverse confusion matrix from k local confusion matrices<a class="headerlink" href="#Inverse-confusion-matrix-from-k-local-confusion-matrices" title="Permalink to this heading">¶</a></h2>
-<p>This method works under the assumption that the readout errors for different qubits are independent of each other and the confusion matrix <span class="math notranslate nohighlight">\(A\)</span> can be factorized into the product of <span class="math notranslate nohighlight">\(k\)</span> small local confusion matrices. We consider the special case when <span class="math notranslate nohighlight">\(k = n\)</span> for <span class="math notranslate nohighlight">\(n\)</span> qubits and different <span class="math notranslate nohighlight">\(2 \times 2\)</span> confusion matrices for each qubit</p>
-<div class="math notranslate nohighlight">
-\[A = A_1 \otimes \dots \otimes A_n\]</div>
+<p>The VQE procedure below is much faster using an active space compared to inclusion of all orbitals and electrons.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">local_labels</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">]</span>
-<span class="n">local_states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span> <span class="o">*</span> <span class="n">n_qubits</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
 
-<span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
-                 <span class="n">n_qubits</span><span class="p">,</span>
-                 <span class="n">label</span><span class="p">,</span>
-                 <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span>
-                 <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_2</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">local_labels</span>
-<span class="p">]</span>
+<span class="n">start_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span>
+                  <span class="n">x0</span><span class="p">,</span>
+                  <span class="n">method</span><span class="o">=</span><span class="s1">&#39;COBYLA&#39;</span><span class="p">,</span>
+                  <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span>
+                  <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">500</span><span class="p">})</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">default_timer</span><span class="p">()</span>
 
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">local_states</span><span class="p">):</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2"> becomes </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-000 becomes {&#39;000&#39;: 388, &#39;010&#39;: 235, &#39;111&#39;: 18, &#39;001&#39;: 174, &#39;011&#39;: 79, &#39;100&#39;: 58, &#39;101&#39;: 28, &#39;110&#39;: 44}
-111 becomes {&#39;000&#39;: 23, &#39;010&#39;: 38, &#39;111&#39;: 370, &#39;001&#39;: 40, &#39;011&#39;: 60, &#39;100&#39;: 107, &#39;101&#39;: 224, &#39;110&#39;: 162}
-</pre></div></div>
-</div>
-<p>The local confusion matrices are generated using the marginal probability distribution for each qubit.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">counts</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">local_states</span><span class="p">)</span>
-<span class="p">]</span>
-<span class="n">matrices</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;UCCSD-VQE energy =  &#39;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of qubits = &#39;</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of parameters = &#39;</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of terms in the spin hamiltonian = &#39;</span><span class="p">,</span>
+      <span class="n">spin_ham</span><span class="o">.</span><span class="n">get_term_count</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total elapsed time (s) = &#39;</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
 
-<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">):</span>
-    <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">marginalized_counts</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">total_shots</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
-        <span class="n">marginal_cts</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_marginal_counts</span><span class="p">([</span><span class="n">k</span><span class="p">])</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
-        <span class="n">marginalized_counts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">marginal_cts</span><span class="p">)</span>
-        <span class="n">total_shots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">marginal_cts</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
-
-    <span class="c1"># matrix[i][j] is the probability of counting i for expected j</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
-            <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">marginalized_counts</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
-                                                      <span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_shots</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-    <span class="n">matrices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matrices</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[[0.85546875 0.15722656]
- [0.14453125 0.84277344]]
-
-[[0.6328125  0.38476562]
- [0.3671875  0.61523438]]
-
-[[0.70800781 0.32226562]
- [0.29199219 0.67773438]]
-
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># To find the joint pseudoinverse confusion matrix, we can first perform pseudoinverse of the</span>
-<span class="c1"># local confusion matrices and then do the tensor product</span>
-
-<span class="n">pinv_confusion_matrices</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matrices</span><span class="p">]</span>
-<span class="n">A_pinv</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">,</span> <span class="n">pinv_confusion_matrices</span><span class="p">)</span>
-
-<span class="n">mitigated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A_pinv</span><span class="p">,</span> <span class="n">noisy_res_2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mitigated counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-<span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
-    <span class="n">positive_dist</span> <span class="o">=</span> <span class="n">find_closest_distribution</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span>
-    <span class="n">mitigated</span> <span class="o">=</span> <span class="n">get_counts_from_distribution</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">shots</span><span class="p">,</span> <span class="n">positive_dist</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Corrected for negative counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-<span class="n">A_joint</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">,</span> <span class="n">matrices</span><span class="p">)</span>
-<span class="n">plot_cmat</span><span class="p">(</span><span class="n">A_joint</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">exp_vals</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Epochs&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Energy&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;VQE&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -1318,186 +1234,26 @@ Mitigated counts:
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Mitigated counts:
-[559  -1 -58  32 -28  26 -16 510]
-
-Corrected for negative counts:
-[521   0   0  35   0  22   0 446]
+UCCSD-VQE energy =   -74.96341992791962
+Total number of qubits =  6
+Total number of parameters =  8
+Total number of terms in the spin hamiltonian =  62
+Total elapsed time (s) =  1.754178541001238
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_readout_error_mitigation_27_1.png" src="../../_images/applications_python_readout_error_mitigation_27_1.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s2">&quot;states&quot;</span><span class="p">:</span> <span class="n">states</span><span class="p">,</span>
-    <span class="s2">&quot;noisy&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">noisy_res_2</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">noisy_res_2</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
-    <span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mitigated</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
-<span class="p">})</span>
-
-<span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;states&quot;</span><span class="p">,</span>
-             <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">],</span>
-             <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span>
-             <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;probabilities&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../_images/applications_python_readout_error_mitigation_28_0.png" src="../../_images/applications_python_readout_error_mitigation_28_0.png" />
+<img alt="../../_images/applications_python_vqe_advanced_43_1.png" src="../../_images/applications_python_vqe_advanced_43_1.png" />
 </div>
 </div>
 </section>
-<section id="Inverse-of-full-confusion-matrix">
-<h2>Inverse of full confusion matrix<a class="headerlink" href="#Inverse-of-full-confusion-matrix" title="Permalink to this heading">¶</a></h2>
-<p>Here we generate a quantum circuit for each of the basis states of <span class="math notranslate nohighlight">\(n\)</span> qubits (i.e., <span class="math notranslate nohighlight">\(2^n\)</span> combinations). This gives more accurate readout error mitigation. Since it scales exponentially with the number of qubits, it is only practical for small devices.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
-                 <span class="n">n_qubits</span><span class="p">,</span>
-                 <span class="n">label</span><span class="p">,</span>
-                 <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span>
-                 <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_2</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span>
-<span class="p">]</span>
-
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">states</span><span class="p">):</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2"> becomes </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-000 becomes {&#39;000&#39;: 367, &#39;010&#39;: 248, &#39;111&#39;: 17, &#39;001&#39;: 159, &#39;011&#39;: 83, &#39;100&#39;: 68, &#39;101&#39;: 35, &#39;110&#39;: 47}
-001 becomes {&#39;000&#39;: 161, &#39;010&#39;: 93, &#39;111&#39;: 46, &#39;001&#39;: 363, &#39;011&#39;: 253, &#39;100&#39;: 17, &#39;101&#39;: 76, &#39;110&#39;: 15}
-010 becomes {&#39;000&#39;: 234, &#39;010&#39;: 378, &#39;111&#39;: 27, &#39;001&#39;: 100, &#39;011&#39;: 150, &#39;100&#39;: 36, &#39;101&#39;: 25, &#39;110&#39;: 74}
-011 becomes {&#39;000&#39;: 106, &#39;010&#39;: 145, &#39;111&#39;: 65, &#39;001&#39;: 251, &#39;011&#39;: 386, &#39;100&#39;: 11, &#39;101&#39;: 30, &#39;110&#39;: 30}
-100 becomes {&#39;000&#39;: 83, &#39;010&#39;: 34, &#39;111&#39;: 99, &#39;001&#39;: 29, &#39;011&#39;: 18, &#39;100&#39;: 388, &#39;101&#39;: 144, &#39;110&#39;: 229}
-101 becomes {&#39;000&#39;: 22, &#39;010&#39;: 13, &#39;111&#39;: 247, &#39;001&#39;: 70, &#39;011&#39;: 43, &#39;100&#39;: 163, &#39;101&#39;: 371, &#39;110&#39;: 95}
-110 becomes {&#39;000&#39;: 32, &#39;010&#39;: 77, &#39;111&#39;: 157, &#39;001&#39;: 14, &#39;011&#39;: 30, &#39;100&#39;: 233, &#39;101&#39;: 85, &#39;110&#39;: 396}
-111 becomes {&#39;000&#39;: 14, &#39;010&#39;: 31, &#39;111&#39;: 393, &#39;001&#39;: 38, &#39;011&#39;: 60, &#39;100&#39;: 95, &#39;101&#39;: 233, &#39;110&#39;: 160}
-</pre></div></div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># generate full confusion matrix</span>
-<span class="n">A_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="o">**</span><span class="n">n_qubits</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="n">n_qubits</span><span class="p">))</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">states</span><span class="p">):</span>
-    <span class="n">true_state</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">observed_state</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">A_full</span><span class="p">[</span><span class="n">observed_state</span><span class="p">][</span><span class="n">true_state</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span> <span class="o">/</span> <span class="n">shots</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_cmat</span><span class="p">(</span><span class="n">A_full</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../_images/applications_python_readout_error_mitigation_32_0.png" src="../../_images/applications_python_readout_error_mitigation_32_0.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Distance between full confusion matrix and tensored confusion matrix</span>
-<span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A_joint</span> <span class="o">-</span> <span class="n">A_full</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-0.09734490298929
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">A_pinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">A_full</span><span class="p">)</span>
-<span class="n">mitigated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A_pinv</span><span class="p">,</span> <span class="n">noisy_res_2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mitigated counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-<span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">):</span>
-    <span class="n">positive_dist</span> <span class="o">=</span> <span class="n">find_closest_distribution</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="n">shots</span><span class="p">)</span>
-    <span class="n">mitigated</span> <span class="o">=</span> <span class="n">get_counts_from_distribution</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">,</span> <span class="n">shots</span><span class="p">,</span> <span class="n">positive_dist</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Corrected for negative counts:</span><span class="se">\n</span><span class="si">{</span><span class="n">mitigated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Mitigated counts:
-[ 714 -100 -211  152  -49   63   32  422]
-
-Corrected for negative counts:
-[683   0   0  39   0   0   0 302]
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_full&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">mitigated</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mitigated</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
-
-<span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
-    <span class="n">x</span><span class="o">=</span><span class="s2">&quot;states&quot;</span><span class="p">,</span>
-    <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">,</span> <span class="s2">&quot;mitigated_full&quot;</span><span class="p">],</span>
-    <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;bar&quot;</span><span class="p">,</span>
-    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
-<span class="p">)</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;noisy&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_k_local&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">bar_label</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">containers</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;mitigated_full&quot;</span><span class="p">])</span>
-<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;probabilities&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../_images/applications_python_readout_error_mitigation_35_0.png" src="../../_images/applications_python_readout_error_mitigation_35_0.png" />
-</div>
-</div>
+<section id="Gate-Fusion-for-Larger-Circuits">
+<h2>Gate Fusion for Larger Circuits<a class="headerlink" href="#Gate-Fusion-for-Larger-Circuits" title="Permalink to this heading">¶</a></h2>
+<p>CUDA-Q simulations take advantage of a technique called gate fusion. Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place.</p>
+<p><img alt="gate-fuse.png" src="../../_images/gate-fuse1.png" /></p>
+<p>This is particularly important for larger circuits and can have a significant impact on the performance of the simulation. Each system is different, so you should test different gate fusion levels to find out what is best for your system. You can find more information <a class="reference external" href="https://developer.nvidia.com/blog/new-nvidia-cuda-q-features-boost-quantum-application-performance/">here</a>.</p>
 </section>
 </section>
 
@@ -1505,8 +1261,8 @@ Corrected for negative counts:
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quantum_volume.html" class="btn btn-neutral float-left" title="Quantum Volume" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="unitary_compilation_diffusion_models.html" class="btn btn-neutral float-right" title="Compiling Unitaries Using Diffusion Models" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="unitary_compilation_diffusion_models.html" class="btn btn-neutral float-left" title="Compiling Unitaries Using Diffusion Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quantum_transformer.html" class="btn btn-neutral float-right" title="Quantum Transformer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

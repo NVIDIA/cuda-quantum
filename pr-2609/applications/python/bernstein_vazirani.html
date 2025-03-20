@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Molecular docking via DC-QAOA &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Bernstein-Vazirani Algorithm &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -35,8 +35,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" href="Krylov.html" />
-    <link rel="prev" title="Max-Cut with QAOA" href="QAOA.html" /> 
+    <link rel="next" title="Cost Minimization" href="cost_minimization.html" />
+    <link rel="prev" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" href="krylov.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -201,31 +201,31 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../using/applications.html">   Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="QAOA.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Molecular docking via DC-QAOA</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="Krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="Krylov.html#Setup">Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="Bernstein-Vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="Bernstein-Vazirani.html#Classical-case">Classical case</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Bernstein-Vazirani.html#Quantum-case">Quantum case</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Bernstein-Vazirani.html#Implementing-in-CUDA-Q">Implementing in CUDA-Q</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Bernstein-Vazirani Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Classical-case">Classical case</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Quantum-case">Quantum case</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Implementing-in-CUDA-Q">Implementing in CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Deutsch_algorithm.html">Deutsch’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="Deutsch_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
-<li class="toctree-l3"><a class="reference internal" href="Deutsch_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Deutsch_algorithm.html#Phase-oracle">Phase oracle</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Deutsch_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Deutsch_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deutsch_algorithm.html">Deutsch’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="deutsch_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutsch_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutsch_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutsch_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutsch_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
@@ -237,49 +237,49 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_quantum_neural_networks.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="Hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test">Using <code class="docutils literal notranslate"><span class="pre">Sample</span></code> to perform the Hadamard test</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test">Multi-GPU evaluation of QKSD matrix elements using the Hadamard Test</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="Hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix">Classically Diagonalize the Subspace Matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test">Using <code class="docutils literal notranslate"><span class="pre">Sample</span></code> to perform the Hadamard test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test">Multi-GPU evaluation of QKSD matrix elements using the Hadamard Test</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix">Classically Diagonalize the Subspace Matrix</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="logical_aim_Sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_Sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX">Performing logical Variational Quantum Eigensolver (VQE) with CUDA-QX</a></li>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_Sqale.html#Constructing-circuits-in-the-[[4,2,2]]-encoding">Constructing circuits in the <code class="docutils literal notranslate"><span class="pre">[[4,2,2]]</span></code> encoding</a></li>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_Sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_Sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="logical_aim_Sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical_aim_sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX">Performing logical Variational Quantum Eigensolver (VQE) with CUDA-QX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Constructing-circuits-in-the-[[4,2,2]]-encoding">Constructing circuits in the <code class="docutils literal notranslate"><span class="pre">[[4,2,2]]</span></code> encoding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="Hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="Hamiltonian_simulation.html#Introduction">Introduction</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="Hamiltonian_simulation.html#Heisenberg-Hamiltonian">Heisenberg Hamiltonian</a></li>
-<li class="toctree-l4"><a class="reference internal" href="Hamiltonian_simulation.html#Transverse-Field-Ising-Model-(TFIM)">Transverse Field Ising Model (TFIM)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="Hamiltonian_simulation.html#Time-Evolution-and-Trotter-Decomposition">Time Evolution and Trotter Decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hamiltonian_simulation.html#Introduction">Introduction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#Heisenberg-Hamiltonian">Heisenberg Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#Transverse-Field-Ising-Model-(TFIM)">Transverse Field Ising Model (TFIM)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#Time-Evolution-and-Trotter-Decomposition">Time Evolution and Trotter Decomposition</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="Hamiltonian_simulation.html#Key-steps">Key steps</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="Hamiltonian_simulation.html#1.-Prepare-initial-state">1. Prepare initial state</a></li>
-<li class="toctree-l4"><a class="reference internal" href="Hamiltonian_simulation.html#2.-Hamiltonian-Trotterization">2. Hamiltonian Trotterization</a></li>
-<li class="toctree-l4"><a class="reference internal" href="Hamiltonian_simulation.html#3.-Compute-overlap">3. <code class="docutils literal notranslate"><span class="pre">Compute</span> <span class="pre">overlap</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="Hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian">4. Construct Heisenberg Hamiltonian</a></li>
-<li class="toctree-l4"><a class="reference internal" href="Hamiltonian_simulation.html#5.-Construct-TFIM-Hamiltonian">5. Construct TFIM Hamiltonian</a></li>
-<li class="toctree-l4"><a class="reference internal" href="Hamiltonian_simulation.html#6.-Extract-coefficients-and-Pauli-words">6. Extract coefficients and Pauli words</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hamiltonian_simulation.html#Key-steps">Key steps</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#1.-Prepare-initial-state">1. Prepare initial state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#2.-Hamiltonian-Trotterization">2. Hamiltonian Trotterization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#3.-Compute-overlap">3. <code class="docutils literal notranslate"><span class="pre">Compute</span> <span class="pre">overlap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian">4. Construct Heisenberg Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#5.-Construct-TFIM-Hamiltonian">5. Construct TFIM Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hamiltonian_simulation.html#6.-Extract-coefficients-and-Pauli-words">6. Extract coefficients and Pauli words</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="Hamiltonian_simulation.html#Main-code">Main code</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Hamiltonian_simulation.html#Visualization-of-probablity-over-time">Visualization of probablity over time</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Hamiltonian_simulation.html#Expectation-value-over-time:">Expectation value over time:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Hamiltonian_simulation.html#Visualization-of-expectation-over-time">Visualization of expectation over time</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Hamiltonian_simulation.html#Additional-information">Additional information</a></li>
-<li class="toctree-l3"><a class="reference internal" href="Hamiltonian_simulation.html#Relevant-references">Relevant references</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hamiltonian_simulation.html#Main-code">Main code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hamiltonian_simulation.html#Visualization-of-probablity-over-time">Visualization of probablity over time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hamiltonian_simulation.html#Expectation-value-over-time:">Expectation value over time:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hamiltonian_simulation.html#Visualization-of-expectation-over-time">Visualization of expectation over time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hamiltonian_simulation.html#Additional-information">Additional information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hamiltonian_simulation.html#Relevant-references">Relevant references</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="quantum_Fourier_transform.html">Quantum Fourier Transform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="quantum_Fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_teleportation.html">Quantum Teleporation</a><ul>
@@ -305,13 +305,13 @@
 <li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="VQE_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="VQE_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="VQE_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
-<li class="toctree-l3"><a class="reference internal" href="VQE_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="VQE_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="VQE_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="VQE_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_transformer.html">Quantum Transformer</a><ul>
@@ -328,40 +328,40 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="adapt_QAOA.html">ADAPT-QAOA algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="adapt_QAOA.html#Simulation-input:">Simulation input:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt_QAOA.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt_QAOA.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt_QAOA.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt_QAOA.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="adapt-vqe.html">ADAPT-VQE algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="adapt-vqe.html#Single-excitation">Single excitation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="adapt-vqe.html#Double-excitation">Double excitation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adapt_vqe.html">ADAPT-VQE algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="adapt_vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="adapt_vqe.html#Single-excitation">Single excitation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="adapt_vqe.html#Double-excitation">Double excitation</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Reference-State:">Reference State:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_vqe.html#Reference-State:">Reference State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="edge-detection.html">Quantum edge detection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="edge-detection.html#Image">Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="edge_detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="edge_detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="edge_detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="edge-detection.html#Post-processing">Post-processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="edge_detection.html#Post-processing">Post-processing</a></li>
 </ul>
 </li>
 </ul>
@@ -747,148 +747,135 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active">Molecular docking via DC-QAOA</li>
+      <li class="breadcrumb-item active">Bernstein-Vazirani Algorithm</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/applications/python/digitized_counterdiabatic_QAOA.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/applications/python/bernstein_vazirani.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="QAOA.html" class="btn btn-neutral float-left" title="Max-Cut with QAOA" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Krylov.html" class="btn btn-neutral float-right" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="krylov.html" class="btn btn-neutral float-left" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Molecular-docking-via-DC-QAOA">
-<h1>Molecular docking via DC-QAOA<a class="headerlink" href="#Molecular-docking-via-DC-QAOA" title="Permalink to this heading">¶</a></h1>
-<p>Drugs often work by binding to an active site of a protein, inhibiting or activating its function for some therapeutic purpose. Finding new candidate drugs is extremely difficult. The study of molecular docking helps guide this search and involves the prediction of how strongly a certain ligand (drug) will bind to its target (usually a protein).</p>
-<p>One of the primary challenges to molecular docking arises from the many geometric degrees of freedom present in proteins and ligands, making it difficult to predict the optimal orientation and assess if the drug is a good candidate or not. One solution is to formulate the problem as a mathematical optimization problem where the optimal solution corresponds to the most likely ligand-protein configuration. This optimization problem can be solved on a quantum computer using methods like the Quantum
-Approximate Optimization Algorithm (QAOA). This tutorial demonstrates how this <a class="reference external" href="https://arxiv.org/pdf/2308.04098">paper</a> used digitized-counteradiabatic (DC) QAOA to study molecular docking. This tutorial assumes you have an understanding of QAOA, if not, please see the CUDA-Q MaxCut tutorial found <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/applications/python/qaoa.html">here</a>.</p>
-<p>The next section provides more detail on the problem setup followed by CUDA-Q implementations below.</p>
-<section id="Setting-up-the-Molecular-Docking-Problem">
-<h2>Setting up the Molecular Docking Problem<a class="headerlink" href="#Setting-up-the-Molecular-Docking-Problem" title="Permalink to this heading">¶</a></h2>
-<p>The figure from the <a class="reference external" href="https://arxiv.org/pdf/2308.04098">paper</a> provides a helpful diagram for understanding the workflow.</p>
-<p><img alt="docking" src="../../_images/docking.png" /></p>
-<p>There are 6 key steps: 1. The experimental protein and ligand structures are determined and used to select pharmacores, or an important chemical group that will govern the chemical interactions. 2. Two labeled distance graphs (LAGs) of size <span class="math notranslate nohighlight">\(N\)</span> and <span class="math notranslate nohighlight">\(M\)</span> represent the protein and the ligand, respectively. Each node corresponds to a pharmacore and each edge weight corresponds to the distance between pharmacores. 3. A <span class="math notranslate nohighlight">\(M*N\)</span> node binding interaction graph (BIG) is created from the
-LAGs. Each node in the BIG graph corresponds to a pair of pharmacores, one from the ligand and the other from the protein. The existence of edges between nodes in the BIG graph are determined from the LAGs and correspond to interactions that can feesibly coexist. Therefore, cliques in the graph correspond to mutually possible interactions. 4. The problem is mapped to a QAOA circuit and corresponding Hamiltonian. From there, the ground state solution is determined. 5. The ground state will
-produce the maximum weighted clique which corresponds to the best (most strongly bound) orientation of the ligand and protein. 6. The predicted docking structure is interpreted from the QAOA result and is used for further analysis.</p>
+  <section id="Bernstein-Vazirani-Algorithm">
+<h1>Bernstein-Vazirani Algorithm<a class="headerlink" href="#Bernstein-Vazirani-Algorithm" title="Permalink to this heading">¶</a></h1>
+<p>The Bernstein-Vazirani (BV) algorithm demonstrates an exponential speedup over classical methods for the particular task:</p>
+<p>Suppose we have an oracle that implements the function <span class="math notranslate nohighlight">\(f: \{0,1\}^n \longrightarrow \{0,1\}\)</span>.</p>
+<p><span class="math notranslate nohighlight">\(f(x)\)</span> is promised to be the dot product between <span class="math notranslate nohighlight">\(x\)</span> and a secret <span class="math notranslate nohighlight">\(n\)</span>-bit binary string <span class="math notranslate nohighlight">\(s\)</span>:</p>
+<p><span class="math notranslate nohighlight">\(f(x) = x \cdot s (mod \space 2) = (x_1s_1 + x_2s_2 + ... + x_ns_n) (mod \space 2)\)</span>.</p>
+<p>Our goal is to find the secret string <span class="math notranslate nohighlight">\(s\)</span>.</p>
+<section id="Classical-case">
+<h2>Classical case<a class="headerlink" href="#Classical-case" title="Permalink to this heading">¶</a></h2>
+<p>For the case of <span class="math notranslate nohighlight">\(n=3\)</span> consider <span class="math notranslate nohighlight">\(s=101\)</span>, which is a secret string and hence we dont have access to it.</p>
+<p>We have access to the function: <span class="math notranslate nohighlight">\(f(x) = x\cdot s (mod \space 2) = (x_1s_1 + x_2s_2 + x_3s_3) (mod \space 2)\)</span></p>
+<p>Let us strategically query the function to determine <span class="math notranslate nohighlight">\(s\)</span>.</p>
+<p><span class="math notranslate nohighlight">\(1^{st}\)</span> query: <span class="math notranslate nohighlight">\(f(001) = 001 \cdot s (mod \space 2) = (0 \cdot 1 + 0 \cdot 0 + 1 \cdot 1)(mod \space 2) = 1 (mod \space 2) = 1\)</span></p>
+<p><span class="math notranslate nohighlight">\(2^{nd}\)</span> query: <span class="math notranslate nohighlight">\(f(010) = 010 \cdot s (mod \space 2) = (0 \cdot 1 + 1 \cdot 0 + 0 \cdot 1)(mod \space 2) = 0 (mod \space 2) = 0\)</span></p>
+<p><span class="math notranslate nohighlight">\(3^{rd}\)</span> query: <span class="math notranslate nohighlight">\(f(100) = 100 \cdot s (mod \space 2) = (1 \cdot 1 + 0 \cdot 0 + 0 \cdot 1)(mod \space 2) = 1 (mod \space 2) = 1\)</span></p>
+<p>Remember that from a user perspective, you only see <span class="math notranslate nohighlight">\(f(001) = 1\)</span> since the inner mechanisms of the oracle and the value of <span class="math notranslate nohighlight">\(s\)</span> is hidden from you.</p>
+<p>Why did we query <span class="math notranslate nohighlight">\(f(001)\)</span> and not <span class="math notranslate nohighlight">\(f(011)\)</span>?</p>
+<p>For <span class="math notranslate nohighlight">\(f(001) = (x_1s_1 + x_2s_2 + x_3s_3) (mod \space 2) = (0 + 0 + x_3s_3) (mod \space 2) = (x_3s_3) (mod \space 2) = 1 \cdot s_3 (mod \space 2) = s_3 (mod \space 2) = 1\)</span></p>
+<p>We have now isolated <span class="math notranslate nohighlight">\(s_3\)</span> and know that <span class="math notranslate nohighlight">\(s_3 (mod \space 2) = 1\)</span>. <span class="math notranslate nohighlight">\(s_3\)</span> can only be 0 or 1 and in this case it has to be <span class="math notranslate nohighlight">\(1\)</span> since <span class="math notranslate nohighlight">\(0 (mod \space 2) = 0\)</span>.</p>
+<p>For <span class="math notranslate nohighlight">\(f(011) = (x_2s_2 + x_3s_3) (mod \space 2)\)</span>, we will be left with <span class="math notranslate nohighlight">\(s_2\)</span> and <span class="math notranslate nohighlight">\(s_3\)</span> each of which will be more difficult to isolate via a combination of linear equations. Hence why we have to strategically query the function.</p>
+<p>In the classical case, we see that the secret string <span class="math notranslate nohighlight">\(s\)</span> can be calculated in 3 queries. More generally speaking, it would take <span class="math notranslate nohighlight">\(n\)</span> queries to generate enough information to determine <span class="math notranslate nohighlight">\(s\)</span></p>
 </section>
-<section id="CUDA-Q-Implementation">
-<h2>CUDA-Q Implementation<a class="headerlink" href="#CUDA-Q-Implementation" title="Permalink to this heading">¶</a></h2>
-<p>First, the appropriate libraries are imported and the <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> backend is selected to run on GPUs if available.</p>
+<section id="Quantum-case">
+<h2>Quantum case<a class="headerlink" href="#Quantum-case" title="Permalink to this heading">¶</a></h2>
+<p>The BV quantum algorithm can take advantage of superposition and entanglement to encode the problem and produce an answer with a single oracle (black box function) query. The setup is a register of <span class="math notranslate nohighlight">\(n\)</span> qubits in the <span class="math notranslate nohighlight">\(\ket{0}\)</span> state and a single auxiliary qubit in the <span class="math notranslate nohighlight">\(\ket{1}\)</span> state. The auxiliary qubit enables the phase kickback. Consider the register of <span class="math notranslate nohighlight">\(n\)</span> qubits initialized here:</p>
+<div class="math notranslate nohighlight">
+\[\ket{0}\]</div>
+<p>Application of a Hadamard gate to each qubit results in:</p>
+<div class="math notranslate nohighlight">
+\[H \ket{0}  = \frac{1}{\sqrt{2^n}}\sum_x^{n-1} \ket{x}\]</div>
+<p>Next, the oracle, <span class="math notranslate nohighlight">\(U_f\)</span>, performs maps <span class="math notranslate nohighlight">\(\ket{x}\)</span> to <span class="math notranslate nohighlight">\((-1)^{f(x)}\ket{x}\)</span> resulting in:</p>
+<div class="math notranslate nohighlight">
+\[U_f \frac{1}{\sqrt{2^n}}\sum_x^{n-1} \ket{x} = \frac{1}{\sqrt{2^n}}\sum_x^{n-1} (-1)^{f(x)}\ket{x} =\frac{1}{\sqrt{2^n}}\sum_x^{n-1} (-1)^{a*x}\ket{x}\]</div>
+<p>Applying Hadamard gates again returns the following state:</p>
+<div class="math notranslate nohighlight">
+\[H \frac{1}{\sqrt{2^n}}\sum_x^{n-1} (-1)^{a*x}\ket{x}  =  \frac{1}{\sqrt{2^n}}\sum_{x,y}^{n-1} (-1)^{a*x} (-1)^{y*x} \ket{y}  = \frac{1}{\sqrt{2^n}}\sum_{y}^{n-1} \sum_{x}^{n-1} (-1)^{(a \oplus y)*x}\ket{y}\]</div>
+<p>In the case of <span class="math notranslate nohighlight">\(a \neq y\)</span>, the entire term becomes zero. In the case of <span class="math notranslate nohighlight">\(a = y\)</span>, the state <span class="math notranslate nohighlight">\(\ket{a}\)</span> is returned with an amplitude of 1. This means there is a 100% chance of the measurement result being the hidden bitstring <span class="math notranslate nohighlight">\(a\)</span> with only one call to the oracle!</p>
+</section>
+<section id="Implementing-in-CUDA-Q">
+<h2>Implementing in CUDA-Q<a class="headerlink" href="#Implementing-in-CUDA-Q" title="Permalink to this heading">¶</a></h2>
+<p>The cell below generates a random bitstring of length <span class="math notranslate nohighlight">\(n\)</span>. If you are running this on your CPU, keep the qubit count small and increase to around 30 if you are running on a GPU with the <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> backend.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<br/></pre></div>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qpp-cpu&#39;</span><span class="p">)</span>
+<span class="c1">#cudaq.set_target(&#39;nvidia&#39;)  # GPU backend which enables scaling to large problem sizes</span>
+</pre></div>
 </div>
 </div>
-<p>The block below defines two of the BIG data sets from the paper. The first is a smaller example, but it can be swapped with the commented out example below at your discretion. The weights are specified for each node based on the nature of the ligand and protein pharmacores represented by the node.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The two graph inputs from the paper</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># Set to around 30 qubits if you have GPU access</span>
 
-<span class="c1"># BIG 1</span>
+<span class="n">secret_string</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+                 <span class="mi">0</span><span class="p">]</span>  <span class="c1"># Change the secret string to whatever you prefer</span>
 
-<span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
-<span class="n">qubit_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
-<span class="n">edges</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
-         <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]]</span>
-<span class="n">non_edges</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">nodes</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">nodes</span> <span class="k">if</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">v</span> <span class="ow">and</span> <span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">edges</span>
-<span class="p">]</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Edges: &#39;</span><span class="p">,</span> <span class="n">edges</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Non-Edges: &#39;</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span>
-
-<span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.6686</span><span class="p">,</span> <span class="mf">0.6686</span><span class="p">,</span> <span class="mf">0.6686</span><span class="p">,</span> <span class="mf">0.1453</span><span class="p">,</span> <span class="mf">0.1453</span><span class="p">,</span> <span class="mf">0.1453</span><span class="p">]</span>
-<span class="n">penalty</span> <span class="o">=</span> <span class="mf">6.0</span>
-<span class="n">num_layers</span> <span class="o">=</span> <span class="mi">3</span>
-
-<span class="c1"># BIG 2 (More expensive simulation)</span>
-<span class="c1">#nodes=[0,1,2,3,4,5,6,7]</span>
-<span class="c1">#qubit_num=len(nodes)</span>
-<span class="c1">#edges=[[0,1],[0,2],[0,5],[0,6],[0,7],[1,2],[1,4],[1,6],[1,7],[2,4],[2,5],[2,7],[3,4],[3,5],[3,6],\</span>
-<span class="c1">#    [4,5],[4,6],[5,6]]</span>
-<span class="c1">#non_edges=[[u,v] for u in nodes for v in nodes if u&lt;v and [u,v] not in edges]</span>
-<span class="c1">#print(&#39;Edges: &#39;, edges)</span>
-<span class="c1">#print(&#39;Non-edges: &#39;, non_edges)</span>
-<span class="c1">#weights=[0.6686,0.6686,0.6886,0.1091,0.0770,0.0770,0.0770,0.0770]</span>
-<span class="c1">#penalty=8.0</span>
-<span class="c1">#num_layers=8</span>
+<span class="k">assert</span> <span class="n">qubit_count</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">secret_string</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Edges:  [[0, 1], [0, 2], [0, 4], [0, 5], [1, 2], [1, 3], [1, 5], [2, 3], [2, 4], [3, 4], [3, 5], [4, 5]]
-Non-Edges:  [[0, 3], [1, 4], [2, 5]]
-</pre></div></div>
-</div>
-<p>Next, the Hamiltonian is constructed:</p>
-<div class="math notranslate nohighlight">
-\[H = \frac{1}{2}\sum_{i \in V}w_i(\sigma^z_i - 1) + \frac{P}{4} \sum_{(i,j) \notin E, i \neq j} (\sigma^z_i -1)(\sigma^z_j - 1)\]</div>
-<p>The first term concerns the vertices and the weights of the given pharmacores. The second term is a penalty term that penalizes edges of the graph with no interactions. The penalty <span class="math notranslate nohighlight">\(P\)</span> is set by the user and is defined as 6 in the cell above. The function below returns the Hamiltonian as a CUDA-Q <code class="docutils literal notranslate"><span class="pre">spin_op</span></code> object.</p>
+<p>Next, the oracle kernel is defined. This will be used inside of the primary BV kernel, so it needs to take both the main register and auxiliary qubit as inputs as well as the secret bitstring. The oracle loops through the bits and applies a CNOT on the auxiliary qubit if the register qubit is a 1.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the Hamiltonian</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">ham_clique</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">oracle</span><span class="p">(</span><span class="n">register</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">auxiliary_qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
+           <span class="n">secret_string</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 
-    <span class="n">spin_ham</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="k">for</span> <span class="n">wt</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">nodes</span><span class="p">):</span>
-        <span class="c1">#print(wt,node)</span>
-        <span class="n">spin_ham</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">wt</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-        <span class="n">spin_ham</span> <span class="o">-=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">wt</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">non_edge</span> <span class="ow">in</span> <span class="n">non_edges</span><span class="p">:</span>
-        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="p">(</span><span class="n">non_edge</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">non_edge</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="c1">#print(u,v)</span>
-        <span class="n">spin_ham</span> <span class="o">+=</span> <span class="n">penalty</span> <span class="o">/</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">-</span>
-                                     <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">spin_ham</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">secret_string</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">bit</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">register</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">auxiliary_qubit</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>The code below strips the Hamiltonian into a list of coefficients and corresponding Pauli words which can be passed into a quantum kernel.</p>
+<p>The code below performs the steps described above for the BV algorithm, calling the oracle kernel as needed. You can see the circuit created below and verify that the procedure guessed the correct bitstring.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">()))</span>
-    <span class="k">return</span> <span class="n">result</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bernstein_vazirani</span><span class="p">(</span><span class="n">secret_string</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 
-    <span class="c1"># Collect Pauli words from a spin operator so we can pass them to a kernel</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">secret_string</span><span class="p">))</span>  <span class="c1"># register of size n</span>
+    <span class="n">auxiliary_qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>  <span class="c1"># auxiliary qubit</span>
+
+    <span class="c1"># Prepare the auxillary qubit.</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">auxiliary_qubit</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">auxiliary_qubit</span><span class="p">)</span>
+
+    <span class="c1"># Place the rest of the register in a superposition state.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+    <span class="c1"># Query the oracle.</span>
+    <span class="n">oracle</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">auxiliary_qubit</span><span class="p">,</span> <span class="n">secret_string</span><span class="p">)</span>
+
+    <span class="c1"># Apply another set of Hadamards to the register.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>  <span class="c1"># measures only the main register</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="n">result</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">bernstein_vazirani</span><span class="p">,</span> <span class="n">secret_string</span><span class="p">))</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bernstein_vazirani</span><span class="p">,</span> <span class="n">secret_string</span><span class="p">)</span>
 
-
-<span class="n">ham</span> <span class="o">=</span> <span class="n">ham_clique</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
-
-<span class="n">coef</span> <span class="o">=</span> <span class="n">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
-<span class="n">words</span> <span class="o">=</span> <span class="n">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;secret bitstring = </span><span class="si">{</span><span class="n">secret_string</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;measured state = </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;Were we successful? </span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">secret_string</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -897,75 +884,30 @@ Non-Edges:  [[0, 3], [1, 4], [2, 5]]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[1.5+0j] IIZIIZ
-[1.5+0j] ZIIZII
-[-1.1657+0j] IZIIII
-[1.5+0j] IZIIZI
-[-1.42735+0j] IIIZII
-[3.2791499999999996+0j] IIIIII
-[-1.1657+0j] IIZIII
-[-1.42735+0j] IIIIIZ
-[-1.1657+0j] ZIIIII
-[-1.42735+0j] IIIIZI
+     ╭───╮          ╭───╮
+q0 : ┤ h ├───────●──┤ h ├──────────
+     ├───┤       │  ╰───╯╭───╮
+q1 : ┤ h ├───────┼────●──┤ h ├─────
+     ├───┤       │    │  ├───┤
+q2 : ┤ h ├───────┼────┼──┤ h ├─────
+     ├───┤       │    │  ╰───╯╭───╮
+q3 : ┤ h ├───────┼────┼────●──┤ h ├
+     ├───┤       │    │    │  ├───┤
+q4 : ┤ h ├───────┼────┼────┼──┤ h ├
+     ├───┤╭───╮╭─┴─╮╭─┴─╮╭─┴─╮╰───╯
+q5 : ┤ x ├┤ h ├┤ x ├┤ x ├┤ x ├─────
+     ╰───╯╰───╯╰───╯╰───╯╰───╯
 
-[(1.5+0j), (1.5+0j), (-1.1657+0j), (1.5+0j), (-1.42735+0j), (3.2791499999999996+0j), (-1.1657+0j), (-1.42735+0j), (-1.1657+0j), (-1.42735+0j)]
-[&#39;IIZIIZ&#39;, &#39;ZIIZII&#39;, &#39;IZIIII&#39;, &#39;IZIIZI&#39;, &#39;IIIZII&#39;, &#39;IIIIII&#39;, &#39;IIZIII&#39;, &#39;IIIIIZ&#39;, &#39;ZIIIII&#39;, &#39;IIIIZI&#39;]
+secret bitstring = [1, 1, 0, 1, 0]
+measured state = 11010
+Were we successful? True
 </pre></div></div>
 </div>
-<p>The kernel below defines a DC-QAOA circuit. What makes the approach “DC” is the inclusion of additional counteradiabatic terms to better drive the optimization to the ground state. These terms are digitized and applied as additional operations following each QAOA layer. The increase in parameters is hopefully offset by requiring fewer layers. In this example, the DC terms are the additional parameterized <span class="math notranslate nohighlight">\(Y\)</span> operations applied to each qubit. These can be commented out to run conventional
-QAOA.</p>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">dc_qaoa</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>\
-    <span class="n">coef</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span> <span class="n">words</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
-
-    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
-
-    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
-
-    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
-
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coef</span><span class="p">)):</span>
-            <span class="n">exp_pauli</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">*</span> <span class="n">coef</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">):</span>
-            <span class="n">rx</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="c1">#Comment out this for loop for conventional QAOA</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">):</span>
-            <span class="n">ry</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-</pre></div>
-</div>
-</div>
-<p>The classical optimizer for the QAOA procedure can be specified as one of the built-in CUDA-Q optimizers, in this case Nelder Mead. The parameter count is defined for DC-QAOA, but can be swapped with the commented line below for conventional QAOA.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Specify the optimizer and its initial parameters.</span>
-<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">NelderMead</span><span class="p">()</span>
-
-<span class="c1">#Specify random seeds</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
-
-<span class="c1"># if dc_qaoa used</span>
-<span class="n">parameter_count</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">qubit_num</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef</span><span class="p">))</span> <span class="o">*</span> <span class="n">num_layers</span>
-
-<span class="c1"># if qaoa used</span>
-<span class="c1"># parameter_count=(qubit_num+len(coef))*num_layers</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of parameters: &#39;</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
-<span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span>
-                                                 <span class="n">parameter_count</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial parameters = &quot;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -974,99 +916,8 @@ QAOA.</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Total number of parameters:  66
-Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.2546877639814583, 0.3657985647468064, 0.37118004688049144, -0.03656087558321203, 0.08564174998504231, 0.21639801853794682, 0.11122286088634259, 0.1743727097033635, -0.36518146001762486, -0.15829741539542244, -0.3467434780387345, 0.28043500852894776, -0.09986021299050934, 0.14125225086023052, -0.19141728018199775, -0.11970943368650361, -0.3853063093646483, -0.1112643868789806, 0.3527177454825464, -0.22156160012057186, -0.1418496891385843, 0.32811766468303116, -0.367642000671186, -0.34158180583996006, 0.10196745745501312, 0.29359239180502594, -0.3858537615546677, 0.19366130907065582, 0.24570488114056754, -0.3332307385378807, 0.12287973244618389, 0.007274514934614895, -0.015799547372526146, 0.3578070967202224, -0.39268963055535144, -0.19872246354138554, 0.16668715544467982, -0.13777293592446055, -0.17514665212709513, 0.15350249947988204, 0.32872977428061945, -0.20068831419712105, -0.032919322131134854, -0.19399909325771983, -0.09477141125241506, 0.08210460401106645, 0.21392577760158515, -0.3393568044538389, 0.14615087942938465, 0.03790339186006314, -0.2843250892879255, -0.3151384847055956, -0.19983741137121905, -0.27348611567665115, 0.33457528180906904, 0.14145414847455462, -0.20604220093940323, 0.05410235084309195, 0.04447870918600966, -0.3355714098595045, 0.266806440171265, -0.07436189654442632, -0.2789176729721685, -0.2427508182662484]
+CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum 176f1e7df8a58c2dc3d6b1b47bf7f63b4b8d3b63)
 </pre></div></div>
-</div>
-<p>A cost function is specified which computes the expectation value of the DC-QAOA circuit and the Hamiltonian using the <code class="docutils literal notranslate"><span class="pre">observe</span></code> function. Running the optimization returns the minimized expectation value and the optimal parameters.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cost_values</span> <span class="o">=</span> <span class="p">[]</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
-
-    <span class="n">cost</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">dc_qaoa</span><span class="p">,</span> <span class="n">ham</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span>
-                         <span class="n">words</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-    <span class="n">cost_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">cost</span>
-
-
-<span class="c1"># Optimize!</span>
-<span class="n">optimal_expectation</span><span class="p">,</span> <span class="n">optimal_parameters</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span>
-    <span class="n">dimensions</span><span class="o">=</span><span class="n">parameter_count</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">objective</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;optimal_expectation =&#39;</span><span class="p">,</span> <span class="n">optimal_expectation</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;optimal_parameters =&#39;</span><span class="p">,</span> <span class="n">optimal_parameters</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-optimal_expectation = -2.0057493966746804
-optimal_parameters = [2.0508763934174787, 0.013930789730781493, 0.5793211220774144, 0.878009560684498, 0.5277129177248182, 0.4404810513078178, 0.5755552245467919, 0.14125558672355468, 0.3724262117066903, 0.1318978057007808, -1.1228708513911436, 0.932342804955409, -0.8478237950658537, 0.46345886313018125, -0.5809397306340341, 0.2408342488137229, 0.11216088888484882, -0.009704173265255175, 0.4757346661223584, -0.7281211610985926, 0.06051951319169091, -0.7794512146826196, 0.09249435261907034, 0.09998378319110682, 1.255349350720572, 1.2607038244228248, 0.2060124032311757, 0.13991934581192997, 0.9874814082082164, -0.1591291464755939, 0.30815482837046393, -0.9701804681517978, -0.002609462845755913, 0.43533533568363353, 0.642630110681613, 0.6137063363954748, -0.7204687246344496, 0.08390768435524378, 0.5480630700433249, -0.38905723227347905, -0.6837811162838194, -0.17239016898719284, 0.1649341118754853, -0.46771209183422724, -0.008565327035838663, 1.982230359328883, -0.4232972687799105, 0.22765896988428905, 0.04207923928239914, -0.36758378917672285, -0.01825447063622079, -0.059755059728027485, -0.6849697218162497, 0.2711684382411018, -0.2904257415666667, -0.16359529445017368, -0.09168623367396612, 0.5786087806926155, -0.3476755367718726, 0.1209273564533628, 0.605136043801364, -0.19128215816141694, 0.16756583092588012, 1.0715488214105267, -0.5269641128095075, -0.3029128369198704]
-</pre></div></div>
-</div>
-<p>Sampling the circuit with the optimal parameters allows for the <code class="docutils literal notranslate"><span class="pre">most_probable</span></code> command to reveal the bitsting corresponding to the ideal graph partitioning solution. This indicates what sort of interactions are present in the ideal docking configuration</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">shots</span> <span class="o">=</span> <span class="mi">200000</span>
-
-<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">dc_qaoa</span><span class="p">,</span>
-                      <span class="n">qubit_num</span><span class="p">,</span>
-                      <span class="n">num_layers</span><span class="p">,</span>
-                      <span class="n">optimal_parameters</span><span class="p">,</span>
-                      <span class="n">coef</span><span class="p">,</span>
-                      <span class="n">words</span><span class="p">,</span>
-                      <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The MVWCP is given by the partition: &#39;</span><span class="p">,</span> <span class="n">counts</span><span class="o">.</span><span class="n">most_probable</span><span class="p">())</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-{ 110001:16 011100:4 111000:199979 011000:1 }
-
-The MVWCP is given by the partition:  111000
-</pre></div></div>
-</div>
-<p><img alt="dockin" class="no-scaled-link" src="../../_images/partition.png" style="width: 300px;" /></p>
-<p>The convergence of the optimization can be plotted below.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-
-<span class="n">x_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cost_values</span><span class="p">)))</span>
-<span class="n">y_values</span> <span class="o">=</span> <span class="n">cost_values</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_values</span><span class="p">,</span> <span class="n">y_values</span><span class="p">)</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Epochs&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Cost Value&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../_images/applications_python_digitized_counterdiabatic_QAOA_20_0.png" src="../../_images/applications_python_digitized_counterdiabatic_QAOA_20_0.png" />
-</div>
 </div>
 </section>
 </section>
@@ -1075,8 +926,8 @@ The MVWCP is given by the partition:  111000
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="QAOA.html" class="btn btn-neutral float-left" title="Max-Cut with QAOA" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Krylov.html" class="btn btn-neutral float-right" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="krylov.html" class="btn btn-neutral float-left" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
