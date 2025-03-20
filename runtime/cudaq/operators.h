@@ -465,6 +465,7 @@ public:
   std::vector<double> get_data_representation() const;
 
   // utility functions for backward compatibility
+  /// @cond
 
   SPIN_OPS_BACKWARD_COMPATIBILITY(
       "serialization format changed - use the constructor without a size_t "
@@ -507,6 +508,8 @@ public:
       "is_identity will no longer be supported on an entire sum_op, but will "
       "continue to be supported on each term")
   bool is_identity() const;
+
+  /// @endcond
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -899,11 +902,14 @@ public:
                    bool application_order = true) const;
 
   // utility functions for backward compatibility
+  /// @cond
 
   SPIN_OPS_BACKWARD_COMPATIBILITY(
       "use to_string(), get_term_id or get_pauli_word depending on your use "
       "case - see release notes for more detail")
   std::string to_string(bool printCoeffs) const;
+
+  /// @endcond
 };
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system
