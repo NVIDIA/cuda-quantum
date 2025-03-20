@@ -155,7 +155,8 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     const std::vector<std::string> keys{ks.begin(), ks.end()};
     for (auto &[coeff, term] :
          convertToCudensitymat(ham, parameters, modeExtents)) {
-      cudensitymatWrappedScalarCallback_t wrappedCallback = {nullptr, nullptr};
+      cudensitymatWrappedScalarCallback_t wrappedCallback =
+          cudensitymatScalarCallbackNone;
       if (coeff.is_constant()) {
         const auto coeffVal = coeff.evaluate();
         const auto leftCoeff = std::complex<double>(0.0, -1.0) * coeffVal;
@@ -189,8 +190,8 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     for (auto &collapseOperator : collapseOperators) {
       for (auto &[coeff, term] :
            computeLindbladTerms(collapseOperator, modeExtents, parameters)) {
-        cudensitymatWrappedScalarCallback_t wrappedCallback = {nullptr,
-                                                               nullptr};
+        cudensitymatWrappedScalarCallback_t wrappedCallback =
+            cudensitymatScalarCallbackNone;
         if (coeff.is_constant()) {
           const auto coeffVal = coeff.evaluate();
           HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
@@ -228,8 +229,8 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     const std::vector<int64_t> &modeExtents) {
   auto subspaceExtents = getSubspaceExtents(modeExtents, elemOp.degrees());
   std::unordered_map<int, int> dimensions = convertDimensions(modeExtents);
-  cudensitymatWrappedTensorCallback_t wrappedTensorCallback = {nullptr,
-                                                               nullptr};
+  cudensitymatWrappedTensorCallback_t wrappedTensorCallback =
+      cudensitymatTensorCallbackNone;
 
   static const std::vector<std::string> g_knownNonParametricOps = []() {
     std::vector<std::string> opNames;
@@ -356,7 +357,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
   HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
       m_handle, term, static_cast<int32_t>(elemOps.size()), elemOps.data(),
       allDegrees.data(), allModeActionDuality.data(),
-      make_cuDoubleComplex(1.0, 0.0), {nullptr, nullptr}));
+      make_cuDoubleComplex(1.0, 0.0), cudensitymatScalarCallbackNone));
   return term;
 }
 
@@ -379,7 +380,8 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
   const std::vector<std::string> keys{ks.begin(), ks.end()};
   for (auto &[coeff, term] :
        convertToCudensitymat(op, parameters, modeExtents)) {
-    cudensitymatWrappedScalarCallback_t wrappedCallback = {nullptr, nullptr};
+    cudensitymatWrappedScalarCallback_t wrappedCallback =
+        cudensitymatScalarCallbackNone;
 
     if (coeff.is_constant()) {
       const auto coeffVal = coeff.evaluate();
@@ -548,11 +550,11 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
   m_scalarCallbacks.push_back(ScalarCallBackContext(scalarOp, paramNames));
   ScalarCallBackContext *storedCallbackContext = &m_scalarCallbacks.back();
   using WrapperFuncType =
-      int32_t (*)(cudensitymatScalarCallback_t, double, int32_t, const double[],
-                  cudaDataType_t, void *);
+      int32_t (*)(cudensitymatScalarCallback_t, double, int64_t, int32_t,
+                  const double[], cudaDataType_t, void *);
 
   auto wrapper = [](cudensitymatScalarCallback_t callback, double time,
-                    int32_t numParams, const double params[],
+                    int64_t batchSize, int32_t numParams, const double params[],
                     cudaDataType_t dataType, void *scalarStorage) -> int32_t {
     try {
       ScalarCallBackContext *context =
@@ -588,6 +590,7 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
   cudensitymatWrappedScalarCallback_t wrappedCallback;
   wrappedCallback.callback =
       reinterpret_cast<cudensitymatScalarCallback_t>(storedCallbackContext);
+  wrappedCallback.device = CUDENSITYMAT_CALLBACK_DEVICE_CPU;
   wrappedCallback.wrapper =
       reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
   return wrappedCallback;
@@ -601,16 +604,16 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
   TensorCallBackContext *storedCallbackContext = &m_tensorCallbacks.back();
   using WrapperFuncType = int32_t (*)(
       cudensitymatTensorCallback_t, cudensitymatElementaryOperatorSparsity_t,
-      int32_t, const int64_t[], const int32_t[], double, int32_t,
+      int32_t, const int64_t[], const int32_t[], double, int64_t, int32_t,
       const double[], cudaDataType_t, void *, cudaStream_t);
 
   auto wrapper = [](cudensitymatTensorCallback_t callback,
                     cudensitymatElementaryOperatorSparsity_t sparsity,
                     int32_t num_modes, const int64_t modeExtents[],
                     const int32_t diagonal_offsets[], double time,
-                    int32_t num_params, const double params[],
-                    cudaDataType_t data_type, void *tensor_storage,
-                    cudaStream_t stream) -> int32_t {
+                    int64_t batchSize, int32_t num_params,
+                    const double params[], cudaDataType_t data_type,
+                    void *tensor_storage, cudaStream_t stream) -> int32_t {
     try {
       auto *context = reinterpret_cast<TensorCallBackContext *>(callback);
       matrix_handler &storedOp = context->tensorOp;
@@ -686,6 +689,7 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
   cudensitymatWrappedTensorCallback_t wrappedCallback;
   wrappedCallback.callback =
       reinterpret_cast<cudensitymatTensorCallback_t>(storedCallbackContext);
+  wrappedCallback.device = CUDENSITYMAT_CALLBACK_DEVICE_CPU;
   wrappedCallback.wrapper =
       reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
 

@@ -277,6 +277,7 @@ struct AllocaOpToIntRewrite : public OpConversionPattern<quake::AllocaOp> {
   }
 };
 
+template <typename M>
 struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -419,9 +420,25 @@ struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
       args.append(adaptor.getParameters().begin(),
                   adaptor.getParameters().end());
     }
-    args.append(adaptor.getQubits().begin(), adaptor.getQubits().end());
+    SmallVector<Value> qubits;
+    SmallVector<Value> converted;
+    Type qirArrTy = M::getArrayType(rewriter.getContext());
+    for (auto [qb, oa] : llvm::zip(adaptor.getQubits(), noise.getQubits())) {
+      if ((oa && isa<quake::VeqType>(oa.getType())) ||
+          (!oa && (qb.getType() == qirArrTy))) {
+        auto svec = rewriter.create<func::CallOp>(
+            loc, qirArrTy, cudaq::opt::QISConvertArrayToStdvec, ValueRange{qb});
+        qb = svec.getResult(0);
+        converted.push_back(qb);
+      }
+      qubits.push_back(qb);
+    }
+    args.append(qubits.begin(), qubits.end());
     rewriter.replaceOpWithNewOp<func::CallOp>(noise, TypeRange{},
                                               *noise.getNoiseFunc(), args);
+    for (auto v : converted)
+      rewriter.create<func::CallOp>(
+          loc, TypeRange{}, cudaq::opt::QISFreeConvertedStdvec, ValueRange{v});
     return success();
   }
 };
@@ -722,10 +739,10 @@ struct QmemRAIIOpRewrite : public OpConversionPattern<cudaq::codegen::RAIIOp> {
     // Cascade to set functionName.
     StringRef functionName;
     Type ptrTy;
-    if (isa<cudaq::cc::StateType>(eleTy)) {
+    if (isa<quake::StateType>(eleTy)) {
       functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
       ptrTy = cudaq::cc::PointerType::get(
-          cudaq::cc::StateType::get(rewriter.getContext()));
+          quake::StateType::get(rewriter.getContext()));
     } else if (eleTy == rewriter.getF64Type()) {
       if (fromComplex) {
         functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64;
@@ -1672,8 +1689,8 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<ApplyNoiseOpRewrite, GetMemberOpRewrite, MakeStruqOpRewrite,
-                  RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
+  patterns.insert<GetMemberOpRewrite, MakeStruqOpRewrite, RelaxSizeOpErase,
+                  VeqSizeOpRewrite>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1712,6 +1729,7 @@ struct FullQIR {
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
         MeasurementOpPattern<Self>, ResetOpPattern<Self>,
+        ApplyNoiseOpRewrite<Self>,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, quake::HOp>,
@@ -1778,7 +1796,7 @@ struct AnyProfileQIR {
 
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
-        ResetOpPattern<Self>,
+        ResetOpPattern<Self>, ApplyNoiseOpRewrite<Self>,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, quake::HOp>,
