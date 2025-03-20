@@ -108,6 +108,95 @@ int main() {
   auto driven_hamiltonian = H0 + mod_func * H1;
   // [End Hamiltonian]
 
+  // [Begin DefineOp]
+
+  auto displacement_matrix =
+      [](const std::vector<int> &dimensions,
+         const cudaq::parameter_map &parameters) -> cudaq::complex_matrix {
+    // Returns the displacement operator matrix.
+    //  Args:
+    //   - displacement: Amplitude of the displacement operator.
+    // See also https://en.wikipedia.org/wiki/Displacement_operator.
+    std::size_t dimension = dimensions[0];
+    auto entry = parameters.find("displacement");
+    if (entry == parameters.end())
+      throw std::runtime_error("missing value for parameter 'displacement'");
+    auto displacement_amplitude = entry->second;
+    auto create = cudaq::complex_matrix(dimension, dimension);
+    auto annihilate = cudaq::complex_matrix(dimension, dimension);
+    for (std::size_t i = 0; i + 1 < dimension; i++) {
+      create[{i + 1, i}] = std::sqrt(static_cast<double>(i + 1));
+      annihilate[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1));
+    }
+    auto term1 = displacement_amplitude * create;
+    auto term2 = std::conj(displacement_amplitude) * annihilate;
+    return (term1 - term2).exponential();
+  };
+
+  cudaq::matrix_handler::define("displace_op", {-1}, displacement_matrix);
+
+  // Instantiate a displacement operator acting on the given degree of freedom.
+  auto displacement = [](int degree) {
+    return cudaq::matrix_handler::instantiate("displace_op", {degree});
+  };
+  // [End DefineOp]
+
+  {
+    // [Begin Schedule1]
+
+    // Define a system consisting of a single degree of freedom (0) with
+    // dimension 3.
+    cudaq::dimension_map system_dimensions{{0, 3}};
+    auto system_operator = displacement(0);
+
+    // Define the time dependency of the system operator as a schedule that
+    // linearly increases the displacement parameter from 0 to 1.
+    cudaq::schedule time_dependence(cudaq::linspace(0, 1, 100),
+                                    {"displacement"});
+    const std::vector<std::complex<double>> state_vec(3, 1.0 / std::sqrt(3.0));
+    auto initial_state = cudaq::state::from_data(state_vec);
+    cudaq::integrators::runge_kutta integrator(4, 0.01);
+    // Simulate the evolution of the system under this time dependent operator.
+    cudaq::evolve(system_operator, system_dimensions, time_dependence,
+                  initial_state, integrator);
+    // [End Schedule1]
+  }
+  {
+    cudaq::dimension_map system_dimensions{{0, 3}};
+    cudaq::integrators::runge_kutta integrator(4, 0.1);
+    const std::vector<std::complex<double>> state_vec(3, 1.0 / std::sqrt(3.0));
+    auto initial_state = cudaq::state::from_data(state_vec);
+    // [Begin Schedule2]
+    auto system_operator = displacement(0) + cudaq::matrix_op::squeeze(0);
+
+    // Define a schedule such that displacement amplitude increases linearly in
+    // time but the squeezing amplitude decreases, that is follows the inverse
+    // schedule. def parameter_values(time_steps):
+    auto parameter_values = [](const std::vector<double> &time_steps) {
+      auto compute_value = [time_steps](const std::string &param_name,
+                                        const std::complex<double> &step) {
+        int step_idx = (int)step.real();
+        if (param_name == "displacement")
+          return time_steps[step_idx];
+        if (param_name == "squeezing")
+          return time_steps[time_steps.size() - (step_idx + 1)];
+
+        throw std::runtime_error("value for parameter " + param_name +
+                                 " undefined");
+      };
+
+      std::vector<std::complex<double>> steps;
+      for (int i = 0; i < time_steps.size(); ++i)
+        steps.emplace_back(i);
+      return cudaq::schedule(steps, {"displacement", "squeezing"},
+                             compute_value);
+    };
+
+    auto time_dependence = parameter_values(cudaq::linspace(0, 1, 100));
+    cudaq::evolve(system_operator, system_dimensions, time_dependence,
+                  initial_state, integrator);
+    // [End Schedule2]
+  }
   // Multi-qubit example
   int N = 4;
   double g = 1.0;
