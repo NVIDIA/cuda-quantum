@@ -96,7 +96,7 @@ int run_steps(int steps, int spins) {
   const double Jz = g;
   const double dt = 0.05;
   const int n_steps = steps;
-  const int n_spins = spins;
+  const std::size_t n_spins = spins;
   const double omega = 2 * M_PI;
   const auto heisenbergModelHam = [&](double t) -> cudaq::spin_op {
     cudaq::spin_op tdOp(n_spins);
