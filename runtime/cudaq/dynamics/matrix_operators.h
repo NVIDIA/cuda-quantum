@@ -44,17 +44,17 @@ private:
   static std::string type_prefix();
 
   virtual std::string
-  op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
+  op_code_to_string(std::unordered_map<std::size_t, int> &dimensions) const override;
 
 protected:
   std::string op_code;
   commutation_relations group;
   bool commutes;
-  std::vector<int> targets;
+  std::vector<std::size_t> targets;
 
-  matrix_handler(std::string operator_id, const std::vector<int> &degrees,
+  matrix_handler(std::string operator_id, const std::vector<std::size_t> &degrees,
                  const commutation_behavior &behavior = commutation_behavior());
-  matrix_handler(std::string operator_id, std::vector<int> &&degrees,
+  matrix_handler(std::string operator_id, std::vector<std::size_t> &&degrees,
                  const commutation_behavior &behavior = commutation_behavior());
 
 public:
@@ -101,7 +101,7 @@ public:
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
   static product_op<matrix_handler>
-  instantiate(std::string operator_id, const std::vector<int> &degrees,
+  instantiate(std::string operator_id, const std::vector<std::size_t> &degrees,
               const commutation_behavior &behavior = commutation_behavior());
 
   /// @brief Instantiates a custom operator.
@@ -109,7 +109,7 @@ public:
   /// defined.
   /// @arg degrees : the degrees of freedom that the operator acts upon.
   static product_op<matrix_handler>
-  instantiate(std::string operator_id, std::vector<int> &&degrees,
+  instantiate(std::string operator_id, std::vector<std::size_t> &&degrees,
               const commutation_behavior &behavior = commutation_behavior());
 
   // read-only properties
@@ -119,11 +119,11 @@ public:
 
   virtual std::string unique_id() const override;
 
-  virtual std::vector<int> degrees() const override;
+  virtual std::vector<std::size_t> degrees() const override;
 
   // constructors and destructors
 
-  matrix_handler(int target);
+  matrix_handler(std::size_t target);
 
   template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
                                          bool> = true>
@@ -161,7 +161,7 @@ public:
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<int, int> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, int> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 
@@ -175,13 +175,13 @@ public:
 
   // predefined operators
 
-  static product_op<matrix_handler> number(int degree);
-  static product_op<matrix_handler> parity(int degree);
-  static product_op<matrix_handler> position(int degree);
-  static product_op<matrix_handler> momentum(int degree);
+  static product_op<matrix_handler> number(std::size_t degree);
+  static product_op<matrix_handler> parity(std::size_t degree);
+  static product_op<matrix_handler> position(std::size_t degree);
+  static product_op<matrix_handler> momentum(std::size_t degree);
   /// Operators that accept parameters at runtime.
-  static product_op<matrix_handler> squeeze(int degree);
-  static product_op<matrix_handler> displace(int degree);
+  static product_op<matrix_handler> squeeze(std::size_t degree);
+  static product_op<matrix_handler> displace(std::size_t degree);
 };
 
 } // namespace cudaq

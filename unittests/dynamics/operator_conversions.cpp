@@ -14,7 +14,7 @@ TEST(OperatorExpressions, checkElementaryOpsConversions) {
 
   std::unordered_map<std::string, std::complex<double>> parameters = {
       {"squeezing", 0.5}, {"displacement", 0.25}};
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
 
   auto matrix_elementary = cudaq::matrix_op::parity(1);
   auto matrix_elementary_expected = utils::parity_matrix(2);
@@ -142,7 +142,7 @@ TEST(OperatorExpressions, checkProductOperatorConversions) {
 
   std::unordered_map<std::string, std::complex<double>> parameters = {
       {"squeezing", 0.5}, {"displacement", 0.25}};
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
   auto matrix_product =
       cudaq::matrix_op::squeeze(0) * cudaq::matrix_op::displace(1);
   auto matrix_product_expected = cudaq::kronecker(
@@ -272,7 +272,7 @@ TEST(OperatorExpressions, checkOperatorSumConversions) {
 
   std::unordered_map<std::string, std::complex<double>> parameters = {
       {"squeezing", 0.5}, {"displacement", 0.25}};
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
 
   auto matrix_product =
       cudaq::matrix_op::squeeze(0) * cudaq::matrix_op::displace(1);

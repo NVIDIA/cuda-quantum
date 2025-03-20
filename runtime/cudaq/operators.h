@@ -65,7 +65,7 @@ private:
   EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
 
 protected:
-  std::unordered_map<std::string, int>
+  std::unordered_map<std::string, std::size_t>
       term_map; // quick access to term index given its id (used for aggregating
                 // terms)
   std::vector<std::vector<HandlerTy>> terms;
@@ -73,8 +73,8 @@ protected:
   bool is_default = false;
 
   constexpr sum_op(bool is_default) : is_default(is_default){};
-  sum_op(const sum_op<HandlerTy> &other, bool is_default, int size);
-  sum_op(sum_op<HandlerTy> &&other, bool is_default, int size);
+  sum_op(const sum_op<HandlerTy> &other, bool is_default, std::size_t size);
+  sum_op(sum_op<HandlerTy> &&other, bool is_default, std::size_t size);
 
 public:
   // called const_iterator because it will *not* modify the sum,
@@ -83,9 +83,9 @@ public:
   private:
     const sum_op<HandlerTy> *sum;
     product_op<HandlerTy> current_val;
-    int current_idx;
+    std::size_t current_idx;
 
-    const_iterator(const sum_op<HandlerTy> *sum, int idx,
+    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx,
                    product_op<HandlerTy> &&value)
         : sum(sum), current_val(std::move(value)), current_idx(idx) {}
 
@@ -98,7 +98,7 @@ public:
 
     const_iterator(const sum_op<HandlerTy> *sum) : const_iterator(sum, 0) {}
 
-    const_iterator(const sum_op<HandlerTy> *sum, int idx)
+    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx)
         : sum(sum), current_val(1.), current_idx(idx) {
       if (current_idx < sum->num_terms())
         current_val = product_op<HandlerTy>(sum->coefficients[current_idx],
@@ -148,7 +148,7 @@ public:
   std::vector<std::size_t> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
-  int num_terms() const;
+  std::size_t num_terms() const;
 
   // constructors and destructors
 
@@ -157,7 +157,7 @@ public:
   // (neutral element for addition only), use sum_op<T>::empty().
   constexpr sum_op() : is_default(true){};
 
-  sum_op(int size);
+  sum_op(std::size_t size);
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
@@ -229,7 +229,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   complex_matrix
-  to_matrix(std::unordered_map<int, int> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, int> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {},
             bool application_order = true) const;
@@ -360,75 +360,75 @@ public:
 
   static sum_op<HandlerTy> empty();
   static product_op<HandlerTy> identity();
-  static product_op<HandlerTy> identity(int target);
+  static product_op<HandlerTy> identity(std::size_t target);
 
   // handler specific operators
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> number(int target);
+  static product_op<T> number(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> parity(int target);
+  static product_op<T> parity(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> position(int target);
+  static product_op<T> position(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> momentum(int target);
+  static product_op<T> momentum(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> squeeze(int target);
+  static product_op<T> squeeze(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> displace(int target);
+  static product_op<T> displace(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> i(int target);
+  static product_op<T> i(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> x(int target);
+  static product_op<T> x(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> y(int target);
+  static product_op<T> y(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> z(int target);
+  static product_op<T> z(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static sum_op<T> plus(int target);
+  static sum_op<T> plus(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static sum_op<T> minus(int target);
+  static sum_op<T> minus(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_op<T> create(int target);
+  static product_op<T> create(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_op<T> annihilate(int target);
+  static product_op<T> annihilate(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_op<T> number(int target);
+  static product_op<T> number(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static sum_op<T> position(int target);
+  static sum_op<T> position(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static sum_op<T> momentum(int target);
+  static sum_op<T> momentum(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_op<T> create(int target);
+  static product_op<T> create(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_op<T> annihilate(int target);
+  static product_op<T> annihilate(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_op<T> number(int target);
+  static product_op<T> number(std::size_t target);
 
   // general utility functions
 
   void dump() const;
 
-  std::vector<sum_op<HandlerTy>> distribute_terms(int numChunks) const;
+  std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
   // handler specific utility functions
 
@@ -442,7 +442,7 @@ public:
   static product_op<HandlerTy> from_word(const std::string &word);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static sum_op<HandlerTy> random(std::size_t nQubits, int nTerms,
+  static sum_op<HandlerTy> random(std::size_t nQubits, std::size_t nTerms,
                                   unsigned int seed = std::random_device{}());
 
   /// @brief Return the matrix representation of the operator.
@@ -456,7 +456,7 @@ public:
   /// complex values.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   csr_spmatrix
-  to_sparse_matrix(std::unordered_map<int, int> dimensions = {},
+  to_sparse_matrix(std::unordered_map<std::size_t, int> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters = {},
                    bool application_order = true) const;
@@ -556,12 +556,12 @@ protected:
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
   product_op(scalar_operator coefficient,
-             const std::vector<HandlerTy> &atomic_operators, int size = 0);
+             const std::vector<HandlerTy> &atomic_operators, std::size_t size = 0);
 
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
   product_op(scalar_operator coefficient,
-             std::vector<HandlerTy> &&atomic_operators, int size = 0);
+             std::vector<HandlerTy> &&atomic_operators, std::size_t size = 0);
 
 public:
   struct const_iterator {
@@ -675,10 +675,10 @@ public:
              const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
-  product_op(const product_op<HandlerTy> &other, int size = 0);
+  product_op(const product_op<HandlerTy> &other, std::size_t size = 0);
 
   // move constructor
-  product_op(product_op<HandlerTy> &&other, int size = 0);
+  product_op(product_op<HandlerTy> &&other, std::size_t size = 0);
 
   ~product_op() = default;
 
@@ -711,7 +711,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   complex_matrix
-  to_matrix(std::unordered_map<int, int> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, int> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {},
             bool application_order = true) const;
@@ -879,7 +879,7 @@ public:
   /// complex values.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   csr_spmatrix
-  to_sparse_matrix(std::unordered_map<int, int> dimensions = {},
+  to_sparse_matrix(std::unordered_map<std::size_t, int> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters = {},
                    bool application_order = true) const;
@@ -938,7 +938,7 @@ private:
 
 // type aliases for convenience
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
-typedef std::unordered_map<int, int> dimension_map;
+typedef std::unordered_map<std::size_t, int> dimension_map;
 typedef sum_op<matrix_handler> matrix_op;
 typedef product_op<matrix_handler> matrix_op_term;
 typedef sum_op<spin_handler> spin_op;

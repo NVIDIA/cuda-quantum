@@ -147,7 +147,7 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
 
 TEST(OperatorExpressions, checkCustomMatrixOps) {
   auto level_count = 2;
-  std::unordered_map<int, int> dimensions = {
+  cudaq::dimension_map dimensions = {
       {0, level_count + 1}, {1, level_count + 2}, {3, level_count}};
 
   {
@@ -449,7 +449,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   /// Keeping this fixed throughout.
   int level_count = 3;
-  std::unordered_map<int, int> dimensions = {{0, level_count},
+  cudaq::dimension_map dimensions = {{0, level_count},
                                              {1, level_count}};
 
   // Addition, same DOF.
@@ -714,7 +714,7 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
 TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
   auto op1 = cudaq::matrix_op::position(2);
   auto op2 = cudaq::matrix_op::momentum(0);
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
 
   {
     auto func0 =
@@ -773,7 +773,7 @@ TEST(OperatorExpressions, checkMatrixOpsParameterVerification) {
 
   std::unordered_map<std::string, std::complex<double>> parameters = {
       {"squeezing", 0.5}, {"displacement", 0.25}};
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
 
   auto squeeze = cudaq::matrix_op::squeeze(1);
   auto displace = cudaq::matrix_op::displace(0);

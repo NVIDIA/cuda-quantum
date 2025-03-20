@@ -123,7 +123,7 @@ void bindSpinOperator(py::module &mod) {
            "can be retrieved.")
       .def(
           "get_pauli_word",
-          [](cudaq::spin_op_term &op, int pad_identities) {
+          [](cudaq::spin_op_term &op, std::size_t pad_identities) {
             return op.get_pauli_word(pad_identities);
           },
           py::arg("pad_identities") = 0,
@@ -303,7 +303,7 @@ void bindSpinOperator(py::module &mod) {
       // FIXME: deprecate this one
       .def(py::init([]() { return cudaq::spin_op::identity(); }),
            "Empty constructor, creates the identity term.")
-      .def(py::init([](int size) { return cudaq::spin_op(size); }),
+      .def(py::init([](std::size_t size) { return cudaq::spin_op(size); }),
            "Empty constructor, creates a sum operator with no terms, reserving "
            "memory for the given number of terms.")
       // FIXME: deprecate name

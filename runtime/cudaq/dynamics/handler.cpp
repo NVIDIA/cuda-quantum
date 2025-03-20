@@ -59,7 +59,7 @@ commutation_relations operator_handler::custom_commutation_relations(uint id) {
 operator_handler::matrix_evaluation::matrix_evaluation() = default;
 
 operator_handler::matrix_evaluation::matrix_evaluation(
-    std::vector<int> &&degrees, complex_matrix &&matrix)
+    std::vector<std::size_t> &&degrees, complex_matrix &&matrix)
     : degrees(std::move(degrees)), matrix(std::move(matrix)) {
 #if !defined(NDEBUG)
   std::set<int> unique_degrees;

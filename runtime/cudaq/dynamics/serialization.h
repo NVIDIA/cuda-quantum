@@ -48,7 +48,7 @@ public:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
-    auto n_terms = (int)input_vec.back();
+    auto n_terms = (std::size_t)input_vec.back();
     auto nQubits = (input_vec.size() - 1 - 2 * n_terms) / n_terms;
     return spin_op(input_vec, nQubits);
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))

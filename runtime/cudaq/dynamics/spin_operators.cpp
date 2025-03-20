@@ -29,7 +29,7 @@ std::string spin_handler::op_code_to_string() const {
 }
 
 std::string spin_handler::op_code_to_string(
-    std::unordered_map<int, int> &dimensions) const {
+    std::unordered_map<std::size_t, int> &dimensions) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     dimensions[this->degree] = 2;
@@ -70,15 +70,15 @@ std::string spin_handler::unique_id() const {
   return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<int> spin_handler::degrees() const { return {this->degree}; }
+std::vector<std::size_t> spin_handler::degrees() const { return {this->degree}; }
 
-int spin_handler::target() const { return this->degree; }
+std::size_t spin_handler::target() const { return this->degree; }
 
 // constructors
 
-spin_handler::spin_handler(int target) : op_code(0), degree(target) {}
+spin_handler::spin_handler(std::size_t target) : op_code(0), degree(target) {}
 
-spin_handler::spin_handler(pauli p, int target) : op_code(0), degree(target) {
+spin_handler::spin_handler(pauli p, std::size_t target) : op_code(0), degree(target) {
   if (p == pauli::Z)
     this->op_code = 1;
   else if (p == pauli::X)
@@ -87,7 +87,7 @@ spin_handler::spin_handler(pauli p, int target) : op_code(0), degree(target) {
     this->op_code = 3;
 }
 
-spin_handler::spin_handler(int target, int op_id)
+spin_handler::spin_handler(std::size_t target, int op_id)
     : op_code(op_id), degree(target) {
   assert(0 <= op_id && op_id < 4);
 }
@@ -169,7 +169,7 @@ complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
 }
 
 complex_matrix spin_handler::to_matrix(
-    std::unordered_map<int, int> &dimensions,
+    std::unordered_map<std::size_t, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   auto it = dimensions.find(this->degree);
@@ -195,27 +195,27 @@ bool spin_handler::operator==(const spin_handler &other) const {
 
 // defined operators
 
-product_op<spin_handler> spin_handler::i(int degree) {
+product_op<spin_handler> spin_handler::i(std::size_t degree) {
   return product_op(spin_handler(degree));
 }
 
-product_op<spin_handler> spin_handler::z(int degree) {
+product_op<spin_handler> spin_handler::z(std::size_t degree) {
   return product_op(spin_handler(degree, 1));
 }
 
-product_op<spin_handler> spin_handler::x(int degree) {
+product_op<spin_handler> spin_handler::x(std::size_t degree) {
   return product_op(spin_handler(degree, 2));
 }
 
-product_op<spin_handler> spin_handler::y(int degree) {
+product_op<spin_handler> spin_handler::y(std::size_t degree) {
   return product_op(spin_handler(degree, 3));
 }
 
-sum_op<spin_handler> spin_handler::plus(int degree) {
+sum_op<spin_handler> spin_handler::plus(std::size_t degree) {
   return 0.5 * x(degree) + std::complex<double>(0., 0.5) * y(degree);
 }
 
-sum_op<spin_handler> spin_handler::minus(int degree) {
+sum_op<spin_handler> spin_handler::minus(std::size_t degree) {
   return 0.5 * x(degree) - std::complex<double>(0., 0.5) * y(degree);
 }
 

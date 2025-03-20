@@ -13,7 +13,7 @@
 using namespace cudaq::detail;
 
 TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {
-  std::vector<int> degrees = {0, 1};
+  std::vector<std::size_t> degrees = {0, 1};
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
@@ -23,7 +23,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {
 }
 
 TEST(OperatorHelpersTest, GenerateAllStates_ThreeQubits) {
-  std::vector<int> degrees = {0, 1, 2};
+  std::vector<std::size_t> degrees = {0, 1, 2};
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
@@ -34,7 +34,7 @@ TEST(OperatorHelpersTest, GenerateAllStates_ThreeQubits) {
 }
 
 TEST(OperatorHelpersTest, GenerateAllStates_EmptyDegrees) {
-  std::vector<int> degrees;
+  std::vector<std::size_t> degrees;
   cudaq::dimension_map dimensions;
 
   auto states = generate_all_states(degrees, dimensions);
@@ -49,7 +49,7 @@ TEST(OperatorHelpersTest, PermuteMatrix_SingleSwap) {
   matrix[{1, 1}] = 4;
 
   // Swap rows and columns
-  std::vector<int> permutation = {1, 0};
+  std::vector<std::size_t> permutation = {1, 0};
 
   permute_matrix(matrix, permutation);
 
@@ -75,7 +75,7 @@ TEST(OperatorHelpersTest, PermuteMatrix_IdentityPermutation) {
   matrix[{2, 2}] = 9;
 
   // No change
-  std::vector<int> permutation = {0, 1, 2};
+  std::vector<std::size_t> permutation = {0, 1, 2};
 
   permute_matrix(matrix, permutation);
 

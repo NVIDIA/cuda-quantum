@@ -62,7 +62,7 @@ void matrix_handler::define(std::string operator_id,
 
 product_op<matrix_handler>
 matrix_handler::instantiate(std::string operator_id,
-                            const std::vector<int> &degrees,
+                            const std::vector<std::size_t> &degrees,
                             const commutation_behavior &commutation_behavior) {
   auto it = matrix_handler::defined_ops.find(operator_id);
   if (it == matrix_handler::defined_ops.end())
@@ -84,7 +84,7 @@ matrix_handler::instantiate(std::string operator_id,
 }
 
 product_op<matrix_handler>
-matrix_handler::instantiate(std::string operator_id, std::vector<int> &&degrees,
+matrix_handler::instantiate(std::string operator_id, std::vector<std::size_t> &&degrees,
                             const commutation_behavior &commutation_behavior) {
   auto it = matrix_handler::defined_ops.find(operator_id);
   if (it == matrix_handler::defined_ops.end())
@@ -109,7 +109,7 @@ matrix_handler::instantiate(std::string operator_id, std::vector<int> &&degrees,
 // private helpers
 
 std::string matrix_handler::op_code_to_string(
-    std::unordered_map<int, int> &dimensions) const {
+    std::unordered_map<std::size_t, int> &dimensions) const {
   auto it = matrix_handler::defined_ops.find(this->op_code);
   assert(it != matrix_handler::defined_ops
                    .end()); // should be validated upon instantiation
@@ -143,11 +143,11 @@ std::string matrix_handler::unique_id() const {
   return std::move(str);
 }
 
-std::vector<int> matrix_handler::degrees() const { return this->targets; }
+std::vector<std::size_t> matrix_handler::degrees() const { return this->targets; }
 
 // constructors
 
-matrix_handler::matrix_handler(int degree)
+matrix_handler::matrix_handler(std::size_t degree)
     : op_code("I"), commutes(true),
       group(operator_handler::default_commutation_relations) {
   this->targets.push_back(degree);
@@ -170,7 +170,7 @@ matrix_handler::matrix_handler(int degree)
 }
 
 matrix_handler::matrix_handler(std::string operator_id,
-                               const std::vector<int> &degrees,
+                               const std::vector<std::size_t> &degrees,
                                const commutation_behavior &commutation_behavior)
     : op_code(operator_id),
       commutes(commutation_behavior.commutes_across_degrees),
@@ -193,7 +193,7 @@ matrix_handler::matrix_handler(std::string operator_id,
 }
 
 matrix_handler::matrix_handler(std::string operator_id,
-                               std::vector<int> &&degrees,
+                               std::vector<std::size_t> &&degrees,
                                const commutation_behavior &commutation_behavior)
     : op_code(operator_id),
       commutes(commutation_behavior.commutes_across_degrees),
@@ -234,7 +234,7 @@ matrix_handler::matrix_handler(const T &other,
     auto func = [other](const std::vector<int> &dimensions,
                         const std::unordered_map<std::string,
                                                  std::complex<double>> &_none) {
-      std::unordered_map<int, int> dims;
+      std::unordered_map<std::size_t, int> dims;
       auto targets = other.degrees();
       for (auto i = 0; i < dimensions.size(); ++i)
         dims[targets[i]] = dimensions[i];
@@ -305,7 +305,7 @@ matrix_handler::operator=(const fermion_handler &other);
 // evaluations
 
 complex_matrix matrix_handler::to_matrix(
-    std::unordered_map<int, int> &dimensions,
+    std::unordered_map<std::size_t, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   auto it = matrix_handler::defined_ops.find(this->op_code);
@@ -359,7 +359,7 @@ bool matrix_handler::operator==(const matrix_handler &other) const {
 
 // predefined operators
 
-product_op<matrix_handler> matrix_handler::number(int degree) {
+product_op<matrix_handler> matrix_handler::number(std::size_t degree) {
   std::string op_code = "number";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -379,7 +379,7 @@ product_op<matrix_handler> matrix_handler::number(int degree) {
   return product_op(std::move(op));
 }
 
-product_op<matrix_handler> matrix_handler::parity(int degree) {
+product_op<matrix_handler> matrix_handler::parity(std::size_t degree) {
   std::string op_code = "parity";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -399,7 +399,7 @@ product_op<matrix_handler> matrix_handler::parity(int degree) {
   return product_op(std::move(op));
 }
 
-product_op<matrix_handler> matrix_handler::position(int degree) {
+product_op<matrix_handler> matrix_handler::position(std::size_t degree) {
   std::string op_code = "position";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -421,7 +421,7 @@ product_op<matrix_handler> matrix_handler::position(int degree) {
   return product_op(std::move(op));
 }
 
-product_op<matrix_handler> matrix_handler::momentum(int degree) {
+product_op<matrix_handler> matrix_handler::momentum(std::size_t degree) {
   std::string op_code = "momentum";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -445,7 +445,7 @@ product_op<matrix_handler> matrix_handler::momentum(int degree) {
   return product_op(std::move(op));
 }
 
-product_op<matrix_handler> matrix_handler::displace(int degree) {
+product_op<matrix_handler> matrix_handler::displace(std::size_t degree) {
   std::string op_code = "displace";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -473,7 +473,7 @@ product_op<matrix_handler> matrix_handler::displace(int degree) {
   return product_op(std::move(op));
 }
 
-product_op<matrix_handler> matrix_handler::squeeze(int degree) {
+product_op<matrix_handler> matrix_handler::squeeze(std::size_t degree) {
   std::string op_code = "squeeze";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {

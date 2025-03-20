@@ -138,7 +138,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   auto spin_matrix =
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   ASSERT_TRUE(spin_sum.degrees() == want_degrees);
   utils::checkEqual(spin_matrix, spin_sum.to_matrix(dimensions));
@@ -1497,10 +1497,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
 TEST(OperatorExpressions, checkCustomOperatorSum) {
   auto level_count = 2;
-  std::unordered_map<int, int> dimensions = {{0, level_count + 1},
-                                             {1, level_count + 2},
-                                             {2, level_count},
-                                             {3, level_count + 3}};
+  cudaq::dimension_map dimensions = {{0, level_count + 1},
+                                     {1, level_count + 2},
+                                     {2, level_count},
+                                     {3, level_count + 3}};
 
   {
     auto func0 =

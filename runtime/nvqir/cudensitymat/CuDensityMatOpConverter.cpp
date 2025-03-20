@@ -14,10 +14,10 @@
 
 namespace {
 std::vector<int64_t> getSubspaceExtents(const std::vector<int64_t> &modeExtents,
-                                        const std::vector<int> &degrees) {
+                                        const std::vector<std::size_t> &degrees) {
   std::vector<int64_t> subspaceExtents;
 
-  for (int degree : degrees) {
+  for (std::size_t degree : degrees) {
     if (degree >= modeExtents.size())
       throw std::out_of_range("Degree exceeds modeExtents size.");
 
@@ -27,12 +27,12 @@ std::vector<int64_t> getSubspaceExtents(const std::vector<int64_t> &modeExtents,
   return subspaceExtents;
 }
 
-std::unordered_map<int, int>
+cudaq::dimension_map
 convertDimensions(const std::vector<int64_t> &modeExtents) {
 
-  std::unordered_map<int, int> dimensions;
+  cudaq::dimension_map dimensions;
   for (size_t i = 0; i < modeExtents.size(); ++i)
-    dimensions[static_cast<int>(i)] = static_cast<int>(modeExtents[i]);
+    dimensions[i] = static_cast<std::size_t>(modeExtents[i]);
 
   return dimensions;
 }
@@ -76,11 +76,11 @@ computeDagger(const cudaq::matrix_handler &op) {
     auto func = [op](const std::vector<int> &dimensions,
                      const std::unordered_map<std::string, std::complex<double>>
                          &params) {
-      std::unordered_map<int, int> dims;
+      cudaq::dimension_map dims;
       if (dimensions.size() != op.degrees().size())
         throw std::runtime_error("Dimension mismatched");
 
-      for (int i = 0; i < dimensions.size(); ++i) {
+      for (std::size_t i = 0; i < dimensions.size(); ++i) {
         dims[op.degrees()[i]] = dimensions[i];
       }
       auto originalMat = op.to_matrix(dims, params);
@@ -228,7 +228,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &modeExtents) {
   auto subspaceExtents = getSubspaceExtents(modeExtents, elemOp.degrees());
-  std::unordered_map<int, int> dimensions = convertDimensions(modeExtents);
+  cudaq::dimension_map dimensions = convertDimensions(modeExtents);
   cudensitymatWrappedTensorCallback_t wrappedTensorCallback =
       cudensitymatTensorCallbackNone;
 
@@ -298,7 +298,7 @@ cudensitymatOperatorTerm_t
 cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
     const std::vector<cudensitymatElementaryOperator_t> &elemOps,
     const std::vector<int64_t> &modeExtents,
-    const std::vector<std::vector<int>> &degrees,
+    const std::vector<std::vector<std::size_t>> &degrees,
     const std::vector<std::vector<int>> &dualModalities) {
 
   cudensitymatOperatorTerm_t term;
@@ -409,7 +409,7 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
 
   for (const auto &productOp : op) {
     std::vector<cudensitymatElementaryOperator_t> elemOps;
-    std::vector<std::vector<int>> allDegrees;
+    std::vector<std::vector<std::size_t>> allDegrees;
     for (const auto &component : productOp) {
       // No need to check type
       // just call to_matrix on it
@@ -450,7 +450,7 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
       {
         // L * rho * L_dag
         std::vector<cudensitymatElementaryOperator_t> elemOps;
-        std::vector<std::vector<int>> allDegrees;
+        std::vector<std::vector<std::size_t>> allDegrees;
         std::vector<std::vector<int>> all_action_dual_modalities;
 
         for (const auto &component : l_op) {
@@ -491,7 +491,7 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
       product_op<matrix_handler> L_daggerTimesL = -0.5 * ldag * l_op;
       {
         std::vector<cudensitymatElementaryOperator_t> elemOps;
-        std::vector<std::vector<int>> allDegrees;
+        std::vector<std::vector<std::size_t>> allDegrees;
         std::vector<std::vector<int>> all_action_dual_modalities_left;
         std::vector<std::vector<int>> all_action_dual_modalities_right;
         for (const auto &component : L_daggerTimesL) {
@@ -515,7 +515,7 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
           // For left side, we need to reverse the order
           std::vector<cudensitymatElementaryOperator_t> d2Ops(elemOps);
           std::reverse(d2Ops.begin(), d2Ops.end());
-          std::vector<std::vector<int>> d2Degrees(allDegrees);
+          std::vector<std::vector<std::size_t>> d2Degrees(allDegrees);
           std::reverse(d2Degrees.begin(), d2Degrees.end());
           cudensitymatOperatorTerm_t D2_term = createProductOperatorTerm(
               d2Ops, modeExtents, d2Degrees, all_action_dual_modalities_left);
@@ -637,8 +637,8 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
                      context->paramNames[i], param_map[context->paramNames[i]]);
       }
 
-      std::unordered_map<int, int> dimensions;
-      for (int i = 0; i < num_modes; ++i) {
+      cudaq::dimension_map dimensions;
+      for (std::size_t i = 0; i < num_modes; ++i) {
         dimensions[i] = static_cast<int>(modeExtents[i]);
       }
 
