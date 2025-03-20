@@ -99,12 +99,256 @@ static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *,
 static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
                          ModuleOp substMod, llvm::DataLayout &);
 
+/// Create callee.init_N that initializes the state
+///
+// clang-format off
+/// Callee (the kernel captured by state):
+/// func.func @callee(%arg0: i64) {
+///   %2 = quake.alloca !quake.veq<?>[%arg0 : i64]
+///   %3 = quake.extract_ref %2[1] : (!quake.veq<?>) -> !quake.ref
+///   quake.x %3 : (!quake.ref) -> ()
+///   return
+/// }
+///
+/// callee.init_N:
+/// func.func private @callee.init_0(%arg0: !quake.veq<?>, %arg0: i64) ->
+/// !!quake.veq<?> {
+///   %1 = quake.extract_ref %arg0[1] : (!quake.veq<2>) -> !quake.ref
+///   quake.x %1 : (f64, !quake.ref) -> ()
+///   return %arg0: !quake.veq<?>
+/// }
+// clang-format on
+static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
+                           func::FuncOp calleeFunc, StringRef initKernelName) {
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToEnd(moduleOp.getBody());
+
+  auto ctx = builder.getContext();
+  auto initFunc = cast<func::FuncOp>(builder.clone(*calleeFunc));
+  auto loc = initFunc.getLoc();
+
+  auto argTypes = calleeFunc.getArgumentTypes();
+  auto retTy = quake::VeqType::getUnsized(ctx);
+  auto funcTy = FunctionType::get(ctx, argTypes, TypeRange{retTy});
+
+  initFunc.setName(initKernelName);
+  initFunc.setType(funcTy);
+  initFunc.setPrivate();
+
+  OpBuilder newBuilder(ctx);
+
+  auto *entryBlock = &initFunc.getRegion().front();
+  newBuilder.setInsertionPointToStart(entryBlock);
+  Value zero = newBuilder.create<arith::ConstantIntOp>(loc, 0, 64);
+  Value one = newBuilder.create<arith::ConstantIntOp>(loc, 1, 64);
+  Value begin = zero;
+
+  auto argPos = initFunc.getArguments().size();
+
+  // Detect errors in kernel passed to get_state.
+  std::function<void(Block &)> processInner = [&](Block &block) {
+    for (auto &op : block) {
+      for (auto &region : op.getRegions())
+        for (auto &b : region)
+          processInner(b);
+
+      // Don't allow returns in inner scopes
+      if (auto retOp = dyn_cast<func::ReturnOp>(&op))
+        calleeFunc.emitError("Encountered return in inner scope in a kernel "
+                             "passed to get_state");
+    }
+  };
+
+  for (auto &op : calleeFunc.getRegion().front())
+    for (auto &region : op.getRegions())
+      for (auto &b : region)
+        processInner(b);
+
+  // Process outer block to initialize the allocation passed as an argument.
+  std::function<void(Block &)> process = [&](Block &block) {
+    SmallVector<Operation *> cleanUps;
+    Operation *replacedReturn = nullptr;
+
+    Value arg;
+    Value subArg;
+    Value blockBegin = begin;
+    Value blockAllocSize = zero;
+    for (auto &op : block) {
+      if (auto alloc = dyn_cast<quake::AllocaOp>(&op)) {
+        newBuilder.setInsertionPointAfter(alloc);
+
+        if (!arg) {
+          initFunc.insertArgument(argPos, retTy, {}, loc);
+          arg = initFunc.getArgument(argPos);
+        }
+
+        auto allocSize = alloc.getSize();
+        if (!allocSize)
+          allocSize = newBuilder.create<arith::ConstantIntOp>(
+              loc, quake::getAllocationSize(alloc.getType()), 64);
+
+        auto offset = newBuilder.create<arith::SubIOp>(loc, allocSize, one);
+        subArg =
+            newBuilder.create<quake::SubVeqOp>(loc, retTy, arg, begin, offset);
+        alloc.replaceAllUsesWith(subArg);
+        cleanUps.push_back(alloc);
+        begin = newBuilder.create<arith::AddIOp>(loc, begin, allocSize);
+        blockAllocSize =
+            newBuilder.create<arith::AddIOp>(loc, blockAllocSize, allocSize);
+      }
+
+      if (auto retOp = dyn_cast<func::ReturnOp>(&op)) {
+        if (retOp != replacedReturn) {
+          newBuilder.setInsertionPointAfter(retOp);
+
+          auto offset =
+              newBuilder.create<arith::SubIOp>(loc, blockAllocSize, one);
+          Value ret = newBuilder.create<quake::SubVeqOp>(loc, retTy, arg,
+                                                         blockBegin, offset);
+
+          assert(arg && "No veq allocations found");
+          replacedReturn = newBuilder.create<func::ReturnOp>(loc, ret);
+          cleanUps.push_back(retOp);
+        }
+      }
+    }
+
+    for (auto &op : cleanUps) {
+      op->dropAllReferences();
+      op->dropAllUses();
+      op->erase();
+    }
+  };
+
+  // Process the function body
+  process(initFunc.getRegion().front());
+}
+
+/// Create callee.num_qubits_N that calculates the number of qubits to
+/// initialize the state
+///
+// clang-format off
+/// Callee: (the kernel captured by state):
+/// func.func @callee(%arg0: i64) {
+///   %2 = quake.alloca !quake.veq<?>[%arg0 : i64]
+///   %3 = quake.extract_ref %2[1] : (!quake.veq<?>) -> !quake.ref
+///   quake.x %3 : (!quake.ref) -> ()
+///   return
+/// }
+///
+/// callee.num_qubits_0:
+/// func.func private @callee.num_qubits_0(%arg0: i64) -> i64 {
+///   return %arg0 : i64
+/// }
+// clang-format on
+static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
+                                func::FuncOp calleeFunc,
+                                StringRef numQubitsKernelName) {
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToEnd(moduleOp.getBody());
+
+  auto ctx = builder.getContext();
+  auto numQubitsFunc = cast<func::FuncOp>(builder.clone(*calleeFunc));
+  auto loc = numQubitsFunc.getLoc();
+
+  auto argTypes = calleeFunc.getArgumentTypes();
+  auto retType = builder.getI64Type();
+  auto funcTy = FunctionType::get(ctx, argTypes, TypeRange{retType});
+
+  numQubitsFunc.setName(numQubitsKernelName);
+  numQubitsFunc.setType(funcTy);
+  numQubitsFunc.setPrivate();
+
+  OpBuilder newBuilder(ctx);
+
+  auto *entryBlock = &numQubitsFunc.getRegion().front();
+  newBuilder.setInsertionPointToStart(entryBlock);
+  Value size = newBuilder.create<arith::ConstantIntOp>(loc, 0, retType);
+
+  // Process block recursively to calculate and return allocation size
+  // and remove everything else.
+  std::function<void(Block &)> process = [&](Block &block) {
+    SmallVector<Operation *> used;
+    Operation *replacedReturn = nullptr;
+
+    for (auto &op : block) {
+      // Calculate allocation size (existing allocation size plus new one)
+      if (auto alloc = dyn_cast<quake::AllocaOp>(&op)) {
+        auto allocSize = alloc.getSize();
+        if (!allocSize)
+          allocSize = newBuilder.create<arith::ConstantIntOp>(
+              loc, quake::getAllocationSize(alloc.getType()), 64);
+        newBuilder.setInsertionPointAfter(alloc);
+        size = newBuilder.create<arith::AddIOp>(loc, size, allocSize);
+      }
+
+      // Return allocation size
+      if (auto retOp = dyn_cast<func::ReturnOp>(&op)) {
+        if (retOp != replacedReturn) {
+
+          newBuilder.setInsertionPointAfter(retOp);
+          auto newRet = newBuilder.create<func::ReturnOp>(loc, size);
+          replacedReturn = newRet;
+          used.push_back(newRet);
+        }
+      }
+    }
+
+    // Collect all ops needed for size calculation
+    SmallVector<Operation *> keep;
+    while (!used.empty()) {
+      auto *op = used.pop_back_val();
+      if (std::find(keep.begin(), keep.end(), op) != keep.end())
+        continue;
+
+      keep.push_back(op);
+
+      // Collect ops creating operands used in ops we already collected
+      for (auto opnd : op->getOperands())
+        if (auto defOp = opnd.getDefiningOp())
+          used.push_back(defOp);
+
+      // Collect ops that store into memory used in ops we already collected.
+      for (auto user : op->getUsers())
+        if (auto iface = dyn_cast<MemoryEffectOpInterface>(user))
+          if (iface.hasEffect<MemoryEffects::Write>() &&
+              !iface.hasEffect<MemoryEffects::Allocate>())
+            used.push_back(user);
+    }
+
+    // Remove the rest of the ops
+    SmallVector<Operation *> toErase;
+    for (auto &op : block)
+      if (std::find(keep.begin(), keep.end(), &op) == keep.end())
+        toErase.push_back(&op);
+
+    for (auto &op : toErase) {
+      op->dropAllReferences();
+      op->dropAllUses();
+      op->erase();
+    }
+  };
+
+  // Process the function body
+  process(numQubitsFunc.getRegion().front());
+}
+
 static Value genConstant(OpBuilder &builder, const cudaq::state *v,
-                         ModuleOp substMod, llvm::DataLayout &layout,
-                         llvm::StringRef kernelName, bool isSimulator) {
-  if (isSimulator) {
-    // The program is executed remotely, materialize the simulation data
-    // into an array and create a new state from it.
+                         llvm::DataLayout &layout, StringRef kernelName,
+                         ModuleOp substMod,
+                         cudaq::opt::ArgumentConverter &converter) {
+  auto simState =
+      cudaq::state_helper::getSimulationState(const_cast<cudaq::state *>(v));
+
+  // If the state has amplitude data, we materialize the data as a state
+  // vector and create a new state from it.
+  if (simState->hasData()) {
+    // The call below might cause lazy execution of the state kernel.
+    // TODO: For lazy execution scenario on remote simulators, we have the
+    // kernel info available on the state as well, before we needed to run
+    // the state kernel and compute its data, which might cause significant
+    // data transfer). Investigate if it is more performant to use the other
+    // synthesis option in that case (see the next `if`).
     auto numQubits = v->get_num_qubits();
 
     // We currently only synthesize small states.
@@ -146,9 +390,145 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     return builder.create<quake::CreateStateOp>(loc, statePtrTy, buffer,
                                                 arrSize);
   }
-  // The program is executed on quantum hardware, state data is not
-  // available and needs to be regenerated.
-  TODO("cudaq::state* argument synthesis for quantum hardware");
+  // Otherwise (ie quantum hardware, where getting the amplitude data is not
+  // efficient) we aim at replacing states with calls to kernels (`callees`)
+  // that generated them. This is done in three stages:
+  //
+  // 1) (done here) Generate @callee.num_qubits_0 @callee.init_0` for the callee
+  //    function and its arguments stored in a state.
+
+  //    Create two functions:
+  //      - callee.num_qubits_N
+  //        Calculates the number of qubits needed for the veq allocation
+  //      - callee.init_N
+  //        Initializes the veq passed as a parameter
+  //
+  // 2) (done here) Replace the state with
+  //   `quake.get_state @callee.num_qubits_0 @callee.init_0`:
+  //
+  // clang-format off
+  // ```
+  // func.func @caller(%arg0: !cc.ptr<!quake.state>) {
+  //   %1 = quake.get_number_of_qubits %arg0: (!cc.ptr<!quake.state>) -> i64
+  //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
+  //   %3 = quake.init_state %2, %arg0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+  //   return
+  // }
+  //
+  // func.func private @callee(%arg0: i64) {
+  //   %0 = quake.alloca !quake.veq<?>[%arg0 : i64]
+  //   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  //   quake.x %1 : (!quake.ref) -> ()
+  //   return
+  // }
+  //
+  // Call from the user host code:
+  // state = cudaq.get_state(callee, 2)
+  // counts = cudaq.sample(caller, state)
+  // ```
+  // clang-format on
+  //
+  // => after argument synthesis:
+  //
+  // clang-format off
+  // ```
+  // func.func @caller() {
+  //   %0 = quake.get_state @callee.num_qubits_0 @callee.init_state_0 : !cc.ptr<!quake.state>
+  //   %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!quake.state>) -> i64
+  //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
+  //   %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+  //   return
+  // }
+  //
+  // func.func private @callee.num_qubits_0(%arg0: i64) -> i64 {
+  //   return %arg0 : i64
+  // }
+  //
+  // func.func private @callee.init_0(%arg0: i64, %arg1: !quake.veq<?>) {
+  //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
+  //   quake.x %1 : (f64, !quake.ref) -> ()
+  //   return
+  // }
+  // ```
+  // clang-format on
+  //
+  // 3) (done in ReplaceStateWithKernel) Replace the `quake.get_state` and ops
+  // that use its state with calls to the generated functions, synthesized with
+  // the arguments used to create the original state:
+  //
+  // After ReplaceStateWithKernel pass:
+  //
+  // clang-format off
+   // ```
+   // func.func @caller() {
+   //   %1 = call callee.num_qubits_0() : () -> i64
+   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
+   //   %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
+   // }
+   //
+   // func.func private @callee.num_qubits_0() -> i64 {
+   //   %cst = arith.constant 2 : i64
+   //   return %cst : i64
+   // }
+   //
+   // func.func private @callee.init_0(%arg0: !quake.veq<?>): !quake.veq<?> {
+   //   %cst = arith.constant 1.5707963267948966 : f64
+   //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
+   //   quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
+   //   return %arg0
+   // }
+   // ```
+  // clang-format on
+
+  if (simState->getKernelInfo().has_value()) {
+    auto [calleeName, calleeArgs] = simState->getKernelInfo().value();
+
+    std::string calleeKernelName =
+        cudaq::runtime::cudaqGenPrefixName + calleeName;
+
+    auto ctx = builder.getContext();
+    auto loc = builder.getUnknownLoc();
+
+    auto code = cudaq::get_quake_by_name(calleeName, /*throwException=*/false);
+    assert(!code.empty() && "Quake code not found for callee");
+    auto fromModule = parseSourceString<ModuleOp>(code, ctx);
+
+    auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
+    assert(calleeFunc && "callee func is missing");
+
+    // Use the state pointer as hash to look up the function name
+    // that was created using the same hash in StateAggregator.
+    auto hash = std::to_string(reinterpret_cast<std::size_t>(v));
+    auto initName = calleeName + ".init_" + hash;
+    auto numQubitsName = calleeName + ".num_qubits_" + hash;
+    auto initKernelName = cudaq::runtime::cudaqGenPrefixName + initName;
+    auto numQubitsKernelName =
+        cudaq::runtime::cudaqGenPrefixName + numQubitsName;
+
+    // Create `callee.init_N` and `callee.num_qubits_N` used to replace
+    // `quake.materialize_state` in ReplaceStateWithKernel pass
+    if (!converter.isRegisteredKernel(initName) ||
+        !converter.isRegisteredKernel(numQubitsName)) {
+      createInitFunc(builder, substMod, calleeFunc, initKernelName);
+      createNumQubitsFunc(builder, substMod, calleeFunc, numQubitsKernelName);
+
+      // Convert arguments for `callee.init_N`.
+      auto registeredInitName = converter.registerKernel(initName);
+      converter.gen(registeredInitName, substMod, calleeArgs);
+
+      // Convert arguments for `callee.num_qubits_N`.
+      auto registeredNumQubitsName = converter.registerKernel(numQubitsName);
+      converter.gen(registeredNumQubitsName, substMod, calleeArgs);
+    }
+
+    // Create a substitution for the state pointer.
+    auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(ctx));
+    return builder.create<quake::MaterializeStateOp>(
+        loc, statePtrTy, builder.getStringAttr(numQubitsKernelName),
+        builder.getStringAttr(initKernelName));
+  }
+
+  TODO("cudaq::state* argument synthesis for quantum hardware for c functions");
   return {};
 }
 
@@ -322,19 +702,29 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
 //===----------------------------------------------------------------------===//
 
 cudaq::opt::ArgumentConverter::ArgumentConverter(StringRef kernelName,
-                                                 ModuleOp sourceModule,
-                                                 bool isSimulator)
-    : sourceModule(sourceModule), builder(sourceModule.getContext()),
-      kernelName(kernelName), isSimulator(isSimulator) {
-  substModule = builder.create<ModuleOp>(builder.getUnknownLoc());
-}
+                                                 ModuleOp sourceModule)
+    : sourceModule(sourceModule), kernelName(kernelName) {}
 
 void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
-  auto *ctx = builder.getContext();
-  // We should look up the input type signature here.
+  gen(kernelName, sourceModule, arguments);
+}
 
+void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
+                                        ModuleOp sourceModule,
+                                        const std::vector<void *> &arguments) {
+  auto *ctx = sourceModule.getContext();
+  OpBuilder builder(ctx);
+  ModuleOp substModule =
+      builder.create<mlir::ModuleOp>(builder.getUnknownLoc());
+  auto *kernelInfo = addKernelInfo(kernelName, substModule);
+
+  // We should look up the input type signature here.
   auto fun = sourceModule.lookupSymbol<func::FuncOp>(
       cudaq::runtime::cudaqGenPrefixName + kernelName.str());
+  if (!fun)
+    throw std::runtime_error("missing fun in argument conversion: " +
+                             kernelName.str());
+
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :
        llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
@@ -402,8 +792,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
               if (ptrTy.getElementType() == quake::StateType::get(ctx))
                 return buildSubst(static_cast<const state *>(argPtr),
-                                  substModule, dataLayout, kernelName,
-                                  isSimulator);
+                                  dataLayout, kernelName, substModule, *this);
               return {};
             })
             .Case([&](cc::StdvecType ty) {
@@ -421,7 +810,7 @@ void cudaq::opt::ArgumentConverter::gen(const std::vector<void *> &arguments) {
             })
             .Default({});
     if (subst)
-      substitutions.emplace_back(std::move(subst));
+      kernelInfo->getSubstitutions().emplace_back(std::move(subst));
   }
 }
 

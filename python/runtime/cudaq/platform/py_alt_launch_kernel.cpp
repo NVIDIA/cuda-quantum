@@ -99,10 +99,10 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
         SmallVector<StringRef>(names.begin(), names.end())));
+    pm.addPass(cudaq::opt::createLambdaLiftingPass());
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
-    pm.addPass(cudaq::opt::createLambdaLiftingPass());
     pm.addPass(createSymbolDCEPass());
     cudaq::opt::addPipelineConvertToQIR(pm);
 
@@ -267,9 +267,14 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   std::string properName = name;
 
+  auto &platform = cudaq::get_platform();
   // If we have any state vector data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, stateData] : *stateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
+
     if (stateData.kernelName != name)
       continue;
 
@@ -297,6 +302,10 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   // If we have any cudaq state data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, stateData] : *cudaqStateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
+
     if (stateData.kernelName != name)
       continue;
 
@@ -335,9 +344,9 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   kernelReg();
 
   if (launch) {
-    auto &platform = cudaq::get_platform();
     auto uReturnOffset = static_cast<std::uint64_t>(returnOffset);
-    if (platform.is_remote() || platform.is_emulated()) {
+    if (platform.get_remote_capabilities().isRemoteSimulator) {
+      // Remote simulator - use altLaunchKernel to support returning values.
       auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
       auto dynamicResult = cudaq::altLaunchKernel(
           name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
@@ -345,7 +354,15 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
       if (dynamicResult.data_buffer || dynamicResult.size)
         throw std::runtime_error("not implemented: support dynamic results");
       delete wrapper;
+    } else if (platform.is_remote() || platform.is_emulated()) {
+      // Quantum devices or their emulation - we can use streamlinedLaunchKernel
+      // as quantum platform do not support direct returns.
+      auto dynamicResult =
+          cudaq::streamlinedLaunchKernel(name.c_str(), runtimeArgs.getArgs());
+      if (dynamicResult.data_buffer || dynamicResult.size)
+        throw std::runtime_error("not implemented: support dynamic results");
     } else {
+      // Local simulator - use altLaunchKernel with the thunk function
       auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
                                                   size, uReturnOffset);
       if (dynamicResult.data_buffer || dynamicResult.size)
@@ -363,6 +380,7 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
       jitAndCreateArgs(name, module, runtimeArgs, {},
                        mlir::NoneType::get(unwrap(module).getContext()));
 
+  auto &platform = cudaq::get_platform();
   auto thunkName = name + ".thunk";
   auto thunkPtr = jit->lookup(thunkName);
   if (!thunkPtr)
@@ -371,6 +389,10 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
   // If we have any state vector data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, svdata] : *stateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
+
     if (svdata.kernelName != name)
       continue;
     auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
@@ -388,6 +410,30 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
     auto setStateFunc =
         reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
     setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+  }
+
+  // If we have any cudaq state data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, stateData] : *cudaqStateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
+
+    if (stateData.kernelName != name)
+      continue;
+
+    auto setStateFPtr = jit->lookup("nvqpp.set.cudaq.state." + stateHash);
+    if (auto error = setStateFPtr.takeError()) {
+      auto message = "python alt_launch_kernel failed to get set cudaq state "
+                     "function for kernel: " +
+                     name;
+      llvm::logAllUnhandledErrors(std::move(error), llvm::errs(), message);
+      throw std::runtime_error(message);
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(cudaq::state *)>(*setStateFPtr);
+    setStateFunc(&stateData.data);
   }
 
   // Need to first invoke the init_func()
@@ -543,18 +589,33 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
   auto isSimulator = isLocalSimulator || isRemoteSimulator;
 
-  cudaq::opt::ArgumentConverter argCon(name, unwrap(module), isSimulator);
+  cudaq::opt::ArgumentConverter argCon(name, unwrap(module));
   argCon.gen(runtimeArgs.getArgs());
-  std::string kernName = cudaq::runtime::cudaqGenPrefixName + name;
-  SmallVector<StringRef> kernels = {kernName};
-  std::string substBuff;
-  llvm::raw_string_ostream ss(substBuff);
-  ss << argCon.getSubstitutionModule();
-  SmallVector<StringRef> substs = {substBuff};
+
+  // Store kernel and substitution strings on the stack.
+  // We pass string references to the `createArgumentSynthesisPass`.
+  mlir::SmallVector<std::string> kernels;
+  mlir::SmallVector<std::string> substs;
+  for (auto *kInfo : argCon.getKernelSubstitutions()) {
+    std::string kernName =
+        cudaq::runtime::cudaqGenPrefixName + kInfo->getKernelName().str();
+    kernels.emplace_back(kernName);
+    std::string substBuff;
+    llvm::raw_string_ostream ss(substBuff);
+    ss << kInfo->getSubstitutionModule();
+    substs.emplace_back(substBuff);
+  }
+
+  // Collect references for the argument synthesis.
+  mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(), kernels.end()};
+  mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(), substs.end()};
+
   PassManager pm(context);
-  pm.addPass(opt::createArgumentSynthesisPass(kernels, substs));
+  pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(opt::createDeleteStates());
+  pm.addNestedPass<mlir::func::FuncOp>(opt::createReplaceStateWithKernel());
+  pm.addPass(mlir::createSymbolDCEPass());
 
   // Run state preparation for quantum devices (or their emulation) only.
   // Simulators have direct implementation of state initialization
