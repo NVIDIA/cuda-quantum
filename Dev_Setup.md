@@ -3,6 +3,34 @@
 This document contains a guide for how to set up your development environment if
 you want to contribute to the code in this repository.
 
+## Using Nix Flakes (experimental)
+
+This repository defines a Nix flake which will allow you to quickly bootstrap a development environment on any Linux system (OS X unsupported as of the time of writing). Unlike Docker containers, you will not need to build a container and spin it up, you can develop directly on your linux host. And unlike manually managing dependencies, Nix will (mostly) hermetically manage all the dependencies for you. All you **need** to install, ever, is Nix itself.
+
+To setup using nix flakes, you will first have to install [Nix multi-user](https://nixos.org/download/), if you haven't done so already:
+
+```
+sh <(curl -L https://nixos.org/nix/install) --daemon
+```
+
+You can now trigger `nix develop` from the root of the repository and use the development shell. You will have to [enable flakes](https://wiki.nixos.org/wiki/Flakes) if you stop here. However, we recommend installing direnv, to enable nix development shell drop-in as soon as you cd into the repo. This should be available with your favorite package manager, e.g.
+```
+sudo apt-get install direnv
+```
+You will also have to add a direnv hook to your shell config, e.g. `~/.bashrc`
+```
+eval "$(direnv hook bash)"
+```
+Refer to `direnv` install instructions for more help:
+* [Installation](https://direnv.net/docs/installation.html)
+* [Hook](https://direnv.net/docs/hook.html)
+
+Once you have both nix and direnv installed, you will have to `direnv allow` in the repo root as a one-time step to allow direnv to trigger `nix develop` for you.
+
+At this experimental stage of Nix support, you will have to run `scripts/install_prerequisites.sh` as a one-time step as well. Keep in mind that the script will install prerequisites in `/usr/local/`, i.e. the nix development environment is currently leaky. This should be fixed in the future.
+
+If everything above was installed and configured correctly, use `scripts/build_cudaq.sh` to run your first build, and you can simply run `ninja` in the `build` directory for any future builds.
+
 ## Working inside the provided development container (recommended)
 
 This repository defines a development container to facilitate working in a

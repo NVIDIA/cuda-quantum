@@ -40,6 +40,7 @@
             cudaPackages.cuda_cudart
             cudaPackages.cuda_cccl
             cudaPackages.libcublas
+            cudaPackages.libcusolver
 
             # Core build tools
             cmake_3_26
@@ -99,6 +100,7 @@
             export CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
 
             # Python setup
+            export CUDAQ_PYTHON_SUPPORT="FALSE"
             export PYTHONPATH="${pkgs.python3Packages.pybind11}/${pkgs.python3.sitePackages}:$PYTHONPATH"
 
             # Compiler setup
