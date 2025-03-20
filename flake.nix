@@ -21,20 +21,25 @@
           inherit system;
         };
         cmake_3_26 = pkgs-cmake.cmake;
+        # We need to symlink cuda compiler and dev headers to find the toolkit
+        # TODO (nvidia-dobri): Make the scattered install work with FindCUDAToolkit.cmake
+        cudart = pkgs.lib.getDev pkgs.cudaPackages.cuda_cudart;
+        symlinkedCuda = pkgs.symlinkJoin {
+          name = "symlinked-cuda-${pkgs.cudaPackages.cudaVersion}";
+          paths = with pkgs.cudaPackages; [
+            cuda_nvcc
+            cudart
+          ];
+        };
       in
       {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            # CUDA Toolkit (required for GPU acceleration)
+            # CUDA
+            symlinkedCuda
             cudaPackages.cuda_cudart
-            cudaPackages.cuda_nvrtc
-            cudaPackages.cuda_nvcc
-            cudaPackages.libcusolver
+            cudaPackages.cuda_cccl
             cudaPackages.libcublas
-            cudaPackages.libnvjitlink
-
-            # CUDA-aware MPI
-            openmpi
 
             # Core build tools
             cmake_3_26
@@ -76,12 +81,9 @@
 
           shellHook = ''
             # CUDA setup
-            export CUDA_PATH="${pkgs.cudaPackages.cuda_cudart}"
-            export CUDA_HOME="${pkgs.cudaPackages.cuda_nvcc}"
-
-            # MPI setup
-            export MPI_PATH="${pkgs.openmpi}"
-            export OMPI_MCA_opal_warn_on_missing_libcuda=0
+            export CUDA_PATH="${symlinkedCuda}"
+            export CUDA_HOME="${symlinkedCuda}"
+            export CUDAToolkit_TARGET_DIR="${symlinkedCuda}"
 
             # Prerequisites - nix-managed
             export BLAS_INSTALL_PREFIX="${pkgs.pkgsStatic.openblas}"
@@ -106,21 +108,7 @@
 
             # LLVM setup
             export PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
-
-            echo "CUDA Quantum development environment loaded"
-            echo "CUDA available at: $CUDA_PATH"
-            echo "MPI available at: $MPI_PATH"
           '';
-
-          # Required for CUDA development
-          LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [
-            cudaPackages.cuda_cudart
-            cudaPackages.cuda_nvrtc
-            cudaPackages.libcusolver
-            cudaPackages.libcublas
-            cudaPackages.libnvjitlink
-            openmpi
-          ];
         };
       });
 }
