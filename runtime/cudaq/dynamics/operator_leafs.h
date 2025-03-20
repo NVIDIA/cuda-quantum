@@ -228,8 +228,8 @@ private:
   // Validate or populate the dimension defined for the degree(s) of freedom the
   // operator acts on, and return a string that identifies the operator but not
   // what degrees it acts on.
-  virtual std::string
-  op_code_to_string(std::unordered_map<std::size_t, int64_t> &dimensions) const = 0;
+  virtual std::string op_code_to_string(
+      std::unordered_map<std::size_t, int64_t> &dimensions) const = 0;
 
   // data storage classes for evaluation
 
@@ -247,7 +247,8 @@ private:
 
   public:
     matrix_evaluation();
-    matrix_evaluation(std::vector<std::size_t> &&degrees, complex_matrix &&matrix);
+    matrix_evaluation(std::vector<std::size_t> &&degrees,
+                      complex_matrix &&matrix);
     matrix_evaluation(matrix_evaluation &&other);
     matrix_evaluation &operator=(matrix_evaluation &&other);
     // delete copy constructor and copy assignment to avoid unnecessary copies

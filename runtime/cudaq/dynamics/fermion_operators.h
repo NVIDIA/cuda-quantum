@@ -44,8 +44,8 @@ private:
   fermion_handler(std::size_t target, int op_id);
 
   std::string op_code_to_string() const;
-  virtual std::string
-  op_code_to_string(std::unordered_map<std::size_t, int64_t> &dimensions) const override;
+  virtual std::string op_code_to_string(
+      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
 #if !defined(NDEBUG)
   // Here to check if my reasoning regarding only ever needing the operators

@@ -13,8 +13,9 @@
 #include <ranges>
 
 namespace {
-std::vector<int64_t> getSubspaceExtents(const std::vector<int64_t> &modeExtents,
-                                        const std::vector<std::size_t> &degrees) {
+std::vector<int64_t>
+getSubspaceExtents(const std::vector<int64_t> &modeExtents,
+                   const std::vector<std::size_t> &degrees) {
   std::vector<int64_t> subspaceExtents;
 
   for (std::size_t degree : degrees) {

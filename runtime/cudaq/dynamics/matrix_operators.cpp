@@ -84,7 +84,8 @@ matrix_handler::instantiate(std::string operator_id,
 }
 
 product_op<matrix_handler>
-matrix_handler::instantiate(std::string operator_id, std::vector<std::size_t> &&degrees,
+matrix_handler::instantiate(std::string operator_id,
+                            std::vector<std::size_t> &&degrees,
                             const commutation_behavior &commutation_behavior) {
   auto it = matrix_handler::defined_ops.find(operator_id);
   if (it == matrix_handler::defined_ops.end())
@@ -143,7 +144,9 @@ std::string matrix_handler::unique_id() const {
   return std::move(str);
 }
 
-std::vector<std::size_t> matrix_handler::degrees() const { return this->targets; }
+std::vector<std::size_t> matrix_handler::degrees() const {
+  return this->targets;
+}
 
 // constructors
 

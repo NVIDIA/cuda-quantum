@@ -12,9 +12,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "helpers.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
+#include "helpers.h"
 
 namespace cudaq {
 
@@ -34,8 +34,8 @@ private:
   // private helpers
 
   std::string op_code_to_string() const;
-  virtual std::string
-  op_code_to_string(std::unordered_map<std::size_t, int64_t> &dimensions) const override;
+  virtual std::string op_code_to_string(
+      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
   std::complex<double> inplace_mult(const spin_handler &other);
 

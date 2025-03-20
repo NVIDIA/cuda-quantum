@@ -1570,9 +1570,9 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 TEST(OperatorExpressions, checkCustomProductOps) {
   auto level_count = 2;
   cudaq::dimension_map dimensions = {{0, level_count + 1},
-                                             {1, level_count + 2},
-                                             {2, level_count},
-                                             {3, level_count + 3}};
+                                     {1, level_count + 2},
+                                     {2, level_count},
+                                     {3, level_count + 3}};
 
   {
     auto func0 =

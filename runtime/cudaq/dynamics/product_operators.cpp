@@ -75,7 +75,8 @@ product_op<matrix_handler>::find_insert_at(const matrix_handler &other) {
   auto rit = std::find_if(
       this->operators.crbegin(), this->operators.crend(),
       [&nr_permutations,
-       &other_degrees = static_cast<const std::vector<std::size_t> &>(other.degrees()),
+       &other_degrees =
+           static_cast<const std::vector<std::size_t> &>(other.degrees()),
        &other](const matrix_handler &self_op) {
         const std::vector<std::size_t> &self_op_degrees = self_op.degrees();
         for (auto other_degree : other_degrees) {
@@ -472,7 +473,8 @@ product_op<HandlerTy>::product_op(
 }
 
 template <typename HandlerTy>
-product_op<HandlerTy>::product_op(const product_op<HandlerTy> &other, std::size_t size)
+product_op<HandlerTy>::product_op(const product_op<HandlerTy> &other,
+                                  std::size_t size)
     : coefficient(other.coefficient) {
   if (size <= 0)
     this->operators = other.operators;
@@ -484,7 +486,8 @@ product_op<HandlerTy>::product_op(const product_op<HandlerTy> &other, std::size_
 }
 
 template <typename HandlerTy>
-product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other, std::size_t size)
+product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other,
+                                  std::size_t size)
     : coefficient(std::move(other.coefficient)),
       operators(std::move(other.operators)) {
   if (size > 0)
@@ -1410,14 +1413,14 @@ template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::string product_op<HandlerTy>::to_string(bool printCoeffs) const {
-  #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  #endif
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
   return sum_op(*this).to_string(printCoeffs);
-  #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-  #pragma GCC diagnostic pop
-  #endif
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
 }
 
 template std::string

@@ -6,17 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "helpers.h"
+#include "common/EigenSparse.h"
 #include <algorithm>
 #include <unordered_map>
-#include "common/EigenSparse.h"
-#include "helpers.h"
 
 namespace cudaq {
 namespace detail {
 
-std::vector<std::string>
-generate_all_states(const std::vector<std::size_t> &degrees,
-                    const std::unordered_map<std::size_t, int64_t> &dimensions) {
+std::vector<std::string> generate_all_states(
+    const std::vector<std::size_t> &degrees,
+    const std::unordered_map<std::size_t, int64_t> &dimensions) {
   if (degrees.size() == 0)
     return {};
   auto dit = degrees.crbegin();
@@ -94,9 +94,8 @@ void permute_matrix(cudaq::complex_matrix &matrix,
   }
 }
 
-cudaq::csr_spmatrix
-to_csr_spmatrix(const EigenSparseMatrix &matrix,
-                std::size_t estimated_num_entries) {
+cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
+                                    std::size_t estimated_num_entries) {
   std::vector<std::complex<double>> values;
   std::vector<std::size_t> rows, cols;
   values.reserve(estimated_num_entries);

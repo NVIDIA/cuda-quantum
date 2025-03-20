@@ -127,7 +127,9 @@ std::string boson_handler::unique_id() const {
   return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<std::size_t> boson_handler::degrees() const { return {this->degree}; }
+std::vector<std::size_t> boson_handler::degrees() const {
+  return {this->degree};
+}
 
 // constructors
 

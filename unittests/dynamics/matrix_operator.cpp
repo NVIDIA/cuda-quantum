@@ -449,8 +449,7 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
 
   /// Keeping this fixed throughout.
   int level_count = 3;
-  cudaq::dimension_map dimensions = {{0, level_count},
-                                             {1, level_count}};
+  cudaq::dimension_map dimensions = {{0, level_count}, {1, level_count}};
 
   // Addition, same DOF.
   {

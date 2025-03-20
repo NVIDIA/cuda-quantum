@@ -13,7 +13,7 @@
 namespace Eigen {
 // forward declared here so that this header can be used even if the Eigen is
 // not used/found
-template<typename Scalar_, int Options_, typename StorageIndex_>
+template <typename Scalar_, int Options_, typename StorageIndex_>
 class SparseMatrix;
 } // namespace Eigen
 
@@ -25,7 +25,8 @@ using csr_spmatrix =
 namespace detail {
 
 // SparseMatrix really wants a *signed* type
-using EigenSparseMatrix = Eigen::SparseMatrix<std::complex<double>, 0x1, long>; // row major
+using EigenSparseMatrix =
+    Eigen::SparseMatrix<std::complex<double>, 0x1, long>; // row major
 
 /// Generates all possible states for the given dimensions ordered according
 /// to the sequence of degrees (ordering is relevant if dimensions differ).
@@ -52,10 +53,10 @@ void permute_matrix(cudaq::complex_matrix &matrix,
 
 // FIXME: do we really want to stick with this tuple or should we rather switch
 // to just using the Eigen sparse matrix? Depends on our general usage of Eigen.
-/// Converts and Eigen sparse matrix to the `csr_spmatrix` format used in CUDA-Q.
-cudaq::csr_spmatrix
-to_csr_spmatrix(const EigenSparseMatrix &matrix,
-                std::size_t estimated_num_entries);
+/// Converts and Eigen sparse matrix to the `csr_spmatrix` format used in
+/// CUDA-Q.
+cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
+                                    std::size_t estimated_num_entries);
 
 } // namespace detail
 } // namespace cudaq

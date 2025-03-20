@@ -70,7 +70,9 @@ std::string spin_handler::unique_id() const {
   return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<std::size_t> spin_handler::degrees() const { return {this->degree}; }
+std::vector<std::size_t> spin_handler::degrees() const {
+  return {this->degree};
+}
 
 std::size_t spin_handler::target() const { return this->degree; }
 
@@ -78,7 +80,8 @@ std::size_t spin_handler::target() const { return this->degree; }
 
 spin_handler::spin_handler(std::size_t target) : op_code(0), degree(target) {}
 
-spin_handler::spin_handler(pauli p, std::size_t target) : op_code(0), degree(target) {
+spin_handler::spin_handler(pauli p, std::size_t target)
+    : op_code(0), degree(target) {
   if (p == pauli::Z)
     this->op_code = 1;
   else if (p == pauli::X)

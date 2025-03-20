@@ -36,8 +36,8 @@ private:
   boson_handler(std::size_t target, int op_code);
 
   std::string op_code_to_string() const;
-  virtual std::string
-  op_code_to_string(std::unordered_map<std::size_t, int64_t> &dimensions) const override;
+  virtual std::string op_code_to_string(
+      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
   void inplace_mult(const boson_handler &other);
 

@@ -43,8 +43,8 @@ private:
   template <typename T>
   static std::string type_prefix();
 
-  virtual std::string
-  op_code_to_string(std::unordered_map<std::size_t, int64_t> &dimensions) const override;
+  virtual std::string op_code_to_string(
+      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
 protected:
   std::string op_code;
@@ -52,7 +52,8 @@ protected:
   bool commutes;
   std::vector<std::size_t> targets;
 
-  matrix_handler(std::string operator_id, const std::vector<std::size_t> &degrees,
+  matrix_handler(std::string operator_id,
+                 const std::vector<std::size_t> &degrees,
                  const commutation_behavior &behavior = commutation_behavior());
   matrix_handler(std::string operator_id, std::vector<std::size_t> &&degrees,
                  const commutation_behavior &behavior = commutation_behavior());

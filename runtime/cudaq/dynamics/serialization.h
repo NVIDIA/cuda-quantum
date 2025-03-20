@@ -31,9 +31,12 @@ public:
     return spin_op(input_vec);
   }
 
-  [[deprecated("overload provided for compatibility with the deprecated serialization format - please migrate to the new format and use the overload read(const std::string &)")]]
-  spin_op read(const std::string &data_filename, bool legacy_format) {
-    if (!legacy_format) return read(data_filename);
+  [[deprecated("overload provided for compatibility with the deprecated "
+               "serialization format - please migrate to the new format and "
+               "use the overload read(const std::string &)")]] spin_op
+  read(const std::string &data_filename, bool legacy_format) {
+    if (!legacy_format)
+      return read(data_filename);
 
     std::ifstream input(data_filename, std::ios::binary);
     if (input.fail())
