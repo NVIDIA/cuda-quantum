@@ -55,7 +55,7 @@ Jupyter
 JupyterLab
 Kagome
 Kraus
-Krylov
+Kutta
 LLVM
 LSB
 Libraries
