@@ -262,7 +262,7 @@ Numerical Integrators
 
 .. _integrators:
 
-CUDA-Q provides a set of numerical integrators, to be used with the ``dynamics``
+For Python, CUDA-Q provides a set of numerical integrators, to be used with the ``dynamics``
 backend target.
 
 .. list-table:: Numerical Integrators
@@ -317,6 +317,18 @@ backend target.
     If the output is a '`None`' string, it indicates that your Torch installation does not support CUDA.
     In this case, you need to install a CUDA-enabled Torch package via other mechanisms, e.g., building Torch from source or
     using their Docker images.
+
+For C++, CUDA-Q provides Runge-Kutta integrator, to be used with the ``dynamics``
+backend target.
+
+.. list-table:: Numerical Integrators
+        :widths: 20 50
+        :header-rows: 1
+
+        *   - Name
+            - Description
+        *   - `runge_kutta`
+            - 1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method).
 
 Multi-GPU Multi-Node Execution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

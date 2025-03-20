@@ -1207,7 +1207,7 @@ the desired value for each parameter:</p>
 </section>
 <section id="numerical-integrators">
 <h2>Numerical Integrators<a class="headerlink" href="#numerical-integrators" title="Permalink to this heading">¶</a></h2>
-<p id="integrators">CUDA-Q provides a set of numerical integrators, to be used with the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code>
+<p id="integrators">For Python, CUDA-Q provides a set of numerical integrators, to be used with the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code>
 backend target.</p>
 <table class="docutils align-default" id="id2">
 <caption><span class="caption-text">Numerical Integrators</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
@@ -1278,6 +1278,25 @@ the default Torch pip package may not have CUDA support.</p>
 In this case, you need to install a CUDA-enabled Torch package via other mechanisms, e.g., building Torch from source or
 using their Docker images.</p>
 </div>
+<p>For C++, CUDA-Q provides Runge-Kutta integrator, to be used with the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code>
+backend target.</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Numerical Integrators</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 29%" />
+<col style="width: 71%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">runge_kutta</span></code></p></td>
+<td><p>1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method).</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="multi-gpu-multi-node-execution">
 <h2>Multi-GPU Multi-Node Execution<a class="headerlink" href="#multi-gpu-multi-node-execution" title="Permalink to this heading">¶</a></h2>
