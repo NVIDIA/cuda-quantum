@@ -522,8 +522,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     }
 
     // Create a substitution for the state pointer.
-    auto statePtrTy =
-        cudaq::cc::PointerType::get(quake::StateType::get(ctx));
+    auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(ctx));
     return builder.create<quake::MaterializeStateOp>(
         loc, statePtrTy, builder.getStringAttr(numQubitsKernelName),
         builder.getStringAttr(initKernelName));

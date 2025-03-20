@@ -1651,8 +1651,8 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
       - @init for initializing the state the same way as the original kernel
         passed to `cudaq::get_state`.
 
-    This operation will return of the original kernel passed to
-    `cudaq::get_state`. `cudaq::get_state`.
+    This operation will return the state of the original kernel called with
+    arguments passed to `cudaq::get_state`.
 
     The operation may be replaced by calls to the @num_qubits and @init calls,
     which will reproduce the specified state in the `ReplaceStateByKernel`
