@@ -229,20 +229,23 @@ def test_Ionq_state_synthesis():
     @cudaq.kernel
     def init(n: int):
         q = cudaq.qvector(n)
-        x(q[0])
+        h(q[0])
+        x(q[1])
         mz(q)
 
     @cudaq.kernel
     def kernel(s: cudaq.State):
         q = cudaq.qvector(s)
-        x(q[1])
+        x(q[0])
         mz(q)
 
     s = cudaq.get_state(init, 2)
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
-    assert '10' in counts
-    assert len(counts) == 1
+    print(counts)
+    assert '01' in counts
+    assert '11' in counts
+    assert len(counts) == 2
 
 
 def test_Ionq_state_synthesis_builder():
