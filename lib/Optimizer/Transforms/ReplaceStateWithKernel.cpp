@@ -33,8 +33,8 @@ namespace {
 /// that computes the number of qubits for a state.
 ///
 /// ```mlir
-///  %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0 : !cc.ptr<!cc.state>
-///  %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
+///  %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0 : !cc.ptr<!quake.state>
+///  %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!quake.state>) -> i64
 /// ───────────────────────────────────────────
 ///  %1 = call @callee.num_qubits_0() : () -> i64
 /// ```
@@ -69,8 +69,8 @@ public:
 /// the state.
 ///
 /// ```mlir
-///  %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0 : !cc.ptr<!cc.state>
-///  %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+///  %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0 : !cc.ptr<!quake.state>
+///  %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
 /// ───────────────────────────────────────────
 /// %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
 /// ```
@@ -86,7 +86,7 @@ public:
     auto stateOp = initState.getState();
 
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateOp.getType())) {
-      if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+      if (isa<quake::StateType>(ptrTy.getElementType())) {
         auto materializeState =
             stateOp.getDefiningOp<quake::MaterializeStateOp>();
         if (!materializeState) {

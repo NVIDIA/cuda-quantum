@@ -538,7 +538,7 @@ public:
       }
 
       if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
-        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+        if (isa<quake::StateType>(ptrTy.getElementType())) {
           // Special case of a `cudaq::state*` which must be in the same address
           // space. This references a container to a set of simulation
           // amplitudes.
@@ -549,8 +549,7 @@ public:
                   Value rawPtr = builder.create<arith::ConstantIntOp>(
                       loc, reinterpret_cast<std::intptr_t>(*concrete),
                       sizeof(void *) * 8);
-                  auto stateTy =
-                      cudaq::cc::StateType::get(builder.getContext());
+                  auto stateTy = quake::StateType::get(builder.getContext());
                   return builder.create<cudaq::cc::CastOp>(
                       loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
                 });
