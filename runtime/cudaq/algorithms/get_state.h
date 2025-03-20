@@ -128,7 +128,6 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   //   return state(new QPUState(std::forward<QuantumKernel>(kernel),
   //                             std::forward<Args>(args)...));
 
-  std::cout << "Getting C-like kernel key "  << std::endl;
   return state(new QPUState(std::forward<QuantumKernel>(kernel),
                             std::forward<Args>(args)...));
 
