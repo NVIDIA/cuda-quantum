@@ -303,7 +303,7 @@ void bindSpinOperator(py::module &mod) {
       // FIXME: deprecate this one
       .def(py::init([]() { return cudaq::spin_op::identity(); }),
            "Empty constructor, creates the identity term.")
-      .def(py::init([](int size) { return cudaq::spin_op(size); }),
+      .def(py::init([](std::size_t size) { return cudaq::spin_op(size); }),
            "Empty constructor, creates a sum operator with no terms, reserving "
            "memory for the given number of terms.")
       // FIXME: deprecate name

@@ -206,7 +206,7 @@ INSTANTIATE_SUM_PROPERTIES(fermion_handler);
 // constructors
 
 template <typename HandlerTy>
-sum_op<HandlerTy>::sum_op(int size) : is_default(true) {
+sum_op<HandlerTy>::sum_op(std::size_t size) : is_default(true) {
   this->coefficients.reserve(size);
   this->term_map.reserve(size);
   this->terms.reserve(size);
@@ -274,7 +274,7 @@ sum_op<HandlerTy>::sum_op(const sum_op<T> &other,
 
 template <typename HandlerTy>
 sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other, bool is_default,
-                          int size)
+                          std::size_t size)
     : is_default(is_default && other.is_default) {
   if (size <= 0) {
     this->coefficients = other.coefficients;
@@ -298,7 +298,7 @@ sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other)
     : sum_op(other, other.is_default, 0) {}
 
 template <typename HandlerTy>
-sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other, bool is_default, int size)
+sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other, bool is_default, std::size_t size)
     : is_default(is_default && other.is_default),
       coefficients(std::move(other.coefficients)),
       term_map(std::move(other.term_map)), terms(std::move(other.terms)) {
@@ -317,7 +317,7 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
                                                                                \
   template sum_op<HandlerTy>::sum_op(bool is_default);                         \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(int size);                                \
+  template sum_op<HandlerTy>::sum_op(std::size_t size);                        \
                                                                                \
   template sum_op<HandlerTy>::sum_op(const product_op<HandlerTy> &item2);      \
                                                                                \
@@ -331,12 +331,12 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
                                      product_op<HandlerTy> &&item3);           \
                                                                                \
   template sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other,           \
-                                     bool is_default, int size);               \
+                                     bool is_default, std::size_t size);               \
                                                                                \
   template sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other);          \
                                                                                \
   template sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other,                \
-                                     bool is_default, int size);               \
+                                     bool is_default, std::size_t size);               \
                                                                                \
   template sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other);
 

@@ -416,7 +416,7 @@ product_op<HandlerTy>::product_op(scalar_operator coefficient, Args &&...args)
 template <typename HandlerTy>
 product_op<HandlerTy>::product_op(
     scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators,
-    int size)
+    std::size_t size)
     : coefficient(std::move(coefficient)) {
   if (size <= 0)
     this->operators = atomic_operators;
@@ -432,7 +432,7 @@ product_op<HandlerTy>::product_op(
 template <typename HandlerTy>
 product_op<HandlerTy>::product_op(scalar_operator coefficient,
                                   std::vector<HandlerTy> &&atomic_operators,
-                                  int size)
+                                  std::size_t size)
     : coefficient(std::move(coefficient)),
       operators(std::move(atomic_operators)) {
   if (size > 0)
@@ -472,7 +472,7 @@ product_op<HandlerTy>::product_op(
 }
 
 template <typename HandlerTy>
-product_op<HandlerTy>::product_op(const product_op<HandlerTy> &other, int size)
+product_op<HandlerTy>::product_op(const product_op<HandlerTy> &other, std::size_t size)
     : coefficient(other.coefficient) {
   if (size <= 0)
     this->operators = other.operators;
@@ -484,7 +484,7 @@ product_op<HandlerTy>::product_op(const product_op<HandlerTy> &other, int size)
 }
 
 template <typename HandlerTy>
-product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other, int size)
+product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other, std::size_t size)
     : coefficient(std::move(other.coefficient)),
       operators(std::move(other.operators)) {
   if (size > 0)
@@ -514,17 +514,17 @@ product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other, int size)
                                                                                \
   template product_op<HandlerTy>::product_op(                                  \
       scalar_operator coefficient,                                             \
-      const std::vector<HandlerTy> &atomic_operators, int size);               \
+      const std::vector<HandlerTy> &atomic_operators, std::size_t size);               \
                                                                                \
   template product_op<HandlerTy>::product_op(                                  \
       scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators,  \
-      int size);                                                               \
+      std::size_t size);                                                               \
                                                                                \
   template product_op<HandlerTy>::product_op(                                  \
-      const product_op<HandlerTy> &other, int size);                           \
+      const product_op<HandlerTy> &other, std::size_t size);                           \
                                                                                \
   template product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other,    \
-                                             int size);
+                                             std::size_t size);
 
 // Note:
 // These are the private constructors needed by friend classes and functions

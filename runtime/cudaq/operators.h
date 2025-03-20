@@ -73,8 +73,8 @@ protected:
   bool is_default = false;
 
   constexpr sum_op(bool is_default) : is_default(is_default){};
-  sum_op(const sum_op<HandlerTy> &other, bool is_default, int size);
-  sum_op(sum_op<HandlerTy> &&other, bool is_default, int size);
+  sum_op(const sum_op<HandlerTy> &other, bool is_default, std::size_t size);
+  sum_op(sum_op<HandlerTy> &&other, bool is_default, std::size_t size);
 
 public:
   // called const_iterator because it will *not* modify the sum,
@@ -157,7 +157,7 @@ public:
   // (neutral element for addition only), use sum_op<T>::empty().
   constexpr sum_op() : is_default(true){};
 
-  sum_op(int size);
+  sum_op(std::size_t size);
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
@@ -556,12 +556,12 @@ protected:
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
   product_op(scalar_operator coefficient,
-             const std::vector<HandlerTy> &atomic_operators, int size = 0);
+             const std::vector<HandlerTy> &atomic_operators, std::size_t size = 0);
 
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
   product_op(scalar_operator coefficient,
-             std::vector<HandlerTy> &&atomic_operators, int size = 0);
+             std::vector<HandlerTy> &&atomic_operators, std::size_t size = 0);
 
 public:
   struct const_iterator {
@@ -675,10 +675,10 @@ public:
              const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
-  product_op(const product_op<HandlerTy> &other, int size = 0);
+  product_op(const product_op<HandlerTy> &other, std::size_t size = 0);
 
   // move constructor
-  product_op(product_op<HandlerTy> &&other, int size = 0);
+  product_op(product_op<HandlerTy> &&other, std::size_t size = 0);
 
   ~product_op() = default;
 
@@ -963,13 +963,13 @@ extern template class sum_op<fermion_handler>;
 // Here only for backward compatibility
 namespace spin {
 [[deprecated("Use spin_op::i instead.")]]
-sum_op<spin_handler> i(std::size_t target);
+product_op<spin_handler> i(std::size_t target);
 [[deprecated("Use spin_op::x instead.")]]
-sum_op<spin_handler> x(std::size_t target);
+product_op<spin_handler> x(std::size_t target);
 [[deprecated("Use spin_op::y instead.")]]
-sum_op<spin_handler> y(std::size_t target);
+product_op<spin_handler> y(std::size_t target);
 [[deprecated("Use spin_op::z instead.")]]
-sum_op<spin_handler> z(std::size_t target);
+product_op<spin_handler> z(std::size_t target);
 } // namespace spin
 
 } // namespace cudaq
