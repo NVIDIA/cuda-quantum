@@ -806,7 +806,11 @@ For example, a superconducting <a class="reference external" href="https://en.wi
 <p>Using CUDA-Q <code class="code docutils literal notranslate"><span class="pre">operator</span></code>, the above time-dependent Hamiltonian can be set up as follows.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">omega_z</span> <span class="o">=</span> <span class="mf">6.5</span>
+<span class="n">omega_x</span> <span class="o">=</span> <span class="mf">4.0</span>
+<span class="n">omega_d</span> <span class="o">=</span> <span class="mf">0.5</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.operator</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
 
 <span class="c1"># Qubit Hamiltonian</span>
