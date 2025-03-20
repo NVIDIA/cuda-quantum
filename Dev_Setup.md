@@ -8,7 +8,7 @@ you want to contribute to the code in this repository.
 This repository defines a Nix flake which will allow you to quickly bootstrap a
 development environment on any Linux system (WSL is supported, but OS X is
 unsupported as of the time of writing). Unlike Docker containers, you will not
-need to build a container and spin it up, you can develop directly on your linux
+need to build a container and spin it up, you can develop directly on your Linux
 host. And unlike manually managing dependencies, Nix will (mostly) hermetically
 manage all the dependencies for you. All you **need** to install, ever, is Nix
 itself.
@@ -23,15 +23,16 @@ sh <(curl -L https://nixos.org/nix/install) --daemon
 You can now trigger `nix develop` from the root of the repository and use the
 development shell. You will have to
 [enable flakes](https://wiki.nixos.org/wiki/Flakes) if you stop here. However,
-we recommend installing direnv, to enable nix development shell drop-in as soon
-as you cd into the repo. This should be available with your favorite package
-manager, e.g.
+we recommend installing `direnv`, to enable nix development shell drop-in as
+soon as you `cd` into the repository. This should be available with your
+favorite package manager, e.g.
 
 ```bash
 sudo apt-get install direnv
 ```
 
-You will also have to add a direnv hook to your shell config, e.g. `~/.bashrc`
+You will also have to add a `direnv` hook to your shell configuration, e.g.
+`~/.bashrc`
 
 ```bash
 eval "$(direnv hook bash)"
@@ -42,9 +43,9 @@ Refer to `direnv` install instructions for more help:
 - [Installation](https://direnv.net/docs/installation.html)
 - [Hook](https://direnv.net/docs/hook.html)
 
-Once you have both nix and direnv installed, you will have to `direnv allow` in
-the repo root as a one-time step to allow direnv to trigger `nix develop` for
-you.
+Once you have both nix and `direnv` installed, you will have to `direnv allow`
+in the repository root as a one-time step to allow `direnv` to trigger
+`nix develop` for you.
 
 At this experimental stage of Nix support, you will have to run
 `scripts/install_prerequisites.sh` as a one-time step as well. Keep in mind that

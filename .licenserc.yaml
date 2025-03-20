@@ -39,6 +39,8 @@ header:
     - 'docs/sphinx/_static/cuda_quantum_icon.svg'
     - 'docker/test/installer/mpi_cuda_check.cpp'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
+    - 'flake.nix'
+    - 'flake.lock'
 
   comment: on-failure
 
