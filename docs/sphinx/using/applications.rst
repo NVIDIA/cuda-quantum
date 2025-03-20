@@ -6,27 +6,27 @@ CUDA-Q Applications
    :hidden:
 
 
-   /applications/python/QAOA
-   /applications/python/digitized_counterdiabatic_QAOA
-   /applications/python/Krylov
-   /applications/python/Bernstein-Vazirani
+   /applications/python/qaoa
+   /applications/python/digitized_counterdiabatic_qaoa
+   /applications/python/krylov
+   /applications/python/bernstein_vazirani
    /applications/python/cost_minimization
-   /applications/python/Deutsch_algorithm
+   /applications/python/deutsch_algorithm
    /applications/python/divisive_clustering_coresets
    /applications/python/hybrid_quantum_neural_networks
-   /applications/python/Hadamard_test
-   /applications/python/logical_aim_Sqale
-   /applications/python/Hamiltonian_simulation
-   /applications/python/quantum_Fourier_transform
+   /applications/python/hadamard_test
+   /applications/python/logical_aim_sqale
+   /applications/python/hamiltonian_simulation
+   /applications/python/quantum_fourier_transform
    /applications/python/quantum_teleportation
    /applications/python/quantum_volume
    /applications/python/readout_error_mitigation
    /applications/python/unitary_compilation_diffusion_models
-   /applications/python/VQE_advanced
+   /applications/python/vqe_advanced
    /applications/python/quantum_transformer
-   /applications/python/adapt_QAOA
-   /applications/python/adapt-vqe
-   /applications/python/edge-detection
+   /applications/python/adapt_qaoa
+   /applications/python/adapt_vqe
+   /applications/python/edge_detection
 
 
 .. raw:: html
