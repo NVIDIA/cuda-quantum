@@ -31,9 +31,12 @@ public:
     return spin_op(input_vec);
   }
 
-  [[deprecated("overload provided for compatibility with the deprecated serialization format - please migrate to the new format and use the overload read(const std::string &)")]]
-  spin_op read(const std::string &data_filename, bool legacy_format) {
-    if (!legacy_format) return read(data_filename);
+  [[deprecated("overload provided for compatibility with the deprecated "
+               "serialization format - please migrate to the new format and "
+               "use the overload read(const std::string &)")]] spin_op
+  read(const std::string &data_filename, bool legacy_format) {
+    if (!legacy_format)
+      return read(data_filename);
 
     std::ifstream input(data_filename, std::ios::binary);
     if (input.fail())
@@ -48,7 +51,7 @@ public:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
-    auto n_terms = (int)input_vec.back();
+    auto n_terms = (std::size_t)input_vec.back();
     auto nQubits = (input_vec.size() - 1 - 2 * n_terms) / n_terms;
     return spin_op(input_vec, nQubits);
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))

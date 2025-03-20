@@ -527,7 +527,7 @@ TEST(OperatorExpressions, checkBosonOpsWithScalars) {
 }
 
 TEST(OperatorExpressions, checkBosonOpsSimpleArithmetics) {
-  std::unordered_map<int, int> dimensions = {{0, 3}, {1, 2}, {2, 4}};
+  cudaq::dimension_map dimensions = {{0, 3}, {1, 2}, {2, 4}};
 
   // Addition, same DOF.
   {
@@ -631,7 +631,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
 
   // Keeping this fixed throughout.
   std::complex<double> value = std::complex<double>(0.125, 0.5);
-  std::unordered_map<int, int> dimensions = {{0, 3}, {1, 2}, {2, 4}, {3, 2}};
+  cudaq::dimension_map dimensions = {{0, 3}, {1, 2}, {2, 4}, {3, 2}};
 
   // `boson_handler + sum_op`
   {
@@ -789,7 +789,7 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
 TEST(OperatorExpressions, checkBosonOpsDegreeVerification) {
   auto op1 = cudaq::boson_op::create(2);
   auto op2 = cudaq::boson_op::annihilate(0);
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 3}, {3, 3}};
 
   ASSERT_ANY_THROW(op1.to_matrix({}));
   ASSERT_ANY_THROW(op1.to_matrix({{1, 2}}));
@@ -829,7 +829,7 @@ TEST(OperatorExpressions, checkCommutationRelations) {
   // [a(k), a†(q)] = δkq
   // [a†(k), a†(q)] = [a(k), a(q)] = 0
 
-  std::unordered_map<int, int> dimensions = {{0, 4}, {1, 4}};
+  cudaq::dimension_map dimensions = {{0, 4}, {1, 4}};
   auto commutator = [](cudaq::product_op<cudaq::boson_handler> ad,
                        cudaq::product_op<cudaq::boson_handler> a) {
     return a * ad - ad * a;

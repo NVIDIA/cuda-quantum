@@ -56,7 +56,7 @@ std::string fermion_handler::op_code_to_string() const {
 }
 
 std::string fermion_handler::op_code_to_string(
-    std::unordered_map<int, int> &dimensions) const {
+    std::unordered_map<std::size_t, int64_t> &dimensions) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     dimensions[this->degree] = 2;
@@ -98,14 +98,16 @@ std::string fermion_handler::unique_id() const {
   return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<int> fermion_handler::degrees() const { return {this->degree}; }
+std::vector<std::size_t> fermion_handler::degrees() const {
+  return {this->degree};
+}
 
 // constructors
 
-fermion_handler::fermion_handler(int target)
+fermion_handler::fermion_handler(std::size_t target)
     : degree(target), op_code(9), commutes(true) {}
 
-fermion_handler::fermion_handler(int target, int op_id)
+fermion_handler::fermion_handler(std::size_t target, int op_id)
     : degree(target), op_code(9), commutes(true) {
   assert(0 <= op_id && op_id < 4);
   if (op_id == 1) { // create
@@ -135,7 +137,7 @@ fermion_handler &fermion_handler::operator=(const fermion_handler &other) {
 // evaluations
 
 complex_matrix fermion_handler::to_matrix(
-    std::unordered_map<int, int> &dimensions,
+    std::unordered_map<std::size_t, int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   auto it = dimensions.find(this->degree);
@@ -177,15 +179,15 @@ bool fermion_handler::operator==(const fermion_handler &other) const {
 
 // defined operators
 
-product_op<fermion_handler> fermion_handler::create(int degree) {
+product_op<fermion_handler> fermion_handler::create(std::size_t degree) {
   return product_op(fermion_handler(degree, 1));
 }
 
-product_op<fermion_handler> fermion_handler::annihilate(int degree) {
+product_op<fermion_handler> fermion_handler::annihilate(std::size_t degree) {
   return product_op(fermion_handler(degree, 2));
 }
 
-product_op<fermion_handler> fermion_handler::number(int degree) {
+product_op<fermion_handler> fermion_handler::number(std::size_t degree) {
   return product_op(fermion_handler(degree, 3));
 }
 

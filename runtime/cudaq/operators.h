@@ -65,7 +65,7 @@ private:
   EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
 
 protected:
-  std::unordered_map<std::string, int>
+  std::unordered_map<std::string, std::size_t>
       term_map; // quick access to term index given its id (used for aggregating
                 // terms)
   std::vector<std::vector<HandlerTy>> terms;
@@ -83,9 +83,9 @@ public:
   private:
     const sum_op<HandlerTy> *sum;
     product_op<HandlerTy> current_val;
-    int current_idx;
+    std::size_t current_idx;
 
-    const_iterator(const sum_op<HandlerTy> *sum, int idx,
+    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx,
                    product_op<HandlerTy> &&value)
         : sum(sum), current_val(std::move(value)), current_idx(idx) {}
 
@@ -98,7 +98,7 @@ public:
 
     const_iterator(const sum_op<HandlerTy> *sum) : const_iterator(sum, 0) {}
 
-    const_iterator(const sum_op<HandlerTy> *sum, int idx)
+    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx)
         : sum(sum), current_val(1.), current_idx(idx) {
       if (current_idx < sum->num_terms())
         current_val = product_op<HandlerTy>(sum->coefficients[current_idx],
@@ -148,7 +148,7 @@ public:
   std::vector<std::size_t> degrees(bool application_order = true) const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
-  int num_terms() const;
+  std::size_t num_terms() const;
 
   // constructors and destructors
 
@@ -229,7 +229,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   complex_matrix
-  to_matrix(std::unordered_map<int, int> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {},
             bool application_order = true) const;
@@ -360,75 +360,75 @@ public:
 
   static sum_op<HandlerTy> empty();
   static product_op<HandlerTy> identity();
-  static product_op<HandlerTy> identity(int target);
+  static product_op<HandlerTy> identity(std::size_t target);
 
   // handler specific operators
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> number(int target);
+  static product_op<T> number(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> parity(int target);
+  static product_op<T> parity(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> position(int target);
+  static product_op<T> position(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> momentum(int target);
+  static product_op<T> momentum(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> squeeze(int target);
+  static product_op<T> squeeze(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> displace(int target);
+  static product_op<T> displace(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> i(int target);
+  static product_op<T> i(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> x(int target);
+  static product_op<T> x(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> y(int target);
+  static product_op<T> y(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> z(int target);
+  static product_op<T> z(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static sum_op<T> plus(int target);
+  static sum_op<T> plus(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static sum_op<T> minus(int target);
+  static sum_op<T> minus(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_op<T> create(int target);
+  static product_op<T> create(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_op<T> annihilate(int target);
+  static product_op<T> annihilate(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_op<T> number(int target);
+  static product_op<T> number(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static sum_op<T> position(int target);
+  static sum_op<T> position(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static sum_op<T> momentum(int target);
+  static sum_op<T> momentum(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_op<T> create(int target);
+  static product_op<T> create(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_op<T> annihilate(int target);
+  static product_op<T> annihilate(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_op<T> number(int target);
+  static product_op<T> number(std::size_t target);
 
   // general utility functions
 
   void dump() const;
 
-  std::vector<sum_op<HandlerTy>> distribute_terms(int numChunks) const;
+  std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
   // handler specific utility functions
 
@@ -442,7 +442,7 @@ public:
   static product_op<HandlerTy> from_word(const std::string &word);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static sum_op<HandlerTy> random(std::size_t nQubits, int nTerms,
+  static sum_op<HandlerTy> random(std::size_t nQubits, std::size_t nTerms,
                                   unsigned int seed = std::random_device{}());
 
   /// @brief Return the matrix representation of the operator.
@@ -456,7 +456,7 @@ public:
   /// complex values.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   csr_spmatrix
-  to_sparse_matrix(std::unordered_map<int, int> dimensions = {},
+  to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters = {},
                    bool application_order = true) const;
@@ -465,35 +465,51 @@ public:
   std::vector<double> get_data_representation() const;
 
   // utility functions for backward compatibility
+  /// @cond
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY("serialization format changed - use the constructor without a size_t argument to create a spin_op from the new format")
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "serialization format changed - use the constructor without a size_t "
+      "argument to create a spin_op from the new format")
   sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY("construction from binary symplectic form will no longer be supported")
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "construction from binary symplectic form will no longer be supported")
   sum_op(const std::vector<std::vector<bool>> &bsf_terms,
          const std::vector<std::complex<double>> &coeffs);
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY("serialization format changed - use get_data_representation instead")
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "serialization format changed - use get_data_representation instead")
   std::vector<double> getDataRepresentation() const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY("data tuple is no longer used for serialization - use get_data_representation instead")
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "data tuple is no longer used for serialization - use "
+      "get_data_representation instead")
   std::tuple<std::vector<double>, std::size_t> getDataTuple() const;
 
   SPIN_OPS_BACKWARD_COMPATIBILITY("raw data access will no longer be supported")
   std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
   get_raw_data() const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY("use to_string(), get_term_id or get_pauli_word depending on your use case - see release notes for more detail")
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "use to_string(), get_term_id or get_pauli_word depending on your use "
+      "case - see release notes for more detail")
   std::string to_string(bool printCoeffs) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY("iterate over the operator instead to access each term")
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "iterate over the operator instead to access each term")
   void for_each_term(std::function<void(sum_op<HandlerTy> &)> &&functor) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY("iterate over each term in the operator instead and use as_pauli to access each pauli")
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "iterate over each term in the operator instead and use as_pauli to "
+      "access each pauli")
   void for_each_pauli(std::function<void(pauli, std::size_t)> &&functor) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY("is_identity will no longer be supported on an entire sum_op, but will continue to be supported on each term")
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "is_identity will no longer be supported on an entire sum_op, but will "
+      "continue to be supported on each term")
   bool is_identity() const;
+
+  /// @endcond
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -556,7 +572,8 @@ protected:
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
   product_op(scalar_operator coefficient,
-             const std::vector<HandlerTy> &atomic_operators, std::size_t size = 0);
+             const std::vector<HandlerTy> &atomic_operators,
+             std::size_t size = 0);
 
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
@@ -711,7 +728,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   complex_matrix
-  to_matrix(std::unordered_map<int, int> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {},
             bool application_order = true) const;
@@ -879,15 +896,20 @@ public:
   /// complex values.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   csr_spmatrix
-  to_sparse_matrix(std::unordered_map<int, int> dimensions = {},
+  to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters = {},
                    bool application_order = true) const;
 
   // utility functions for backward compatibility
+  /// @cond
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY("use to_string(), get_term_id or get_pauli_word depending on your use case - see release notes for more detail")
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "use to_string(), get_term_id or get_pauli_word depending on your use "
+      "case - see release notes for more detail")
   std::string to_string(bool printCoeffs) const;
+
+  /// @endcond
 };
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system
@@ -938,7 +960,7 @@ private:
 
 // type aliases for convenience
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
-typedef std::unordered_map<int, int> dimension_map;
+typedef std::unordered_map<std::size_t, int64_t> dimension_map;
 typedef sum_op<matrix_handler> matrix_op;
 typedef product_op<matrix_handler> matrix_op_term;
 typedef sum_op<spin_handler> spin_op;
@@ -962,14 +984,14 @@ extern template class sum_op<fermion_handler>;
 
 // Here only for backward compatibility
 namespace spin {
-[[deprecated("Use spin_op::i instead.")]]
-product_op<spin_handler> i(std::size_t target);
-[[deprecated("Use spin_op::x instead.")]]
-product_op<spin_handler> x(std::size_t target);
-[[deprecated("Use spin_op::y instead.")]]
-product_op<spin_handler> y(std::size_t target);
-[[deprecated("Use spin_op::z instead.")]]
-product_op<spin_handler> z(std::size_t target);
+[[deprecated("Use spin_op::i instead.")]] product_op<spin_handler>
+i(std::size_t target);
+[[deprecated("Use spin_op::x instead.")]] product_op<spin_handler>
+x(std::size_t target);
+[[deprecated("Use spin_op::y instead.")]] product_op<spin_handler>
+y(std::size_t target);
+[[deprecated("Use spin_op::z instead.")]] product_op<spin_handler>
+z(std::size_t target);
 } // namespace spin
 
 } // namespace cudaq

@@ -12,9 +12,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "helpers.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
+#include "helpers.h"
 
 namespace cudaq {
 
@@ -27,15 +27,15 @@ class spin_handler : public operator_handler {
 private:
   // I = 0, Z = 1, X = 2, Y = 3
   int op_code;
-  int degree;
+  std::size_t degree;
 
-  spin_handler(int target, int op_code);
+  spin_handler(std::size_t target, int op_code);
 
   // private helpers
 
   std::string op_code_to_string() const;
-  virtual std::string
-  op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
+  virtual std::string op_code_to_string(
+      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
   std::complex<double> inplace_mult(const spin_handler &other);
 
@@ -53,15 +53,15 @@ public:
 
   virtual std::string unique_id() const override;
 
-  virtual std::vector<int> degrees() const override;
+  virtual std::vector<std::size_t> degrees() const override;
 
-  int target() const;
+  std::size_t target() const;
 
   // constructors and destructors
 
-  spin_handler(int target);
+  spin_handler(std::size_t target);
 
-  spin_handler(pauli p, int target);
+  spin_handler(pauli p, std::size_t target);
 
   ~spin_handler() = default;
 
@@ -87,7 +87,7 @@ public:
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<int, int> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 
@@ -99,12 +99,12 @@ public:
 
   // defined operators
 
-  static product_op<spin_handler> i(int degree);
-  static product_op<spin_handler> z(int degree);
-  static product_op<spin_handler> x(int degree);
-  static product_op<spin_handler> y(int degree);
-  static sum_op<spin_handler> plus(int degree);
-  static sum_op<spin_handler> minus(int degree);
+  static product_op<spin_handler> i(std::size_t degree);
+  static product_op<spin_handler> z(std::size_t degree);
+  static product_op<spin_handler> x(std::size_t degree);
+  static product_op<spin_handler> y(std::size_t degree);
+  static sum_op<spin_handler> plus(std::size_t degree);
+  static sum_op<spin_handler> minus(std::size_t degree);
 };
 
 } // namespace cudaq

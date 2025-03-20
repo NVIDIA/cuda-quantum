@@ -185,7 +185,7 @@ sum_op<HandlerTy>::degrees(bool application_order) const {
 }
 
 template <typename HandlerTy>
-int sum_op<HandlerTy>::num_terms() const {
+std::size_t sum_op<HandlerTy>::num_terms() const {
   return this->terms.size();
 }
 
@@ -194,7 +194,7 @@ int sum_op<HandlerTy>::num_terms() const {
   template std::vector<std::size_t> sum_op<HandlerTy>::degrees(                \
       bool application_order) const;                                           \
                                                                                \
-  template int sum_op<HandlerTy>::num_terms() const;
+  template std::size_t sum_op<HandlerTy>::num_terms() const;
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_PROPERTIES(matrix_handler);
@@ -298,7 +298,8 @@ sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other)
     : sum_op(other, other.is_default, 0) {}
 
 template <typename HandlerTy>
-sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other, bool is_default, std::size_t size)
+sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other, bool is_default,
+                          std::size_t size)
     : is_default(is_default && other.is_default),
       coefficients(std::move(other.coefficients)),
       term_map(std::move(other.term_map)), terms(std::move(other.terms)) {
@@ -331,12 +332,12 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
                                      product_op<HandlerTy> &&item3);           \
                                                                                \
   template sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other,           \
-                                     bool is_default, std::size_t size);               \
+                                     bool is_default, std::size_t size);       \
                                                                                \
   template sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other);          \
                                                                                \
   template sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other,                \
-                                     bool is_default, std::size_t size);               \
+                                     bool is_default, std::size_t size);       \
                                                                                \
   template sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other);
 
@@ -501,7 +502,7 @@ std::string sum_op<HandlerTy>::to_string() const {
 
 template <typename HandlerTy>
 complex_matrix sum_op<HandlerTy>::to_matrix(
-    std::unordered_map<int, int> dimensions,
+    std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const {
   auto evaluated =
@@ -522,7 +523,7 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
 
 template <>
 complex_matrix sum_op<spin_handler>::to_matrix(
-    std::unordered_map<int, int> dimensions,
+    std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const {
   auto evaluated = this->evaluate(
@@ -547,7 +548,7 @@ complex_matrix sum_op<spin_handler>::to_matrix(
   template std::string sum_op<HandlerTy>::to_string() const;                   \
                                                                                \
   template complex_matrix sum_op<HandlerTy>::to_matrix(                        \
-      std::unordered_map<int, int> dimensions,                                 \
+      std::unordered_map<std::size_t, int64_t> dimensions,                     \
       const std::unordered_map<std::string, std::complex<double>> &params,     \
       bool application_order) const;
 
@@ -1369,9 +1370,9 @@ product_op<HandlerTy> sum_op<HandlerTy>::identity() {
 }
 
 template <typename HandlerTy>
-product_op<HandlerTy> sum_op<HandlerTy>::identity(int target) {
+product_op<HandlerTy> sum_op<HandlerTy>::identity(std::size_t target) {
   static_assert(
-      std::is_constructible_v<HandlerTy, int>,
+      std::is_constructible_v<HandlerTy, std::size_t>,
       "operator handlers must have a constructor that take a single degree of "
       "freedom and returns the identity operator on that degree.");
   return product_op<HandlerTy>(1.0, HandlerTy(target));
@@ -1387,11 +1388,13 @@ template product_op<spin_handler> sum_op<spin_handler>::identity();
 template product_op<boson_handler> sum_op<boson_handler>::identity();
 template product_op<fermion_handler> sum_op<fermion_handler>::identity();
 template product_op<matrix_handler>
-sum_op<matrix_handler>::identity(int target);
-template product_op<spin_handler> sum_op<spin_handler>::identity(int target);
-template product_op<boson_handler> sum_op<boson_handler>::identity(int target);
+sum_op<matrix_handler>::identity(std::size_t target);
+template product_op<spin_handler>
+sum_op<spin_handler>::identity(std::size_t target);
+template product_op<boson_handler>
+sum_op<boson_handler>::identity(std::size_t target);
 template product_op<fermion_handler>
-sum_op<fermion_handler>::identity(int target);
+sum_op<fermion_handler>::identity(std::size_t target);
 #endif
 
 // handler specific operators
@@ -1404,135 +1407,142 @@ sum_op<fermion_handler>::identity(int target);
                              bool>>
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
-product_op<T> sum_op<HandlerTy>::number(int target) {
+product_op<T> sum_op<HandlerTy>::number(std::size_t target) {
   return matrix_handler::number(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
-product_op<T> sum_op<HandlerTy>::parity(int target) {
+product_op<T> sum_op<HandlerTy>::parity(std::size_t target) {
   return matrix_handler::parity(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
-product_op<T> sum_op<HandlerTy>::position(int target) {
+product_op<T> sum_op<HandlerTy>::position(std::size_t target) {
   return matrix_handler::position(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
-product_op<T> sum_op<HandlerTy>::momentum(int target) {
+product_op<T> sum_op<HandlerTy>::momentum(std::size_t target) {
   return matrix_handler::momentum(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
-product_op<T> sum_op<HandlerTy>::squeeze(int target) {
+product_op<T> sum_op<HandlerTy>::squeeze(std::size_t target) {
   return matrix_handler::squeeze(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
-product_op<T> sum_op<HandlerTy>::displace(int target) {
+product_op<T> sum_op<HandlerTy>::displace(std::size_t target) {
   return matrix_handler::displace(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-product_op<T> sum_op<HandlerTy>::i(int target) {
+product_op<T> sum_op<HandlerTy>::i(std::size_t target) {
   return spin_handler::i(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-product_op<T> sum_op<HandlerTy>::x(int target) {
+product_op<T> sum_op<HandlerTy>::x(std::size_t target) {
   return spin_handler::x(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-product_op<T> sum_op<HandlerTy>::y(int target) {
+product_op<T> sum_op<HandlerTy>::y(std::size_t target) {
   return spin_handler::y(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-product_op<T> sum_op<HandlerTy>::z(int target) {
+product_op<T> sum_op<HandlerTy>::z(std::size_t target) {
   return spin_handler::z(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-sum_op<T> sum_op<HandlerTy>::plus(int target) {
+sum_op<T> sum_op<HandlerTy>::plus(std::size_t target) {
   return spin_handler::plus(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-sum_op<T> sum_op<HandlerTy>::minus(int target) {
+sum_op<T> sum_op<HandlerTy>::minus(std::size_t target) {
   return spin_handler::minus(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
-product_op<T> sum_op<HandlerTy>::create(int target) {
+product_op<T> sum_op<HandlerTy>::create(std::size_t target) {
   return boson_handler::create(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
-product_op<T> sum_op<HandlerTy>::annihilate(int target) {
+product_op<T> sum_op<HandlerTy>::annihilate(std::size_t target) {
   return boson_handler::annihilate(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
-product_op<T> sum_op<HandlerTy>::number(int target) {
+product_op<T> sum_op<HandlerTy>::number(std::size_t target) {
   return boson_handler::number(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
-sum_op<T> sum_op<HandlerTy>::position(int target) {
+sum_op<T> sum_op<HandlerTy>::position(std::size_t target) {
   return boson_handler::position(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
-sum_op<T> sum_op<HandlerTy>::momentum(int target) {
+sum_op<T> sum_op<HandlerTy>::momentum(std::size_t target) {
   return boson_handler::momentum(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
-product_op<T> sum_op<HandlerTy>::create(int target) {
+product_op<T> sum_op<HandlerTy>::create(std::size_t target) {
   return fermion_handler::create(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
-product_op<T> sum_op<HandlerTy>::annihilate(int target) {
+product_op<T> sum_op<HandlerTy>::annihilate(std::size_t target) {
   return fermion_handler::annihilate(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
-product_op<T> sum_op<HandlerTy>::number(int target) {
+product_op<T> sum_op<HandlerTy>::number(std::size_t target) {
   return fermion_handler::number(target);
 }
 
-template product_op<matrix_handler> sum_op<matrix_handler>::number(int target);
-template product_op<matrix_handler> sum_op<matrix_handler>::parity(int target);
 template product_op<matrix_handler>
-sum_op<matrix_handler>::position(int target);
+sum_op<matrix_handler>::number(std::size_t target);
 template product_op<matrix_handler>
-sum_op<matrix_handler>::momentum(int target);
-template product_op<matrix_handler> sum_op<matrix_handler>::squeeze(int target);
+sum_op<matrix_handler>::parity(std::size_t target);
 template product_op<matrix_handler>
-sum_op<matrix_handler>::displace(int target);
+sum_op<matrix_handler>::position(std::size_t target);
+template product_op<matrix_handler>
+sum_op<matrix_handler>::momentum(std::size_t target);
+template product_op<matrix_handler>
+sum_op<matrix_handler>::squeeze(std::size_t target);
+template product_op<matrix_handler>
+sum_op<matrix_handler>::displace(std::size_t target);
 
-template product_op<spin_handler> sum_op<spin_handler>::i(int target);
-template product_op<spin_handler> sum_op<spin_handler>::x(int target);
-template product_op<spin_handler> sum_op<spin_handler>::y(int target);
-template product_op<spin_handler> sum_op<spin_handler>::z(int target);
-template sum_op<spin_handler> sum_op<spin_handler>::plus(int target);
-template sum_op<spin_handler> sum_op<spin_handler>::minus(int target);
+template product_op<spin_handler> sum_op<spin_handler>::i(std::size_t target);
+template product_op<spin_handler> sum_op<spin_handler>::x(std::size_t target);
+template product_op<spin_handler> sum_op<spin_handler>::y(std::size_t target);
+template product_op<spin_handler> sum_op<spin_handler>::z(std::size_t target);
+template sum_op<spin_handler> sum_op<spin_handler>::plus(std::size_t target);
+template sum_op<spin_handler> sum_op<spin_handler>::minus(std::size_t target);
 
-template product_op<boson_handler> sum_op<boson_handler>::create(int target);
 template product_op<boson_handler>
-sum_op<boson_handler>::annihilate(int target);
-template product_op<boson_handler> sum_op<boson_handler>::number(int target);
-template sum_op<boson_handler> sum_op<boson_handler>::position(int target);
-template sum_op<boson_handler> sum_op<boson_handler>::momentum(int target);
+sum_op<boson_handler>::create(std::size_t target);
+template product_op<boson_handler>
+sum_op<boson_handler>::annihilate(std::size_t target);
+template product_op<boson_handler>
+sum_op<boson_handler>::number(std::size_t target);
+template sum_op<boson_handler>
+sum_op<boson_handler>::position(std::size_t target);
+template sum_op<boson_handler>
+sum_op<boson_handler>::momentum(std::size_t target);
 
 template product_op<fermion_handler>
-sum_op<fermion_handler>::create(int target);
+sum_op<fermion_handler>::create(std::size_t target);
 template product_op<fermion_handler>
-sum_op<fermion_handler>::annihilate(int target);
+sum_op<fermion_handler>::annihilate(std::size_t target);
 template product_op<fermion_handler>
-sum_op<fermion_handler>::number(int target);
+sum_op<fermion_handler>::number(std::size_t target);
 
 // general utility functions
 
@@ -1544,7 +1554,7 @@ void sum_op<HandlerTy>::dump() const {
 
 template <typename HandlerTy>
 std::vector<sum_op<HandlerTy>>
-sum_op<HandlerTy>::distribute_terms(int numChunks) const {
+sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
   // Calculate how many terms we can equally divide amongst the chunks
   auto nTermsPerChunk = num_terms() / numChunks;
   auto leftover = num_terms() % numChunks;
@@ -1572,7 +1582,7 @@ sum_op<HandlerTy>::distribute_terms(int numChunks) const {
 
 #define INSTANTIATE_SUM_UTILITY_FUNCTIONS(HandlerTy)                           \
   template std::vector<sum_op<HandlerTy>> sum_op<HandlerTy>::distribute_terms( \
-      int numChunks) const;                                                    \
+      std::size_t numChunks) const;                                            \
   template void sum_op<HandlerTy>::dump() const;
 
 #if !defined(__clang__)
@@ -1609,7 +1619,7 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec) {
     if (std::modf(*it, &intPart) != 0.0)
       throw std::runtime_error(
           "Invalid pauli data element, must be integer value.");
-    return (int)*it++;
+    return (std::size_t)*it++;
   };
   auto next_double = [&it, &input_vec]() {
     if (it == input_vec.end())
@@ -1664,7 +1674,8 @@ product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, int nTerms,
+sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits,
+                                            std::size_t nTerms,
                                             unsigned int seed) {
   if (nQubits <= 30) {
     // For the given algorithm below that sets bool=true for 1/2 of the the
@@ -1688,7 +1699,7 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, int nTerms,
                                std::to_string(nQubits) + " qubits");
   }
 
-  auto get_spin_op = [](int target, int kind) {
+  auto get_spin_op = [](std::size_t target, int kind) {
     if (kind == 1)
       return sum_op<HandlerTy>::z(target);
     if (kind == 2)
@@ -1708,7 +1719,7 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, int nTerms,
     // ... but allow for duplicates (will be a single term with coefficient !=
     // 1)
     auto prod = sum_op<HandlerTy>::identity();
-    for (int qubit_idx = 0; qubit_idx < nQubits; ++qubit_idx) {
+    for (std::size_t qubit_idx = 0; qubit_idx < nQubits; ++qubit_idx) {
       auto kind =
           (termData[qubit_idx << 1] << 1) | termData[(qubit_idx << 1) + 1];
       // keep identities so that we act on the requested number of qubits
@@ -1721,7 +1732,7 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits, int nTerms,
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
-    std::unordered_map<int, int> dimensions,
+    std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const {
   auto evaluated = this->evaluate(
@@ -1779,10 +1790,10 @@ template sum_op<spin_handler>::sum_op(const std::vector<double> &input_vec);
 template product_op<spin_handler>
 sum_op<spin_handler>::from_word(const std::string &word);
 template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
-                                                           int nTerms,
+                                                           std::size_t nTerms,
                                                            unsigned int seed);
 template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
-    std::unordered_map<int, int> dimensions,
+    std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool application_order) const;
 template std::vector<double>
@@ -1802,7 +1813,7 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec,
                           std::size_t nQubits) {
   if (input_vec.size() == 0)
     throw std::runtime_error("input vector must not be empty");
-  auto n_terms = (int)input_vec.back();
+  auto n_terms = (std::size_t)input_vec.back();
   if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
     throw std::runtime_error("Invalid data representation for construction "
                              "spin_op. Number of data elements is incorrect.");
@@ -1817,7 +1828,7 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec,
         throw std::runtime_error(
             "Invalid pauli data element, must be integer value.");
 
-      int val = (int)input_vec[j + i];
+      int val = (std::size_t)input_vec[j + i];
       if (val == 1) // X
         prod *= sum_op<HandlerTy>::x(j);
       else if (val == 2) // Z
@@ -1866,30 +1877,34 @@ sum_op<HandlerTy>::sum_op(const std::vector<std::vector<bool>> &bsf_terms,
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::vector<double> sum_op<HandlerTy>::getDataRepresentation() const {
-  // This function prints a data representing the operator sum that 
+  // This function prints a data representing the operator sum that
   // includes the full representation for any degree in [0, max_degree),
   // padding identities if necessary.
-  // NOTE: this is an imperfect representation that we will want to 
+  // NOTE: this is an imperfect representation that we will want to
   // deprecate because it does not capture targets accurately.
-  auto degrees = this->degrees(false); // degrees in canonical order to match the evaluation
-  auto le_order = std::less<int>();
+  auto degrees = this->degrees(
+      false); // degrees in canonical order to match the evaluation
+  auto le_order = std::less<std::size_t>();
   auto get_le_index = [&degrees, &le_order](std::size_t idx) {
-    // For compatibility with existing code, the ordering for the term ops always
-    // needs to be from smallest to largest degree.
+    // For compatibility with existing code, the ordering for the term ops
+    // always needs to be from smallest to largest degree.
     return (operator_handler::canonical_order(1, 0) == le_order(1, 0))
-      ? idx : degrees.size() - 1 - idx;
+               ? idx
+               : degrees.size() - 1 - idx;
   };
 
   // number of degrees including the ones for any injected identities
-  auto n_targets = operator_handler::canonical_order(0, 1) ? degrees.back() + 1 : degrees[0] + 1;
+  auto n_targets = operator_handler::canonical_order(0, 1) ? degrees.back() + 1
+                                                           : degrees[0] + 1;
   auto padded = *this; // copy for identity padding
   for (std::size_t j = 0; j < n_targets; ++j)
     padded *= sum_op<HandlerTy>::identity(j);
 
   std::vector<double> dataVec;
-  dataVec.reserve(n_targets * padded.terms.size() + 2 * padded.terms.size() + 1);
-  for(std::size_t i = 0; i < padded.terms.size(); ++i) {
-    for(std::size_t j = 0; j < padded.terms[i].size(); ++j) {
+  dataVec.reserve(n_targets * padded.terms.size() + 2 * padded.terms.size() +
+                  1);
+  for (std::size_t i = 0; i < padded.terms.size(); ++i) {
+    for (std::size_t j = 0; j < padded.terms[i].size(); ++j) {
       auto pauli = padded.terms[i][get_le_index(j)].as_pauli();
       if (pauli == pauli::X)
         dataVec.push_back(1.);
@@ -1909,21 +1924,23 @@ std::vector<double> sum_op<HandlerTy>::getDataRepresentation() const {
 }
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
-std::tuple<std::vector<double>, std::size_t> sum_op<HandlerTy>::getDataTuple() const {
-  #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  #endif
-  return std::make_tuple<std::vector<double>, std::size_t>(this->getDataRepresentation(), this->num_qubits());
-  #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-  #pragma GCC diagnostic pop  
-  #endif
+std::tuple<std::vector<double>, std::size_t>
+sum_op<HandlerTy>::getDataTuple() const {
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+  return std::make_tuple<std::vector<double>, std::size_t>(
+      this->getDataRepresentation(), this->num_qubits());
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
 }
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
 sum_op<HandlerTy>::get_raw_data() const {
-  std::unordered_map<int, int> dims;
+  std::unordered_map<std::size_t, int64_t> dims;
   auto degrees = this->degrees(
       false); // degrees in canonical order to match the evaluation
   auto evaluated = this->evaluate(
@@ -1971,12 +1988,12 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
   // This function prints a string representing the operator sum that
   // includes the full representation for any degree in [0, max_degree),
   // padding identities if necessary (opposed to pauli_word).
-  std::unordered_map<int, int> dims;
+  std::unordered_map<std::size_t, int64_t> dims;
   auto degrees = this->degrees(
       false); // degrees in canonical order to match the evaluation
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
-  auto le_order = std::less<int>();
+  auto le_order = std::less<std::size_t>();
   auto get_le_index = [&degrees, &le_order](std::size_t idx) {
     // For compatibility with existing code, the ordering for the term string
     // always needs to be from smallest to largest degree, and it necessarily
@@ -2050,7 +2067,7 @@ template sum_op<spin_handler>::sum_op(
     const std::vector<std::complex<double>> &coeffs);
 template std::vector<double>
 sum_op<spin_handler>::getDataRepresentation() const;
-template std::tuple<std::vector<double>, std::size_t> 
+template std::tuple<std::vector<double>, std::size_t>
 sum_op<spin_handler>::getDataTuple() const;
 template std::pair<std::vector<std::vector<bool>>,
                    std::vector<std::complex<double>>>

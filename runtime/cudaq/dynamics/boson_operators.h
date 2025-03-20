@@ -30,14 +30,14 @@ private:
   // representation allows us to perform a perfect in-place multiplication.
   int additional_terms;
   std::vector<int> number_offsets;
-  int degree;
+  std::size_t degree;
 
   // 0 = I, Ad = 1, A = 2, AdA = 3
-  boson_handler(int target, int op_code);
+  boson_handler(std::size_t target, int op_code);
 
   std::string op_code_to_string() const;
-  virtual std::string
-  op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
+  virtual std::string op_code_to_string(
+      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
   void inplace_mult(const boson_handler &other);
 
@@ -46,11 +46,11 @@ public:
 
   virtual std::string unique_id() const override;
 
-  virtual std::vector<int> degrees() const override;
+  virtual std::vector<std::size_t> degrees() const override;
 
   // constructors and destructors
 
-  boson_handler(int target);
+  boson_handler(std::size_t target);
 
   ~boson_handler() = default;
 
@@ -61,7 +61,7 @@ public:
   /// @arg  `dimensions` : A map specifying the dimension, that is the number of
   /// eigenstates, for each degree of freedom.
   virtual complex_matrix
-  to_matrix(std::unordered_map<int, int> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 
@@ -75,12 +75,12 @@ public:
 
   // defined operators
 
-  static product_op<boson_handler> create(int degree);
-  static product_op<boson_handler> annihilate(int degree);
-  static product_op<boson_handler> number(int degree);
+  static product_op<boson_handler> create(std::size_t degree);
+  static product_op<boson_handler> annihilate(std::size_t degree);
+  static product_op<boson_handler> number(std::size_t degree);
 
-  static sum_op<boson_handler> position(int degree);
-  static sum_op<boson_handler> momentum(int degree);
+  static sum_op<boson_handler> position(std::size_t degree);
+  static sum_op<boson_handler> momentum(std::size_t degree);
 };
 
 } // namespace cudaq

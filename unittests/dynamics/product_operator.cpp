@@ -140,7 +140,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   std::vector<std::size_t> want_degrees = {0, 2};
   auto spin_matrix =
       cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   ASSERT_TRUE(spin_prod.degrees() == want_degrees);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix(dimensions));
@@ -998,7 +998,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   int level_count = 3;
-  std::unordered_map<int, int> dimensions = {
+  cudaq::dimension_map dimensions = {
       {0, level_count}, {1, level_count}, {2, level_count + 1}};
 
   // `product_op + product_op`
@@ -1330,7 +1330,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   int level_count = 3;
-  std::unordered_map<int, int> dimensions = {
+  cudaq::dimension_map dimensions = {
       {0, level_count}, {1, level_count}, {2, level_count + 1}};
 
   // `product_op + sum_op`
@@ -1569,20 +1569,20 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
 TEST(OperatorExpressions, checkCustomProductOps) {
   auto level_count = 2;
-  std::unordered_map<int, int> dimensions = {{0, level_count + 1},
-                                             {1, level_count + 2},
-                                             {2, level_count},
-                                             {3, level_count + 3}};
+  cudaq::dimension_map dimensions = {{0, level_count + 1},
+                                     {1, level_count + 2},
+                                     {2, level_count},
+                                     {3, level_count + 3}};
 
   {
     auto func0 =
-        [](const std::vector<int> &dimensions,
+        [](const std::vector<int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::momentum_matrix(dimensions[1]),
                                   utils::position_matrix(dimensions[0]));
         };
     auto func1 =
-        [](const std::vector<int> &dimensions,
+        [](const std::vector<int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::momentum_matrix(dimensions[1]),
                                   utils::number_matrix(dimensions[0]));

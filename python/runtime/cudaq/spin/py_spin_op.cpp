@@ -123,7 +123,7 @@ void bindSpinOperator(py::module &mod) {
            "can be retrieved.")
       .def(
           "get_pauli_word",
-          [](cudaq::spin_op_term &op, int pad_identities) {
+          [](cudaq::spin_op_term &op, std::size_t pad_identities) {
             return op.get_pauli_word(pad_identities);
           },
           py::arg("pad_identities") = 0,

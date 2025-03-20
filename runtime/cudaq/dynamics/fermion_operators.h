@@ -36,16 +36,16 @@ private:
   // 9 = 1001 = I
   int8_t op_code;
   bool commutes;
-  int degree;
+  std::size_t degree;
 
   // Note that this constructor is chosen to be independent
   // on the internal encoding; to be less critic, we here use the usual
   // 0 = I, Ad = 1, A = 2, AdA = 3
-  fermion_handler(int target, int op_id);
+  fermion_handler(std::size_t target, int op_id);
 
   std::string op_code_to_string() const;
-  virtual std::string
-  op_code_to_string(std::unordered_map<int, int> &dimensions) const override;
+  virtual std::string op_code_to_string(
+      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
 #if !defined(NDEBUG)
   // Here to check if my reasoning regarding only ever needing the operators
@@ -65,11 +65,11 @@ public:
 
   virtual std::string unique_id() const override;
 
-  virtual std::vector<int> degrees() const override;
+  virtual std::vector<std::size_t> degrees() const override;
 
   // constructors and destructors
 
-  fermion_handler(int target);
+  fermion_handler(std::size_t target);
 
   fermion_handler(const fermion_handler &other);
 
@@ -86,7 +86,7 @@ public:
   /// @arg  `dimensions` : A map specifying the dimension, that is the number of
   /// eigenstates, for each degree of freedom.
   virtual complex_matrix
-  to_matrix(std::unordered_map<int, int> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 
@@ -100,9 +100,9 @@ public:
 
   // defined operators
 
-  static product_op<fermion_handler> create(int degree);
-  static product_op<fermion_handler> annihilate(int degree);
-  static product_op<fermion_handler> number(int degree);
+  static product_op<fermion_handler> create(std::size_t degree);
+  static product_op<fermion_handler> annihilate(std::size_t degree);
+  static product_op<fermion_handler> number(std::size_t degree);
 
   // Note that we don't define position and momentum here, since physically they
   // do not make much sense; see e.g.

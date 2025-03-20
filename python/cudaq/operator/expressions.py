@@ -602,14 +602,14 @@ class ProductOperator(OperatorSum):
 
     def get_pauli_word(self: ProductOperator, pad_identities: int = 0) -> str:
         spin_op = self._to_spinop()
-        if spin_op.get_term_count() == 0: 
+        if spin_op.get_term_count() == 0:
             return 'I' * pad_identities
         op, *_ = spin_op
         return op.get_pauli_word(pad_identities)
 
     def get_term_id(self: ProductOperator) -> str:
-        spin_op = self._to_spinop() 
-        if spin_op.get_term_count() == 0: 
+        spin_op = self._to_spinop()
+        if spin_op.get_term_count() == 0:
             return ''
         op, *_ = spin_op
         return op.get_term_id()

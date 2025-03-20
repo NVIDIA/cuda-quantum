@@ -51,7 +51,7 @@ std::string boson_handler::op_code_to_string() const {
 }
 
 std::string boson_handler::op_code_to_string(
-    std::unordered_map<int, int> &dimensions) const {
+    std::unordered_map<std::size_t, int64_t> &dimensions) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " +
@@ -127,14 +127,16 @@ std::string boson_handler::unique_id() const {
   return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<int> boson_handler::degrees() const { return {this->degree}; }
+std::vector<std::size_t> boson_handler::degrees() const {
+  return {this->degree};
+}
 
 // constructors
 
-boson_handler::boson_handler(int target)
+boson_handler::boson_handler(std::size_t target)
     : degree(target), additional_terms(0) {}
 
-boson_handler::boson_handler(int target, int op_id)
+boson_handler::boson_handler(std::size_t target, int op_id)
     : degree(target), additional_terms(0) {
   assert(0 <= op_id && op_id < 4);
   if (op_id == 1) // create
@@ -148,7 +150,7 @@ boson_handler::boson_handler(int target, int op_id)
 // evaluations
 
 complex_matrix boson_handler::to_matrix(
-    std::unordered_map<int, int> &dimensions,
+    std::unordered_map<std::size_t, int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   auto it = dimensions.find(this->degree);
@@ -204,24 +206,24 @@ bool boson_handler::operator==(const boson_handler &other) const {
 
 // defined operators
 
-product_op<boson_handler> boson_handler::create(int degree) {
+product_op<boson_handler> boson_handler::create(std::size_t degree) {
   return product_op(boson_handler(degree, 1));
 }
 
-product_op<boson_handler> boson_handler::annihilate(int degree) {
+product_op<boson_handler> boson_handler::annihilate(std::size_t degree) {
   return product_op(boson_handler(degree, 2));
 }
 
-product_op<boson_handler> boson_handler::number(int degree) {
+product_op<boson_handler> boson_handler::number(std::size_t degree) {
   return product_op(boson_handler(degree, 3));
 }
 
-sum_op<boson_handler> boson_handler::position(int degree) {
+sum_op<boson_handler> boson_handler::position(std::size_t degree) {
   return 0.5 *
          (boson_handler::create(degree) + boson_handler::annihilate(degree));
 }
 
-sum_op<boson_handler> boson_handler::momentum(int degree) {
+sum_op<boson_handler> boson_handler::momentum(std::size_t degree) {
   return std::complex<double>(0., 0.5) *
          (boson_handler::create(degree) - boson_handler::annihilate(degree));
 }

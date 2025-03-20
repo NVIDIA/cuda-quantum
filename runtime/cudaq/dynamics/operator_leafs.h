@@ -228,8 +228,8 @@ private:
   // Validate or populate the dimension defined for the degree(s) of freedom the
   // operator acts on, and return a string that identifies the operator but not
   // what degrees it acts on.
-  virtual std::string
-  op_code_to_string(std::unordered_map<int, int> &dimensions) const = 0;
+  virtual std::string op_code_to_string(
+      std::unordered_map<std::size_t, int64_t> &dimensions) const = 0;
 
   // data storage classes for evaluation
 
@@ -242,12 +242,13 @@ private:
     friend class operator_arithmetics;
 
   private:
-    std::vector<int> degrees;
+    std::vector<std::size_t> degrees;
     complex_matrix matrix;
 
   public:
     matrix_evaluation();
-    matrix_evaluation(std::vector<int> &&degrees, complex_matrix &&matrix);
+    matrix_evaluation(std::vector<std::size_t> &&degrees,
+                      complex_matrix &&matrix);
     matrix_evaluation(matrix_evaluation &&other);
     matrix_evaluation &operator=(matrix_evaluation &&other);
     // delete copy constructor and copy assignment to avoid unnecessary copies
@@ -289,8 +290,8 @@ public:
   // convention, i.e. the order in which custom matrix operators are defined,
   // the order returned by to_matrix and degree, and the order in which a user
   // would define a state vector.
-  static constexpr auto canonical_order = std::less<int>();
-  static constexpr auto user_facing_order = std::less<int>();
+  static constexpr auto canonical_order = std::less<std::size_t>();
+  static constexpr auto user_facing_order = std::less<std::size_t>();
 
   /// Default commutation relations mean that two operator always commute as
   /// long as they act on different degrees of freedom.
@@ -318,7 +319,7 @@ public:
   // returns a unique string id for the operator
   virtual std::string unique_id() const = 0;
 
-  virtual std::vector<int> degrees() const = 0;
+  virtual std::vector<std::size_t> degrees() const = 0;
 
   /// @brief Return the `matrix_handler` as a matrix.
   /// @arg  `dimensions` : A map specifying the number of levels,
@@ -326,7 +327,7 @@ public:
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<int, int> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const = 0;
 

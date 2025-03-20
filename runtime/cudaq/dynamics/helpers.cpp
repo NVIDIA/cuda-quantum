@@ -6,17 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "helpers.h"
+#include "common/EigenSparse.h"
 #include <algorithm>
 #include <unordered_map>
-#include "common/EigenSparse.h"
-#include "helpers.h"
 
 namespace cudaq {
 namespace detail {
 
-std::vector<std::string>
-generate_all_states(const std::vector<int> &degrees,
-                    const std::unordered_map<int, int> &dimensions) {
+std::vector<std::string> generate_all_states(
+    const std::vector<std::size_t> &degrees,
+    const std::unordered_map<std::size_t, int64_t> &dimensions) {
   if (degrees.size() == 0)
     return {};
   auto dit = degrees.crbegin();
@@ -43,14 +43,14 @@ generate_all_states(const std::vector<int> &degrees,
   return states;
 }
 
-std::vector<int>
-compute_permutation(const std::vector<int> &op_degrees,
-                    const std::vector<int> &canon_degrees,
-                    const std::unordered_map<int, int> dimensions) {
+std::vector<std::size_t>
+compute_permutation(const std::vector<std::size_t> &op_degrees,
+                    const std::vector<std::size_t> &canon_degrees,
+                    const std::unordered_map<std::size_t, int64_t> dimensions) {
   assert(op_degrees.size() == canon_degrees.size());
   auto states = cudaq::detail::generate_all_states(canon_degrees, dimensions);
 
-  std::vector<int> reordering;
+  std::vector<std::size_t> reordering;
   for (auto degree : op_degrees) {
     auto it = std::find(canon_degrees.cbegin(), canon_degrees.cend(), degree);
     reordering.push_back(it - canon_degrees.cbegin());
@@ -59,7 +59,7 @@ compute_permutation(const std::vector<int> &op_degrees,
   std::vector<std::string> op_states =
       cudaq::detail::generate_all_states(op_degrees, dimensions);
 
-  std::vector<int> permutation;
+  std::vector<std::size_t> permutation;
   for (const auto &state : states) {
     std::string term;
     for (auto i : reordering) {
@@ -73,7 +73,7 @@ compute_permutation(const std::vector<int> &op_degrees,
 }
 
 void permute_matrix(cudaq::complex_matrix &matrix,
-                    const std::vector<int> &permutation) {
+                    const std::vector<std::size_t> &permutation) {
   if (permutation.size() == 0) {
     assert(matrix.rows() == matrix.cols() == 1);
     return;
@@ -85,7 +85,7 @@ void permute_matrix(cudaq::complex_matrix &matrix,
       sorted_values.push_back(matrix[{permuted, permuted_again}]);
     }
   }
-  int idx = 0;
+  std::size_t idx = 0;
   for (std::size_t row = 0; row < matrix.rows(); row++) {
     for (std::size_t col = 0; col < matrix.cols(); col++) {
       matrix[{row, col}] = sorted_values[idx];
@@ -94,15 +94,14 @@ void permute_matrix(cudaq::complex_matrix &matrix,
   }
 }
 
-cudaq::csr_spmatrix
-to_csr_spmatrix(const EigenSparseMatrix &matrix,
-                std::size_t estimated_num_entries) {
+cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
+                                    std::size_t estimated_num_entries) {
   std::vector<std::complex<double>> values;
   std::vector<std::size_t> rows, cols;
   values.reserve(estimated_num_entries);
   rows.reserve(estimated_num_entries);
   cols.reserve(estimated_num_entries);
-  for (int k = 0; k < matrix.outerSize(); ++k)
+  for (std::size_t k = 0; k < matrix.outerSize(); ++k)
     for (EigenSparseMatrix::InnerIterator it(matrix, k); it; ++it) {
       values.emplace_back(it.value());
       rows.emplace_back(it.row());

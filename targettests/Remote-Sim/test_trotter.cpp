@@ -100,18 +100,18 @@ int run_steps(int steps, int spins) {
   const double omega = 2 * M_PI;
   const auto heisenbergModelHam = [&](double t) -> cudaq::spin_op {
     cudaq::spin_op tdOp(n_spins);
-    for (int i = 0; i < n_spins - 1; ++i) {
+    for (std::size_t i = 0; i < n_spins - 1; ++i) {
       tdOp += (Jx * cudaq::spin_op::x(i) * cudaq::spin_op::x(i + 1));
       tdOp += (Jy * cudaq::spin_op::y(i) * cudaq::spin_op::y(i + 1));
       tdOp += (Jz * cudaq::spin_op::z(i) * cudaq::spin_op::z(i + 1));
     }
-    for (int i = 0; i < n_spins; ++i)
+    for (std::size_t i = 0; i < n_spins; ++i)
       tdOp += (std::cos(omega * t) * cudaq::spin_op::x(i));
     return tdOp;
   };
   // Observe the average magnetization of all spins (<Z>)
   cudaq::spin_op average_magnetization(n_spins);
-  for (int i = 0; i < n_spins; ++i)
+  for (std::size_t i = 0; i < n_spins; ++i)
     average_magnetization += ((1.0 / n_spins) * cudaq::spin_op::z(i));
 
   // Run loop
