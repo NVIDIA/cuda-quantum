@@ -10,6 +10,7 @@
 
 #include "common/ExecutionContext.h"
 #include "common/KernelWrapper.h"
+#include "cudaq/utils/registry.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 #include "cudaq/platform.h"
@@ -19,6 +20,8 @@
 #include "cudaq/qis/state.h"
 #include <complex>
 #include <vector>
+
+#include <iostream>
 
 namespace cudaq {
 
@@ -120,13 +123,25 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
                                            std::forward<Args>(args)...));
   }
 #elif defined(CUDAQ_QUANTUM_DEVICE) && !defined(CUDAQ_LIBRARY_MODE)
-  // Store kernel name and arguments for quantum states.
-  if (!cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
-    return state(new QPUState(std::forward<QuantumKernel>(kernel),
-                              std::forward<Args>(args)...));
+  // // Store kernel name and arguments for quantum states.
+  // if (!cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
+  //   return state(new QPUState(std::forward<QuantumKernel>(kernel),
+  //                             std::forward<Args>(args)...));
+
+  std::cout << "Getting C-like kernel key "  << std::endl;
+  return state(new QPUState(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...));
+
+  // auto key = cudaq::registry::__cudaq_getLinkableKernelKey(reinterpret_cast<void*>(kernel));
+  // std::cout << "C-like kernel key " << key << std::endl;
+  // auto name = cudaq::registry::__cudaq_getLinkableKernelName(key);
+  // std::cout << "C-like kernel name " << name << std::endl;
+
+
   throw std::runtime_error(
       "cudaq::state* argument synthesis is not supported for quantum hardware"
       " for c-like functions, use class kernels instead");
+
 #elif defined(CUDAQ_QUANTUM_DEVICE)
   // Kernel builder is MLIR-based kernel.
   if constexpr (has_name<QuantumKernel>::value)
