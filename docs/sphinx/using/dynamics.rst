@@ -238,6 +238,13 @@ As an example, let's looks at the `displacement operator <https://en.wikipedia.o
         :start-after: [Begin DefineOp]
         :end-before: [End DefineOp]
 
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin DefineOp]
+        :end-before: [End DefineOp]
+
 The defined operator is parameterized by the `displacement` amplitude. To create simulate the evolution of an 
 operator under a time dependent displacement amplitude, we can define how the amplitude changes in time:
 
@@ -245,6 +252,13 @@ operator under a time dependent displacement amplitude, we can define how the am
 
   .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
+        :start-after: [Begin Schedule1]
+        :end-before: [End Schedule1]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
         :start-after: [Begin Schedule1]
         :end-before: [End Schedule1]
 
@@ -256,6 +270,13 @@ the desired value for each parameter:
 
   .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
+        :start-after: [Begin Schedule2]
+        :end-before: [End Schedule2]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
         :start-after: [Begin Schedule2]
         :end-before: [End Schedule2]
 
