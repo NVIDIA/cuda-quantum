@@ -57,7 +57,7 @@ will be installed and used.
   operating systems may work, but have not been tested.
 - `Bash <https://www.gnu.org/software/bash/>`__ shell. The CUDA-Q 
   build, install and run scripts expect to use `/bin/bash`.
-- `GNU C library <https://www.gnu.org/software/libc/>`__. 
+- `GNU C library <https://www.gnu.org/software/libc/index.html>`__. 
   Make sure that the version on the host system is the same one
   or newer than the version on the build system. Our own builds
   use version 2.28.

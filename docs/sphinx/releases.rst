@@ -135,7 +135,7 @@ each simulated by one or more GPUs.
 
 Starting with 0.6.0, we are now also distributing 
 :ref:`pre-built binaries <install-prebuilt-binaries>` for using CUDA-Q with C++.
-The binaries are built against the `GNU C library <https://www.gnu.org/software/libc/>`__ 
+The binaries are built against the `GNU C library <https://www.gnu.org/software/libc/index.html>`__ 
 version 2.28.
 We've added a detailed :doc:`Building from Source <using/install/data_center_install>` guide to build these binaries for older `glibc` versions.
 
