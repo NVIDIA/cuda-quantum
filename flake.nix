@@ -47,46 +47,26 @@
             ninja
             gcc11
             gfortran11
+            gtest
 
-            # Python dependencies
-            python3
-            python3Packages.pip
-            python3Packages.pybind11
-            python3Packages.numpy
-            python3Packages.pytest
-            python3Packages.setuptools
-            python3Packages.wheel
-            python3Packages.fastapi
-            python3Packages.uvicorn
-            python3Packages.llvmlite
-
-            # Build tools
+            # Utils
             git
             gnupg
-            wget
-            gnumake
-            automake
-            libtool
-            unzip
-            gtest
-            autoconf
 
             # Dev tools
             pre-commit
 
             # Prerequisites
             pkgsStatic.openblas
-            ncurses
-            libz.dev
+            ncurses # TermInfo
           ];
 
           shellHook = ''
             # CUDA setup
-            export CUDA_PATH="${symlinkedCuda}"
             export CUDA_HOME="${symlinkedCuda}"
-            export CUDAToolkit_TARGET_DIR="${symlinkedCuda}"
 
             # Prerequisites - nix-managed
+            # TODO (nvidia-dobri): Move more deps from unmanaged to managed
             export BLAS_INSTALL_PREFIX="${pkgs.pkgsStatic.openblas}"
 
             # Prerequisites - unmanaged
@@ -95,13 +75,15 @@
             export OPENSSL_INSTALL_PREFIX=/usr/local/openssl
             export CURL_INSTALL_PREFIX=/usr/local/curl
             export AWS_INSTALL_PREFIX=/usr/local/aws
-            export CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
             export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
             export CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
 
-            # Python setup
+            # Install location
+            export CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
+
+            # Python setup - unsupported
+            # TODO (nvidia-dobri): Figure out why fixup-linkage is not being built
             export CUDAQ_PYTHON_SUPPORT="FALSE"
-            export PYTHONPATH="${pkgs.python3Packages.pybind11}/${pkgs.python3.sitePackages}:$PYTHONPATH"
 
             # Compiler setup
             export CC="${pkgs.gcc11}/bin/gcc"

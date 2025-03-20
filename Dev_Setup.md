@@ -6,11 +6,12 @@ you want to contribute to the code in this repository.
 ## Using Nix Flakes (experimental)
 
 This repository defines a Nix flake which will allow you to quickly bootstrap a
-development environment on any Linux system (OS X unsupported as of the time of
-writing). Unlike Docker containers, you will not need to build a container and
-spin it up, you can develop directly on your linux host. And unlike manually
-managing dependencies, Nix will (mostly) hermetically manage all the
-dependencies for you. All you **need** to install, ever, is Nix itself.
+development environment on any Linux system (WSL is supported, but OS X is
+unsupported as of the time of writing). Unlike Docker containers, you will not
+need to build a container and spin it up, you can develop directly on your linux
+host. And unlike manually managing dependencies, Nix will (mostly) hermetically
+manage all the dependencies for you. All you **need** to install, ever, is Nix
+itself.
 
 To setup using nix flakes, you will first have to install
 [Nix multi-user](https://nixos.org/download/), if you haven't done so already:
