@@ -229,7 +229,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {},
             bool application_order = true) const;
@@ -456,7 +456,7 @@ public:
   /// complex values.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   csr_spmatrix
-  to_sparse_matrix(std::unordered_map<std::size_t, int> dimensions = {},
+  to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters = {},
                    bool application_order = true) const;
@@ -711,7 +711,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {},
             bool application_order = true) const;
@@ -879,7 +879,7 @@ public:
   /// complex values.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   csr_spmatrix
-  to_sparse_matrix(std::unordered_map<std::size_t, int> dimensions = {},
+  to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
                        &parameters = {},
                    bool application_order = true) const;
@@ -938,7 +938,7 @@ private:
 
 // type aliases for convenience
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
-typedef std::unordered_map<std::size_t, int> dimension_map;
+typedef std::unordered_map<std::size_t, int64_t> dimension_map;
 typedef sum_op<matrix_handler> matrix_op;
 typedef product_op<matrix_handler> matrix_op_term;
 typedef sum_op<spin_handler> spin_op;

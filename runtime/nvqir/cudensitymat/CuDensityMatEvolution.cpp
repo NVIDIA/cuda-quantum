@@ -43,7 +43,7 @@ evolve_result evolveSingle(
     bool storeIntermediateResults, std::optional<int> shotsCount) {
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
-  std::map<std::size_t, int> dimensions = convertToOrderedMap(dimensionsMap);
+  std::map<std::size_t, int64_t> dimensions = convertToOrderedMap(dimensionsMap);
   std::vector<int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);

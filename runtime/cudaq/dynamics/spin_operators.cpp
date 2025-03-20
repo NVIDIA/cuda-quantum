@@ -29,7 +29,7 @@ std::string spin_handler::op_code_to_string() const {
 }
 
 std::string spin_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int> &dimensions) const {
+    std::unordered_map<std::size_t, int64_t> &dimensions) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     dimensions[this->degree] = 2;
@@ -169,7 +169,7 @@ complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
 }
 
 complex_matrix spin_handler::to_matrix(
-    std::unordered_map<std::size_t, int> &dimensions,
+    std::unordered_map<std::size_t, int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   auto it = dimensions.find(this->degree);

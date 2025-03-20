@@ -62,7 +62,7 @@ operator_handler::matrix_evaluation::matrix_evaluation(
     std::vector<std::size_t> &&degrees, complex_matrix &&matrix)
     : degrees(std::move(degrees)), matrix(std::move(matrix)) {
 #if !defined(NDEBUG)
-  std::set<int> unique_degrees;
+  std::set<std::size_t> unique_degrees;
   for (auto d : this->degrees)
     unique_degrees.insert(d);
   assert(unique_degrees.size() == this->degrees.size());

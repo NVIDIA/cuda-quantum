@@ -23,7 +23,7 @@ template <typename EvalTy>
 class operator_arithmetics {
 public:
   operator_arithmetics(
-      std::unordered_map<std::size_t, int> &dimensions,
+      std::unordered_map<std::size_t, int64_t> &dimensions,
       const std::unordered_map<std::string, std::complex<double>> &parameters);
 
   /// Whether to inject tensor products with identity to each term in the
@@ -58,7 +58,7 @@ template <>
 class operator_arithmetics<operator_handler::matrix_evaluation> {
 
 private:
-  std::unordered_map<std::size_t, int> &dimensions; // may be updated during evaluation
+  std::unordered_map<std::size_t, int64_t> &dimensions; // may be updated during evaluation
   const std::unordered_map<std::string, std::complex<double>> &parameters;
 
   // Given a matrix representation that acts on the given degrees or freedom,
@@ -79,7 +79,7 @@ public:
   const bool pad_product_terms = true;
 
   operator_arithmetics(
-      std::unordered_map<std::size_t, int> &dimensions,
+      std::unordered_map<std::size_t, int64_t> &dimensions,
       const std::unordered_map<std::string, std::complex<double>> &parameters)
       : dimensions(dimensions), parameters(parameters) {}
 
@@ -148,7 +148,7 @@ template <>
 class operator_arithmetics<operator_handler::canonical_evaluation> {
 
 private:
-  std::unordered_map<std::size_t, int> &dimensions; // may be updated during evaluation
+  std::unordered_map<std::size_t, int64_t> &dimensions; // may be updated during evaluation
   const std::unordered_map<std::string, std::complex<double>> &parameters;
 
 public:
@@ -156,7 +156,7 @@ public:
   const bool pad_product_terms = false;
 
   operator_arithmetics(
-      std::unordered_map<std::size_t, int> &dimensions,
+      std::unordered_map<std::size_t, int64_t> &dimensions,
       const std::unordered_map<std::string, std::complex<double>> &parameters)
       : dimensions(dimensions), parameters(parameters) {}
 

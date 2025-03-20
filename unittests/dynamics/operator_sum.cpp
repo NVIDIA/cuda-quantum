@@ -1504,13 +1504,13 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
 
   {
     auto func0 =
-        [](const std::vector<int> &dimensions,
+        [](const std::vector<int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::momentum_matrix(dimensions[1]),
                                   utils::position_matrix(dimensions[0]));
         };
     auto func1 =
-        [](const std::vector<int> &dimensions,
+        [](const std::vector<int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::parity_matrix(dimensions[1]),
                                   utils::number_matrix(dimensions[0]));

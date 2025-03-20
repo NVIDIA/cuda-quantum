@@ -229,7 +229,7 @@ private:
   // operator acts on, and return a string that identifies the operator but not
   // what degrees it acts on.
   virtual std::string
-  op_code_to_string(std::unordered_map<std::size_t, int> &dimensions) const = 0;
+  op_code_to_string(std::unordered_map<std::size_t, int64_t> &dimensions) const = 0;
 
   // data storage classes for evaluation
 
@@ -326,7 +326,7 @@ public:
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const = 0;
 

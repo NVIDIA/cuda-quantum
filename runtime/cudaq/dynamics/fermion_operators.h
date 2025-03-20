@@ -45,7 +45,7 @@ private:
 
   std::string op_code_to_string() const;
   virtual std::string
-  op_code_to_string(std::unordered_map<std::size_t, int> &dimensions) const override;
+  op_code_to_string(std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
 #if !defined(NDEBUG)
   // Here to check if my reasoning regarding only ever needing the operators
@@ -86,7 +86,7 @@ public:
   /// @arg  `dimensions` : A map specifying the dimension, that is the number of
   /// eigenstates, for each degree of freedom.
   virtual complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 

@@ -44,7 +44,7 @@ private:
   static std::string type_prefix();
 
   virtual std::string
-  op_code_to_string(std::unordered_map<std::size_t, int> &dimensions) const override;
+  op_code_to_string(std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
 protected:
   std::string op_code;
@@ -93,7 +93,7 @@ public:
   ///      the operator acts on, and an unordered map from string to complex
   ///      double that contains additional parameters the operator may use.
   static void define(std::string operator_id,
-                     std::vector<int> expected_dimensions,
+                     std::vector<int64_t> expected_dimensions,
                      matrix_callback &&create);
 
   /// @brief Instantiates a custom operator.
@@ -161,7 +161,7 @@ public:
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 

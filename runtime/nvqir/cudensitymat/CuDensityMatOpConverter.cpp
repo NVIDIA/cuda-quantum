@@ -73,7 +73,7 @@ cudaq::product_op<cudaq::matrix_handler>
 computeDagger(const cudaq::matrix_handler &op) {
   const std::string daggerOpName = op.to_string(false) + "_dagger";
   try {
-    auto func = [op](const std::vector<int> &dimensions,
+    auto func = [op](const std::vector<int64_t> &dimensions,
                      const std::unordered_map<std::string, std::complex<double>>
                          &params) {
       cudaq::dimension_map dims;
@@ -338,7 +338,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
           "Elementary operator must act on a single degree.");
 
     for (size_t j = 0; j < sub_degrees.size(); j++) {
-      int degree = sub_degrees[j];
+      std::size_t degree = sub_degrees[j];
       int modality = modalities[j];
 
       if (sub_degrees[i] < 0)
@@ -639,7 +639,7 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
 
       cudaq::dimension_map dimensions;
       for (std::size_t i = 0; i < num_modes; ++i) {
-        dimensions[i] = static_cast<int>(modeExtents[i]);
+        dimensions[i] = modeExtents[i];
       }
 
       if (dimensions.empty()) {
