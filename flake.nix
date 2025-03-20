@@ -111,6 +111,11 @@
             # LLVM setup
             export PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
           '';
+
+          LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [
+            cudaPackages.libcusolver
+            cudaPackages.libcublas
+          ];
         };
       });
 }

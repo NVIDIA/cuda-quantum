@@ -16,3 +16,8 @@ repos:
     rev: v1.3.0
     hooks:
       - id: nixpkgs-fmt
+  - repo: https://github.com/hukkin/mdformat
+    rev: 0.7.22
+    hooks:
+      - id: mdformat
+        args: ["--wrap", "80"]
