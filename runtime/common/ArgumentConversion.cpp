@@ -384,7 +384,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                           : genConArray.template operator()<float>();
 
     auto arrSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
-    auto stateTy = cudaq::cc::StateType::get(ctx);
+    auto stateTy = quake::StateType::get(ctx);
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
 
     return builder.create<quake::CreateStateOp>(loc, statePtrTy, buffer,
@@ -408,10 +408,10 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   //
   // clang-format off
   // ```
-  // func.func @caller(%arg0: !cc.ptr<!cc.state>) {
-  //   %1 = quake.get_number_of_qubits %arg0: (!cc.ptr<!cc.state>) -> i64
+  // func.func @caller(%arg0: !cc.ptr<!quake.state>) {
+  //   %1 = quake.get_number_of_qubits %arg0: (!cc.ptr<!quake.state>) -> i64
   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
-  //   %3 = quake.init_state %2, %arg0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+  //   %3 = quake.init_state %2, %arg0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
   //   return
   // }
   //
@@ -433,10 +433,10 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // clang-format off
   // ```
   // func.func @caller() {
-  //   %0 = quake.get_state @callee.num_qubits_0 @callee.init_state_0 : !cc.ptr<!cc.state>
-  //   %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!cc.state>) -> i64
+  //   %0 = quake.get_state @callee.num_qubits_0 @callee.init_state_0 : !cc.ptr<!quake.state>
+  //   %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!quake.state>) -> i64
   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
-  //   %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+  //   %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
   //   return
   // }
   //
@@ -522,8 +522,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     }
 
     // Create a substitution for the state pointer.
-    auto statePtrTy =
-        cudaq::cc::PointerType::get(cudaq::cc::StateType::get(ctx));
+    auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(ctx));
     return builder.create<quake::MaterializeStateOp>(
         loc, statePtrTy, builder.getStringAttr(numQubitsKernelName),
         builder.getStringAttr(initKernelName));
@@ -791,7 +790,7 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
                                 substModule);
             })
             .Case([&](cc::PointerType ptrTy) -> cc::ArgumentSubstitutionOp {
-              if (ptrTy.getElementType() == cc::StateType::get(ctx))
+              if (ptrTy.getElementType() == quake::StateType::get(ctx))
                 return buildSubst(static_cast<const state *>(argPtr),
                                   dataLayout, kernelName, substModule, *this);
               return {};
