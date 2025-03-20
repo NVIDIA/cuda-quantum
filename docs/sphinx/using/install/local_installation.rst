@@ -272,7 +272,7 @@ The pre-built binaries work across a range of Linux operating systems listed
 under :ref:`dependencies-and-compatibility`. 
 
 Before installing our pre-built binaries, please make sure that your 
-operating system is using the `GNU C library <https://www.gnu.org/software/libc/index.html>`__ 
+operating system is using the `GNU C library <https://www.gnu.org/software/libc/>`__ 
 version 2.28 or newer. You can confirm this by checking the output of the command 
 `ldd --version`. If this command does not exist, or shows an older version than 2.28, 
 please double check that your operating system is listed as 
