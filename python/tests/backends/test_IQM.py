@@ -214,13 +214,15 @@ def test_IQM_state_synthesis_from_simulator():
     print(counts)
     assert "00" in counts
     assert "10" in counts
-    assert len(counts) == 2
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
     synthesized = cudaq.synthesize(kernel, state)
     counts = cudaq.sample(synthesized)
     assert '00' in counts
     assert '10' in counts
-    assert len(counts) == 2
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 def test_IQM_state_synthesis_from_simulator_builder():
@@ -234,7 +236,8 @@ def test_IQM_state_synthesis_from_simulator_builder():
     counts = cudaq.sample(kernel, state)
     assert "00" in counts
     assert "10" in counts
-    assert len(counts) == 2
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 def test_IQM_state_synthesis():
@@ -255,7 +258,9 @@ def test_IQM_state_synthesis():
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
     assert '10' in counts
-    assert len(counts) == 1
+    assert assert_close(counts["00"], 0., 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 def test_IQM_state_synthesis_builder():
@@ -273,7 +278,9 @@ def test_IQM_state_synthesis_builder():
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
     assert '10' in counts
-    assert len(counts) == 1
+    assert assert_close(counts["00"], 0., 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 def test_exp_pauli():
