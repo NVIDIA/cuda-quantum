@@ -278,6 +278,14 @@ the desired value for each parameter:
         :start-after: [Begin Schedule2]
         :end-before: [End Schedule2]
 
+Compile and Run C++ program
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target dynamics dynamics.cpp -o dynamics && ./dynamics
+
 Numerical Integrators
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
