@@ -27,7 +27,7 @@ std::complex<double> scalar_callback::operator()(
 // matrix_callback
 
 complex_matrix matrix_callback::operator()(
-    const std::vector<int> &relevant_dimensions,
+    const std::vector<int64_t> &relevant_dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   return this->callback_func(relevant_dimensions, parameters);
@@ -36,7 +36,7 @@ complex_matrix matrix_callback::operator()(
 // Definition
 
 Definition::Definition(std::string operator_id,
-                       const std::vector<int> &expected_dimensions,
+                       const std::vector<int64_t> &expected_dimensions,
                        matrix_callback &&create)
     : id(operator_id), generator(std::move(create)),
       required_dimensions(expected_dimensions) {}
@@ -46,7 +46,7 @@ Definition::Definition(Definition &&def)
       required_dimensions(std::move(def.expected_dimensions)) {}
 
 complex_matrix Definition::generate_matrix(
-    const std::vector<int> &relevant_dimensions,
+    const std::vector<int64_t> &relevant_dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   return generator(relevant_dimensions, parameters);

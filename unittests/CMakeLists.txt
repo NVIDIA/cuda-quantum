@@ -257,7 +257,7 @@ add_executable(test_spin main.cpp ${CUDAQ_SPIN_TEST_SOURCES})
 target_link_libraries(test_spin
   PRIVATE 
   cudaq
-  cudaq-spin
+  cudaq-operator
   gtest_main)
 gtest_discover_tests(test_spin)
 
@@ -281,7 +281,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
 endif()
 target_link_libraries(test_operators
   PRIVATE
-  cudaq-spin
   cudaq-operator
   cudaq
   gtest_main)
@@ -315,7 +314,6 @@ if (CUDA_FOUND)
   endif()
   target_link_libraries(test_dynamics
     PRIVATE
-    cudaq-spin
     cudaq-operator
     cudaq
     nvqir-dynamics
@@ -336,7 +334,6 @@ if (CUDA_FOUND)
   target_compile_definitions(test_evolve_async PRIVATE -DCUDAQ_ANALOG_TARGET)
   target_link_libraries(test_evolve_async
     PRIVATE
-    cudaq-spin
     cudaq-operator
     cudaq
     cudaq-platform-mqpu
@@ -459,7 +456,7 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq
     cudaq-platform-default
     nvqir nvqir-qpp
-    cudaq-spin
+    cudaq-operator
     cudaq-chemistry
     cudaq-pyscf
     gtest_main)

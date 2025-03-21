@@ -309,7 +309,7 @@ def test_operator_equality():
 
     # Spin operators
     assert (spin.x(1) + spin.y(1)) == ((spin.y(1) + spin.x(1)))
-    assert (spin.x(1) * spin.y(1)) == ((spin.y(1) * spin.x(1)))
+    assert (spin.x(1) * spin.y(1)) != ((spin.y(1) * spin.x(1)))
     assert (spin.x(0) + spin.y(1)) == ((spin.y(1) + spin.x(0)))
     assert (spin.x(0) * spin.y(1)) == ((spin.y(1) * spin.x(0)))
 
@@ -324,7 +324,7 @@ def test_operator_equality():
     spinzy = lambda i, j: spin.z(i) * spin.y(j)
     spinxy = lambda i, j: spin.x(i) * spin.y(j)
     assert (spinxy(0, 0) + spinzy(0, 0)) == (spinzy(0, 0) + spinxy(0, 0))
-    assert (spinxy(0, 0) * spinzy(0, 0)) == (spinzy(0, 0) * spinxy(0, 0))
+    assert (spinxy(0, 0) * spinzy(0, 0)) != (spinzy(0, 0) * spinxy(0, 0))
     assert (spinxy(1, 1) * spinzy(0, 0)) == (spinzy(0, 0) * spinxy(1, 1))
     assert (spinxy(1, 2) * spinzy(3, 4)) == (spinzy(3, 4) * spinxy(1, 2))
 
@@ -358,6 +358,8 @@ def test_operator_equality():
 def test_arithmetics_operations():
     dims = {0: 2, 1: 2}
     scop = operators.const(2)
+    # the correct behavior here for to_matrix is that the matrix 
+    # should act on a single degree of freedom, regardless of the target index
     elop = operators.identity(1)
     assert np.allclose((scop + elop).to_matrix(dims),
                        (elop + scop).to_matrix(dims))
@@ -367,89 +369,89 @@ def test_arithmetics_operations():
                        (elop * scop).to_matrix(dims))
     assert np.allclose(
         (elop / scop).to_matrix(dims),
-        [[0.5, 0, 0, 0], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [0, 0, 0, 0.5]])
+        [[0.5, 0], [0, 0.5]])
     assert np.allclose(((scop * elop) / scop).to_matrix(dims),
-                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                       [[1, 0], [0, 1]])
     assert np.allclose(
         ((elop / scop) * elop).to_matrix(dims),
-        [[0.5, 0, 0, 0], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [0, 0, 0, 0.5]])
+        [[0.5, 0], [0, 0.5]])
     assert np.allclose(
         ((elop / scop) + elop).to_matrix(dims),
-        [[1.5, 0, 0, 0], [0, 1.5, 0, 0], [0, 0, 1.5, 0], [0, 0, 0, 1.5]])
+        [[1.5, 0], [0, 1.5]])
     assert np.allclose(
         (elop * (elop / scop)).to_matrix(dims),
-        [[0.5, 0, 0, 0], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [0, 0, 0, 0.5]])
+        [[0.5, 0], [0, 0.5]])
     assert np.allclose(
         (elop + (elop / scop)).to_matrix(dims),
-        [[1.5, 0, 0, 0], [0, 1.5, 0, 0], [0, 0, 1.5, 0], [0, 0, 0, 1.5]])
+        [[1.5, 0], [0, 1.5]])
     assert np.allclose(
         ((scop + elop) / scop).to_matrix(dims),
-        [[1.5, 0, 0, 0], [0, 1.5, 0, 0], [0, 0, 1.5, 0], [0, 0, 0, 1.5]])
+        [[1.5, 0], [0, 1.5]])
     assert np.allclose(
         (scop + (elop / scop)).to_matrix(dims),
-        [[2.5, 0, 0, 0], [0, 2.5, 0, 0], [0, 0, 2.5, 0], [0, 0, 0, 2.5]])
+        [[2.5, 0], [0, 2.5]])
     assert np.allclose(((scop * elop) / scop).to_matrix(dims),
-                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                       [[1, 0], [0, 1]])
     assert np.allclose((scop * (elop / scop)).to_matrix(dims),
-                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                       [[1, 0], [0, 1]])
     assert np.allclose(((scop * elop) * scop).to_matrix(dims),
-                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+                       [[4, 0], [0, 4]])
     assert np.allclose((scop * (scop * elop)).to_matrix(dims),
-                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+                       [[4, 0], [0, 4]])
     assert np.allclose(((scop * elop) * elop).to_matrix(dims),
-                       [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+                       [[2, 0], [0, 2]])
     assert np.allclose((elop * (scop * elop)).to_matrix(dims),
-                       [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+                       [[2, 0], [0, 2]])
     assert np.allclose(((scop * elop) + scop).to_matrix(dims),
-                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+                       [[4, 0], [0, 4]])
     assert np.allclose((scop + (scop * elop)).to_matrix(dims),
-                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+                       [[4, 0], [0, 4]])
     assert np.allclose(((scop * elop) + elop).to_matrix(dims),
-                       [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+                       [[3, 0], [0, 3]])
     assert np.allclose((elop + (scop * elop)).to_matrix(dims),
-                       [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+                       [[3, 0], [0, 3]])
     assert np.allclose(((scop * elop) - scop).to_matrix(dims),
-                       [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+                       [[0, 0], [0, 0]])
     assert np.allclose((scop - (scop * elop)).to_matrix(dims),
-                       [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+                       [[0, 0], [0, 0]])
     assert np.allclose(((scop * elop) - elop).to_matrix(dims),
-                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                       [[1, 0], [0, 1]])
     assert np.allclose(
         (elop - (scop * elop)).to_matrix(dims),
-        [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]])
+        [[-1, 0], [0, -1]])
     assert np.allclose(((scop + elop) * scop).to_matrix(dims),
-                       [[6, 0, 0, 0], [0, 6, 0, 0], [0, 0, 6, 0], [0, 0, 0, 6]])
+                       [[6, 0], [0, 6]])
     assert np.allclose((scop * (scop + elop)).to_matrix(dims),
-                       [[6, 0, 0, 0], [0, 6, 0, 0], [0, 0, 6, 0], [0, 0, 0, 6]])
+                       [[6, 0], [0, 6]])
     assert np.allclose(((scop + elop) * elop).to_matrix(dims),
-                       [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+                       [[3, 0], [0, 3]])
     assert np.allclose((elop * (scop + elop)).to_matrix(dims),
-                       [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+                       [[3, 0], [0, 3]])
     assert np.allclose(((scop - elop) * scop).to_matrix(dims),
-                       [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+                       [[2, 0], [0, 2]])
     assert np.allclose((scop * (scop - elop)).to_matrix(dims),
-                       [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+                       [[2, 0], [0, 2]])
     assert np.allclose(((scop - elop) * elop).to_matrix(dims),
-                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                       [[1, 0], [0, 1]])
     assert np.allclose((elop * (scop - elop)).to_matrix(dims),
-                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                       [[1, 0], [0, 1]])
     assert np.allclose(((scop + elop) + scop).to_matrix(dims),
-                       [[5, 0, 0, 0], [0, 5, 0, 0], [0, 0, 5, 0], [0, 0, 0, 5]])
+                       [[5, 0], [0, 5]])
     assert np.allclose((scop + (scop + elop)).to_matrix(dims),
-                       [[5, 0, 0, 0], [0, 5, 0, 0], [0, 0, 5, 0], [0, 0, 0, 5]])
+                       [[5, 0], [0, 5]])
     assert np.allclose(((scop + elop) + elop).to_matrix(dims),
-                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+                       [[4, 0], [0, 4]])
     assert np.allclose((elop + (scop + elop)).to_matrix(dims),
-                       [[4, 0, 0, 0], [0, 4, 0, 0], [0, 0, 4, 0], [0, 0, 0, 4]])
+                       [[4, 0], [0, 4]])
     assert np.allclose(
         ((scop - elop) - scop).to_matrix(dims),
-        [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]])
+        [[-1, 0], [0, -1]])
     assert np.allclose((scop - (scop - elop)).to_matrix(dims),
-                       [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                       [[1, 0], [0, 1]])
     assert np.allclose(((scop - elop) - elop).to_matrix(dims),
-                       [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+                       [[0, 0], [0, 0]])
     assert np.allclose((elop - (scop - elop)).to_matrix(dims),
-                       [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+                       [[0, 0], [0, 0]])
 
     assert np.allclose(operator.add(scop, 2).to_matrix(dims), [4. + 0.j])
     assert np.allclose(operator.add(scop, 2.5).to_matrix(dims), [4.5 + 0j])
@@ -493,74 +495,69 @@ def test_arithmetics_operations():
 
     assert np.allclose(
         operator.add(elop, 2).to_matrix(dims),
-        [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+        [[3, 0], [0, 3]])
     assert np.allclose(
         operator.add(elop, 2.5).to_matrix(dims),
-        [[3.5, 0, 0, 0], [0, 3.5, 0, 0], [0, 0, 3.5, 0], [0, 0, 0, 3.5]])
+        [[3.5, 0], [0, 3.5]])
     assert np.allclose(
         operator.add(elop, 2j).to_matrix(dims),
-        [[1 + 2j, 0, 0, 0], [0, 1 + 2j, 0, 0], [0, 0, 1 + 2j, 0],
-         [0, 0, 0, 1 + 2j]])
+        [[1 + 2j, 0], [0, 1 + 2j]])
     assert np.allclose(
         operator.add(2, elop).to_matrix(dims),
-        [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
+        [[3, 0], [0, 3]])
     assert np.allclose(
         operator.add(2.5, elop).to_matrix(dims),
-        [[3.5, 0, 0, 0], [0, 3.5, 0, 0], [0, 0, 3.5, 0], [0, 0, 0, 3.5]])
+        [[3.5, 0], [0, 3.5]])
     assert np.allclose(
         operator.add(2j, elop).to_matrix(dims),
-        [[1 + 2j, 0, 0, 0], [0, 1 + 2j, 0, 0], [0, 0, 1 + 2j, 0],
-         [0, 0, 0, 1 + 2j]])
+        [[1 + 2j, 0], [0, 1 + 2j]])
 
     assert np.allclose(
         operator.sub(elop, 2).to_matrix(dims),
-        [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]])
+        [[-1, 0], [0, -1]])
     assert np.allclose(
         operator.sub(elop, 2.5).to_matrix(dims),
-        [[-1.5, 0, 0, 0], [0, -1.5, 0, 0], [0, 0, -1.5, 0], [0, 0, 0, -1.5]])
+        [[-1.5, 0], [0, -1.5]])
     assert np.allclose(
         operator.sub(elop, 2j).to_matrix(dims),
-        [[1 - 2j, 0, 0, 0], [0, 1 - 2j, 0, 0], [0, 0, 1 - 2j, 0],
-         [0, 0, 0, 1 - 2j]])
+        [[1 - 2j, 0], [0, 1 - 2j]])
     assert np.allclose(
         operator.sub(2, elop).to_matrix(dims),
-        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        [[1, 0], [0, 1]])
     assert np.allclose(
         operator.sub(2.5, elop).to_matrix(dims),
-        [[1.5, 0, 0, 0], [0, 1.5, 0, 0], [0, 0, 1.5, 0], [0, 0, 0, 1.5]])
+        [[1.5, 0], [0, 1.5]])
     assert np.allclose(
         operator.sub(2j, elop).to_matrix(dims),
-        [[-1 + 2j, 0, 0, 0], [0, -1 + 2j, 0, 0], [0, 0, -1 + 2j, 0],
-         [0, 0, 0, -1 + 2j]])
+        [[-1 + 2j, 0], [0, -1 + 2j]])
 
     assert np.allclose(
         operator.mul(elop, 2).to_matrix(dims),
-        [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+        [[2, 0], [0, 2]])
     assert np.allclose(
         operator.mul(elop, 2.5).to_matrix(dims),
-        [[2.5, 0, 0, 0], [0, 2.5, 0, 0], [0, 0, 2.5, 0], [0, 0, 0, 2.5]])
+        [[2.5, 0], [0, 2.5]])
     assert np.allclose(
         operator.mul(elop, 2j).to_matrix(dims),
-        [[2j, 0, 0, 0], [0, 2j, 0, 0], [0, 0, 2j, 0], [0, 0, 0, 2j]])
+        [[2j, 0], [0, 2j]])
     assert np.allclose(
         operator.mul(2, elop).to_matrix(dims),
-        [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+        [[2, 0], [0, 2]])
     assert np.allclose(
         operator.mul(2.5, elop).to_matrix(dims),
-        [[2.5, 0, 0, 0], [0, 2.5, 0, 0], [0, 0, 2.5, 0], [0, 0, 0, 2.5]])
+        [[2.5, 0], [0, 2.5]])
     assert np.allclose(
         operator.mul(2j, elop).to_matrix(dims),
-        [[2j, 0, 0, 0], [0, 2j, 0, 0], [0, 0, 2j, 0], [0, 0, 0, 2j]])
+        [[2j, 0], [0, 2j]])
 
     assert np.allclose(
         (elop / 2).to_matrix(dims),
-        [[0.5, 0, 0, 0], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [0, 0, 0, 0.5]])
+        [[0.5, 0], [0, 0.5]])
     assert np.allclose(
         (elop / 2.5).to_matrix(dims),
-        [[0.4, 0, 0, 0], [0, 0.4, 0, 0], [0, 0, 0.4, 0], [0, 0, 0, 0.4]])
+        [[0.4, 0], [0, 0.4]])
     assert np.allclose((elop / 2j).to_matrix(dims),
-                       [[-0.5j, 0, 0, 0], [0, -0.5j, 0, 0], [0, 0, -0.5j, 0],
-                        [0, 0, 0, -0.5j]])
+                       [[-0.5j, 0], [0, -0.5j]])
 
     assert np.allclose(
         operator.add(opprod, 2).to_matrix(dims), [[2, 0], [0, 3]])

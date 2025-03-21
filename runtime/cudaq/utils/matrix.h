@@ -197,7 +197,6 @@ public:
   EigenMatrix as_eigen() const;
 
   friend void bindComplexMatrix(pybind11::module_ &mod);
-  friend class spin_op;
 
 private:
   complex_matrix(const complex_matrix::value_type *v,

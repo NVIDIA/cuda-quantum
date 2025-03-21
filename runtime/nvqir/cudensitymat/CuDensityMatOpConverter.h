@@ -58,7 +58,7 @@ private:
   cudensitymatOperatorTerm_t createProductOperatorTerm(
       const std::vector<cudensitymatElementaryOperator_t> &elemOps,
       const std::vector<int64_t> &modeExtents,
-      const std::vector<std::vector<int>> &degrees,
+      const std::vector<std::vector<std::size_t>> &degrees,
       const std::vector<std::vector<int>> &dualModalities);
 
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>

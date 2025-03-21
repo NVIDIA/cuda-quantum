@@ -362,31 +362,11 @@ bool sample_result::has_expectation(const std::string_view registerName) const {
 
 double sample_result::expectation(const std::string_view registerName) const {
   double aver = 0.0;
+
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
-    return 0.0;
-
-  if (iter->second.expectationValue.has_value())
-    return iter->second.expectationValue.value();
-
-  auto counts = iter->second.counts;
-  for (auto &kv : counts) {
-    auto par = has_even_parity(kv.first);
-    auto p = probability(kv.first, registerName);
-    if (!par) {
-      p = -p;
-    }
-    aver += p;
-  }
-
-  return aver;
-}
-
-double sample_result::exp_val_z(const std::string_view registerName) {
-  double aver = 0.0;
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    return 0.0;
+    throw std::runtime_error("no value(s) computed for " +
+                             std::string(registerName));
 
   if (iter->second.expectationValue.has_value())
     return iter->second.expectationValue.value();

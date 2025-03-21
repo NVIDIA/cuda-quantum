@@ -35,7 +35,7 @@ private:
   std::function<std::complex<double>(const std::string &,
                                      const std::complex<double> &)>
       value_function;
-  int current_idx;
+  std::size_t current_idx;
 
   static std::vector<std::complex<double>>
   toComplex(const std::vector<double> &vec) {
@@ -62,8 +62,8 @@ public:
   /// @arg value_function: A function that takes the name of a parameter as well
   /// as an additional value ("step") of std::complex<double> type as argument
   /// and returns the complex value for that parameter at the given step.
-  /// @details current_idx: Intializes the current index (_current_idx) to -1 to
-  /// indicate that iteration has not yet begun. Once iteration starts,
+  /// @details current_idx: Initializes the current index (_current_idx) to -1
+  /// to indicate that iteration has not yet begun. Once iteration starts,
   /// _current_idx will be used to track the position in the sequence of steps.
   schedule(
       const std::vector<std::complex<double>> &steps,
