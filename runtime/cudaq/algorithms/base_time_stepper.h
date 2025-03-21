@@ -8,6 +8,7 @@
 
 #pragma once
 #include "cudaq/qis/state.h"
+#include <unordered_map>
 
 namespace cudaq {
 class base_time_stepper {
