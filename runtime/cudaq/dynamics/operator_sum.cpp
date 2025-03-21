@@ -611,9 +611,6 @@ INSTANTIATE_SUM_COMPARISONS(fermion_handler);
 template <typename HandlerTy>
 sum_op<HandlerTy> sum_op<HandlerTy>::operator-() const & {
   if (this->is_default)
-    // We cannot properly deal with scalar factors on uninitialized sums;
-    // I made a draft, but it is messy and breaks down when adding
-    // two uninitialized sums with different factors.
     throw std::runtime_error(
         "cannot apply unary operator on uninitialized sum_op");
   sum_op<HandlerTy> sum(false);
@@ -628,9 +625,6 @@ sum_op<HandlerTy> sum_op<HandlerTy>::operator-() const & {
 template <typename HandlerTy>
 sum_op<HandlerTy> sum_op<HandlerTy>::operator-() && {
   if (this->is_default)
-    // We cannot properly deal with scalar factors on uninitialized sums;
-    // I made a draft, but it is messy and breaks down when adding
-    // two uninitialized sums with different factors.
     throw std::runtime_error(
         "cannot apply unary operator on uninitialized sum_op");
   for (auto &coeff : this->coefficients)
@@ -667,36 +661,58 @@ INSTANTIATE_SUM_UNARY_OPS(fermion_handler);
 
 // right-hand arithmetics
 
-#define SUM_MULTIPLICATION_SCALAR(op)                                          \
-                                                                               \
-  template <typename HandlerTy>                                                \
-  sum_op<HandlerTy> sum_op<HandlerTy>::operator op(                            \
-      const scalar_operator &other) const & {                                  \
-    if (this->is_default)                                                      \
-      throw std::runtime_error(                                                \
-          "cannot multiply scalar with uninitialized sum_op");                 \
-    sum_op<HandlerTy> sum(false);                                              \
-    sum.coefficients.reserve(this->coefficients.size());                       \
-    sum.term_map = this->term_map;                                             \
-    sum.terms = this->terms;                                                   \
-    for (const auto &coeff : this->coefficients)                               \
-      sum.coefficients.push_back(coeff op other);                              \
-    return std::move(sum);                                                     \
-  }                                                                            \
-                                                                               \
-  template <typename HandlerTy>                                                \
-  sum_op<HandlerTy> sum_op<HandlerTy>::operator op(                            \
-      const scalar_operator &other) && {                                       \
-    if (this->is_default)                                                      \
-      throw std::runtime_error(                                                \
-          "cannot multiply scalar with uninitialized sum_op");                 \
-    for (auto &coeff : this->coefficients)                                     \
-      coeff op## = other;                                                      \
-    return std::move(*this);                                                   \
-  }
+template <typename HandlerTy>                                                
+sum_op<HandlerTy> sum_op<HandlerTy>::operator*(                            
+    const scalar_operator &other) const & {                                  
+  if (this->is_default)                                                      
+    // scalars are just a special product operator                       
+    return product_op<HandlerTy>(other);                                     
+  sum_op<HandlerTy> sum(false);                                              
+  sum.coefficients.reserve(this->coefficients.size());                       
+  sum.term_map = this->term_map;                                             
+  sum.terms = this->terms;                                                   
+  for (const auto &coeff : this->coefficients)                               
+    sum.coefficients.push_back(coeff * other);                              
+  return std::move(sum);                                                     
+}                                                                            
+                                                                              
+template <typename HandlerTy>                                                
+sum_op<HandlerTy> sum_op<HandlerTy>::operator*(                            
+    const scalar_operator &other) && {                                       
+  if (this->is_default)                                                     
+    // scalars are just a special product operator                       
+    return product_op<HandlerTy>(other);                                     
+  for (auto &coeff : this->coefficients)                                     
+    coeff *= other;                                                      
+  return std::move(*this);                                                   
+}
 
-SUM_MULTIPLICATION_SCALAR(*);
-SUM_MULTIPLICATION_SCALAR(/);
+template <typename HandlerTy>                                                
+sum_op<HandlerTy> sum_op<HandlerTy>::operator/(                            
+    const scalar_operator &other) const & {                                  
+  if (this->is_default)                                                      
+    throw std::runtime_error(                                                
+        "cannot divide uninitialized sum_op by scalar");                     
+  sum_op<HandlerTy> sum(false);                                              
+  sum.coefficients.reserve(this->coefficients.size());                       
+  sum.term_map = this->term_map;                                             
+  sum.terms = this->terms;                                                   
+  for (const auto &coeff : this->coefficients)                               
+    sum.coefficients.push_back(coeff / other);                              
+  return std::move(sum);                                                     
+}                                                                            
+                                                                              
+template <typename HandlerTy>                                                
+sum_op<HandlerTy> sum_op<HandlerTy>::operator/(                            
+    const scalar_operator &other) && {                                       
+  if (this->is_default)                                                     
+    throw std::runtime_error(                                                
+        "cannot divide uninitialized sum_op by scalar");                     
+  for (auto &coeff : this->coefficients)                                     
+    coeff /= other;                                                      
+  return std::move(*this);                                                   
+}
+
 
 #define SUM_ADDITION_SCALAR(op)                                                \
                                                                                \
@@ -958,21 +974,28 @@ INSTANTIATE_SUM_RHCOMPOSITE_OPS(boson_handler);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(fermion_handler);
 #endif
 
-#define SUM_MULTIPLICATION_SCALAR_ASSIGNMENT(op)                               \
-                                                                               \
-  template <typename HandlerTy>                                                \
-  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op(                           \
-      const scalar_operator &other) {                                          \
-    if (this->is_default)                                                      \
-      throw std::runtime_error(                                                \
-          "cannot multiply scalar with uninitialized sum_op");                 \
-    for (auto &coeff : this->coefficients)                                     \
-      coeff op other;                                                          \
-    return *this;                                                              \
-  }
+template <typename HandlerTy>                                                
+sum_op<HandlerTy> &sum_op<HandlerTy>::operator*=(                           
+    const scalar_operator &other) {                                          
+  if (this->is_default)
+    // scalars are just a special product operator                       
+    *this = product_op<HandlerTy>(other);
+  else
+    for (auto &coeff : this->coefficients)                                     
+      coeff *= other;                                                          
+  return *this;                                                              
+}
 
-SUM_MULTIPLICATION_SCALAR_ASSIGNMENT(*=);
-SUM_MULTIPLICATION_SCALAR_ASSIGNMENT(/=);
+template <typename HandlerTy>                                                
+sum_op<HandlerTy> &sum_op<HandlerTy>::operator/=(                           
+    const scalar_operator &other) {                                          
+  if (this->is_default)                                                      
+      throw std::runtime_error(    
+          "cannot divide uninitialized sum_op by scalar");   
+  for (auto &coeff : this->coefficients)                                     
+    coeff /= other;                                                          
+  return *this;                                                              
+}
 
 #define SUM_ADDITION_SCALAR_ASSIGNMENT(op)                                     \
                                                                                \
@@ -1151,8 +1174,8 @@ template <typename HandlerTy>
 sum_op<HandlerTy> operator*(const scalar_operator &other,
                             const sum_op<HandlerTy> &self) {
   if (self.is_default)
-    throw std::runtime_error(
-        "cannot multiply scalar with uninitialized sum_op");
+    // scalars are just a special product operator
+    return product_op<HandlerTy>(other);
   sum_op<HandlerTy> sum(false);
   sum.coefficients.reserve(self.coefficients.size());
   sum.terms = self.terms;
@@ -1166,8 +1189,8 @@ template <typename HandlerTy>
 sum_op<HandlerTy> operator*(const scalar_operator &other,
                             sum_op<HandlerTy> &&self) {
   if (self.is_default)
-    throw std::runtime_error(
-        "cannot multiply scalar with uninitialized sum_op");
+    // scalars are just a special product operator
+    return product_op<HandlerTy>(other);
   for (auto &&coeff : self.coefficients)
     coeff *= other;
   return std::move(self);

@@ -680,6 +680,17 @@ public:
 
   constexpr product_op() {}
 
+  constexpr product_op(std::size_t first_degree, std::size_t last_degree) {
+    static_assert(
+      std::is_constructible_v<HandlerTy, std::size_t>,
+      "operator handlers must have a constructor that take a single degree of "
+      "freedom and returns the identity operator on that degree.");
+    if (last_degree > first_degree) // being a bit permissive here
+      this->operators.reserve(last_degree - first_degree);
+    for (auto degree = first_degree; degree < last_degree; ++degree)
+      this->operators.push_back(HandlerTy(degree));
+  }
+
   product_op(double coefficient);
 
   product_op(std::complex<double> coefficient);

@@ -67,7 +67,7 @@ public:
     return data.expectation(termStr);
   }
 
-  // FIXME: deprecate
+  [[deprecated("passing a spin_op to expectation is deprecated - please pass a spin_op_term instead")]]
   double expectation(spin_op op) {
     if (op.num_terms() != 1)
       throw std::runtime_error("expecting a spin op with exactly one term");
@@ -83,6 +83,7 @@ public:
     return sample_result(result);
   }
 
+  [[deprecated("passing a spin_op to counts is deprecated - please pass a spin_op_term instead")]]
   sample_result counts(spin_op op) {
     if (op.num_terms() != 1)
       throw std::runtime_error("expecting a spin op with exactly one term");
