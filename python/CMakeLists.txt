@@ -79,3 +79,4 @@ endif()
 
 add_subdirectory(runtime/interop)
 add_subdirectory(cudaq/operator)
+add_subdirectory(runtime/cudaq/dynamics)

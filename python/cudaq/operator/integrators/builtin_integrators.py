@@ -10,6 +10,7 @@ from ..integrator import BaseTimeStepper, BaseIntegrator
 from ..cudm_helpers import cudm, CudmStateType, CudmOperator, CudmWorkStream
 from ..cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from ...util.timing_helper import ScopeTimer
+from .. import nvqir_dynamics_bindings as bindings
 
 has_cupy = True
 try:
@@ -27,29 +28,32 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
         self.ctx = ctx
         self.state = None
         self.liouvillian_action = None
+        self.stepper = bindings.TimeStepper(self.ctx._handle._validated_ptr, self.liouvillian._validated_ptr)
 
     def compute(self, state: CudmStateType, t: float):
-        if self.liouvillian_action is None:
-            self.liouvillian_action = cudm.OperatorAction(
-                self.ctx, (self.liouvillian,))
+        # if self.liouvillian_action is None:
+        #     self.liouvillian_action = cudm.OperatorAction(
+        #         self.ctx, (self.liouvillian,))
 
-        if self.state != state:
-            need_prepare = self.state is None
-            self.state = state
-            if need_prepare:
-                timer = ScopeTimer("liouvillian_action.prepare")
-                with timer:
-                    self.liouvillian_action.prepare(self.ctx, (self.state,))
-        # FIXME: reduce temporary allocations.
-        # Currently, we cannot return a reference since the caller might call compute() multiple times during a single integrate step.
-        timer = ScopeTimer("compute.action_result")
-        with timer:
-            action_result = self.state.clone(cp.zeros_like(self.state.storage))
-        timer = ScopeTimer("liouvillian_action.compute")
-        with timer:
-            self.liouvillian_action.compute(t, (), (self.state,), action_result)
+        # if self.state != state:
+        #     need_prepare = self.state is None
+        #     self.state = state
+        #     if need_prepare:
+        #         timer = ScopeTimer("liouvillian_action.prepare")
+        #         with timer:
+        #             self.liouvillian_action.prepare(self.ctx, (self.state,))
+        # # FIXME: reduce temporary allocations.
+        # # Currently, we cannot return a reference since the caller might call compute() multiple times during a single integrate step.
+        # timer = ScopeTimer("compute.action_result")
+        # with timer:
+        #     action_result = self.state.clone(cp.zeros_like(self.state.storage))
+        # timer = ScopeTimer("liouvillian_action.compute")
+        # with timer:
+        #     self.liouvillian_action.compute(t, (), (self.state,), action_result)
+        # return action_result
+        action_result = self.state.clone(cp.zeros_like(self.state.storage))
+        self.stepper.compute(self.state._validated_ptr, action_result._validated_ptr, t)
         return action_result
-
 
 class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
     n_steps = 10
