@@ -14,28 +14,29 @@ from pathlib import Path
 import subprocess
 from shutil import which
 
-if which('jupyter') is None:
-    print("Please install jupyter, e.g. with `pip install notebook`.")
-    exit(1)
+patterns = ['set_target[\\\s\(]+"(.+)\\\\"[)]', '--target ([^ ]+)']
+patterns_string = "|".join(patterns)
+
+
+def check_jupyter_installed():
+    if which('jupyter') is None:
+        print("Please install jupyter, e.g. with `pip install notebook`.")
+        exit(1)
 
 
 def read_available_backends():
-    available_backends = sys.stdin.readlines()
-    available_backends = ' '.join(available_backends).split()
-    return [backend.strip() for backend in available_backends]
+    return sys.stdin.read().split()
 
 
 def validate(notebook_filename, available_backends):
     with open(notebook_filename) as f:
-        lines = f.readlines()
-    for notebook_content in lines:
-        match = re.search('set_target[\\\s\(]+"(.+)\\\\"[)]', notebook_content)
-        if match and (match.group(1) not in available_backends):
-            return False
-    for notebook_content in lines:
-        match = re.search('--target ([^ ]+)', notebook_content)
-        if match and (match.group(1) not in available_backends):
-            return False
+        lines = f.read()
+    if any(re.search(pattern, lines) for pattern in patterns):
+        matches = re.findall(patterns_string, lines)
+        for match in matches:
+            backend = match[0] if match[0] else match[1]
+            if backend not in available_backends:
+                return False
     return True
 
 
@@ -79,6 +80,8 @@ def print_results(success, failed, skipped=[]):
 
 
 if __name__ == "__main__":
+    check_jupyter_installed()
+
     if len(sys.argv) > 1:
         notebook_filenames = sys.argv[1:]
         notebooks_success, notebooks_failed = ([] for i in range(2))
