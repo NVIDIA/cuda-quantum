@@ -1758,10 +1758,11 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::vector<double> sum_op<HandlerTy>::get_data_representation() const {
-  // This function prints a data representing the operator sum
+  auto nr_ops = 0;
+  for (const auto &term : *this)
+    nr_ops += term.operators.size();
   std::vector<double> dataVec;
-  // dataVec.reserve(n_targets * padded.terms.size() + 2 * padded.terms.size() +
-  // 1);
+  dataVec.reserve(2 * nr_ops + 3 * this->terms.size() + 1);
   dataVec.push_back(this->terms.size());
   for (std::size_t i = 0; i < this->terms.size(); ++i) {
     auto coeff = this->coefficients[i].evaluate();
