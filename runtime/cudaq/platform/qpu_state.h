@@ -13,23 +13,13 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 namespace cudaq {
-/// Implementation of `SimulationState` for remote simulator backends.
-// The state is represented by a quantum kernel.
-// For accessor APIs, we may resolve the state to a state vector by executing
-// the kernel on the remote simulator. For overlap API b/w 2 remote states, we
-// can send both kernels to the remote backend for execution and compute the
-// overlap.
-class RemoteSimulationState : public cudaq::SimulationState {
+/// @brief Implementation of `SimulationState` for quantum device backends.
+/// The state is represented by a quantum kernel.
+/// Quantum state contains all the information we need to replicate a
+/// call to kernel that created the state.
+class QPUState : public cudaq::SimulationState {
 protected:
   std::string kernelName;
-  // Lazily-evaluated state data (just keeping the kernel name and arguments).
-  // e.g., to be evaluated at amplitude accessor APIs (const APIs, hence needs
-  // to be mutable) or overlap calculation with another remote state (combining
-  // the IR of both states for remote evaluation)
-  mutable std::unique_ptr<cudaq::SimulationState> state;
-  // Cache log messages from the remote execution.
-  // Mutable to support lazy execution during `const` API calls.
-  mutable std::string platformExecutionLog;
   using ArgDeleter = std::function<void(void *)>;
   /// @brief  Vector of arguments
   // Note: we create a copy of all arguments except pointers.
@@ -67,7 +57,7 @@ public:
 
   /// @brief Constructor
   template <typename QuantumKernel, typename... Args>
-  RemoteSimulationState(QuantumKernel &&kernel, Args &&...args) {
+  QPUState(QuantumKernel &&kernel, Args &&...args) {
     if constexpr (has_name<QuantumKernel>::value) {
       // kernel_builder kernel: need to JIT code to get it registered.
       static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
@@ -77,10 +67,13 @@ public:
     }
     (addArgument(args), ...);
   }
-  RemoteSimulationState() = default;
-  virtual ~RemoteSimulationState();
-  /// @brief Triggers remote execution to resolve the state data.
-  virtual void execute() const;
+  QPUState() = default;
+  QPUState(const QPUState &other)
+      : kernelName(other.kernelName), args(other.args), deleters() {}
+  virtual ~QPUState();
+
+  /// @brief True if the state has amplitudes or density matrix available.
+  virtual bool hasData() const override { return false; }
 
   /// @brief Helper to retrieve (kernel name, `args` pointers)
   virtual std::optional<std::pair<std::string, std::vector<void *>>>
@@ -148,10 +141,5 @@ public:
   /// elements.
   void toHost(std::complex<float> *clientAllocatedData,
               std::size_t numElements) const override;
-
-private:
-  /// @brief Return the qubit count threshold where the full remote state should
-  /// be flattened and returned.
-  static std::size_t maxQubitCountForFullStateTransfer();
 };
 } // namespace cudaq
