@@ -627,6 +627,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
@@ -922,9 +923,17 @@
       </ul></li>
       <li><a href="api/languages/cpp_api.html#_CPPv45cudaq">cudaq (C++ type)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.cudaq.apply_noise">cudaq.apply_noise() (in module cudaq)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17amplitude_dampingE">cudaq::amplitude_damping (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq25amplitude_damping_channelE">cudaq::amplitude_damping_channel (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq25amplitude_damping_channel14num_parametersE">cudaq::amplitude_damping_channel::num_parameters (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq25amplitude_damping_channel11num_targetsE">cudaq::amplitude_damping_channel::num_targets (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq11apply_noiseEvDpRR4Args">cudaq::apply_noise (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq12async_resultE">cudaq::async_result (C++ class)</a>
 </li>
@@ -939,6 +948,10 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE">cudaq::BaseRemoteSimulatorQPU (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16bit_flip_channelE">cudaq::bit_flip_channel (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16bit_flip_channel14num_parametersE">cudaq::bit_flip_channel::num_parameters (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16bit_flip_channel11num_targetsE">cudaq::bit_flip_channel::num_targets (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7complexE">cudaq::complex (C++ type)</a>
 </li>
@@ -986,7 +999,15 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15depolarization215depolarization2EK4real">cudaq::depolarization2::depolarization2 (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15depolarization214num_parametersE">cudaq::depolarization2::num_parameters (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15depolarization211num_targetsE">cudaq::depolarization2::num_targets (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22depolarization_channelE">cudaq::depolarization_channel (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22depolarization_channel14num_parametersE">cudaq::depolarization_channel::num_parameters (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22depolarization_channel11num_targetsE">cudaq::depolarization_channel::num_targets (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7detailsE">cudaq::details (C++ type)</a>
 </li>
@@ -1220,6 +1241,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_model15PredicateFuncTyE">cudaq::noise_model::PredicateFuncTy (C++ type)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq11noise_model16register_channelEvv">cudaq::noise_model::register_channel (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq11noise_model20requires_constructorE">cudaq::noise_model::requires_constructor (C++ type)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16noise_model_typeE">cudaq::noise_model_type (C++ enum)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16noise_model_type17amplitude_dampingE">cudaq::noise_model_type::amplitude_damping (C++ enumerator)</a>
@@ -1294,18 +1319,34 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli111num_targetsE">cudaq::pauli1::num_targets (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli16pauli1ERKNSt6vectorIN5cudaq4realEEE">cudaq::pauli1::pauli1 (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli2E">cudaq::pauli2 (C++ class)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli214num_parametersE">cudaq::pauli2::num_parameters (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli211num_targetsE">cudaq::pauli2::num_targets (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli26pauli2ERKNSt6vectorIN5cudaq4realEEE">cudaq::pauli2::pauli2 (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13phase_dampingE">cudaq::phase_damping (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13phase_damping14num_parametersE">cudaq::phase_damping::num_parameters (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13phase_damping11num_targetsE">cudaq::phase_damping::num_targets (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channelE">cudaq::phase_flip_channel (C++ class)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channel14num_parametersE">cudaq::phase_flip_channel::num_parameters (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18phase_flip_channel11num_targetsE">cudaq::phase_flip_channel::num_targets (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUE">cudaq::QPU (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU7enqueueER11QuantumTask">cudaq::QPU::enqueue (C++ function)</a>
@@ -1343,6 +1384,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU28supportsExplicitMeasurementsEv">cudaq::QPU::supportsExplicitMeasurements (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUD0Ev">cudaq::QPU::~QPU (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8QPUStateE">cudaq::QPUState (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE">cudaq::qreg (C++ class)</a>
 </li>
@@ -1711,6 +1754,10 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7x_errorE">cudaq::x_error (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7y_errorE">cudaq::y_error (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7y_error14num_parametersE">cudaq::y_error::num_parameters (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7y_error11num_targetsE">cudaq::y_error::num_targets (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7z_errorE">cudaq::z_error (C++ class)</a>
 </li>
