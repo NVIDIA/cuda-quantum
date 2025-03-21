@@ -7,6 +7,33 @@ Operators
 .. doxygenclass:: cudaq::spin_op
     :members:
 
+.. doxygenclass:: cudaq::scalar_callback
+    :members:
+
+.. doxygenclass:: cudaq::scalar_operator
+    :members:
+
+.. doxygenstruct:: cudaq::commutation_relations
+
+.. doxygenclass:: cudaq::matrix_callback
+
+.. doxygenclass:: cudaq::boson_handler
+
+.. doxygenclass:: cudaq::fermion_handler
+
+.. doxygenclass:: cudaq::spin_handler
+
+.. doxygenclass:: cudaq::operator_handler
+
+.. doxygenclass:: cudaq::matrix_handler
+    :members:
+
+.. doxygenclass:: cudaq::product_op
+    :members:
+
+.. doxygenclass:: cudaq::sum_op
+    :members:
+
 Quantum
 =========
 
