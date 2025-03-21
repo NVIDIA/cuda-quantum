@@ -505,6 +505,13 @@ product_op<matrix_handler> matrix_handler::squeeze(std::size_t degree) {
   return product_op(std::move(op));
 }
 
-// tools for custom operators
+namespace operators {
+product_op<matrix_handler> number(std::size_t target) { return matrix_handler::number(target); }
+product_op<matrix_handler> parity(std::size_t target) { return matrix_handler::parity(target); }
+product_op<matrix_handler> position(std::size_t target) { return matrix_handler::position(target); }
+product_op<matrix_handler> momentum(std::size_t target) { return matrix_handler::momentum(target); }
+product_op<matrix_handler> squeeze(std::size_t target) { return matrix_handler::squeeze(target); }
+product_op<matrix_handler> displace(std::size_t target) { return matrix_handler::displace(target); }
+} // namespace boson
 
 } // namespace cudaq

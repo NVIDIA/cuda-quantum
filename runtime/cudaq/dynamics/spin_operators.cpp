@@ -223,10 +223,12 @@ sum_op<spin_handler> spin_handler::minus(std::size_t degree) {
 }
 
 namespace spin {
-sum_op<spin_handler> i(std::size_t target) { return spin_handler::i(target); }
-sum_op<spin_handler> x(std::size_t target) { return spin_handler::x(target); }
-sum_op<spin_handler> y(std::size_t target) { return spin_handler::y(target); }
-sum_op<spin_handler> z(std::size_t target) { return spin_handler::z(target); }
+product_op<spin_handler> i(std::size_t target) { return spin_handler::i(target); }
+product_op<spin_handler> x(std::size_t target) { return spin_handler::x(target); }
+product_op<spin_handler> y(std::size_t target) { return spin_handler::y(target); }
+product_op<spin_handler> z(std::size_t target) { return spin_handler::z(target); }
+sum_op<spin_handler> plus(std::size_t target) { return spin_handler::plus(target); }
+sum_op<spin_handler> minus(std::size_t target) { return spin_handler::minus(target); }
 } // namespace spin
 
 } // namespace cudaq

@@ -993,16 +993,38 @@ extern template class sum_op<boson_handler>;
 extern template class sum_op<fermion_handler>;
 #endif
 
-// Here only for backward compatibility
+// for backward compatibility and convenience
+
+namespace operators {
+product_op<matrix_handler> number(std::size_t target);
+product_op<matrix_handler> parity(std::size_t target);
+product_op<matrix_handler> position(std::size_t target);
+product_op<matrix_handler> momentum(std::size_t target);
+product_op<matrix_handler> squeeze(std::size_t target);
+product_op<matrix_handler> displace(std::size_t target);
+} // namespace operators
+
 namespace spin {
-[[deprecated("Use spin_op::i instead.")]] sum_op<spin_handler>
-i(std::size_t target);
-[[deprecated("Use spin_op::x instead.")]] sum_op<spin_handler>
-x(std::size_t target);
-[[deprecated("Use spin_op::y instead.")]] sum_op<spin_handler>
-y(std::size_t target);
-[[deprecated("Use spin_op::z instead.")]] sum_op<spin_handler>
-z(std::size_t target);
+product_op<spin_handler> i(std::size_t target);
+product_op<spin_handler> x(std::size_t target);
+product_op<spin_handler> y(std::size_t target);
+product_op<spin_handler> z(std::size_t target);
+sum_op<spin_handler> plus(std::size_t target);
+sum_op<spin_handler> minus(std::size_t target);
 } // namespace spin
+
+namespace boson {
+product_op<boson_handler> create(std::size_t target);
+product_op<boson_handler> annihilate(std::size_t target);
+product_op<boson_handler> number(std::size_t target);
+sum_op<boson_handler> position(std::size_t target);
+sum_op<boson_handler> momentum(std::size_t target);
+} // namespace boson
+
+namespace fermion {
+product_op<fermion_handler> create(std::size_t target);
+product_op<fermion_handler> annihilate(std::size_t target);
+product_op<fermion_handler> number(std::size_t target);
+} // namespace fermion
 
 } // namespace cudaq
