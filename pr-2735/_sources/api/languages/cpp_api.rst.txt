@@ -118,6 +118,8 @@ Common
 
 .. doxygenclass:: cudaq::RemoteSimulationState
 
+.. doxygenclass:: cudaq::QPUState
+
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:
 
