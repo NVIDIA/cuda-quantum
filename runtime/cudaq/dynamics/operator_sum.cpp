@@ -1584,6 +1584,18 @@ void sum_op<HandlerTy>::dump() const {
 }
 
 template <typename HandlerTy>
+void sum_op<HandlerTy>::trim(double tol, const std::unordered_map<std::string, std::complex<double>> &parameters) {
+  sum_op<HandlerTy> trimmed(false);
+  trimmed.term_map.reserve(this->terms.size());
+  trimmed.terms.reserve(this->terms.size());
+  trimmed.coefficients.reserve(this->coefficients.size());
+  for (const auto &prod : *this)
+    if (std::abs(prod.evaluate_coefficient(parameters)) > tol) 
+      trimmed.insert(std::move(prod));  
+  *this = trimmed;
+}
+
+template <typename HandlerTy>
 std::vector<sum_op<HandlerTy>>
 sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
   // Calculate how many terms we can equally divide amongst the chunks
@@ -1612,9 +1624,14 @@ sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
 }
 
 #define INSTANTIATE_SUM_UTILITY_FUNCTIONS(HandlerTy)                           \
+                                                                               \
+  template void sum_op<HandlerTy>::dump() const;                               \
+                                                                               \
+  template void sum_op<HandlerTy>::trim(double tol,                            \
+    const std::unordered_map<std::string, std::complex<double>> &parameters);  \
+                                                                               \
   template std::vector<sum_op<HandlerTy>> sum_op<HandlerTy>::distribute_terms( \
       std::size_t numChunks) const;                                            \
-  template void sum_op<HandlerTy>::dump() const;
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_UTILITY_FUNCTIONS(matrix_handler);

@@ -11,8 +11,47 @@
 #include <gtest/gtest.h>
 
 TEST(OperatorExpressions, checkOperatorSumBasics) {
-  std::vector<int> levels = {2, 3, 4};
 
+  // testing some utility functions
+  {
+    srand(10); 
+    auto bit_mask = rand();
+    cudaq::sum_op<cudaq::matrix_handler> expected;
+    std::vector<std::size_t> degrees;
+    for (std::size_t d = 1; d <= 10; ++d) 
+      degrees.push_back(d);
+
+    std::vector<cudaq::product_op<cudaq::matrix_handler>> terms;
+    for (auto d : degrees) {
+      auto coeff = (bit_mask >> d) & 1 ? 1.0 : 0.0;
+      auto prod = coeff * cudaq::matrix_op::identity(d);
+      if (coeff > 0.) expected += prod;
+      // randomize the order in which we add terms
+      auto rnd_idx = (rand() % d);
+      terms.insert(terms.begin() + rnd_idx, std::move(prod));
+    }
+
+    cudaq::sum_op<cudaq::matrix_handler> orig;
+    for (auto &&term : terms)
+      orig += term;
+    
+    ASSERT_EQ(orig.num_terms(), degrees.size());
+    ASSERT_EQ(orig.degrees(), degrees);
+
+    std::cout << "original: " << std::endl;
+    std::cout << orig.to_string() << std::endl;
+    orig.trim();
+    std::cout << "trimmed: " << std::endl; 
+    std::cout << orig.to_string() << std::endl;
+    std::cout << "expected: " << std::endl;
+    std::cout << expected.to_string() << std::endl;
+
+    ASSERT_NE(orig.num_terms(), degrees.size());
+    ASSERT_EQ(orig.num_terms(), expected.num_terms());
+    ASSERT_EQ(orig.degrees(), expected.degrees());
+  }
+
+  std::vector<int> levels = {2, 3, 4};
   std::complex<double> value_0 = 0.1 + 0.1;
   std::complex<double> value_1 = 0.1 + 1.0;
   std::complex<double> value_2 = 2.0 + 0.1;
