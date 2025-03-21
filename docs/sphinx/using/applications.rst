@@ -341,7 +341,7 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,qec,qpu,neutral,collab">
-        <a href="../applications/python/logical_aim_Sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
+        <a href="../applications/python/logical_aim_sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
         <div class="notebook-content">
             A collaboration between NVIDIA and Infleqtion demonstrated a logical qubit workflow built in CUDA-Q and executed on the Infleqtion's neutral atom QPU. (https://arxiv.org/abs/2412.07670)
         </div>
