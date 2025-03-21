@@ -48,10 +48,12 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
+    'sphinx.ext.todo',
     'sphinx.ext.napoleon',  # support google/numpy style docstrings
     #'sphinx.ext.linkcode',
     'sphinx_reredirects',
     'breathe',
+    'sphinx_tags',
     'enum_tools.autoenum',  # for pretty-print Python enums
     'myst_parser',  # for including markdown files
     'sphinx_inline_tabs',  # showing code blocks in multiple languages
@@ -61,7 +63,30 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
+
+html_static_path = ['_static']
+html_js_files = ['filter.js']
+
+
+
+# Enable dynamic filtering in sphinx-needs
+needs_include_needs = True  # Enable needs processing
+needs_types = [
+    {
+        'directive': 'notebook',
+        'title': 'Notebook',
+        'prefix': 'NB_',
+        'color': '#BFD8D2',
+        'style': 'node'
+    }
+]
+
+
+tags_create_tags = True  # Automatically generate tag pages
 nbsphinx_allow_errors = False
+
+needs_extra_options = ['description', 'nb_links']
+
 nbsphinx_thumbnails = {
     # Default thumbnail if the notebook does not define a cell tag to specify the thumbnail.
     # See also: https://nbsphinx.readthedocs.io/en/latest/subdir/gallery.html
@@ -95,6 +120,12 @@ master_doc = 'index'
 exclude_patterns = [
     '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb'
 ]
+
+#redirect links 
+redirects = {
+    "backends/dynamics": "../dynamics.html"
+}
+
 
 # Generate OpenAPI spec for the REST API
 import ruamel.yaml
@@ -152,7 +183,7 @@ html_theme_options = {
         "#76b900"  # Set upper left search bar to NVIDIA green
 }
 
-html_css_files = ['_static/cudaq_override.css']
+html_css_files = ['_static/cudaq_override.css', 'custom.css']
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
