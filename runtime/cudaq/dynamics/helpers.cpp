@@ -51,6 +51,7 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
   auto states = cudaq::detail::generate_all_states(canon_degrees, dimensions);
 
   std::vector<std::size_t> reordering;
+  reordering.reserve(op_degrees.size());
   for (auto degree : op_degrees) {
     auto it = std::find(canon_degrees.cbegin(), canon_degrees.cend(), degree);
     reordering.push_back(it - canon_degrees.cbegin());
@@ -60,6 +61,7 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
       cudaq::detail::generate_all_states(op_degrees, dimensions);
 
   std::vector<std::size_t> permutation;
+  permutation.reserve(states.size());
   for (const auto &state : states) {
     std::string term;
     for (auto i : reordering) {
@@ -69,7 +71,7 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
     permutation.push_back(it - op_states.cbegin());
   }
 
-  return std::move(permutation);
+  return permutation;
 }
 
 void permute_matrix(cudaq::complex_matrix &matrix,
@@ -80,6 +82,7 @@ void permute_matrix(cudaq::complex_matrix &matrix,
   }
 
   std::vector<std::complex<double>> sorted_values;
+  sorted_values.reserve(permutation.size() * permutation.size());
   for (std::size_t permuted : permutation) {
     for (std::size_t permuted_again : permutation) {
       sorted_values.push_back(matrix[{permuted, permuted_again}]);

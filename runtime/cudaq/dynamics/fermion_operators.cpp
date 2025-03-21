@@ -191,4 +191,10 @@ product_op<fermion_handler> fermion_handler::number(std::size_t degree) {
   return product_op(fermion_handler(degree, 3));
 }
 
+namespace fermion {
+product_op<fermion_handler> create(std::size_t target) { return fermion_handler::create(target); }
+product_op<fermion_handler> annihilate(std::size_t target) { return fermion_handler::annihilate(target); }
+product_op<fermion_handler> number(std::size_t target) { return fermion_handler::number(target); }
+} // namespace fermion
+
 } // namespace cudaq

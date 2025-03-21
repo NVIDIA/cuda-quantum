@@ -26,11 +26,9 @@ more complicated Pauli tensor products and their sums.
 
     .. code-block:: cpp
 
-        using namespace cudaq::spin;
-        auto h = 5.907 - 2.1433 * x(0) * cudaq::spin_op::x(1) - \
+        auto h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - \
                  2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) + \
-                 .21829 * cudaq::spin_op::z(0) - \
-                 6.125 * cudaq::spin_op::z(1);
+                 .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
 .. tab:: Python
 

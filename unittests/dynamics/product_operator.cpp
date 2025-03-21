@@ -29,6 +29,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   auto spin_matrix = utils::PauliX_matrix() * utils::PauliZ_matrix();
 
   ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+  ASSERT_EQ(spin_prod.min_degree(), 5);
+  ASSERT_EQ(spin_prod.max_degree(), 5);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
 
   for (auto level_count : levels) {
@@ -38,6 +40,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     auto got = op0 * op1;
     utils::assert_product_equal(got, 1., {*op0.begin(), *op1.begin()});
     ASSERT_TRUE(got.degrees() == want_degrees);
+    ASSERT_EQ(got.min_degree(), 5);
+    ASSERT_EQ(got.max_degree(), 5);
 
     auto got_matrix = got.to_matrix({{5, level_count}});
     auto matrix0 = utils::position_matrix(level_count);
@@ -58,6 +62,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
       cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
 
   ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+  ASSERT_EQ(spin_prod.min_degree(), 0);
+  ASSERT_EQ(spin_prod.max_degree(), 1);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
 
   for (auto level_count : levels) {
@@ -69,6 +75,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+    ASSERT_EQ(got.min_degree(), 0);
+    ASSERT_EQ(got.max_degree(), 1);
 
     auto got_matrix = got.to_matrix({{0, level_count}, {1, level_count}});
     auto got_matrix_reverse =
@@ -100,6 +108,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
       cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
 
   ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+  ASSERT_EQ(spin_prod.min_degree(), 0);
+  ASSERT_EQ(spin_prod.max_degree(), 2);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
 
   for (auto level_count : levels) {
@@ -111,6 +121,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+    ASSERT_EQ(got.min_degree(), 0);
+    ASSERT_EQ(got.max_degree(), 2);
 
     auto got_matrix = got.to_matrix({{0, level_count}, {2, level_count}});
     auto got_matrix_reverse =

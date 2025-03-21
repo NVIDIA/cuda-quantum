@@ -286,12 +286,10 @@ public:
 
   // Individual handlers should *not* override this but rather adhere to it.
   // The canonical ordering is the ordering used internally by the operator
-  // classes. The user facing ordering is the ordering that matches CUDA-Q
-  // convention, i.e. the order in which custom matrix operators are defined,
+  // classes. It is the order in which custom matrix operators are defined,
   // the order returned by to_matrix and degree, and the order in which a user
   // would define a state vector.
   static constexpr auto canonical_order = std::less<std::size_t>();
-  static constexpr auto user_facing_order = std::less<std::size_t>();
 
   /// Default commutation relations mean that two operator always commute as
   /// long as they act on different degrees of freedom.
