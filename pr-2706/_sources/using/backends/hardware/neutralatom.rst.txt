@@ -11,7 +11,6 @@ accessed via `Superstaq <https://superstaq.infleqtion.com/>`__, a cross-platform
 that performs low-level compilation and cross-layer optimization. To get started users can create a Superstaq
 account by following `these instructions <https://superstaq.readthedocs.io/en/latest/get_started/credentials.html>`__.
 
-
 Setting Credentials
 `````````````````````````
 
