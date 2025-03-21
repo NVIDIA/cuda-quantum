@@ -150,6 +150,8 @@ public:
   /// the qubit with index 0 equals 1 with probability 1 is given by
   /// the vector {0., 1., 0., 0.}.
   std::vector<std::size_t> degrees() const;
+  std::size_t min_degree() const;
+  std::size_t max_degree() const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
   std::size_t num_terms() const;
@@ -654,6 +656,8 @@ public:
   /// the qubit with index 0 equals 1 with probability 1 is given by
   /// the vector {0., 1., 0., 0.}.
   std::vector<std::size_t> degrees() const;
+  std::size_t min_degree() const;
+  std::size_t max_degree() const;
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.

@@ -180,6 +180,22 @@ sum_op<HandlerTy>::degrees() const {
 }
 
 template <typename HandlerTy>
+std::size_t sum_op<HandlerTy>::min_degree() const {
+  auto degrees = this->degrees();
+  if (degrees.size() == 0)
+    throw std::runtime_error("operator is not acting on any degrees");
+  return operator_handler::canonical_order(0, 1) ? degrees[0] : degrees.back();
+}
+
+template <typename HandlerTy>
+std::size_t sum_op<HandlerTy>::max_degree() const {
+  auto degrees = this->degrees();
+  if (degrees.size() == 0)
+    throw std::runtime_error("operator is not acting on any degrees");
+  return operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
+}
+
+template <typename HandlerTy>
 std::size_t sum_op<HandlerTy>::num_terms() const {
   return this->terms.size();
 }
@@ -187,6 +203,10 @@ std::size_t sum_op<HandlerTy>::num_terms() const {
 #define INSTANTIATE_SUM_PROPERTIES(HandlerTy)                                  \
                                                                                \
   template std::vector<std::size_t> sum_op<HandlerTy>::degrees() const;        \
+                                                                               \
+  template std::size_t sum_op<HandlerTy>::min_degree() const;                  \
+                                                                               \
+  template std::size_t sum_op<HandlerTy>::max_degree() const;                  \
                                                                                \
   template std::size_t sum_op<HandlerTy>::num_terms() const;
 
