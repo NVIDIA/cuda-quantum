@@ -10,8 +10,8 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
-#include "cudaq/spin_op.h"
-#include "py_spin_op.h"
+#include "cudaq/utils/matrix.h"
+#include "py_matrix.h"
 
 #include <complex>
 
@@ -39,7 +39,7 @@ void bindComplexMatrix(py::module &mod) {
       /// The following makes this fully compatible with NumPy
       .def_buffer([](complex_matrix &op) -> py::buffer_info {
         return py::buffer_info(
-            op.data(), sizeof(std::complex<double>),
+            op.data, sizeof(std::complex<double>),
             py::format_descriptor<std::complex<double>>::format(), 2,
             {op.rows(), op.cols()},
             {sizeof(std::complex<double>) * op.cols(),
@@ -48,7 +48,7 @@ void bindComplexMatrix(py::module &mod) {
       .def(py::init([](const py::buffer &b) {
              py::buffer_info info = b.request();
              complex_matrix m(info.shape[0], info.shape[1]);
-             extractMatrixData(info, m.data());
+             extractMatrixData(info, m.data);
              return m;
            }),
            "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
@@ -91,7 +91,7 @@ void bindComplexMatrix(py::module &mod) {
                 static_cast<ssize_t>(sizeof(std::complex<double>))};
 
             // Return a numpy array without copying data
-            return py::array_t<std::complex<double>>(shape, strides, m.data());
+            return py::array_t<std::complex<double>>(shape, strides, m.data);
           },
           "Convert :class:`ComplexMatrix` to numpy.ndarray.");
 }

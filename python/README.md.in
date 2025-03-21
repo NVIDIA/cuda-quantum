@@ -36,6 +36,8 @@ ${{ package_name }}`. Please make sure your `pip` version is \>= 24.0.
 If you have an NVIDIA GPU on your host system, you will be
 able to use it without any further installation steps.
 
+${{ deprecation_notice }}
+
 > **Important:** 
 > Please check if you have an existing installation of the `cuda-quantum`, `cudaq-quantum-cu11`, or `cuda-quantum-cu12` package, and uninstall it prior to installation. Different CUDA-Q binary distributions may conflict with each other causing issues.
 

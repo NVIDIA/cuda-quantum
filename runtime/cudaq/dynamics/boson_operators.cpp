@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 
 #include "boson_operators.h"
 
@@ -20,7 +20,7 @@ namespace cudaq {
 
 // private helpers
 
-std::string boson_operator::op_code_to_string() const {
+std::string boson_handler::op_code_to_string() const {
   // Note that we can (and should) have the same op codes across boson, fermion,
   // and spin ops, since individual operators with the same op codes are
   // actually equal. Note that the matrix definition for creation, annihilation
@@ -50,16 +50,16 @@ std::string boson_operator::op_code_to_string() const {
   return std::move(str);
 }
 
-std::string boson_operator::op_code_to_string(
+std::string boson_handler::op_code_to_string(
     std::unordered_map<int, int> &dimensions) const {
-  auto it = dimensions.find(this->target);
+  auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " +
-                             std::to_string(this->target));
+                             std::to_string(this->degree));
   return this->op_code_to_string();
 }
 
-void boson_operator::inplace_mult(const boson_operator &other) {
+void boson_handler::inplace_mult(const boson_handler &other) {
   this->number_offsets.reserve(this->number_offsets.size() +
                                other.number_offsets.size());
 
@@ -123,19 +123,19 @@ void boson_operator::inplace_mult(const boson_operator &other) {
 
 // read-only properties
 
-std::string boson_operator::unique_id() const {
-  return this->op_code_to_string() + std::to_string(target);
+std::string boson_handler::unique_id() const {
+  return this->op_code_to_string() + std::to_string(this->degree);
 }
 
-std::vector<int> boson_operator::degrees() const { return {this->target}; }
+std::vector<int> boson_handler::degrees() const { return {this->degree}; }
 
 // constructors
 
-boson_operator::boson_operator(int target)
-    : target(target), additional_terms(0) {}
+boson_handler::boson_handler(int target)
+    : degree(target), additional_terms(0) {}
 
-boson_operator::boson_operator(int target, int op_id)
-    : target(target), additional_terms(0) {
+boson_handler::boson_handler(int target, int op_id)
+    : degree(target), additional_terms(0) {
   assert(0 <= op_id && op_id < 4);
   if (op_id == 1) // create
     this->additional_terms = 1;
@@ -147,17 +147,17 @@ boson_operator::boson_operator(int target, int op_id)
 
 // evaluations
 
-matrix_2 boson_operator::to_matrix(
+complex_matrix boson_handler::to_matrix(
     std::unordered_map<int, int> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = dimensions.find(this->target);
+  auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " +
-                             std::to_string(this->target));
+                             std::to_string(this->degree));
   auto dim = it->second;
 
-  auto mat = matrix_2(dim, dim);
+  auto mat = complex_matrix(dim, dim);
   if (this->additional_terms > 0) {
     for (std::size_t column = 0; column + this->additional_terms < dim;
          column++) {
@@ -187,55 +187,43 @@ matrix_2 boson_operator::to_matrix(
   return std::move(mat);
 }
 
-std::string boson_operator::to_string(bool include_degrees) const {
+std::string boson_handler::to_string(bool include_degrees) const {
   if (include_degrees)
-    return this->op_code_to_string() + "(" + std::to_string(target) + ")";
+    return this->op_code_to_string() + "(" + std::to_string(this->degree) + ")";
   else
     return this->op_code_to_string();
 }
 
 // comparisons
 
-bool boson_operator::operator==(const boson_operator &other) const {
-  return this->target == other.target &&
+bool boson_handler::operator==(const boson_handler &other) const {
+  return this->degree == other.degree &&
          this->additional_terms == other.additional_terms &&
          this->number_offsets == other.number_offsets;
 }
 
 // defined operators
 
-operator_sum<boson_operator> boson_operator::empty() {
-  return operator_handler::empty<boson_operator>();
+product_op<boson_handler> boson_handler::create(int degree) {
+  return product_op(boson_handler(degree, 1));
 }
 
-product_operator<boson_operator> boson_operator::identity() {
-  return operator_handler::identity<boson_operator>();
+product_op<boson_handler> boson_handler::annihilate(int degree) {
+  return product_op(boson_handler(degree, 2));
 }
 
-product_operator<boson_operator> boson_operator::identity(int degree) {
-  return product_operator(boson_operator(degree));
+product_op<boson_handler> boson_handler::number(int degree) {
+  return product_op(boson_handler(degree, 3));
 }
 
-product_operator<boson_operator> boson_operator::create(int degree) {
-  return product_operator(boson_operator(degree, 1));
-}
-
-product_operator<boson_operator> boson_operator::annihilate(int degree) {
-  return product_operator(boson_operator(degree, 2));
-}
-
-product_operator<boson_operator> boson_operator::number(int degree) {
-  return product_operator(boson_operator(degree, 3));
-}
-
-operator_sum<boson_operator> boson_operator::position(int degree) {
+sum_op<boson_handler> boson_handler::position(int degree) {
   return 0.5 *
-         (boson_operator::create(degree) + boson_operator::annihilate(degree));
+         (boson_handler::create(degree) + boson_handler::annihilate(degree));
 }
 
-operator_sum<boson_operator> boson_operator::momentum(int degree) {
+sum_op<boson_handler> boson_handler::momentum(int degree) {
   return std::complex<double>(0., 0.5) *
-         (boson_operator::create(degree) - boson_operator::annihilate(degree));
+         (boson_handler::create(degree) - boson_handler::annihilate(degree));
 }
 
 } // namespace cudaq

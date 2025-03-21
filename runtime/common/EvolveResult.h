@@ -20,61 +20,62 @@ namespace cudaq {
 /// and any computed expectation values during and after evolution,
 /// depending on the arguments passed to the call.
 class evolve_result {
-protected:
-  // The final state after the time evolution.
-  state final_state;
+public:
+  // The state of the system. If only final state is retained, this vector will
+  // have exactly one element.
+  std::optional<std::vector<state>> states = std::nullopt;
 
-  // The state after each step in the evolution, if computed.
-  std::optional<std::vector<state>> intermediate_states = {};
-
-  // The computed expectation values at the end of the evolution.
-  std::optional<std::vector<observe_result>> final_expectation_values = {};
-
-  // The computed expectation values for each step of the evolution.
+  // The computed expectation values. If only final expectation values are
+  // retained, this vector will have exactly one element.
   std::optional<std::vector<std::vector<observe_result>>> expectation_values =
-      {};
+      std::nullopt;
 
   // The result of sampling of an analog Hamiltonian simulation on a QPU
-  std::optional<sample_result> sampling_result = {};
+  std::optional<sample_result> sampling_result = std::nullopt;
 
-public:
-  evolve_result(state state) : final_state(state) {}
+  // Construct from single final state.
+  evolve_result(state state)
+      : states(std::make_optional<std::vector<cudaq::state>>(
+            std::vector<cudaq::state>{std::move(state)})) {}
 
+  // Construct from single final observe result.
   evolve_result(state state, const std::vector<observe_result> &expectations)
-      : final_state(state),
-        final_expectation_values(
-            std::make_optional<std::vector<observe_result>>(expectations)) {}
+      : states(std::make_optional<std::vector<cudaq::state>>(
+            std::vector<cudaq::state>{std::move(state)})),
+        expectation_values(
+            std::make_optional<std::vector<std::vector<observe_result>>>(
+                std::vector<std::vector<observe_result>>{expectations})) {}
 
   evolve_result(state state, const std::vector<double> &expectations)
-      : final_state(state) {
+      : states(std::make_optional<std::vector<cudaq::state>>(
+            std::vector<cudaq::state>{std::move(state)})) {
     std::vector<observe_result> result;
     const spin_op emptyOp(
         std::unordered_map<spin_op::spin_op_term, std::complex<double>>{});
     for (auto e : expectations) {
       result.push_back(observe_result(e, emptyOp));
     }
-    final_expectation_values = result;
+
+    expectation_values =
+        std::make_optional<std::vector<std::vector<observe_result>>>(
+            std::vector<std::vector<observe_result>>{result});
   }
 
+  // Construct from system states.
   evolve_result(const std::vector<state> &states)
-      : final_state(getLastStateIfValid(states)),
-        intermediate_states(std::make_optional<std::vector<state>>(states)) {}
+      : states(std::make_optional<std::vector<state>>(states)) {}
 
+  // Construct from intermediate system states and observe results.
   evolve_result(const std::vector<state> &states,
                 const std::vector<std::vector<observe_result>> &expectations)
-      : final_state(getLastStateIfValid(states)),
-        intermediate_states(std::make_optional<std::vector<state>>(states)),
-        final_expectation_values(
-            std::make_optional<std::vector<observe_result>>(
-                expectations.back())),
+      : states(std::make_optional<std::vector<state>>(states)),
         expectation_values(
             std::make_optional<std::vector<std::vector<observe_result>>>(
                 expectations)) {}
 
   evolve_result(const std::vector<state> &states,
                 const std::vector<std::vector<double>> &expectations)
-      : final_state(getLastStateIfValid(states)),
-        intermediate_states(std::make_optional<std::vector<state>>(states)) {
+      : states(std::make_optional<std::vector<state>>(states)) {
     std::vector<std::vector<observe_result>> result;
     const spin_op emptyOp(
         std::unordered_map<spin_op::spin_op_term, std::complex<double>>{});
@@ -85,42 +86,9 @@ public:
       }
       result.push_back(subResult);
     }
-    final_expectation_values = result.back();
     expectation_values = result;
   }
 
-  evolve_result(const sample_result &sr)
-      : final_state(nullptr), sampling_result(sr) {}
-
-  state get_final_state() {
-    /// TODO: Check for valid state
-    // if (final_state){
-    //   throw std::runtime_error("No state available for this result");
-    // }
-    return final_state;
-  }
-
-  std::optional<std::vector<state>> get_intermediate_states() {
-    return intermediate_states;
-  }
-
-  std::optional<std::vector<observe_result>> get_final_expectation_values() {
-    return final_expectation_values;
-  }
-
-  std::optional<std::vector<std::vector<observe_result>>>
-  get_expectation_values() {
-    return expectation_values;
-  }
-
-  std::optional<sample_result> get_sampling_result() { return sampling_result; }
-
-private:
-  state getLastStateIfValid(const std::vector<state> &states) {
-    if (states.empty())
-      throw std::runtime_error(
-          "Cannot create evolve_result with an empty list of states.");
-    return states.back();
-  }
+  evolve_result(const sample_result &sr) : sampling_result(sr) {}
 };
 } // namespace cudaq

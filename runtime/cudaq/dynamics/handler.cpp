@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/utils/tensor.h"
+#include "cudaq/utils/matrix.h"
 #include "operator_leafs.h"
 #include <complex>
 #include <set>
@@ -59,7 +59,7 @@ commutation_relations operator_handler::custom_commutation_relations(uint id) {
 operator_handler::matrix_evaluation::matrix_evaluation() = default;
 
 operator_handler::matrix_evaluation::matrix_evaluation(
-    std::vector<int> &&degrees, matrix_2 &&matrix)
+    std::vector<int> &&degrees, complex_matrix &&matrix)
     : degrees(std::move(degrees)), matrix(std::move(matrix)) {
 #if !defined(NDEBUG)
   std::set<int> unique_degrees;

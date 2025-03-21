@@ -160,9 +160,9 @@ void registerCCDialectAndTypes(py::module &m) {
   });
 
   mlir_type_subclass(ccMod, "StateType", [](MlirType type) {
-    return unwrap(type).isa<cudaq::cc::StateType>();
+    return unwrap(type).isa<quake::StateType>();
   }).def_classmethod("get", [](py::object cls, MlirContext ctx) {
-    return wrap(cudaq::cc::StateType::get(unwrap(ctx)));
+    return wrap(quake::StateType::get(unwrap(ctx)));
   });
 
   mlir_type_subclass(

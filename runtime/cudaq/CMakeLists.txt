@@ -17,13 +17,14 @@ add_library(${LIBRARY_NAME}
          SHARED cudaq.cpp 
                 target_control.cpp
                 algorithms/draw.cpp
+                platform/qpu_state.cpp
                 platform/quantum_platform.cpp
                 qis/execution_manager_c_api.cpp
                 qis/execution_manager.cpp
                 qis/remote_state.cpp
                 qis/state.cpp
                 utils/cudaq_utils.cpp
-                utils/tensor.cpp
+                utils/matrix.cpp
                 distributed/mpi_plugin.cpp)
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})

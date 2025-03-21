@@ -194,6 +194,14 @@ class SpinOperator(OperatorSum):
         # This should never be called. We have `__new__` method instead.
         raise ValueError("Not supported")
 
+    @staticmethod
+    def empty() -> OperatorSum:
+        return OperatorSum()
+
+    @staticmethod
+    def identity() -> OperatorSum:
+        return ProductOperator(ScalarOperator.const(1.))
+
     # Convert from a Pauli word to an Operator
     @staticmethod
     def from_word(word: str) -> ProductOperator:
