@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "common/EigenSparse.h"
 #include "cudaq/operators.h"
 #include "evaluation.h"
 #include "helpers.h"
@@ -26,20 +27,6 @@ namespace cudaq {
 // check canonicalization by default, individual handlers can set it to false to
 // disable the check
 bool operator_handler::can_be_canonicalized = true;
-
-// returns true if and only if applying the operators in sequence acts only once
-// on each degree of freedom and in canonical order
-template <typename HandlerTy>
-bool product_op<HandlerTy>::is_canonicalized() const {
-  auto canon_degrees = this->degrees(false);
-  std::vector<std::size_t> degrees;
-  degrees.reserve(canon_degrees.size());
-  for (const auto &op : this->operators) {
-    for (auto d : op.degrees())
-      degrees.push_back(d);
-  }
-  return degrees == canon_degrees;
-}
 #endif
 
 template <typename HandlerTy>
@@ -84,17 +71,18 @@ product_op<matrix_handler>::find_insert_at(const matrix_handler &other) {
   // general is having an non-trivial commutation relation for multi- target
   // operators. The matrix operator class should fail to construct such an
   // operator.
-  int nr_permutations = 0;
+  std::size_t nr_permutations = 0;
   auto rit = std::find_if(
       this->operators.crbegin(), this->operators.crend(),
       [&nr_permutations,
-       &other_degrees = static_cast<const std::vector<int> &>(other.degrees()),
+       &other_degrees =
+           static_cast<const std::vector<std::size_t> &>(other.degrees()),
        &other](const matrix_handler &self_op) {
-        const std::vector<int> &self_op_degrees = self_op.degrees();
+        const std::vector<std::size_t> &self_op_degrees = self_op.degrees();
         for (auto other_degree : other_degrees) {
           auto item_it =
               std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(),
-                           [other_degree](int self_degree) {
+                           [other_degree](std::size_t self_degree) {
                              return !operator_handler::canonical_order(
                                  other_degree, self_degree);
                            });
@@ -104,7 +92,7 @@ product_op<matrix_handler>::find_insert_at(const matrix_handler &other) {
             // the degree somewhere
             item_it =
                 std::find_if(self_op_degrees.crbegin(), self_op_degrees.crend(),
-                             [other_degree](int self_degree) {
+                             [other_degree](std::size_t self_degree) {
                                return other_degree == self_degree;
                              });
             if (item_it != self_op_degrees.crend() &&
@@ -212,7 +200,7 @@ EvalTy product_op<HandlerTy>::evaluate(
     operator_arithmetics<EvalTy> arithmetics) const {
 
   assert(!HandlerTy::can_be_canonicalized || this->is_canonicalized());
-  auto degrees = this->degrees(false); // keep in canonical order
+  auto degrees = this->degrees();
 
   auto padded_op = [&arithmetics,
                     &degrees = std::as_const(degrees)](const HandlerTy &op) {
@@ -318,23 +306,66 @@ INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_handler,
 
 // read-only properties
 
+#if !defined(NDEBUG)
+// returns true if and only if applying the operators in sequence acts only once
+// on each degree of freedom and in canonical order
+template <typename HandlerTy>
+bool product_op<HandlerTy>::is_canonicalized() const {
+  std::set<std::size_t> unique_degrees;
+  std::vector<std::size_t> degrees;
+  degrees.reserve(this->operators.size());
+  for (const auto &op : this->operators) {
+    for (auto d : op.degrees()) {
+      degrees.push_back(d);
+      unique_degrees.insert(d);
+    }
+  }
+  std::vector<std::size_t> canon_degrees(unique_degrees.begin(), unique_degrees.end());
+  std::sort(canon_degrees.begin(), canon_degrees.end(), operator_handler::canonical_order);
+  return degrees == canon_degrees;
+}
+#endif
+
 template <typename HandlerTy>
 std::vector<std::size_t>
-product_op<HandlerTy>::degrees(bool application_order) const {
+product_op<HandlerTy>::degrees() const {
+  assert(this->is_canonicalized());
+  // Once we move to C++20 only, it would be nice if degrees was just a view.
+  std::vector<std::size_t> degrees;
+  degrees.reserve(this->operators.size());
+  for (const auto &op : this->operators)
+    degrees.push_back(op.degree);
+  return degrees;
+}
+
+template <>
+std::vector<std::size_t> product_op<matrix_handler>::degrees() const {
   std::set<std::size_t> unsorted_degrees;
-  for (const HandlerTy &term : this->operators) {
+  for (const auto &term : this->operators) {
     auto term_degrees = term.degrees();
     unsorted_degrees.insert(term_degrees.cbegin(), term_degrees.cend());
   }
-  auto degrees = std::vector<std::size_t>(unsorted_degrees.cbegin(),
-                                          unsorted_degrees.cend());
-  if (application_order)
-    std::sort(degrees.begin(), degrees.end(),
-              operator_handler::user_facing_order);
-  else
-    std::sort(degrees.begin(), degrees.end(),
-              operator_handler::canonical_order);
-  return std::move(degrees);
+  std::vector<std::size_t> degrees(unsorted_degrees.cbegin(),
+                                   unsorted_degrees.cend());
+  std::sort(degrees.begin(), degrees.end(),
+            operator_handler::canonical_order);
+  return degrees;
+}
+
+template <typename HandlerTy>
+std::size_t product_op<HandlerTy>::min_degree() const {
+  auto degrees = this->degrees();
+  if (degrees.size() == 0)
+    throw std::runtime_error("operator is not acting on any degrees");
+  return operator_handler::canonical_order(0, 1) ? degrees[0] : degrees.back();
+}
+
+template <typename HandlerTy>
+std::size_t product_op<HandlerTy>::max_degree() const {
+  auto degrees = this->degrees();
+  if (degrees.size() == 0)
+    throw std::runtime_error("operator is not acting on any degrees");
+  return operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
 }
 
 template <typename HandlerTy>
@@ -355,10 +386,20 @@ scalar_operator product_op<HandlerTy>::get_coefficient() const {
   return this->coefficient;
 }
 
+template <typename HandlerTy>
+std::complex<double> product_op<HandlerTy>::evaluate_coefficient(
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
+  return this->coefficient.evaluate(parameters);
+}
+
 #define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                              \
                                                                                \
-  template std::vector<std::size_t> product_op<HandlerTy>::degrees(            \
-      bool application_order) const;                                           \
+  template std::vector<std::size_t> product_op<HandlerTy>::degrees() const;    \
+                                                                               \
+  template std::size_t product_op<HandlerTy>::min_degree() const;              \
+                                                                               \
+  template std::size_t product_op<HandlerTy>::max_degree() const;              \
                                                                                \
   template std::size_t product_op<HandlerTy>::num_ops() const;                 \
                                                                                \
@@ -406,7 +447,7 @@ product_op<HandlerTy>::product_op(scalar_operator coefficient, Args &&...args)
 template <typename HandlerTy>
 product_op<HandlerTy>::product_op(
     scalar_operator coefficient, const std::vector<HandlerTy> &atomic_operators,
-    int size)
+    std::size_t size)
     : coefficient(std::move(coefficient)) {
   if (size <= 0)
     this->operators = atomic_operators;
@@ -422,7 +463,7 @@ product_op<HandlerTy>::product_op(
 template <typename HandlerTy>
 product_op<HandlerTy>::product_op(scalar_operator coefficient,
                                   std::vector<HandlerTy> &&atomic_operators,
-                                  int size)
+                                  std::size_t size)
     : coefficient(std::move(coefficient)),
       operators(std::move(atomic_operators)) {
   if (size > 0)
@@ -462,7 +503,8 @@ product_op<HandlerTy>::product_op(
 }
 
 template <typename HandlerTy>
-product_op<HandlerTy>::product_op(const product_op<HandlerTy> &other, int size)
+product_op<HandlerTy>::product_op(const product_op<HandlerTy> &other,
+                                  std::size_t size)
     : coefficient(other.coefficient) {
   if (size <= 0)
     this->operators = other.operators;
@@ -474,7 +516,8 @@ product_op<HandlerTy>::product_op(const product_op<HandlerTy> &other, int size)
 }
 
 template <typename HandlerTy>
-product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other, int size)
+product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other,
+                                  std::size_t size)
     : coefficient(std::move(other.coefficient)),
       operators(std::move(other.operators)) {
   if (size > 0)
@@ -504,17 +547,17 @@ product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other, int size)
                                                                                \
   template product_op<HandlerTy>::product_op(                                  \
       scalar_operator coefficient,                                             \
-      const std::vector<HandlerTy> &atomic_operators, int size);               \
+      const std::vector<HandlerTy> &atomic_operators, std::size_t size);       \
                                                                                \
   template product_op<HandlerTy>::product_op(                                  \
       scalar_operator coefficient, std::vector<HandlerTy> &&atomic_operators,  \
-      int size);                                                               \
+      std::size_t size);                                                       \
                                                                                \
   template product_op<HandlerTy>::product_op(                                  \
-      const product_op<HandlerTy> &other, int size);                           \
+      const product_op<HandlerTy> &other, std::size_t size);                   \
                                                                                \
   template product_op<HandlerTy>::product_op(product_op<HandlerTy> &&other,    \
-                                             int size);
+                                             std::size_t size);
 
 // Note:
 // These are the private constructors needed by friend classes and functions
@@ -625,43 +668,36 @@ std::string product_op<HandlerTy>::to_string() const {
 
 template <typename HandlerTy>
 complex_matrix product_op<HandlerTy>::to_matrix(
-    std::unordered_map<int, int> dimensions,
+    std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const {
+    bool invert_order) const {
   auto evaluated =
       this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(
           dimensions, parameters));
-  auto matrix = std::move(evaluated.matrix);
-  if (!application_order || operator_handler::canonical_order(1, 0) ==
-                                operator_handler::user_facing_order(1, 0))
-    return std::move(matrix);
-
-  auto degrees = evaluated.degrees;
-  std::sort(degrees.begin(), degrees.end(),
-            operator_handler::user_facing_order);
-  auto permutation = cudaq::detail::compute_permutation(evaluated.degrees,
-                                                        degrees, dimensions);
-  cudaq::detail::permute_matrix(matrix, permutation);
-  return std::move(matrix);
+  if (invert_order) {
+    auto reverse_degrees = evaluated.degrees;
+    std::reverse(reverse_degrees.begin(), reverse_degrees.end());
+    auto permutation = cudaq::detail::compute_permutation(evaluated.degrees,
+      reverse_degrees, dimensions);
+    cudaq::detail::permute_matrix(evaluated.matrix, permutation);
+  }
+  return std::move(evaluated.matrix);
 }
 
 template <>
 complex_matrix product_op<spin_handler>::to_matrix(
-    std::unordered_map<int, int> dimensions,
+    std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const {
+    bool invert_order) const {
   auto terms = std::move(
       this->evaluate(
               operator_arithmetics<operator_handler::canonical_evaluation>(
                   dimensions, parameters))
           .terms);
   assert(terms.size() == 1);
-  bool invert_order =
-      application_order && operator_handler::canonical_order(1, 0) !=
-                               operator_handler::user_facing_order(1, 0);
   auto matrix =
       spin_handler::to_matrix(terms[0].second, terms[0].first, invert_order);
-  return std::move(matrix);
+  return matrix;
 }
 
 #define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                             \
@@ -669,9 +705,9 @@ complex_matrix product_op<spin_handler>::to_matrix(
   template std::string product_op<HandlerTy>::to_string() const;               \
                                                                                \
   template complex_matrix product_op<HandlerTy>::to_matrix(                    \
-      std::unordered_map<int, int> dimensions,                                 \
+      std::unordered_map<std::size_t, int64_t> dimensions,                     \
       const std::unordered_map<std::string, std::complex<double>> &parameters, \
-      bool application_order) const;
+      bool invert_order) const;
 
 #if !defined(__clang__)
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_handler);
@@ -921,8 +957,10 @@ PRODUCT_ADDITION_PRODUCT(-)
 template <typename HandlerTy>
 sum_op<HandlerTy>
 product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
-  sum_op<HandlerTy>
-      sum; // everything needs to be updated, so creating a new sum makes sense
+  if (other.is_default)
+    return *this;
+  sum_op<HandlerTy> sum(false); // everything needs to be updated, so creating a
+                                // new sum makes sense
   sum.coefficients.reserve(other.coefficients.size());
   sum.term_map.reserve(other.terms.size());
   sum.terms.reserve(other.terms.size());
@@ -939,7 +977,9 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(                        \
       const sum_op<HandlerTy> &other) const & {                                \
-    sum_op<HandlerTy> sum;                                                     \
+    if (other.is_default)                                                      \
+      return *this;                                                            \
+    sum_op<HandlerTy> sum(false);                                              \
     sum.coefficients.reserve(other.coefficients.size() + 1);                   \
     sum.term_map = other.term_map;                                             \
     sum.terms = other.terms;                                                   \
@@ -952,7 +992,9 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(                        \
       const sum_op<HandlerTy> &other) && {                                     \
-    sum_op<HandlerTy> sum;                                                     \
+    if (other.is_default)                                                      \
+      return *this;                                                            \
+    sum_op<HandlerTy> sum(false);                                              \
     sum.coefficients.reserve(other.coefficients.size() + 1);                   \
     sum.term_map = other.term_map;                                             \
     sum.terms = other.terms;                                                   \
@@ -964,6 +1006,8 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(                        \
       sum_op<HandlerTy> &&other) const & {                                     \
+    if (other.is_default)                                                      \
+      return *this;                                                            \
     sum_op<HandlerTy> sum(op std::move(other));                                \
     sum.insert(*this);                                                         \
     return std::move(sum);                                                     \
@@ -972,6 +1016,8 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(                        \
       sum_op<HandlerTy> &&other) && {                                          \
+    if (other.is_default)                                                      \
+      return *this;                                                            \
     sum_op<HandlerTy> sum(op std::move(other));                                \
     sum.insert(std::move(*this));                                              \
     return std::move(sum);                                                     \
@@ -1267,25 +1313,39 @@ template void product_op<fermion_handler>::dump() const;
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::size_t product_op<HandlerTy>::num_qubits() const {
-  return this->degrees(false).size();
+  return this->degrees().size();
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-std::string product_op<HandlerTy>::get_pauli_word() const {
-  // No padding here (only covers the operators we have),
-  // and does not include the coefficient
-  std::unordered_map<int, int> dims;
+std::string
+product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) const {
+  std::unordered_map<std::size_t, int64_t> dims;
   auto terms = std::move(
       this->evaluate(
               operator_arithmetics<operator_handler::canonical_evaluation>(dims,
                                                                            {}))
           .terms);
   assert(terms.size() == 1);
-  auto str = std::move(terms[0].second);
-  if (operator_handler::canonical_order(1, 0) !=
-      operator_handler::user_facing_order(1, 0))
-    std::reverse(str.begin(), str.end());
-  return str;
+  if (pad_identities == 0) {
+    // No padding here (only covers the operators we have),
+    // and does not include the coefficient
+    return std::move(terms[0].second);
+  } else {
+    auto degrees = this->degrees();
+    if (degrees.size() != 0) {
+      auto max_target =
+          operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
+      if (pad_identities <= max_target)
+        throw std::invalid_argument(
+            "requested padding must be larger than the largest degree the "
+            "operator is defined for; the largest degree is " +
+            std::to_string(max_target));
+    }
+    std::string str(pad_identities, 'I');
+    for (std::size_t i = 0; i < degrees.size(); ++i)
+      str[degrees[i]] = terms[0].second[i];
+    return str;
+  }
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
@@ -1293,9 +1353,8 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
   if (this->operators.size() == 0)
     return {};
 
-  std::unordered_map<int, int> dims;
-  auto degrees = this->degrees(
-      false); // degrees in canonical order to match the evaluation
+  std::unordered_map<std::size_t, int64_t> dims;
+  auto degrees = this->degrees();
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
 
@@ -1325,12 +1384,31 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
   return bsf; // always little endian order by definition of the bsf
 }
 
-#if !defined(__clang__)
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto terms = std::move(
+      this->evaluate(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+  auto matrix = spin_handler::to_sparse_matrix(terms[0].second, terms[0].first,
+                                               invert_order);
+  return cudaq::detail::to_csr_spmatrix(matrix, 1 << terms[0].second.size());
+}
+
 template std::size_t product_op<spin_handler>::num_qubits() const;
-template std::string product_op<spin_handler>::get_pauli_word() const;
+template std::string
+product_op<spin_handler>::get_pauli_word(std::size_t pad_identities) const;
 template std::vector<bool>
 product_op<spin_handler>::get_binary_symplectic_form() const;
-#endif
+template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
 
 // utility functions for backwards compatibility
 
@@ -1343,13 +1421,18 @@ product_op<spin_handler>::get_binary_symplectic_form() const;
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::string product_op<HandlerTy>::to_string(bool printCoeffs) const {
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
   return sum_op(*this).to_string(printCoeffs);
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
 }
 
-#if !defined(__clang__)
 template std::string
 product_op<spin_handler>::to_string(bool printCoeffs) const;
-#endif
 
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class product_op<matrix_handler>;

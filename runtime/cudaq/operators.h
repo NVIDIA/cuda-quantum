@@ -33,11 +33,12 @@ enum class pauli;
 
 // utility functions for backward compatibility
 
-#define SPIN_OPS_BACKWARD_COMPATIBILITY                                        \
+#define SPIN_OPS_BACKWARD_COMPATIBILITY(deprecation_message)                   \
   template <typename T = HandlerTy,                                            \
             std::enable_if_t<std::is_same<HandlerTy, spin_handler>::value &&   \
                                  std::is_same<HandlerTy, T>::value,            \
-                             bool> = true>
+                             bool> = true>                                     \
+  [[deprecated(deprecation_message)]]
 
 /// @brief Represents an operator expression consisting of a sum of terms, where
 /// each term is a product of elementary and scalar operators. Operator
@@ -64,15 +65,16 @@ private:
   EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
 
 protected:
-  std::unordered_map<std::string, int>
+  std::unordered_map<std::string, std::size_t>
       term_map; // quick access to term index given its id (used for aggregating
                 // terms)
   std::vector<std::vector<HandlerTy>> terms;
   std::vector<scalar_operator> coefficients;
+  bool is_default = false;
 
-  constexpr sum_op(){};
-  sum_op(const sum_op<HandlerTy> &other, bool sized, int size);
-  sum_op(sum_op<HandlerTy> &&other, bool sized, int size);
+  constexpr sum_op(bool is_default) : is_default(is_default){};
+  sum_op(const sum_op<HandlerTy> &other, bool is_default, std::size_t size);
+  sum_op(sum_op<HandlerTy> &&other, bool is_default, std::size_t size);
 
 public:
   // called const_iterator because it will *not* modify the sum,
@@ -80,8 +82,12 @@ public:
   struct const_iterator {
   private:
     const sum_op<HandlerTy> *sum;
-    typename std::unordered_map<std::string, int>::const_iterator iter;
     product_op<HandlerTy> current_val;
+    std::size_t current_idx;
+
+    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx,
+                   product_op<HandlerTy> &&value)
+        : sum(sum), current_val(std::move(value)), current_idx(idx) {}
 
   public:
     using iterator_category = std::forward_iterator_tag;
@@ -90,19 +96,17 @@ public:
     using pointer = product_op<HandlerTy> *;
     using reference = product_op<HandlerTy> &;
 
-    const_iterator(const sum_op<HandlerTy> *sum)
-        : const_iterator(sum, sum->term_map.begin()) {}
+    const_iterator(const sum_op<HandlerTy> *sum) : const_iterator(sum, 0) {}
 
-    const_iterator(const sum_op<HandlerTy> *sum,
-                   std::unordered_map<std::string, int>::const_iterator &&it)
-        : sum(sum), iter(std::move(it)), current_val(1.) {
-      if (iter != sum->term_map.end())
-        current_val = product_op<HandlerTy>(sum->coefficients[iter->second],
-                                            sum->terms[iter->second]);
+    const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx)
+        : sum(sum), current_val(1.), current_idx(idx) {
+      if (current_idx < sum->num_terms())
+        current_val = product_op<HandlerTy>(sum->coefficients[current_idx],
+                                            sum->terms[current_idx]);
     }
 
     bool operator==(const const_iterator &other) const {
-      return sum == other.sum && iter == other.iter;
+      return sum == other.sum && current_idx == other.current_idx;
     }
 
     bool operator!=(const const_iterator &other) const {
@@ -116,35 +120,50 @@ public:
 
     // prefix
     const_iterator &operator++() {
-      if (++iter != sum->term_map.end())
-        current_val = product_op<HandlerTy>(sum->coefficients[iter->second],
-                                            sum->terms[iter->second]);
+      if (++current_idx < sum->num_terms())
+        current_val = product_op<HandlerTy>(sum->coefficients[current_idx],
+                                            sum->terms[current_idx]);
       return *this;
     }
 
     // postfix
-    const_iterator operator++(int) { return const_iterator(sum, iter++); }
+    const_iterator operator++(int) {
+      auto iter = const_iterator(sum, current_idx, std::move(current_val));
+      ++(*this);
+      return iter;
+    }
   };
 
   /// @brief Get iterator to beginning of operator terms
   const_iterator begin() const { return const_iterator(this); }
 
   /// @brief Get iterator to end of operator terms
-  const_iterator end() const {
-    return const_iterator(this, this->term_map.cend());
-  }
+  const_iterator end() const { return const_iterator(this, this->num_terms()); }
 
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.
-  /// By default, degrees reflect the ordering convention (endianness) used in
-  /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
-  std::vector<std::size_t> degrees(bool application_order = true) const;
+  /// The order of degrees is from smallest to largest and reflect 
+  /// the ordering of the matrix returned by `to_matrix`.  
+  /// Specifically, the indices of a statevector with two qubits are {00, 01,
+  /// 10, 11}. An ordering of degrees {0, 1} then indicates that a state where
+  /// the qubit with index 0 equals 1 with probability 1 is given by
+  /// the vector {0., 1., 0., 0.}.
+  std::vector<std::size_t> degrees() const;
+  std::size_t min_degree() const;
+  std::size_t max_degree() const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
   std::size_t num_terms() const;
 
   // constructors and destructors
+
+  // A default initialized sum will act as both the additive
+  // and multiplicative identity. To construct a true "0" value
+  // (neutral element for addition only), use sum_op<T>::empty().
+  constexpr sum_op() : is_default(true){};
+
+  sum_op(std::size_t size);
 
   template <typename... Args,
             std::enable_if_t<std::conjunction<std::is_same<
@@ -207,19 +226,20 @@ public:
   std::string to_string() const;
 
   /// @brief Return the matrix representation of the operator.
-  /// By default, the matrix is ordered according to the convention (endianness)
-  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// The matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
   /// @arg `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   complex_matrix
-  to_matrix(std::unordered_map<int, int> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
-                &parameters = {},
-            bool application_order = true) const;
+                &parameters = {}, bool invert_order = false) const;
 
   // comparisons
 
@@ -347,73 +367,78 @@ public:
 
   static sum_op<HandlerTy> empty();
   static product_op<HandlerTy> identity();
-  static product_op<HandlerTy> identity(int target);
+  static product_op<HandlerTy> identity(std::size_t target);
 
   // handler specific operators
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> number(int target);
+  static product_op<T> number(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> parity(int target);
+  static product_op<T> parity(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> position(int target);
+  static product_op<T> position(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> momentum(int target);
+  static product_op<T> momentum(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> squeeze(int target);
+  static product_op<T> squeeze(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(matrix_handler)
-  static product_op<T> displace(int target);
+  static product_op<T> displace(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> i(int target);
+  static product_op<T> i(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> x(int target);
+  static product_op<T> x(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> y(int target);
+  static product_op<T> y(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static product_op<T> z(int target);
+  static product_op<T> z(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static sum_op<T> plus(int target);
+  static sum_op<T> plus(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  static sum_op<T> minus(int target);
+  static sum_op<T> minus(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_op<T> create(int target);
+  static product_op<T> create(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_op<T> annihilate(int target);
+  static product_op<T> annihilate(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static product_op<T> number(int target);
+  static product_op<T> number(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static sum_op<T> position(int target);
+  static sum_op<T> position(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(boson_handler)
-  static sum_op<T> momentum(int target);
+  static sum_op<T> momentum(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_op<T> create(int target);
+  static product_op<T> create(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_op<T> annihilate(int target);
+  static product_op<T> annihilate(std::size_t target);
 
   HANDLER_SPECIFIC_TEMPLATE(fermion_handler)
-  static product_op<T> number(int target);
+  static product_op<T> number(std::size_t target);
 
   // general utility functions
 
   void dump() const;
+
+  /// Removes all terms from the sum for which the absolute value of 
+  /// the coefficient is below the given tolerance
+  void trim(double tol = 1e-12, 
+            const std::unordered_map<std::string, std::complex<double>> &parameters = {});
 
   std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
@@ -430,35 +455,74 @@ public:
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   static sum_op<HandlerTy> random(std::size_t nQubits, std::size_t nTerms,
-                                  unsigned int seed);
+                                  unsigned int seed = std::random_device{}());
+
+  /// @brief Return the matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  csr_spmatrix
+  to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
+                   const std::unordered_map<std::string, std::complex<double>>
+                       &parameters = {}, bool invert_order = false) const;
+
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  std::vector<double> get_data_representation() const;
 
   // utility functions for backward compatibility
+  /// @cond
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "serialization format changed - use the constructor without a size_t "
+      "argument to create a spin_op from the new format")
   sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "construction from binary symplectic form will no longer be supported")
   sum_op(const std::vector<std::vector<bool>> &bsf_terms,
          const std::vector<std::complex<double>> &coeffs);
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "serialization format changed - use get_data_representation instead")
   std::vector<double> getDataRepresentation() const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "data tuple is no longer used for serialization - use "
+      "get_data_representation instead")
+  std::tuple<std::vector<double>, std::size_t> getDataTuple() const;
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY("raw data access will no longer be supported")
   std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
   get_raw_data() const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "use to_string(), get_term_id or get_pauli_word depending on your use "
+      "case - see release notes for more detail")
   std::string to_string(bool printCoeffs) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "iterate over the operator instead to access each term")
   void for_each_term(std::function<void(sum_op<HandlerTy> &)> &&functor) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "iterate over each term in the operator instead and use as_pauli to "
+      "access each pauli")
   void for_each_pauli(std::function<void(pauli, std::size_t)> &&functor) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "is_identity will no longer be supported on an entire sum_op, but will "
+      "continue to be supported on each term")
   bool is_identity() const;
+
+  /// @endcond
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -484,10 +548,6 @@ private:
   static constexpr bool supports_inplace_mult =
       !std::is_same<decltype(handler_mult<HandlerTy>(0)),
                     std::false_type>::value;
-
-#if !defined(NDEBUG)
-  bool is_canonicalized() const;
-#endif
 
   typename std::vector<HandlerTy>::const_iterator
   find_insert_at(const HandlerTy &other);
@@ -525,12 +585,13 @@ protected:
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
   product_op(scalar_operator coefficient,
-             const std::vector<HandlerTy> &atomic_operators, int size = 0);
+             const std::vector<HandlerTy> &atomic_operators,
+             std::size_t size = 0);
 
   // keep this constructor protected (otherwise it needs to ensure canonical
   // order)
   product_op(scalar_operator coefficient,
-             std::vector<HandlerTy> &&atomic_operators, int size = 0);
+             std::vector<HandlerTy> &&atomic_operators, std::size_t size = 0);
 
 public:
   struct const_iterator {
@@ -588,15 +649,20 @@ public:
 
   // read-only properties
 
+#if !defined(NDEBUG)
+  bool is_canonicalized() const;
+#endif
+
   /// @brief The degrees of freedom that the operator acts on.
-  /// By default, degrees reflect the ordering convention (endianness) used in
-  /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
-  ///
+  /// The order of degrees is from smallest to largest and reflect 
+  /// the ordering of the matrix returned by `to_matrix`.  
   /// Specifically, the indices of a statevector with two qubits are {00, 01,
   /// 10, 11}. An ordering of degrees {0, 1} then indicates that a state where
   /// the qubit with index 0 equals 1 with probability 1 is given by
   /// the vector {0., 1., 0., 0.}.
-  std::vector<std::size_t> degrees(bool application_order = true) const;
+  std::vector<std::size_t> degrees() const;
+  std::size_t min_degree() const;
+  std::size_t max_degree() const;
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.
@@ -611,9 +677,24 @@ public:
 
   scalar_operator get_coefficient() const;
 
+  std::complex<double> evaluate_coefficient(
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {}) const;
+
   // constructors and destructors
 
   constexpr product_op() {}
+
+  constexpr product_op(std::size_t first_degree, std::size_t last_degree) {
+    static_assert(
+      std::is_constructible_v<HandlerTy, std::size_t>,
+      "operator handlers must have a constructor that take a single degree of "
+      "freedom and returns the identity operator on that degree.");
+    if (last_degree > first_degree) // being a bit permissive here
+      this->operators.reserve(last_degree - first_degree);
+    for (auto degree = first_degree; degree < last_degree; ++degree)
+      this->operators.push_back(HandlerTy(degree));
+  }
 
   product_op(double coefficient);
 
@@ -636,10 +717,10 @@ public:
              const matrix_handler::commutation_behavior &behavior);
 
   // copy constructor
-  product_op(const product_op<HandlerTy> &other, int size = 0);
+  product_op(const product_op<HandlerTy> &other, std::size_t size = 0);
 
   // move constructor
-  product_op(product_op<HandlerTy> &&other, int size = 0);
+  product_op(product_op<HandlerTy> &&other, std::size_t size = 0);
 
   ~product_op() = default;
 
@@ -664,18 +745,19 @@ public:
 
   /// @brief Return the matrix representation of the operator.
   /// By default, the matrix is ordered according to the convention (endianness)
-  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
   /// @arg  `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   complex_matrix
-  to_matrix(std::unordered_map<int, int> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
-                &parameters = {},
-            bool application_order = true) const;
+                &parameters = {}, bool invert_order = false) const;
 
   // comparisons
 
@@ -824,15 +906,37 @@ public:
   std::size_t num_qubits() const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  std::string get_pauli_word() const;
+  std::string get_pauli_word(std::size_t pad_identities = 0) const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<bool> get_binary_symplectic_form() const;
 
-  // utility functions for backward compatibility
+  /// @brief Return the matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
+  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  csr_spmatrix
+  to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
+                   const std::unordered_map<std::string, std::complex<double>>
+                       &parameters = {}, bool invert_order = false) const;
 
-  SPIN_OPS_BACKWARD_COMPATIBILITY
+  // utility functions for backward compatibility
+  /// @cond
+
+  SPIN_OPS_BACKWARD_COMPATIBILITY(
+      "use to_string(), get_term_id or get_pauli_word depending on your use "
+      "case - see release notes for more detail")
   std::string to_string(bool printCoeffs) const;
+
+  /// @endcond
 };
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system
@@ -883,13 +987,11 @@ private:
 
 // type aliases for convenience
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
-typedef std::unordered_map<int, int> dimension_map;
+typedef std::unordered_map<std::size_t, int64_t> dimension_map;
 typedef sum_op<matrix_handler> matrix_op;
 typedef product_op<matrix_handler> matrix_op_term;
-// commented out since this will require the complete replacement of spin ops
-// everywhere
-// typedef sum_op<spin_handler> spin_op;
-// typedef product_op<spin_handler> spin_op_term;
+typedef sum_op<spin_handler> spin_op;
+typedef product_op<spin_handler> spin_op_term;
 typedef sum_op<boson_handler> boson_op;
 typedef product_op<boson_handler> boson_op_term;
 typedef sum_op<fermion_handler> fermion_op;
@@ -906,4 +1008,39 @@ extern template class sum_op<spin_handler>;
 extern template class sum_op<boson_handler>;
 extern template class sum_op<fermion_handler>;
 #endif
+
+// for backward compatibility and convenience
+
+namespace operators {
+product_op<matrix_handler> number(std::size_t target);
+product_op<matrix_handler> parity(std::size_t target);
+product_op<matrix_handler> position(std::size_t target);
+product_op<matrix_handler> momentum(std::size_t target);
+product_op<matrix_handler> squeeze(std::size_t target);
+product_op<matrix_handler> displace(std::size_t target);
+} // namespace operators
+
+namespace spin {
+product_op<spin_handler> i(std::size_t target);
+product_op<spin_handler> x(std::size_t target);
+product_op<spin_handler> y(std::size_t target);
+product_op<spin_handler> z(std::size_t target);
+sum_op<spin_handler> plus(std::size_t target);
+sum_op<spin_handler> minus(std::size_t target);
+} // namespace spin
+
+namespace boson {
+product_op<boson_handler> create(std::size_t target);
+product_op<boson_handler> annihilate(std::size_t target);
+product_op<boson_handler> number(std::size_t target);
+sum_op<boson_handler> position(std::size_t target);
+sum_op<boson_handler> momentum(std::size_t target);
+} // namespace boson
+
+namespace fermion {
+product_op<fermion_handler> create(std::size_t target);
+product_op<fermion_handler> annihilate(std::size_t target);
+product_op<fermion_handler> number(std::size_t target);
+} // namespace fermion
+
 } // namespace cudaq

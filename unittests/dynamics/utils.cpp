@@ -29,7 +29,7 @@ void assert_product_equal(
     const std::vector<cudaq::matrix_handler> &expected_terms) {
   cudaq::sum_op<cudaq::matrix_handler> sum = got;
   ASSERT_TRUE(sum.num_terms() == 1);
-  ASSERT_TRUE(got.get_coefficient().evaluate() == expected_coefficient);
+  ASSERT_TRUE(got.evaluate_coefficient() == expected_coefficient);
   std::size_t idx = 0;
   for (const auto &op : got)
     ASSERT_EQ(op, expected_terms[idx++]);

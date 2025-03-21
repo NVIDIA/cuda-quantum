@@ -11,22 +11,63 @@
 #include <gtest/gtest.h>
 
 TEST(OperatorExpressions, checkOperatorSumBasics) {
-  std::vector<int> levels = {2, 3, 4};
 
+  // testing some utility functions
+  {
+    srand(10); 
+    auto bit_mask = rand();
+    cudaq::sum_op<cudaq::matrix_handler> expected;
+    std::vector<std::size_t> degrees;
+    for (std::size_t d = 1; d <= 10; ++d) 
+      degrees.push_back(d);
+
+    std::vector<cudaq::product_op<cudaq::matrix_handler>> terms;
+    for (auto d : degrees) {
+      auto coeff = (bit_mask >> d) & 1 ? 1.0 : 0.0;
+      auto prod = coeff * cudaq::matrix_op::identity(d);
+      if (coeff > 0.) expected += prod;
+      // randomize the order in which we add terms
+      auto rnd_idx = (rand() % d);
+      terms.insert(terms.begin() + rnd_idx, std::move(prod));
+    }
+
+    cudaq::sum_op<cudaq::matrix_handler> orig;
+    for (auto &&term : terms)
+      orig += term;
+    
+    ASSERT_EQ(orig.num_terms(), degrees.size());
+    ASSERT_EQ(orig.degrees(), degrees);
+
+    std::cout << "original: " << std::endl;
+    std::cout << orig.to_string() << std::endl;
+    orig.trim();
+    std::cout << "trimmed: " << std::endl; 
+    std::cout << orig.to_string() << std::endl;
+    std::cout << "expected: " << std::endl;
+    std::cout << expected.to_string() << std::endl;
+
+    ASSERT_NE(orig.num_terms(), degrees.size());
+    ASSERT_EQ(orig.num_terms(), expected.num_terms());
+    ASSERT_EQ(orig.degrees(), expected.degrees());
+  }
+
+  std::vector<int> levels = {2, 3, 4};
   std::complex<double> value_0 = 0.1 + 0.1;
   std::complex<double> value_1 = 0.1 + 1.0;
   std::complex<double> value_2 = 2.0 + 0.1;
   std::complex<double> value_3 = 2.0 + 1.0;
 
   {// Same degrees of freedom.
-   {auto spin0 = cudaq::sum_op<cudaq::spin_handler>::x(5);
-  auto spin1 = cudaq::sum_op<cudaq::spin_handler>::z(5);
+   {auto spin0 = cudaq::spin_op::x(5);
+  auto spin1 = cudaq::spin_op::z(5);
   auto spin_sum = spin0 + spin1;
 
   std::vector<std::size_t> want_degrees = {5};
   auto spin_matrix = utils::PauliX_matrix() + utils::PauliZ_matrix();
 
   ASSERT_TRUE(spin_sum.degrees() == want_degrees);
+  ASSERT_EQ(spin_sum.min_degree(), 5);
+  ASSERT_EQ(spin_sum.max_degree(), 5);
   utils::checkEqual(spin_matrix, spin_sum.to_matrix());
 
   for (auto level_count : levels) {
@@ -35,6 +76,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
     auto sum = op0 + op1;
     ASSERT_TRUE(sum.degrees() == want_degrees);
+    ASSERT_EQ(sum.min_degree(), 5);
+    ASSERT_EQ(sum.max_degree(), 5);
 
     auto got_matrix = sum.to_matrix({{5, level_count}});
     auto matrix0 = utils::number_matrix(level_count);
@@ -46,8 +89,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
 // Different degrees of freedom.
 {
-  auto spin0 = cudaq::sum_op<cudaq::spin_handler>::x(0);
-  auto spin1 = cudaq::sum_op<cudaq::spin_handler>::z(1);
+  auto spin0 = cudaq::spin_op::x(0);
+  auto spin1 = cudaq::spin_op::z(1);
   auto spin_sum = spin0 + spin1;
 
   std::vector<std::size_t> want_degrees = {0, 1};
@@ -56,6 +99,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
 
   ASSERT_TRUE(spin_sum.degrees() == want_degrees);
+  ASSERT_EQ(spin_sum.min_degree(), 0);
+  ASSERT_EQ(spin_sum.max_degree(), 1);
   utils::checkEqual(spin_matrix, spin_sum.to_matrix());
 
   for (auto level_count : levels) {
@@ -67,6 +112,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+    ASSERT_EQ(got.min_degree(), 0);
+    ASSERT_EQ(got.max_degree(), 1);
 
     auto got_matrix = got.to_matrix({{0, level_count}, {1, level_count}});
     auto got_matrix_reverse =
@@ -88,8 +135,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 // Different degrees of freedom, non-consecutive.
 // Should produce the same matrices as the above test.
 {
-  auto spin0 = cudaq::sum_op<cudaq::spin_handler>::x(0);
-  auto spin1 = cudaq::sum_op<cudaq::spin_handler>::z(2);
+  auto spin0 = cudaq::spin_op::x(0);
+  auto spin1 = cudaq::spin_op::z(2);
   auto spin_sum = spin0 + spin1;
 
   std::vector<std::size_t> want_degrees = {0, 2};
@@ -98,6 +145,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
 
   ASSERT_TRUE(spin_sum.degrees() == want_degrees);
+  ASSERT_EQ(spin_sum.min_degree(), 0);
+  ASSERT_EQ(spin_sum.max_degree(), 2);
   utils::checkEqual(spin_matrix, spin_sum.to_matrix());
 
   for (auto level_count : levels) {
@@ -109,6 +158,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+    ASSERT_EQ(got.min_degree(), 0);
+    ASSERT_EQ(got.max_degree(), 2);
 
     auto got_matrix = got.to_matrix({{0, level_count}, {2, level_count}});
     auto got_matrix_reverse =
@@ -130,15 +181,15 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 // Different degrees of freedom, non-consecutive but all dimensions
 // provided.
 {
-  auto spin0 = cudaq::sum_op<cudaq::spin_handler>::x(0);
-  auto spin1 = cudaq::sum_op<cudaq::spin_handler>::z(2);
+  auto spin0 = cudaq::spin_op::x(0);
+  auto spin1 = cudaq::spin_op::z(2);
   auto spin_sum = spin0 + spin1;
 
   std::vector<std::size_t> want_degrees = {0, 2};
   auto spin_matrix =
       cudaq::kronecker(utils::id_matrix(2), utils::PauliX_matrix()) +
       cudaq::kronecker(utils::PauliZ_matrix(), utils::id_matrix(2));
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   ASSERT_TRUE(spin_sum.degrees() == want_degrees);
   utils::checkEqual(spin_matrix, spin_sum.to_matrix(dimensions));
@@ -204,7 +255,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
   // spin operator against constant
   {
-    auto op = cudaq::sum_op<cudaq::spin_handler>::x(0);
+    auto op = cudaq::spin_op::x(0);
     auto scalar_op = cudaq::scalar_operator(value_0);
     auto sum = scalar_op + op;
     auto reverse = op + scalar_op;
@@ -241,7 +292,7 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
   // spin operator against constant from lambda
   {
-    auto op = cudaq::sum_op<cudaq::spin_handler>::x(1);
+    auto op = cudaq::spin_op::x(1);
     auto scalar_op = cudaq::scalar_operator(function);
     auto sum = scalar_op + op;
     auto reverse = op + scalar_op;
@@ -321,8 +372,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `spin sum + std::complex<double>`
   {
-    auto original = cudaq::sum_op<cudaq::spin_handler>::x(1) +
-                    cudaq::sum_op<cudaq::spin_handler>::y(2);
+    auto original = cudaq::spin_op::x(1) + cudaq::spin_op::y(2);
 
     auto sum = original + value;
     auto reverse = value + original;
@@ -404,8 +454,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `spin sum - double`
   {
-    auto original = cudaq::sum_op<cudaq::spin_handler>::x(1) +
-                    cudaq::sum_op<cudaq::spin_handler>::z(2);
+    auto original = cudaq::spin_op::x(1) + cudaq::spin_op::z(2);
 
     auto difference = original - double_value;
     auto reverse = double_value - original;
@@ -499,13 +548,13 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     for (const auto &term : product) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+      ASSERT_TRUE(term.evaluate_coefficient() ==
                   std::complex<double>(double_value));
     }
 
     for (const auto &term : reverse) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+      ASSERT_TRUE(term.evaluate_coefficient() ==
                   std::complex<double>(double_value));
     }
 
@@ -538,12 +587,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     for (const auto &term : product) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.evaluate_coefficient() == value);
     }
 
     for (const auto &term : reverse) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.evaluate_coefficient() == value);
     }
 
     auto got_matrix =
@@ -575,12 +624,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     for (const auto &term : product) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.evaluate_coefficient() == value);
     }
 
     for (const auto &term : reverse) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.evaluate_coefficient() == value);
     }
 
     auto got_matrix =
@@ -604,8 +653,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `spin sum * scalar_operator`
   {
-    auto sum = cudaq::sum_op<cudaq::spin_handler>::i(1) +
-               cudaq::sum_op<cudaq::spin_handler>::y(2);
+    auto sum = cudaq::spin_op::i(1) + cudaq::spin_op::y(2);
 
     auto product = sum * cudaq::scalar_operator(value);
     auto reverse = cudaq::scalar_operator(value) * sum;
@@ -615,12 +663,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     for (const auto &term : product) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.evaluate_coefficient() == value);
     }
 
     for (const auto &term : reverse) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.evaluate_coefficient() == value);
     }
 
     auto got_matrix = product.to_matrix();
@@ -647,7 +695,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto expected_coeff = std::complex<double>(1. / double_value);
     for (const auto &term : product) {
       ASSERT_TRUE(term.num_ops() == 1);
-      auto coeff = term.get_coefficient().evaluate();
+      auto coeff = term.evaluate_coefficient();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
     }
@@ -677,7 +725,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : product) {
       ASSERT_TRUE(term.num_ops() == 1);
-      auto coeff = term.get_coefficient().evaluate();
+      auto coeff = term.evaluate_coefficient();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
     }
@@ -707,7 +755,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : product) {
       ASSERT_TRUE(term.num_ops() == 1);
-      auto coeff = term.get_coefficient().evaluate();
+      auto coeff = term.evaluate_coefficient();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
     }
@@ -730,8 +778,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `spin sum / scalar_operator`
   {
-    auto sum = cudaq::sum_op<cudaq::spin_handler>::i(1) +
-               cudaq::sum_op<cudaq::spin_handler>::y(2);
+    auto sum = cudaq::spin_op::i(1) + cudaq::spin_op::y(2);
 
     auto product = sum / cudaq::scalar_operator(value);
 
@@ -740,7 +787,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : product) {
       ASSERT_TRUE(term.num_ops() == 1);
-      auto coeff = term.get_coefficient().evaluate();
+      auto coeff = term.evaluate_coefficient();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
     }
@@ -779,8 +826,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `spin sum += double`
   {
-    auto sum = cudaq::sum_op<cudaq::spin_handler>::y(1) +
-               cudaq::sum_op<cudaq::spin_handler>::y(2);
+    auto sum = cudaq::spin_op::y(1) + cudaq::spin_op::y(2);
 
     sum += double_value;
     ASSERT_TRUE(sum.num_terms() == 3);
@@ -913,8 +959,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `spin sum -= scalar_operator`
   {
-    auto sum = cudaq::sum_op<cudaq::spin_handler>::z(1) +
-               cudaq::sum_op<cudaq::spin_handler>::y(2);
+    auto sum = cudaq::spin_op::z(1) + cudaq::spin_op::y(2);
 
     sum -= cudaq::scalar_operator(value);
     ASSERT_TRUE(sum.num_terms() == 3);
@@ -942,7 +987,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     for (const auto &term : sum) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+      ASSERT_TRUE(term.evaluate_coefficient() ==
                   std::complex<double>(double_value));
     }
 
@@ -964,15 +1009,14 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `spin sum *= double`
   {
-    auto sum = cudaq::sum_op<cudaq::spin_handler>::y(1) +
-               cudaq::sum_op<cudaq::spin_handler>::i(2);
+    auto sum = cudaq::spin_op::y(1) + cudaq::spin_op::i(2);
 
     sum *= double_value;
 
     ASSERT_TRUE(sum.num_terms() == 2);
     for (const auto &term : sum) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() ==
+      ASSERT_TRUE(term.evaluate_coefficient() ==
                   std::complex<double>(double_value));
     }
 
@@ -995,7 +1039,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     for (const auto &term : sum) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.evaluate_coefficient() == value);
     }
 
     auto got_matrix = sum.to_matrix({{1, level_count}, {2, level_count + 1}},
@@ -1021,7 +1065,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     ASSERT_TRUE(sum.num_terms() == 2);
     for (const auto &term : sum) {
       ASSERT_TRUE(term.num_ops() == 1);
-      ASSERT_TRUE(term.get_coefficient().evaluate() == value);
+      ASSERT_TRUE(term.evaluate_coefficient() == value);
     }
 
     auto got_matrix = sum.to_matrix(
@@ -1050,7 +1094,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto expected_coeff = std::complex<double>(1. / double_value);
     for (const auto &term : sum) {
       ASSERT_TRUE(term.num_ops() == 1);
-      auto coeff = term.get_coefficient().evaluate();
+      auto coeff = term.evaluate_coefficient();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
     }
@@ -1073,8 +1117,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
   // `spin sum /= double`
   {
-    auto sum = cudaq::sum_op<cudaq::spin_handler>::y(1) +
-               cudaq::sum_op<cudaq::spin_handler>::i(2);
+    auto sum = cudaq::spin_op::y(1) + cudaq::spin_op::i(2);
 
     sum /= double_value;
 
@@ -1082,7 +1125,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto expected_coeff = std::complex<double>(1. / double_value);
     for (const auto &term : sum) {
       ASSERT_TRUE(term.num_ops() == 1);
-      auto coeff = term.get_coefficient().evaluate();
+      auto coeff = term.evaluate_coefficient();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
     }
@@ -1107,7 +1150,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : sum) {
       ASSERT_TRUE(term.num_ops() == 1);
-      auto coeff = term.get_coefficient().evaluate();
+      auto coeff = term.evaluate_coefficient();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
     }
@@ -1136,7 +1179,7 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto expected_coeff = std::complex<double>(1. / value);
     for (const auto &term : sum) {
       ASSERT_TRUE(term.num_ops() == 1);
-      auto coeff = term.get_coefficient().evaluate();
+      auto coeff = term.evaluate_coefficient();
       EXPECT_NEAR(coeff.real(), expected_coeff.real(), 1e-8);
       EXPECT_NEAR(coeff.imag(), expected_coeff.imag(), 1e-8);
     }
@@ -1505,20 +1548,20 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
 TEST(OperatorExpressions, checkCustomOperatorSum) {
   auto level_count = 2;
-  std::unordered_map<int, int> dimensions = {{0, level_count + 1},
-                                             {1, level_count + 2},
-                                             {2, level_count},
-                                             {3, level_count + 3}};
+  cudaq::dimension_map dimensions = {{0, level_count + 1},
+                                     {1, level_count + 2},
+                                     {2, level_count},
+                                     {3, level_count + 3}};
 
   {
     auto func0 =
-        [](const std::vector<int> &dimensions,
+        [](const std::vector<int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::momentum_matrix(dimensions[1]),
                                   utils::position_matrix(dimensions[0]));
         };
     auto func1 =
-        [](const std::vector<int> &dimensions,
+        [](const std::vector<int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::parity_matrix(dimensions[1]),
                                   utils::number_matrix(dimensions[0]));
@@ -1580,4 +1623,324 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
   utils::checkEqual(difference.to_matrix(dimensions), diff_expected);
   utils::checkEqual(difference_reverse.to_matrix(dimensions),
                     diff_reverse_expected);
+}
+
+TEST(OperatorExpressions, checkDefaultValue) {
+  cudaq::dimension_map dims = {{0, 2}};
+  cudaq::complex_matrix empty;
+  auto matrix_term = cudaq::matrix_op::identity(0);
+  auto boson_term = cudaq::boson_op::number(0);
+  auto matrix_sum = cudaq::matrix_op::number(0) + matrix_term;
+  auto boson_sum = cudaq::boson_op::number(0) + boson_term;
+
+  auto matrix_default = cudaq::sum_op<cudaq::matrix_handler>();
+  auto matrix_empty = cudaq::sum_op<cudaq::matrix_handler>::empty();
+  auto boson_empty = cudaq::sum_op<cudaq::boson_handler>::empty();
+
+  // matrix default + matrix sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default + matrix_sum;
+    auto res2 = matrix_sum + sum_default;
+    utils::checkEqual(res1.to_matrix(dims), matrix_sum.to_matrix(dims));
+    utils::checkEqual(res2.to_matrix(dims), matrix_sum.to_matrix(dims));
+  }
+  // matrix default - matrix sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default - matrix_sum;
+    auto res2 = matrix_sum - sum_default;
+    utils::checkEqual(res1.to_matrix(dims), (-matrix_sum).to_matrix(dims));
+    utils::checkEqual(res2.to_matrix(dims), matrix_sum.to_matrix(dims));
+  }
+  // matrix default * matrix sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default * matrix_sum;
+    auto res2 = matrix_sum * sum_default;
+    utils::checkEqual(res1.to_matrix(dims), matrix_sum.to_matrix(dims));
+    utils::checkEqual(res2.to_matrix(dims), matrix_sum.to_matrix(dims));
+  }
+  // matrix default += matrix sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default += matrix_sum;
+    auto res = matrix_sum;
+    res += matrix_default;
+    utils::checkEqual(sum_default.to_matrix(dims), matrix_sum.to_matrix(dims));
+    utils::checkEqual(res.to_matrix(dims), matrix_sum.to_matrix(dims));
+  }
+  // matrix default -= matrix sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default -= matrix_sum;
+    auto res = matrix_sum;
+    res -= matrix_default;
+    utils::checkEqual(sum_default.to_matrix(dims),
+                      (-matrix_sum).to_matrix(dims));
+    utils::checkEqual(res.to_matrix(dims), matrix_sum.to_matrix(dims));
+  }
+  // matrix default *= matrix sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default *= matrix_sum;
+    auto res = matrix_sum;
+    res *= matrix_default;
+    utils::checkEqual(sum_default.to_matrix(dims), matrix_sum.to_matrix(dims));
+    utils::checkEqual(res.to_matrix(dims), matrix_sum.to_matrix(dims));
+  }
+
+  // matrix default + boson sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res = sum_default + boson_sum;
+    utils::checkEqual(res.to_matrix(dims), boson_sum.to_matrix(dims));
+  }
+  // matrix default - boson sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res = sum_default - boson_sum;
+    utils::checkEqual(res.to_matrix(dims), (-boson_sum).to_matrix(dims));
+  }
+  // matrix default * boson sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res = sum_default * boson_sum;
+    utils::checkEqual(res.to_matrix(dims), boson_sum.to_matrix(dims));
+  }
+  // matrix default += boson sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default += boson_sum;
+    utils::checkEqual(sum_default.to_matrix(dims), boson_sum.to_matrix(dims));
+  }
+  // matrix default -= boson sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default -= boson_sum;
+    utils::checkEqual(sum_default.to_matrix(dims),
+                      (-boson_sum).to_matrix(dims));
+  }
+  // matrix default *= boson sum
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default *= boson_sum;
+    utils::checkEqual(sum_default.to_matrix(dims), boson_sum.to_matrix(dims));
+  }
+
+  // matrix default + matrix term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res = sum_default + matrix_term;
+    utils::checkEqual(res.to_matrix(dims), matrix_term.to_matrix(dims));
+  }
+  // matrix default - matrix term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res = sum_default - matrix_term;
+    utils::checkEqual(res.to_matrix(dims), (-matrix_term).to_matrix(dims));
+  }
+  // matrix default * matrix term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res = sum_default * matrix_term;
+    utils::checkEqual(res.to_matrix(dims), matrix_term.to_matrix(dims));
+  }
+  // matrix default += matrix term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default += matrix_term;
+    utils::checkEqual(sum_default.to_matrix(dims), matrix_term.to_matrix(dims));
+  }
+  // matrix default -= matrix term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default -= matrix_term;
+    utils::checkEqual(sum_default.to_matrix(dims),
+                      (-matrix_term).to_matrix(dims));
+  }
+  // matrix default *= matrix term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default *= matrix_term;
+    utils::checkEqual(sum_default.to_matrix(dims), matrix_term.to_matrix(dims));
+  }
+
+  // matrix default + boson term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res = sum_default + boson_term;
+    utils::checkEqual(res.to_matrix(dims), boson_term.to_matrix(dims));
+  }
+  // matrix default - boson term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res = sum_default - boson_term;
+    utils::checkEqual(res.to_matrix(dims), (-boson_term).to_matrix(dims));
+  }
+  // matrix default * boson term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res = sum_default * boson_term;
+    utils::checkEqual(res.to_matrix(dims), boson_term.to_matrix(dims));
+  }
+  // matrix default += boson term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default += boson_term;
+    utils::checkEqual(sum_default.to_matrix(dims), boson_term.to_matrix(dims));
+  }
+  // matrix default -= boson term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default -= boson_term;
+    utils::checkEqual(sum_default.to_matrix(dims),
+                      (-boson_term).to_matrix(dims));
+  }
+  // matrix default *= boson term
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    sum_default *= boson_term;
+    utils::checkEqual(sum_default.to_matrix(dims), boson_term.to_matrix(dims));
+  }
+
+  // matrix default + matrix empty
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default + matrix_empty;
+    auto res2 = res1 * matrix_term;
+    auto res3 = matrix_empty + sum_default;
+    auto res4 = res3 * matrix_term;
+    utils::checkEqual(res1.to_matrix(dims), empty);
+    utils::checkEqual(res2.to_matrix(dims), empty);
+    utils::checkEqual(res3.to_matrix(dims), empty);
+    utils::checkEqual(res4.to_matrix(dims), empty);
+  }
+  // matrix default - matrix empty
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default - matrix_empty;
+    auto res2 = res1 * matrix_term;
+    auto res3 = matrix_empty - sum_default;
+    auto res4 = res3 * matrix_term;
+    utils::checkEqual(res1.to_matrix(dims), empty);
+    utils::checkEqual(res2.to_matrix(dims), empty);
+    utils::checkEqual(res3.to_matrix(dims), empty);
+    utils::checkEqual(res4.to_matrix(dims), empty);
+  }
+  // matrix default * matrix empty
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default * matrix_empty;
+    auto res2 = res1 * matrix_term;
+    auto res3 = matrix_empty * sum_default;
+    auto res4 = res3 * matrix_term;
+    utils::checkEqual(res1.to_matrix(dims), empty);
+    utils::checkEqual(res2.to_matrix(dims), empty);
+    utils::checkEqual(res3.to_matrix(dims), empty);
+    utils::checkEqual(res4.to_matrix(dims), empty);
+  }
+  // matrix default += matrix empty
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default;
+    res1 += matrix_empty;
+    auto res2 = res1 * matrix_term;
+    auto res3 = matrix_empty;
+    res3 += sum_default;
+    auto res4 = res3 * matrix_term;
+    utils::checkEqual(res1.to_matrix(dims), empty);
+    utils::checkEqual(res2.to_matrix(dims), empty);
+    utils::checkEqual(res3.to_matrix(dims), empty);
+    utils::checkEqual(res4.to_matrix(dims), empty);
+  }
+  // matrix default -= matrix empty
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default;
+    res1 -= matrix_empty;
+    auto res2 = res1 * matrix_term;
+    auto res3 = matrix_empty;
+    res3 -= sum_default;
+    auto res4 = res3 * matrix_term;
+    utils::checkEqual(res1.to_matrix(dims), empty);
+    utils::checkEqual(res2.to_matrix(dims), empty);
+    utils::checkEqual(res3.to_matrix(dims), empty);
+    utils::checkEqual(res4.to_matrix(dims), empty);
+  }
+  // matrix default *= matrix empty
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default;
+    res1 *= matrix_empty;
+    auto res2 = res1 * matrix_term;
+    auto res3 = matrix_empty;
+    res3 *= sum_default;
+    auto res4 = res3 * matrix_term;
+    utils::checkEqual(res1.to_matrix(dims), empty);
+    utils::checkEqual(res2.to_matrix(dims), empty);
+    utils::checkEqual(res3.to_matrix(dims), empty);
+    utils::checkEqual(res4.to_matrix(dims), empty);
+  }
+
+  auto scalar_val = 5.;
+  std::complex<double> minus_one = -1.;
+  cudaq::complex_matrix scalar_mat(1, 1);
+  scalar_mat[{0, 0}] = scalar_val;
+
+  // matrix default + scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default + scalar_val;
+    auto res2 = scalar_val + sum_default;
+    utils::checkEqual(res1.to_matrix(dims), scalar_mat);
+    utils::checkEqual(res2.to_matrix(dims), scalar_mat);
+  }
+  // matrix default - scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default - scalar_val;
+    auto res2 = scalar_val - sum_default;
+    utils::checkEqual(res1.to_matrix(dims), minus_one * scalar_mat);
+    utils::checkEqual(res2.to_matrix(dims), scalar_mat);
+  }
+  // matrix default * scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default * scalar_val;
+    auto res2 = scalar_val * sum_default;
+    utils::checkEqual(res1.to_matrix(dims), scalar_mat);
+    utils::checkEqual(res2.to_matrix(dims), scalar_mat);
+  }
+  // matrix default += scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default;
+    res1 += scalar_val;
+    utils::checkEqual(res1.to_matrix(dims), scalar_mat);
+  }
+  // matrix default -= scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default;
+    res1 -= scalar_val;
+    utils::checkEqual(res1.to_matrix(dims), minus_one * scalar_mat);
+  }
+  // matrix default *= scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default;
+    res1 *= scalar_val;
+    utils::checkEqual(res1.to_matrix(dims), scalar_mat);
+  }
+
+  // error cases 
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    utils::checkEqual((+sum_default).to_matrix(dims), empty);
+
+    ASSERT_ANY_THROW(-sum_default);
+    ASSERT_ANY_THROW(sum_default / scalar_val);
+    ASSERT_ANY_THROW(sum_default /= scalar_val);
+  }
 }

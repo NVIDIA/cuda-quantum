@@ -78,16 +78,16 @@ public:
       auto user_data = nlohmann::json::object();
       auto obs = nlohmann::json::array();
 
-      spin->for_each_term([&](spin_op &term) {
+      for (const auto &term : spin) {
         auto spin_op = nlohmann::json::object();
 
         auto terms = nlohmann::json::array();
 
-        auto termStr = term.to_string(false);
+        auto termStr = term.get_term_id();
 
         terms.push_back(termStr);
 
-        auto coeff = term.get_coefficient();
+        auto coeff = term.evaluate_coefficient();
         auto coeff_str =
             fmt::format("{}{}{}j", coeff.real(), coeff.imag() < 0.0 ? "-" : "+",
                         std::fabs(coeff.imag()));
@@ -95,7 +95,7 @@ public:
         terms.push_back(coeff_str);
 
         obs.push_back(terms);
-      });
+      }
 
       user_data["observable"] = obs;
 

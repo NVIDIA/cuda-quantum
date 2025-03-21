@@ -10,6 +10,7 @@
 
 #include "common/MeasureCounts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/operators.h"
 #include "cudaq/platform.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
@@ -17,7 +18,6 @@
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
-#include "cudaq/spin_op.h"
 #include <algorithm>
 #include <cstring>
 #include <functional>
@@ -696,6 +696,7 @@ void exp_pauli(double theta, QubitRange &&qubits, const char *pauliWord) {
   std::vector<QuditInfo> quditInfos;
   std::transform(qubits.begin(), qubits.end(), std::back_inserter(quditInfos),
                  [](auto &q) { return cudaq::qubitToQuditInfo(q); });
+  // FIXME: it would be cleaner if we just kept it as a pauli word here
   getExecutionManager()->apply("exp_pauli", {theta}, {}, quditInfos, false,
                                spin_op::from_word(pauliWord));
 }
@@ -760,20 +761,20 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
 
 /// @brief Measure an individual qubit, return 0,1 as `bool`
 inline measure_result mz(qubit &q) {
-  return getExecutionManager()->measure({q.n_levels(), q.id()});
+  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 }
 
 /// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
 inline measure_result mx(qubit &q) {
   h(q);
-  return getExecutionManager()->measure({q.n_levels(), q.id()});
+  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 }
 
 // Measure an individual qubit in `y` basis, return 0,1 as `bool`
 inline measure_result my(qubit &q) {
   r1(-M_PI_2, q);
   h(q);
-  return getExecutionManager()->measure({q.n_levels(), q.id()});
+  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 }
 
 inline void reset(qubit &q) {

@@ -13,22 +13,42 @@
 #include <numeric>
 
 TEST(OperatorExpressions, checkProductOperatorBasics) {
-  std::vector<int> levels = {2, 3, 4};
 
+  // checking some constructors
+  {
+    cudaq::product_op<cudaq::matrix_handler> ids(2, 5);
+    std::vector<std::size_t> expected_degrees = {2, 3, 4};
+    ASSERT_EQ(ids.degrees(), expected_degrees);
+    ASSERT_EQ(ids.num_ops(), expected_degrees.size());
+    for (std::size_t idx = 2; const auto &op : ids)
+      ASSERT_EQ(op, cudaq::matrix_handler(idx++));
+  }
+  {
+    cudaq::product_op<cudaq::spin_handler> ids(2, 5);
+    std::vector<std::size_t> expected_degrees = {2, 3, 4};
+    ASSERT_EQ(ids.degrees(), expected_degrees);
+    ASSERT_EQ(ids.num_ops(), expected_degrees.size());
+    for (std::size_t idx = 2; const auto &op : ids)
+      ASSERT_EQ(op, cudaq::spin_handler(idx++));
+  }  
+
+  std::vector<int> levels = {2, 3, 4};
   std::complex<double> value_0 = 0.1 + 0.1;
   std::complex<double> value_1 = 0.1 + 1.0;
   std::complex<double> value_2 = 2.0 + 0.1;
   std::complex<double> value_3 = 2.0 + 1.0;
 
   {// Same degrees of freedom.
-   {auto spin0 = cudaq::sum_op<cudaq::spin_handler>::x(5);
-  auto spin1 = cudaq::sum_op<cudaq::spin_handler>::z(5);
+   {auto spin0 = cudaq::spin_op::x(5);
+  auto spin1 = cudaq::spin_op::z(5);
   auto spin_prod = spin0 * spin1;
 
   std::vector<std::size_t> want_degrees = {5};
   auto spin_matrix = utils::PauliX_matrix() * utils::PauliZ_matrix();
 
   ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+  ASSERT_EQ(spin_prod.min_degree(), 5);
+  ASSERT_EQ(spin_prod.max_degree(), 5);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
 
   for (auto level_count : levels) {
@@ -38,6 +58,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     auto got = op0 * op1;
     utils::assert_product_equal(got, 1., {*op0.begin(), *op1.begin()});
     ASSERT_TRUE(got.degrees() == want_degrees);
+    ASSERT_EQ(got.min_degree(), 5);
+    ASSERT_EQ(got.max_degree(), 5);
 
     auto got_matrix = got.to_matrix({{5, level_count}});
     auto matrix0 = utils::position_matrix(level_count);
@@ -49,8 +71,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
 // Different degrees of freedom.
 {
-  auto spin0 = cudaq::sum_op<cudaq::spin_handler>::x(0);
-  auto spin1 = cudaq::sum_op<cudaq::spin_handler>::z(1);
+  auto spin0 = cudaq::spin_op::x(0);
+  auto spin1 = cudaq::spin_op::z(1);
   auto spin_prod = spin0 * spin1;
 
   std::vector<std::size_t> want_degrees = {0, 1};
@@ -58,6 +80,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
       cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
 
   ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+  ASSERT_EQ(spin_prod.min_degree(), 0);
+  ASSERT_EQ(spin_prod.max_degree(), 1);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
 
   for (auto level_count : levels) {
@@ -69,6 +93,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+    ASSERT_EQ(got.min_degree(), 0);
+    ASSERT_EQ(got.max_degree(), 1);
 
     auto got_matrix = got.to_matrix({{0, level_count}, {1, level_count}});
     auto got_matrix_reverse =
@@ -91,8 +117,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 // Different degrees of freedom, non-consecutive.
 // Should produce the same matrices as the above test.
 {
-  auto spin0 = cudaq::sum_op<cudaq::spin_handler>::x(0);
-  auto spin1 = cudaq::sum_op<cudaq::spin_handler>::z(2);
+  auto spin0 = cudaq::spin_op::x(0);
+  auto spin1 = cudaq::spin_op::z(2);
   auto spin_prod = spin0 * spin1;
 
   std::vector<std::size_t> want_degrees = {0, 2};
@@ -100,6 +126,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
       cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
 
   ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+  ASSERT_EQ(spin_prod.min_degree(), 0);
+  ASSERT_EQ(spin_prod.max_degree(), 2);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
 
   for (auto level_count : levels) {
@@ -111,6 +139,8 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     ASSERT_TRUE(got.degrees() == want_degrees);
     ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+    ASSERT_EQ(got.min_degree(), 0);
+    ASSERT_EQ(got.max_degree(), 2);
 
     auto got_matrix = got.to_matrix({{0, level_count}, {2, level_count}});
     auto got_matrix_reverse =
@@ -133,14 +163,14 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 // Different degrees of freedom, non-consecutive but all dimensions
 // provided.
 {
-  auto spin0 = cudaq::sum_op<cudaq::spin_handler>::x(0);
-  auto spin1 = cudaq::sum_op<cudaq::spin_handler>::z(2);
+  auto spin0 = cudaq::spin_op::x(0);
+  auto spin1 = cudaq::spin_op::z(2);
   auto spin_prod = spin0 * spin1;
 
   std::vector<std::size_t> want_degrees = {0, 2};
   auto spin_matrix =
       cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
-  std::unordered_map<int, int> dimensions = {{0, 2}, {1, 2}, {2, 2}};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   ASSERT_TRUE(spin_prod.degrees() == want_degrees);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix(dimensions));
@@ -208,7 +238,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
   // spin operator against constant
   {
-    auto op = cudaq::sum_op<cudaq::spin_handler>::x(0);
+    auto op = cudaq::spin_op::x(0);
     auto scalar_op = cudaq::scalar_operator(value_0);
     auto product = scalar_op * op;
     auto reverse = op * scalar_op;
@@ -242,7 +272,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
   // spin operator against constant from lambda
   {
-    auto op = cudaq::sum_op<cudaq::spin_handler>::x(1);
+    auto op = cudaq::spin_op::x(1);
     auto scalar_op = cudaq::scalar_operator(function);
     auto product = scalar_op * op;
     auto reverse = op * scalar_op;
@@ -333,8 +363,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product + complex<double>`
   {
-    auto product_op = cudaq::sum_op<cudaq::spin_handler>::x(0) *
-                      cudaq::sum_op<cudaq::spin_handler>::y(1);
+    auto product_op = cudaq::spin_op::x(0) * cudaq::spin_op::y(1);
 
     auto sum = value_0 + product_op;
     auto reverse = product_op + value_0;
@@ -432,8 +461,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product - double`
   {
-    auto product_op = cudaq::sum_op<cudaq::spin_handler>::i(0) *
-                      cudaq::sum_op<cudaq::spin_handler>::z(1);
+    auto product_op = cudaq::spin_op::i(0) * cudaq::spin_op::z(1);
 
     auto sum = 2.0 - product_op;
     auto reverse = product_op - 2.0;
@@ -535,18 +563,15 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product_op = cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
-    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
-                std::complex<double>(1.));
+    ASSERT_TRUE(product_op.evaluate_coefficient() == std::complex<double>(1.));
 
     auto product = 2.0 * product_op;
     auto reverse = product_op * 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
-                std::complex<double>(2.));
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
-                std::complex<double>(2.));
+    ASSERT_TRUE(product.evaluate_coefficient() == std::complex<double>(2.));
+    ASSERT_TRUE(reverse.evaluate_coefficient() == std::complex<double>(2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -574,16 +599,15 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product_op = cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
-    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
-                std::complex<double>(1.));
+    ASSERT_TRUE(product_op.evaluate_coefficient() == std::complex<double>(1.));
 
     auto product = value_0 * product_op;
     auto reverse = product_op * value_0;
 
     ASSERT_TRUE(product.num_ops() == 2);
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == value_0);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() == value_0);
+    ASSERT_TRUE(product.evaluate_coefficient() == value_0);
+    ASSERT_TRUE(reverse.evaluate_coefficient() == value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -619,8 +643,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     ASSERT_TRUE(product.num_ops() == 2);
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() == scalar_op.evaluate());
+    ASSERT_TRUE(product.evaluate_coefficient() == scalar_op.evaluate());
+    ASSERT_TRUE(reverse.evaluate_coefficient() == scalar_op.evaluate());
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -647,8 +671,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product * scalar_operator`
   {
-    auto product_op = cudaq::sum_op<cudaq::spin_handler>::z(0) *
-                      cudaq::sum_op<cudaq::spin_handler>::y(1);
+    auto product_op = cudaq::spin_op::z(0) * cudaq::spin_op::y(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     auto product = scalar_op * product_op;
@@ -656,8 +679,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
     ASSERT_TRUE(product.num_ops() == 2);
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() == scalar_op.evaluate());
+    ASSERT_TRUE(product.evaluate_coefficient() == scalar_op.evaluate());
+    ASSERT_TRUE(reverse.evaluate_coefficient() == scalar_op.evaluate());
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -682,13 +705,12 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product_op = cudaq::matrix_op::parity(0) * cudaq::matrix_op::parity(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
-    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
-                std::complex<double>(1.));
+    ASSERT_TRUE(product_op.evaluate_coefficient() == std::complex<double>(1.));
 
     auto reverse = product_op / 2.0;
 
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
+    ASSERT_TRUE(reverse.evaluate_coefficient() ==
                 std::complex<double>(1. / 2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -713,13 +735,12 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
   {
     auto product_op = cudaq::matrix_op::number(0) * cudaq::matrix_op::number(1);
     ASSERT_TRUE(product_op.num_ops() == 2);
-    ASSERT_TRUE(product_op.get_coefficient().evaluate() ==
-                std::complex<double>(1.));
+    ASSERT_TRUE(product_op.evaluate_coefficient() == std::complex<double>(1.));
 
     auto reverse = product_op / value_0;
 
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() == 1. / value_0);
+    ASSERT_TRUE(reverse.evaluate_coefficient() == 1. / value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(reverse.degrees() == want_degrees);
@@ -749,8 +770,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     auto reverse = product_op / scalar_op;
 
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
-                1. / scalar_op.evaluate());
+    ASSERT_TRUE(reverse.evaluate_coefficient() == 1. / scalar_op.evaluate());
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(reverse.degrees() == want_degrees);
@@ -773,15 +793,13 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product / scalar_operator`
   {
-    auto product_op = cudaq::sum_op<cudaq::spin_handler>::z(0) *
-                      cudaq::sum_op<cudaq::spin_handler>::y(1);
+    auto product_op = cudaq::spin_op::z(0) * cudaq::spin_op::y(1);
     auto scalar_op = cudaq::scalar_operator(value_0);
 
     auto reverse = product_op / scalar_op;
 
     ASSERT_TRUE(reverse.num_ops() == 2);
-    ASSERT_TRUE(reverse.get_coefficient().evaluate() ==
-                1. / scalar_op.evaluate());
+    ASSERT_TRUE(reverse.evaluate_coefficient() == 1. / scalar_op.evaluate());
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(reverse.degrees() == want_degrees);
@@ -805,8 +823,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product *= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
-                std::complex<double>(2.));
+    ASSERT_TRUE(product.evaluate_coefficient() == std::complex<double>(2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -827,13 +844,11 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product *= double`
   {
-    auto product = cudaq::sum_op<cudaq::spin_handler>::y(0) *
-                   cudaq::sum_op<cudaq::spin_handler>::i(1);
+    auto product = cudaq::spin_op::y(0) * cudaq::spin_op::i(1);
     product *= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
-                std::complex<double>(2.));
+    ASSERT_TRUE(product.evaluate_coefficient() == std::complex<double>(2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -856,7 +871,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product *= value_0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == value_0);
+    ASSERT_TRUE(product.evaluate_coefficient() == value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -884,7 +899,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product *= scalar_op;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == scalar_op.evaluate());
+    ASSERT_TRUE(product.evaluate_coefficient() == scalar_op.evaluate());
     ASSERT_TRUE(scalar_op.evaluate() == value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -911,7 +926,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product /= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product.evaluate_coefficient() ==
                 std::complex<double>(1. / 2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -933,12 +948,11 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 
   /// `spin product /= double`
   {
-    auto product = cudaq::sum_op<cudaq::spin_handler>::y(0) *
-                   cudaq::sum_op<cudaq::spin_handler>::i(1);
+    auto product = cudaq::spin_op::y(0) * cudaq::spin_op::i(1);
     product /= 2.0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
+    ASSERT_TRUE(product.evaluate_coefficient() ==
                 std::complex<double>(1. / 2.));
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -962,7 +976,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product /= value_0;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() == 1. / value_0);
+    ASSERT_TRUE(product.evaluate_coefficient() == 1. / value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
     ASSERT_TRUE(product.degrees() == want_degrees);
@@ -990,8 +1004,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
     product /= scalar_op;
 
     ASSERT_TRUE(product.num_ops() == 2);
-    ASSERT_TRUE(product.get_coefficient().evaluate() ==
-                1. / scalar_op.evaluate());
+    ASSERT_TRUE(product.evaluate_coefficient() == 1. / scalar_op.evaluate());
     ASSERT_TRUE(scalar_op.evaluate() == value_0);
 
     std::vector<std::size_t> want_degrees = {0, 1};
@@ -1015,7 +1028,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {
 TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   int level_count = 3;
-  std::unordered_map<int, int> dimensions = {
+  cudaq::dimension_map dimensions = {
       {0, level_count}, {1, level_count}, {2, level_count + 1}};
 
   // `product_op + product_op`
@@ -1063,10 +1076,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `spin product + spin product`
   {
-    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::z(0) *
-                  cudaq::sum_op<cudaq::spin_handler>::y(2);
-    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::x(2) *
-                  cudaq::sum_op<cudaq::spin_handler>::z(4);
+    auto term_0 = cudaq::spin_op::z(0) * cudaq::spin_op::y(2);
+    auto term_1 = cudaq::spin_op::x(2) * cudaq::spin_op::z(4);
 
     auto sum = term_0 + term_1;
 
@@ -1144,9 +1155,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `spin product - spin product`
   {
-    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::i(0);
-    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::x(1) *
-                  cudaq::sum_op<cudaq::spin_handler>::y(2);
+    auto term_0 = cudaq::spin_op::i(0);
+    auto term_1 = cudaq::spin_op::x(1) * cudaq::spin_op::y(2);
 
     auto difference = term_0 - term_1;
     auto reverse = term_1 - term_0;
@@ -1222,10 +1232,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `spin product * spin product`
   {
-    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::y(0) *
-                  cudaq::sum_op<cudaq::spin_handler>::x(1);
-    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::z(1) *
-                  cudaq::sum_op<cudaq::spin_handler>::i(3);
+    auto term_0 = cudaq::spin_op::y(0) * cudaq::spin_op::x(1);
+    auto term_1 = cudaq::spin_op::z(1) * cudaq::spin_op::i(3);
 
     auto product = term_0 * term_1;
     auto reverse = term_1 * term_0;
@@ -1311,10 +1319,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 
   // `spin product *= spin product`
   {
-    auto term_0 = cudaq::sum_op<cudaq::spin_handler>::y(3) *
-                  cudaq::sum_op<cudaq::spin_handler>::y(1);
-    auto term_1 = cudaq::sum_op<cudaq::spin_handler>::z(1) *
-                  cudaq::sum_op<cudaq::spin_handler>::x(0);
+    auto term_0 = cudaq::spin_op::y(3) * cudaq::spin_op::y(1);
+    auto term_1 = cudaq::spin_op::z(1) * cudaq::spin_op::x(0);
 
     term_0 *= term_1;
 
@@ -1354,7 +1360,7 @@ TEST(OperatorExpressions, checkProductOperatorAgainstProduct) {
 TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   int level_count = 3;
-  std::unordered_map<int, int> dimensions = {
+  cudaq::dimension_map dimensions = {
       {0, level_count}, {1, level_count}, {2, level_count + 1}};
 
   // `product_op + sum_op`
@@ -1401,10 +1407,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `spin product + spin sum`
   {
-    auto product = cudaq::sum_op<cudaq::spin_handler>::x(0) *
-                   cudaq::sum_op<cudaq::spin_handler>::y(1);
-    auto original_sum = cudaq::sum_op<cudaq::spin_handler>::z(1) +
-                        cudaq::sum_op<cudaq::spin_handler>::i(2);
+    auto product = cudaq::spin_op::x(0) * cudaq::spin_op::y(1);
+    auto original_sum = cudaq::spin_op::z(1) + cudaq::spin_op::i(2);
 
     auto sum = product + original_sum;
     auto reverse = original_sum + product;
@@ -1481,10 +1485,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `spin product - spin sum`
   {
-    auto product = cudaq::sum_op<cudaq::spin_handler>::y(0) *
-                   cudaq::sum_op<cudaq::spin_handler>::z(1);
-    auto original_difference = cudaq::sum_op<cudaq::spin_handler>::x(1) -
-                               cudaq::sum_op<cudaq::spin_handler>::i(2);
+    auto product = cudaq::spin_op::y(0) * cudaq::spin_op::z(1);
+    auto original_difference = cudaq::spin_op::x(1) - cudaq::spin_op::i(2);
 
     auto difference = product - original_difference;
     auto reverse = original_difference - product;
@@ -1560,10 +1562,8 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
   // `spin product * spin sum`
   {
-    auto original_product = cudaq::sum_op<cudaq::spin_handler>::z(0) *
-                            cudaq::sum_op<cudaq::spin_handler>::y(1);
-    auto sum = cudaq::sum_op<cudaq::spin_handler>::i(1) +
-               cudaq::sum_op<cudaq::spin_handler>::x(2);
+    auto original_product = cudaq::spin_op::z(0) * cudaq::spin_op::y(1);
+    auto sum = cudaq::spin_op::i(1) + cudaq::spin_op::x(2);
 
     auto product = original_product * sum;
     auto reverse = sum * original_product;
@@ -1599,20 +1599,20 @@ TEST(OperatorExpressions, checkProductOperatorAgainstOperatorSum) {
 
 TEST(OperatorExpressions, checkCustomProductOps) {
   auto level_count = 2;
-  std::unordered_map<int, int> dimensions = {{0, level_count + 1},
-                                             {1, level_count + 2},
-                                             {2, level_count},
-                                             {3, level_count + 3}};
+  cudaq::dimension_map dimensions = {{0, level_count + 1},
+                                     {1, level_count + 2},
+                                     {2, level_count},
+                                     {3, level_count + 3}};
 
   {
     auto func0 =
-        [](const std::vector<int> &dimensions,
+        [](const std::vector<int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::momentum_matrix(dimensions[1]),
                                   utils::position_matrix(dimensions[0]));
         };
     auto func1 =
-        [](const std::vector<int> &dimensions,
+        [](const std::vector<int64_t> &dimensions,
            const std::unordered_map<std::string, std::complex<double>> &_none) {
           return cudaq::kronecker(utils::momentum_matrix(dimensions[1]),
                                   utils::number_matrix(dimensions[0]));

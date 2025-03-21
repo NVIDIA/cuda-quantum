@@ -34,7 +34,7 @@ schedule::pointer schedule::operator->() { return ptr; }
 
 // Prefix increment
 schedule &schedule::operator++() {
-  if (current_idx + 1 < static_cast<int>(steps.size())) {
+  if (current_idx + 1 < steps.size()) {
     current_idx++;
     ptr = &steps[current_idx];
   } else {
@@ -71,7 +71,7 @@ void schedule::reset() {
 
 // Get the current step
 std::optional<std::complex<double>> schedule::current_step() const {
-  if (current_idx >= 0 && current_idx < static_cast<int>(steps.size()))
+  if (current_idx >= 0 && current_idx < steps.size())
     return steps[current_idx];
 
   return std::nullopt;

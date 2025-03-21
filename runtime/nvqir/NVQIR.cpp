@@ -853,7 +853,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   // Let's give them that opportunity.
   if (currentContext->canHandleObserve) {
     circuitSimulator->flushGateQueue();
-    auto result = circuitSimulator->observe(*currentContext->spin.value());
+    auto result = circuitSimulator->observe(currentContext->spin.value());
     currentContext->expectationValue = result.expectation();
     currentContext->result = result.raw_data();
     return ResultZero;
