@@ -40,6 +40,7 @@ CUDA-Q Applications
             <button class="tag-button" data-group="domain" data-tag="fundamental">Fundamental Algorithms</button>
             <button class="tag-button" data-group="domain" data-tag="aiforq">AI for Quantum</button>
             <button class="tag-button" data-group="domain" data-tag="qforai">Quantum for AI</button>
+            <button class="tag-button" data-group="domain" data-tag="collab">Community</button>
         </div>
         
 
@@ -68,13 +69,6 @@ CUDA-Q Applications
     </div>
    </div>
         
-   
-   <div class="tag-filters" style="margin-top: 20px;">
-            <h3>Filter by Community:</h3>
-            <button class="tag-button" data-group="occasion" data-tag="collab">Collaborations</button>
-        </div>    
-    </div>
-
 .. raw:: html
 
     <div class="notebook-entry" data-tags="optimization,noiseless,gpu">
