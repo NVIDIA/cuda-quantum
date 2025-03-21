@@ -13,8 +13,26 @@
 #include <numeric>
 
 TEST(OperatorExpressions, checkProductOperatorBasics) {
-  std::vector<int> levels = {2, 3, 4};
 
+  // checking some constructors
+  {
+    cudaq::product_op<cudaq::matrix_handler> ids(2, 5);
+    std::vector<std::size_t> expected_degrees = {2, 3, 4};
+    ASSERT_EQ(ids.degrees(), expected_degrees);
+    ASSERT_EQ(ids.num_ops(), expected_degrees.size());
+    for (std::size_t idx = 2; const auto &op : ids)
+      ASSERT_EQ(op, cudaq::matrix_handler(idx++));
+  }
+  {
+    cudaq::product_op<cudaq::spin_handler> ids(2, 5);
+    std::vector<std::size_t> expected_degrees = {2, 3, 4};
+    ASSERT_EQ(ids.degrees(), expected_degrees);
+    ASSERT_EQ(ids.num_ops(), expected_degrees.size());
+    for (std::size_t idx = 2; const auto &op : ids)
+      ASSERT_EQ(op, cudaq::spin_handler(idx++));
+  }  
+
+  std::vector<int> levels = {2, 3, 4};
   std::complex<double> value_0 = 0.1 + 0.1;
   std::complex<double> value_1 = 0.1 + 1.0;
   std::complex<double> value_2 = 2.0 + 0.1;

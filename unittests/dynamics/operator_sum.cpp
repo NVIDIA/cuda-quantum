@@ -1865,6 +1865,14 @@ TEST(OperatorExpressions, checkDefaultValue) {
     utils::checkEqual(res1.to_matrix(dims), minus_one * scalar_mat);
     utils::checkEqual(res2.to_matrix(dims), scalar_mat);
   }
+  // matrix default * scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default * scalar_val;
+    auto res2 = scalar_val * sum_default;
+    utils::checkEqual(res1.to_matrix(dims), scalar_mat);
+    utils::checkEqual(res2.to_matrix(dims), scalar_mat);
+  }
   // matrix default += scalar
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
@@ -1879,17 +1887,21 @@ TEST(OperatorExpressions, checkDefaultValue) {
     res1 -= scalar_val;
     utils::checkEqual(res1.to_matrix(dims), minus_one * scalar_mat);
   }
+  // matrix default *= scalar
+  {
+    cudaq::sum_op<cudaq::matrix_handler> sum_default;
+    auto res1 = sum_default;
+    res1 *= scalar_val;
+    utils::checkEqual(res1.to_matrix(dims), scalar_mat);
+  }
 
-  // We cannot properly deal with scalar factors on uninitialized sums;
-  // I made a draft, but it is messy and breaks down when adding
-  // two uninitialized sums with different factors.
+  // error cases 
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
     utils::checkEqual((+sum_default).to_matrix(dims), empty);
 
     ASSERT_ANY_THROW(-sum_default);
-    ASSERT_ANY_THROW(sum_default * scalar_val);
-    ASSERT_ANY_THROW(scalar_val * sum_default);
-    ASSERT_ANY_THROW(sum_default *= scalar_val);
+    ASSERT_ANY_THROW(sum_default / scalar_val);
+    ASSERT_ANY_THROW(sum_default /= scalar_val);
   }
 }
