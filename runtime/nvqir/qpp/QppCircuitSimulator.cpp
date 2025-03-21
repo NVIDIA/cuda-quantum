@@ -317,10 +317,10 @@ public:
     flushGateQueue();
 
     // The op is on the following target bits.
-    auto targets = op.degrees(false); // internal ordering
+    auto targets = op.degrees();
 
     // Get the matrix as an Eigen matrix
-    auto matrix = op.to_matrix({}, {}, false); // matching order of degrees
+    auto matrix = op.to_matrix();
     qpp::cmat asEigen = matrix.as_eigen();
 
     // Compute the expected value

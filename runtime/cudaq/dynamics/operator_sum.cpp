@@ -78,13 +78,12 @@ sum_op<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithmetics) const {
   // Adding a tensor product with the identity for degrees that an operator
   // doesn't act on. Needed e.g. to make sure all matrices are of the same size
   // before summing them up.
-  auto degrees = this->degrees(false); // keep in canonical order
+  auto degrees = this->degrees();
   auto paddedTerm = [&arithmetics, &degrees = std::as_const(degrees)](
                         product_op<HandlerTy> &&term) {
     std::vector<HandlerTy> prod_ops;
     prod_ops.reserve(degrees.size());
-    auto term_degrees =
-        term.degrees(false); // ordering does not really matter here
+    auto term_degrees = term.degrees();
     for (auto degree : degrees) {
       auto it = std::find(term_degrees.begin(), term_degrees.end(), degree);
       if (it == term_degrees.end()) {
@@ -165,7 +164,7 @@ INSTANTIATE_SUM_EVALUATE_METHODS(fermion_handler,
 
 template <typename HandlerTy>
 std::vector<std::size_t>
-sum_op<HandlerTy>::degrees(bool application_order) const {
+sum_op<HandlerTy>::degrees() const {
   std::set<std::size_t> unsorted_degrees;
   for (const std::vector<HandlerTy> &term : this->terms) {
     for (const HandlerTy &op : term) {
@@ -175,13 +174,9 @@ sum_op<HandlerTy>::degrees(bool application_order) const {
   }
   auto degrees = std::vector<std::size_t>(unsorted_degrees.cbegin(),
                                           unsorted_degrees.cend());
-  if (application_order)
-    std::sort(degrees.begin(), degrees.end(),
-              operator_handler::user_facing_order);
-  else
-    std::sort(degrees.begin(), degrees.end(),
-              operator_handler::canonical_order);
-  return std::move(degrees);
+  std::sort(degrees.begin(), degrees.end(),
+            operator_handler::canonical_order);
+  return degrees;
 }
 
 template <typename HandlerTy>
@@ -191,8 +186,7 @@ std::size_t sum_op<HandlerTy>::num_terms() const {
 
 #define INSTANTIATE_SUM_PROPERTIES(HandlerTy)                                  \
                                                                                \
-  template std::vector<std::size_t> sum_op<HandlerTy>::degrees(                \
-      bool application_order) const;                                           \
+  template std::vector<std::size_t> sum_op<HandlerTy>::degrees() const;        \
                                                                                \
   template std::size_t sum_op<HandlerTy>::num_terms() const;
 
@@ -504,20 +498,17 @@ template <typename HandlerTy>
 complex_matrix sum_op<HandlerTy>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const {
+    bool invert_order) const {
   auto evaluated =
       this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(
           dimensions, parameters));
-  if (!application_order || operator_handler::canonical_order(1, 0) ==
-                                operator_handler::user_facing_order(1, 0))
-    return std::move(evaluated.matrix);
-
-  auto degrees = evaluated.degrees;
-  std::sort(degrees.begin(), degrees.end(),
-            operator_handler::user_facing_order);
-  auto permutation = cudaq::detail::compute_permutation(evaluated.degrees,
-                                                        degrees, dimensions);
-  cudaq::detail::permute_matrix(evaluated.matrix, permutation);
+  if (invert_order) {
+    auto reverse_degrees = evaluated.degrees;
+    std::reverse(reverse_degrees.begin(), reverse_degrees.end());
+    auto permutation = cudaq::detail::compute_permutation(
+      evaluated.degrees, reverse_degrees, dimensions);
+    cudaq::detail::permute_matrix(evaluated.matrix, permutation);  
+  }
   return std::move(evaluated.matrix);
 }
 
@@ -525,22 +516,19 @@ template <>
 complex_matrix sum_op<spin_handler>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const {
+    bool invert_order) const {
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
                                                                    parameters));
   if (evaluated.terms.size() == 0)
     return cudaq::complex_matrix(0, 0);
 
-  bool invert_order =
-      application_order && operator_handler::canonical_order(1, 0) !=
-                               operator_handler::user_facing_order(1, 0);
   auto matrix = spin_handler::to_matrix(evaluated.terms[0].second,
                                         evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
     matrix += spin_handler::to_matrix(evaluated.terms[i].second,
                                       evaluated.terms[i].first, invert_order);
-  return std::move(matrix);
+  return matrix;
 }
 
 #define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                 \
@@ -550,7 +538,7 @@ complex_matrix sum_op<spin_handler>::to_matrix(
   template complex_matrix sum_op<HandlerTy>::to_matrix(                        \
       std::unordered_map<std::size_t, int64_t> dimensions,                     \
       const std::unordered_map<std::string, std::complex<double>> &params,     \
-      bool application_order) const;
+      bool invert_order) const;
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_EVALUATIONS(matrix_handler);
@@ -1603,7 +1591,7 @@ INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_handler);
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::size_t sum_op<HandlerTy>::num_qubits() const {
-  return this->degrees(false).size();
+  return this->degrees().size();
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
@@ -1734,7 +1722,7 @@ HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const {
+    bool invert_order) const {
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
                                                                    parameters));
@@ -1744,9 +1732,6 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
                            std::vector<std::size_t>, std::vector<std::size_t>>(
         {}, {}, {});
 
-  bool invert_order =
-      application_order && operator_handler::canonical_order(1, 0) !=
-                               operator_handler::user_facing_order(1, 0);
   auto matrix = spin_handler::to_sparse_matrix(
       evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
@@ -1796,7 +1781,7 @@ template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
 template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const;
+    bool invert_order) const;
 template std::vector<double>
 sum_op<spin_handler>::get_data_representation() const;
 
@@ -1883,8 +1868,7 @@ std::vector<double> sum_op<HandlerTy>::getDataRepresentation() const {
   // padding identities if necessary.
   // NOTE: this is an imperfect representation that we will want to
   // deprecate because it does not capture targets accurately.
-  auto degrees = this->degrees(
-      false); // degrees in canonical order to match the evaluation
+  auto degrees = this->degrees();
   auto le_order = std::less<std::size_t>();
   auto get_le_index = [&degrees, &le_order](std::size_t idx) {
     // For compatibility with existing code, the ordering for the term ops
@@ -1942,8 +1926,7 @@ SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
 sum_op<HandlerTy>::get_raw_data() const {
   std::unordered_map<std::size_t, int64_t> dims;
-  auto degrees = this->degrees(
-      false); // degrees in canonical order to match the evaluation
+  auto degrees = this->degrees();
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(
           dims, {})); // fails if we have parameters
@@ -1990,8 +1973,7 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
   // includes the full representation for any degree in [0, max_degree),
   // padding identities if necessary (opposed to pauli_word).
   std::unordered_map<std::size_t, int64_t> dims;
-  auto degrees = this->degrees(
-      false); // degrees in canonical order to match the evaluation
+  auto degrees = this->degrees();
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
   auto le_order = std::less<std::size_t>();

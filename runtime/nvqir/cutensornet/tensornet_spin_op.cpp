@@ -16,7 +16,7 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
                                          cutensornetHandle_t handle)
     : m_cutnHandle(handle) {
   LOG_API_TIME();
-  auto degrees = spinOp.degrees(false); // internal ordering
+  auto degrees = spinOp.degrees();
   const std::vector<int64_t> qubitDims(degrees.size(), 2);
   HANDLE_CUTN_ERROR(cutensornetCreateNetworkOperator(
       m_cutnHandle, degrees.size(), qubitDims.data(), CUDA_C_64F,
@@ -27,8 +27,7 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
   // <psi| H |psi> in one go rather than summing over term-by-term contractions.
   constexpr std::size_t NUM_QUBITS_THRESHOLD_DIRECT_OBS = 10;
   if (degrees.size() < NUM_QUBITS_THRESHOLD_DIRECT_OBS) {
-    const auto spinMat =
-        spinOp.to_matrix({}, {}, false); // ordering consistent with degrees
+    const auto spinMat = spinOp.to_matrix();
     std::vector<std::complex<double>> opMat;
     opMat.reserve(spinMat.rows() * spinMat.cols());
     for (size_t i = 0; i < spinMat.rows(); ++i) {

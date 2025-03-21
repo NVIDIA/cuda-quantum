@@ -200,7 +200,7 @@ EvalTy product_op<HandlerTy>::evaluate(
     operator_arithmetics<EvalTy> arithmetics) const {
 
   assert(!HandlerTy::can_be_canonicalized || this->is_canonicalized());
-  auto degrees = this->degrees(false); // keep in canonical order
+  auto degrees = this->degrees();
 
   auto padded_op = [&arithmetics,
                     &degrees = std::as_const(degrees)](const HandlerTy &op) {
@@ -311,34 +311,45 @@ INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_handler,
 // on each degree of freedom and in canonical order
 template <typename HandlerTy>
 bool product_op<HandlerTy>::is_canonicalized() const {
-  auto canon_degrees = this->degrees(false);
+  std::set<std::size_t> unique_degrees;
   std::vector<std::size_t> degrees;
-  degrees.reserve(canon_degrees.size());
+  degrees.reserve(this->operators.size());
   for (const auto &op : this->operators) {
-    for (auto d : op.degrees())
+    for (auto d : op.degrees()) {
       degrees.push_back(d);
+      unique_degrees.insert(d);
+    }
   }
+  std::vector<std::size_t> canon_degrees(unique_degrees.begin(), unique_degrees.end());
+  std::sort(canon_degrees.begin(), canon_degrees.end(), operator_handler::canonical_order);
   return degrees == canon_degrees;
 }
 #endif
 
 template <typename HandlerTy>
 std::vector<std::size_t>
-product_op<HandlerTy>::degrees(bool application_order) const {
+product_op<HandlerTy>::degrees() const {
+  assert(this->is_canonicalized());
+  // Once we move to C++20 only, it would be nice if degrees was just a view.
+  std::vector<std::size_t> degrees;
+  degrees.reserve(this->operators.size());
+  for (const auto &op : this->operators)
+    degrees.push_back(op.degree);
+  return degrees;
+}
+
+template <>
+std::vector<std::size_t> product_op<matrix_handler>::degrees() const {
   std::set<std::size_t> unsorted_degrees;
-  for (const HandlerTy &term : this->operators) {
+  for (const auto &term : this->operators) {
     auto term_degrees = term.degrees();
     unsorted_degrees.insert(term_degrees.cbegin(), term_degrees.cend());
   }
-  auto degrees = std::vector<std::size_t>(unsorted_degrees.cbegin(),
-                                          unsorted_degrees.cend());
-  if (application_order)
-    std::sort(degrees.begin(), degrees.end(),
-              operator_handler::user_facing_order);
-  else
-    std::sort(degrees.begin(), degrees.end(),
-              operator_handler::canonical_order);
-  return std::move(degrees);
+  std::vector<std::size_t> degrees(unsorted_degrees.cbegin(),
+                                   unsorted_degrees.cend());
+  std::sort(degrees.begin(), degrees.end(),
+            operator_handler::canonical_order);
+  return degrees;
 }
 
 template <typename HandlerTy>
@@ -368,8 +379,7 @@ std::complex<double> product_op<HandlerTy>::evaluate_coefficient(
 
 #define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                              \
                                                                                \
-  template std::vector<std::size_t> product_op<HandlerTy>::degrees(            \
-      bool application_order) const;                                           \
+  template std::vector<std::size_t>product_op<HandlerTy>::degrees() const;     \
                                                                                \
   template std::size_t product_op<HandlerTy>::num_ops() const;                 \
                                                                                \
@@ -640,41 +650,34 @@ template <typename HandlerTy>
 complex_matrix product_op<HandlerTy>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const {
+    bool invert_order) const {
   auto evaluated =
       this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(
           dimensions, parameters));
-  auto matrix = std::move(evaluated.matrix);
-  if (!application_order || operator_handler::canonical_order(1, 0) ==
-                                operator_handler::user_facing_order(1, 0))
-    return std::move(matrix);
-
-  auto degrees = evaluated.degrees;
-  std::sort(degrees.begin(), degrees.end(),
-            operator_handler::user_facing_order);
-  auto permutation = cudaq::detail::compute_permutation(evaluated.degrees,
-                                                        degrees, dimensions);
-  cudaq::detail::permute_matrix(matrix, permutation);
-  return std::move(matrix);
+  if (invert_order) {
+    auto reverse_degrees = evaluated.degrees;
+    std::reverse(reverse_degrees.begin(), reverse_degrees.end());
+    auto permutation = cudaq::detail::compute_permutation(evaluated.degrees,
+      reverse_degrees, dimensions);
+    cudaq::detail::permute_matrix(evaluated.matrix, permutation);
+  }
+  return std::move(evaluated.matrix);
 }
 
 template <>
 complex_matrix product_op<spin_handler>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const {
+    bool invert_order) const {
   auto terms = std::move(
       this->evaluate(
               operator_arithmetics<operator_handler::canonical_evaluation>(
                   dimensions, parameters))
           .terms);
   assert(terms.size() == 1);
-  bool invert_order =
-      application_order && operator_handler::canonical_order(1, 0) !=
-                               operator_handler::user_facing_order(1, 0);
   auto matrix =
       spin_handler::to_matrix(terms[0].second, terms[0].first, invert_order);
-  return std::move(matrix);
+  return matrix;
 }
 
 #define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                             \
@@ -684,7 +687,7 @@ complex_matrix product_op<spin_handler>::to_matrix(
   template complex_matrix product_op<HandlerTy>::to_matrix(                    \
       std::unordered_map<std::size_t, int64_t> dimensions,                     \
       const std::unordered_map<std::string, std::complex<double>> &parameters, \
-      bool application_order) const;
+      bool invert_order) const;
 
 #if !defined(__clang__)
 INSTANTIATE_PRODUCT_EVALUATIONS(matrix_handler);
@@ -1290,7 +1293,7 @@ template void product_op<fermion_handler>::dump() const;
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::size_t product_op<HandlerTy>::num_qubits() const {
-  return this->degrees(false).size();
+  return this->degrees().size();
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
@@ -1306,14 +1309,9 @@ product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) const {
   if (pad_identities == 0) {
     // No padding here (only covers the operators we have),
     // and does not include the coefficient
-    auto str = std::move(terms[0].second);
-    if (operator_handler::canonical_order(1, 0) !=
-        operator_handler::user_facing_order(1, 0))
-      std::reverse(str.begin(), str.end());
-    return str;
+    return std::move(terms[0].second);
   } else {
-    auto degrees = this->degrees(
-        false); // degrees in canonical order to match the evaluation
+    auto degrees = this->degrees();
     if (degrees.size() != 0) {
       auto max_target =
           operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
@@ -1323,15 +1321,9 @@ product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) const {
             "operator is defined for; the largest degree is " +
             std::to_string(max_target));
     }
-    auto get_user_index = [&degrees](std::size_t idx) {
-      return (operator_handler::canonical_order(1, 0) ==
-              operator_handler::user_facing_order(1, 0))
-                 ? idx
-                 : degrees.size() - 1 - idx;
-    };
     std::string str(pad_identities, 'I');
     for (std::size_t i = 0; i < degrees.size(); ++i)
-      str[degrees[i]] = terms[0].second[get_user_index(i)];
+      str[degrees[i]] = terms[0].second[i];
     return str;
   }
 }
@@ -1342,8 +1334,7 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
     return {};
 
   std::unordered_map<std::size_t, int64_t> dims;
-  auto degrees = this->degrees(
-      false); // degrees in canonical order to match the evaluation
+  auto degrees = this->degrees();
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
 
@@ -1377,16 +1368,13 @@ HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const {
+    bool invert_order) const {
   auto terms = std::move(
       this->evaluate(
               operator_arithmetics<operator_handler::canonical_evaluation>(
                   dimensions, parameters))
           .terms);
   assert(terms.size() == 1);
-  bool invert_order =
-      application_order && operator_handler::canonical_order(1, 0) !=
-                               operator_handler::user_facing_order(1, 0);
   auto matrix = spin_handler::to_sparse_matrix(terms[0].second, terms[0].first,
                                                invert_order);
   return cudaq::detail::to_csr_spmatrix(matrix, 1 << terms[0].second.size());
@@ -1400,7 +1388,7 @@ product_op<spin_handler>::get_binary_symplectic_form() const;
 template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool application_order) const;
+    bool invert_order) const;
 
 // utility functions for backwards compatibility
 

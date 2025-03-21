@@ -143,9 +143,13 @@ public:
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.
-  /// By default, degrees reflect the ordering convention (endianness) used in
-  /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
-  std::vector<std::size_t> degrees(bool application_order = true) const;
+  /// The order of degrees is from smallest to largest and reflect 
+  /// the ordering of the matrix returned by `to_matrix`.  
+  /// Specifically, the indices of a statevector with two qubits are {00, 01,
+  /// 10, 11}. An ordering of degrees {0, 1} then indicates that a state where
+  /// the qubit with index 0 equals 1 with probability 1 is given by
+  /// the vector {0., 1., 0., 0.}.
+  std::vector<std::size_t> degrees() const;
 
   /// @brief Return the number of operator terms that make up this operator sum.
   std::size_t num_terms() const;
@@ -220,19 +224,20 @@ public:
   std::string to_string() const;
 
   /// @brief Return the matrix representation of the operator.
-  /// By default, the matrix is ordered according to the convention (endianness)
-  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// The matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
   /// @arg `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   complex_matrix
   to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
-                &parameters = {},
-            bool application_order = true) const;
+                &parameters = {}, bool invert_order = false) const;
 
   // comparisons
 
@@ -447,19 +452,20 @@ public:
 
   /// @brief Return the matrix representation of the operator.
   /// By default, the matrix is ordered according to the convention (endianness)
-  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
   /// @arg `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   csr_spmatrix
   to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
-                       &parameters = {},
-                   bool application_order = true) const;
+                       &parameters = {}, bool invert_order = false) const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<double> get_data_representation() const;
@@ -641,14 +647,13 @@ public:
 #endif
 
   /// @brief The degrees of freedom that the operator acts on.
-  /// By default, degrees reflect the ordering convention (endianness) used in
-  /// CUDA-Q, and the ordering of the matrix returned by default by `to_matrix`.
-  ///
+  /// The order of degrees is from smallest to largest and reflect 
+  /// the ordering of the matrix returned by `to_matrix`.  
   /// Specifically, the indices of a statevector with two qubits are {00, 01,
   /// 10, 11}. An ordering of degrees {0, 1} then indicates that a state where
   /// the qubit with index 0 equals 1 with probability 1 is given by
   /// the vector {0., 1., 0., 0.}.
-  std::vector<std::size_t> degrees(bool application_order = true) const;
+  std::vector<std::size_t> degrees() const;
 
   /// @brief Return the number of operator terms that make up this product
   /// operator.
@@ -720,18 +725,19 @@ public:
 
   /// @brief Return the matrix representation of the operator.
   /// By default, the matrix is ordered according to the convention (endianness)
-  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
   /// @arg  `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   complex_matrix
   to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
-                &parameters = {},
-            bool application_order = true) const;
+                &parameters = {}, bool invert_order = false) const;
 
   // comparisons
 
@@ -887,19 +893,20 @@ public:
 
   /// @brief Return the matrix representation of the operator.
   /// By default, the matrix is ordered according to the convention (endianness)
-  /// used in CUDA-Q, and the ordering returned by default by `degrees`.
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
   /// @arg `dimensions` : A mapping that specifies the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0:2, 1:2}`.
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   csr_spmatrix
   to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
-                       &parameters = {},
-                   bool application_order = true) const;
+                       &parameters = {}, bool invert_order = false) const;
 
   // utility functions for backward compatibility
   /// @cond
