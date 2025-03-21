@@ -435,6 +435,11 @@ public:
 
   void dump() const;
 
+  /// Removes all terms from the sum for which the absolute value of 
+  /// the coefficient is below the given tolerance
+  void trim(double tol = 1e-12, 
+            const std::unordered_map<std::string, std::complex<double>> &parameters = {});
+
   std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
   // handler specific utility functions

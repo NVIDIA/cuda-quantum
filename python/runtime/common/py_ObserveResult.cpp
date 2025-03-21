@@ -32,6 +32,16 @@ cudaq::spin_op to_spin_op_term(py::object &obj) {
 }
 } // namespace
 
+// FIXME: add proper deprecation warnings to teh bindings
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 namespace cudaq {
 /// @brief Bind the `cudaq::observe_result` and `cudaq::async_observe_result`
 /// data classes to python as `cudaq.ObserveResult` and
@@ -161,5 +171,12 @@ for more information on this programming pattern.)#")
         return ss.str();
       });
 }
+
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 } // namespace cudaq
