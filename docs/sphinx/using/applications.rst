@@ -301,7 +301,7 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
-        <a href="../applications/python/bernstein-vazirani.html" class="notebook-title">The Bernstein-Vazirani Algorithm</a>
+        <a href="../applications/python/bernstein_vazirani.html" class="notebook-title">The Bernstein-Vazirani Algorithm</a>
         <div class="notebook-content">
             Learn a famous quantum algorithm that provides intuition for why exponential speedups can be achieved with quantum computers.
         </div>
