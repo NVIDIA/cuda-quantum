@@ -13,6 +13,8 @@ config:
   platform-qpu: remote_rest
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
   # Define the lowering pipeline
