@@ -1574,7 +1574,7 @@ void sum_op<HandlerTy>::dump() const {
 }
 
 template <typename HandlerTy>
-void sum_op<HandlerTy>::trim(
+sum_op<HandlerTy>& sum_op<HandlerTy>::trim(
     double tol,
     const std::unordered_map<std::string, std::complex<double>> &parameters) {
   sum_op<HandlerTy> trimmed(false);
@@ -1585,6 +1585,19 @@ void sum_op<HandlerTy>::trim(
     if (std::abs(prod.evaluate_coefficient(parameters)) > tol)
       trimmed.insert(std::move(prod));
   *this = trimmed;
+  return *this;
+}
+
+template <typename HandlerTy>
+sum_op<HandlerTy>& sum_op<HandlerTy>::canonicalize() {
+  // If we make any updates, we it's best to completely rebuild the operator, 
+  // since this may lead to the combination of terms and therefore 
+  // change the structure/term_map of the operator.
+  sum_op<HandlerTy> canonicalized;
+  for (auto &&prod : *this)
+    canonicalized.insert(prod.canonicalize());
+  *this = canonicalized;
+  return *this;
 }
 
 template <typename HandlerTy>
@@ -1621,7 +1634,9 @@ sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
                                                                                \
   template void sum_op<HandlerTy>::dump() const;                               \
                                                                                \
-  template void sum_op<HandlerTy>::trim(                                       \
+  template sum_op<HandlerTy>& sum_op<HandlerTy>::canonicalize();               \
+                                                                               \
+  template sum_op<HandlerTy>& sum_op<HandlerTy>::trim(                         \
       double tol, const std::unordered_map<std::string, std::complex<double>>  \
                       &parameters);                                            \
                                                                                \

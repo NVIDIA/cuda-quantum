@@ -1293,13 +1293,35 @@ void product_op<HandlerTy>::dump() const {
   std::cout << str;
 }
 
+template <typename HandlerTy>
+product_op<HandlerTy>& product_op<HandlerTy>::canonicalize() {
+  for (auto it = this->operators.begin(); it != this->operators.end();) {
+    if (*it == HandlerTy(it->degree))
+      it = this->operators.erase(it);
+    else ++it;
+  }
+  return *this;
+}
+
+template <>
+product_op<matrix_handler>& product_op<matrix_handler>::canonicalize() {
+  for (auto it = this->operators.begin(); it != this->operators.end();) {
+    if (*it == matrix_handler(it->degrees()[0]))
+      it = this->operators.erase(it);
+    else ++it;
+  }
+  return *this;
+}
+
 #define INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(HandlerTy)                       \
                                                                                \
   template bool product_op<HandlerTy>::is_identity() const;                    \
                                                                                \
   template std::string product_op<HandlerTy>::to_string() const;               \
                                                                                \
-  template void product_op<HandlerTy>::dump() const;
+  template void product_op<HandlerTy>::dump() const;                           \
+                                                                               \
+  template product_op<HandlerTy>& product_op<HandlerTy>::canonicalize();
 
 #if !defined(__clang__)
 INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(matrix_handler);

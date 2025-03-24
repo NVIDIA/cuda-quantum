@@ -439,9 +439,12 @@ public:
 
   /// Removes all terms from the sum for which the absolute value of
   /// the coefficient is below the given tolerance
-  void trim(double tol = 1e-12,
+  sum_op<HandlerTy>& trim(double tol = 1e-12,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {});
+
+  /// Removes all identity operators from the operator.
+  sum_op<HandlerTy>& canonicalize(); 
 
   std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
@@ -905,6 +908,9 @@ public:
 
   /// @brief Print the string representation of the operator to the standard output.
   void dump() const;
+
+  /// Removes all identity operators from the operator.
+  product_op<HandlerTy>& canonicalize(); 
 
   // handler specific utility functions
 
