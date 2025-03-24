@@ -985,7 +985,6 @@ struct FuseWithConstantArray
           auto cval = cast<ArrayAttr>(conarr.getConstantValues()[i]);
           rewriter.replaceOpWithNewOp<complex::ConstantOp>(extval, complexTy,
                                                            cval);
-
           return success();
         }
       }
