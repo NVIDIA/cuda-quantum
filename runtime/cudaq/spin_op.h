@@ -12,8 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/operators.h"
 #include "cudaq/operators/helpers.h"
+#include "cudaq/operators/operator_leafs.h"
 #include "cudaq/utils/matrix.h"
 
 namespace cudaq {
@@ -116,3 +116,5 @@ sum_op<spin_handler> plus(std::size_t target);
 sum_op<spin_handler> minus(std::size_t target);
 } // namespace spin
 } // namespace cudaq
+
+#include "cudaq/operators.h"
