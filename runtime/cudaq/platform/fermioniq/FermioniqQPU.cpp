@@ -24,6 +24,7 @@ protected:
   std::tuple<ModuleOp, MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
+
     cudaq::info("extract quake code\n");
 
     auto contextPtr = cudaq::initializeMLIR();

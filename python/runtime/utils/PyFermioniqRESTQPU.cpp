@@ -30,11 +30,11 @@ namespace cudaq {
 class PyFermioniqRESTQPU : public cudaq::FermioniqBaseQPU {
 private:
   /// Creates new context without mlir initialization.
-  std::unique_ptr<MLIRContext> createContext() {
+  MLIRContext *createContext() {
     DialectRegistry registry;
     cudaq::opt::registerCodeGenDialect(registry);
     cudaq::registerAllDialects(registry);
-    auto context = std::make_unique<MLIRContext>(registry);
+    auto context = new MLIRContext(registry);
     context->loadAllAvailableDialects();
     registerLLVMDialectTranslation(*context);
     return context;
@@ -58,8 +58,7 @@ protected:
 
     cudaq::info("extract quake code\n");
 
-    auto contextPtr = createContext();
-    MLIRContext *context = contextPtr.get();
+    MLIRContext *context = createContext();
 
     static bool initOnce = [&] {
       registerToQIRTranslation();
@@ -103,7 +102,7 @@ protected:
     // The remote rest qpu workflow will need the module string in
     // the internal registry.
     __cudaq_deviceCodeHolderAdd(kernelName.c_str(), moduleStr.c_str());
-    return std::make_tuple(cloned, contextPtr.release());
+    return std::make_tuple(cloned, context);
   }
 
   void cleanupContext(MLIRContext *context) override { delete context; }
