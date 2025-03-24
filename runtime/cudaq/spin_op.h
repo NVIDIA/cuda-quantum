@@ -12,8 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/operators.h"
 #include "cudaq/operators/helpers.h"
+#include "cudaq/operators/operator_leafs.h"
 #include "cudaq/utils/matrix.h"
 
 namespace cudaq {
@@ -106,6 +106,10 @@ public:
   static sum_op<spin_handler> plus(std::size_t degree);
   static sum_op<spin_handler> minus(std::size_t degree);
 };
+
+// needs to be down here such that the handler is defined
+// before we include the template declarations that depend on it
+#include "cudaq/operators.h"
 
 namespace spin {
 product_op<spin_handler> i(std::size_t target);
