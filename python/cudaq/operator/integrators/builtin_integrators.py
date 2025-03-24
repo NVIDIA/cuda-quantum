@@ -26,12 +26,15 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
             raise ImportError('CuPy is required to use integrators.')
         self.liouvillian = liouvillian
         self.liouvillian._maybe_instantiate(ctx)
-        self.stepper = bindings.TimeStepper(ctx._handle._validated_ptr, self.liouvillian._validated_ptr)
+        self.stepper = bindings.TimeStepper(ctx._handle._validated_ptr,
+                                            self.liouvillian._validated_ptr)
 
     def compute(self, state: CudmStateType, t: float):
         action_result = state.clone(cp.zeros_like(state.storage))
-        self.stepper.compute(state._validated_ptr, action_result._validated_ptr, t)
+        self.stepper.compute(state._validated_ptr, action_result._validated_ptr,
+                             t)
         return action_result
+
 
 class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
     n_steps = 10
