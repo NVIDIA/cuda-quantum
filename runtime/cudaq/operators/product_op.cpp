@@ -1294,22 +1294,43 @@ void product_op<HandlerTy>::dump() const {
 }
 
 template <typename HandlerTy>
-product_op<HandlerTy>& product_op<HandlerTy>::canonicalize() {
+product_op<HandlerTy> &product_op<HandlerTy>::canonicalize() {
   for (auto it = this->operators.begin(); it != this->operators.end();) {
     if (*it == HandlerTy(it->degree))
       it = this->operators.erase(it);
-    else ++it;
+    else
+      ++it;
   }
   return *this;
 }
 
 template <>
-product_op<matrix_handler>& product_op<matrix_handler>::canonicalize() {
+product_op<matrix_handler> &product_op<matrix_handler>::canonicalize() {
   for (auto it = this->operators.begin(); it != this->operators.end();) {
     if (*it == matrix_handler(it->degrees()[0]))
       it = this->operators.erase(it);
-    else ++it;
+    else
+      ++it;
   }
+  return *this;
+}
+
+template <typename HandlerTy>
+product_op<HandlerTy> &
+product_op<HandlerTy>::canonicalize(const std::set<std::size_t> &degrees) {
+  this->operators.reserve(degrees.size());
+  std::set<std::size_t> have_degrees;
+  for (const auto &op : this->operators) {
+    auto op_degrees = op.degrees();
+    have_degrees.insert(op_degrees.cbegin(), op_degrees.cend());
+  }
+  for (auto degree : degrees) {
+    auto res = have_degrees.insert(degree);
+    if (res.second)
+      this->insert(HandlerTy(degree));
+  }
+  if (have_degrees.size() != degrees.size())
+    throw std::runtime_error("missing degree in canonicalization");
   return *this;
 }
 
@@ -1321,7 +1342,10 @@ product_op<matrix_handler>& product_op<matrix_handler>::canonicalize() {
                                                                                \
   template void product_op<HandlerTy>::dump() const;                           \
                                                                                \
-  template product_op<HandlerTy>& product_op<HandlerTy>::canonicalize();
+  template product_op<HandlerTy> &product_op<HandlerTy>::canonicalize();       \
+                                                                               \
+  template product_op<HandlerTy> &product_op<HandlerTy>::canonicalize(         \
+      const std::set<std::size_t> &degrees);
 
 #if !defined(__clang__)
 INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(matrix_handler);

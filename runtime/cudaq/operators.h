@@ -434,17 +434,24 @@ public:
   /// @brief Return the string representation of the operator.
   std::string to_string() const;
 
-  /// @brief Print the string representation of the operator to the standard output.
+  /// @brief Print the string representation of the operator to the standard
+  /// output.
   void dump() const;
 
   /// Removes all terms from the sum for which the absolute value of
   /// the coefficient is below the given tolerance
-  sum_op<HandlerTy>& trim(double tol = 1e-12,
-            const std::unordered_map<std::string, std::complex<double>>
-                &parameters = {});
+  sum_op<HandlerTy> &
+  trim(double tol = 0.0,
+       const std::unordered_map<std::string, std::complex<double>> &parameters =
+           {});
 
   /// Removes all identity operators from the operator.
-  sum_op<HandlerTy>& canonicalize(); 
+  sum_op<HandlerTy> &canonicalize();
+
+  /// Expands the operator to act on all given degrees, applying identities as
+  /// needed. If an empty set is passed, canonicalizes all terms in the sum to
+  /// act on the same degrees of freedom.
+  sum_op<HandlerTy> &canonicalize(const std::set<std::size_t> &degrees);
 
   std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
@@ -744,8 +751,8 @@ public:
   // evaluations
 
   std::complex<double> evaluate_coefficient(
-    const std::unordered_map<std::string, std::complex<double>> &parameters =
-        {}) const;
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {}) const;
 
   /// @brief Return the matrix representation of the operator.
   /// By default, the matrix is ordered according to the convention (endianness)
@@ -906,11 +913,16 @@ public:
   /// @brief Return the string representation of the operator.
   std::string to_string() const;
 
-  /// @brief Print the string representation of the operator to the standard output.
+  /// @brief Print the string representation of the operator to the standard
+  /// output.
   void dump() const;
 
   /// Removes all identity operators from the operator.
-  product_op<HandlerTy>& canonicalize(); 
+  product_op<HandlerTy> &canonicalize();
+
+  /// Expands the operator to act on all given degrees, applying identities as
+  /// needed.
+  product_op<HandlerTy> &canonicalize(const std::set<std::size_t> &degrees);
 
   // handler specific utility functions
 

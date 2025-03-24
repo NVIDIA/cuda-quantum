@@ -165,7 +165,8 @@ complex_matrix fermion_handler::to_matrix(
 
 std::string fermion_handler::to_string(bool include_degrees) const {
   if (include_degrees)
-    return this->unique_id(); // unique id for consistency with keys in some user facing maps
+    return this->unique_id(); // unique id for consistency with keys in some
+                              // user facing maps
   else
     return this->op_code_to_string();
 }
