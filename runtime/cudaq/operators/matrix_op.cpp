@@ -137,11 +137,13 @@ std::string matrix_handler::op_code_to_string(
 // read-only properties
 
 std::string matrix_handler::unique_id() const {
+  if (this->targets.size() == 0)
+    return this->op_code;
   auto it = this->targets.cbegin();
-  auto str = this->op_code + std::to_string(*it);
+  std::string str = this->op_code + "(" + std::to_string(*it);
   while (++it != this->targets.cend())
-    str += "." + std::to_string(*it);
-  return std::move(str);
+    str += "," + std::to_string(*it);
+  return str + ")";
 }
 
 std::vector<std::size_t> matrix_handler::degrees() const {
@@ -178,7 +180,6 @@ matrix_handler::matrix_handler(std::string operator_id,
     : op_code(operator_id),
       commutes(commutation_behavior.commutes_across_degrees),
       group(commutation_behavior.group), targets(degrees) {
-  assert(this->targets.size() > 0);
   if (!commutation_behavior.commutes_across_degrees && this->targets.size() > 1)
     // We cannot support this with the current mechanism for achieving
     // non-trivial commutation relations for operators acting on different
@@ -201,7 +202,6 @@ matrix_handler::matrix_handler(std::string operator_id,
     : op_code(operator_id),
       commutes(commutation_behavior.commutes_across_degrees),
       group(commutation_behavior.group), targets(std::move(degrees)) {
-  assert(this->targets.size() > 0);
   if (!commutation_behavior.commutes_across_degrees && this->targets.size() > 1)
     // We cannot support this with the current mechanism for achieving
     // non-trivial commutation relations for operators acting on different
@@ -340,15 +340,10 @@ complex_matrix matrix_handler::to_matrix(
 }
 
 std::string matrix_handler::to_string(bool include_degrees) const {
-  if (!include_degrees)
+  if (include_degrees)
+    return this->unique_id(); // unique id for consistency with keys in some user facing maps
+  else
     return this->op_code;
-  else if (this->targets.size() == 0)
-    return this->op_code + "()";
-  auto it = this->targets.cbegin();
-  std::string str = this->op_code + "(" + std::to_string(*it);
-  while (++it != this->targets.cend())
-    str += ", " + std::to_string(*it);
-  return str + ")";
 }
 
 // comparisons

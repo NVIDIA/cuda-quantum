@@ -222,9 +222,6 @@ public:
 
   // evaluations
 
-  /// @brief Return the sum_op<HandlerTy> as a string.
-  std::string to_string() const;
-
   /// @brief Return the matrix representation of the operator.
   /// The matrix is ordered according to the convention (endianness)
   /// used in CUDA-Q, and the ordering returned by `degrees`. See
@@ -434,6 +431,10 @@ public:
 
   // general utility functions
 
+  /// @brief Return the string representation of the operator.
+  std::string to_string() const;
+
+  /// @brief Print the string representation of the operator to the standard output.
   void dump() const;
 
   /// Removes all terms from the sum for which the absolute value of
@@ -680,10 +681,6 @@ public:
 
   scalar_operator get_coefficient() const;
 
-  std::complex<double> evaluate_coefficient(
-      const std::unordered_map<std::string, std::complex<double>> &parameters =
-          {}) const;
-
   // constructors and destructors
 
   constexpr product_op() {}
@@ -743,8 +740,9 @@ public:
 
   // evaluations
 
-  /// @brief Return the `product_op<HandlerTy>` as a string.
-  std::string to_string() const;
+  std::complex<double> evaluate_coefficient(
+    const std::unordered_map<std::string, std::complex<double>> &parameters =
+        {}) const;
 
   /// @brief Return the matrix representation of the operator.
   /// By default, the matrix is ordered according to the convention (endianness)
@@ -902,6 +900,10 @@ public:
   // of the coefficient.
   bool is_identity() const;
 
+  /// @brief Return the string representation of the operator.
+  std::string to_string() const;
+
+  /// @brief Print the string representation of the operator to the standard output.
   void dump() const;
 
   // handler specific utility functions

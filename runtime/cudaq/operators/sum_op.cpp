@@ -502,17 +502,6 @@ INSTANTIATE_SUM_ASSIGNMENTS(fermion_handler);
 // evaluations
 
 template <typename HandlerTy>
-std::string sum_op<HandlerTy>::to_string() const {
-  if (this->terms.size() == 0)
-    return "";
-  auto it = this->begin();
-  std::string str = it->to_string();
-  while (++it != this->end())
-    str += " + " + it->to_string();
-  return std::move(str);
-}
-
-template <typename HandlerTy>
 complex_matrix sum_op<HandlerTy>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -550,8 +539,6 @@ complex_matrix sum_op<spin_handler>::to_matrix(
 }
 
 #define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                 \
-                                                                               \
-  template std::string sum_op<HandlerTy>::to_string() const;                   \
                                                                                \
   template complex_matrix sum_op<HandlerTy>::to_matrix(                        \
       std::unordered_map<std::size_t, int64_t> dimensions,                     \
@@ -1570,6 +1557,17 @@ sum_op<fermion_handler>::number(std::size_t target);
 // general utility functions
 
 template <typename HandlerTy>
+std::string sum_op<HandlerTy>::to_string() const {
+  if (this->terms.size() == 0)
+    return "";
+  auto it = this->begin();
+  std::string str = it->to_string();
+  while (++it != this->end())
+    str += " + " + it->to_string();
+  return std::move(str);
+}
+
+template <typename HandlerTy>
 void sum_op<HandlerTy>::dump() const {
   auto str = to_string();
   std::cout << str;
@@ -1618,6 +1616,8 @@ sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
 }
 
 #define INSTANTIATE_SUM_UTILITY_FUNCTIONS(HandlerTy)                           \
+                                                                               \
+  template std::string sum_op<HandlerTy>::to_string() const;                   \
                                                                                \
   template void sum_op<HandlerTy>::dump() const;                               \
                                                                                \

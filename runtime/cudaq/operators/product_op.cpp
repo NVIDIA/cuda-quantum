@@ -386,13 +386,6 @@ scalar_operator product_op<HandlerTy>::get_coefficient() const {
   return this->coefficient;
 }
 
-template <typename HandlerTy>
-std::complex<double> product_op<HandlerTy>::evaluate_coefficient(
-    const std::unordered_map<std::string, std::complex<double>> &parameters)
-    const {
-  return this->coefficient.evaluate(parameters);
-}
-
 #define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                              \
                                                                                \
   template std::vector<std::size_t> product_op<HandlerTy>::degrees() const;    \
@@ -656,14 +649,10 @@ INSTANTIATE_PRODUCT_ASSIGNMENTS(fermion_handler);
 // evaluations
 
 template <typename HandlerTy>
-std::string product_op<HandlerTy>::to_string() const {
-  std::stringstream str;
-  str << this->coefficient.to_string();
-  if (this->operators.size() > 0)
-    str << " * ";
-  for (const auto &op : this->operators)
-    str << op.to_string(true);
-  return str.str();
+std::complex<double> product_op<HandlerTy>::evaluate_coefficient(
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
+  return this->coefficient.evaluate(parameters);
 }
 
 template <typename HandlerTy>
@@ -702,7 +691,9 @@ complex_matrix product_op<spin_handler>::to_matrix(
 
 #define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                             \
                                                                                \
-  template std::string product_op<HandlerTy>::to_string() const;               \
+  template std::complex<double> product_op<HandlerTy>::evaluate_coefficient(   \
+      const std::unordered_map<std::string, std::complex<double>> &parameters) \
+      const;                                                                   \
                                                                                \
   template complex_matrix product_op<HandlerTy>::to_matrix(                    \
       std::unordered_map<std::size_t, int64_t> dimensions,                     \
@@ -1286,20 +1277,35 @@ bool product_op<matrix_handler>::is_identity() const {
 }
 
 template <typename HandlerTy>
+std::string product_op<HandlerTy>::to_string() const {
+  std::stringstream str;
+  str << this->coefficient.to_string();
+  if (this->operators.size() > 0)
+    str << " * ";
+  for (const auto &op : this->operators)
+    str << op.to_string(true);
+  return str.str();
+}
+
+template <typename HandlerTy>
 void product_op<HandlerTy>::dump() const {
   auto str = to_string();
   std::cout << str;
 }
 
+#define INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(HandlerTy)                       \
+                                                                               \
+  template bool product_op<HandlerTy>::is_identity() const;                    \
+                                                                               \
+  template std::string product_op<HandlerTy>::to_string() const;               \
+                                                                               \
+  template void product_op<HandlerTy>::dump() const;
+
 #if !defined(__clang__)
-template bool product_op<matrix_handler>::is_identity() const;
-template bool product_op<spin_handler>::is_identity() const;
-template bool product_op<boson_handler>::is_identity() const;
-template bool product_op<fermion_handler>::is_identity() const;
-template void product_op<matrix_handler>::dump() const;
-template void product_op<spin_handler>::dump() const;
-template void product_op<boson_handler>::dump() const;
-template void product_op<fermion_handler>::dump() const;
+INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(matrix_handler);
+INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(spin_handler);
+INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(boson_handler);
+INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(fermion_handler);
 #endif
 
 // handler specific utility functions
