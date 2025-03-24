@@ -14,14 +14,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "operator_leafs.h"
 #include <complex>
 #include <type_traits>
 
-#include "boson_operators.h"
-#include "fermion_operators.h"
-#include "matrix_operators.h"
-#include "operator_leafs.h"
-#include "spin_operators.h"
+#include "cudaq/boson_op.h"
+#include "cudaq/fermion_op.h"
+#include "cudaq/matrix_op.h"
+#include "cudaq/spin_op.h"
 
 namespace cudaq {
 

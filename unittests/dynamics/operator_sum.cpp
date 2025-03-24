@@ -14,41 +14,57 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
   // testing some utility functions
   {
-    srand(10); 
-    auto bit_mask = rand();
-    cudaq::sum_op<cudaq::matrix_handler> expected;
-    std::vector<std::size_t> degrees;
-    for (std::size_t d = 1; d <= 10; ++d) 
-      degrees.push_back(d);
+    srand(10);
+    for (auto rep = 0; rep < 10; ++rep) {
+      auto bit_mask = rand();
+      cudaq::sum_op<cudaq::spin_handler> expected;
+      std::vector<std::size_t> degrees;
+      for (std::size_t d = 1; d <= 10; ++d)
+        degrees.push_back(d);
 
-    std::vector<cudaq::product_op<cudaq::matrix_handler>> terms;
-    for (auto d : degrees) {
-      auto coeff = (bit_mask >> d) & 1 ? 1.0 : 0.0;
-      auto prod = coeff * cudaq::matrix_op::identity(d);
-      if (coeff > 0.) expected += prod;
-      // randomize the order in which we add terms
-      auto rnd_idx = (rand() % d);
-      terms.insert(terms.begin() + rnd_idx, std::move(prod));
+      std::vector<cudaq::product_op<cudaq::spin_handler>> terms;
+      for (auto d : degrees) {
+        auto coeff = (bit_mask >> d) & 1 ? 1.0 : 0.0;
+        auto prod = coeff * cudaq::spin_op::identity(d);
+        if (coeff > 0.)
+          expected += prod;
+        // randomize the order in which we add terms
+        auto rnd_idx = (rand() % d);
+        terms.insert(terms.begin() + rnd_idx, std::move(prod));
+      }
+
+      cudaq::sum_op<cudaq::spin_handler> orig;
+      for (auto &&term : terms)
+        orig += term;
+
+      ASSERT_EQ(orig.num_terms(), degrees.size());
+      ASSERT_EQ(orig.degrees(), degrees);
+
+      std::cout << "original: " << std::endl;
+      std::cout << orig.to_string() << std::endl;
+      orig.trim();
+      std::cout << "trimmed: " << std::endl;
+      std::cout << orig.to_string() << std::endl;
+      std::cout << "expected: " << std::endl;
+      std::cout << expected.to_string() << std::endl;
+
+      ASSERT_NE(orig.num_terms(), degrees.size());
+      ASSERT_EQ(orig.num_terms(), expected.num_terms());
+      ASSERT_EQ(orig.degrees(), expected.degrees());
+      ASSERT_EQ(orig.to_sparse_matrix(), expected.to_sparse_matrix());
+
+      // check that our term map seems accurate
+      for (const auto &term : expected)
+        orig += term.degrees()[0] * 1.0 * term;
+      ASSERT_EQ(orig.num_terms(), expected.num_terms());
+      ASSERT_EQ(orig.degrees(), expected.degrees());
+      for (const auto &term : orig) {
+        auto got_coeff = term.evaluate_coefficient();
+        auto want_coeff = std::complex<double>(term.degrees()[0] + 1.);
+        ASSERT_EQ(got_coeff.real(), want_coeff.real());
+        ASSERT_EQ(got_coeff.imag(), want_coeff.imag());
+      }
     }
-
-    cudaq::sum_op<cudaq::matrix_handler> orig;
-    for (auto &&term : terms)
-      orig += term;
-    
-    ASSERT_EQ(orig.num_terms(), degrees.size());
-    ASSERT_EQ(orig.degrees(), degrees);
-
-    std::cout << "original: " << std::endl;
-    std::cout << orig.to_string() << std::endl;
-    orig.trim();
-    std::cout << "trimmed: " << std::endl; 
-    std::cout << orig.to_string() << std::endl;
-    std::cout << "expected: " << std::endl;
-    std::cout << expected.to_string() << std::endl;
-
-    ASSERT_NE(orig.num_terms(), degrees.size());
-    ASSERT_EQ(orig.num_terms(), expected.num_terms());
-    ASSERT_EQ(orig.degrees(), expected.degrees());
   }
 
   std::vector<int> levels = {2, 3, 4};
@@ -1934,7 +1950,7 @@ TEST(OperatorExpressions, checkDefaultValue) {
     utils::checkEqual(res1.to_matrix(dims), scalar_mat);
   }
 
-  // error cases 
+  // error cases
   {
     cudaq::sum_op<cudaq::matrix_handler> sum_default;
     utils::checkEqual((+sum_default).to_matrix(dims), empty);

@@ -14,7 +14,7 @@
 #include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
 
-#include "boson_operators.h"
+#include "cudaq/boson_op.h"
 
 namespace cudaq {
 
@@ -229,11 +229,21 @@ sum_op<boson_handler> boson_handler::momentum(std::size_t degree) {
 }
 
 namespace boson {
-product_op<boson_handler> create(std::size_t target) { return boson_handler::create(target); }
-product_op<boson_handler> annihilate(std::size_t target) { return boson_handler::annihilate(target); }
-product_op<boson_handler> number(std::size_t target) { return boson_handler::number(target); }
-sum_op<boson_handler> position(std::size_t target) { return boson_handler::position(target); }
-sum_op<boson_handler> momentum(std::size_t target) { return boson_handler::momentum(target); }
+product_op<boson_handler> create(std::size_t target) {
+  return boson_handler::create(target);
+}
+product_op<boson_handler> annihilate(std::size_t target) {
+  return boson_handler::annihilate(target);
+}
+product_op<boson_handler> number(std::size_t target) {
+  return boson_handler::number(target);
+}
+sum_op<boson_handler> position(std::size_t target) {
+  return boson_handler::position(target);
+}
+sum_op<boson_handler> momentum(std::size_t target) {
+  return boson_handler::momentum(target);
+}
 } // namespace boson
 
 } // namespace cudaq

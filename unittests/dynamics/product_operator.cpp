@@ -30,7 +30,7 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     ASSERT_EQ(ids.num_ops(), expected_degrees.size());
     for (std::size_t idx = 2; const auto &op : ids)
       ASSERT_EQ(op, cudaq::spin_handler(idx++));
-  }  
+  }
 
   std::vector<int> levels = {2, 3, 4};
   std::complex<double> value_0 = 0.1 + 0.1;

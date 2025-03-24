@@ -7,7 +7,7 @@
  ******************************************************************************/
 #include "cudaq.h"
 #include "cudaq/algorithms/evolve.h"
-#include "cudaq/dynamics_integrators.h"
+#include "cudaq/algorithms/integrator.h"
 #include <gtest/gtest.h>
 
 TEST(DynamicsAsyncTester, checkSimple) {

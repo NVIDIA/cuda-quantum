@@ -14,9 +14,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "dynamics/evaluation.h"
-#include "dynamics/operator_leafs.h"
-#include "dynamics/templates.h"
+#include "operators/evaluation.h"
+#include "operators/operator_leafs.h"
+#include "operators/templates.h"
 #include "utils/cudaq_utils.h"
 #include "utils/matrix.h"
 
@@ -143,8 +143,8 @@ public:
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.
-  /// The order of degrees is from smallest to largest and reflect 
-  /// the ordering of the matrix returned by `to_matrix`.  
+  /// The order of degrees is from smallest to largest and reflect
+  /// the ordering of the matrix returned by `to_matrix`.
   /// Specifically, the indices of a statevector with two qubits are {00, 01,
   /// 10, 11}. An ordering of degrees {0, 1} then indicates that a state where
   /// the qubit with index 0 equals 1 with probability 1 is given by
@@ -239,7 +239,8 @@ public:
   complex_matrix
   to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
-                &parameters = {}, bool invert_order = false) const;
+                &parameters = {},
+            bool invert_order = false) const;
 
   // comparisons
 
@@ -435,10 +436,11 @@ public:
 
   void dump() const;
 
-  /// Removes all terms from the sum for which the absolute value of 
+  /// Removes all terms from the sum for which the absolute value of
   /// the coefficient is below the given tolerance
-  void trim(double tol = 1e-12, 
-            const std::unordered_map<std::string, std::complex<double>> &parameters = {});
+  void trim(double tol = 1e-12,
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters = {});
 
   std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
@@ -472,7 +474,8 @@ public:
   csr_spmatrix
   to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
-                       &parameters = {}, bool invert_order = false) const;
+                       &parameters = {},
+                   bool invert_order = false) const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<double> get_data_representation() const;
@@ -654,8 +657,8 @@ public:
 #endif
 
   /// @brief The degrees of freedom that the operator acts on.
-  /// The order of degrees is from smallest to largest and reflect 
-  /// the ordering of the matrix returned by `to_matrix`.  
+  /// The order of degrees is from smallest to largest and reflect
+  /// the ordering of the matrix returned by `to_matrix`.
   /// Specifically, the indices of a statevector with two qubits are {00, 01,
   /// 10, 11}. An ordering of degrees {0, 1} then indicates that a state where
   /// the qubit with index 0 equals 1 with probability 1 is given by
@@ -686,10 +689,10 @@ public:
   constexpr product_op() {}
 
   constexpr product_op(std::size_t first_degree, std::size_t last_degree) {
-    static_assert(
-      std::is_constructible_v<HandlerTy, std::size_t>,
-      "operator handlers must have a constructor that take a single degree of "
-      "freedom and returns the identity operator on that degree.");
+    static_assert(std::is_constructible_v<HandlerTy, std::size_t>,
+                  "operator handlers must have a constructor that take a "
+                  "single degree of "
+                  "freedom and returns the identity operator on that degree.");
     if (last_degree > first_degree) // being a bit permissive here
       this->operators.reserve(last_degree - first_degree);
     for (auto degree = first_degree; degree < last_degree; ++degree)
@@ -757,7 +760,8 @@ public:
   complex_matrix
   to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
-                &parameters = {}, bool invert_order = false) const;
+                &parameters = {},
+            bool invert_order = false) const;
 
   // comparisons
 
@@ -926,7 +930,8 @@ public:
   csr_spmatrix
   to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
                    const std::unordered_map<std::string, std::complex<double>>
-                       &parameters = {}, bool invert_order = false) const;
+                       &parameters = {},
+                   bool invert_order = false) const;
 
   // utility functions for backward compatibility
   /// @cond
@@ -1008,39 +1013,5 @@ extern template class sum_op<spin_handler>;
 extern template class sum_op<boson_handler>;
 extern template class sum_op<fermion_handler>;
 #endif
-
-// for backward compatibility and convenience
-
-namespace operators {
-product_op<matrix_handler> number(std::size_t target);
-product_op<matrix_handler> parity(std::size_t target);
-product_op<matrix_handler> position(std::size_t target);
-product_op<matrix_handler> momentum(std::size_t target);
-product_op<matrix_handler> squeeze(std::size_t target);
-product_op<matrix_handler> displace(std::size_t target);
-} // namespace operators
-
-namespace spin {
-product_op<spin_handler> i(std::size_t target);
-product_op<spin_handler> x(std::size_t target);
-product_op<spin_handler> y(std::size_t target);
-product_op<spin_handler> z(std::size_t target);
-sum_op<spin_handler> plus(std::size_t target);
-sum_op<spin_handler> minus(std::size_t target);
-} // namespace spin
-
-namespace boson {
-product_op<boson_handler> create(std::size_t target);
-product_op<boson_handler> annihilate(std::size_t target);
-product_op<boson_handler> number(std::size_t target);
-sum_op<boson_handler> position(std::size_t target);
-sum_op<boson_handler> momentum(std::size_t target);
-} // namespace boson
-
-namespace fermion {
-product_op<fermion_handler> create(std::size_t target);
-product_op<fermion_handler> annihilate(std::size_t target);
-product_op<fermion_handler> number(std::size_t target);
-} // namespace fermion
 
 } // namespace cudaq
