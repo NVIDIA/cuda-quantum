@@ -14,6 +14,38 @@
 
 TEST(OperatorExpressions, checkProductOperatorBasics) {
 
+  // checking some utility functions
+  {
+    std::vector<std::size_t> all_degrees = {0, 1, 2, 3};
+    for (auto id_target : all_degrees) {
+      cudaq::spin_op_term op;
+      cudaq::spin_op_term expected;
+      for (std::size_t target : all_degrees) {
+        if (target == id_target)
+          op *= cudaq::spin_op::i(target);
+        else if (target & 2) {
+          op *= cudaq::spin_op::z(target);
+          expected *= cudaq::spin_op::z(target);
+        } else if (target & 1) {
+          op *= cudaq::spin_op::x(target);
+          expected *= cudaq::spin_op::x(target);
+        } else {
+          op *= cudaq::spin_op::y(target);
+          expected *= cudaq::spin_op::y(target);
+        }
+      }
+      ASSERT_NE(op, expected);
+      op.canonicalize();
+      ASSERT_EQ(op, expected);
+      ASSERT_EQ(op.degrees(), expected.degrees());
+      ASSERT_EQ(op.to_matrix(), expected.to_matrix());
+      ASSERT_NE(op.degrees(), all_degrees);
+      op.canonicalize(
+          std::set<std::size_t>(all_degrees.begin(), all_degrees.end()));
+      ASSERT_EQ(op.degrees(), all_degrees);
+    }
+  }
+
   // checking some constructors
   {
     cudaq::product_op<cudaq::matrix_handler> ids(2, 5);

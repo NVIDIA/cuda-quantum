@@ -14,6 +14,62 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
   // testing some utility functions
   {
+    cudaq::spin_op previous;
+    cudaq::spin_op expected;
+    std::vector<std::size_t> all_degrees = {0, 1, 2, 3};
+    for (auto id_target : all_degrees) {
+      cudaq::spin_op_term op;
+      cudaq::spin_op_term expected_term;
+      for (std::size_t target : all_degrees) {
+        if (target == id_target)
+          op *= cudaq::spin_op::i(target);
+        else if (target & 2) {
+          op *= cudaq::spin_op::z(target);
+          expected_term *= cudaq::spin_op::z(target);
+        } else if (target & 1) {
+          op *= cudaq::spin_op::x(target);
+          expected_term *= cudaq::spin_op::x(target);
+        } else {
+          op *= cudaq::spin_op::y(target);
+          expected_term *= cudaq::spin_op::y(target);
+        }
+      }
+      previous += op;
+      expected += expected_term;
+      auto got = previous;
+
+      ASSERT_NE(got, expected);
+      got.canonicalize();
+      ASSERT_EQ(got, expected);
+      ASSERT_EQ(got.degrees(), expected.degrees());
+      ASSERT_EQ(got.to_matrix(), expected.to_matrix());
+
+      auto check_expansion =
+          [&got, &all_degrees](const std::set<std::size_t> &want_degrees) {
+            auto canon = got;
+            auto term_with_missing_degrees = false;
+            for (const auto &term : canon)
+              if (term.degrees() != all_degrees)
+                term_with_missing_degrees = true;
+            ASSERT_TRUE(term_with_missing_degrees);
+            canon.canonicalize(want_degrees);
+            ASSERT_EQ(canon.degrees(), all_degrees);
+            for (const auto &term : canon)
+              ASSERT_EQ(term.degrees(), all_degrees);
+          };
+
+      check_expansion(
+          std::set<std::size_t>(all_degrees.begin(), all_degrees.end()));
+      if (id_target > 0)
+        // for id_target = 0, there is only one term in the sum, which does not
+        // act on a degrees
+        check_expansion({});
+      auto have_degrees = got.degrees();
+      ASSERT_ANY_THROW(got.canonicalize(
+          std::set<std::size_t>(have_degrees.begin() + 1, have_degrees.end())));
+    }
+  }
+  {
     srand(10);
     for (auto rep = 0; rep < 10; ++rep) {
       auto bit_mask = rand();

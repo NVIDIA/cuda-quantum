@@ -71,30 +71,18 @@ template <typename HandlerTy>
 template <typename EvalTy>
 EvalTy
 sum_op<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithmetics) const {
-
   if (terms.size() == 0)
     return EvalTy();
 
-  // Adding a tensor product with the identity for degrees that an operator
-  // doesn't act on. Needed e.g. to make sure all matrices are of the same size
-  // before summing them up.
-  auto degrees = this->degrees();
-  auto paddedTerm = [&arithmetics, &degrees = std::as_const(degrees)](
-                        product_op<HandlerTy> &&term) {
-    std::vector<HandlerTy> prod_ops;
-    prod_ops.reserve(degrees.size());
-    auto term_degrees = term.degrees();
-    for (auto degree : degrees) {
-      auto it = std::find(term_degrees.begin(), term_degrees.end(), degree);
-      if (it == term_degrees.end()) {
-        HandlerTy identity(degree);
-        prod_ops.push_back(std::move(identity));
-      }
+  // Canonicalizing a term adds a tensor product with the identity for degrees
+  // that an operator doesn't act on. Needed e.g. to make sure all matrices are
+  // of the same size before summing them up.
+  std::set<std::size_t> degrees;
+  for (const auto &term : this->terms)
+    for (const auto &op : term) {
+      auto op_degrees = op.degrees();
+      degrees.insert(op_degrees.cbegin(), op_degrees.cend());
     }
-    product_op<HandlerTy> prod(1, std::move(prod_ops));
-    prod *= term; // ensures canonical ordering (if possible)
-    return prod;
-  };
 
   // NOTE: It is important that we evaluate the terms in a specific order,
   // otherwise the evaluation is not consistent with other methods.
@@ -103,10 +91,10 @@ sum_op<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithmetics) const {
   auto it = this->begin();
   auto end = this->end();
   if (arithmetics.pad_sum_terms) {
-    product_op<HandlerTy> padded_term = paddedTerm(std::move(*it));
+    product_op<HandlerTy> padded_term = it->canonicalize(degrees);
     EvalTy sum = padded_term.template evaluate<EvalTy>(arithmetics);
     while (++it != end) {
-      padded_term = paddedTerm(std::move(*it));
+      padded_term = it->canonicalize(degrees);
       EvalTy term_eval = padded_term.template evaluate<EvalTy>(arithmetics);
       sum = arithmetics.add(std::move(sum), std::move(term_eval));
     }
@@ -502,17 +490,6 @@ INSTANTIATE_SUM_ASSIGNMENTS(fermion_handler);
 // evaluations
 
 template <typename HandlerTy>
-std::string sum_op<HandlerTy>::to_string() const {
-  if (this->terms.size() == 0)
-    return "";
-  auto it = this->begin();
-  std::string str = it->to_string();
-  while (++it != this->end())
-    str += " + " + it->to_string();
-  return std::move(str);
-}
-
-template <typename HandlerTy>
 complex_matrix sum_op<HandlerTy>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -550,8 +527,6 @@ complex_matrix sum_op<spin_handler>::to_matrix(
 }
 
 #define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                 \
-                                                                               \
-  template std::string sum_op<HandlerTy>::to_string() const;                   \
                                                                                \
   template complex_matrix sum_op<HandlerTy>::to_matrix(                        \
       std::unordered_map<std::size_t, int64_t> dimensions,                     \
@@ -1570,13 +1545,24 @@ sum_op<fermion_handler>::number(std::size_t target);
 // general utility functions
 
 template <typename HandlerTy>
+std::string sum_op<HandlerTy>::to_string() const {
+  if (this->terms.size() == 0)
+    return "";
+  auto it = this->begin();
+  std::string str = it->to_string();
+  while (++it != this->end())
+    str += " + " + it->to_string();
+  return std::move(str);
+}
+
+template <typename HandlerTy>
 void sum_op<HandlerTy>::dump() const {
   auto str = to_string();
   std::cout << str;
 }
 
 template <typename HandlerTy>
-void sum_op<HandlerTy>::trim(
+sum_op<HandlerTy> &sum_op<HandlerTy>::trim(
     double tol,
     const std::unordered_map<std::string, std::complex<double>> &parameters) {
   sum_op<HandlerTy> trimmed(false);
@@ -1587,6 +1573,41 @@ void sum_op<HandlerTy>::trim(
     if (std::abs(prod.evaluate_coefficient(parameters)) > tol)
       trimmed.insert(std::move(prod));
   *this = trimmed;
+  return *this;
+}
+
+template <typename HandlerTy>
+sum_op<HandlerTy> &sum_op<HandlerTy>::canonicalize() {
+  // If we make any updates, we it's best to completely rebuild the operator,
+  // since this may lead to the combination of terms and therefore
+  // change the structure/term_map of the operator.
+  sum_op<HandlerTy> canonicalized(false);
+  for (auto &&prod : *this)
+    canonicalized.insert(prod.canonicalize());
+  *this = canonicalized;
+  return *this;
+}
+
+template <typename HandlerTy>
+sum_op<HandlerTy> &
+sum_op<HandlerTy>::canonicalize(const std::set<std::size_t> &degrees) {
+  std::set<std::size_t> all_degrees;
+  if (degrees.size() == 0) {
+    for (const auto &term : this->terms)
+      for (const auto &op : term) {
+        auto op_degrees = op.degrees();
+        all_degrees.insert(op_degrees.cbegin(), op_degrees.cend());
+      }
+  }
+  // If we make any updates, we it's best to completely rebuild the operator,
+  // since this may lead to the combination of terms and therefore
+  // change the structure/term_map of the operator.
+  sum_op<HandlerTy> canonicalized(false);
+  for (auto &&prod : *this)
+    canonicalized.insert(
+        prod.canonicalize(degrees.size() == 0 ? all_degrees : degrees));
+  *this = canonicalized;
+  return *this;
 }
 
 template <typename HandlerTy>
@@ -1619,9 +1640,16 @@ sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
 
 #define INSTANTIATE_SUM_UTILITY_FUNCTIONS(HandlerTy)                           \
                                                                                \
+  template std::string sum_op<HandlerTy>::to_string() const;                   \
+                                                                               \
   template void sum_op<HandlerTy>::dump() const;                               \
                                                                                \
-  template void sum_op<HandlerTy>::trim(                                       \
+  template sum_op<HandlerTy> &sum_op<HandlerTy>::canonicalize();               \
+                                                                               \
+  template sum_op<HandlerTy> &sum_op<HandlerTy>::canonicalize(                 \
+      const std::set<std::size_t> &degrees);                                   \
+                                                                               \
+  template sum_op<HandlerTy> &sum_op<HandlerTy>::trim(                         \
       double tol, const std::unordered_map<std::string, std::complex<double>>  \
                       &parameters);                                            \
                                                                                \
