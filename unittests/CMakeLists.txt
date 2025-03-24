@@ -263,17 +263,17 @@ gtest_discover_tests(test_spin)
 
 # Create an executable for operators UnitTests
 set(CUDAQ_OPERATOR_TEST_SOURCES
-   dynamics/utils.cpp
-   dynamics/scalar_operator.cpp
-   dynamics/matrix_operator.cpp
-   dynamics/spin_operator.cpp
-   dynamics/boson_operator.cpp
-   dynamics/fermion_operator.cpp
-   dynamics/operator_conversions.cpp
-   dynamics/product_operator.cpp
-   dynamics/operator_sum.cpp
-   dynamics/rydberg_hamiltonian.cpp
-   dynamics/test_Helpers.cpp
+   operators/utils.cpp
+   operators/scalar_op.cpp
+   operators/matrix_op.cpp
+   operators/spin_op.cpp
+   operators/boson_op.cpp
+   operators/fermion_op.cpp
+   operators/conversions.cpp
+   operators/product_op.cpp
+   operators/sum_op.cpp
+   operators/rydberg_hamiltonian.cpp
+   operators/manipulation.cpp
 )
 add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)

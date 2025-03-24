@@ -1593,7 +1593,7 @@ sum_op<HandlerTy>& sum_op<HandlerTy>::canonicalize() {
   // If we make any updates, we it's best to completely rebuild the operator, 
   // since this may lead to the combination of terms and therefore 
   // change the structure/term_map of the operator.
-  sum_op<HandlerTy> canonicalized;
+  sum_op<HandlerTy> canonicalized(false);
   for (auto &&prod : *this)
     canonicalized.insert(prod.canonicalize());
   *this = canonicalized;

@@ -14,6 +14,36 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
   // testing some utility functions
   {
+    cudaq::spin_op previous;
+    cudaq::spin_op expected;
+    for (auto id_target = 0; id_target < 4; ++id_target) {
+      cudaq::spin_op_term op;
+      cudaq::spin_op_term expected_term;
+      for (std::size_t target = 0; target < 4; ++target) {
+        if (target == id_target) op *= cudaq::spin_op::i(target);
+        else if (target & 2) {
+          op *= cudaq::spin_op::z(target);
+          expected_term *= cudaq::spin_op::z(target);
+        } else if (target & 1) {
+          op *= cudaq::spin_op::x(target);
+          expected_term *= cudaq::spin_op::x(target);
+        } else {
+          op *= cudaq::spin_op::y(target);
+          expected_term *= cudaq::spin_op::y(target);
+        }
+      }
+      previous += op;
+      expected += expected_term;
+      auto got = previous;
+
+      ASSERT_NE(got, expected);
+      got.canonicalize();
+      ASSERT_EQ(got, expected);
+      ASSERT_EQ(got.degrees(), expected.degrees());
+      ASSERT_EQ(got.to_matrix(), expected.to_matrix());
+    }
+  }
+  {
     srand(10);
     for (auto rep = 0; rep < 10; ++rep) {
       auto bit_mask = rand();
