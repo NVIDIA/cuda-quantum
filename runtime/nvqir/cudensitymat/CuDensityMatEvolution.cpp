@@ -12,7 +12,7 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "cudaq/algorithms/evolve_internal.h"
-#include "cudaq/dynamics_integrators.h"
+#include "cudaq/algorithms/integrator.h"
 #include <iterator>
 #include <random>
 #include <stdexcept>

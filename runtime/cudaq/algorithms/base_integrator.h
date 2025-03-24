@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "operators.h"
-#include "schedule.h"
+#include "cudaq/operators.h"
+#include "cudaq/schedule.h"
 #include <map>
 #include <memory>
 #include <vector>

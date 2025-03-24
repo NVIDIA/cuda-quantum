@@ -7,7 +7,7 @@
 //  ******************************************************************************/
 
 #include "cudaq/algorithms/evolve.h"
-#include "cudaq/dynamics_integrators.h"
+#include "cudaq/algorithms/integrator.h"
 #include <cmath>
 #include <complex>
 #include <functional>

@@ -9,7 +9,7 @@
 #include "CuDensityMatState.h"
 #include "common/EigenDense.h"
 #include "cudaq/algorithms/evolve_internal.h"
-#include "cudaq/dynamics_integrators.h"
+#include "cudaq/algorithms/integrator.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <iostream>
