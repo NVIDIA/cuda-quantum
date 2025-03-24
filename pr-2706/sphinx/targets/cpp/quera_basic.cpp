@@ -16,7 +16,7 @@
 // Credentials must be set before running this program.
 // Amazon Braket costs apply.
 
-// This example illustrates how to use QuEra Aquila device on Braket with
+// This example illustrates how to use QuEra's Aquila device on Braket with
 // CUDA-Q. It is a CUDA-Q implementation of the getting started materials for
 // Braket available here:
 // https://docs.aws.amazon.com/braket/latest/developerguide/braket-get-started-hello-ahs.html

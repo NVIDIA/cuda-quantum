@@ -655,6 +655,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
@@ -1665,9 +1666,9 @@ parameters of the time bin interferometer.</p>
 <span class="c1">// nvq++ --target pasqal pasqal.cpp -o out.x</span>
 <span class="c1">// ./out.x</span>
 <span class="c1">// ```</span>
-<span class="c1">// Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)</span>
-<span class="c1">// have been set. To set `PASQAL_AUTH_TOKEN` from Pasqal Cloud username and</span>
-<span class="c1">// password, use `pasqal_auth.py` in this folder.</span>
+<span class="c1">// Assumes a valid set of credentials (PASQAL_AUTH_TOKEN, PASQAL_PROJECT_ID)</span>
+<span class="c1">// have been set. To set PASQAL_AUTH_TOKEN from Pasqal Cloud username and</span>
+<span class="c1">// password, use pasqal_auth.py in this folder.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/dynamics_integrators.h&quot;</span>
@@ -1677,7 +1678,7 @@ parameters of the time bin interferometer.</p>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
 
-<span class="c1">// This example illustrates how to use Pasqal EMU_MPS emulator over Pasqal</span>
+<span class="c1">// This example illustrates how to use Pasqal&#39;s EMU_MPS emulator over Pasqal&#39;s</span>
 <span class="c1">// cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through</span>
 <span class="c1">// https://community.pasqal.com for assistance.</span>
 
@@ -1957,7 +1958,7 @@ parameters of the time bin interferometer.</p>
 <span class="c1">// Credentials must be set before running this program.</span>
 <span class="c1">// Amazon Braket costs apply.</span>
 
-<span class="c1">// This example illustrates how to use QuEra Aquila device on Braket with</span>
+<span class="c1">// This example illustrates how to use QuEra&#39;s Aquila device on Braket with</span>
 <span class="c1">// CUDA-Q. It is a CUDA-Q implementation of the getting started materials for</span>
 <span class="c1">// Braket available here:</span>
 <span class="c1">// https://docs.aws.amazon.com/braket/latest/developerguide/braket-get-started-hello-ahs.html</span>
