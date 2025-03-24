@@ -31,7 +31,7 @@ namespace details {
 // of the size of the result type of the kernel launched.
 // NB: for a vector of bool, each bool value is stored in a byte.
 struct RunResultSpan {
-  void *data;
+  char *data;
   std::uint64_t lengthInBytes;
 };
 
@@ -69,13 +69,13 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
   if constexpr (std::is_same_v<T, bool>) {
     // std::vector<bool> is a specialization, so we have to call the
     // vector<bool> constructor in this case to pack the bools.
-    __nvqpp_initializer_list_to_vector_bool(
-        result, reinterpret_cast<char *>(spanIn.data), spanIn.lengthInBytes);
+    __nvqpp_initializer_list_to_vector_bool(result, spanIn.data,
+                                            spanIn.lengthInBytes);
   } else {
     raw_vector *rawVec = reinterpret_cast<raw_vector *>(&result);
     rawVec->start = reinterpret_cast<T *>(spanIn.data);
-    rawVec->end0 = rawVec->end1 = reinterpret_cast<T *>(
-        reinterpret_cast<char *>(spanIn.data) + spanIn.lengthInBytes);
+    rawVec->end0 = rawVec->end1 =
+        reinterpret_cast<T *>(spanIn.data + spanIn.lengthInBytes);
   }
 
   // Destroy the contents of the span. The caller no longer owns the `data`
@@ -103,13 +103,12 @@ std::vector<RESULT> run(std::size_t shots,
   std::string kernelName{cudaq::getKernelName(kernel)};
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable {
-        cudaq::invokeKernel(std::forward(kernel), std::forward<ARGS>(args)...);
+        cudaq::invokeKernel(std::move(kernel), std::forward<ARGS>(args)...);
       },
       platform, kernelName, shots);
 
-  std::uint64_t end_offset = span.lengthInBytes / sizeof(RESULT);
   return {reinterpret_cast<RESULT *>(span.data),
-          reinterpret_cast<RESULT *>(span.data) + end_offset};
+          reinterpret_cast<RESULT *>(span.data + span.lengthInBytes)};
 }
 
 // FIXME: Provide an async variant of run?

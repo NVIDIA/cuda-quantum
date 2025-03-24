@@ -101,6 +101,12 @@ function f_option_handling {
 	-fno-set-target-backend)
 		SET_TARGET_BACKEND=false
 		;;
+	-fenable-cudaq-run)
+		ENABLE_CUDAQ_RUN=true
+		;;
+	-fno-enable-cudaq-run)
+		ENABLE_CUDAQ_RUN=false
+		;;
 	*)
 		# Pass any unrecognized options on to the clang++ tool.
 		ARGS="${ARGS} $1"
@@ -340,6 +346,7 @@ ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_MLIR_LIB_LINKING=true
+ENABLE_CUDAQ_RUN=false
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -720,6 +727,9 @@ fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,func.func(lower-to-cfg)")
+fi
+if ${ENABLE_CUDAQ_RUN}; then
+	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
 fi
 if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,cse")
