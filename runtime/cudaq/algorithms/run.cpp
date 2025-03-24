@@ -11,7 +11,6 @@
 #include "common/RecordLogDecoder.h"
 #include "cudaq/simulators.h"
 #include "nvqir/CircuitSimulator.h"
-#include <cstdio>
 
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
