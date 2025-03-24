@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/dynamics/helpers.h"
 #include "cudaq/operators.h"
+#include "cudaq/operators/helpers.h"
 #include <gtest/gtest.h>
 
 using namespace cudaq::detail;

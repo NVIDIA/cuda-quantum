@@ -15,6 +15,8 @@ add_library(${LIBRARY_NAME}
          SHARED cudaq.cpp 
                 target_control.cpp
                 algorithms/draw.cpp
+                algorithms/evolve.cpp
+                algorithms/schedule.cpp
                 platform/qpu_state.cpp
                 platform/quantum_platform.cpp
                 qis/execution_manager_c_api.cpp
@@ -60,7 +62,7 @@ add_subdirectory(algorithms)
 add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
-add_subdirectory(dynamics)
+add_subdirectory(operators)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 

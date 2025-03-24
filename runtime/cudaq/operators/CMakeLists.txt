@@ -21,9 +21,7 @@ set(CUDAQ_OPS_SRC
   sum_op.cpp
   rydberg_hamiltonian.cpp
   evaluation.cpp
-  evolution.cpp
   handler.cpp
-  schedule.cpp
   helpers.cpp
 )
 

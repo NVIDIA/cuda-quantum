@@ -11,8 +11,8 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
-#include "cudaq/dynamics/serialization.h"
 #include "cudaq/operators.h"
+#include "cudaq/operators/serialization.h"
 #include "py_spin_op.h"
 
 #include <complex>

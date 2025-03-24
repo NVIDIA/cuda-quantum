@@ -12,8 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/dynamics/helpers.h"
 #include "cudaq/operators.h"
+#include "cudaq/operators/helpers.h"
 #include "cudaq/utils/matrix.h"
 
 namespace cudaq {

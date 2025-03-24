@@ -14,9 +14,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "dynamics/evaluation.h"
-#include "dynamics/operator_leafs.h"
-#include "dynamics/templates.h"
+#include "operators/evaluation.h"
+#include "operators/operator_leafs.h"
+#include "operators/templates.h"
 #include "utils/cudaq_utils.h"
 #include "utils/matrix.h"
 
