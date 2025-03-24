@@ -107,10 +107,6 @@ public:
   static sum_op<spin_handler> minus(std::size_t degree);
 };
 
-// needs to be down here such that the handler is defined
-// before we include the template declarations that depend on it
-#include "cudaq/operators.h"
-
 namespace spin {
 product_op<spin_handler> i(std::size_t target);
 product_op<spin_handler> x(std::size_t target);
@@ -121,4 +117,6 @@ sum_op<spin_handler> minus(std::size_t target);
 } // namespace spin
 } // namespace cudaq
 
+// needs to be down here such that the handler is defined
+// before we include the template declarations that depend on it
 #include "cudaq/operators.h"
