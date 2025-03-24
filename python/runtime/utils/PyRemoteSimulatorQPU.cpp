@@ -88,7 +88,7 @@ static void launchKernelStreamlineImpl(
 
   auto *moduleOpPtr = reinterpret_cast<mlir::ModuleOp *>(rawArgs[0]);
   auto m_module = *moduleOpPtr;
-  auto *mlirContext = m_module.getContext();
+  auto *mlirContext = m_module->getContext();
 
   // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
   // was set before launching the kernel. Use a static variable per thread to
