@@ -11,7 +11,9 @@
 #include "cudaq/algorithms/integrator.h"
 
 namespace {
-[[deprecated("This header is deprecated - please use cudaq/algorithms/integrator.h instead.")]]
-constexpr static int dynamics_integrator_header_is_deprecated = 0;
-constexpr static int please_use_integrator_header = dynamics_integrator_header_is_deprecated;
-}
+[[deprecated("This header is deprecated - please use "
+             "cudaq/algorithms/integrator.h instead.")]] constexpr static int
+    dynamics_integrator_header_is_deprecated = 0;
+constexpr static int please_use_integrator_header =
+    dynamics_integrator_header_is_deprecated;
+} // namespace

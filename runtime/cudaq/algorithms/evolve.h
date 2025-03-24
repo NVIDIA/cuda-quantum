@@ -10,8 +10,8 @@
 
 #include "common/EvolveResult.h"
 #include "common/KernelWrapper.h"
-#include "cudaq/algorithms/get_state.h"
 #include "cudaq/algorithms/base_integrator.h"
+#include "cudaq/algorithms/get_state.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/operators/operator_type.h"
