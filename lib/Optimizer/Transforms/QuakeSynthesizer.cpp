@@ -350,12 +350,11 @@ static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
                          SmallVectorImpl<std::complex<float>> &vec) {
-  SmallVector<float> vec2;
-  for (auto c : vec) {
-    vec2.push_back(c.real());
-    vec2.push_back(c.imag());
-  }
-  auto arrayAttr = builder.getF32ArrayAttr(vec2);
+  SmallVector<Attribute> vec2;
+  for (auto c : vec)
+    vec2.push_back(builder.getF32ArrayAttr({c.real(), c.imag()}));
+
+  auto arrayAttr = builder.getArrayAttr(vec2);
   return synthesizeVectorArgument<ComplexType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeComplexElement<float>);
@@ -365,12 +364,11 @@ static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
                          SmallVectorImpl<std::complex<double>> &vec) {
-  SmallVector<double> vec2;
-  for (auto c : vec) {
-    vec2.push_back(c.real());
-    vec2.push_back(c.imag());
-  }
-  auto arrayAttr = builder.getF64ArrayAttr(vec2);
+  SmallVector<Attribute> vec2;
+  for (auto c : vec)
+    vec2.push_back(builder.getF64ArrayAttr({c.real(), c.imag()}));
+
+  auto arrayAttr = builder.getArrayAttr(vec2);
   return synthesizeVectorArgument<ComplexType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeComplexElement<double>);
@@ -538,7 +536,7 @@ public:
       }
 
       if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
-        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+        if (isa<quake::StateType>(ptrTy.getElementType())) {
           // Special case of a `cudaq::state*` which must be in the same address
           // space. This references a container to a set of simulation
           // amplitudes.
@@ -549,8 +547,7 @@ public:
                   Value rawPtr = builder.create<arith::ConstantIntOp>(
                       loc, reinterpret_cast<std::intptr_t>(*concrete),
                       sizeof(void *) * 8);
-                  auto stateTy =
-                      cudaq::cc::StateType::get(builder.getContext());
+                  auto stateTy = quake::StateType::get(builder.getContext());
                   return builder.create<cudaq::cc::CastOp>(
                       loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
                 });

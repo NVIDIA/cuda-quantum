@@ -144,8 +144,7 @@ state pyGetStateRemote(py::object kernel, py::args args) {
 // Note: Python kernel arguments are wrapped hence need to be unwrapped
 // accordingly.
 class PyQPUState : public QPUState {
-  //std::string kernelName;
-  // Holder of args data for clean-up.
+  //  Holder of args data for clean-up.
   cudaq::OpaqueArguments *argsData;
   mlir::ModuleOp kernelMod;
 

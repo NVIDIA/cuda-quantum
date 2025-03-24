@@ -8,7 +8,6 @@
 
 #include "qpu_state.h"
 
-#include <iostream>
 namespace cudaq {
 
 QPUState::~QPUState() {
@@ -17,8 +16,6 @@ QPUState::~QPUState() {
 
   args.clear();
   deleters.clear();
-
-  //qKernelDeleter(qKernel);
 }
 
 std::size_t QPUState::getNumQubits() const {
@@ -87,10 +84,6 @@ void QPUState::toHost(std::complex<float> *clientAllocatedData,
 
 std::optional<std::pair<std::string, std::vector<void *>>>
 QPUState::getKernelInfo() const {
-  // auto key = cudaq::registry::__cudaq_getLinkableKernelKey(qKernel);
-  // std::cout << "*** getKernelInfo Kernel key: " << key <<std::endl; 
-  // auto kernelName = cudaq::registry::__cudaq_getLinkableKernelName(key);
-  // std::cout << "*** getKernelInfoKernel name: " << kernelName <<std::endl; 
   return std::make_pair(kernelName, args);
 }
 

@@ -334,6 +334,21 @@ def test_exp_pauli_param():
     assert not '10' in counts
 
 
+def test_list_complex_param():
+
+    @cudaq.kernel
+    def kernel(coefficients: list[complex]):
+        q = cudaq.qvector(2)
+        for i in range(len(coefficients)):
+            exp_pauli(coefficients[i].real, q, "XX")
+
+    counts = cudaq.sample(kernel, [10. + 0.j, 30. + 0.j])
+    assert "00" in counts
+    assert "11" in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
 def test_1q_unitary_synthesis():
 
     cudaq.register_operation("custom_h",

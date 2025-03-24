@@ -11,41 +11,39 @@
 #include "common/SimulationState.h"
 #include "cudaq.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "../utils/registry.h"
 #include "../qis/qkernel.h"
-#include <vector>
+#include "../utils/registry.h"
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <iostream>
 
 namespace cudaq {
 namespace details {
-  #if CUDAQ_USE_STD20
-  template<typename T>
-  using remove_cvref_t = typename std::remove_cvref_t<T>;
-  #else
-  template <typename T> 
-  using remove_cvref_t = typename std::remove_cv_t<std::remove_reference_t<T>>;
-  #endif
-  
-  template <typename QuantumKernel,
-            typename Q = remove_cvref_t<QuantumKernel>,
-            typename Operator = typename cudaq::qkernel_deduction_guide_helper<
-              decltype(&QuantumKernel::operator())>::type,
-            typename QKernel = cudaq::qkernel<Operator>,
-            std::enable_if_t<std::is_class_v<Q>, bool> = true>
-  QKernel createQKernel(QuantumKernel &&kernel) {
-    return {kernel};
-  }
+#if CUDAQ_USE_STD20
+template <typename T>
+using remove_cvref_t = typename std::remove_cvref_t<T>;
+#else
+template <typename T>
+using remove_cvref_t = typename std::remove_cv_t<std::remove_reference_t<T>>;
+#endif
 
-  template <typename QuantumKernel,
-            typename Q = remove_cvref_t<QuantumKernel>,
-            typename QKernel = cudaq::qkernel<Q>,
-            std::enable_if_t<!std::is_class_v<Q>, bool> = true>
-  QKernel createQKernel(QuantumKernel &&kernel) {
-    return {kernel};
-  }
+template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
+          typename Operator = typename cudaq::qkernel_deduction_guide_helper<
+              decltype(&QuantumKernel::operator())>::type,
+          typename QKernel = cudaq::qkernel<Operator>,
+          std::enable_if_t<std::is_class_v<Q>, bool> = true>
+QKernel createQKernel(QuantumKernel &&kernel) {
+  return {kernel};
+}
+
+template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
+          typename QKernel = cudaq::qkernel<Q>,
+          std::enable_if_t<!std::is_class_v<Q>, bool> = true>
+QKernel createQKernel(QuantumKernel &&kernel) {
+  return {kernel};
+}
 }; // namespace details
 
 /// @brief Implementation of `SimulationState` for quantum device backends.
@@ -55,10 +53,8 @@ namespace details {
 class QPUState : public cudaq::SimulationState {
 protected:
   using ArgDeleter = std::function<void(void *)>;
-  
+
   std::string kernelName;
-  // void *qKernel = nullptr;
-  // ArgDeleter qKernelDeleter;
 
   /// @brief  Vector of arguments
   // Note: we create a copy of all arguments except pointers.
@@ -104,7 +100,8 @@ public:
     } else {
       // R (S::operator())(Args..) or  R(*)(Args...) kernels are registered
       // and made linkable in GenDeviceCodeLoader pass.
-      auto qKernel = cudaq::details::createQKernel(std::forward<QuantumKernel>(kernel));
+      auto qKernel =
+          cudaq::details::createQKernel(std::forward<QuantumKernel>(kernel));
       auto key = cudaq::registry::__cudaq_getLinkableKernelKey(&qKernel);
       auto name = cudaq::registry::getLinkableKernelNameOrNull(key);
       if (!name)
