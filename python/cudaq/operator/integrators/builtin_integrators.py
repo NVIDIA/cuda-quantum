@@ -20,15 +20,13 @@ except ImportError:
 
 
 class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
-
+    # Thin wrapper around the `TimeStepper` C++ bindings
     def __init__(self, liouvillian: CudmOperator, ctx: CudmWorkStream):
         if not has_cupy:
             raise ImportError('CuPy is required to use integrators.')
         self.liouvillian = liouvillian
-        self.ctx = ctx
-        self.liouvillian_action = None
-        self.liouvillian._maybe_instantiate(self.ctx)
-        self.stepper = bindings.TimeStepper(self.ctx._handle._validated_ptr, self.liouvillian._validated_ptr)
+        self.liouvillian._maybe_instantiate(ctx)
+        self.stepper = bindings.TimeStepper(ctx._handle._validated_ptr, self.liouvillian._validated_ptr)
 
     def compute(self, state: CudmStateType, t: float):
         action_result = state.clone(cp.zeros_like(state.storage))
