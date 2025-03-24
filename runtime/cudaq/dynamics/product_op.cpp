@@ -320,15 +320,16 @@ bool product_op<HandlerTy>::is_canonicalized() const {
       unique_degrees.insert(d);
     }
   }
-  std::vector<std::size_t> canon_degrees(unique_degrees.begin(), unique_degrees.end());
-  std::sort(canon_degrees.begin(), canon_degrees.end(), operator_handler::canonical_order);
+  std::vector<std::size_t> canon_degrees(unique_degrees.begin(),
+                                         unique_degrees.end());
+  std::sort(canon_degrees.begin(), canon_degrees.end(),
+            operator_handler::canonical_order);
   return degrees == canon_degrees;
 }
 #endif
 
 template <typename HandlerTy>
-std::vector<std::size_t>
-product_op<HandlerTy>::degrees() const {
+std::vector<std::size_t> product_op<HandlerTy>::degrees() const {
   assert(this->is_canonicalized());
   // Once we move to C++20 only, it would be nice if degrees was just a view.
   std::vector<std::size_t> degrees;
@@ -347,8 +348,7 @@ std::vector<std::size_t> product_op<matrix_handler>::degrees() const {
   }
   std::vector<std::size_t> degrees(unsorted_degrees.cbegin(),
                                    unsorted_degrees.cend());
-  std::sort(degrees.begin(), degrees.end(),
-            operator_handler::canonical_order);
+  std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
   return degrees;
 }
 
@@ -677,8 +677,8 @@ complex_matrix product_op<HandlerTy>::to_matrix(
   if (invert_order) {
     auto reverse_degrees = evaluated.degrees;
     std::reverse(reverse_degrees.begin(), reverse_degrees.end());
-    auto permutation = cudaq::detail::compute_permutation(evaluated.degrees,
-      reverse_degrees, dimensions);
+    auto permutation = cudaq::detail::compute_permutation(
+        evaluated.degrees, reverse_degrees, dimensions);
     cudaq::detail::permute_matrix(evaluated.matrix, permutation);
   }
   return std::move(evaluated.matrix);

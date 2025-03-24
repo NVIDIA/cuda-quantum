@@ -16,52 +16,32 @@
 #include "cudaq/utils/matrix.h"
 
 namespace cudaq {
-
-class fermion_handler : public operator_handler {
+class boson_handler : public operator_handler {
   template <typename T>
   friend class product_op;
 
 private:
-  // Given that the dimension for fermion operators has to be 2,
-  // we effectively may just as well store a 2 x 2 matrix.
-  // Since we only ever need the operator Ad, A, N, (1-N), I, 0,
-  // we choose to store this as a single integer whose bits
-  // correspond to the quadrant entry.
-  // That is:
-  // 0 = 0000 = 0,
-  // 1 = 0001 = (1-N),
-  // 2 = 0010 = A,
-  // 4 = 0100 = Ad
-  // 8 = 1000 = N
-  // 9 = 1001 = I
-  int8_t op_code;
-  bool commutes;
+  // Each boson operator is represented as number operators along with an
+  // offset to add to each number operator, as well as an integer indicating
+  // how many creation or annihilation terms follow the number operators.
+  // See the implementation of the in-place multiplication to understand
+  // the meaning and purpose of this representation. In short, this
+  // representation allows us to perform a perfect in-place multiplication.
+  int additional_terms;
+  std::vector<int> number_offsets;
   std::size_t degree;
 
-  // Note that this constructor is chosen to be independent
-  // on the internal encoding; to be less critic, we here use the usual
   // 0 = I, Ad = 1, A = 2, AdA = 3
-  fermion_handler(std::size_t target, int op_id);
+  boson_handler(std::size_t target, int op_code);
 
   std::string op_code_to_string() const;
   virtual std::string op_code_to_string(
       std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
-#if !defined(NDEBUG)
-  // Here to check if my reasoning regarding only ever needing the operators
-  // above were correct.
-  void validate_opcode() const;
-#endif
-
-  void inplace_mult(const fermion_handler &other);
+  void inplace_mult(const boson_handler &other);
 
 public:
-  static constexpr commutation_relations commutation_group =
-      operator_handler::fermion_commutation_relations;
-
   // read-only properties
-
-  const bool &commutes_across_degrees = this->commutes;
 
   virtual std::string unique_id() const override;
 
@@ -69,15 +49,9 @@ public:
 
   // constructors and destructors
 
-  fermion_handler(std::size_t target);
+  boson_handler(std::size_t target);
 
-  fermion_handler(const fermion_handler &other);
-
-  ~fermion_handler() = default;
-
-  // assignments
-
-  fermion_handler &operator=(const fermion_handler &other);
+  ~boson_handler() = default;
 
   // evaluations
 
@@ -96,17 +70,23 @@ public:
 
   /// @returns True if, and only if, the two operators have the same effect on
   /// any state.
-  bool operator==(const fermion_handler &other) const;
+  bool operator==(const boson_handler &other) const;
 
   // defined operators
 
-  static product_op<fermion_handler> create(std::size_t degree);
-  static product_op<fermion_handler> annihilate(std::size_t degree);
-  static product_op<fermion_handler> number(std::size_t degree);
+  static product_op<boson_handler> create(std::size_t degree);
+  static product_op<boson_handler> annihilate(std::size_t degree);
+  static product_op<boson_handler> number(std::size_t degree);
 
-  // Note that we don't define position and momentum here, since physically they
-  // do not make much sense; see e.g.
-  // https://physics.stackexchange.com/questions/319296/why-does-a-fermionic-hamiltonian-always-obey-fermionic-parity-symmetry
+  static sum_op<boson_handler> position(std::size_t degree);
+  static sum_op<boson_handler> momentum(std::size_t degree);
 };
 
+namespace boson {
+product_op<boson_handler> create(std::size_t target);
+product_op<boson_handler> annihilate(std::size_t target);
+product_op<boson_handler> number(std::size_t target);
+sum_op<boson_handler> position(std::size_t target);
+sum_op<boson_handler> momentum(std::size_t target);
+} // namespace boson
 } // namespace cudaq

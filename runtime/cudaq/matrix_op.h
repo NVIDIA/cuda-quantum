@@ -185,4 +185,12 @@ public:
   static product_op<matrix_handler> displace(std::size_t degree);
 };
 
+namespace operators {
+product_op<matrix_handler> number(std::size_t target);
+product_op<matrix_handler> parity(std::size_t target);
+product_op<matrix_handler> position(std::size_t target);
+product_op<matrix_handler> momentum(std::size_t target);
+product_op<matrix_handler> squeeze(std::size_t target);
+product_op<matrix_handler> displace(std::size_t target);
+} // namespace operators
 } // namespace cudaq

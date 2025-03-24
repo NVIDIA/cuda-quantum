@@ -67,8 +67,9 @@ public:
     return data.expectation(termStr);
   }
 
-  [[deprecated("passing a spin_op to expectation is deprecated - please pass a spin_op_term instead")]]
-  double expectation(spin_op op) {
+  [[deprecated("passing a spin_op to expectation is deprecated - please pass a "
+               "spin_op_term instead")]] double
+  expectation(spin_op op) {
     if (op.num_terms() != 1)
       throw std::runtime_error("expecting a spin op with exactly one term");
     auto termStr = op.begin()->get_term_id();
@@ -83,8 +84,9 @@ public:
     return sample_result(result);
   }
 
-  [[deprecated("passing a spin_op to counts is deprecated - please pass a spin_op_term instead")]]
-  sample_result counts(spin_op op) {
+  [[deprecated("passing a spin_op to counts is deprecated - please pass a "
+               "spin_op_term instead")]] sample_result
+  counts(spin_op op) {
     if (op.num_terms() != 1)
       throw std::runtime_error("expecting a spin op with exactly one term");
     auto termStr = op.begin()->get_term_id();

@@ -14,7 +14,8 @@
 
 #include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
-#include "fermion_operators.h"
+
+#include "cudaq/fermion_op.h"
 
 namespace cudaq {
 
@@ -192,9 +193,15 @@ product_op<fermion_handler> fermion_handler::number(std::size_t degree) {
 }
 
 namespace fermion {
-product_op<fermion_handler> create(std::size_t target) { return fermion_handler::create(target); }
-product_op<fermion_handler> annihilate(std::size_t target) { return fermion_handler::annihilate(target); }
-product_op<fermion_handler> number(std::size_t target) { return fermion_handler::number(target); }
+product_op<fermion_handler> create(std::size_t target) {
+  return fermion_handler::create(target);
+}
+product_op<fermion_handler> annihilate(std::size_t target) {
+  return fermion_handler::annihilate(target);
+}
+product_op<fermion_handler> number(std::size_t target) {
+  return fermion_handler::number(target);
+}
 } // namespace fermion
 
 } // namespace cudaq

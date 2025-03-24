@@ -163,8 +163,7 @@ INSTANTIATE_SUM_EVALUATE_METHODS(fermion_handler,
 // read-only properties
 
 template <typename HandlerTy>
-std::vector<std::size_t>
-sum_op<HandlerTy>::degrees() const {
+std::vector<std::size_t> sum_op<HandlerTy>::degrees() const {
   std::set<std::size_t> unsorted_degrees;
   for (const std::vector<HandlerTy> &term : this->terms) {
     for (const HandlerTy &op : term) {
@@ -174,8 +173,7 @@ sum_op<HandlerTy>::degrees() const {
   }
   auto degrees = std::vector<std::size_t>(unsorted_degrees.cbegin(),
                                           unsorted_degrees.cend());
-  std::sort(degrees.begin(), degrees.end(),
-            operator_handler::canonical_order);
+  std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
   return degrees;
 }
 
@@ -526,8 +524,8 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
     auto reverse_degrees = evaluated.degrees;
     std::reverse(reverse_degrees.begin(), reverse_degrees.end());
     auto permutation = cudaq::detail::compute_permutation(
-      evaluated.degrees, reverse_degrees, dimensions);
-    cudaq::detail::permute_matrix(evaluated.matrix, permutation);  
+        evaluated.degrees, reverse_degrees, dimensions);
+    cudaq::detail::permute_matrix(evaluated.matrix, permutation);
   }
   return std::move(evaluated.matrix);
 }
@@ -661,58 +659,55 @@ INSTANTIATE_SUM_UNARY_OPS(fermion_handler);
 
 // right-hand arithmetics
 
-template <typename HandlerTy>                                                
-sum_op<HandlerTy> sum_op<HandlerTy>::operator*(                            
-    const scalar_operator &other) const & {                                  
-  if (this->is_default)                                                      
-    // scalars are just a special product operator                       
-    return product_op<HandlerTy>(other);                                     
-  sum_op<HandlerTy> sum(false);                                              
-  sum.coefficients.reserve(this->coefficients.size());                       
-  sum.term_map = this->term_map;                                             
-  sum.terms = this->terms;                                                   
-  for (const auto &coeff : this->coefficients)                               
-    sum.coefficients.push_back(coeff * other);                              
-  return std::move(sum);                                                     
-}                                                                            
-                                                                              
-template <typename HandlerTy>                                                
-sum_op<HandlerTy> sum_op<HandlerTy>::operator*(                            
-    const scalar_operator &other) && {                                       
-  if (this->is_default)                                                     
-    // scalars are just a special product operator                       
-    return product_op<HandlerTy>(other);                                     
-  for (auto &coeff : this->coefficients)                                     
-    coeff *= other;                                                      
-  return std::move(*this);                                                   
+template <typename HandlerTy>
+sum_op<HandlerTy>
+sum_op<HandlerTy>::operator*(const scalar_operator &other) const & {
+  if (this->is_default)
+    // scalars are just a special product operator
+    return product_op<HandlerTy>(other);
+  sum_op<HandlerTy> sum(false);
+  sum.coefficients.reserve(this->coefficients.size());
+  sum.term_map = this->term_map;
+  sum.terms = this->terms;
+  for (const auto &coeff : this->coefficients)
+    sum.coefficients.push_back(coeff * other);
+  return std::move(sum);
 }
 
-template <typename HandlerTy>                                                
-sum_op<HandlerTy> sum_op<HandlerTy>::operator/(                            
-    const scalar_operator &other) const & {                                  
-  if (this->is_default)                                                      
-    throw std::runtime_error(                                                
-        "cannot divide uninitialized sum_op by scalar");                     
-  sum_op<HandlerTy> sum(false);                                              
-  sum.coefficients.reserve(this->coefficients.size());                       
-  sum.term_map = this->term_map;                                             
-  sum.terms = this->terms;                                                   
-  for (const auto &coeff : this->coefficients)                               
-    sum.coefficients.push_back(coeff / other);                              
-  return std::move(sum);                                                     
-}                                                                            
-                                                                              
-template <typename HandlerTy>                                                
-sum_op<HandlerTy> sum_op<HandlerTy>::operator/(                            
-    const scalar_operator &other) && {                                       
-  if (this->is_default)                                                     
-    throw std::runtime_error(                                                
-        "cannot divide uninitialized sum_op by scalar");                     
-  for (auto &coeff : this->coefficients)                                     
-    coeff /= other;                                                      
-  return std::move(*this);                                                   
+template <typename HandlerTy>
+sum_op<HandlerTy>
+sum_op<HandlerTy>::operator*(const scalar_operator &other) && {
+  if (this->is_default)
+    // scalars are just a special product operator
+    return product_op<HandlerTy>(other);
+  for (auto &coeff : this->coefficients)
+    coeff *= other;
+  return std::move(*this);
 }
 
+template <typename HandlerTy>
+sum_op<HandlerTy>
+sum_op<HandlerTy>::operator/(const scalar_operator &other) const & {
+  if (this->is_default)
+    throw std::runtime_error("cannot divide uninitialized sum_op by scalar");
+  sum_op<HandlerTy> sum(false);
+  sum.coefficients.reserve(this->coefficients.size());
+  sum.term_map = this->term_map;
+  sum.terms = this->terms;
+  for (const auto &coeff : this->coefficients)
+    sum.coefficients.push_back(coeff / other);
+  return std::move(sum);
+}
+
+template <typename HandlerTy>
+sum_op<HandlerTy>
+sum_op<HandlerTy>::operator/(const scalar_operator &other) && {
+  if (this->is_default)
+    throw std::runtime_error("cannot divide uninitialized sum_op by scalar");
+  for (auto &coeff : this->coefficients)
+    coeff /= other;
+  return std::move(*this);
+}
 
 #define SUM_ADDITION_SCALAR(op)                                                \
                                                                                \
@@ -974,27 +969,24 @@ INSTANTIATE_SUM_RHCOMPOSITE_OPS(boson_handler);
 INSTANTIATE_SUM_RHCOMPOSITE_OPS(fermion_handler);
 #endif
 
-template <typename HandlerTy>                                                
-sum_op<HandlerTy> &sum_op<HandlerTy>::operator*=(                           
-    const scalar_operator &other) {                                          
+template <typename HandlerTy>
+sum_op<HandlerTy> &sum_op<HandlerTy>::operator*=(const scalar_operator &other) {
   if (this->is_default)
-    // scalars are just a special product operator                       
+    // scalars are just a special product operator
     *this = product_op<HandlerTy>(other);
   else
-    for (auto &coeff : this->coefficients)                                     
-      coeff *= other;                                                          
-  return *this;                                                              
+    for (auto &coeff : this->coefficients)
+      coeff *= other;
+  return *this;
 }
 
-template <typename HandlerTy>                                                
-sum_op<HandlerTy> &sum_op<HandlerTy>::operator/=(                           
-    const scalar_operator &other) {                                          
-  if (this->is_default)                                                      
-      throw std::runtime_error(    
-          "cannot divide uninitialized sum_op by scalar");   
-  for (auto &coeff : this->coefficients)                                     
-    coeff /= other;                                                          
-  return *this;                                                              
+template <typename HandlerTy>
+sum_op<HandlerTy> &sum_op<HandlerTy>::operator/=(const scalar_operator &other) {
+  if (this->is_default)
+    throw std::runtime_error("cannot divide uninitialized sum_op by scalar");
+  for (auto &coeff : this->coefficients)
+    coeff /= other;
+  return *this;
 }
 
 #define SUM_ADDITION_SCALAR_ASSIGNMENT(op)                                     \
@@ -1584,14 +1576,16 @@ void sum_op<HandlerTy>::dump() const {
 }
 
 template <typename HandlerTy>
-void sum_op<HandlerTy>::trim(double tol, const std::unordered_map<std::string, std::complex<double>> &parameters) {
+void sum_op<HandlerTy>::trim(
+    double tol,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) {
   sum_op<HandlerTy> trimmed(false);
   trimmed.term_map.reserve(this->terms.size());
   trimmed.terms.reserve(this->terms.size());
   trimmed.coefficients.reserve(this->coefficients.size());
   for (const auto &prod : *this)
-    if (std::abs(prod.evaluate_coefficient(parameters)) > tol) 
-      trimmed.insert(std::move(prod));  
+    if (std::abs(prod.evaluate_coefficient(parameters)) > tol)
+      trimmed.insert(std::move(prod));
   *this = trimmed;
 }
 
@@ -1627,11 +1621,12 @@ sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
                                                                                \
   template void sum_op<HandlerTy>::dump() const;                               \
                                                                                \
-  template void sum_op<HandlerTy>::trim(double tol,                            \
-    const std::unordered_map<std::string, std::complex<double>> &parameters);  \
+  template void sum_op<HandlerTy>::trim(                                       \
+      double tol, const std::unordered_map<std::string, std::complex<double>>  \
+                      &parameters);                                            \
                                                                                \
   template std::vector<sum_op<HandlerTy>> sum_op<HandlerTy>::distribute_terms( \
-      std::size_t numChunks) const;                                            \
+      std::size_t numChunks) const;
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_UTILITY_FUNCTIONS(matrix_handler);
