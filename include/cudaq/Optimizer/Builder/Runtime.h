@@ -73,4 +73,6 @@ static constexpr const char getPauliWordData[] =
 static constexpr const char bindingGetStringData[] = "__nvqpp_getStringData";
 static constexpr const char bindingGetStringSize[] = "__nvqpp_getStringSize";
 
+static constexpr const char enableCudaqRun[] = "quake.cudaq_run";
+
 } // namespace cudaq::runtime

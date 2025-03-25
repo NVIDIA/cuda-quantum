@@ -215,12 +215,12 @@ template <typename VAL>
 void quantumRTGenericRecordOutput(const char *type, VAL val,
                                   const char *label) {
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto *currentContext = circuitSimulator->getExecutionContext();
-  std::stringstream ss{currentContext->outputLog, std::ios::app};
+  std::ostringstream ss;
   ss << "OUTPUT\t" << type << "\t" << val << '\t';
   if (label)
     ss << label;
   ss << '\n';
+  circuitSimulator->outputLog += ss.str();
 }
 
 extern "C" {

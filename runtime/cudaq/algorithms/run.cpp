@@ -17,15 +17,16 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     const std::string &kernel_name, std::size_t shots) {
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto *currentContext = circuitSimulator->getExecutionContext();
-  currentContext->outputLog.clear();
+
+  circuitSimulator->outputLog.clear();
 
   // 2. Launch the kernel on the QPU.
-  kernel();
+  for (std::size_t i = 0; i < shots; ++i)
+    kernel();
 
   // 3. Pass the outputLog to the decoder (target-specific?)
   cudaq::RecordLogDecoder decoder;
-  decoder.decode(currentContext->outputLog);
+  decoder.decode(circuitSimulator->outputLog);
 
   // 4. Get the buffer and length of buffer (in bytes) from the decoder.
   auto *origBuffer = decoder.getBufferPtr();
@@ -34,9 +35,9 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   std::memcpy(buffer, origBuffer, bufferSize);
 
   // 5. Clear the outputLog (?)
-  currentContext->outputLog.clear();
+  circuitSimulator->outputLog.clear();
 
   // 6. Pass the span back as a RunResultSpan. NB: it is the responsibility of
   // the caller to free the buffer.
-  return {static_cast<void *>(buffer), bufferSize};
+  return {buffer, bufferSize};
 }

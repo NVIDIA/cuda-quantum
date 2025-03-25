@@ -124,10 +124,6 @@ public:
   /// calculation on simulation backends that support trajectory simulation.
   std::optional<std::size_t> numberTrajectories = std::nullopt;
 
-  /// A string containing the output logging of a kernel launched with
-  /// `cudaq::run()`.
-  std::string outputLog;
-
   /// @brief Whether or not to simply concatenate measurements in execution
   /// order.
   bool explicitMeasurements = false;

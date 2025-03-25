@@ -102,13 +102,27 @@ void cudaq::RecordLogDecoder::processSingleRecord(const std::string &recValue,
       value = false;
     else
       throw std::runtime_error("Invalid boolean value");
-    addPrimitiveRecord<bool>(value);
+    addPrimitiveRecord<char>((char)value);
   } break;
   case OutputType::INT:
-    addPrimitiveRecord<int>(std::stoi(recValue));
+    if (recLabel == "i8")
+      addPrimitiveRecord<std::int8_t>(std::stoi(recValue));
+    else if (recLabel == "i16")
+      addPrimitiveRecord<std::int16_t>(std::stoi(recValue));
+    else if (recLabel == "i32")
+      addPrimitiveRecord<std::int32_t>(std::stoi(recValue));
+    else if (recLabel == "i64")
+      addPrimitiveRecord<std::int64_t>(std::stoi(recValue));
+    else
+      throw std::runtime_error("integer size is not supported");
     break;
   case OutputType::DOUBLE:
-    addPrimitiveRecord<double>(std::stod(recValue));
+    if (recLabel == "f32")
+      addPrimitiveRecord<float>(std::stod(recValue));
+    else if (recLabel == "f64")
+      addPrimitiveRecord<double>(std::stod(recValue));
+    else
+      throw std::runtime_error("floating-point size is not supported");
     break;
   default:
     throw std::runtime_error("Unsupported output type");

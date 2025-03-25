@@ -11,7 +11,7 @@
 #include <cudaq.h>
 
 CUDAQ_TEST(ParserTester, checkSingleBoolean) {
-  const std::string log = "OUTPUT\tBOOL\ttrue";
+  const std::string log = "OUTPUT\tBOOL\ttrue\ti1\n";
   cudaq::RecordLogDecoder parser;
   parser.decode(log);
   auto *origBuffer = parser.getBufferPtr();
@@ -21,9 +21,9 @@ CUDAQ_TEST(ParserTester, checkSingleBoolean) {
 }
 
 CUDAQ_TEST(ParserTester, checkIntegers) {
-  const std::string log = "OUTPUT\tINT\t0\n"
-                          "OUTPUT\tINT\t1\n"
-                          "OUTPUT\tINT\t2\n";
+  const std::string log = "OUTPUT\tINT\t0\ti32\n"
+                          "OUTPUT\tINT\t1\ti32\n"
+                          "OUTPUT\tINT\t2\ti32\n";
   cudaq::RecordLogDecoder parser;
   parser.decode(log);
   auto *origBuffer = parser.getBufferPtr();
@@ -37,8 +37,8 @@ CUDAQ_TEST(ParserTester, checkIntegers) {
 
 CUDAQ_TEST(ParserTester, checkDoubles) {
   const std::string log = "START\n"
-                          "OUTPUT\tDOUBLE\t3.14\n"
-                          "OUTPUT\tDOUBLE\t2.717\n"
+                          "OUTPUT\tDOUBLE\t3.14\tf64\n"
+                          "OUTPUT\tDOUBLE\t2.717\tf64\n"
                           "END\t0";
   cudaq::RecordLogDecoder parser;
   parser.decode(log);
