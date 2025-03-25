@@ -112,9 +112,10 @@ private:
   /// here so we don't have to keep recomputing it.
   std::size_t totalShots = 0;
 
-  std::pair<bool, const ExecutionResult&> try_retrieve_result(const std::string &registerName) const;
-  const ExecutionResult& retrieve_result(const std::string &registerName) const;
-  ExecutionResult& retrieve_result(const std::string &registerName);
+  std::pair<bool, const ExecutionResult &>
+  try_retrieve_result(const std::string &registerName) const;
+  const ExecutionResult &retrieve_result(const std::string &registerName) const;
+  ExecutionResult &retrieve_result(const std::string &registerName);
 
 public:
   /// @brief Nullary constructor
@@ -211,8 +212,9 @@ public:
   /// @brief Return the number of times the given bitstring was observed
   /// @param bitString
   /// @return
-  std::size_t count(std::string_view bitString,
-                    const std::string_view registerName = GlobalRegisterName) const;
+  std::size_t
+  count(std::string_view bitString,
+        const std::string_view registerName = GlobalRegisterName) const;
 
   std::vector<std::string> sequential_data(
       const std::string_view registerName = GlobalRegisterName) const;

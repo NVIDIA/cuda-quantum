@@ -266,6 +266,7 @@ public:
   }
 
   cudaq::observe_result observe(const cudaq::spin_op &ham) override {
+    assert(cudaq::spin_op::canonicalize(ham) == ham);
     LOG_API_TIME();
     const bool hasNoise = executionContext && executionContext->noiseModel;
     // If no noise, just use base class implementation.

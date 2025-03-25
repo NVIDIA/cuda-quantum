@@ -178,6 +178,8 @@ inline void from_json(const json &j, ExecutionContext &context) {
     j["spin"]["data"].get_to(spinData);
     auto serializedSpinOps = spin_op(spinData);
     context.spin = std::move(serializedSpinOps);
+    assert(cudaq::spin_op::canonicalize(context.spin.value()) ==
+           context.spin.value());
   }
 
   if (j.contains("simulationData")) {

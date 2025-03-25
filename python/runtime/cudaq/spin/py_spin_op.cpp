@@ -118,6 +118,10 @@ void bindSpinOperator(py::module &mod) {
           "Return a string representation of this :class:`SpinOperatorTerm`.")
       .def("dump", &cudaq::spin_op_term::dump,
            "Print a string representation of this :class:`SpinOperatorTerm`.")
+      .def(
+          "canonicalize",
+          [](cudaq::spin_op_term &op) { return op.canonicalize(); },
+          "Removes all identity operators from the operator.")
       .def("get_term_id", &cudaq::spin_op_term::get_term_id,
            "Gets the id with which counts and expectation values for this term "
            "can be retrieved.")
@@ -393,6 +397,9 @@ void bindSpinOperator(py::module &mod) {
           "Return a string representation of this :class:`SpinOperator`.")
       .def("dump", &cudaq::spin_op::dump,
            "Print a string representation of this :class:`SpinOperator`.")
+      .def(
+          "canonicalize", [](cudaq::spin_op &op) { return op.canonicalize(); },
+          "Removes all identity operators from the operator.")
       .def("distribute_terms", &cudaq::spin_op::distribute_terms,
            py::arg("chunk_count"),
            "Return a list of :class:`SpinOperator` representing a distribution "

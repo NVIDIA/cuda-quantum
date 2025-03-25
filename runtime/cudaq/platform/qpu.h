@@ -74,6 +74,7 @@ protected:
 
       std::vector<cudaq::ExecutionResult> results;
       cudaq::spin_op &H = localContext->spin.value();
+      assert(cudaq::spin_op::canonicalize(H) == H);
 
       // If the backend supports the observe task,
       // let it compute the expectation value instead of
@@ -169,7 +170,7 @@ public:
   virtual void setTargetBackend(const std::string &backend) {}
 
   virtual void launchVQE(const std::string &name, const void *kernelArgs,
-                         cudaq::gradient *gradient, cudaq::spin_op H,
+                         cudaq::gradient *gradient, const cudaq::spin_op &H,
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}
 

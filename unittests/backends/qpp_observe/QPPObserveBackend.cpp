@@ -20,6 +20,7 @@ public:
   NVQIR_SIMULATOR_CLONE_IMPL(QppObserveTester)
   bool canHandleObserve() override { return true; }
   cudaq::observe_result observe(const cudaq::spin_op &op) override {
+    assert(cudaq::spin_op::canonicalize(op) == op);
     flushGateQueue();
 
     ::qpp::cmat X = ::qpp::Gates::get_instance().X;

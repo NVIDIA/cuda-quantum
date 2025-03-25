@@ -1316,6 +1316,28 @@ product_op<matrix_handler> &product_op<matrix_handler>::canonicalize() {
 }
 
 template <typename HandlerTy>
+product_op<HandlerTy>
+product_op<HandlerTy>::canonicalize(const product_op<HandlerTy> &orig) {
+  product_op canon(orig.coefficient);
+  canon.operators.reserve(orig.operators.size());
+  for (const auto &op : orig.operators)
+    if (op != HandlerTy(op.degree))
+      canon.operators.push_back(op);
+  return canon;
+}
+
+template <>
+product_op<matrix_handler> product_op<matrix_handler>::canonicalize(
+    const product_op<matrix_handler> &orig) {
+  product_op canon(orig.coefficient);
+  canon.operators.reserve(orig.operators.size());
+  for (const auto &op : orig.operators)
+    if (op != matrix_handler(op.degrees()[0]))
+      canon.operators.push_back(op);
+  return canon;
+}
+
+template <typename HandlerTy>
 product_op<HandlerTy> &
 product_op<HandlerTy>::canonicalize(const std::set<std::size_t> &degrees) {
   this->operators.reserve(degrees.size());
@@ -1334,6 +1356,15 @@ product_op<HandlerTy>::canonicalize(const std::set<std::size_t> &degrees) {
   return *this;
 }
 
+template <typename HandlerTy>
+product_op<HandlerTy>
+product_op<HandlerTy>::canonicalize(const product_op<HandlerTy> &orig,
+                                    const std::set<std::size_t> &degrees) {
+  product_op canon(orig, degrees.size());
+  canon.canonicalize(degrees); // could be made more efficient...
+  return canon;
+}
+
 #define INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(HandlerTy)                       \
                                                                                \
   template bool product_op<HandlerTy>::is_identity() const;                    \
@@ -1344,7 +1375,14 @@ product_op<HandlerTy>::canonicalize(const std::set<std::size_t> &degrees) {
                                                                                \
   template product_op<HandlerTy> &product_op<HandlerTy>::canonicalize();       \
                                                                                \
+  template product_op<HandlerTy> product_op<HandlerTy>::canonicalize(          \
+      const product_op<HandlerTy> &orig);                                      \
+                                                                               \
   template product_op<HandlerTy> &product_op<HandlerTy>::canonicalize(         \
+      const std::set<std::size_t> &degrees);                                   \
+                                                                               \
+  template product_op<HandlerTy> product_op<HandlerTy>::canonicalize(          \
+      const product_op<HandlerTy> &orig,                                       \
       const std::set<std::size_t> &degrees);
 
 #if !defined(__clang__)

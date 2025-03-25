@@ -447,11 +447,14 @@ public:
 
   /// Removes all identity operators from the operator.
   sum_op<HandlerTy> &canonicalize();
+  static sum_op<HandlerTy> canonicalize(const sum_op<HandlerTy> &orig);
 
   /// Expands the operator to act on all given degrees, applying identities as
   /// needed. If an empty set is passed, canonicalizes all terms in the sum to
   /// act on the same degrees of freedom.
   sum_op<HandlerTy> &canonicalize(const std::set<std::size_t> &degrees);
+  static sum_op<HandlerTy> canonicalize(const sum_op<HandlerTy> &orig,
+                                        const std::set<std::size_t> &degrees);
 
   std::vector<sum_op<HandlerTy>> distribute_terms(std::size_t numChunks) const;
 
@@ -919,10 +922,14 @@ public:
 
   /// Removes all identity operators from the operator.
   product_op<HandlerTy> &canonicalize();
+  static product_op<HandlerTy> canonicalize(const product_op<HandlerTy> &orig);
 
   /// Expands the operator to act on all given degrees, applying identities as
   /// needed.
   product_op<HandlerTy> &canonicalize(const std::set<std::size_t> &degrees);
+  static product_op<HandlerTy>
+  canonicalize(const product_op<HandlerTy> &orig,
+               const std::set<std::size_t> &degrees);
 
   // handler specific utility functions
 

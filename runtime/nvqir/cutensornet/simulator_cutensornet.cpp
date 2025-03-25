@@ -400,6 +400,7 @@ bool SimulatorTensorNetBase::canHandleObserve() {
 /// @brief Evaluate the expectation value of a given observable
 cudaq::observe_result
 SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
+  assert(cudaq::spin_op::canonicalize(ham) == ham);
   LOG_API_TIME();
   prepareQubitTensorState();
   if (!m_reuseContractionPathObserve) {

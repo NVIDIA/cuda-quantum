@@ -556,6 +556,7 @@ public:
     // Use batched custatevecComputeExpectationsOnPauliBasis to compute all term
     // expectation values in one go
     uint32_t nPauliOperatorArrays = op.num_terms();
+    assert(cudaq::spin_op::canonicalize(op) == op);
 
     // custatevecComputeExpectationsOnPauliBasis will throw errors if
     // nPauliOperatorArrays is 0, so catch that case early.

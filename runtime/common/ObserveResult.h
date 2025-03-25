@@ -35,14 +35,18 @@ public:
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op.
-  observe_result(double e, const spin_op &H) : expVal(e), spinOp(H) {}
+  observe_result(double e, const spin_op &H) : expVal(e), spinOp(H) {
+    assert(cudaq::spin_op::canonicalize(spinOp) == spinOp);
+  }
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op. If this execution
   /// was shots based, also provide the sample_result data containing counts
   /// for each term in H.
   observe_result(double e, const spin_op &H, sample_result counts)
-      : expVal(e), spinOp(H), data(counts) {}
+      : expVal(e), spinOp(H), data(counts) {
+    assert(cudaq::spin_op::canonicalize(spinOp) == spinOp);
+  }
 
   /// @brief Return the raw counts data for all terms
   /// @return
@@ -62,23 +66,23 @@ public:
 
   /// @brief Return the expectation value for a sub-term in the provided
   /// spin_op.
-  double expectation(spin_op_term term) {
-    auto termStr = term.get_term_id();
+  double expectation(const spin_op_term &term) {
+    auto termStr = cudaq::spin_op_term::canonicalize(term).get_term_id();
     return data.expectation(termStr);
   }
 
   [[deprecated("passing a spin_op to expectation is deprecated - please pass a "
                "spin_op_term instead")]] double
-  expectation(spin_op op) {
+  expectation(const spin_op &op) {
     if (op.num_terms() != 1)
       throw std::runtime_error("expecting a spin op with exactly one term");
-    auto termStr = op.begin()->get_term_id();
+    auto termStr = cudaq::spin_op_term::canonicalize(*op.begin()).get_term_id();
     return data.expectation(termStr);
   }
 
   /// @brief Return the counts data for the given spin_op
-  sample_result counts(spin_op_term term) {
-    auto termStr = term.get_term_id();
+  sample_result counts(const spin_op_term &term) {
+    auto termStr = cudaq::spin_op_term::canonicalize(term).get_term_id();
     auto counts = data.to_map(termStr);
     ExecutionResult result(counts);
     return sample_result(result);
@@ -86,10 +90,10 @@ public:
 
   [[deprecated("passing a spin_op to counts is deprecated - please pass a "
                "spin_op_term instead")]] sample_result
-  counts(spin_op op) {
+  counts(const spin_op &op) {
     if (op.num_terms() != 1)
       throw std::runtime_error("expecting a spin op with exactly one term");
-    auto termStr = op.begin()->get_term_id();
+    auto termStr = cudaq::spin_op_term::canonicalize(*op.begin()).get_term_id();
     auto counts = data.to_map(termStr);
     ExecutionResult result(counts);
     return sample_result(result);
