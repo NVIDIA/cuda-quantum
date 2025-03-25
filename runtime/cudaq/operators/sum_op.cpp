@@ -1902,8 +1902,8 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec,
   if (input_vec.size() == 0)
     throw std::runtime_error("input vector must not be empty");
   auto n_terms = (std::size_t)input_vec.back();
-  if (n_terms =
-          0 || nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
+  if (n_terms == 0 ||
+      nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
     throw std::runtime_error("Invalid data representation for construction "
                              "spin_op. Number of data elements is incorrect.");
 

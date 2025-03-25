@@ -195,6 +195,30 @@ void product_op<HandlerTy>::aggregate_terms(HandlerTy &&head, Args &&...args) {
 }
 
 template <typename HandlerTy>
+std::vector<std::size_t> product_op<HandlerTy>::degrees() const {
+  assert(this->is_canonicalized());
+  // Once we move to C++20 only, it would be nice if degrees was just a view.
+  std::vector<std::size_t> degrees;
+  degrees.reserve(this->operators.size());
+  for (const auto &op : this->operators)
+    degrees.push_back(op.degree);
+  return degrees;
+}
+
+template <>
+std::vector<std::size_t> product_op<matrix_handler>::degrees() const {
+  std::set<std::size_t> unsorted_degrees;
+  for (const auto &term : this->operators) {
+    auto term_degrees = term.degrees();
+    unsorted_degrees.insert(term_degrees.cbegin(), term_degrees.cend());
+  }
+  std::vector<std::size_t> degrees(unsorted_degrees.cbegin(),
+                                   unsorted_degrees.cend());
+  std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
+  return degrees;
+}
+
+template <typename HandlerTy>
 template <typename EvalTy>
 EvalTy product_op<HandlerTy>::evaluate(
     operator_arithmetics<EvalTy> arithmetics) const {
@@ -327,30 +351,6 @@ bool product_op<HandlerTy>::is_canonicalized() const {
   return degrees == canon_degrees;
 }
 #endif
-
-template <typename HandlerTy>
-std::vector<std::size_t> product_op<HandlerTy>::degrees() const {
-  assert(this->is_canonicalized());
-  // Once we move to C++20 only, it would be nice if degrees was just a view.
-  std::vector<std::size_t> degrees;
-  degrees.reserve(this->operators.size());
-  for (const auto &op : this->operators)
-    degrees.push_back(op.degree);
-  return degrees;
-}
-
-template <>
-std::vector<std::size_t> product_op<matrix_handler>::degrees() const {
-  std::set<std::size_t> unsorted_degrees;
-  for (const auto &term : this->operators) {
-    auto term_degrees = term.degrees();
-    unsorted_degrees.insert(term_degrees.cbegin(), term_degrees.cend());
-  }
-  std::vector<std::size_t> degrees(unsorted_degrees.cbegin(),
-                                   unsorted_degrees.cend());
-  std::sort(degrees.begin(), degrees.end(), operator_handler::canonical_order);
-  return degrees;
-}
 
 template <typename HandlerTy>
 std::size_t product_op<HandlerTy>::min_degree() const {
