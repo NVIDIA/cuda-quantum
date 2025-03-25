@@ -654,6 +654,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
@@ -1698,12 +1699,6 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result9exp_val_zEKNSt11string_viewE">
-<span class="target" id="classcudaq_1_1sample__result_1aac21a1dd74311c9da0af96104e23fd51"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exp_val_z</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result9exp_val_zEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Deprecated: Return the expected value &lt;Z…Z&gt; </p>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result11probabilityENSt11string_viewEKNSt11string_viewE">
 <span class="target" id="classcudaq_1_1sample__result_1ab0254228518d127b6d8c0dae37a5b7cb"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probability</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bitString</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result11probabilityENSt11string_viewEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the probability of observing the given bit string. </p>
@@ -1718,8 +1713,8 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13most_probableEKNSt11string_viewE">
-<span class="target" id="classcudaq_1_1sample__result_1a87107f8bedab62a4cc94823b4a244ac5"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">most_probable</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13most_probableEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result13most_probableEKNSt11string_viewE">
+<span class="target" id="classcudaq_1_1sample__result_1a37dc448b385e5eb4e5c71591bf67308d"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">most_probable</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result13most_probableEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the most probable bit string. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1732,8 +1727,8 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result5countENSt11string_viewEKNSt11string_viewE">
-<span class="target" id="classcudaq_1_1sample__result_1a3397619ea681dfe67f30b5d9627a05e4"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">count</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bitString</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result5countENSt11string_viewEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result5countENSt11string_viewEKNSt11string_viewE">
+<span class="target" id="classcudaq_1_1sample__result_1acdc0a883d43d6d3c3572a62b81de27dc"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">count</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bitString</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result5countENSt11string_viewEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the number of times the given bitstring was observed. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1746,8 +1741,8 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result4sizeEKNSt11string_viewE">
-<span class="target" id="classcudaq_1_1sample__result_1a892be2a88dec700cb2ad80c948d459dc"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result4sizeEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result4sizeEKNSt11string_viewE">
+<span class="target" id="classcudaq_1_1sample__result_1a6d593cdb051e44800eec575ac08cb369"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result4sizeEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the number of observed bit strings. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -1789,8 +1784,8 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result12get_marginalERRKNSt6vectorINSt6size_tEEEKNSt11string_viewE">
-<span class="target" id="classcudaq_1_1sample__result_1ad8e018d850d54e543bf3e7aa49256e62"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_marginal</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">marginalIndices</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result12get_marginalERRKNSt6vectorINSt6size_tEEEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result12get_marginalERRKNSt6vectorINSt6size_tEEEKNSt11string_viewE">
+<span class="target" id="classcudaq_1_1sample__result_1ad6dfdf4d57f1db98d573e59cf7a1b654"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_marginal</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">marginalIndices</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result12get_marginalERRKNSt6vectorINSt6size_tEEEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Extract marginal counts, that is those counts for a subset of measured qubits. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1806,8 +1801,8 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result12get_marginalERKNSt6vectorINSt6size_tEEEKNSt11string_viewE">
-<span class="target" id="classcudaq_1_1sample__result_1a8629fa9d4639eb03fa89a4671611ecb6"></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_marginal</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">marginalIndices</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result12get_marginalERKNSt6vectorINSt6size_tEEEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result12get_marginalERKNSt6vectorINSt6size_tEEEKNSt11string_viewE">
+<span class="target" id="classcudaq_1_1sample__result_1a9e16bfd6da5c993e640321aa222f07c0"></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_marginal</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">marginalIndices</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result12get_marginalERKNSt6vectorINSt6size_tEEEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Extract marginal counts, that is those counts for a subset of measured qubits. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2010,7 +2005,7 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15SimulationStateE">
 <span class="target" id="classcudaq_1_1SimulationState"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SimulationState</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq15SimulationStateE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> interface provides and extension point for concrete circuit simulation sub-types to describe their underlying quantum state data in an efficient manner. The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> provides a handle on the data for clients, with data remaining on GPU device or CPU memory. The primary goal of this type and its sub-types is to minimize data transfers for the state. </p>
-<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1CusvState"><span class="std std-ref">cudaq::CusvState&lt; ScalarType &gt;</span></a>, <a class="reference internal" href="#classcudaq_1_1RemoteSimulationState"><span class="std std-ref">cudaq::RemoteSimulationState</span></a>, <a class="reference internal" href="#classnvqir_1_1MPSSimulationState"><span class="std std-ref">nvqir::MPSSimulationState</span></a>, <a class="reference internal" href="#classnvqir_1_1TensorNetSimulationState"><span class="std std-ref">nvqir::TensorNetSimulationState</span></a></p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1CusvState"><span class="std std-ref">cudaq::CusvState&lt; ScalarType &gt;</span></a>, <a class="reference internal" href="#classcudaq_1_1QPUState"><span class="std std-ref">cudaq::QPUState</span></a>, <a class="reference internal" href="#classcudaq_1_1RemoteSimulationState"><span class="std std-ref">cudaq::RemoteSimulationState</span></a>, <a class="reference internal" href="#classnvqir_1_1MPSSimulationState"><span class="std std-ref">nvqir::MPSSimulationState</span></a>, <a class="reference internal" href="#classnvqir_1_1TensorNetSimulationState"><span class="std std-ref">nvqir::TensorNetSimulationState</span></a></p>
 </dd></dl>
 
 <dl class="cpp struct">
@@ -2090,6 +2085,12 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq21RemoteSimulationStateE">
 <span class="target" id="classcudaq_1_1RemoteSimulationState"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RemoteSimulationState</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq21RemoteSimulationStateE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Implementation of <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> for remote simulator backends. </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq8QPUStateE">
+<span class="target" id="classcudaq_1_1QPUState"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QPUState</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq8QPUStateE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Implementation of <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> for quantum device backends. The state is represented by a quantum kernel. Quantum state contains all the information we need to replicate a call to kernel that created the state. </p>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2336,6 +2337,60 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </section>
 <section id="noise-modeling">
 <h2>Noise Modeling<a class="headerlink" href="#noise-modeling" title="Permalink to this heading">¶</a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq11apply_noiseEvDpRR4Args">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Channel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">apply_noise</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq11apply_noiseEvDpRR4Args" title="cudaq::apply_noise::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq11apply_noiseEvDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>This function is a type-safe injection of noise into a quantum kernel,
+occurring precisely at the call site of the function invocation. The
+function should be called inside CUDA-Q kernels (those annotated with
+<code class="code docutils literal notranslate"><span class="pre">__qpu__</span></code>). The functionality is only supported for simulation targets, so
+it is automatically (and silently) stripped from any programs submitted to
+hardware targets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Channel</strong> – <p>A subtype of <a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">cudaq::kraus_channel</span></code></a> that
+implements/defines the desired noise mechanisms as Kraus channels (e.g.
+<a class="reference internal" href="#_CPPv4N5cudaq15depolarization2E" title="cudaq::depolarization2"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">cudaq::depolarization2</span></code></a>). If you want to use a custom
+<a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">cudaq::kraus_channel</span></code></a> (i.e. not built-in to CUDA-Q), it must
+first be registered <em>outside the kernel</em> with
+<a class="reference internal" href="#_CPPv4I00EN5cudaq11noise_model16register_channelEvv" title="cudaq::noise_model::register_channel"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">cudaq::noise_model::register_channel()</span></code></a>, like this:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">my_custom_kraus_channel_subtype</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="o">::</span><span class="n">cudaq</span><span class="o">::</span><span class="n">kraus_channel</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_parameters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_targets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">my_custom_kraus_channel_subtype</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">params</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">complex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">k0v</span><span class="p">{</span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                                      </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">])},</span>
+<span class="w">          </span><span class="n">k1v</span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+<span class="w">      </span><span class="n">push_back</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">kraus_op</span><span class="p">(</span><span class="n">k0v</span><span class="p">));</span>
+<span class="w">      </span><span class="n">push_back</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">kraus_op</span><span class="p">(</span><span class="n">k1v</span><span class="p">));</span>
+<span class="w">      </span><span class="n">validateCompleteness</span><span class="p">();</span>
+<span class="w">      </span><span class="n">generateUnitaryParameters</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">REGISTER_KRAUS_CHANNEL</span><span class="p">(</span><span class="s">&quot;my_custom_kraus_channel_subtype&quot;</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
+<span class="n">noise</span><span class="p">.</span><span class="n">register_channel</span><span class="o">&lt;</span><span class="n">my_custom_kraus_channel_subtype</span><span class="o">&gt;</span><span class="p">();</span>
+</pre></div>
+</div>
+</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>args</strong> – <p>The precise argument pack depend on the concrete <code class="code docutils literal notranslate"><span class="pre">Channel</span></code> being
+used. The arguments are a concatenated list of parameters and targets.
+For example, to apply a 2-qubit depolarization channel, which has
+<code class="code docutils literal notranslate"><span class="pre">num_parameters</span> <span class="pre">=</span> <span class="pre">1</span></code> and <code class="code docutils literal notranslate"><span class="pre">num_targets</span> <span class="pre">=</span> <span class="pre">2</span></code>, one would write the call
+like this:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">;</span>
+<span class="n">cudaq</span><span class="o">::</span><span class="n">apply_noise</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">depolarization2</span><span class="o">&gt;</span><span class="p">(</span><span class="cm">/*probability=*/</span><span class="mf">0.1</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">);</span>
+</pre></div>
+</div>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_opE">
 <span class="target" id="structcudaq_1_1kraus__op"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kraus_op</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_opE" title="Permalink to this definition">¶</a><br /></dt>
@@ -2527,6 +2582,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <span class="target" id="classcudaq_1_1amplitude__damping__channel"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_damping_channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq25amplitude_damping_channelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><a class="reference internal" href="#classcudaq_1_1amplitude__damping__channel"><span class="std std-ref">amplitude_damping_channel</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit amplitude damping error channel. </p>
 <p>Subclassed by <a class="reference internal" href="#classcudaq_1_1amplitude__damping"><span class="std std-ref">cudaq::amplitude_damping</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq25amplitude_damping_channel14num_parametersE">
+<span class="target" id="classcudaq_1_1amplitude__damping__channel_1ab15697cffcae212df9ea388ff7934767"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq25amplitude_damping_channel14num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of parameters. The one parameter is the probability that the error will occur. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq25amplitude_damping_channel11num_targetsE">
+<span class="target" id="classcudaq_1_1amplitude__damping__channel_1a9f9a8c4271a9ef25c9d06e21c85488b5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_targets</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq25amplitude_damping_channel11num_targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of targets. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2534,6 +2604,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <span class="target" id="classcudaq_1_1bit__flip__channel"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bit_flip_channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq16bit_flip_channelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><a class="reference internal" href="#classcudaq_1_1bit__flip__channel"><span class="std std-ref">bit_flip_channel</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit bit flipping error channel. </p>
 <p>Subclassed by <a class="reference internal" href="#classcudaq_1_1x__error"><span class="std std-ref">cudaq::x_error</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16bit_flip_channel14num_parametersE">
+<span class="target" id="classcudaq_1_1bit__flip__channel_1aa2cf437a31af62994ac80bab19eaa90d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq16bit_flip_channel14num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of parameters. The one parameter is the probability that the error will occur. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16bit_flip_channel11num_targetsE">
+<span class="target" id="classcudaq_1_1bit__flip__channel_1ab91873d2a43a5ff5afd97ca392c5f20b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_targets</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq16bit_flip_channel11num_targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of targets. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2541,6 +2626,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <span class="target" id="classcudaq_1_1phase__flip__channel"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_flip_channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq18phase_flip_channelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><a class="reference internal" href="#classcudaq_1_1phase__flip__channel"><span class="std std-ref">phase_flip_channel</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit phase flip error channel. </p>
 <p>Subclassed by <a class="reference internal" href="#classcudaq_1_1z__error"><span class="std std-ref">cudaq::z_error</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18phase_flip_channel14num_parametersE">
+<span class="target" id="classcudaq_1_1phase__flip__channel_1a7aebdc929782e329052c2e0a620ef14b"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq18phase_flip_channel14num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of parameters. The one parameter is the probability that the error will occur. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18phase_flip_channel11num_targetsE">
+<span class="target" id="classcudaq_1_1phase__flip__channel_1a5debe3b1be316a2a6ae1468cd2841e0f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_targets</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq18phase_flip_channel11num_targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of targets. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2548,6 +2648,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <span class="target" id="classcudaq_1_1depolarization__channel"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">depolarization_channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq22depolarization_channelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><a class="reference internal" href="#classcudaq_1_1depolarization__channel"><span class="std std-ref">depolarization_channel</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit depolarization error channel. </p>
 <p>Subclassed by <a class="reference internal" href="#classcudaq_1_1depolarization1"><span class="std std-ref">cudaq::depolarization1</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq22depolarization_channel14num_parametersE">
+<span class="target" id="classcudaq_1_1depolarization__channel_1aee1bb66d811e8be7a6444d4a670f7117"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq22depolarization_channel14num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of parameters. The one parameter is the probability that the error will occur. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq22depolarization_channel11num_targetsE">
+<span class="target" id="classcudaq_1_1depolarization__channel_1ae88ba19c7e847059fec59f8ee03a318f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_targets</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq22depolarization_channel11num_targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of targets. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2560,6 +2675,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq7y_errorE">
 <span class="target" id="classcudaq_1_1y__error"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y_error</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq7y_errorE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Y_error is a Pauli error that applies the Y operator when an error occurs. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7y_error14num_parametersE">
+<span class="target" id="classcudaq_1_1y__error_1ab108e97c0fa9dc2c728d4f83ff922797"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq7y_error14num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of parameters. The one parameter is the probability that the error will occur. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7y_error11num_targetsE">
+<span class="target" id="classcudaq_1_1y__error_1a5826a5bf10c864ecd73c1ae806fcd371"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_targets</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq7y_error11num_targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of targets. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2578,6 +2708,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13phase_dampingE">
 <span class="target" id="classcudaq_1_1phase__damping"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_damping</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq13phase_dampingE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><a class="reference internal" href="#classcudaq_1_1phase__damping"><span class="std std-ref">phase_damping</span></a> is a <a class="reference internal" href="#classcudaq_1_1kraus__channel"><span class="std std-ref">kraus_channel</span></a> that automates the creation of the kraus_ops that make up a single-qubit phase damping error channel. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13phase_damping14num_parametersE">
+<span class="target" id="classcudaq_1_1phase__damping_1ad13af33e1f08cc8310f8dfe26f2763d3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq13phase_damping14num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of parameters. The one parameter is the probability that the error will occur. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13phase_damping11num_targetsE">
+<span class="target" id="classcudaq_1_1phase__damping_1aaf6081dbf308b0f51e4326802e2fab35"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_targets</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq13phase_damping11num_targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of targets. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2598,6 +2743,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </dd></dl>
 
 </div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq6pauli114num_parametersE">
+<span class="target" id="classcudaq_1_1pauli1_1aaa6c40117ffc5e446518fe6863bb8042"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><a class="headerlink" href="#_CPPv4N5cudaq6pauli114num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of parameters. The 3 parameters are the probability that an X error, Y error, or Z error happens. Only 1 of the 3 possible errors will happen (at most). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq6pauli111num_targetsE">
+<span class="target" id="classcudaq_1_1pauli1_1a6b1335101e97a044645f76b4035f6719"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_targets</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq6pauli111num_targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of targets. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2615,6 +2775,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dd class="field-odd"><p><strong>p</strong> – Error probabilities for the 2-qubit Pauli operators. The length of this vector must be 15. Note that since the probability of II is not specified, it is implied to by 1 - sum(p). Therefore, maximal mixing occurs when sum(p) = 0.9375. </p>
 </dd>
 </dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq6pauli214num_parametersE">
+<span class="target" id="classcudaq_1_1pauli2_1a09a6184772a27fd4385606619b1ec011"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">15</span></span><a class="headerlink" href="#_CPPv4N5cudaq6pauli214num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of parameters. The 15 parameters are the probability that each one of the above errors will happen. Only 1 of the 15 possible errors will happen (at most). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq6pauli211num_targetsE">
+<span class="target" id="classcudaq_1_1pauli2_1aac5380625e186042a8ced4ed49409658"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_targets</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><a class="headerlink" href="#_CPPv4N5cudaq6pauli211num_targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of targets. </p>
 </dd></dl>
 
 </div>
@@ -2644,6 +2819,21 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </dd></dl>
 
 </div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15depolarization214num_parametersE">
+<span class="target" id="classcudaq_1_1depolarization2_1a7e554ebbab167ebf683771b4537091a9"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_parameters</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><a class="headerlink" href="#_CPPv4N5cudaq15depolarization214num_parametersE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of parameters. The 1 parameter is the probability that each one of the 15 error possibilities list above will occur. Only 1 of the 15 possible errors will happen (at most). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15depolarization211num_targetsE">
+<span class="target" id="classcudaq_1_1depolarization2_1abafec445db37bacd08401af401f23257"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_targets</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><a class="headerlink" href="#_CPPv4N5cudaq15depolarization211num_targetsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of targets. </p>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 <dl class="cpp class">
@@ -2656,6 +2846,20 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq11noise_model15PredicateFuncTyE">
 <span class="target" id="classcudaq_1_1noise__model_1aeb88e7dafa1e41c5925e30983b4eb36e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PredicateFuncTy</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq13kraus_channelE" title="cudaq::kraus_channel"><span class="n"><span class="pre">kraus_channel</span></span></a><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq11noise_model15PredicateFuncTyE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Callback function type for noise channel. Given the qubit operands and gate parameters, this function should return a concrete noise channel. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq11noise_model20requires_constructorE">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1noise__model_1ac6493a5c5539824a0f8fe5cfa4882474"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">requires_constructor</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">is_constructible_v</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq11noise_model20requires_constructorE" title="cudaq::noise_model::requires_constructor::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq11noise_model20requires_constructorE" title="cudaq::noise_model::requires_constructor::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq11noise_model20requires_constructorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>SFINAE helper to enable a function only if <code class="docutils literal notranslate"><span class="pre">T</span></code> is constructible with <code class="docutils literal notranslate"><span class="pre">Args...</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T</strong> – The type to check </p></li>
+<li><p><strong>Args</strong> – The argument types required for construction. </p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -2696,6 +2900,12 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I00EN5cudaq11noise_model16register_channelEvv">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">KrausChannelT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq11noise_model20requires_constructorE" title="cudaq::noise_model::requires_constructor"><span class="n"><span class="pre">requires_constructor</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00EN5cudaq11noise_model16register_channelEvv" title="cudaq::noise_model::register_channel::KrausChannelT"><span class="n"><span class="pre">KrausChannelT</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq4realE" title="cudaq::real"><span class="n"><span class="pre">real</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1noise__model_1a219a938efb454438e24138b561f68876"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_channel</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN5cudaq11noise_model16register_channelEvv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Register a Kraus channel. This must be called outside of a CUDA-Q kernel before the channel can be recognized inside a CUDA-Q kernel. </p>
 </dd></dl>
 
 <dl class="cpp function">
