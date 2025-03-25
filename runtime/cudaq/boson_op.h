@@ -74,23 +74,20 @@ public:
 
   // defined operators
 
-  static product_op<boson_handler> create(std::size_t degree);
-  static product_op<boson_handler> annihilate(std::size_t degree);
-  static product_op<boson_handler> number(std::size_t degree);
-
-  static sum_op<boson_handler> position(std::size_t degree);
-  static sum_op<boson_handler> momentum(std::size_t degree);
+  static boson_handler create(std::size_t degree);
+  static boson_handler annihilate(std::size_t degree);
+  static boson_handler number(std::size_t degree);
 };
+} // namespace cudaq
 
 // needs to be down here such that the handler is defined
 // before we include the template declarations that depend on it
 #include "cudaq/operators.h"
 
-namespace boson {
+namespace cudaq::boson {
 product_op<boson_handler> create(std::size_t target);
 product_op<boson_handler> annihilate(std::size_t target);
 product_op<boson_handler> number(std::size_t target);
 sum_op<boson_handler> position(std::size_t target);
 sum_op<boson_handler> momentum(std::size_t target);
-} // namespace boson
-} // namespace cudaq
+} // namespace cudaq::boson

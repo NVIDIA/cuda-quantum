@@ -207,43 +207,35 @@ bool boson_handler::operator==(const boson_handler &other) const {
 
 // defined operators
 
-product_op<boson_handler> boson_handler::create(std::size_t degree) {
-  return product_op(boson_handler(degree, 1));
+boson_handler boson_handler::create(std::size_t degree) {
+  return boson_handler(degree, 1);
 }
 
-product_op<boson_handler> boson_handler::annihilate(std::size_t degree) {
-  return product_op(boson_handler(degree, 2));
+boson_handler boson_handler::annihilate(std::size_t degree) {
+  return boson_handler(degree, 2);
 }
 
-product_op<boson_handler> boson_handler::number(std::size_t degree) {
-  return product_op(boson_handler(degree, 3));
-}
-
-sum_op<boson_handler> boson_handler::position(std::size_t degree) {
-  return 0.5 *
-         (boson_handler::create(degree) + boson_handler::annihilate(degree));
-}
-
-sum_op<boson_handler> boson_handler::momentum(std::size_t degree) {
-  return std::complex<double>(0., 0.5) *
-         (boson_handler::create(degree) - boson_handler::annihilate(degree));
+boson_handler boson_handler::number(std::size_t degree) {
+  return boson_handler(degree, 3);
 }
 
 namespace boson {
 product_op<boson_handler> create(std::size_t target) {
-  return boson_handler::create(target);
+  return product_op(boson_handler::create(target));
 }
 product_op<boson_handler> annihilate(std::size_t target) {
-  return boson_handler::annihilate(target);
+  return product_op(boson_handler::annihilate(target));
 }
 product_op<boson_handler> number(std::size_t target) {
-  return boson_handler::number(target);
+  return product_op(boson_handler::number(target));
 }
 sum_op<boson_handler> position(std::size_t target) {
-  return boson_handler::position(target);
+  return sum_op<boson_handler>(0.5 * create(target), 0.5 * annihilate(target));
 }
 sum_op<boson_handler> momentum(std::size_t target) {
-  return boson_handler::momentum(target);
+  return sum_op<boson_handler>(std::complex<double>(0., 0.5) * create(target),
+                               std::complex<double>(0., -0.5) *
+                                   annihilate(target));
 }
 } // namespace boson
 

@@ -176,25 +176,25 @@ public:
 
   // predefined operators
 
-  static product_op<matrix_handler> number(std::size_t degree);
-  static product_op<matrix_handler> parity(std::size_t degree);
-  static product_op<matrix_handler> position(std::size_t degree);
-  static product_op<matrix_handler> momentum(std::size_t degree);
+  static matrix_handler number(std::size_t degree);
+  static matrix_handler parity(std::size_t degree);
+  static matrix_handler position(std::size_t degree);
+  static matrix_handler momentum(std::size_t degree);
   /// Operators that accept parameters at runtime.
-  static product_op<matrix_handler> squeeze(std::size_t degree);
-  static product_op<matrix_handler> displace(std::size_t degree);
+  static matrix_handler squeeze(std::size_t degree);
+  static matrix_handler displace(std::size_t degree);
 };
+} // namespace cudaq
 
 // needs to be down here such that the handler is defined
 // before we include the template declarations that depend on it
 #include "cudaq/operators.h"
 
-namespace operators {
+namespace cudaq::operators {
 product_op<matrix_handler> number(std::size_t target);
 product_op<matrix_handler> parity(std::size_t target);
 product_op<matrix_handler> position(std::size_t target);
 product_op<matrix_handler> momentum(std::size_t target);
 product_op<matrix_handler> squeeze(std::size_t target);
 product_op<matrix_handler> displace(std::size_t target);
-} // namespace operators
-} // namespace cudaq
+} // namespace cudaq::operators

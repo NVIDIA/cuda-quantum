@@ -100,22 +100,22 @@ public:
 
   // defined operators
 
-  static product_op<fermion_handler> create(std::size_t degree);
-  static product_op<fermion_handler> annihilate(std::size_t degree);
-  static product_op<fermion_handler> number(std::size_t degree);
+  static fermion_handler create(std::size_t degree);
+  static fermion_handler annihilate(std::size_t degree);
+  static fermion_handler number(std::size_t degree);
 
   // Note that we don't define position and momentum here, since physically they
   // do not make much sense; see e.g.
   // https://physics.stackexchange.com/questions/319296/why-does-a-fermionic-hamiltonian-always-obey-fermionic-parity-symmetry
 };
+} // namespace cudaq
 
 // needs to be down here such that the handler is defined
 // before we include the template declarations that depend on it
 #include "cudaq/operators.h"
 
-namespace fermion {
+namespace cudaq::fermion {
 product_op<fermion_handler> create(std::size_t target);
 product_op<fermion_handler> annihilate(std::size_t target);
 product_op<fermion_handler> number(std::size_t target);
-} // namespace fermion
-} // namespace cudaq
+} // namespace cudaq::fermion

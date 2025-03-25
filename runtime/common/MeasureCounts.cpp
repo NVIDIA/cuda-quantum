@@ -257,94 +257,74 @@ sample_result &sample_result::operator+=(const sample_result &other) {
   return *this;
 }
 
+std::pair<bool, const ExecutionResult&> 
+sample_result::try_retrieve_result(const std::string &registerName) const {
+  auto iter = sampleResults.find(registerName);
+  if (iter == sampleResults.end())
+    return {false, ExecutionResult()};
+  return {true, iter->second};
+}
+
+const cudaq::ExecutionResult& sample_result::retrieve_result(const std::string &registerName) const {
+  auto iter = sampleResults.find(registerName);
+  if (iter == sampleResults.end())
+    throw std::runtime_error("no results stored for " + registerName);
+  return iter->second;
+}
+
+cudaq::ExecutionResult& sample_result::retrieve_result(const std::string &registerName) {
+  auto iter = sampleResults.find(registerName);
+  if (iter == sampleResults.end())
+    throw std::runtime_error("no results stored for " + registerName);
+  return iter->second;
+}
+
 std::vector<std::string>
 sample_result::sequential_data(const std::string_view registerName) const {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    throw std::runtime_error(
-        "There is no sample result for the given registerName (" +
-        std::string{registerName.begin(), registerName.end()} + ")");
-
-  auto data = iter->second.getSequentialData();
-  return data;
+  return retrieve_result(registerName.data()).getSequentialData();
 }
 
 CountsDictionary::iterator sample_result::begin() {
-  auto iter = sampleResults.find(GlobalRegisterName);
-  if (iter == sampleResults.end()) {
-    throw std::runtime_error(
-        "There is no global counts dictionary in this sample_result.");
-  }
-
-  return iter->second.counts.begin();
+  return retrieve_result(GlobalRegisterName).counts.begin();
 }
 
 CountsDictionary::iterator sample_result::end() {
-  auto iter = sampleResults.find(GlobalRegisterName);
-  if (iter == sampleResults.end()) {
-    throw std::runtime_error(
-        "There is no global counts dictionary in this sample_result.");
-  }
-
-  return iter->second.counts.end();
+  return retrieve_result(GlobalRegisterName).counts.end();
 }
 
 CountsDictionary::const_iterator sample_result::cbegin() const {
-  auto iter = sampleResults.find(GlobalRegisterName);
-  if (iter == sampleResults.end()) {
-    throw std::runtime_error(
-        "There is no global counts dictionary in this sample_result.");
-  }
-
-  return iter->second.counts.cbegin();
+  return retrieve_result(GlobalRegisterName).counts.cbegin();
 }
 
 CountsDictionary::const_iterator sample_result::cend() const {
-  auto iter = sampleResults.find(GlobalRegisterName);
-  if (iter == sampleResults.end()) {
-    throw std::runtime_error(
-        "There is no global counts dictionary in this sample_result.");
-  }
-
-  return iter->second.counts.cend();
+  return retrieve_result(GlobalRegisterName).counts.cend();
 }
 
-std::size_t sample_result::size(const std::string_view registerName) noexcept {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    return 0;
-
-  return iter->second.counts.size();
+std::size_t sample_result::size(const std::string_view registerName) const noexcept {
+  auto [found, result] = try_retrieve_result(registerName.data());
+  if (found) return result.counts.size();
+  else return 0;
 }
 
 double sample_result::probability(std::string_view bitStr,
                                   const std::string_view registerName) const {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    return 0.0;
-
-  const auto countIter = iter->second.counts.find(bitStr.data());
-  return (countIter == iter->second.counts.end())
+  const auto &result = retrieve_result(registerName.data());
+  const auto countIter = result.counts.find(bitStr.data());
+  return (countIter == result.counts.end())
              ? 0.0
              : (double)countIter->second / totalShots;
 }
 
 std::size_t sample_result::count(std::string_view bitStr,
-                                 const std::string_view registerName) {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    return 0;
-
-  return iter->second.counts[bitStr.data()];
+                                 const std::string_view registerName) const {
+  const auto &counts = retrieve_result(registerName.data()).counts;
+  auto it = counts.find(bitStr.data());
+  if (it == counts.cend()) return 0;
+  else return it->second;
 }
 
-std::string sample_result::most_probable(const std::string_view registerName) {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    throw std::runtime_error(
-        "[sample_result::most_probable] invalid sample result register name (" +
-        std::string(registerName) + ")");
-  auto counts = iter->second.counts;
+std::string sample_result::most_probable(const std::string_view registerName) const {
+  const auto &counts = retrieve_result(registerName.data()).counts;
   return std::max_element(counts.begin(), counts.end(),
                           [](const auto &el1, const auto &el2) {
                             return el1.second < el2.second;
@@ -353,25 +333,18 @@ std::string sample_result::most_probable(const std::string_view registerName) {
 }
 
 bool sample_result::has_expectation(const std::string_view registerName) const {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    return false;
-
-  return iter->second.expectationValue.has_value();
+  auto [found, result] = try_retrieve_result(registerName.data());
+  if (found) return result.expectationValue.has_value();
+  else return false;
 }
 
 double sample_result::expectation(const std::string_view registerName) const {
+  const auto &result = retrieve_result(registerName.data());
+  if (result.expectationValue.has_value())
+    return result.expectationValue.value();
+
   double aver = 0.0;
-
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    throw std::runtime_error("no value(s) computed for " +
-                             std::string(registerName));
-
-  if (iter->second.expectationValue.has_value())
-    return iter->second.expectationValue.value();
-
-  auto counts = iter->second.counts;
+  const auto &counts = result.counts;
   for (auto &kv : counts) {
     auto par = has_even_parity(kv.first);
     auto p = probability(kv.first, registerName);
@@ -395,21 +368,13 @@ std::vector<std::string> sample_result::register_names() const {
 
 CountsDictionary
 sample_result::to_map(const std::string_view registerName) const {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    return CountsDictionary();
-
-  return iter->second.counts;
+  return retrieve_result(registerName.data()).counts; // FIXME: fail or don't fail?
 }
 
 sample_result
 sample_result::get_marginal(const std::vector<std::size_t> &marginalIndices,
-                            const std::string_view registerName) {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    return sample_result();
-
-  auto counts = iter->second.counts;
+                            const std::string_view registerName) const {
+  const auto &counts = retrieve_result(registerName.data()).counts; // FIXME: fail or don't fail?
   auto mutableIndices = marginalIndices;
 
   std::sort(mutableIndices.begin(), mutableIndices.end());
@@ -469,9 +434,9 @@ void sample_result::dump(std::ostream &os) const {
   } else if (sampleResults.size() == 1) {
 
     CountsDictionary counts;
-    auto iter = sampleResults.find(GlobalRegisterName);
-    if (iter != sampleResults.end())
-      counts = iter->second.counts;
+    auto [found, result] = try_retrieve_result(GlobalRegisterName);
+    if (found)
+      counts = result.counts;
     else {
       auto first = sampleResults.begin();
       os << "\n   " << first->first << " : { ";
@@ -482,7 +447,7 @@ void sample_result::dump(std::ostream &os) const {
       os << kv->first << ":" << kv->second << " ";
     }
 
-    if (iter == sampleResults.end())
+    if (!found)
       os << "}\n";
   }
   os << "}\n";
@@ -497,13 +462,10 @@ bool sample_result::has_even_parity(std::string_view bitString) {
 
 void sample_result::reorder(const std::vector<std::size_t> &idx,
                             const std::string_view registerName) {
-  auto iter = sampleResults.find(registerName.data());
-  if (iter == sampleResults.end())
-    return;
-
   // First process the counts
+  auto &result = retrieve_result(registerName.data()); // FIXME: fail or not fail?
   CountsDictionary newCounts;
-  for (auto [bits, count] : iter->second.counts) {
+  for (auto [bits, count] : result.counts) {
     if (idx.size() != bits.size())
       throw std::runtime_error("Calling reorder() with invalid parameter idx");
 
@@ -513,10 +475,10 @@ void sample_result::reorder(const std::vector<std::size_t> &idx,
       newBits[i++] = bits[oldIdx];
     newCounts[newBits] = count;
   }
-  iter->second.counts = newCounts;
+  result.counts = newCounts;
 
   // Now process the sequential data
-  for (auto &s : iter->second.sequentialData) {
+  for (auto &s : result.sequentialData) {
     std::string newBits(s);
     int i = 0;
     for (auto oldIdx : idx)
