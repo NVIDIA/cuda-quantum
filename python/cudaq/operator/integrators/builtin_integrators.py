@@ -10,7 +10,6 @@ from ..integrator import BaseTimeStepper, BaseIntegrator
 from ..cudm_helpers import cudm, CudmStateType, CudmOperator, CudmWorkStream
 from ..cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from ...util.timing_helper import ScopeTimer
-from .. import nvqir_dynamics_bindings as bindings
 
 has_cupy = True
 try:
@@ -18,12 +17,22 @@ try:
 except ImportError:
     has_cupy = False
 
+has_dynamics = True
+try:
+    from .. import nvqir_dynamics_bindings as bindings
+except ImportError:
+    has_dynamics = False
+
 
 class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
     # Thin wrapper around the `TimeStepper` C++ bindings
     def __init__(self, liouvillian: CudmOperator, ctx: CudmWorkStream):
         if not has_cupy:
             raise ImportError('CuPy is required to use integrators.')
+        if not has_dynamics:
+            raise ImportError(
+                'CUDA-Q is missing dynamics support. Please check your installation'
+            )
         self.liouvillian = liouvillian
         self.liouvillian._maybe_instantiate(ctx)
         self.stepper = bindings.TimeStepper(ctx._handle._validated_ptr,
