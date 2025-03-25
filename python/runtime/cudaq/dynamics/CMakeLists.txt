@@ -27,6 +27,7 @@ find_file(CUDENSITYMAT_INC
 get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
 target_include_directories(nvqir_dynamics_bindings 
     PRIVATE 
+        ${CMAKE_SOURCE_DIR}/runtime
         ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat 
         ${CUDENSITYMAT_INCLUDE_DIR}
         ${CUDAToolkit_INCLUDE_DIRS})
