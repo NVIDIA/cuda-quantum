@@ -87,7 +87,8 @@ Returns:
     if isinstance(spin_operator, list):
         for idx, op in enumerate(spin_operator):
             spin_operator[idx] = to_spin_op(op).canonicalize()
-    else: spin_operator.canonicalize()
+    else:
+        spin_operator.canonicalize()
 
     # Handle parallel execution use cases
     if execution != None:
