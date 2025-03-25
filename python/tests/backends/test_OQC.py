@@ -231,13 +231,11 @@ def test_OQC_state_synthesis():
     def init(n: int):
         q = cudaq.qvector(n)
         x(q[0])
-        mz(q)
 
     @cudaq.kernel
     def kernel(s: cudaq.State):
         q = cudaq.qvector(s)
         x(q[1])
-        mz(q)
 
     s = cudaq.get_state(init, 2)
     s = cudaq.get_state(kernel, s)
