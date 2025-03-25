@@ -99,24 +99,21 @@ public:
 
   // defined operators
 
-  static product_op<spin_handler> i(std::size_t degree);
-  static product_op<spin_handler> z(std::size_t degree);
-  static product_op<spin_handler> x(std::size_t degree);
-  static product_op<spin_handler> y(std::size_t degree);
-  static sum_op<spin_handler> plus(std::size_t degree);
-  static sum_op<spin_handler> minus(std::size_t degree);
+  static spin_handler z(std::size_t degree);
+  static spin_handler x(std::size_t degree);
+  static spin_handler y(std::size_t degree);
 };
+} // namespace cudaq
 
 // needs to be down here such that the handler is defined
 // before we include the template declarations that depend on it
 #include "cudaq/operators.h"
 
-namespace spin {
+namespace cudaq::spin {
 product_op<spin_handler> i(std::size_t target);
 product_op<spin_handler> x(std::size_t target);
 product_op<spin_handler> y(std::size_t target);
 product_op<spin_handler> z(std::size_t target);
 sum_op<spin_handler> plus(std::size_t target);
 sum_op<spin_handler> minus(std::size_t target);
-} // namespace spin
-} // namespace cudaq
+} // namespace cudaq::spin

@@ -1406,102 +1406,102 @@ sum_op<fermion_handler>::identity(std::size_t target);
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_op<T> sum_op<HandlerTy>::number(std::size_t target) {
-  return matrix_handler::number(target);
+  return cudaq::operators::number(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_op<T> sum_op<HandlerTy>::parity(std::size_t target) {
-  return matrix_handler::parity(target);
+  return cudaq::operators::parity(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_op<T> sum_op<HandlerTy>::position(std::size_t target) {
-  return matrix_handler::position(target);
+  return cudaq::operators::position(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_op<T> sum_op<HandlerTy>::momentum(std::size_t target) {
-  return matrix_handler::momentum(target);
+  return cudaq::operators::momentum(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_op<T> sum_op<HandlerTy>::squeeze(std::size_t target) {
-  return matrix_handler::squeeze(target);
+  return cudaq::operators::squeeze(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_op<T> sum_op<HandlerTy>::displace(std::size_t target) {
-  return matrix_handler::displace(target);
+  return cudaq::operators::displace(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<T> sum_op<HandlerTy>::i(std::size_t target) {
-  return spin_handler::i(target);
+  return cudaq::spin::i(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<T> sum_op<HandlerTy>::x(std::size_t target) {
-  return spin_handler::x(target);
+  return cudaq::spin::x(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<T> sum_op<HandlerTy>::y(std::size_t target) {
-  return spin_handler::y(target);
+  return cudaq::spin::y(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<T> sum_op<HandlerTy>::z(std::size_t target) {
-  return spin_handler::z(target);
+  return cudaq::spin::z(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 sum_op<T> sum_op<HandlerTy>::plus(std::size_t target) {
-  return spin_handler::plus(target);
+  return cudaq::spin::plus(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 sum_op<T> sum_op<HandlerTy>::minus(std::size_t target) {
-  return spin_handler::minus(target);
+  return cudaq::spin::minus(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 product_op<T> sum_op<HandlerTy>::create(std::size_t target) {
-  return boson_handler::create(target);
+  return cudaq::boson::create(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 product_op<T> sum_op<HandlerTy>::annihilate(std::size_t target) {
-  return boson_handler::annihilate(target);
+  return cudaq::boson::annihilate(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 product_op<T> sum_op<HandlerTy>::number(std::size_t target) {
-  return boson_handler::number(target);
+  return cudaq::boson::number(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 sum_op<T> sum_op<HandlerTy>::position(std::size_t target) {
-  return boson_handler::position(target);
+  return cudaq::boson::position(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
 sum_op<T> sum_op<HandlerTy>::momentum(std::size_t target) {
-  return boson_handler::momentum(target);
+  return cudaq::boson::momentum(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
 product_op<T> sum_op<HandlerTy>::create(std::size_t target) {
-  return fermion_handler::create(target);
+  return cudaq::fermion::create(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
 product_op<T> sum_op<HandlerTy>::annihilate(std::size_t target) {
-  return fermion_handler::annihilate(target);
+  return cudaq::fermion::annihilate(target);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
 product_op<T> sum_op<HandlerTy>::number(std::size_t target) {
-  return fermion_handler::number(target);
+  return cudaq::fermion::number(target);
 }
 
 template product_op<matrix_handler>

@@ -358,7 +358,7 @@ bool matrix_handler::operator==(const matrix_handler &other) const {
 
 // predefined operators
 
-product_op<matrix_handler> matrix_handler::number(std::size_t degree) {
+matrix_handler matrix_handler::number(std::size_t degree) {
   std::string op_code = "number";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -374,11 +374,10 @@ product_op<matrix_handler> matrix_handler::number(std::size_t degree) {
         };
     matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_handler(op_code, {degree});
-  return product_op(std::move(op));
+  return matrix_handler(op_code, {degree});
 }
 
-product_op<matrix_handler> matrix_handler::parity(std::size_t degree) {
+matrix_handler matrix_handler::parity(std::size_t degree) {
   std::string op_code = "parity";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -394,11 +393,10 @@ product_op<matrix_handler> matrix_handler::parity(std::size_t degree) {
         };
     matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_handler(op_code, {degree});
-  return product_op(std::move(op));
+  return matrix_handler(op_code, {degree});
 }
 
-product_op<matrix_handler> matrix_handler::position(std::size_t degree) {
+matrix_handler matrix_handler::position(std::size_t degree) {
   std::string op_code = "position";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -416,11 +414,10 @@ product_op<matrix_handler> matrix_handler::position(std::size_t degree) {
         };
     matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_handler(op_code, {degree});
-  return product_op(std::move(op));
+  return matrix_handler(op_code, {degree});
 }
 
-product_op<matrix_handler> matrix_handler::momentum(std::size_t degree) {
+matrix_handler matrix_handler::momentum(std::size_t degree) {
   std::string op_code = "momentum";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -440,11 +437,10 @@ product_op<matrix_handler> matrix_handler::momentum(std::size_t degree) {
         };
     matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_handler(op_code, {degree});
-  return product_op(std::move(op));
+  return matrix_handler(op_code, {degree});
 }
 
-product_op<matrix_handler> matrix_handler::displace(std::size_t degree) {
+matrix_handler matrix_handler::displace(std::size_t degree) {
   std::string op_code = "displace";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -468,11 +464,10 @@ product_op<matrix_handler> matrix_handler::displace(std::size_t degree) {
     };
     matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_handler(op_code, {degree});
-  return product_op(std::move(op));
+  return matrix_handler(op_code, {degree});
 }
 
-product_op<matrix_handler> matrix_handler::squeeze(std::size_t degree) {
+matrix_handler matrix_handler::squeeze(std::size_t degree) {
   std::string op_code = "squeeze";
   if (matrix_handler::defined_ops.find(op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -497,28 +492,27 @@ product_op<matrix_handler> matrix_handler::squeeze(std::size_t degree) {
     };
     matrix_handler::define(op_code, {-1}, func);
   }
-  auto op = matrix_handler(op_code, {degree});
-  return product_op(std::move(op));
+  return matrix_handler(op_code, {degree});
 }
 
 namespace operators {
 product_op<matrix_handler> number(std::size_t target) {
-  return matrix_handler::number(target);
+  return product_op(matrix_handler::number(target));
 }
 product_op<matrix_handler> parity(std::size_t target) {
-  return matrix_handler::parity(target);
+  return product_op(matrix_handler::parity(target));
 }
 product_op<matrix_handler> position(std::size_t target) {
-  return matrix_handler::position(target);
+  return product_op(matrix_handler::position(target));
 }
 product_op<matrix_handler> momentum(std::size_t target) {
-  return matrix_handler::momentum(target);
+  return product_op(matrix_handler::momentum(target));
 }
 product_op<matrix_handler> squeeze(std::size_t target) {
-  return matrix_handler::squeeze(target);
+  return product_op(matrix_handler::squeeze(target));
 }
 product_op<matrix_handler> displace(std::size_t target) {
-  return matrix_handler::displace(target);
+  return product_op(matrix_handler::displace(target));
 }
 } // namespace operators
 

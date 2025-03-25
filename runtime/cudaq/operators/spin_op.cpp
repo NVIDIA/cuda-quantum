@@ -201,48 +201,38 @@ bool spin_handler::operator==(const spin_handler &other) const {
 
 // defined operators
 
-product_op<spin_handler> spin_handler::i(std::size_t degree) {
-  return product_op(spin_handler(degree));
+spin_handler spin_handler::z(std::size_t degree) {
+  return spin_handler(degree, 1);
 }
 
-product_op<spin_handler> spin_handler::z(std::size_t degree) {
-  return product_op(spin_handler(degree, 1));
+spin_handler spin_handler::x(std::size_t degree) {
+  return spin_handler(degree, 2);
 }
 
-product_op<spin_handler> spin_handler::x(std::size_t degree) {
-  return product_op(spin_handler(degree, 2));
-}
-
-product_op<spin_handler> spin_handler::y(std::size_t degree) {
-  return product_op(spin_handler(degree, 3));
-}
-
-sum_op<spin_handler> spin_handler::plus(std::size_t degree) {
-  return 0.5 * x(degree) + std::complex<double>(0., 0.5) * y(degree);
-}
-
-sum_op<spin_handler> spin_handler::minus(std::size_t degree) {
-  return 0.5 * x(degree) - std::complex<double>(0., 0.5) * y(degree);
+spin_handler spin_handler::y(std::size_t degree) {
+  return spin_handler(degree, 3);
 }
 
 namespace spin {
 product_op<spin_handler> i(std::size_t target) {
-  return spin_handler::i(target);
+  return product_op(spin_handler(target));
 }
 product_op<spin_handler> x(std::size_t target) {
-  return spin_handler::x(target);
+  return product_op(spin_handler::x(target));
 }
 product_op<spin_handler> y(std::size_t target) {
-  return spin_handler::y(target);
+  return product_op(spin_handler::y(target));
 }
 product_op<spin_handler> z(std::size_t target) {
-  return spin_handler::z(target);
+  return product_op(spin_handler::z(target));
 }
 sum_op<spin_handler> plus(std::size_t target) {
-  return spin_handler::plus(target);
+  return sum_op<spin_handler>(0.5 * x(target),
+                              std::complex<double>(0., 0.5) * y(target));
 }
 sum_op<spin_handler> minus(std::size_t target) {
-  return spin_handler::minus(target);
+  return sum_op<spin_handler>(0.5 * x(target),
+                              std::complex<double>(0., -0.5) * y(target));
 }
 } // namespace spin
 
