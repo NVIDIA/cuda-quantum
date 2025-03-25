@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <iostream>
 #include <pybind11/complex.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
