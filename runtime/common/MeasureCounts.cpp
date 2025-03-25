@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "MeasureCounts.h"
+#include "cudaq/spin_op.h"
 
 #include <algorithm>
 #include <numeric>
@@ -257,25 +258,43 @@ sample_result &sample_result::operator+=(const sample_result &other) {
   return *this;
 }
 
-std::pair<bool, const ExecutionResult&> 
+std::pair<bool, const ExecutionResult &>
 sample_result::try_retrieve_result(const std::string &registerName) const {
   auto iter = sampleResults.find(registerName);
-  if (iter == sampleResults.end())
+  if (iter == sampleResults.end()) {
+    auto invalid_char = registerName.find_first_not_of("XYZI");
+    if (invalid_char == std::string::npos) {
+      auto spin = spin_op::from_word(registerName);
+      iter = sampleResults.find(spin.canonicalize().get_term_id());
+      if (iter != sampleResults.end())
+        return {true, iter->second};
+    }
     return {false, ExecutionResult()};
+  }
   return {true, iter->second};
 }
 
-const cudaq::ExecutionResult& sample_result::retrieve_result(const std::string &registerName) const {
-  auto iter = sampleResults.find(registerName);
-  if (iter == sampleResults.end())
+const cudaq::ExecutionResult &
+sample_result::retrieve_result(const std::string &registerName) const {
+  auto [found, result] = try_retrieve_result(registerName);
+  if (!found)
     throw std::runtime_error("no results stored for " + registerName);
-  return iter->second;
+  return result;
 }
 
-cudaq::ExecutionResult& sample_result::retrieve_result(const std::string &registerName) {
+cudaq::ExecutionResult &
+sample_result::retrieve_result(const std::string &registerName) {
   auto iter = sampleResults.find(registerName);
-  if (iter == sampleResults.end())
+  if (iter == sampleResults.end()) {
+    auto invalid_char = registerName.find_first_not_of("XYZI");
+    if (invalid_char == std::string::npos) {
+      auto spin = spin_op::from_word(registerName);
+      iter = sampleResults.find(spin.canonicalize().get_term_id());
+      if (iter != sampleResults.end())
+        return iter->second;
+    }
     throw std::runtime_error("no results stored for " + registerName);
+  }
   return iter->second;
 }
 
@@ -300,10 +319,13 @@ CountsDictionary::const_iterator sample_result::cend() const {
   return retrieve_result(GlobalRegisterName).counts.cend();
 }
 
-std::size_t sample_result::size(const std::string_view registerName) const noexcept {
+std::size_t
+sample_result::size(const std::string_view registerName) const noexcept {
   auto [found, result] = try_retrieve_result(registerName.data());
-  if (found) return result.counts.size();
-  else return 0;
+  if (found)
+    return result.counts.size();
+  else
+    return 0;
 }
 
 double sample_result::probability(std::string_view bitStr,
@@ -319,11 +341,14 @@ std::size_t sample_result::count(std::string_view bitStr,
                                  const std::string_view registerName) const {
   const auto &counts = retrieve_result(registerName.data()).counts;
   auto it = counts.find(bitStr.data());
-  if (it == counts.cend()) return 0;
-  else return it->second;
+  if (it == counts.cend())
+    return 0;
+  else
+    return it->second;
 }
 
-std::string sample_result::most_probable(const std::string_view registerName) const {
+std::string
+sample_result::most_probable(const std::string_view registerName) const {
   const auto &counts = retrieve_result(registerName.data()).counts;
   return std::max_element(counts.begin(), counts.end(),
                           [](const auto &el1, const auto &el2) {
@@ -334,8 +359,10 @@ std::string sample_result::most_probable(const std::string_view registerName) co
 
 bool sample_result::has_expectation(const std::string_view registerName) const {
   auto [found, result] = try_retrieve_result(registerName.data());
-  if (found) return result.expectationValue.has_value();
-  else return false;
+  if (found)
+    return result.expectationValue.has_value();
+  else
+    return false;
 }
 
 double sample_result::expectation(const std::string_view registerName) const {
@@ -368,13 +395,13 @@ std::vector<std::string> sample_result::register_names() const {
 
 CountsDictionary
 sample_result::to_map(const std::string_view registerName) const {
-  return retrieve_result(registerName.data()).counts; // FIXME: fail or don't fail?
+  return retrieve_result(registerName.data()).counts;
 }
 
 sample_result
 sample_result::get_marginal(const std::vector<std::size_t> &marginalIndices,
                             const std::string_view registerName) const {
-  const auto &counts = retrieve_result(registerName.data()).counts; // FIXME: fail or don't fail?
+  const auto &counts = retrieve_result(registerName.data()).counts;
   auto mutableIndices = marginalIndices;
 
   std::sort(mutableIndices.begin(), mutableIndices.end());
@@ -463,7 +490,7 @@ bool sample_result::has_even_parity(std::string_view bitString) {
 void sample_result::reorder(const std::vector<std::size_t> &idx,
                             const std::string_view registerName) {
   // First process the counts
-  auto &result = retrieve_result(registerName.data()); // FIXME: fail or not fail?
+  auto &result = retrieve_result(registerName.data());
   CountsDictionary newCounts;
   for (auto [bits, count] : result.counts) {
     if (idx.size() != bits.size())

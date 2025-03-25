@@ -106,14 +106,18 @@ protected:
 
 public:
   async_result() = default;
-  async_result(spin_op *s) {
-    if (s)
+  async_result(const spin_op *s) {
+    if (s) {
       spinOp = *s;
+      spinOp.value().canonicalize();
+    }
   }
-  async_result(details::future &&f, spin_op *op = nullptr)
+  async_result(details::future &&f, const spin_op *op = nullptr)
       : result(std::move(f)) {
-    if (op)
+    if (op) {
       spinOp = *op;
+      spinOp.value().canonicalize();
+    }
   }
 
   /// @brief Return the asynchronously computed data, will

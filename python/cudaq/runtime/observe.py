@@ -86,7 +86,9 @@ Returns:
     spin_operator = to_spin_op(spin_operator)
     if isinstance(spin_operator, list):
         for idx, op in enumerate(spin_operator):
-            spin_operator[idx] = to_spin_op(op)
+            spin_operator[idx] = to_spin_op(op).canonicalize()
+    else: spin_operator.canonicalize()
+
     # Handle parallel execution use cases
     if execution != None:
         return cudaq_runtime.observe_parallel(kernel,

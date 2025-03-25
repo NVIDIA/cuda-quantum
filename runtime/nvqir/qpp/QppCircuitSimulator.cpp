@@ -313,7 +313,7 @@ public:
   }
 
   cudaq::observe_result observe(const cudaq::spin_op &op) override {
-
+    assert(cudaq::spin_op::canonicalize(op) == op);
     flushGateQueue();
 
     // The op is on the following target bits.

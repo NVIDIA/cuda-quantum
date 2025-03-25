@@ -1581,33 +1581,46 @@ sum_op<HandlerTy> &sum_op<HandlerTy>::canonicalize() {
   // If we make any updates, we it's best to completely rebuild the operator,
   // since this may lead to the combination of terms and therefore
   // change the structure/term_map of the operator.
-  sum_op<HandlerTy> canonicalized(false);
-  for (auto &&prod : *this)
-    canonicalized.insert(prod.canonicalize());
-  *this = canonicalized;
+  *this = canonicalize(std::move(*this));
   return *this;
+}
+
+template <typename HandlerTy>
+sum_op<HandlerTy>
+sum_op<HandlerTy>::canonicalize(const sum_op<HandlerTy> &orig) {
+  sum_op<HandlerTy> canonicalized(false);
+  for (auto &&prod : orig)
+    canonicalized.insert(prod.canonicalize());
+  return canonicalized;
 }
 
 template <typename HandlerTy>
 sum_op<HandlerTy> &
 sum_op<HandlerTy>::canonicalize(const std::set<std::size_t> &degrees) {
+  // If we make any updates, we it's best to completely rebuild the operator,
+  // since this may lead to the combination of terms and therefore
+  // change the structure/term_map of the operator.
+  *this = canonicalize(std::move(*this), degrees);
+  return *this;
+}
+
+template <typename HandlerTy>
+sum_op<HandlerTy>
+sum_op<HandlerTy>::canonicalize(const sum_op<HandlerTy> &orig,
+                                const std::set<std::size_t> &degrees) {
   std::set<std::size_t> all_degrees;
   if (degrees.size() == 0) {
-    for (const auto &term : this->terms)
+    for (const auto &term : orig.terms)
       for (const auto &op : term) {
         auto op_degrees = op.degrees();
         all_degrees.insert(op_degrees.cbegin(), op_degrees.cend());
       }
   }
-  // If we make any updates, we it's best to completely rebuild the operator,
-  // since this may lead to the combination of terms and therefore
-  // change the structure/term_map of the operator.
   sum_op<HandlerTy> canonicalized(false);
-  for (auto &&prod : *this)
+  for (auto &&prod : orig)
     canonicalized.insert(
         prod.canonicalize(degrees.size() == 0 ? all_degrees : degrees));
-  *this = canonicalized;
-  return *this;
+  return canonicalized;
 }
 
 template <typename HandlerTy>
@@ -1646,8 +1659,14 @@ sum_op<HandlerTy>::distribute_terms(std::size_t numChunks) const {
                                                                                \
   template sum_op<HandlerTy> &sum_op<HandlerTy>::canonicalize();               \
                                                                                \
+  template sum_op<HandlerTy> sum_op<HandlerTy>::canonicalize(                  \
+      const sum_op<HandlerTy> &orig);                                          \
+                                                                               \
   template sum_op<HandlerTy> &sum_op<HandlerTy>::canonicalize(                 \
       const std::set<std::size_t> &degrees);                                   \
+                                                                               \
+  template sum_op<HandlerTy> sum_op<HandlerTy>::canonicalize(                  \
+      const sum_op<HandlerTy> &orig, const std::set<std::size_t> &degrees);    \
                                                                                \
   template sum_op<HandlerTy> &sum_op<HandlerTy>::trim(                         \
       double tol, const std::unordered_map<std::string, std::complex<double>>  \
