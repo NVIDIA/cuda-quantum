@@ -374,6 +374,10 @@ public:
   /// Determine the (preferred) precision of the simulator.
   virtual bool isSinglePrecision() const = 0;
   bool isDoublePrecision() const { return !isSinglePrecision(); }
+
+  /// A string containing the output logging of a kernel launched with
+  /// `cudaq::run()`.
+  std::string outputLog;
 };
 
 /// @brief The CircuitSimulatorBase is the type that is meant to
@@ -419,7 +423,7 @@ protected:
 
   /// @brief Store the last observed register name, this will help us
   /// know if we are writing to a classical bit vector
-  std::string lastMidCircuitRegisterName = "";
+  std::string lastMidCircuitRegisterName;
 
   /// @brief Vector storing register names that are bit vectors
   std::vector<std::string> vectorRegisters;

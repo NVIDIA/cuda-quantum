@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
@@ -43,23 +43,18 @@ public:
   }
 };
 
-class CallRewrite : public OpRewritePattern<func::CallOp> {
+class FuncConstant : public OpRewritePattern<func::ConstantOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  // It should be a violation of the CUDA-Q spec to call an entry-point function
-  // that returns a value from another entry-point function and use the result
-  // value(s). Under a run context, no entry-point kernel will actually return a
-  // value.
-  LogicalResult matchAndRewrite(func::CallOp call,
+  // Simple type conversion: drop the result type on the floor.
+  LogicalResult matchAndRewrite(func::ConstantOp con,
                                 PatternRewriter &rewriter) const override {
-    auto loc = call.getLoc();
-    rewriter.create<func::CallOp>(loc, TypeRange{}, call.getCallee(),
-                                  call.getOperands());
-    SmallVector<Value> poisons;
-    for (auto ty : call.getResultTypes())
-      poisons.push_back(rewriter.create<cudaq::cc::PoisonOp>(loc, ty));
-    rewriter.replaceOp(call, poisons);
+    auto *ctx = rewriter.getContext();
+    auto inputTys = cast<FunctionType>(con.getType()).getInputs();
+    auto funcTy = FunctionType::get(ctx, inputTys, {});
+    auto val = con.getValue();
+    rewriter.replaceOpWithNewOp<func::ConstantOp>(con, funcTy, val);
     return success();
   }
 };
@@ -240,12 +235,50 @@ public:
   }
 };
 
+class CallRewrite : public OpConversionPattern<func::CallOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  // It should be a violation of the CUDA-Q spec to call an entry-point function
+  // that returns a value from another entry-point function and use the result
+  // value(s). Under a run context, no entry-point kernel will actually return a
+  // value.
+  LogicalResult
+  matchAndRewrite(func::CallOp call, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = call.getLoc();
+    rewriter.create<func::CallOp>(loc, TypeRange{}, call.getCallee(),
+                                  adaptor.getOperands());
+    SmallVector<Value> poisons;
+    for (auto ty : call.getResultTypes())
+      poisons.push_back(rewriter.create<cudaq::cc::PoisonOp>(loc, ty));
+    rewriter.replaceOp(call, poisons);
+    return success();
+  }
+};
+
+class FuncPtrConvert : public OpConversionPattern<cudaq::cc::FuncToPtrOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::FuncToPtrOp fnptr, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<cudaq::cc::FuncToPtrOp>(fnptr, fnptr.getType(),
+                                                        adaptor.getFunc());
+    return success();
+  }
+};
+
 struct ReturnToOutputLogPass
     : public cudaq::opt::impl::ReturnToOutputLogBase<ReturnToOutputLogPass> {
   using ReturnToOutputLogBase::ReturnToOutputLogBase;
 
   void runOnOperation() override {
     auto module = getOperation();
+    if (!module->hasAttr(cudaq::runtime::enableCudaqRun))
+      return;
+
     auto *ctx = &getContext();
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
     if (failed(irBuilder.loadIntrinsic(module, "qir_output_logging"))) {
@@ -255,11 +288,24 @@ struct ReturnToOutputLogPass
     }
 
     RewritePatternSet patterns(ctx);
-    patterns.insert<CallRewrite, FuncSignature, ReturnRewrite>(ctx);
+    patterns.insert<CallRewrite, FuncConstant, FuncPtrConvert, FuncSignature,
+                    ReturnRewrite>(ctx);
     LLVM_DEBUG(llvm::dbgs() << "Before return to output logging:\n" << module);
     ConversionTarget target(*ctx);
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                            func::FuncDialect>();
+    auto constantOpLegal = [&](func::ConstantOp con) {
+      // Legal unless calling an entry-point function with a result.
+      if (auto module = con->getParentOfType<ModuleOp>()) {
+        auto val = con.getValue();
+        if (auto fn = module.lookupSymbol<func::FuncOp>(val)) {
+          auto fnTy = cast<FunctionType>(con.getResult().getType());
+          return !fn->hasAttr(cudaq::entryPointAttrName) ||
+                 fnTy.getResults().empty();
+        }
+      }
+      return true;
+    };
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp fn) {
       // Legal unless an entry-point function, with a body, that returns a
       // value.
@@ -271,13 +317,19 @@ struct ReturnToOutputLogPass
       if (auto module = call->getParentOfType<ModuleOp>()) {
         auto callee = call.getCallee();
         if (auto fn = module.lookupSymbol<func::FuncOp>(callee)) {
-          return fn.getBody().empty() ||
-                 !fn->hasAttr(cudaq::entryPointAttrName) ||
-                 fn.getFunctionType().getResults().empty();
+          return !fn->hasAttr(cudaq::entryPointAttrName) ||
+                 call.getResults().empty();
         }
       }
       return true;
     });
+    target.addDynamicallyLegalOp<func::ConstantOp>(constantOpLegal);
+    target.addDynamicallyLegalOp<cudaq::cc::FuncToPtrOp>(
+        [&](cudaq::cc::FuncToPtrOp funcPtr) {
+          if (auto con = funcPtr.getFunc().getDefiningOp<func::ConstantOp>())
+            return constantOpLegal(con);
+          return true;
+        });
     target.addDynamicallyLegalOp<func::ReturnOp>([&](func::ReturnOp ret) {
       // Legal if return is not in an entry-point or does not return a value.
       if (auto fn = ret->getParentOfType<func::FuncOp>())

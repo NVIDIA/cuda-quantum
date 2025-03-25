@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --add-dealloc --expand-measurements --factor-quantum-alloc --expand-control-veqs --cc-loop-unroll --canonicalize --multicontrol-decomposition --lower-to-cfg --cse --decomposition=enable-patterns="CCXToCCZ,CCZToCX" --combine-quantum-alloc --canonicalize --convert-to-qir-api --return-to-output-log --symbol-dce --canonicalize | FileCheck %s
+// RUN: cudaq-quake --cudaq-run=1 %cpp_std %s | cudaq-opt --add-dealloc --expand-measurements --factor-quantum-alloc --expand-control-veqs --cc-loop-unroll --canonicalize --multicontrol-decomposition --lower-to-cfg --cse --decomposition=enable-patterns="CCXToCCZ,CCZToCX" --combine-quantum-alloc --canonicalize --convert-to-qir-api --return-to-output-log --symbol-dce --canonicalize | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

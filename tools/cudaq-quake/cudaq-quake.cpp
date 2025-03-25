@@ -91,6 +91,10 @@ static cl::opt<bool> dumpToStderr("llvm-to-stderr",
                                   cl::desc("Echo the LLVM IR to stderr"),
                                   cl::init(false));
 
+static cl::opt<bool> enableCudaqRun("cudaq-run",
+                                    cl::desc("Enable cudaq::run launches"),
+                                    cl::init(false));
+
 static cl::opt<std::string>
     resourceDir("resource-dir",
                 cl::desc("Specify the clang resource directory"), cl::init(""));
@@ -467,6 +471,9 @@ int main(int argc, char **argv) {
                            mlir::StringAttr::get(&context, value));
       auto mapAttr = mlir::DictionaryAttr::get(&context, names);
       moduleOp->setAttr(cudaq::runtime::mangledNameMap, mapAttr);
+      if (enableCudaqRun)
+        moduleOp->setAttr(cudaq::runtime::enableCudaqRun,
+                          mlir::UnitAttr::get(&context));
     }
 
     // Running the verifier to make it easier to track down errors.

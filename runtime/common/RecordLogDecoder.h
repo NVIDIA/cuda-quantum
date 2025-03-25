@@ -62,8 +62,7 @@ private:
   void addPrimitiveRecord(T value) {
     /// ASKME: Is this efficient?
     std::size_t position = buffer.size();
-    buffer.resize(position +
-                  std::max(static_cast<std::size_t>(128), sizeof(T)));
+    buffer.resize(position + sizeof(T));
     std::memcpy(buffer.data() + position, &value, sizeof(T));
   }
 
