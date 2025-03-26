@@ -254,7 +254,8 @@ def test_spin_op_members():
     # No longer identity.
     assert not spin_operator.is_identity()
     # Term should have a coefficient -1
-    assert spin_operator[0].get_coefficient() == -1.0
+    term, *_ = spin_operator
+    assert term.get_coefficient() == -1.0
 
 
 def test_spin_op_vqe():
