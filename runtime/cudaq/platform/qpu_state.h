@@ -17,8 +17,6 @@
 #include <utility>
 #include <vector>
 
-#include <iostream>
-
 namespace cudaq {
 namespace details {
 #if CUDAQ_USE_STD20

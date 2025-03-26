@@ -21,8 +21,6 @@
 #include <complex>
 #include <vector>
 
-#include <iostream>
-
 namespace cudaq {
 
 #if CUDAQ_USE_STD20
