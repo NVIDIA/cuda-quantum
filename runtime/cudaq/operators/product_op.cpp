@@ -324,7 +324,7 @@ INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_handler,
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_handler,
                                      operator_handler::canonical_evaluation);
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_handler,
-                                     operator_handler::matrix_evaluation);
+                                     operator_handler::canonical_evaluation);
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_handler,
                                      operator_handler::canonical_evaluation);
 
@@ -660,6 +660,49 @@ complex_matrix product_op<HandlerTy>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
+  auto terms = std::move(
+      this->evaluate(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+  auto matrix =
+      HandlerTy::to_matrix(terms[0].second, terms[0].first, invert_order);
+  return matrix;
+}
+
+// FIXME: CLEAN UP...
+template <>
+complex_matrix product_op<boson_handler>::to_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto terms = std::move(
+      this->evaluate(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+
+  std::vector<int64_t> relevant_dims;
+  relevant_dims.reserve(this->operators.size());
+  for (const auto &op : this->operators) {
+    auto it = dimensions.find(op.degree);
+    assert(it != dimensions.end());
+    relevant_dims.push_back(it->second);
+  }
+
+  auto matrix =
+      boson_handler::to_matrix(terms[0].second, relevant_dims, terms[0].first, invert_order);
+  return matrix;
+}
+
+// FIXME: CLEAN UP...
+template <>
+complex_matrix product_op<matrix_handler>::to_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
   auto evaluated =
       this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(
           dimensions, parameters));
@@ -671,39 +714,6 @@ complex_matrix product_op<HandlerTy>::to_matrix(
     cudaq::detail::permute_matrix(evaluated.matrix, permutation);
   }
   return std::move(evaluated.matrix);
-}
-
-template <>
-complex_matrix product_op<spin_handler>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto terms = std::move(
-      this->evaluate(
-              operator_arithmetics<operator_handler::canonical_evaluation>(
-                  dimensions, parameters))
-          .terms);
-  assert(terms.size() == 1);
-  auto matrix =
-      spin_handler::to_matrix(terms[0].second, terms[0].first, invert_order);
-  return matrix;
-}
-
-// FIXME: CLEAN THIS UP SIMILAR TO supports_inplace_mult
-template <>
-complex_matrix product_op<fermion_handler>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto terms = std::move(
-      this->evaluate(
-              operator_arithmetics<operator_handler::canonical_evaluation>(
-                  dimensions, parameters))
-          .terms);
-  assert(terms.size() == 1);
-  auto matrix =
-      fermion_handler::to_matrix(terms[0].second, terms[0].first, invert_order);
-  return matrix;
 }
 
 #define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                             \
@@ -1524,6 +1534,32 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
   return cudaq::detail::to_csr_spmatrix(matrix, 1ul << terms[0].second.size());
 }
 
+// FIXME: CLEAN THIS UP...
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
+csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto terms = std::move(
+      this->evaluate(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+
+  std::vector<int64_t> relevant_dims;
+  relevant_dims.reserve(this->operators.size());
+  for (const auto &op : this->operators) {
+    auto it = dimensions.find(op.degree);
+    assert(it != dimensions.end());
+    relevant_dims.push_back(it->second);
+  }
+
+  auto matrix = HandlerTy::to_sparse_matrix(terms[0].second, relevant_dims, terms[0].first,
+                                               invert_order);
+  return cudaq::detail::to_csr_spmatrix(matrix, 1ul << terms[0].second.size());
+}
+
 template std::size_t product_op<spin_handler>::num_qubits() const;
 template std::string
 product_op<spin_handler>::get_pauli_word(std::size_t pad_identities) const;
@@ -1534,6 +1570,10 @@ template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template csr_spmatrix product_op<fermion_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix product_op<boson_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;

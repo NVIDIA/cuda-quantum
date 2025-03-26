@@ -60,7 +60,7 @@ std::string boson_handler::op_code_to_string(
                              std::to_string(this->degree));
 
   if (this->additional_terms == 0 && this->number_offsets.size() == 0)
-    return "I";
+    return "I_";
   std::string str = std::to_string(this->additional_terms);
   for (auto offset : this->number_offsets)
     str += "." + std::to_string(offset);
@@ -230,6 +230,7 @@ void boson_handler::create_matrix(
   };
 
   auto states = generate_all_states(dimensions);
+  if (states.size() == 0) process_element(0, 0, 1.);
   std::vector<std::string> boson_terms = tokenize(boson_word, '_');
   std::size_t old_state_idx = 0;
   for (std::string old_state : states) {

@@ -19,6 +19,8 @@ namespace cudaq {
 class boson_handler : public operator_handler {
   template <typename T>
   friend class product_op;
+  template <typename T>
+  friend class sum_op;
 
 private:
   // Each boson operator is represented as number operators along with an
@@ -51,18 +53,18 @@ private:
       bool invert_order);
 
   /// @brief Computes the sparse matrix representation of the string encoding
-  /// of a fermionic product operator. Private method since this encoding is 
+  /// of a bosonic product operator. Private method since this encoding is 
   /// not very user friendly.
   static cudaq::detail::EigenSparseMatrix
-  to_sparse_matrix(const std::string &fermi_word, 
+  to_sparse_matrix(const std::string &boson_word, 
                    const std::vector<int64_t> &dimensions,
                    std::complex<double> coeff = 1.,
                    bool invert_order = false);
 
   /// @brief Computes the sparse matrix representation of the string encoding
-  /// of a fermionic product operator. Private method since this encoding is 
+  /// of a bosonic product operator. Private method since this encoding is 
   /// not very user friendly.
-  static complex_matrix to_matrix(const std::string &fermi_word,
+  static complex_matrix to_matrix(const std::string &boson_word,
                                   const std::vector<int64_t> &dimensions,
                                   std::complex<double> coeff = 1.,
                                   bool invert_order = false);

@@ -143,7 +143,7 @@ INSTANTIATE_SUM_EVALUATE_METHODS(matrix_handler,
 INSTANTIATE_SUM_EVALUATE_METHODS(spin_handler,
                                  operator_handler::canonical_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(boson_handler,
-                                 operator_handler::matrix_evaluation);
+                                 operator_handler::canonical_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(fermion_handler,
                                  operator_handler::canonical_evaluation);
 #endif
@@ -494,6 +494,55 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
+  auto evaluated = this->evaluate(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+  if (evaluated.terms.size() == 0)
+    return cudaq::complex_matrix(0, 0);
+
+  auto matrix = HandlerTy::to_matrix(evaluated.terms[0].second,
+                                        evaluated.terms[0].first, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    matrix += HandlerTy::to_matrix(evaluated.terms[i].second,
+                                      evaluated.terms[i].first, invert_order);
+  return matrix;
+}
+
+// FIXME: CLEAN UP...
+template <>
+complex_matrix sum_op<boson_handler>::to_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto evaluated = this->evaluate(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+  if (evaluated.terms.size() == 0)
+    return cudaq::complex_matrix(0, 0);
+
+  auto degrees = this->degrees();
+  std::vector<int64_t> relevant_dims;
+  relevant_dims.reserve(degrees.size());
+  for (auto d : degrees) {
+    auto it = dimensions.find(d);
+    assert(it != dimensions.end());
+    relevant_dims.push_back(it->second);
+  }
+
+  auto matrix = boson_handler::to_matrix(evaluated.terms[0].second, relevant_dims,
+                                        evaluated.terms[0].first, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    matrix += boson_handler::to_matrix(evaluated.terms[i].second, relevant_dims,
+                                      evaluated.terms[i].first, invert_order);
+  return matrix;
+}
+
+// FIXME: CLEAN UP...
+template <>
+complex_matrix sum_op<matrix_handler>::to_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
   auto evaluated =
       this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(
           dimensions, parameters));
@@ -505,45 +554,6 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
     cudaq::detail::permute_matrix(evaluated.matrix, permutation);
   }
   return std::move(evaluated.matrix);
-}
-
-template <>
-complex_matrix sum_op<spin_handler>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto evaluated = this->evaluate(
-      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
-                                                                   parameters));
-  if (evaluated.terms.size() == 0)
-    return cudaq::complex_matrix(0, 0);
-
-  auto matrix = spin_handler::to_matrix(evaluated.terms[0].second,
-                                        evaluated.terms[0].first, invert_order);
-  for (auto i = 1; i < terms.size(); ++i)
-    matrix += spin_handler::to_matrix(evaluated.terms[i].second,
-                                      evaluated.terms[i].first, invert_order);
-  return matrix;
-}
-
-// FIXME: CLEAN UP...
-template <>
-complex_matrix sum_op<fermion_handler>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto evaluated = this->evaluate(
-      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
-                                                                   parameters));
-  if (evaluated.terms.size() == 0)
-    return cudaq::complex_matrix(0, 0);
-
-  auto matrix = fermion_handler::to_matrix(evaluated.terms[0].second,
-                                        evaluated.terms[0].first, invert_order);
-  for (auto i = 1; i < terms.size(); ++i)
-    matrix += fermion_handler::to_matrix(evaluated.terms[i].second,
-                                      evaluated.terms[i].first, invert_order);
-  return matrix;
 }
 
 #define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                 \
@@ -1887,6 +1897,39 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
                                         1ul << evaluated.terms[0].second.size());
 }
 
+// FIXME: CLEAN UP...
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
+csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto evaluated = this->evaluate(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+
+  if (evaluated.terms.size() == 0)
+    return std::make_tuple<std::vector<std::complex<double>>,
+                           std::vector<std::size_t>, std::vector<std::size_t>>(
+        {}, {}, {});
+
+  auto degrees = this->degrees();
+  std::vector<int64_t> relevant_dims;
+  relevant_dims.reserve(degrees.size());
+  for (auto d : degrees) {
+    auto it = dimensions.find(d);
+    assert(it != dimensions.end());
+    relevant_dims.push_back(it->second);
+  }
+        
+  auto matrix = HandlerTy::to_sparse_matrix(
+      evaluated.terms[0].second, relevant_dims, evaluated.terms[0].first, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    matrix += HandlerTy::to_sparse_matrix(
+        evaluated.terms[i].second, relevant_dims, evaluated.terms[i].first, invert_order);
+  return cudaq::detail::to_csr_spmatrix(matrix,
+                                        1ul << evaluated.terms[0].second.size());
+}
+
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::vector<double> sum_op<HandlerTy>::get_data_representation() const {
   auto nr_ops = 0;
@@ -1929,6 +1972,10 @@ template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template csr_spmatrix sum_op<fermion_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix sum_op<boson_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
