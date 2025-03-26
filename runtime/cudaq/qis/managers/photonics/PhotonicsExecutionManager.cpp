@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "common/Logger.h"
+#include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
-#include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "qpp.h"
 #include <cmath>
