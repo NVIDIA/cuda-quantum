@@ -17,37 +17,33 @@ try:
 except ImportError:
     has_cupy = False
 
+has_dynamics = True
+try:
+    from .. import nvqir_dynamics_bindings as bindings
+except ImportError:
+    has_dynamics = False
+
 
 class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
-
+    # Thin wrapper around the `TimeStepper` C++ bindings
     def __init__(self, liouvillian: CudmOperator, ctx: CudmWorkStream):
+        if not has_dynamics:
+            raise ImportError(
+                'CUDA-Q is missing dynamics support. Please check your installation'
+            )
+
         if not has_cupy:
             raise ImportError('CuPy is required to use integrators.')
+
         self.liouvillian = liouvillian
-        self.ctx = ctx
-        self.state = None
-        self.liouvillian_action = None
+        self.liouvillian._maybe_instantiate(ctx)
+        self.stepper = bindings.TimeStepper(ctx._handle._validated_ptr,
+                                            self.liouvillian._validated_ptr)
 
     def compute(self, state: CudmStateType, t: float):
-        if self.liouvillian_action is None:
-            self.liouvillian_action = cudm.OperatorAction(
-                self.ctx, (self.liouvillian,))
-
-        if self.state != state:
-            need_prepare = self.state is None
-            self.state = state
-            if need_prepare:
-                timer = ScopeTimer("liouvillian_action.prepare")
-                with timer:
-                    self.liouvillian_action.prepare(self.ctx, (self.state,))
-        # FIXME: reduce temporary allocations.
-        # Currently, we cannot return a reference since the caller might call compute() multiple times during a single integrate step.
-        timer = ScopeTimer("compute.action_result")
-        with timer:
-            action_result = self.state.clone(cp.zeros_like(self.state.storage))
-        timer = ScopeTimer("liouvillian_action.compute")
-        with timer:
-            self.liouvillian_action.compute(t, (), (self.state,), action_result)
+        action_result = state.clone(cp.zeros_like(state.storage))
+        self.stepper.compute(state._validated_ptr, action_result._validated_ptr,
+                             t)
         return action_result
 
 
