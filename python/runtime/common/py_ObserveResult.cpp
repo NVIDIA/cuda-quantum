@@ -32,7 +32,7 @@ cudaq::spin_op to_spin_op_term(py::object &obj) {
 }
 } // namespace
 
-// FIXME: add proper deprecation warnings to teh bindings
+// FIXME: add proper deprecation warnings to the bindings
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"

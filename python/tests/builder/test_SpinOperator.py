@@ -58,7 +58,7 @@ def test_spin_op_operators():
     that we can verify against. We are not fully testing the accuracy of 
     each individual operator at the moment.
     """
-    # Test the empty (identity) constructor.
+    # Test the empty constructor.
     spin_a = cudaq.SpinOperator.empty()
     spin_b = spin.x(0)
     # Test the copy constructor.
@@ -242,21 +242,19 @@ def test_spin_op_members():
     Test all of the bound member functions on the `cudaq.SpinOperator` class.
     """
     spin_operator = cudaq.SpinOperator.empty()
-    # Assert that it's the identity.
+    # (is_identity on sum is deprecated, kept for backwards compatibility)
     assert spin_operator.is_identity()
-    # Only have 1 term and 1 qubit.
+    # Sum is empty.
     assert spin_operator.get_term_count() == 0
     assert spin_operator.get_qubit_count() == 0
     spin_operator += -1.0 * spin.x(1)
-    # Should now have 2 terms and 2 qubits.
+    # Should now have 1 term acting on 1 qubit.
     assert spin_operator.get_term_count() == 1
     assert spin_operator.get_qubit_count() == 1
     # No longer identity.
     assert not spin_operator.is_identity()
-    for term in spin_operator:
-        # Second term should have a coefficient of -1.0
-        assert term.get_coefficient() == -1.0 or term.get_coefficient() == 1.0
-        assert term.get_coefficient() == -1.0 or term.get_coefficient() == 1.0
+    # Term should have a coefficient -1
+    assert spin_operator[0].get_coefficient() == -1.0
 
 
 def test_spin_op_vqe():

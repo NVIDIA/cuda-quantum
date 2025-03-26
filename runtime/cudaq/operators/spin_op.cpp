@@ -124,14 +124,14 @@ void spin_handler::create_matrix(
     }
   };
 
-  auto dim = 1 << pauli_word.size();
+  auto dim = 1ul << pauli_word.size();
   auto nr_deg = pauli_word.size();
 
   for (std::size_t old_state = 0; old_state < dim; ++old_state) {
     std::size_t new_state = 0;
     std::complex<double> entry = 1.;
     for (auto degree = 0; degree < nr_deg; ++degree) {
-      auto state = (old_state & (1 << degree)) >> degree;
+      auto state = (old_state & (1ul << degree)) >> degree;
       auto op = pauli_word[invert_order ? nr_deg - 1 - degree : degree];
       auto mapped = map_state(op, state);
       entry *= mapped.first;
@@ -145,7 +145,7 @@ cudaq::detail::EigenSparseMatrix
 spin_handler::to_sparse_matrix(const std::string &pauli_word,
                                std::complex<double> coeff, bool invert_order) {
   using Triplet = Eigen::Triplet<std::complex<double>>;
-  auto dim = 1 << pauli_word.size();
+  auto dim = 1ul << pauli_word.size();
   std::vector<Triplet> triplets;
   triplets.reserve(dim);
   auto process_entry = [&triplets, &coeff](std::size_t new_state,
@@ -162,7 +162,7 @@ spin_handler::to_sparse_matrix(const std::string &pauli_word,
 complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
                                        std::complex<double> coeff,
                                        bool invert_order) {
-  auto dim = 1 << pauli_word.size();
+  auto dim = 1ul << pauli_word.size();
   complex_matrix matrix(dim, dim);
   auto process_entry = [&matrix, &coeff](std::size_t new_state,
                                          std::size_t old_state,

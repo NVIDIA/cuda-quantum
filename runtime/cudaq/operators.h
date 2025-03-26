@@ -99,7 +99,7 @@ public:
     const_iterator(const sum_op<HandlerTy> *sum) : const_iterator(sum, 0) {}
 
     const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx)
-        : sum(sum), current_val(1.), current_idx(idx) {
+        : sum(sum ? sum : sum_op<HandlerTy>(false)), current_val(1.), current_idx(idx) {
       if (current_idx < sum->num_terms())
         current_val = product_op<HandlerTy>(sum->coefficients[current_idx],
                                             sum->terms[current_idx]);
@@ -624,7 +624,7 @@ public:
     using reference = const HandlerTy &;
 
     const_iterator(const product_op<HandlerTy> *prod, std::size_t idx = 0)
-        : prod(prod), current_idx(idx) {}
+        : prod(prod ? prod : 1.), current_idx(idx) {}
 
     bool operator==(const const_iterator &other) const {
       return prod == other.prod && current_idx == other.current_idx;

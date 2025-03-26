@@ -189,7 +189,7 @@ matrix_handler::matrix_handler(std::string operator_id,
     // anti-commutation via phase operator instead. It should be fine, however,
     // for a multi-qubit operator to belong to a non-zero commutation set as
     // long as the operator itself commutes with all operators acting on
-    // different degrees (as indicated by teh boolean value of
+    // different degrees (as indicated by the boolean value of
     // commutation_behavior); this effectively "marks" the degrees that the
     // operator acts on as being a certain kind of particles.
     throw std::runtime_error("non-trivial commutation behavior is not "
@@ -211,7 +211,7 @@ matrix_handler::matrix_handler(std::string operator_id,
     // anti-commutation via phase operator instead. It should be fine, however,
     // for a multi-qubit operator to belong to a non-zero commutation set as
     // long as the operator itself commutes with all operators acting on
-    // different degrees (as indicated by teh boolean value of
+    // different degrees (as indicated by the boolean value of
     // commutation_behavior); this effectively "marks" the degrees that the
     // operator acts on as being a certain kind of particles.
     throw std::runtime_error("non-trivial commutation behavior is not "
