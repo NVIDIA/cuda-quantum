@@ -21,6 +21,16 @@
 
 namespace cudaq {
 
+#define PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
+  template <typename T,                                                        \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
+                            std::true_type>>
+
+#define PROPERTY_AGNOSTIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
+  template <typename T,                                                        \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
+                            std::false_type>>
+
 // private methods
 
 #if !defined(NDEBUG)
@@ -145,19 +155,14 @@ product_op<fermion_handler>::find_insert_at(const fermion_handler &other) {
 }
 
 template <typename HandlerTy>
-template <typename T,
-          std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                               !product_op<T>::supports_inplace_mult,
-                           std::false_type>>
+PROPERTY_AGNOSTIC_TEMPLATE_DEFINITION(HandlerTy, product_op<T>::supports_inplace_mult)
 void product_op<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   this->operators.insert(pos, other);
 }
 
 template <typename HandlerTy>
-template <typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                           product_op<T>::supports_inplace_mult,
-                                       std::true_type>>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy, product_op<T>::supports_inplace_mult)
 void product_op<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->degree == other.degree) {
@@ -170,9 +175,7 @@ void product_op<HandlerTy>::insert(T &&other) {
 }
 
 template <>
-template <typename T, std::enable_if_t<std::is_same<spin_handler, T>::value &&
-                                           product_op<T>::supports_inplace_mult,
-                                       std::true_type>>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(spin_handler, product_op<T>::supports_inplace_mult)
 void product_op<spin_handler>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->degree == other.degree) {
@@ -666,24 +669,8 @@ complex_matrix product_op<HandlerTy>::to_matrix(
                   dimensions, parameters))
           .terms);
   assert(terms.size() == 1);
-  auto matrix =
-      HandlerTy::to_matrix(terms[0].second, terms[0].first, invert_order);
-  return matrix;
-}
 
-// FIXME: CLEAN UP...
-template <>
-complex_matrix product_op<boson_handler>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto terms = std::move(
-      this->evaluate(
-              operator_arithmetics<operator_handler::canonical_evaluation>(
-                  dimensions, parameters))
-          .terms);
-  assert(terms.size() == 1);
-
+  // FIXME: construct this as part of canonical eval
   std::vector<int64_t> relevant_dims;
   relevant_dims.reserve(this->operators.size());
   for (const auto &op : this->operators) {
@@ -692,12 +679,11 @@ complex_matrix product_op<boson_handler>::to_matrix(
     relevant_dims.push_back(it->second);
   }
 
-  auto matrix = boson_handler::to_matrix(terms[0].second, relevant_dims,
-                                         terms[0].first, invert_order);
+  auto matrix =
+      HandlerTy::to_matrix(terms[0].second, relevant_dims, terms[0].first, invert_order);
   return matrix;
 }
 
-// FIXME: CLEAN UP...
 template <>
 complex_matrix product_op<matrix_handler>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
@@ -1501,41 +1487,8 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
   return bsf; // always little endian order by definition of the bsf
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto terms = std::move(
-      this->evaluate(
-              operator_arithmetics<operator_handler::canonical_evaluation>(
-                  dimensions, parameters))
-          .terms);
-  assert(terms.size() == 1);
-  auto matrix = HandlerTy::to_sparse_matrix(terms[0].second, terms[0].first,
-                                            invert_order);
-  return cudaq::detail::to_csr_spmatrix(matrix, 1 << terms[0].second.size());
-}
-
-// FIXME: CLEAN THIS UP...
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
-csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto terms = std::move(
-      this->evaluate(
-              operator_arithmetics<operator_handler::canonical_evaluation>(
-                  dimensions, parameters))
-          .terms);
-  assert(terms.size() == 1);
-  auto matrix = HandlerTy::to_sparse_matrix(terms[0].second, terms[0].first,
-                                            invert_order);
-  return cudaq::detail::to_csr_spmatrix(matrix, 1ul << terms[0].second.size());
-}
-
-// FIXME: CLEAN THIS UP...
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(boson_handler)
+template <typename HandlerTy>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy, product_op<T>::supports_inplace_mult)
 csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,

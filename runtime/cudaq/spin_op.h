@@ -23,6 +23,8 @@ enum class pauli { I, X, Y, Z };
 class spin_handler : public operator_handler {
   template <typename T>
   friend class product_op;
+  template <typename T>
+  friend class sum_op;
 
 private:
   // I = 0, Z = 1, X = 2, Y = 3
@@ -47,6 +49,20 @@ private:
       const std::function<void(std::size_t, std::size_t, std::complex<double>)>
           &process_element,
       bool invert_order);
+
+  // overload for consistency with other operator classes
+  // that support in-place multiplication
+  static cudaq::detail::EigenSparseMatrix
+  to_sparse_matrix(const std::string &pauli, 
+                   const std::vector<int64_t> &dimensions,
+                   std::complex<double> coeff = 1., bool invert_order = false);
+
+  // overload for consistency with other operator classes
+  // that support in-place multiplication
+  static complex_matrix to_matrix(const std::string &pauli,
+                                  const std::vector<int64_t> &dimensions,
+                                  std::complex<double> coeff = 1.,
+                                  bool invert_order = false);
 
 public:
   // read-only properties

@@ -462,7 +462,7 @@ void bindSpinOperator(py::module &mod) {
                                      // additional (optional) args
           },
           "Return `self` as a :class:`ComplexMatrix`.")
-      .def("to_sparse_matrix", &spin_op::to_sparse_matrix<cudaq::spin_handler>,
+      .def("to_sparse_matrix", [](spin_op &self) { return self.to_sparse_matrix(); },
            "Return `self` as a sparse matrix. This representation is a "
            "`Tuple[list[complex], list[int], list[int]]`, encoding the "
            "non-zero values, rows, and columns of the matrix. "

@@ -194,8 +194,12 @@ void fermion_handler::create_matrix(
 
 cudaq::detail::EigenSparseMatrix
 fermion_handler::to_sparse_matrix(const std::string &fermi_word,
+                                  const std::vector<int64_t> &dimensions,
                                   std::complex<double> coeff,
                                   bool invert_order) {
+  // private method, so we only assert dimensions
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(), [](int64_t d) { return d != 2; }) == dimensions.cend());
+
   using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1 << fermi_word.size();
   std::vector<Triplet> triplets;
@@ -212,8 +216,12 @@ fermion_handler::to_sparse_matrix(const std::string &fermi_word,
 }
 
 complex_matrix fermion_handler::to_matrix(const std::string &fermi_word,
+                                          const std::vector<int64_t> &dimensions,
                                           std::complex<double> coeff,
                                           bool invert_order) {
+  // private method, so we only assert dimensions
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(), [](int64_t d) { return d != 2; }) == dimensions.cend());
+
   auto dim = 1 << fermi_word.size();
   complex_matrix matrix(dim, dim);
   auto process_entry = [&matrix, &coeff](std::size_t new_state,

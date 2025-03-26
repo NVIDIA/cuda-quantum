@@ -159,6 +159,15 @@ spin_handler::to_sparse_matrix(const std::string &pauli_word,
   return matrix;
 }
 
+cudaq::detail::EigenSparseMatrix
+spin_handler::to_sparse_matrix(const std::string &pauli, 
+                               const std::vector<int64_t> &dimensions,
+                               std::complex<double> coeff, bool invert_order) {
+  // private method, so we only assert dimensions
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(), [](int64_t d) { return d != 2; }) == dimensions.cend());
+  return to_sparse_matrix(pauli, coeff, invert_order);
+}
+
 complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
                                        std::complex<double> coeff,
                                        bool invert_order) {
@@ -171,6 +180,15 @@ complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
   };
   create_matrix(pauli_word, process_entry, invert_order);
   return matrix;
+}
+
+complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
+                                       const std::vector<int64_t> &dimensions,
+                                       std::complex<double> coeff,
+                                       bool invert_order) { 
+  // private method, so we only assert dimensions
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(), [](int64_t d) { return d != 2; }) == dimensions.cend());
+  return to_matrix(pauli_word, coeff, invert_order);
 }
 
 complex_matrix spin_handler::to_matrix(
