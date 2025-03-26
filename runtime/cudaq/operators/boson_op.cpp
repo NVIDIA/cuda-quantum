@@ -22,6 +22,8 @@ namespace cudaq {
 
 // private helpers
 
+// used internally and externally to identity the operator -
+// use a human friendly string code to make it more comprehensible
 std::string boson_handler::op_code_to_string() const {
   // Note that we can (and should) have the same op codes across boson, fermion,
   // and spin ops, since individual operators with the same op codes are
@@ -52,6 +54,8 @@ std::string boson_handler::op_code_to_string() const {
   return std::move(str);
 }
 
+// used internally for canonical evaluation - 
+// use a encoding that makes it convenient to reconstruct the operator
 std::string boson_handler::op_code_to_string(
     std::unordered_map<std::size_t, int64_t> &dimensions) const {
   auto it = dimensions.find(this->degree);
