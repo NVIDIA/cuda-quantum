@@ -89,7 +89,8 @@ protected:
   virtual int measureQudit(const cudaq::QuditInfo &q,
                            const std::string &registerName) = 0;
 
-  /// @brief Measure the state in the basis described by the given `spin_op`.
+  /// @brief Measure the state in the respective basis described each term in
+  /// the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
 
   /// @brief Subtype-specific method for performing qudit reset.

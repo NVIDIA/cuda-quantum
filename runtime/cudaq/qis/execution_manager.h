@@ -158,8 +158,8 @@ public:
   virtual int measure(const QuditInfo &target,
                       const std::string registerName = "") = 0;
 
-  /// Measure the current state in the given Pauli basis, return the expectation
-  /// value <term>.
+  /// Measure the current state in the respective basis given by each term in
+  /// the spin op, return the expectation value <term>.
   virtual SpinMeasureResult measure(const cudaq::spin_op &op) = 0;
 
   /// Synchronize - run all queue-ed instructions
