@@ -47,10 +47,15 @@ std::string boson_handler::op_code_to_string() const {
     else
       str += "(N" + std::to_string(offset) + ")";
   }
-  for (auto i = 0; i < this->additional_terms; ++i)
+  if (this->additional_terms > 0) {
     str += "Ad";
-  for (auto i = 0; i > this->additional_terms; --i)
+    if (this->additional_terms > 1) 
+      str += "^" + std::to_string(this->additional_terms);
+  } else if (this->additional_terms < 0) {
     str += "A";
+    if (-this->additional_terms > 1) 
+      str += "^" + std::to_string(-this->additional_terms);
+  }
   return std::move(str);
 }
 
