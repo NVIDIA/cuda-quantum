@@ -27,12 +27,14 @@ except ImportError:
 class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
     # Thin wrapper around the `TimeStepper` C++ bindings
     def __init__(self, liouvillian: CudmOperator, ctx: CudmWorkStream):
-        if not has_cupy:
-            raise ImportError('CuPy is required to use integrators.')
         if not has_dynamics:
             raise ImportError(
                 'CUDA-Q is missing dynamics support. Please check your installation'
             )
+
+        if not has_cupy:
+            raise ImportError('CuPy is required to use integrators.')
+
         self.liouvillian = liouvillian
         self.liouvillian._maybe_instantiate(ctx)
         self.stepper = bindings.TimeStepper(ctx._handle._validated_ptr,
