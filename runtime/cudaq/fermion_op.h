@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "cudaq/operators/helpers.h"
 #include "cudaq/operators/operator_leafs.h"
 #include "cudaq/utils/matrix.h"
 
@@ -20,6 +21,8 @@ namespace cudaq {
 class fermion_handler : public operator_handler {
   template <typename T>
   friend class product_op;
+  template <typename T>
+  friend class sum_op;
 
 private:
   // Given that the dimension for fermion operators has to be 2,
@@ -43,7 +46,9 @@ private:
   // 0 = I, Ad = 1, A = 2, AdA = 3
   fermion_handler(std::size_t target, int op_id);
 
+  // user friendly string encoding
   std::string op_code_to_string() const;
+  // internal only string encoding
   virtual std::string op_code_to_string(
       std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
@@ -54,6 +59,27 @@ private:
 #endif
 
   void inplace_mult(const fermion_handler &other);
+
+  // helper function for matrix creations
+  static void create_matrix(
+      const std::string &fermi_word,
+      const std::function<void(std::size_t, std::size_t, std::complex<double>)>
+          &process_element,
+      bool invert_order);
+
+  /// @brief Computes the sparse matrix representation of the string encoding
+  /// of a fermionic product operator. Private method since this encoding is 
+  /// not very user friendly.
+  static cudaq::detail::EigenSparseMatrix
+  to_sparse_matrix(const std::string &fermi_word, std::complex<double> coeff = 1.,
+                   bool invert_order = false);
+
+  /// @brief Computes the sparse matrix representation of the string encoding
+  /// of a fermionic product operator. Private method since this encoding is 
+  /// not very user friendly.
+  static complex_matrix to_matrix(const std::string &fermi_word,
+                                  std::complex<double> coeff = 1.,
+                                  bool invert_order = false);
 
 public:
   static constexpr commutation_relations commutation_group =
@@ -80,7 +106,7 @@ public:
   fermion_handler &operator=(const fermion_handler &other);
 
   // evaluations
-
+  
   /// @brief Return the matrix representation of the operator in the eigenbasis
   /// of the number operator.
   /// @arg  `dimensions` : A map specifying the dimension, that is the number of

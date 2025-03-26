@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/EigenSparse.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
 
@@ -31,6 +32,8 @@ void fermion_handler::validate_opcode() const {
 }
 #endif
 
+// used internally and externally to identity the operator -
+// use a human friendly string code to make it more comprehensible
 std::string fermion_handler::op_code_to_string() const {
   // Note that we can (and should) have the same op codes across boson, fermion,
   // and spin ops, since individual operators with the same op codes are
@@ -56,6 +59,8 @@ std::string fermion_handler::op_code_to_string() const {
   return "I";
 }
 
+// used internally for canonical evaluation - 
+// use a single char for representing the operator
 std::string fermion_handler::op_code_to_string(
     std::unordered_map<std::size_t, int64_t> &dimensions) const {
   auto it = dimensions.find(this->degree);
@@ -63,7 +68,7 @@ std::string fermion_handler::op_code_to_string(
     dimensions[this->degree] = 2;
   else if (it->second != 2)
     throw std::runtime_error("dimension for fermion operator must be 2");
-  return this->op_code_to_string();
+  return std::to_string(this->op_code);
 }
 
 void fermion_handler::inplace_mult(const fermion_handler &other) {
@@ -137,30 +142,93 @@ fermion_handler &fermion_handler::operator=(const fermion_handler &other) {
 
 // evaluations
 
+void fermion_handler::create_matrix(
+    const std::string &fermi_word,
+    const std::function<void(std::size_t, std::size_t, std::complex<double>)>
+        &process_element,
+    bool invert_order) {
+
+  // check if the operator quenches all states
+  auto it = std::find(fermi_word.cbegin(), fermi_word.cend(), '0');
+  if (it != fermi_word.cend())
+      return;
+
+  auto map_state = [](char encoding, bool state) {
+    if (encoding == '9')
+      return std::pair<double, bool> {1., state};
+    if (state) {
+      if (encoding == '4' || encoding == '1') // zeros the state
+        return std::pair<double, bool> {0., state};
+      if (encoding == '8')
+        return std::pair<double, bool> {1., state};
+      if (encoding == '2')
+        return std::pair<double, bool> {1., !state};
+      assert(false); // should never reach
+    } else {
+      if (encoding == '2' || encoding == '8') // zeros the state
+        return std::pair<double, bool> {0., state};
+      if (encoding == '1')
+        return std::pair<double, bool> {1., state};
+      if (encoding == '4')
+        return std::pair<double, bool> {1., !state};
+      assert(false); // should never reach
+    }
+  };
+
+  auto dim = 1 << fermi_word.size();
+  auto nr_deg = fermi_word.size();
+
+  for (std::size_t old_state = 0; old_state < dim; ++old_state) {
+    std::size_t new_state = 0;
+    std::complex<double> entry = 1.;
+    for (std::size_t degree = 0; degree < nr_deg; ++degree) {
+      auto state = (old_state & (1 << degree)) >> degree;
+      auto op = fermi_word[invert_order ? nr_deg - 1 - degree : degree];
+      auto mapped = map_state(op, state);
+      entry *= mapped.first;
+      new_state |= (mapped.second << degree);
+    }
+    process_element(new_state, old_state, entry);
+  }
+}
+
+cudaq::detail::EigenSparseMatrix
+fermion_handler::to_sparse_matrix(const std::string &fermi_word,
+                                  std::complex<double> coeff, bool invert_order) {
+  using Triplet = Eigen::Triplet<std::complex<double>>;
+  auto dim = 1 << fermi_word.size();
+  std::vector<Triplet> triplets;
+  triplets.reserve(dim);
+  auto process_entry = [&triplets, &coeff](std::size_t new_state,
+                                           std::size_t old_state,
+                                           std::complex<double> entry) {
+    triplets.push_back(Triplet(new_state, old_state, coeff * entry));
+  };
+  create_matrix(fermi_word, process_entry, invert_order);
+  cudaq::detail::EigenSparseMatrix matrix(dim, dim);
+  matrix.setFromTriplets(triplets.begin(), triplets.end());
+  return matrix;
+}
+
+complex_matrix fermion_handler::to_matrix(const std::string &fermi_word,
+                                          std::complex<double> coeff,
+                                          bool invert_order) {
+  auto dim = 1 << fermi_word.size();
+  complex_matrix matrix(dim, dim);
+  auto process_entry = [&matrix, &coeff](std::size_t new_state,
+                                         std::size_t old_state,
+                                         std::complex<double> entry) {
+    matrix[{new_state, old_state}] = coeff * entry;
+  };
+  create_matrix(fermi_word, process_entry, invert_order);
+  return matrix;
+}
+
 complex_matrix fermion_handler::to_matrix(
     std::unordered_map<std::size_t, int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = dimensions.find(this->degree);
-  if (it == dimensions.end())
-    dimensions[this->degree] = 2;
-  else if (it->second != 2)
-    throw std::runtime_error("dimension for fermion operator must be 2");
-
-#if !defined(NDEBUG)
-  this->validate_opcode();
-#endif
-
-  auto mat = complex_matrix(2, 2);
-  if (this->op_code & 1)
-    mat[{0, 0}] = 1.;
-  if (this->op_code & 2)
-    mat[{0, 1}] = 1.;
-  if (this->op_code & 4)
-    mat[{1, 0}] = 1.;
-  if (this->op_code & 8)
-    mat[{1, 1}] = 1.;
-  return std::move(mat);
+  return fermion_handler::to_matrix(this->op_code_to_string(dimensions));
 }
 
 std::string fermion_handler::to_string(bool include_degrees) const {

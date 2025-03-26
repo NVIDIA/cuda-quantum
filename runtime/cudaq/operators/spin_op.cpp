@@ -130,7 +130,7 @@ void spin_handler::create_matrix(
   for (std::size_t old_state = 0; old_state < dim; ++old_state) {
     std::size_t new_state = 0;
     std::complex<double> entry = 1.;
-    for (auto degree = 0; degree < nr_deg; ++degree) {
+    for (std::size_t degree = 0; degree < nr_deg; ++degree) {
       auto state = (old_state & (1 << degree)) >> degree;
       auto op = pauli_word[invert_order ? nr_deg - 1 - degree : degree];
       auto mapped = map_state(op, state);
@@ -177,12 +177,7 @@ complex_matrix spin_handler::to_matrix(
     std::unordered_map<std::size_t, int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = dimensions.find(this->degree);
-  if (it == dimensions.end())
-    dimensions[this->degree] = 2;
-  else if (it->second != 2)
-    throw std::runtime_error("dimension for spin operator must be 2");
-  return spin_handler::to_matrix(this->op_code_to_string());
+  return spin_handler::to_matrix(this->op_code_to_string(dimensions));
 }
 
 std::string spin_handler::to_string(bool include_degrees) const {

@@ -34,6 +34,7 @@ std::vector<std::string> generate_all_states(
     std::vector<std::string> result;
     for (auto current : states) {
       for (auto state = 0; state < entry->second; state++) {
+        // FIXME: THIS REALLY ONLY WORKS IF DIM IS 1 DIGIT?!
         result.push_back(std::to_string(state) + current);
       }
     }

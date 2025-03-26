@@ -145,7 +145,7 @@ INSTANTIATE_SUM_EVALUATE_METHODS(spin_handler,
 INSTANTIATE_SUM_EVALUATE_METHODS(boson_handler,
                                  operator_handler::matrix_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(fermion_handler,
-                                 operator_handler::matrix_evaluation);
+                                 operator_handler::canonical_evaluation);
 #endif
 
 // read-only properties
@@ -522,6 +522,26 @@ complex_matrix sum_op<spin_handler>::to_matrix(
                                         evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
     matrix += spin_handler::to_matrix(evaluated.terms[i].second,
+                                      evaluated.terms[i].first, invert_order);
+  return matrix;
+}
+
+// FIXME: CLEAN UP...
+template <>
+complex_matrix sum_op<fermion_handler>::to_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto evaluated = this->evaluate(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+  if (evaluated.terms.size() == 0)
+    return cudaq::complex_matrix(0, 0);
+
+  auto matrix = fermion_handler::to_matrix(evaluated.terms[0].second,
+                                        evaluated.terms[0].first, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    matrix += fermion_handler::to_matrix(evaluated.terms[i].second,
                                       evaluated.terms[i].first, invert_order);
   return matrix;
 }
@@ -1834,10 +1854,34 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
                            std::vector<std::size_t>, std::vector<std::size_t>>(
         {}, {}, {});
 
-  auto matrix = spin_handler::to_sparse_matrix(
+  auto matrix = HandlerTy::to_sparse_matrix(
       evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
-    matrix += spin_handler::to_sparse_matrix(
+    matrix += HandlerTy::to_sparse_matrix(
+        evaluated.terms[i].second, evaluated.terms[i].first, invert_order);
+  return cudaq::detail::to_csr_spmatrix(matrix,
+                                        1 << evaluated.terms[0].second.size());
+}
+
+// FIXME: CLEAN UP...
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
+csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto evaluated = this->evaluate(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+
+  if (evaluated.terms.size() == 0)
+    return std::make_tuple<std::vector<std::complex<double>>,
+                           std::vector<std::size_t>, std::vector<std::size_t>>(
+        {}, {}, {});
+
+  auto matrix = HandlerTy::to_sparse_matrix(
+      evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    matrix += HandlerTy::to_sparse_matrix(
         evaluated.terms[i].second, evaluated.terms[i].first, invert_order);
   return cudaq::detail::to_csr_spmatrix(matrix,
                                         1 << evaluated.terms[0].second.size());
@@ -1881,6 +1925,10 @@ template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
                                                            std::size_t nTerms,
                                                            unsigned int seed);
 template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix sum_op<fermion_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;

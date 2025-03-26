@@ -33,7 +33,9 @@ private:
 
   // private helpers
 
+  // user friendly string encoding
   std::string op_code_to_string() const;
+  // internal only string encoding
   virtual std::string op_code_to_string(
       std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 
@@ -69,14 +71,14 @@ public:
 
   /// @brief Computes the sparse matrix representation of a Pauli string.
   /// By default, the ordering of the matrix matches the ordering of the Pauli
-  /// string,
+  /// string.
   static cudaq::detail::EigenSparseMatrix
   to_sparse_matrix(const std::string &pauli, std::complex<double> coeff = 1.,
                    bool invert_order = false);
 
   /// @brief Computes the matrix representation of a Pauli string.
   /// By default, the ordering of the matrix matches the ordering of the Pauli
-  /// string,
+  /// string.
   static complex_matrix to_matrix(const std::string &pauli,
                                   std::complex<double> coeff = 1.,
                                   bool invert_order = false);

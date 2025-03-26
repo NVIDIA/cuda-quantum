@@ -227,7 +227,8 @@ class operator_handler {
 private:
   // Validate or populate the dimension defined for the degree(s) of freedom the
   // operator acts on, and return a string that identifies the operator but not
-  // what degrees it acts on.
+  // what degrees it acts on. Use for canonical evaluation and not expected to
+  // be user friendly.
   virtual std::string op_code_to_string(
       std::unordered_map<std::size_t, int64_t> &dimensions) const = 0;
 

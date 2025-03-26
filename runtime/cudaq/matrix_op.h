@@ -43,6 +43,7 @@ private:
   template <typename T>
   static std::string type_prefix();
 
+  // internal only string encoding
   virtual std::string op_code_to_string(
       std::unordered_map<std::size_t, int64_t> &dimensions) const override;
 

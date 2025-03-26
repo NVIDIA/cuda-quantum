@@ -326,7 +326,7 @@ INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_handler,
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_handler,
                                      operator_handler::matrix_evaluation);
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_handler,
-                                     operator_handler::matrix_evaluation);
+                                     operator_handler::canonical_evaluation);
 
 // read-only properties
 
@@ -686,6 +686,23 @@ complex_matrix product_op<spin_handler>::to_matrix(
   assert(terms.size() == 1);
   auto matrix =
       spin_handler::to_matrix(terms[0].second, terms[0].first, invert_order);
+  return matrix;
+}
+
+// FIXME: CLEAN THIS UP SIMILAR TO supports_inplace_mult
+template <>
+complex_matrix product_op<fermion_handler>::to_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto terms = std::move(
+      this->evaluate(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+  auto matrix =
+      fermion_handler::to_matrix(terms[0].second, terms[0].first, invert_order);
   return matrix;
 }
 
@@ -1485,7 +1502,24 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
                   dimensions, parameters))
           .terms);
   assert(terms.size() == 1);
-  auto matrix = spin_handler::to_sparse_matrix(terms[0].second, terms[0].first,
+  auto matrix = HandlerTy::to_sparse_matrix(terms[0].second, terms[0].first,
+                                               invert_order);
+  return cudaq::detail::to_csr_spmatrix(matrix, 1 << terms[0].second.size());
+}
+
+// FIXME: CLEAN THIS UP...
+HANDLER_SPECIFIC_TEMPLATE_DEFINITION(fermion_handler)
+csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto terms = std::move(
+      this->evaluate(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+  auto matrix = HandlerTy::to_sparse_matrix(terms[0].second, terms[0].first,
                                                invert_order);
   return cudaq::detail::to_csr_spmatrix(matrix, 1 << terms[0].second.size());
 }
@@ -1496,6 +1530,10 @@ product_op<spin_handler>::get_pauli_word(std::size_t pad_identities) const;
 template std::vector<bool>
 product_op<spin_handler>::get_binary_symplectic_form() const;
 template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix product_op<fermion_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
