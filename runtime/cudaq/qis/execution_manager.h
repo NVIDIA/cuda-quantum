@@ -12,7 +12,7 @@
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "cudaq/host_config.h"
-#include "cudaq/spin_op.h"
+#include "cudaq/operators.h"
 #include <deque>
 #include <string_view>
 #include <vector>
@@ -131,7 +131,8 @@ public:
                      const std::vector<double> &params,
                      const std::vector<QuditInfo> &controls,
                      const std::vector<QuditInfo> &targets,
-                     bool isAdjoint = false, const spin_op op = spin_op()) = 0;
+                     bool isAdjoint = false,
+                     const spin_op_term op = cudaq::spin_op::identity()) = 0;
 
   /// @brief Apply a fine-grain noise operation within a kernel.
   virtual void applyNoise(const kraus_channel &channelName,
@@ -157,8 +158,8 @@ public:
   virtual int measure(const QuditInfo &target,
                       const std::string registerName = "") = 0;
 
-  /// Measure the current state in the given Pauli basis, return the expectation
-  /// value <term>.
+  /// Measure the current state in the respective basis given by each term in
+  /// the spin op, return the expectation value <term>.
   virtual SpinMeasureResult measure(const cudaq::spin_op &op) = 0;
 
   /// Synchronize - run all queue-ed instructions

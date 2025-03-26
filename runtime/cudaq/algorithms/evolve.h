@@ -10,11 +10,11 @@
 
 #include "common/EvolveResult.h"
 #include "common/KernelWrapper.h"
+#include "cudaq/algorithms/base_integrator.h"
 #include "cudaq/algorithms/get_state.h"
-#include "cudaq/base_integrator.h"
-#include "cudaq/dynamics/operator_type.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
+#include "cudaq/operators/operator_type.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/schedule.h"

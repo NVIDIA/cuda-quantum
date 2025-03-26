@@ -8,6 +8,7 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
+#include "cudaq/operators.h"
 #include "cudaq/qis/execution_manager.h"
 
 #include <complex>
@@ -38,7 +39,7 @@ protected:
   /// target qudits, and an optional spin_op.
   using Instruction = std::tuple<std::string, std::vector<double>,
                                  std::vector<cudaq::QuditInfo>,
-                                 std::vector<cudaq::QuditInfo>, spin_op>;
+                                 std::vector<cudaq::QuditInfo>, spin_op_term>;
 
   /// @brief `typedef` for a queue of instructions
   using InstructionQueue = std::vector<Instruction>;
@@ -88,7 +89,8 @@ protected:
   virtual int measureQudit(const cudaq::QuditInfo &q,
                            const std::string &registerName) = 0;
 
-  /// @brief Measure the state in the basis described by the given `spin_op`.
+  /// @brief Measure the state in the respective basis described each term in
+  /// the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
 
   /// @brief Subtype-specific method for performing qudit reset.
@@ -178,7 +180,8 @@ public:
   void apply(const std::string_view gateName, const std::vector<double> &params,
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
-             bool isAdjoint = false, spin_op op = spin_op()) override {
+             bool isAdjoint = false,
+             spin_op_term op = cudaq::spin_op::identity()) override {
 
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);

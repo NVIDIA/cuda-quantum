@@ -17,7 +17,7 @@ for :math:`a = {x,y,z}`, :math:`j` the qubit index, and :math:`N` the number of 
 
 **[3]** The :code:`spin_op` exposes common C++ operator overloads for algebraic expressions. 
 
-**[4]** CUDA-Q defines convenience functions in :code:`cudaq::spin` namespace that produce
+**[4]** CUDA-Q defines static functions to create
 the primitive X, Y, and Z Pauli operators on specified qubit indices
 which can subsequently be used in algebraic expressions to build up
 more complicated Pauli tensor products and their sums.
@@ -26,9 +26,9 @@ more complicated Pauli tensor products and their sums.
 
     .. code-block:: cpp
 
-        using namespace cudaq::spin;
-        auto h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + \
-                 .21829 * z(0) - 6.125 * z(1);
+        auto h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - \
+                 2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) + \
+                 .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
 .. tab:: Python
 
@@ -43,39 +43,8 @@ more complicated Pauli tensor products and their sums.
 synthesis tasks within quantum kernel code. Specifically, operations
 that encode :math:`N`\ :sup:`th`\ order trotterization of exponentiated :code:`spin_op`
 rotations, e.g. :math:`U = \exp(-i H t)`, where :math:`H` is the provided :code:`spin_op`.
+Currently, H is limited to a single product term.
 
 **[6]** The :code:`spin_op` can be created within classical host code and quantum kernel
 code, and can also be passed by value to quantum kernel code from host code. 
-
-The :code:`spin_op` should take on the following structure: 
-
-.. code-block:: cpp
-
-    namespace cudaq {
-    class spin_op {
-      public:
-        spin_op();
-        spin_op(const spin_op&);
-        bool empty() const;
-        std::size_t num_qubits() const;
-        std::size_t num_terms() const;
-        std::complex<double> get_coefficient();
-        bool is_identity() const;
-        void for_each_term(std::function<void(spin_op &)> &&) const;
-        void for_each_pauli(std::function<void(pauli, std::size_t)> &&) const;
-        spin_op& operator=(const spin_op&);
-        spin_op& operator+=(const spin_op&);
-        spin_op& operator-=(const spin_op&);
-        spin_op& operator*=(const spin_op&);
-        bool operator==(const spin_op&);
-        spin_op& operator*=(const double);
-        spin_op& operator*=(const std::complex<double>)
-    };
-
-    namespace spin {
-      spin_op x(const std::size_t);
-      spin_op y(const std::size_t);
-      spin_op z(const std::size_t);
-    }
-  }
 

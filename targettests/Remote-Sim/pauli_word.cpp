@@ -38,7 +38,6 @@ struct kernelVector {
 };
 
 int main() {
-  using namespace cudaq::spin;
   const std::vector<double> h2_data{
       3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
       0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
