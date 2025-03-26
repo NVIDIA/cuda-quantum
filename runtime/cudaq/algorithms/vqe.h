@@ -24,12 +24,12 @@ template <typename QuantumKernel, typename... Args,
               std::is_invocable_v<QuantumKernel, std::vector<double>, Args...>>>
 static inline optimization_result
 remote_vqe(cudaq::quantum_platform &platform, QuantumKernel &&kernel,
-           cudaq::spin_op &H, cudaq::optimizer &optimizer,
+           const cudaq::spin_op &H, cudaq::optimizer &optimizer,
            cudaq::gradient *gradient, const int n_params,
            const std::size_t shots, Args &&...args) {
   auto ctx = std::make_unique<ExecutionContext>("observe", shots);
   ctx->kernelName = cudaq::getKernelName(kernel);
-  ctx->spin = &H;
+  ctx->spin = cudaq::spin_op::canonicalize(H);
   platform.set_exec_ctx(ctx.get());
   auto serializedArgsBuffer = serializeArgs(args...);
   platform.launchVQE(ctx->kernelName, serializedArgsBuffer.data(), gradient, H,

@@ -21,7 +21,7 @@ void bindExecutionManager(py::module &mod) {
       "applyQuantumOperation",
       [](const std::string &name, std::vector<double> &params,
          std::vector<std::size_t> &controls, std::vector<std::size_t> &targets,
-         bool isAdjoint, cudaq::spin_op &op) {
+         bool isAdjoint, cudaq::spin_op_term &op) {
         std::vector<cudaq::QuditInfo> c, t;
         std::transform(controls.begin(), controls.end(), std::back_inserter(c),
                        [](auto &&el) { return cudaq::QuditInfo(2, el); });
@@ -31,7 +31,7 @@ void bindExecutionManager(py::module &mod) {
       },
       py::arg("name"), py::arg("params"), py::arg("controls"),
       py::arg("targets"), py::arg("isAdjoint") = false,
-      py::arg("op") = cudaq::spin_op());
+      py::arg("op") = cudaq::spin_op::identity());
 
   mod.def("startAdjointRegion",
           []() { cudaq::getExecutionManager()->startAdjointRegion(); });
