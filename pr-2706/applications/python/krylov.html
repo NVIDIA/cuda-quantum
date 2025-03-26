@@ -33,7 +33,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Quantum Fourier Transform" href="quantum_fourier_transform.html" />
+    <link rel="next" title="Quantum Enhanced Auxiliary Field Quantum Monte Carlo" href="afqmc.html" />
     <link rel="prev" title="Molecular docking via DC-QAOA" href="digitized_counterdiabatic_qaoa.html" /> 
 </head>
 
@@ -289,6 +289,15 @@
 <li class="toctree-l3"><a class="reference internal" href="#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Computing-the-matrix-elements">Computing the matrix elements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
@@ -613,7 +622,6 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/api.html">   API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../api/languages/cpp_api.html">C++ API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#operators">Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#quantum">Quantum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#common">Common</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
@@ -779,7 +787,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="digitized_counterdiabatic_qaoa.html" class="btn btn-neutral float-left" title="Molecular docking via DC-QAOA" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="afqmc.html" class="btn btn-neutral float-right" title="Quantum Enhanced Auxiliary Field Quantum Monte Carlo" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -874,14 +882,19 @@ state vector.</p>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so they can pass to a kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">termCoefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">()))</span>
+    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">ham</span><span class="p">:</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">result</span>
 
 
 <span class="c1"># Collect Pauli words from a spin operator so they can pass to a kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">termWords</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="c1"># Our kernel uses these words to apply exp_pauli to the entire state.</span>
+    <span class="c1"># we hence ensure that each pauli word covers the entire space.</span>
+    <span class="n">n_spins</span> <span class="o">=</span> <span class="n">ham</span><span class="o">.</span><span class="n">get_qubit_count</span><span class="p">()</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)))</span>
+    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">ham</span><span class="p">:</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">(</span><span class="n">n_spins</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">result</span>
 
 
@@ -1009,7 +1022,7 @@ state vector.</p>
 <p>The observe function broadcasts over the two provided operators <span class="math notranslate nohighlight">\(X\)</span> and <span class="math notranslate nohighlight">\(Y\)</span> and returns a list of results. The <code class="docutils literal notranslate"><span class="pre">expectation</span></code> function returns the expectation values which are summed and stored in the matrix.</p>
 <p>The multi-gpu case completes the same steps, except the <code class="docutils literal notranslate"><span class="pre">observe_async</span></code> command is used. This allows for the <span class="math notranslate nohighlight">\(X\)</span> and <span class="math notranslate nohighlight">\(Y\)</span> observables to be evaluated at the same time on two different simulated QPUs. In this case, the results are stored in lists corresponding to the real and imaginary parts. These are then accessed later with the <code class="docutils literal notranslate"><span class="pre">get</span></code> command to build <span class="math notranslate nohighlight">\(S\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Single GPU:</span>
@@ -1019,7 +1032,7 @@ state vector.</p>
     <span class="n">observe_op</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
         <span class="n">observe_op</span> <span class="o">*=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-    <span class="n">identity_word</span> <span class="o">=</span> <span class="n">observe_op</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">identity_word</span> <span class="o">=</span> <span class="n">observe_op</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">()</span>
     <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">identity_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
 
     <span class="c1"># Empty overlap matrix S</span>
@@ -1047,7 +1060,7 @@ state vector.</p>
     <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
         <span class="n">observe_op</span> <span class="o">*=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
 
-    <span class="n">identity_word</span> <span class="o">=</span> <span class="n">observe_op</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">identity_word</span> <span class="o">=</span> <span class="n">observe_op</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">()</span>
     <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">identity_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
 
     <span class="c1"># Empty overlap matrix S</span>
@@ -1290,7 +1303,7 @@ state vector.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="digitized_counterdiabatic_qaoa.html" class="btn btn-neutral float-left" title="Molecular docking via DC-QAOA" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="afqmc.html" class="btn btn-neutral float-right" title="Quantum Enhanced Auxiliary Field Quantum Monte Carlo" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

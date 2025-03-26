@@ -288,6 +288,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -610,7 +619,6 @@
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">   API Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="cpp_api.html">C++ API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="cpp_api.html#operators">Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#quantum">Quantum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#common">Common</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#noise-modeling">Noise Modeling</a></li>
@@ -2787,26 +2795,10 @@ for more information on this programming pattern.</p>
 <ol class="arabic" start="2">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term:</span> <span class="pre">cudaq::product_op&lt;cudaq::spin_handler&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
-</ol>
-<p>Given a <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> of the global <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was passed
-to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>, return its measurement counts.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>sub_term</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – An individual sub-term of the
-<code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The measurement counts data for the individual <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a></p>
-</dd>
-</dl>
-<ol class="arabic" start="3">
 <li><dl class="py function">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
@@ -2828,6 +2820,14 @@ to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><co
 <dd class="field-odd"><p><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a></p>
 </dd>
 </dl>
+<ol class="arabic" start="4">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term:</span> <span class="pre">cudaq::sum_op&lt;cudaq::spin_handler&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
 </dd></dl>
 
 <dl class="py method">
@@ -2857,6 +2857,12 @@ to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><co
 <ol class="arabic" start="2">
 <li><dl class="py function">
 <dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term:</span> <span class="pre">cudaq::product_op&lt;cudaq::spin_handler&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+<li><dl class="py function">
+<dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
 <dd></dd></dl>
 
@@ -2866,7 +2872,7 @@ to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><co
 global <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>sub_term</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – An individual sub-term of the
+<dd class="field-odd"><p><strong>sub_term</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperatorTerm</span></code>) – An individual sub-term of the
 <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2877,53 +2883,14 @@ global <code class="code docutils literal notranslate"><span class="pre">spin_op
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.ObserveResult.expectation_z">
-<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.expectation_z" title="Permalink to this definition">¶</a></dt>
-<dd><p>Overloaded function.</p>
-<ol class="arabic">
+<ol class="arabic" start="4">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term:</span> <span class="pre">cudaq::sum_op&lt;cudaq::spin_handler&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
 </ol>
-<p>Return the expectation value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was
-provided in <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="code docutils literal notranslate"><span class="pre">expectation_z</span></code> has been deprecated in favor of <code class="code docutils literal notranslate"><span class="pre">expectation</span></code>.</p>
-</div>
-<ol class="arabic" start="2">
-<li><dl class="py function">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
-<dd></dd></dl>
-
-</li>
-</ol>
-<p>Return the expectation value of an individual <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> of the
-global <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="code docutils literal notranslate"><span class="pre">expectation_z</span></code> has been deprecated in favor of <code class="code docutils literal notranslate"><span class="pre">expectation</span></code>.</p>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>sub_term</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – An individual sub-term of the
-<code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The expectation value of the <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> with respect to the
-<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -2931,7 +2898,7 @@ global <code class="code docutils literal notranslate"><span class="pre">spin_op
 <span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.get_spin" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">cudaq::sum_op&lt;cudaq::spin_handler&gt;</span></span></span></dt>
 <dd></dd></dl>
 
 <p>Return the <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> corresponding to this <code class="code docutils literal notranslate"><span class="pre">ObserveResult</span></code>.</p>

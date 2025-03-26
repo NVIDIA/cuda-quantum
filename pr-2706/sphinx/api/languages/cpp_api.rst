@@ -1,12 +1,6 @@
 CUDA-Q C++ API
 ******************************
 
-Operators 
-=============
-
-.. doxygenclass:: cudaq::spin_op
-    :members:
-
 Quantum
 =========
 
@@ -38,9 +32,9 @@ Common
 .. doxygenstruct:: cudaq::observe_options
     :members:
 
-.. doxygenfunction:: cudaq::observe(const observe_options &options, QuantumKernel &&kernel, spin_op H, Args &&...args)
-.. doxygenfunction:: cudaq::observe(std::size_t shots, QuantumKernel &&kernel, spin_op H, Args &&...args)
-.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, spin_op H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(const observe_options &options, QuantumKernel &&kernel, const spin_op &H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(std::size_t shots, QuantumKernel &&kernel, const spin_op &H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, const spin_op &H, Args &&...args)
 .. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, const SpinOpContainer &termList, Args &&...args)
 
 .. doxygenclass:: cudaq::ExecutionContext
