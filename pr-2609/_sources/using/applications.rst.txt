@@ -223,3 +223,21 @@ CUDA-Q Applications
         <img src="../_static/app_title_images/adapt_qaoa_preview.png" alt="ADAPT Preview" class="notebook-image">
     </div>
 
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll('.notebook-entry').forEach(entry => {
+            const tags = entry.dataset.tags.split(',');
+            const contentDiv = entry.querySelector('.notebook-content');
+            const tagsContainer = document.createElement('div');
+            tagsContainer.className = 'data-tags'
+
+            tags.forEach(tag => {
+                const tagElem = document.createElement('span');
+                tagElem.textContent = '#' + tag.trim() + ' ';
+                tagsContainer.appendChild(tagElem);
+            });
+            contentDiv.appendChild(tagsContainer);
+        });
+    });
+    </script>
+
