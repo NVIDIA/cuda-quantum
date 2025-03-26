@@ -19,6 +19,7 @@ Applications that give an in depth view of CUDA-Q and its applications in Python
     /applications/python/qaoa.ipynb
     /applications/python/digitized_counterdiabatic_qaoa.ipynb
     /applications/python/krylov.ipynb
+    /applications/python/afqmc.ipynb
     /applications/python/quantum_fourier_transform.ipynb
     /applications/python/quantum_teleportation.ipynb
     /applications/python/quantum_transformer.ipynb

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Max-Cut with QAOA &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Quantum Enhanced Auxiliary Field Quantum Monte Carlo &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -33,8 +33,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Molecular docking via DC-QAOA" href="digitized_counterdiabatic_qaoa.html" />
-    <link rel="prev" title="Hybrid Quantum Neural Networks" href="hybrid_qnns.html" /> 
+    <link rel="next" title="Quantum Fourier Transform" href="quantum_fourier_transform.html" />
+    <link rel="prev" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" href="krylov.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -279,7 +279,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qaoa.html">Max-Cut with QAOA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
 <li class="toctree-l3"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
@@ -291,13 +291,13 @@
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
@@ -782,212 +782,197 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active">Max-Cut with QAOA</li>
+      <li class="breadcrumb-item active">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/applications/python/qaoa.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/applications/python/afqmc.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="hybrid_qnns.html" class="btn btn-neutral float-left" title="Hybrid Quantum Neural Networks" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="digitized_counterdiabatic_qaoa.html" class="btn btn-neutral float-right" title="Molecular docking via DC-QAOA" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="krylov.html" class="btn btn-neutral float-left" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Max-Cut-with-QAOA">
-<h1>Max-Cut with QAOA<a class="headerlink" href="#Max-Cut-with-QAOA" title="Permalink to this heading">¶</a></h1>
-<p><a class="reference external" href="https://arxiv.org/abs/1411.4028">Farhi et al.</a> introduced the quantum approximation optimization algorithm (QAOA) to solve optimization problems like the max cut problem. Before diving into the details of QAOA, we’ll first define the max cut problem.</p>
-<p><a class="reference external" href="https://en.wikipedia.org/wiki/Maximum_cut">Max Cut</a> is the problem of finding a partition of a graph’s nodes into two sets which maximizes the edges between the two sets. Although this problem is relatively easy to solve for graphs with few vertices, this problem is <a class="reference external" href="https://en.wikipedia.org/wiki/NP-hardness#:~:text=7%20References-,Definition,complete%20problem%20G%20to%20H.">NP-hard</a>. The max cut problem has a wide range of applications including <a class="reference external" href="https://jmlr.org/papers/volume14/wang13a/wang13a.pdf">machine
-learning</a>, <a class="reference external" href="https://math.mit.edu/research/highschool/primes/materials/2020/Hong-Lee-Wei.pdf">circuit design</a> and <a class="reference external" href="https://www.researchgate.net/publication/262162554_An_Application_of_Combinatorial_Optimization_to_Statistical_Physics_and_Circuit_Layout_Design">statistical physics</a>, among others. Furthermore, the QAOA algorithm presented in this tutorial can be adapted to other related optimization problems with an even wider
-application field including <a class="reference external" href="https://journals.aps.org/prresearch/pdf/10.1103/PhysRevResearch.4.043204">portfolio optimization</a> and <a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S0377221723002072">job shop scheduling</a>, just to name a few.</p>
-<p>We take the convention that <span class="math notranslate nohighlight">\(G=(V,E)\)</span> represents a graph with vertex set <span class="math notranslate nohighlight">\(V\subseteq \mathbb{N}\)</span> and edge set <span class="math notranslate nohighlight">\(E\subseteq V\times V\)</span>. We use the terms vertex and node interchangeably. For this tutorial we assume that the graphs are undirected (that is, <span class="math notranslate nohighlight">\((u,v)\)</span> and <span class="math notranslate nohighlight">\((v,u)\)</span> represent the same edge). Our graphs contain no self loops (i.e., for every vertex <span class="math notranslate nohighlight">\(v\)</span>, there is no edge <span class="math notranslate nohighlight">\((v,v)\)</span>). A <em>cut</em> of the graph <span class="math notranslate nohighlight">\(G\)</span> is a partition, <span class="math notranslate nohighlight">\((V_0,V_1)\)</span>, of
-the vertex set such that every vertex of <span class="math notranslate nohighlight">\(V\)</span> is a member of exactly one of <span class="math notranslate nohighlight">\(V_0\)</span> or <span class="math notranslate nohighlight">\(V_1\)</span> (i.e., <span class="math notranslate nohighlight">\(V_0\bigcup V_1 = V\)</span> and <span class="math notranslate nohighlight">\(V_0\bigcap V_0=\emptyset\)</span>). The <em>cut value</em> for a partition is the sum of the edges with one node in <span class="math notranslate nohighlight">\(V_0\)</span> and one node in <span class="math notranslate nohighlight">\(V_1\)</span>.</p>
-<p>In the images below, we illustrate two cuts of a graph with the dotted lines. Each of these cuts partitions the graph into two disjoint sets. The cut on the left is not optimal, and the cut on the right is the max cut. The cut on the left divides the graph into disjoint sets <span class="math notranslate nohighlight">\(\{1,2\}\)</span> and <span class="math notranslate nohighlight">\(\{0,3,4\}\)</span>, and that cut contains 3 edges. To more easily visualize the cut, we have colored the vertices in one set of the partition green and the vertices in the other set of the partition gray.
-The cut depicted in the diagram on the right divides the graph vertices into two disjoint sets <span class="math notranslate nohighlight">\(V_0=\{0,2\}\)</span>, colored gray, and <span class="math notranslate nohighlight">\(V_1=\{1,3,4\}\)</span>, colored green. The number of edges connecting vertices in the distinct sets is computed by</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\sum_{\substack{u \in V_0; v\in V_1\\ (u,v) \in E}}1.\end{split}\]</div>
-<p>For the graph on the right, the number of edges in the cut (in this case there are <span class="math notranslate nohighlight">\(5\)</span> edges) is maximal, and this value is referred to as the <em>max cut value</em>. The partitioning <span class="math notranslate nohighlight">\((V_0,V_1)\)</span> — and sometimes the set of edges connecting vertices in <span class="math notranslate nohighlight">\(V_0\)</span> and <span class="math notranslate nohighlight">\(V_1\)</span> — is referred to as a <em>max cut of a graph</em>. Note that the max cut of a graph need not be unique; that is, two distinct partitions may produce the same cut value.</p>
-<p><img alt="image0" src="../../_images/max-cut-illustration.png" /></p>
-<p>We will use bitstrings to identify vertices in each of the two partitions. For example using the ordering of the vertices, the bitstring <code class="docutils literal notranslate"><span class="pre">01100</span></code> captures the partition in the image above on the left with vertices <span class="math notranslate nohighlight">\(1\)</span> and <span class="math notranslate nohighlight">\(2\)</span> in <span class="math notranslate nohighlight">\(V_1\)</span>, and the bitstring <code class="docutils literal notranslate"><span class="pre">01011</span></code> codes the partition in the image on the right with vertices <span class="math notranslate nohighlight">\(1\)</span>, <span class="math notranslate nohighlight">\(3\)</span>, and <span class="math notranslate nohighlight">\(4\)</span> in <span class="math notranslate nohighlight">\(V_1\)</span>.</p>
-<p>Let’s code our graph data as lists of integers so that we can call these variables when we create the <code class="docutils literal notranslate"><span class="pre">cudaq.kernel</span></code> for QAOA.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+  <section id="Quantum-Enhanced-Auxiliary-Field-Quantum-Monte-Carlo">
+<h1>Quantum Enhanced Auxiliary Field Quantum Monte Carlo<a class="headerlink" href="#Quantum-Enhanced-Auxiliary-Field-Quantum-Monte-Carlo" title="Permalink to this heading">¶</a></h1>
+<p>This work was done in collaboration with the Next Generation Computing team at <a class="reference external" href="https://www.basf.com/global/en.html">BASF</a>.</p>
+<p>In this tutorial we implement a quantum-classical hybrid workflow for computing the ground state energies of a strongly interacting molecular system. The algorithm consists of two parts:</p>
+<ol class="arabic simple">
+<li><p>A variational quantum eigensolver that uses the quantum-number-preserving ansatz proposed by <a class="reference external" href="https://doi.org/10.1088/1367-2630/ac2cb3">Anselmetti et al. (2021)</a> to generate a quantum trial wave function <span class="math notranslate nohighlight">\(|\Psi_T\rangle\)</span> using CUDA Quantum.</p></li>
+<li><p>An Auxiliary-Field Quantum Monte Carlo simulation that realizes a classical imaginary time evolution and collects the ground state energy estimates.</p></li>
+</ol>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Package installs</span>
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">pyscf</span><span class="o">==</span><span class="m">2</span>.6.2<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.6.1<span class="w"> </span><span class="nv">ipie</span><span class="o">==</span><span class="m">0</span>.7.1<span class="w"> </span><span class="nv">numba</span><span class="o">==</span><span class="m">0</span>.60.0<span class="w"> </span>-q
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
+</span>
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Relevant imports</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="c1"># We&#39;ll use the graph below to illustrate how QAOA can be used to</span>
-<span class="c1"># solve a max cut problem</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
-<span class="c1">#       v1  0--------------0 v2</span>
-<span class="c1">#           |              | \</span>
-<span class="c1">#           |              |  \</span>
-<span class="c1">#           |              |   \</span>
-<span class="c1">#           |              |    \</span>
-<span class="c1">#       v0  0--------------0 v3-- 0 v4</span>
-<span class="c1"># The max cut solutions are 01011, 10100, 01010, 10101 .</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">gto</span><span class="p">,</span> <span class="n">scf</span><span class="p">,</span> <span class="n">ao2mo</span><span class="p">,</span> <span class="n">mcscf</span>
 
-<span class="c1"># First we define the graph nodes (i.e., vertices) and edges as lists of integers so that they can be broadcast into</span>
-<span class="c1"># a cudaq.kernel.</span>
-<span class="n">nodes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
-<span class="n">edges</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]]</span>
-<span class="n">edges_src</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">edges</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges</span><span class="p">))]</span>
-<span class="n">edges_tgt</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">edges</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges</span><span class="p">))]</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">afqmc_src.vqe_cudaq_qnp</span><span class="w"> </span><span class="kn">import</span> <span class="n">VQE</span><span class="p">,</span> <span class="n">get_cudaq_hamiltonian</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">afqmc_src.utils_ipie</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_coeff_wf</span><span class="p">,</span> <span class="n">gen_ipie_input_from_pyscf_chk</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.hamiltonians.generic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generic</span> <span class="k">as</span> <span class="n">HamGeneric</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.qmc.afqmc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AFQMC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.systems.generic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generic</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.trial_wavefunction.particle_hole</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParticleHole</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.analysis.extraction</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_observable</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ipie.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+
+<span class="c1"># Ipie has recently added GPU support however this remains a bit tricky to use as it requires manual installation of several packages.</span>
+<span class="c1"># Once this is streamlined, we can set the GPU option to True in the tutorial.</span>
+<span class="n">config</span><span class="o">.</span><span class="n">update_option</span><span class="p">(</span><span class="s2">&quot;use_gpu&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>QAOA is a variational algortihm with a particular ansatz. QAOA is made up of a variational quantum circuit (i.e., a kernel that depends on a set of parameter values) and a classical optimizer. The aim of QAOA is to use the classical optimizer to identify parameter values that generate a quantum circuit whose expectation value for a given cost Hamilitonian is minimized.</p>
-<p>What distinguishes QAOA from other variational algorithms is the structure of the quantum circuit. For each vertex in the graph, there is an associated qubit in the circuit. The circuit is initialized in a superposition state. The remainder of the QAOA circuit is made up of blocks (referred to as layers). The more layers there are, the better the approximation the algorithm achieves.</p>
-<p><img alt="diagram of QAOA circuit layers" src="../../_images/qaoa-circuit-layers.png" /></p>
-<p>Each layer contains a problem kernel and a mixer kernel. The mixer kernel is composed of parameterized rotation gates applied to each qubit, depicted in green in the image above. The problem kernel encodes the graph edges. The image below shows an example of an graph edge encoded with controlled-X gates and a parameterized rotation gate.</p>
-<p><img alt="diagram of a QAOA problem kernel for a max cut problem" src="../../_images/qaoa-problem-kernel.png" /></p>
-<p>Let’s implement the QAOA circuit for our max cut problem in CUDA-Q.</p>
+<p>We start by defining the structure of the molecule, the basis set, and its spin. We build the molecule object with PySCF and run a preliminary Hartree-Fock computation. Here we choose as an example a <a class="reference external" href="https://doi.org/10.1021/acs.jctc.3c01375">chelating agent</a> representing a relevant class of substances industrially produced at large scales. Their use ranges, among the others, from water softeners in cleaning applications, modulators of redox behaviour in oxidative bleaching, scale
+suppressants, soil remediation and ligands for catalysts. In particular we focus here in a Fe(III)-NTA complex whose structure is given in the file imported below.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Problem parameters</span>
-<span class="c1"># The number of qubits we&#39;ll need is the same as the number of vertices in our graph</span>
-<span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the molecular structure and the basis set for the Fenta molecule.</span>
 
-<span class="c1"># We can set the layer count to be any positive integer.  Larger values will create deeper circuits</span>
-<span class="n">layer_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/geo_fenta.xyz&quot;</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
+<span class="n">spin</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">num_active_electrons</span> <span class="o">=</span> <span class="mi">5</span>
 
-<span class="c1"># Each layer of the QAOA kernel contains 2 parameters</span>
-<span class="n">parameter_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">layer_count</span>
+<span class="c1"># You can swap to O3 which is a smaller system and takes less computational resources and time to run.</span>
 
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">qaoaProblem</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the QAOA gate sequence between two qubits that represent an edge of the graph</span>
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    qubit_0: cudaq.qubit</span>
-<span class="sd">        Qubit representing the first vertex of an edge</span>
-<span class="sd">    qubit_1: cudaq.qubit</span>
-<span class="sd">        Qubit representing the second vertex of an edge</span>
-<span class="sd">    thetas: List[float]</span>
-<span class="sd">        Free variable</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    cudaq.Kernel</span>
-<span class="sd">        Subcircuit of the problem kernel for Max-Cut of the graph with a given edge</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">)</span>
-    <span class="n">rz</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">)</span>
-    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">)</span>
-
-
-<span class="c1"># We now define the kernel_qaoa function which will be the QAOA circuit for our graph</span>
-<span class="c1"># Since the QAOA circuit for max cut depends on the structure of the graph,</span>
-<span class="c1"># we&#39;ll feed in global concrete variable values into the kernel_qaoa function for the qubit_count, layer_count, edges_src, edges_tgt.</span>
-<span class="c1"># The types for these variables are restricted to Quake Values (e.g. qubit, int, List[int], ...)</span>
-<span class="c1"># The thetas plaeholder will be our free parameters</span>
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel_qaoa</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">layer_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">edges_src</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
-                <span class="n">edges_tgt</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the QAOA circuit for max cut of the graph with given edges and nodes</span>
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    qubit_count: int</span>
-<span class="sd">        Number of qubits in the circuit, which is the same as the number of nodes in our graph</span>
-<span class="sd">    layer_count : int</span>
-<span class="sd">        Number of layers in the QAOA kernel</span>
-<span class="sd">    edges_src: List[int]</span>
-<span class="sd">        List of the first (source) node listed in each edge of the graph, when the edges of the graph are listed as pairs of nodes</span>
-<span class="sd">    edges_tgt: List[int]</span>
-<span class="sd">        List of the second (target) node listed in each edge of the graph, when the edges of the graph are listed as pairs of nodes</span>
-<span class="sd">    thetas: List[float]</span>
-<span class="sd">        Free variables to be optimized</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    cudaq.Kernel</span>
-<span class="sd">        QAOA circuit for Max-Cut for max cut of the graph with given edges and nodes</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Let&#39;s allocate the qubits</span>
-    <span class="n">qreg</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
-    <span class="c1"># And then place the qubits in superposition</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">qreg</span><span class="p">)</span>
-
-    <span class="c1"># Each layer has two components: the problem kernel and the mixer</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">layer_count</span><span class="p">):</span>
-        <span class="c1"># Add the problem kernel to each layer</span>
-        <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges_src</span><span class="p">)):</span>
-            <span class="n">qubitu</span> <span class="o">=</span> <span class="n">edges_src</span><span class="p">[</span><span class="n">edge</span><span class="p">]</span>
-            <span class="n">qubitv</span> <span class="o">=</span> <span class="n">edges_tgt</span><span class="p">[</span><span class="n">edge</span><span class="p">]</span>
-            <span class="n">qaoaProblem</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="n">qubitu</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[</span><span class="n">qubitv</span><span class="p">],</span> <span class="n">thetas</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="c1"># Add the mixer kernel to each layer</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
-            <span class="n">rx</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">layer_count</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+<span class="n">atom</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/geo_o3.xyz&quot;</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="s2">&quot;cc-pVTZ&quot;</span>
+<span class="n">spin</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">num_active_orbitals</span> <span class="o">=</span> <span class="mi">9</span>
+<span class="n">num_active_electrons</span> <span class="o">=</span> <span class="mi">12</span>
 </pre></div>
 </div>
 </div>
-<p>As mentioned earlier, QAOA is a variational algorithm that aims to minimize a cost function. To apply QAOA to the max cut problem, we assign a binary variable <span class="math notranslate nohighlight">\(z_v\)</span> to each vertex <span class="math notranslate nohighlight">\(v\)</span>. These variables will take on the vales <span class="math notranslate nohighlight">\(-1\)</span> or <span class="math notranslate nohighlight">\(1\)</span>. Notice that an assignment of variable values corresponds to a partition of the graph. For example, <span class="math notranslate nohighlight">\(\bar z = [-1, 1, -1, 1, 1]\)</span> would partition the graph into two sets: <span class="math notranslate nohighlight">\(\{0,2\}\)</span> and <span class="math notranslate nohighlight">\(\{1,3,4\}.\)</span> We can compute the cut
-value of the graph for an arbirtrary assignment of variable values by the formula:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># PYSCF helps to build the molecule and run Hartree-Fock.</span>
+
+<span class="c1"># Define the molecule.</span>
+<span class="n">molecule</span> <span class="o">=</span> <span class="n">gto</span><span class="o">.</span><span class="n">M</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="n">atom</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="n">spin</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># Restriced open shell HF.</span>
+<span class="n">hartee_fock</span> <span class="o">=</span> <span class="n">scf</span><span class="o">.</span><span class="n">ROHF</span><span class="p">(</span><span class="n">molecule</span><span class="p">)</span>
+<span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span> <span class="o">=</span> <span class="s2">&quot;afqmc_src/output.chk&quot;</span>
+
+<span class="c1"># Run Hartree-Fock.</span>
+<span class="n">hartee_fock</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+-224.34048064812245
+</pre></div></div>
+</div>
+<section id="Hamiltonian-preparation-for-VQE">
+<h2>Hamiltonian preparation for VQE<a class="headerlink" href="#Hamiltonian-preparation-for-VQE" title="Permalink to this heading">¶</a></h2>
+<p>Since this molecule contains of around 600 orbitals (which would correspond to 1200 qubits) and 143 total electrons, it is impossible to perform a full VQE with full statevector simulation. Therefore, we need to identify an active space with fewer orbitals and electrons that contribute to the strongly interacting part of the whole molecule. We then run a post Hartree-Fock computation with the PySCF’s built-in CASCI method in order to obtain the one-body (<span class="math notranslate nohighlight">\(t_{pq}\)</span>) and two-body
+(<span class="math notranslate nohighlight">\(V_{prqs}\)</span>) integrals that define the molecular Hamiltonian in the active space:</p>
 <div class="math notranslate nohighlight">
-\[C(\bar{z})= \frac{1}{2} \sum_{(u,v)\in E} (1-z_uz_v),\]</div>
-<p>where <span class="math notranslate nohighlight">\(E\)</span> is the set of edges of our graph. Our goal is to find a variable assignment that maximizes <span class="math notranslate nohighlight">\(C(\bar z)\)</span>. Equivalently, we want to find a variable assignment that minimizes <span class="math notranslate nohighlight">\(-C(\bar z)\)</span>. Since QAOA identifies minimum values, we have reframed the max cut optimization problem from one of maximization to minimization. Furthermore, we can promote this equation to a matrix equation by replacing <span class="math notranslate nohighlight">\(z_uz_v-1\)</span> with Pauli-Z operators acting on qubits associated with nodes
-<span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(v\)</span>, respectively, and replacing 1 with the identity matrix. This leads to the reformulation of the problem from one of maximizing <span class="math notranslate nohighlight">\(C(\bar{z})\)</span> to one of minimizing the eigenvalues of</p>
-<div class="math notranslate nohighlight">
-\[H= \frac{1}{2}\sum_{(u,v)\in E} (Z_uZ_v-II).\]</div>
-<p>We can code this Hamiltonian using the <code class="docutils literal notranslate"><span class="pre">cudaq.spin</span></code> operators.</p>
+\[H= \sum_{pq}t_{pq}\hat{a}_{p}^\dagger \hat {a}_{q}+\sum_{pqrs}  V_{prqs}\hat a_{p}^\dagger \hat a_{q}^\dagger \hat a_{s}\hat a_{r} \tag{1}\]</div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The problem Hamiltonian</span>
-<span class="c1"># Define a function to generate the Hamiltonian for a max cut problem using the graph</span>
-<span class="c1"># with the given edges</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">openfermion.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openfermion</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_hamiltonian</span>
 
+<span class="c1"># Run a CASCI simulation for computing the Hamiltonian in the active space.</span>
+<span class="n">casci</span> <span class="o">=</span> <span class="n">mcscf</span><span class="o">.</span><span class="n">CASCI</span><span class="p">(</span><span class="n">hartee_fock</span><span class="p">,</span> <span class="n">num_active_orbitals</span><span class="p">,</span> <span class="n">num_active_electrons</span><span class="p">)</span>
+<span class="n">casci</span><span class="o">.</span><span class="n">fix_spin_</span><span class="p">(</span><span class="n">ss</span><span class="o">=</span><span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">spin</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">spin</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">hamiltonian_max_cut</span><span class="p">(</span><span class="n">edges_src</span><span class="p">,</span> <span class="n">edges_tgt</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hamiltonian for finding the max cut for the graph with given edges and nodes</span>
+<span class="c1"># Executes the kernel to compute the hamiltonian in the active space.</span>
+<span class="n">casci</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    edges_src: List[int]</span>
-<span class="sd">        List of the first (source) node listed in each edge of the graph, when the edges of the graph are listed as pairs of nodes</span>
-<span class="sd">    edges_tgt: List[int]</span>
-<span class="sd">        List of the second (target) node listed in each edge of the graph, when the edges of the graph are listed as pairs of nodes</span>
+<span class="c1"># Compute the one-body (h1) and two-body integrals (tbi) as shown in equation 1.</span>
+<span class="n">h1</span><span class="p">,</span> <span class="n">energy_core</span> <span class="o">=</span> <span class="n">casci</span><span class="o">.</span><span class="n">get_h1eff</span><span class="p">()</span>
 
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    cudaq.SpinOperator</span>
-<span class="sd">        Hamiltonian for finding the max cut of the graph with given edges</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="n">h2</span> <span class="o">=</span> <span class="n">casci</span><span class="o">.</span><span class="n">get_h2eff</span><span class="p">()</span>
+<span class="n">h2_no_symmetry</span> <span class="o">=</span> <span class="n">ao2mo</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">num_active_orbitals</span><span class="p">)</span>
 
-    <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="c1"># V_pqrs terms in H.</span>
+<span class="n">tbi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h2_no_symmetry</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges_src</span><span class="p">)):</span>
-
-        <span class="n">qubitu</span> <span class="o">=</span> <span class="n">edges_src</span><span class="p">[</span><span class="n">edge</span><span class="p">]</span>
-        <span class="n">qubitv</span> <span class="o">=</span> <span class="n">edges_tgt</span><span class="p">[</span><span class="n">edge</span><span class="p">]</span>
-        <span class="c1"># Add a term to the Hamiltonian for the edge (u,v)</span>
-        <span class="n">hamiltonian</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">qubitu</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">qubitv</span><span class="p">)</span> <span class="o">-</span>
-                              <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">qubitu</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">qubitv</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">hamiltonian</span>
+<span class="c1"># Compute the hamiltonian and convert it to a CUDA-Q operator.</span>
+<span class="n">mol_ham</span> <span class="o">=</span> <span class="n">generate_hamiltonian</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">energy_core</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+<span class="n">jw_hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner</span><span class="p">(</span><span class="n">mol_ham</span><span class="p">)</span>
+<span class="n">hamiltonian</span><span class="p">,</span> <span class="n">constant_term</span> <span class="o">=</span> <span class="n">get_cudaq_hamiltonian</span><span class="p">(</span><span class="n">jw_hamiltonian</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>To inititiate the QAOA algorithm, we need to identify initial parameters and specify the classical optimization routine.</p>
+</section>
+<section id="Run-VQE-with-CUDA-Q">
+<h2>Run VQE with CUDA-Q<a class="headerlink" href="#Run-VQE-with-CUDA-Q" title="Permalink to this heading">¶</a></h2>
+<p>We can now execute the VQE algorithm using the quantum number preserving ansatz. At the end of the VQE, we store the final statevector that will be used in the classical AFQMC computation as an initial guess.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Specify the optimizer and its initial parameters.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
-<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">NelderMead</span><span class="p">()</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
-<span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span>
-                                                 <span class="n">parameter_count</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial parameters = &quot;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define some options for the VQE.</span>
+<span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;n_vqe_layers&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="s1">&#39;energy_core&#39;</span><span class="p">:</span> <span class="n">constant_term</span><span class="p">,</span>
+    <span class="s1">&#39;return_final_state_vec&#39;</span><span class="p">:</span> <span class="kc">True</span>
+<span class="p">}</span>
+
+<span class="n">n_qubits</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">num_active_orbitals</span>
+
+<span class="n">vqe</span> <span class="o">=</span> <span class="n">VQE</span><span class="p">(</span><span class="n">n_qubits</span><span class="o">=</span><span class="n">n_qubits</span><span class="p">,</span>
+          <span class="n">num_active_electrons</span><span class="o">=</span><span class="n">num_active_electrons</span><span class="p">,</span>
+          <span class="n">spin</span><span class="o">=</span><span class="n">spin</span><span class="p">,</span>
+          <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">)</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="n">vqe</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
+
+<span class="c1"># Best energy from VQE.</span>
+<span class="n">optimized_energy</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;energy_optimized&#39;</span><span class="p">]</span>
+
+<span class="c1"># Final state vector.</span>
+<span class="n">final_state_vector</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;state_vec&quot;</span><span class="p">]</span>
+
+<span class="c1"># Energies during the optimization loop.</span>
+<span class="n">vqe_energies</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;callback_energies&quot;</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>
@@ -996,46 +981,66 @@ value of the graph for an arbirtrary assignment of variable values by the formul
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.2546877639814583, 0.3657985647468064]
+# Using cudaq optimizer
+# Num Params: 16
+# Qubits: 18
+# N_layers: 1
+# Energy after the VQE: -224.39455094949878
 </pre></div></div>
 </div>
-<p>We can either use the <code class="docutils literal notranslate"><span class="pre">observe</span></code> primitive or the <code class="docutils literal notranslate"><span class="pre">vqe</span></code> primitive to code up the optimization loop of QAOA.</p>
+</section>
+<section id="Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">
+<h2>Auxiliary Field Quantum Monte Carlo (AFQMC)<a class="headerlink" href="#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)" title="Permalink to this heading">¶</a></h2>
+<p>AFQMC is a numerical method for computing relevant properties of strongly interacting molecules. AFQMC is a type of Quantum Monte Carlo method that combines the use of random walks with an auxiliary field to simulate the imaginary-time evolution of a quantum system and drive it to the lowest energy state. This method can provide accurate results for ground-state properties of a wide range of physical systems, including atoms, molecules, and solids. Here we summarize the main features of AFQMC
+while a detailed introduction to can be found <a class="reference external" href="https://www.cond-mat.de/events/correl13/manuscripts/zhang.pdf">here</a>.</p>
+<p>We consider the electronic Hamiltonian in the second quantization <span class="math">\begin{equation}
+H = {H}_1 + {H}_2
+=\sum_{pq} h_{pq} {a}_{p}^{\dagger} {a}_{q} + \frac{1}{2} \sum_{pqrs} v_{pqrs}{a}_{p}^{\dagger} {a}_r {a}^{\dagger}_{q} {a}_s \tag{2}
+\end{equation}</span> where <span class="math notranslate nohighlight">\({a}_{p}^{\dagger}\)</span> and <span class="math notranslate nohighlight">\({a}_{q}\)</span> are fermionic creation and annihilation operators of orbitals <span class="math notranslate nohighlight">\(p\)</span> and <span class="math notranslate nohighlight">\(q\)</span>, respectively. The terms $h_{pq} $ and <span class="math notranslate nohighlight">\(v_{pqrs}\)</span> are the matrix elements of the one-body, <span class="math notranslate nohighlight">\(H_1\)</span>, and two-body, <span class="math notranslate nohighlight">\(H_2\)</span>, interactions of <span class="math notranslate nohighlight">\(H\)</span>, respectively. Here, we omit the spin indices for simplicity.</p>
+<p>AFQMC realizes an imaginary time propagation of an initial state (chosen as a Slater determinant) <span class="math notranslate nohighlight">\(\ket{\Psi_{I}}\)</span> towards the ground state <span class="math notranslate nohighlight">\(\ket{\Psi_0}\)</span> of a given hamiltonian, <span class="math notranslate nohighlight">\(H\)</span>, with <span class="math">\begin{equation}
+\ket{\Psi_0} \sim\lim_{n \to \infty} \left[ e^{-\Delta\tau H  }  \right]^{n} \ket{\Psi_{I}}
+\tag{3}
+\end{equation}</span> where <span class="math notranslate nohighlight">\(\Delta\tau\)</span> is the imaginary time step.</p>
+<p>AFQMC relies on decomposing the two-body interactions <span class="math notranslate nohighlight">\(H_2\)</span> in terms of sum of squares of one-body operators <span class="math notranslate nohighlight">\({v}_\gamma\)</span> such that the Hamiltonian <span class="math notranslate nohighlight">\({H}\)</span> becomes <span class="math">\begin{equation}
+H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
+\tag{4}
+\end{equation}</span> with ${v}<em>0 = {H}1 $ and $ {v}:nbsphinx-math:`gamma `= i :nbsphinx-math:`sum`</em>{pq} L<sup>{:nbsphinx-math:</sup>gamma`}{pq} {a}{p}`{<span class="math">\dagger</span>}{a}_{q}. $ The <span class="math notranslate nohighlight">\(N_\gamma\)</span> matrices <span class="math notranslate nohighlight">\(L^{\gamma}_{pq}\)</span> are called Cholesky vectors as they are obtained via a Cholesky decomposition of the two-body matrix elements <span class="math notranslate nohighlight">\(v_{pqrs}\)</span> via <span class="math notranslate nohighlight">\(v_{pqrs} = \sum_{\gamma=1}^{N_\gamma} L^{\gamma}_{pr} L^{\gamma}_{qs}\)</span>.</p>
+<p>The imaginary time propagation evolves an ensemble of walkers <span class="math notranslate nohighlight">\(\{\phi^{(n)}\}\)</span> (that are Slater determinants) and allows one to access observables of the system. For example, the local energy <span class="math">\begin{equation}
+\mathcal{E}_{\text{loc}}(\phi^{(n)}) = \frac{\bra{\Psi_\mathrm{T}}H\ket{\phi^{(n)}}}{\braket{\Psi_\mathrm{T}| \phi^{(n)}}}
+\tag{5}
+\end{equation}</span> defined as the mixed expectation value of the Hamiltonian with the trial wave function <span class="math notranslate nohighlight">\(\ket{\Psi_\mathrm{T}}\)</span>.</p>
+<p>The trial wavefunction can be in general a single or a multi-Slater determinant coming from VQE for example. This might help in achieving more accurate ground state energy estimates.</p>
+<p>The implementation of AFQMC we use here is from <a class="reference external" href="https://github.com/JoonhoLee-Group/ipie">ipie</a> that supports both CPUs and GPUs and requires the following steps:</p>
+<ol class="arabic simple">
+<li><p>Preparation of the molecular Hamiltonian by performing the Cholesky decomposition</p></li>
+<li><p>Preparation of the trial state from the VQE wavefunction</p></li>
+<li><p>Executing AFQMC</p></li>
+</ol>
+</section>
+<section id="Preparation-of-the-molecular-Hamiltonian">
+<h2>Preparation of the molecular Hamiltonian<a class="headerlink" href="#Preparation-of-the-molecular-Hamiltonian" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#cudaq.set_target(&#39;nvidia&#39;)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qpp-cpu&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># AFQMC.</span>
 
-<span class="c1"># Generate the Hamiltonian for our graph</span>
-<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">hamiltonian_max_cut</span><span class="p">(</span><span class="n">edges_src</span><span class="p">,</span> <span class="n">edges_tgt</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
+<span class="c1"># Generate the input Hamiltonian for ipie from the checkpoint file from pyscf.</span>
+<span class="n">ipie_hamiltonian</span> <span class="o">=</span> <span class="n">gen_ipie_input_from_pyscf_chk</span><span class="p">(</span><span class="n">hartee_fock</span><span class="o">.</span><span class="n">chkfile</span><span class="p">,</span>
+                                                 <span class="n">mcscf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                 <span class="n">chol_cut</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
 
-<span class="c1"># Define the objective, return `&lt;state(params) | H | state(params)&gt;`</span>
-<span class="c1"># Note that in the `observe` call we list the kernel, the hamiltonian, and then the concrete global variable values of our kernel</span>
-<span class="c1"># followed by the parameters to be optimized.</span>
+<span class="n">h1e</span><span class="p">,</span> <span class="n">cholesky_vectors</span><span class="p">,</span> <span class="n">e0</span> <span class="o">=</span> <span class="n">ipie_hamiltonian</span>
 
+<span class="n">num_basis</span> <span class="o">=</span> <span class="n">cholesky_vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">num_chol</span> <span class="o">=</span> <span class="n">cholesky_vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel_qaoa</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">layer_count</span><span class="p">,</span>
-                         <span class="n">edges_src</span><span class="p">,</span> <span class="n">edges_tgt</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+<span class="n">system</span> <span class="o">=</span> <span class="n">Generic</span><span class="p">(</span><span class="n">nelec</span><span class="o">=</span><span class="n">molecule</span><span class="o">.</span><span class="n">nelec</span><span class="p">)</span>
 
-
-<span class="c1"># Optimize!</span>
-<span class="n">optimal_expectation</span><span class="p">,</span> <span class="n">optimal_parameters</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span>
-    <span class="n">dimensions</span><span class="o">=</span><span class="n">parameter_count</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">objective</span><span class="p">)</span>
-
-<span class="c1"># Alternatively we can use the vqe call (just comment out the above code and uncomment the code below)</span>
-<span class="c1"># optimal_expectation, optimal_parameters = cudaq.vqe(</span>
-<span class="c1">#    kernel=kernel_qaoa,</span>
-<span class="c1">#    spin_operator=hamiltonian,</span>
-<span class="c1">#    argument_mapper=lambda parameter_vector: (qubit_count, layer_count, edges_src, edges_tgt, parameter_vector),</span>
-<span class="c1">#    optimizer=optimizer,</span>
-<span class="c1">#    parameter_count=parameter_count)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;optimal_expectation =&#39;</span><span class="p">,</span> <span class="n">optimal_expectation</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Therefore, the max cut value is at least &#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">optimal_expectation</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;optimal_parameters =&#39;</span><span class="p">,</span> <span class="n">optimal_parameters</span><span class="p">)</span>
+<span class="n">afqmc_hamiltonian</span> <span class="o">=</span> <span class="n">HamGeneric</span><span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">h1e</span><span class="p">,</span> <span class="n">h1e</span><span class="p">]),</span>
+    <span class="n">cholesky_vectors</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">num_basis</span> <span class="o">*</span> <span class="n">num_basis</span><span class="p">,</span> <span class="n">num_chol</span><span class="p">)),</span> <span class="n">e0</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1044,34 +1049,60 @@ Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.254687763981
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[0.5+0j] IIZIZ
-[0.5+0j] IZZII
-[-3+0j] IIIII
-[0.5+0j] ZZIII
-[0.5+0j] IIIZZ
-[0.5+0j] IIZZI
-[0.5+0j] ZIIZI
-
-optimal_expectation = -4.495973826282007
-Therefore, the max cut value is at least  4.495973826282007
-optimal_parameters = [0.51349181993727, -0.21299416361632417, 0.3250526425808945, 0.886630847343767]
+# Number of electrons in simulation: (12, 12)
 </pre></div></div>
 </div>
-<p>Now that we have identified the optimal parameters, we can read out the partitioning(s) that gives us a max cut of the graph using the <code class="docutils literal notranslate"><span class="pre">sample</span></code> primitive.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</section>
+<section id="Preparation-of-the-trial-wave-function">
+<h2>Preparation of the trial wave function<a class="headerlink" href="#Preparation-of-the-trial-wave-function" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sample the circuit using the optimized parameters</span>
-<span class="c1"># Since our kernel has more than one argument, we need to list the values for each of these variables in order in the `sample` call.</span>
-<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel_qaoa</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">layer_count</span><span class="p">,</span> <span class="n">edges_src</span><span class="p">,</span>
-                      <span class="n">edges_tgt</span><span class="p">,</span> <span class="n">optimal_parameters</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build the trial wavefunction from the state vector computed via VQE.</span>
+<span class="n">wavefunction</span> <span class="o">=</span> <span class="n">get_coeff_wf</span><span class="p">(</span><span class="n">final_state_vector</span><span class="p">,</span>
+                            <span class="n">n_active_elec</span><span class="o">=</span><span class="n">num_active_electrons</span><span class="p">,</span>
+                            <span class="n">spin</span><span class="o">=</span><span class="n">spin</span><span class="p">)</span>
 
-<span class="c1"># Identify the most likely outcome from the sample</span>
-<span class="n">max_cut</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">counts</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The max cut is given by the partition: &#39;</span><span class="p">,</span>
-      <span class="nb">max</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">counts</span><span class="p">[</span><span class="n">x</span><span class="p">]))</span>
+<span class="n">trial</span> <span class="o">=</span> <span class="n">ParticleHole</span><span class="p">(</span><span class="n">wavefunction</span><span class="p">,</span>
+                     <span class="n">molecule</span><span class="o">.</span><span class="n">nelec</span><span class="p">,</span>
+                     <span class="n">num_basis</span><span class="p">,</span>
+                     <span class="n">num_dets_for_props</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">wavefunction</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                     <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">trial</span><span class="o">.</span><span class="n">compute_trial_energy</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">trial</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+<span class="n">trial</span><span class="o">.</span><span class="n">half_rotate</span><span class="p">(</span><span class="n">afqmc_hamiltonian</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Setup-of-the-AFQMC-parameters">
+<h2>Setup of the AFQMC parameters<a class="headerlink" href="#Setup-of-the-AFQMC-parameters" title="Permalink to this heading">¶</a></h2>
+<p>Here we can choose the input options like the timestep <span class="math notranslate nohighlight">\(\Delta\tau\)</span>, the total number of walkers <code class="docutils literal notranslate"><span class="pre">num_walkers</span></code> and the total number of AFQMC iterations <code class="docutils literal notranslate"><span class="pre">num_blocks</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup the AFQMC parameters.</span>
+<span class="n">afqmc_msd</span> <span class="o">=</span> <span class="n">AFQMC</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">molecule</span><span class="o">.</span><span class="n">nelec</span><span class="p">,</span>
+                        <span class="n">afqmc_hamiltonian</span><span class="p">,</span>
+                        <span class="n">trial</span><span class="p">,</span>
+                        <span class="n">num_walkers</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                        <span class="n">num_steps_per_block</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+                        <span class="n">num_blocks</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                        <span class="n">timestep</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+                        <span class="n">stabilize_freq</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                        <span class="n">seed</span><span class="o">=</span><span class="mi">96264512</span><span class="p">,</span>
+                        <span class="n">pop_control_freq</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># Run the AFQMC.</span>
+<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">estimator_filename</span><span class="o">=</span><span class="s1">&#39;afqmc_src/estimates.0.h5&#39;</span><span class="p">)</span>
+<span class="n">afqmc_msd</span><span class="o">.</span><span class="n">finalise</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># Extract the energies.</span>
+<span class="n">qmc_data</span> <span class="o">=</span> <span class="n">extract_observable</span><span class="p">(</span><span class="n">afqmc_msd</span><span class="o">.</span><span class="n">estimators</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;energy&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1080,13 +1111,59 @@ optimal_parameters = [0.51349181993727, -0.21299416361632417, 0.3250526425808945
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{ 11111:4 11110:1 01101:2 01010:148 01110:47 01000:3 00110:54 10101:165 00101:2 01011:154 00100:3 01001:41 00000:1 00011:3 01100:8 10011:7 00010:2 01111:2 11011:3 00111:10 11100:7 10001:65 10010:7 10100:144 10110:40 10000:5 10111:3 11000:7 11101:1 11001:59 11010:2 }
-
-The max cut is given by the partition:  10101
+# random seed is 96264512
+            Block                   Weight            WeightFactor            HybridEnergy                  ENumer                  EDenom                  ETotal                  E1Body                  E2Body
+                0   1.0000000000000000e+02  1.0000000000000000e+02  0.0000000000000000e+00 -2.2439413574858248e+04  1.0000000000000000e+02 -2.2439413574858250e+02 -3.7639365205439407e+02  1.5199951630581157e+02
+                1   4.2258301041774035e+02  1.4118669731586463e+03 -1.1708882854710750e+02 -2.2474916437261574e+04  1.0000000000000000e+02 -2.2474916437261575e+02 -3.7647296651452950e+02  1.5172380214191386e+02
+                2   1.0031504281308401e+02  3.8297737898314341e+02 -1.1739924259761827e+02 -2.2490532145733003e+04  9.9999999999999986e+01 -2.2490532145733007e+02 -3.7651477069597922e+02  1.5160944923864918e+02
+                3   9.9899212120920296e+01  1.0007733169797531e+02 -1.1733630843942882e+02 -2.2497023748199670e+04  9.9999999999999986e+01 -2.2497023748199675e+02 -3.7660510012883196e+02  1.5163486264683516e+02
+                4   1.0009065798675080e+02  1.0004728284850617e+02 -1.1745681184714668e+02 -2.2496787246373897e+04  1.0000000000000001e+02 -2.2496787246373893e+02 -3.7676975956887520e+02  1.5180188710513633e+02
+                5   9.9997283679139173e+01  1.0010516558962367e+02 -1.1749487126104539e+02 -2.2503896183474415e+04  1.0000000000000001e+02 -2.2503896183474413e+02 -3.7664507184180695e+02  1.5160611000706268e+02
+                6   1.0011617434070206e+02  1.0018130110278446e+02 -1.1766576516987034e+02 -2.2514130031354973e+04  1.0000000000000003e+02 -2.2514130031354966e+02 -3.7662478860477643e+02  1.5148348829122685e+02
+                7   9.9932111671046385e+01  9.9917484318648320e+01 -1.1761313306634769e+02 -2.2516961022020205e+04  1.0000000000000000e+02 -2.2516961022020206e+02 -3.7661715794903222e+02  1.5144754772883010e+02
+                8   9.9903333135890790e+01  9.9912269122680755e+01 -1.1757680866079117e+02 -2.2518386081760287e+04  9.9999999999999986e+01 -2.2518386081760292e+02 -3.7676432976591940e+02  1.5158046894831654e+02
+                9   1.0012009650415450e+02  1.0012104365758209e+02 -1.1776314652530120e+02 -2.2513280621097532e+04  1.0000000000000000e+02 -2.2513280621097533e+02 -3.7678702690105990e+02  1.5165422069008449e+02
+               10   9.9637195525722973e+01  9.9239451881972172e+01 -1.1746129307287680e+02 -2.2518449097868390e+04  1.0000000000000000e+02 -2.2518449097868390e+02 -3.7689240664007951e+02  1.5170791566139565e+02
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the energies.</span>
+
+<span class="n">vqe_y</span> <span class="o">=</span> <span class="n">vqe_energies</span>
+<span class="n">vqe_x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vqe_y</span><span class="p">)))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vqe_x</span><span class="p">,</span> <span class="n">vqe_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;VQE&quot;</span><span class="p">)</span>
+
+<span class="n">afqmc_y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qmc_data</span><span class="p">[</span><span class="s2">&quot;ETotal&quot;</span><span class="p">])</span>
+<span class="n">afqmc_x</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">vqe_x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">afqmc_y</span><span class="p">)))]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">afqmc_x</span><span class="p">,</span> <span class="n">afqmc_y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;AFQMC&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Optimization steps&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Energy [Ha]&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x7e4df2da63e0&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/applications_python_afqmc_22_1.png" src="../../_images/applications_python_afqmc_22_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
@@ -1098,17 +1175,18 @@ The max cut is given by the partition:  10101
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408cbf595ce6fe5f33dcd8b4c)
+CUDA-Q Version 0.9.0-rc2 (https://github.com/NVIDIA/cuda-quantum 61c2ecfe1cfd7fa2ad6cbf192c300180a89c75f0)
 </pre></div></div>
 </div>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="hybrid_qnns.html" class="btn btn-neutral float-left" title="Hybrid Quantum Neural Networks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="digitized_counterdiabatic_qaoa.html" class="btn btn-neutral float-right" title="Molecular docking via DC-QAOA" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="krylov.html" class="btn btn-neutral float-left" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quantum_fourier_transform.html" class="btn btn-neutral float-right" title="Quantum Fourier Transform" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
