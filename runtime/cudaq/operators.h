@@ -100,7 +100,7 @@ public:
 
     const_iterator(const sum_op<HandlerTy> *sum, std::size_t idx)
         : sum(sum), current_val(1.), current_idx(idx) {
-      if (current_idx < sum->num_terms())
+      if (sum && current_idx < sum->num_terms())
         current_val = product_op<HandlerTy>(sum->coefficients[current_idx],
                                             sum->terms[current_idx]);
     }

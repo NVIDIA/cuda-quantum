@@ -41,7 +41,7 @@ spin_op fromOpenFermionQubitOperator(py::object &op) {
   return H;
 }
 
-// FIXME: add proper deprecation warnings to teh bindings
+// FIXME: add proper deprecation warnings to the bindings
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -462,13 +462,11 @@ void bindSpinOperator(py::module &mod) {
                                      // additional (optional) args
           },
           "Return `self` as a :class:`ComplexMatrix`.")
-      /*
-      .def("to_sparse_matrix", &spin_op::to_sparse_matrix,
+      .def("to_sparse_matrix", &spin_op::to_sparse_matrix<cudaq::spin_handler>,
            "Return `self` as a sparse matrix. This representation is a "
            "`Tuple[list[complex], list[int], list[int]]`, encoding the "
            "non-zero values, rows, and columns of the matrix. "
            "This format is supported by `scipy.sparse.csr_array`.")
-      */
       .def(
           "__iter__",
           [](spin_op &self) {

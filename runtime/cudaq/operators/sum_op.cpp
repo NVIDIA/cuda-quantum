@@ -1884,7 +1884,7 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
     matrix += HandlerTy::to_sparse_matrix(
         evaluated.terms[i].second, evaluated.terms[i].first, invert_order);
   return cudaq::detail::to_csr_spmatrix(matrix,
-                                        1 << evaluated.terms[0].second.size());
+                                        1ul << evaluated.terms[0].second.size());
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
