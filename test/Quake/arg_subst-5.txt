@@ -1,0 +1,14 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+cc.arg_subst[0] {
+  %0 = arith.constant 2 : i32
+}
+func.func private @callee5(%arg0: i32) -> (i32) {
+  return %arg0: i32
+}

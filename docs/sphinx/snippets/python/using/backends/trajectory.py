@@ -10,6 +10,9 @@
 import cudaq
 
 # Use the `nvidia` target
+# Other targets capable of trajectory simulation are:
+# - `tensornet`
+# - `tensornet-mps`
 cudaq.set_target("nvidia")
 
 # Let's define a simple kernel that we will add noise to.

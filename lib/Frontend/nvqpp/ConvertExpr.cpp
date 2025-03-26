@@ -1198,6 +1198,29 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
 
+  // Handle std::complex member functions
+  if (isInClassInNamespace(func, "complex", "std")) {
+    auto value = popValue();
+    if (isa<cc::PointerType>(value.getType()))
+      value = builder.create<cc::LoadOp>(loc, value);
+    if (funcName.equals("real")) {
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          return pushValue(builder.create<complex::ReOp>(loc, value));
+        }
+    }
+    if (funcName.equals("imag")) {
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          return pushValue(builder.create<complex::ImOp>(loc, value));
+        }
+    }
+  }
+
   // Dealing with our std::vector as a view data structures. If we have some θ
   // with the type `std::vector<double/float/int>`, and in the kernel, θ.size()
   // is called, we need to convert that to loading the size field of the pair.
@@ -2722,7 +2745,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       // lambda determines: is `t` a cudaq::state* ?
       auto isStateType = [&](Type t) {
         if (auto ptrTy = dyn_cast<cc::PointerType>(t))
-          return isa<cc::StateType>(ptrTy.getElementType());
+          return isa<quake::StateType>(ptrTy.getElementType());
         return false;
       };
 
@@ -2756,7 +2779,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           return pushValue(builder.create<quake::AllocaOp>(
               loc, quake::VeqType::getUnsized(ctx), initials));
         }
-        if (isa<cc::StateType>(initials.getType())) {
+        if (isa<quake::StateType>(initials.getType())) {
           if (auto load = initials.getDefiningOp<cudaq::cc::LoadOp>())
             initials = load.getPtrvalue();
         }

@@ -185,16 +185,32 @@ public:
           cudaq::info("Run Argument Synth.\n");
           opt::ArgumentConverter argCon(name, moduleOp);
           argCon.gen_drop_front(*rawArgs, startingArgIdx);
-          std::string kernName = runtime::cudaqGenPrefixName + name;
-          mlir::SmallVector<mlir::StringRef> kernels = {kernName};
-          std::string substBuff;
-          llvm::raw_string_ostream ss(substBuff);
-          ss << argCon.getSubstitutionModule();
-          mlir::SmallVector<mlir::StringRef> substs = {substBuff};
-          pm.addNestedPass<mlir::func::FuncOp>(
-              opt::createArgumentSynthesisPass(kernels, substs));
+
+          // Store kernel and substitution strings on the stack.
+          // We pass string references to the `createArgumentSynthesisPass`.
+          mlir::SmallVector<std::string> kernels;
+          mlir::SmallVector<std::string> substs;
+          for (auto *kInfo : argCon.getKernelSubstitutions()) {
+            std::string kernName = cudaq::runtime::cudaqGenPrefixName +
+                                   kInfo->getKernelName().str();
+            kernels.emplace_back(kernName);
+            std::string substBuff;
+            llvm::raw_string_ostream ss(substBuff);
+            ss << kInfo->getSubstitutionModule();
+            substs.emplace_back(substBuff);
+          }
+
+          // Collect references for the argument synthesis.
+          mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
+                                                        kernels.end()};
+          mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
+                                                       substs.end()};
+          pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
           pm.addPass(mlir::createCanonicalizerPass());
           pm.addPass(opt::createDeleteStates());
+          pm.addNestedPass<mlir::func::FuncOp>(
+              opt::createReplaceStateWithKernel());
+          pm.addPass(mlir::createSymbolDCEPass());
         } else if (args) {
           cudaq::info("Run Quake Synth.\n");
           pm.addPass(opt::createQuakeSynthesizer(name, args, startingArgIdx));
@@ -329,8 +345,12 @@ public:
       if (!castedState1 || !castedState2)
         throw std::runtime_error(
             "Invalid execution context: input states are not compatible");
-      auto [kernelName1, args1] = castedState1->getKernelInfo();
-      auto [kernelName2, args2] = castedState2->getKernelInfo();
+      if (!castedState1->getKernelInfo().has_value())
+        throw std::runtime_error("Missing first input state in state-overlap");
+      if (!castedState2->getKernelInfo().has_value())
+        throw std::runtime_error("Missing second input state in state-overlap");
+      auto [kernelName1, args1] = castedState1->getKernelInfo().value();
+      auto [kernelName2, args2] = castedState2->getKernelInfo().value();
       cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
 
       stateIrPayload1.entryPoint = kernelName1;

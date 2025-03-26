@@ -65,7 +65,7 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
-def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::func::FuncOp"> {
+def ArgumentSynthesis : Pass<"argument-synthesis", "mlir::ModuleOp"> {
   let summary = "Specialize a function by replacing arguments with constants";
   let description = [{
     This pass takes a list of functions and argument substitutions. For each
@@ -814,10 +814,10 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       %c8_i64 = arith.constant 8 : i64
       %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-      %4 = cc.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!cc.state>
-      %5 = cc.get_number_of_qubits %4 : (!cc.ptr<!cc.state>) -> i64
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
+      %5 = quake.get_number_of_qubits %4 : (!cc.ptr<!quake.state>) -> i64
       %6 = quake.alloca !quake.veq<?>[%5 : i64]
-      %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!cc.state>) -> !quake.veq<?>
+      %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
 
       return
     }
@@ -841,8 +841,8 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
     Before DeleteStates (delete-states):
     ```  func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       ...
-      %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> ()
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
+      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
       return
     }
     ```
@@ -851,9 +851,79 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
     ```
     func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
       ...
-      %4 = call @__nvqpp_cudaq_state_createFromData_fp32(%3, %c8_i64) : (!cc.ptr<i8>, i64) -> !cc.ptr<!cc.state>
-      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!cc.state>) -> ()
-      call @__nvqpp_cudaq_state_delete(%4) : (!cc.ptr<!cc.state>) -> ()
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
+      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
+      quake.delete_state %3 : !cc.ptr<!quake.state>
+      return
+    }
+    ```
+  }];
+}
+
+def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::FuncOp"> {
+  let summary =
+    "Replace `quake.init_state` instructions with call to the kernel generating the state";
+  let description = [{
+    This optimization replaces `quake.init_state`, `quake.get_number_of_qubits`,
+    and `quake.materialize_state` operations invoked on state pointers during
+    argument synthesis for quantum devices.
+
+    Before this optimization, argument synthesis for state pointers for quantum
+    devices substituted a state created from the `quake.materialize_state`
+    operation for the state argument.
+
+    The `quake.materialize_state` operation accepts symbols for the synthesized
+    kernels `@num_qubits` and `@init` that argument synthesis generated from
+    the original kernel call that generated the state, e.g.,
+    the `cudaq::get_state` call that refers to the result of a specific quantum
+    kernel being invoked with a set of parameters
+
+    For example, for the user code:
+      ```
+      state = cudaq::get_state(callee, args)
+      caller(state)
+      ```
+
+    The argument synthesis generated the following new kernels from the `callee`
+    and synthesized them to substitute their arguments with `args`:
+      ```
+      func.func @callee_num_qubits(arguments) -> i64
+      func.func @callee_init(qubits: !quake.veq<?>, arguments) -> !quake.veq<?>
+      ```
+
+    The argument synthesis also substituted the state argument in the `caller`
+    with:
+      ```
+      quake.materialize_state @callee_num_qubits @callee_init: !cc.ptr<!quake.state>
+      ```
+
+    This optimization performs the replacements for the the following operations 
+    that use a state produced by  `quake.materialize_state @num_qubits, @init`
+    operation:
+
+    - Replace `quake.get_number_of_qubits` operation by call to `@num_qubits`
+    - Replace `quake.init_state` operation by call to `@init`
+    - Clean up unused `quake.materialize_state` operation
+
+    For example:
+
+    Before ReplaceStateWithKernel (replace-state-with-kernel):
+    ```
+    func.func @foo() {
+      %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0: !cc.ptr<!quake.state>
+      %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!quake.state>) -> i64
+      %2 = quake.alloca !quake.veq<?>[%1 : i64]
+      %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+      return
+    }
+    ```
+
+    After ReplaceStateWithKernel (replace-state-with-kernel):
+    ```
+    func.func @foo()  {
+      %1 = call @callee.num_qubits_0() : () -> i64
+      %2 = quake.alloca !quake.veq<?>[%1 : i64]
+      %3 = call @callee.init_0(%2) : (!quake.veq<?>) -> !quake.veq<?>
       return
     }
     ```
@@ -951,7 +1021,8 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
 
 def PySynthCallableBlockArgs :
     Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
-  let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
+  let summary =
+    "Synthesize / Inline cc.callable_func on function block arguments.";
   let description = [{
     This pass is leveraged by the Python bindings to synthesize any 
     cc.callable block arguments. By synthesis we mean replace all uses of the 
@@ -974,7 +1045,7 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
 }
 
 def QuakeAddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
- let summary = "Add quake deallocs to functions before they return.";
+  let summary = "Add quake deallocs to functions before they return.";
   let description = [{
     This pass ensures that a dealloc is inserted before functions return
     if the function contains a AllocaOp. It should be run before converting
@@ -985,7 +1056,7 @@ def QuakeAddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
 }
 
 def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
- let summary = "Add various metadata attributes to a Quake function.";
+  let summary = "Add various metadata attributes to a Quake function.";
   let description = [{
    This pass provides a hook for adding various metadata to a Quake
    function's list of compile-time attributes. This type of metadata
@@ -1009,6 +1080,17 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
     type values.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
+def SROA : Pass<"cc-sroa"> {
+  let summary = "Scalar replacement of aggregates.";
+  let description = [{
+    Simple scalar replacement of aggregates. This pass will rewrite simple use
+    cases by replacing aggregates with scalars.
+
+    To be implemented: handling recursive compositions of aggregate types.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
 // UnitarySynthesis is a module pass because it may modify the `ModuleOp` by
