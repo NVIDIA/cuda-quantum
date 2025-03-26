@@ -59,7 +59,7 @@ std::string fermion_handler::op_code_to_string() const {
   return "I";
 }
 
-// used internally for canonical evaluation - 
+// used internally for canonical evaluation -
 // use a single char for representing the operator
 std::string fermion_handler::op_code_to_string(
     std::unordered_map<std::size_t, int64_t> &dimensions) const {
@@ -151,26 +151,26 @@ void fermion_handler::create_matrix(
   // check if the operator quenches all states
   auto it = std::find(fermi_word.cbegin(), fermi_word.cend(), '0');
   if (it != fermi_word.cend())
-      return;
+    return;
 
   auto map_state = [](char encoding, bool state) {
     if (encoding == '9')
-      return std::pair<double, bool> {1., state};
+      return std::pair<double, bool>{1., state};
     if (state) {
       if (encoding == '4' || encoding == '1') // zeros the state
-        return std::pair<double, bool> {0., state};
+        return std::pair<double, bool>{0., state};
       if (encoding == '8')
-        return std::pair<double, bool> {1., state};
+        return std::pair<double, bool>{1., state};
       if (encoding == '2')
-        return std::pair<double, bool> {1., !state};
+        return std::pair<double, bool>{1., !state};
       assert(false); // should never reach
     } else {
       if (encoding == '2' || encoding == '8') // zeros the state
-        return std::pair<double, bool> {0., state};
+        return std::pair<double, bool>{0., state};
       if (encoding == '1')
-        return std::pair<double, bool> {1., state};
+        return std::pair<double, bool>{1., state};
       if (encoding == '4')
-        return std::pair<double, bool> {1., !state};
+        return std::pair<double, bool>{1., !state};
       assert(false); // should never reach
     }
   };
@@ -194,7 +194,8 @@ void fermion_handler::create_matrix(
 
 cudaq::detail::EigenSparseMatrix
 fermion_handler::to_sparse_matrix(const std::string &fermi_word,
-                                  std::complex<double> coeff, bool invert_order) {
+                                  std::complex<double> coeff,
+                                  bool invert_order) {
   using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1 << fermi_word.size();
   std::vector<Triplet> triplets;

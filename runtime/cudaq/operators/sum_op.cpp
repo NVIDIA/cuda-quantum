@@ -501,10 +501,10 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
     return cudaq::complex_matrix(0, 0);
 
   auto matrix = HandlerTy::to_matrix(evaluated.terms[0].second,
-                                        evaluated.terms[0].first, invert_order);
+                                     evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
     matrix += HandlerTy::to_matrix(evaluated.terms[i].second,
-                                      evaluated.terms[i].first, invert_order);
+                                   evaluated.terms[i].first, invert_order);
   return matrix;
 }
 
@@ -529,11 +529,12 @@ complex_matrix sum_op<boson_handler>::to_matrix(
     relevant_dims.push_back(it->second);
   }
 
-  auto matrix = boson_handler::to_matrix(evaluated.terms[0].second, relevant_dims,
-                                        evaluated.terms[0].first, invert_order);
+  auto matrix =
+      boson_handler::to_matrix(evaluated.terms[0].second, relevant_dims,
+                               evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
     matrix += boson_handler::to_matrix(evaluated.terms[i].second, relevant_dims,
-                                      evaluated.terms[i].first, invert_order);
+                                       evaluated.terms[i].first, invert_order);
   return matrix;
 }
 
@@ -1893,8 +1894,8 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
   for (auto i = 1; i < terms.size(); ++i)
     matrix += HandlerTy::to_sparse_matrix(
         evaluated.terms[i].second, evaluated.terms[i].first, invert_order);
-  return cudaq::detail::to_csr_spmatrix(matrix,
-                                        1ul << evaluated.terms[0].second.size());
+  return cudaq::detail::to_csr_spmatrix(
+      matrix, 1ul << evaluated.terms[0].second.size());
 }
 
 // FIXME: CLEAN UP...
@@ -1920,14 +1921,16 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
     assert(it != dimensions.end());
     relevant_dims.push_back(it->second);
   }
-        
-  auto matrix = HandlerTy::to_sparse_matrix(
-      evaluated.terms[0].second, relevant_dims, evaluated.terms[0].first, invert_order);
+
+  auto matrix =
+      HandlerTy::to_sparse_matrix(evaluated.terms[0].second, relevant_dims,
+                                  evaluated.terms[0].first, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
-    matrix += HandlerTy::to_sparse_matrix(
-        evaluated.terms[i].second, relevant_dims, evaluated.terms[i].first, invert_order);
-  return cudaq::detail::to_csr_spmatrix(matrix,
-                                        1ul << evaluated.terms[0].second.size());
+    matrix +=
+        HandlerTy::to_sparse_matrix(evaluated.terms[i].second, relevant_dims,
+                                    evaluated.terms[i].first, invert_order);
+  return cudaq::detail::to_csr_spmatrix(
+      matrix, 1ul << evaluated.terms[0].second.size());
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)

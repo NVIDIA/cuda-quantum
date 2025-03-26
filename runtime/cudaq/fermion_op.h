@@ -68,14 +68,14 @@ private:
       bool invert_order);
 
   /// @brief Computes the sparse matrix representation of the string encoding
-  /// of a fermionic product operator. Private method since this encoding is 
+  /// of a fermionic product operator. Private method since this encoding is
   /// not very user friendly.
   static cudaq::detail::EigenSparseMatrix
-  to_sparse_matrix(const std::string &fermi_word, std::complex<double> coeff = 1.,
-                   bool invert_order = false);
+  to_sparse_matrix(const std::string &fermi_word,
+                   std::complex<double> coeff = 1., bool invert_order = false);
 
   /// @brief Computes the sparse matrix representation of the string encoding
-  /// of a fermionic product operator. Private method since this encoding is 
+  /// of a fermionic product operator. Private method since this encoding is
   /// not very user friendly.
   static complex_matrix to_matrix(const std::string &fermi_word,
                                   std::complex<double> coeff = 1.,
@@ -106,7 +106,7 @@ public:
   fermion_handler &operator=(const fermion_handler &other);
 
   // evaluations
-  
+
   /// @brief Return the matrix representation of the operator in the eigenbasis
   /// of the number operator.
   /// @arg  `dimensions` : A map specifying the dimension, that is the number of

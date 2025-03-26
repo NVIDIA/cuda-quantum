@@ -46,23 +46,21 @@ private:
 
   // helper function for matrix creations
   static void create_matrix(
-      const std::string &boson_word,
-      const std::vector<int64_t> &dimensions,
+      const std::string &boson_word, const std::vector<int64_t> &dimensions,
       const std::function<void(std::size_t, std::size_t, std::complex<double>)>
           &process_element,
       bool invert_order);
 
   /// @brief Computes the sparse matrix representation of the string encoding
-  /// of a bosonic product operator. Private method since this encoding is 
+  /// of a bosonic product operator. Private method since this encoding is
   /// not very user friendly.
   static cudaq::detail::EigenSparseMatrix
-  to_sparse_matrix(const std::string &boson_word, 
+  to_sparse_matrix(const std::string &boson_word,
                    const std::vector<int64_t> &dimensions,
-                   std::complex<double> coeff = 1.,
-                   bool invert_order = false);
+                   std::complex<double> coeff = 1., bool invert_order = false);
 
   /// @brief Computes the sparse matrix representation of the string encoding
-  /// of a bosonic product operator. Private method since this encoding is 
+  /// of a bosonic product operator. Private method since this encoding is
   /// not very user friendly.
   static complex_matrix to_matrix(const std::string &boson_word,
                                   const std::vector<int64_t> &dimensions,

@@ -11,10 +11,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include "helpers.h"
 #include "common/EigenSparse.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
+#include "helpers.h"
 
 #include "cudaq/boson_op.h"
 
@@ -49,17 +49,17 @@ std::string boson_handler::op_code_to_string() const {
   }
   if (this->additional_terms > 0) {
     str += "Ad";
-    if (this->additional_terms > 1) 
+    if (this->additional_terms > 1)
       str += "^" + std::to_string(this->additional_terms);
   } else if (this->additional_terms < 0) {
     str += "A";
-    if (-this->additional_terms > 1) 
+    if (-this->additional_terms > 1)
       str += "^" + std::to_string(-this->additional_terms);
   }
   return std::move(str);
 }
 
-// used internally for canonical evaluation - 
+// used internally for canonical evaluation -
 // use a encoding that makes it convenient to reconstruct the operator
 std::string boson_handler::op_code_to_string(
     std::unordered_map<std::size_t, int64_t> &dimensions) const {
@@ -167,8 +167,8 @@ boson_handler::boson_handler(std::size_t target, int op_id)
 // evaluations
 
 // FIXME: refactor helper instead and use that
-std::vector<std::string> generate_all_states(
-    const std::vector<int64_t> &dimensions) {
+std::vector<std::string>
+generate_all_states(const std::vector<int64_t> &dimensions) {
   if (dimensions.size() == 0)
     return {};
   auto dit = dimensions.crbegin();
@@ -192,39 +192,41 @@ std::vector<std::string> generate_all_states(
 }
 
 void boson_handler::create_matrix(
-    const std::string &boson_word,
-    const std::vector<int64_t> &dimensions,
+    const std::string &boson_word, const std::vector<int64_t> &dimensions,
     const std::function<void(std::size_t, std::size_t, std::complex<double>)>
         &process_element,
     bool invert_order) {
-  /*  
+  /*
   // check if the operator quenches all states
   auto it = std::find(fermi_word.cbegin(), fermi_word.cend(), '0');
   if (it != fermi_word.cend())
       return;
   */
 
-  auto tokenize = [](std::string s, char delim){
+  auto tokenize = [](std::string s, char delim) {
     std::vector<std::string> tokens;
     int start, end = -1;
     do {
-        start = end + 1;
-        end = s.find(delim, start);
-        tokens.push_back(s.substr(start, end - start));
+      start = end + 1;
+      end = s.find(delim, start);
+      tokens.push_back(s.substr(start, end - start));
     } while (end != -1);
     return tokens;
   };
 
   auto map_state = [&tokenize](std::string encoding, char state) {
-    if (encoding == "I") return std::pair<double, char> {1., state};
+    if (encoding == "I")
+      return std::pair<double, char>{1., state};
     auto ops = tokenize(encoding, '.');
     assert(ops.size() > 0);
     int old_state = state - '0'; // FIXME: only works 0 to 9...!
 
     auto it = ops.cbegin();
     int additional_terms = std::stoi(*it);
-    int new_state = old_state + additional_terms; // new_state = row, old_state = column
-    if (new_state < 0) return std::pair<double, char> {0., state};
+    int new_state =
+        old_state + additional_terms; // new_state = row, old_state = column
+    if (new_state < 0)
+      return std::pair<double, char>{0., state};
 
     double value = 1.;
     if (additional_terms > 0)
@@ -233,13 +235,15 @@ void boson_handler::create_matrix(
     if (additional_terms < 0)
       for (auto offset = -additional_terms; offset > 0; --offset)
         value *= std::sqrt(new_state + offset);
-    while(++it != ops.cend())
+    while (++it != ops.cend())
       value *= (new_state + std::stoi(*it));
-    return std::pair<double, char> {value, std::to_string(new_state)[0]}; // FIXME...
+    return std::pair<double, char>{value,
+                                   std::to_string(new_state)[0]}; // FIXME...
   };
 
   auto states = generate_all_states(dimensions);
-  if (states.size() == 0) process_element(0, 0, 1.);
+  if (states.size() == 0)
+    process_element(0, 0, 1.);
   std::vector<std::string> boson_terms = tokenize(boson_word, '_');
   std::size_t old_state_idx = 0;
   for (std::string old_state : states) {
@@ -247,12 +251,15 @@ void boson_handler::create_matrix(
     std::complex<double> entry = 1.;
     for (std::size_t degree = 0; degree < old_state.size(); ++degree) {
       auto state = old_state[degree];
-      auto op = boson_terms[invert_order ? old_state.size() - 1 - degree : degree];
+      auto op =
+          boson_terms[invert_order ? old_state.size() - 1 - degree : degree];
       auto mapped = map_state(op, state);
       entry *= mapped.first;
       auto mapped_state = mapped.second - '0'; // FIXME: only works 0 to 9...!
-      if (mapped_state >= dimensions[degree]) entry = 0.;
-      else new_state[degree] = mapped.second;
+      if (mapped_state >= dimensions[degree])
+        entry = 0.;
+      else
+        new_state[degree] = mapped.second;
     }
     auto it = std::find(states.cbegin(), states.cend(), new_state);
     assert(it != states.cend());
@@ -268,7 +275,8 @@ boson_handler::to_sparse_matrix(const std::string &boson_word,
                                 std::complex<double> coeff, bool invert_order) {
   using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1;
-  for (auto d : dimensions) dim *= d;
+  for (auto d : dimensions)
+    dim *= d;
   std::vector<Triplet> triplets;
   triplets.reserve(dim);
   auto process_entry = [&triplets, &coeff](std::size_t new_state,
@@ -287,7 +295,8 @@ complex_matrix boson_handler::to_matrix(const std::string &boson_word,
                                         std::complex<double> coeff,
                                         bool invert_order) {
   auto dim = 1;
-  for (auto d : dimensions) dim *= d;
+  for (auto d : dimensions)
+    dim *= d;
   complex_matrix matrix(dim, dim);
   auto process_entry = [&matrix, &coeff](std::size_t new_state,
                                          std::size_t old_state,
@@ -304,7 +313,8 @@ complex_matrix boson_handler::to_matrix(
     const {
   auto boson_word = this->op_code_to_string(dimensions);
   auto it = dimensions.find(this->degree);
-  assert (it != dimensions.end()); // op_code_to_string above should fail in this case
+  assert(it !=
+         dimensions.end()); // op_code_to_string above should fail in this case
   return boson_handler::to_matrix(boson_word, {it->second});
 }
 

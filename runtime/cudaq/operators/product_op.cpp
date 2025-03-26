@@ -692,8 +692,8 @@ complex_matrix product_op<boson_handler>::to_matrix(
     relevant_dims.push_back(it->second);
   }
 
-  auto matrix =
-      boson_handler::to_matrix(terms[0].second, relevant_dims, terms[0].first, invert_order);
+  auto matrix = boson_handler::to_matrix(terms[0].second, relevant_dims,
+                                         terms[0].first, invert_order);
   return matrix;
 }
 
@@ -1513,7 +1513,7 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
           .terms);
   assert(terms.size() == 1);
   auto matrix = HandlerTy::to_sparse_matrix(terms[0].second, terms[0].first,
-                                               invert_order);
+                                            invert_order);
   return cudaq::detail::to_csr_spmatrix(matrix, 1 << terms[0].second.size());
 }
 
@@ -1530,7 +1530,7 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
           .terms);
   assert(terms.size() == 1);
   auto matrix = HandlerTy::to_sparse_matrix(terms[0].second, terms[0].first,
-                                               invert_order);
+                                            invert_order);
   return cudaq::detail::to_csr_spmatrix(matrix, 1ul << terms[0].second.size());
 }
 
@@ -1555,8 +1555,8 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
     relevant_dims.push_back(it->second);
   }
 
-  auto matrix = HandlerTy::to_sparse_matrix(terms[0].second, relevant_dims, terms[0].first,
-                                               invert_order);
+  auto matrix = HandlerTy::to_sparse_matrix(terms[0].second, relevant_dims,
+                                            terms[0].first, invert_order);
   return cudaq::detail::to_csr_spmatrix(matrix, 1ul << terms[0].second.size());
 }
 
