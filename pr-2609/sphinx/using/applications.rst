@@ -24,6 +24,7 @@ CUDA-Q Applications
    /applications/python/unitary_compilation_diffusion_models
    /applications/python/vqe_advanced
    /applications/python/quantum_transformer
+   /applications/python/afqmc.ipynb
    /applications/python/adapt_qaoa
    /applications/python/adapt_vqe
    /applications/python/edge_detection
@@ -240,4 +241,3 @@ CUDA-Q Applications
         });
     });
     </script>
-

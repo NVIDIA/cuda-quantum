@@ -36,7 +36,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="ADAPT-VQE algorithm" href="adapt_vqe.html" />
-    <link rel="prev" title="Quantum Transformer" href="quantum_transformer.html" /> 
+    <link rel="prev" title="Quantum Enhanced Auxiliary Field Quantum Monte Carlo" href="afqmc.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -326,6 +326,15 @@
 <li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Attention-Maps">Attention Maps</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ADAPT-QAOA algorithm</a><ul>
@@ -753,7 +762,7 @@
             <a href="../../_sources/applications/python/adapt_qaoa.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="quantum_transformer.html" class="btn btn-neutral float-left" title="Quantum Transformer" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="afqmc.html" class="btn btn-neutral float-left" title="Quantum Enhanced Auxiliary Field Quantum Monte Carlo" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="adapt_vqe.html" class="btn btn-neutral float-right" title="ADAPT-VQE algorithm" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -781,7 +790,7 @@ using general variational quantum algorithm methods. If the norm of the gradient
 parameter</p>
 <p>3- Optimize all parameters currently in the Ansatz <span class="math notranslate nohighlight">\(\beta_m, \gamma_m = 1, 2, ...k\)</span> such that <span class="math notranslate nohighlight">\(\braket{\psi (k)|H_C|\psi(k)}\)</span> is minimized, and return to the second step.</p>
 <p>Below is a schematic representation of the ADAPT-QAOA algorithm explained above.</p>
-<div><p><img alt="d872b162f59a4cafad44bb8945c0e273" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 600px;" /></p>
+<div><p><img alt="97526e351cd84bd2ac3b8dbe5b95ace9" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 600px;" /></p>
 </div><div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -1225,7 +1234,7 @@ CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 5e9dc6aebbcf9
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quantum_transformer.html" class="btn btn-neutral float-left" title="Quantum Transformer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="afqmc.html" class="btn btn-neutral float-left" title="Quantum Enhanced Auxiliary Field Quantum Monte Carlo" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="adapt_vqe.html" class="btn btn-neutral float-right" title="ADAPT-VQE algorithm" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
