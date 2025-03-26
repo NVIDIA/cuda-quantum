@@ -12,7 +12,7 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "cudaq/algorithms/evolve_internal.h"
-#include "cudaq/dynamics_integrators.h"
+#include "cudaq/algorithms/integrator.h"
 #include <iterator>
 #include <random>
 #include <stdexcept>
@@ -43,7 +43,8 @@ evolve_result evolveSingle(
     bool storeIntermediateResults, std::optional<int> shotsCount) {
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
-  std::map<int, int> dimensions = convertToOrderedMap(dimensionsMap);
+  std::map<std::size_t, int64_t> dimensions =
+      convertToOrderedMap(dimensionsMap);
   std::vector<int64_t> dims;
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
