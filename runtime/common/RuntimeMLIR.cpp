@@ -37,7 +37,6 @@
 using namespace mlir;
 
 namespace cudaq {
-static bool mlirLLVMInitialized = false;
 
 static llvm::StringMap<cudaq::Translation> &getTranslationRegistry() {
   static llvm::StringMap<cudaq::Translation> translationBundle;
@@ -71,8 +70,12 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
 
 namespace cudaq {
 
+static std::once_flag mlir_init_flag;
+static bool mlirLLVMInitialized = false;
+
 std::unique_ptr<MLIRContext> initializeMLIR() {
-  if (!mlirLLVMInitialized) {
+  // One-time initialization of LLVM/MLIR components
+  std::call_once(mlir_init_flag, []() {
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     cudaq::registerAllPasses();
@@ -80,8 +83,9 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
     mlirLLVMInitialized = true;
-  }
+  });
 
+  // Per-context initialization
   DialectRegistry registry;
   cudaq::opt::registerCodeGenDialect(registry);
   cudaq::registerAllDialects(registry);
