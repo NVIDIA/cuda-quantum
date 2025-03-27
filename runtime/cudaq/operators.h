@@ -1715,7 +1715,13 @@ private:
 };
 
 // type aliases for convenience
+/// @brief Typedef for a map of parameters.
+/// This typedef defines `parameter_map` as a map of strings to complex
+/// numbers, which is used to store the parameters for the operators.
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
+/// @brief Typedef for a map of dimensions.
+/// This typedef defines `dimension_map` as a map of integers to 64-bit
+/// integers, which is used to store the dimensions of the operators.
 typedef std::unordered_map<std::size_t, int64_t> dimension_map;
 /// @brief Typedef for a sum operation using a matrix handler.
 /// This typedef defines `matrix_op` as a sum operation that utilizes
