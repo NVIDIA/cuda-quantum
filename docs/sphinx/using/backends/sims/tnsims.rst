@@ -92,10 +92,6 @@ Specific aspects of the simulation can be configured by setting the following of
   If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. 
   See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
-.. note::
-
-  Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
-
 
 Matrix product state 
 +++++++++++++++++++++++
@@ -140,13 +136,20 @@ Specific aspects of the simulation can be configured by defining the following e
   See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 .. note::
-
-  Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
-
-.. note::
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
     If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
 
+
+.. note::
+
+    Both `tensornet-mps` and `tensornet` backends will allocate a scratch space on GPU device memory for their operations.
+    For example, the scratch space can be used to store the contracted reduced density matrix to generate measurement bit strings.
+    
+    By default, these backends reserve 50% of free memory for its scratch space.
+    This ratio can be customized using the `CUDAQ_TENSORNET_SCRATCH_SIZE_PERCENTAGE` environment variable.
+    Valid setting must be between 5% and 95%. 
+    Users may encounter runtime errors, e.g., insufficient workspace or CUDA memory allocation errors,
+    when setting `CUDAQ_TENSORNET_SCRATCH_SIZE_PERCENTAGE` toward its limits.
 
 
 Fermioniq
