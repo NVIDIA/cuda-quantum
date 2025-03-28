@@ -7,20 +7,36 @@
 # ============================================================================ #
 import ast
 import importlib
-import hashlib
 import graphlib
-import sys, os
-from typing import Callable
-from collections import deque
 import numpy as np
+import os
+import sys
+from collections import deque
+
+from cudaq.mlir._mlir_libs._quakeDialects import (
+    cudaq_runtime, load_intrinsic, gen_vector_of_complex_constant,
+    register_all_dialects)
+from cudaq.mlir.dialects import arith, cc, complex, func, math, quake
+from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
+                           DenseBoolArrayAttr, DenseI32ArrayAttr,
+                           DenseI64ArrayAttr, DictAttr, F32Type, F64Type,
+                           FlatSymbolRefAttr, FloatAttr, FunctionType,
+                           InsertionPoint, IntegerAttr, IntegerType, Location,
+                           Module, StringAttr, SymbolTable, TypeAttr, UnitAttr)
+from cudaq.mlir.passmanager import PassManager
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType, globalRegisteredTypes
-from ..mlir.ir import *
-from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc
-from ..mlir.dialects import builtin, func, arith, math, complex
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects, gen_vector_of_complex_constant
 from .captured_data import CapturedDataStorage
+from .utils import (
+    Color,
+    globalAstRegistry,
+    globalKernelRegistry,
+    globalRegisteredOperations,
+    globalRegisteredTypes,
+    nvqppPrefix,
+    mlirTypeFromAnnotation,
+    mlirTypeFromPyType,
+    mlirTypeToPyType,
+)
 
 State = cudaq_runtime.State
 
