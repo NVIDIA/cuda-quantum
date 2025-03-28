@@ -191,6 +191,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#iqm">IQM</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
@@ -307,6 +308,20 @@
 <li class="toctree-l3"><a class="reference internal" href="quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_transformer.html">Quantum Transformer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_transformer.html#Installation">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_transformer.html#Algorithm-and-Example">Algorithm and Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Creating-the-self-attention-circuits">Creating the self-attention circuits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_transformer.html#Usage">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Model-Training">Model Training</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Generating-Molecules">Generating Molecules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quantum_transformer.html#Attention-Maps">Attention Maps</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_volume.html">Quantum Volume</a></li>
 <li class="toctree-l2"><a class="reference internal" href="readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
@@ -345,6 +360,44 @@
 <li class="toctree-l3"><a class="reference internal" href="logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="adapt-vqe.html">ADAPT-VQE algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="adapt-vqe.html#Single-excitation">Single excitation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="adapt-vqe.html#Double-excitation">Double excitation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Reference-State:">Reference State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adapt-vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="edge-detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="edge-detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="edge-detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -367,6 +420,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#stim">Stim</a></li>
 </ul>
@@ -391,6 +445,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#pasqal">Pasqal</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/neutralatom.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
@@ -439,6 +494,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#known-blackwell-issues">Known Blackwell Issues</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#singularity">Singularity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#python-wheels">Python wheels</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/local_installation.html#pre-built-binaries">Pre-built binaries</a></li>
@@ -566,7 +622,6 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/api.html">   API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../api/languages/cpp_api.html">C++ API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#operators">Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#quantum">Quantum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#common">Common</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
@@ -611,6 +666,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
@@ -747,11 +803,11 @@
 <li><p>An Auxiliary-Field Quantum Monte Carlo simulation that realizes a classical imaginary time evolution and collects the ground state energy estimates.</p></li>
 </ol>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Package installs</span>
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">pyscf</span><span class="o">==</span><span class="m">2</span>.6.2<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.6.1<span class="w"> </span><span class="nv">ipie</span><span class="o">==</span><span class="m">0</span>.7.1<span class="w"> </span>-q
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">pyscf</span><span class="o">==</span><span class="m">2</span>.6.2<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.6.1<span class="w"> </span><span class="nv">ipie</span><span class="o">==</span><span class="m">0</span>.7.1<span class="w"> </span><span class="nv">numba</span><span class="o">==</span><span class="m">0</span>.60.0<span class="w"> </span>-q
 </pre></div>
 </div>
 </div>
@@ -760,12 +816,12 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.</span><span class="ansi-yellow-fg">
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
 </span>
 </pre></div></div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Relevant imports</span>
@@ -796,19 +852,10 @@
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/usr/local/lib/python3.10/dist-packages/qutip/__init__.py:66: UserWarning: The new version of Cython, (&gt;= 3.0.0) is not supported.
-  warnings.warn(
-</pre></div></div>
-</div>
 <p>We start by defining the structure of the molecule, the basis set, and its spin. We build the molecule object with PySCF and run a preliminary Hartree-Fock computation. Here we choose as an example a <a class="reference external" href="https://doi.org/10.1021/acs.jctc.3c01375">chelating agent</a> representing a relevant class of substances industrially produced at large scales. Their use ranges, among the others, from water softeners in cleaning applications, modulators of redox behaviour in oxidative bleaching, scale
 suppressants, soil remediation and ligands for catalysts. In particular we focus here in a Fe(III)-NTA complex whose structure is given in the file imported below.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the molecular structure and the basis set for the Fenta molecule.</span>
@@ -830,7 +877,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># PYSCF helps to build the molecule and run Hartree-Fock.</span>
@@ -848,12 +895,12 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
--224.34048064812222
+-224.34048064812245
 </pre></div></div>
 </div>
 <section id="Hamiltonian-preparation-for-VQE">
@@ -863,7 +910,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 <div class="math notranslate nohighlight">
 \[H= \sum_{pq}t_{pq}\hat{a}_{p}^\dagger \hat {a}_{q}+\sum_{pqrs}  V_{prqs}\hat a_{p}^\dagger \hat a_{q}^\dagger \hat a_{s}\hat a_{r} \tag{1}\]</div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">openfermion.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner</span>
@@ -897,7 +944,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 <h2>Run VQE with CUDA-Q<a class="headerlink" href="#Run-VQE-with-CUDA-Q" title="Permalink to this heading">¶</a></h2>
 <p>We can now execute the VQE algorithm using the quantum number preserving ansatz. At the end of the VQE, we store the final statevector that will be used in the classical AFQMC computation as an initial guess.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define some options for the VQE.</span>
@@ -937,7 +984,7 @@ suppressants, soil remediation and ligands for catalysts. In particular we focus
 # Num Params: 16
 # Qubits: 18
 # N_layers: 1
-# Energy after the VQE: -224.3881035525103
+# Energy after the VQE: -224.39455094949878
 </pre></div></div>
 </div>
 </section>
@@ -972,7 +1019,7 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 <section id="Preparation-of-the-molecular-Hamiltonian">
 <h2>Preparation of the molecular Hamiltonian<a class="headerlink" href="#Preparation-of-the-molecular-Hamiltonian" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># AFQMC.</span>
@@ -1008,7 +1055,7 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 <section id="Preparation-of-the-trial-wave-function">
 <h2>Preparation of the trial wave function<a class="headerlink" href="#Preparation-of-the-trial-wave-function" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build the trial wavefunction from the state vector computed via VQE.</span>
@@ -1033,7 +1080,7 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 <h2>Setup of the AFQMC parameters<a class="headerlink" href="#Setup-of-the-AFQMC-parameters" title="Permalink to this heading">¶</a></h2>
 <p>Here we can choose the input options like the timestep <span class="math notranslate nohighlight">\(\Delta\tau\)</span>, the total number of walkers <code class="docutils literal notranslate"><span class="pre">num_walkers</span></code> and the total number of AFQMC iterations <code class="docutils literal notranslate"><span class="pre">num_blocks</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup the AFQMC parameters.</span>
@@ -1065,21 +1112,21 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 <div class="highlight"><pre>
 # random seed is 96264512
             Block                   Weight            WeightFactor            HybridEnergy                  ENumer                  EDenom                  ETotal                  E1Body                  E2Body
-                0   1.0000000000000000e+02  1.0000000000000000e+02  0.0000000000000000e+00 -2.2437583763935545e+04  1.0000000000000000e+02 -2.2437583763935547e+02 -3.7639365190228011e+02  1.5201781426292453e+02
-                1   4.2276634193515412e+02  1.4127560668989827e+03 -1.1711742028818304e+02 -2.2473358126540003e+04  9.9999999999999986e+01 -2.2473358126540006e+02 -3.7646854013277283e+02  1.5173495886737268e+02
-                2   1.0031922288872407e+02  3.8320523739865604e+02 -1.1743088014788954e+02 -2.2489226882493567e+04  1.0000000000000001e+02 -2.2489226882493563e+02 -3.7650504938463922e+02  1.5161278055970348e+02
-                3   9.9900990681040355e+01  1.0008400623205630e+02 -1.1736864885170948e+02 -2.2495677577437204e+04  9.9999999999999972e+01 -2.2495677577437212e+02 -3.7659644834889821e+02  1.5163967257452603e+02
-                4   1.0009188692360159e+02  1.0005173726372723e+02 -1.1748969527283802e+02 -2.2495531836556856e+04  1.0000000000000001e+02 -2.2495531836556853e+02 -3.7675907314082951e+02  1.5180375477526098e+02
-                5   9.9997269300807844e+01  1.0010618465796188e+02 -1.1752703012577417e+02 -2.2502732667629320e+04  1.0000000000000001e+02 -2.2502732667629317e+02 -3.7663343013337044e+02  1.5160610345707727e+02
-                6   1.0012131352337956e+02  1.0019003056579172e+02 -1.1770170647504112e+02 -2.2513369839216481e+04  1.0000000000000000e+02 -2.2513369839216480e+02 -3.7660812717909516e+02  1.5147442878693036e+02
-                7   9.9936984461419740e+01  9.9929966800671224e+01 -1.1765353928750643e+02 -2.2516138533920657e+04  1.0000000000000000e+02 -2.2516138533920659e+02 -3.7660292355465600e+02  1.5144153821544941e+02
-                8   9.9902337463172714e+01  9.9910800755312891e+01 -1.1761532255317621e+02 -2.2518524275281430e+04  9.9999999999999986e+01 -2.2518524275281433e+02 -3.7674246483479845e+02  1.5155722208198404e+02
-                9   1.0012943675389775e+02  1.0013880643723378e+02 -1.1780913595074867e+02 -2.2512465963277762e+04  1.0000000000000000e+02 -2.2512465963277762e+02 -3.7677999264623367e+02  1.5165533301345607e+02
-               10   9.9628730363609819e+01  9.9223106824565718e+01 -1.1749814144939067e+02 -2.2517668156221851e+04  1.0000000000000000e+02 -2.2517668156221850e+02 -3.7688306341863290e+02  1.5170638185641434e+02
+                0   1.0000000000000000e+02  1.0000000000000000e+02  0.0000000000000000e+00 -2.2439413574858248e+04  1.0000000000000000e+02 -2.2439413574858250e+02 -3.7639365205439407e+02  1.5199951630581157e+02
+                1   4.2258301041774035e+02  1.4118669731586463e+03 -1.1708882854710750e+02 -2.2474916437261574e+04  1.0000000000000000e+02 -2.2474916437261575e+02 -3.7647296651452950e+02  1.5172380214191386e+02
+                2   1.0031504281308401e+02  3.8297737898314341e+02 -1.1739924259761827e+02 -2.2490532145733003e+04  9.9999999999999986e+01 -2.2490532145733007e+02 -3.7651477069597922e+02  1.5160944923864918e+02
+                3   9.9899212120920296e+01  1.0007733169797531e+02 -1.1733630843942882e+02 -2.2497023748199670e+04  9.9999999999999986e+01 -2.2497023748199675e+02 -3.7660510012883196e+02  1.5163486264683516e+02
+                4   1.0009065798675080e+02  1.0004728284850617e+02 -1.1745681184714668e+02 -2.2496787246373897e+04  1.0000000000000001e+02 -2.2496787246373893e+02 -3.7676975956887520e+02  1.5180188710513633e+02
+                5   9.9997283679139173e+01  1.0010516558962367e+02 -1.1749487126104539e+02 -2.2503896183474415e+04  1.0000000000000001e+02 -2.2503896183474413e+02 -3.7664507184180695e+02  1.5160611000706268e+02
+                6   1.0011617434070206e+02  1.0018130110278446e+02 -1.1766576516987034e+02 -2.2514130031354973e+04  1.0000000000000003e+02 -2.2514130031354966e+02 -3.7662478860477643e+02  1.5148348829122685e+02
+                7   9.9932111671046385e+01  9.9917484318648320e+01 -1.1761313306634769e+02 -2.2516961022020205e+04  1.0000000000000000e+02 -2.2516961022020206e+02 -3.7661715794903222e+02  1.5144754772883010e+02
+                8   9.9903333135890790e+01  9.9912269122680755e+01 -1.1757680866079117e+02 -2.2518386081760287e+04  9.9999999999999986e+01 -2.2518386081760292e+02 -3.7676432976591940e+02  1.5158046894831654e+02
+                9   1.0012009650415450e+02  1.0012104365758209e+02 -1.1776314652530120e+02 -2.2513280621097532e+04  1.0000000000000000e+02 -2.2513280621097533e+02 -3.7678702690105990e+02  1.5165422069008449e+02
+               10   9.9637195525722973e+01  9.9239451881972172e+01 -1.1746129307287680e+02 -2.2518449097868390e+04  1.0000000000000000e+02 -2.2518449097868390e+02 -3.7689240664007951e+02  1.5170791566139565e+02
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the energies.</span>
@@ -1099,12 +1146,12 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x7fea847f35e0&gt;
+&lt;matplotlib.legend.Legend at 0x7e4df2da63e0&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1115,7 +1162,7 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
@@ -1127,7 +1174,7 @@ H = v_0 - \frac{1}{2}\sum_{\gamma=1}^{N_\gamma} {v}_\gamma^2
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum 176f1e7df8a58c2dc3d6b1b47bf7f63b4b8d3b63)
+CUDA-Q Version 0.9.0-rc2 (https://github.com/NVIDIA/cuda-quantum 61c2ecfe1cfd7fa2ad6cbf192c300180a89c75f0)
 </pre></div></div>
 </div>
 </section>

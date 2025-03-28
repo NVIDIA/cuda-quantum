@@ -1,12 +1,6 @@
 CUDA-Q C++ API
 ******************************
 
-Operators 
-=============
-
-.. doxygenclass:: cudaq::spin_op
-    :members:
-
 Quantum
 =========
 
@@ -38,9 +32,9 @@ Common
 .. doxygenstruct:: cudaq::observe_options
     :members:
 
-.. doxygenfunction:: cudaq::observe(const observe_options &options, QuantumKernel &&kernel, spin_op H, Args &&...args)
-.. doxygenfunction:: cudaq::observe(std::size_t shots, QuantumKernel &&kernel, spin_op H, Args &&...args)
-.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, spin_op H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(const observe_options &options, QuantumKernel &&kernel, const spin_op &H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(std::size_t shots, QuantumKernel &&kernel, const spin_op &H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, const spin_op &H, Args &&...args)
 .. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, const SpinOpContainer &termList, Args &&...args)
 
 .. doxygenclass:: cudaq::ExecutionContext
@@ -91,6 +85,8 @@ Common
 
 .. doxygenclass:: cudaq::RemoteSimulationState
 
+.. doxygenclass:: cudaq::QPUState
+
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:
 
@@ -113,6 +109,54 @@ Common
 Noise Modeling 
 ================
 
+.. cpp:function:: template <typename Channel, typename... Args> void cudaq::apply_noise(Args&&... args)
+
+    This function is a type-safe injection of noise into a quantum kernel,
+    occurring precisely at the call site of the function invocation. The
+    function should be called inside CUDA-Q kernels (those annotated with
+    `__qpu__`). The functionality is only supported for simulation targets, so
+    it is automatically (and silently) stripped from any programs submitted to
+    hardware targets.
+
+    :tparam Channel: A subtype of :cpp:class:`cudaq::kraus_channel` that
+        implements/defines the desired noise mechanisms as Kraus channels (e.g.
+        :cpp:class:`cudaq::depolarization2`). If you want to use a custom
+        :cpp:class:`cudaq::kraus_channel` (i.e. not built-in to CUDA-Q), it must
+        first be registered *outside the kernel* with
+        :cpp:func:`cudaq::noise_model::register_channel`, like this:
+
+        .. code-block:: cpp
+
+            struct my_custom_kraus_channel_subtype : public ::cudaq::kraus_channel {
+              static constexpr std::size_t num_parameters = 1;
+              static constexpr std::size_t num_targets = 1;
+
+              my_custom_kraus_channel_subtype(const std::vector<cudaq::real> &params) {
+                  std::vector<cudaq::complex> k0v{std::sqrt(1 - params[0]), 0, 0,
+                                                  std::sqrt(1 - params[0])},
+                      k1v{0, std::sqrt(params[0]), std::sqrt(params[0]), 0};
+                  push_back(cudaq::kraus_op(k0v));
+                  push_back(cudaq::kraus_op(k1v));
+                  validateCompleteness();
+                  generateUnitaryParameters();
+              }
+              REGISTER_KRAUS_CHANNEL("my_custom_kraus_channel_subtype");
+            };
+
+            cudaq::noise_model noise;
+            noise.register_channel<my_custom_kraus_channel_subtype>();
+
+    :param args: The precise argument pack depend on the concrete `Channel` being
+        used. The arguments are a concatenated list of parameters and targets.
+        For example, to apply a 2-qubit depolarization channel, which has
+        `num_parameters = 1` and `num_targets = 2`, one would write the call
+        like this:
+
+        .. code-block:: cpp
+
+            cudaq::qubit q, r;
+            cudaq::apply_noise<cudaq::depolarization2>(/*probability=*/0.1, q, r);
+
 .. doxygenstruct:: cudaq::kraus_op
     :members:
 
@@ -129,6 +173,33 @@ Noise Modeling
     :members:
 
 .. doxygenclass:: cudaq::depolarization_channel
+    :members:
+
+.. doxygenclass:: cudaq::x_error
+    :members:
+
+.. doxygenclass:: cudaq::y_error
+    :members:
+
+.. doxygenclass:: cudaq::z_error
+    :members:
+
+.. doxygenclass:: cudaq::amplitude_damping
+    :members:
+
+.. doxygenclass:: cudaq::phase_damping
+    :members:
+
+.. doxygenclass:: cudaq::pauli1
+    :members:
+
+.. doxygenclass:: cudaq::pauli2
+    :members:
+
+.. doxygenclass:: cudaq::depolarization1
+    :members:
+
+.. doxygenclass:: cudaq::depolarization2
     :members:
 
 .. doxygenclass:: cudaq::noise_model
@@ -191,7 +262,9 @@ Platform
 
 .. doxygenclass:: cudaq::FermioniqBaseQPU
 
-.. doxygenclass:: cudaq::OrcaRemoteRESTQPU 
+.. doxygenclass:: cudaq::OrcaRemoteRESTQPU
+
+.. doxygenclass:: cudaq::PasqalBaseQPU
 
 .. doxygenclass:: cudaq::QuEraBaseQPU
 

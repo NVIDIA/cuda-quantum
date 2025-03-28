@@ -114,7 +114,23 @@ This experiment is performed on ORCA's backends by the code below.
 
    .. literalinclude:: ../../targets/cpp/orca.cpp
       :language: cpp
-      
+
+Pasqal
+==================================
+
+The following code illustrates how to run kernels on Pasqal's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/pasqal.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/pasqal.cpp
+      :language: cpp
+
+
 Quantinuum
 ==================================
 
@@ -139,4 +155,9 @@ The following code illustrates how to run kernels on QuEra's backends.
 
    .. literalinclude:: ../../targets/python/quera_basic.py
       :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/quera_basic.cpp
+      :language: cpp
 

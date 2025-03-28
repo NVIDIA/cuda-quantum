@@ -11,9 +11,6 @@ accessed via `Superstaq <https://superstaq.infleqtion.com/>`__, a cross-platform
 that performs low-level compilation and cross-layer optimization. To get started users can create a Superstaq
 account by following `these instructions <https://superstaq.readthedocs.io/en/latest/get_started/credentials.html>`__.
 
-For access to Infleqtion's neutral atom quantum computer, Sqale,
-`pre-registration <https://www.infleqtion.com/sqale-preregistration>`__ is now open.
-
 Setting Credentials
 `````````````````````````
 
@@ -130,6 +127,160 @@ Submitting
 
 
 
+Pasqal
+++++++++++++++++
+
+Pasqal is a quantum computing hardware company that builds quantum processors from ordered neutral atoms in 2D and 3D
+arrays to bring a practical quantum advantage to its customers and address real-world problems.
+The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
+portal.
+
+In order to access Pasqal's devices you need an account for `Pasqal's cloud platform <https://portal.pasqal.cloud>`__
+and an active project. Please see our `cloud documentation <https://docs.pasqal.cloud/cloud/>`__ for more details if needed.
+
+Although a different SDK, `Pasqal's Pulser library <https://pulser.readthedocs.io/en/latest/>`__, is a good
+resource for getting started with analog neutral atom quantum computing.
+For support you can also join the `Pasqal Community <https://community.pasqal.com/>`__.
+
+
+.. _pasqal-backend:
+
+Setting Credentials
+```````````````````
+
+An authentication token for the session must be obtained from Pasqal's cloud platform.
+For example from Python one can use the `pasqal-cloud package <https://github.com/pasqal-io/pasqal-cloud>`__ as below:
+
+.. code:: python
+
+    from pasqal_cloud import SDK
+    import os
+
+    sdk = SDK(
+        username=os.environ.get['PASQAL_USERNAME'],
+        password=os.environ.get('PASQAL_PASSWORD', None)
+    )
+
+    token = sdk.user_token()
+
+    os.environ['PASQAL_AUTH_TOKEN'] = str(token)
+    os.environ['PASQAL_PROJECT_ID'] = 'your project id'
+
+Alternatively, users can set the following environment variables directly.
+
+.. code:: bash
+
+  export PASQAL_AUTH_TOKEN=<>
+  export PASQAL_PROJECT_ID=<>
+
+
+Submitting
+`````````````````````````
+.. tab:: Python
+
+        The target to which quantum kernels are submitted 
+        can be controlled with the ``cudaq::set_target()`` function.
+
+        .. code:: python
+
+            cudaq.set_target('pasqal')
+
+
+        This accepts an optional argument, ``machine``, which is used in the cloud platform to
+        select the corresponding Pasqal QPU or emulator to execute on.
+        See the `Pasqal cloud portal <https://portal.pasqal.cloud/>`__ for an up to date list.
+        The default value is ``EMU_MPS`` which is an open-source tensor network emulator based on the
+        Matrix Product State formalism running in Pasqal's cloud platform. You can see the
+        documentation for the publicly accessible emulator `here <https://pasqal-io.github.io/emulators/latest/emu_mps/>`__.
+
+        To target the QPU use the FRESNEL machine name. Note that there are restrictions
+        regarding the values of the pulses as well as the register layout. We invite you to
+        consult our `documentation <https://docs.pasqal.com/cloud/fresnel-job>`__. Note that
+        the CUDA-Q integration currently only works with `arbitrary layouts <https://docs.pasqal.com/cloud/fresnel-job/#arbitrary-layouts>`__
+        which are implemented with automatic calibration for less than 30 qubits. For jobs
+        larger than 30 qubits please use the `atom_sites` to define the layout, and use the
+        `atom_filling` to select sites as filled or not filled in order to define the register.
+
+        Due to the nature of the underlying hardware, this target only supports the 
+        ``evolve`` and ``evolve_async`` APIs.
+        The `hamiltonian` must be an `Operator` of the type `RydbergHamiltonian`. The only
+        other supported parameters are `schedule` (mandatory) and `shots_count` (optional).
+
+        For example,
+
+        .. code:: python
+
+            evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
+                                                        amplitude=omega,
+                                                        phase=phi,
+                                                        delta_global=delta),
+                                    schedule=schedule)
+
+        The number of shots for a kernel execution can be set through the ``shots_count``
+        argument to ``evolve`` or ``evolve_async``. By default, the ``shots_count`` is 
+        set to 100.
+
+        .. code:: python 
+
+            cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
+
+        To see a complete example for using Pasqal's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
+
+.. tab:: C++
+
+        To target quantum kernel code for execution on Pasqal QPU or simulators,
+        pass the flag ``--target pasqal`` to the ``nvq++`` compiler.
+
+        .. code:: bash
+
+            nvq++ --target pasqal src.cpp
+        
+        You can also pass the flag ``--pasqal-machine`` to select the corresponding Pasqal QPU or emulator to execute on.
+        See the `Pasqal cloud portal <https://portal.pasqal.cloud/>`__ for an up to date list.
+        The default value is ``EMU_MPS`` which is an open-source tensor network emulator based on the
+        Matrix Product State formalism running in Pasqal's cloud platform. You can see the
+        documentation for the publicly accessible emulator `here <https://pasqal-io.github.io/emulators/latest/emu_mps/>`__.
+
+        .. code:: bash
+
+            nvq++ --target pasqal --pasqal-machine EMU_FREE src.cpp
+
+        To target the QPU use the FRESNEL machine name. Note that there are restrictions
+        regarding the values of the pulses as well as the register layout. We invite you to
+        consult our `documentation <https://docs.pasqal.com/cloud/fresnel-job>`__. Note that
+        the CUDA-Q integration currently only works with `arbitrary layouts <https://docs.pasqal.com/cloud/fresnel-job/#arbitrary-layouts>`__
+        which are implemented with automatic calibration for less than 30 qubits. For jobs
+        larger than 30 qubits please use the `atom_sites` to define the layout, and use the
+        `atom_filling` to select sites as filled or not filled in order to define the register.
+        
+        Due to the nature of the underlying hardware, this target only supports the 
+        ``evolve`` and ``evolve_async`` APIs.
+        The `hamiltonian` must be of the type `rydberg_hamiltonian`. Only 
+        other parameters supported are `schedule` (mandatory) and `shots_count` (optional).
+
+        For example,
+
+        .. code:: cpp
+
+            auto evolution_result = cudaq::evolve(
+                cudaq::rydberg_hamiltonian(register_sites, omega, phi, delta),
+                schedule);
+
+        The number of shots for a kernel execution can be set through the ``shots_count``
+        argument to ``evolve`` or ``evolve_async``. By default, the ``shots_count`` is 
+        set to 100.
+
+        .. code:: cpp
+
+            auto evolution_result = cudaq::evolve(cudaq::rydberg_hamiltonian(...), schedule, 1000);
+
+        To see a complete example for using Pasqal's backend, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
+
+
+.. note:: 
+
+    Local emulation via ``emulate`` flag is not yet supported on the `pasqal` target.
+
 
 QuEra Computing
 ++++++++++++++++
@@ -159,44 +310,82 @@ Alternatively, users can set the following environment variables.
   export AWS_SECRET_ACCESS_KEY="<access_key>"
   export AWS_SESSION_TOKEN="<token>"
 
-Submission from Python
+About Aquila
 `````````````````````````
-
-The target to which quantum kernels are submitted 
-can be controlled with the ``cudaq::set_target()`` function.
-
-.. code:: python
-
-    cudaq.set_target('quera')
-
-By default, analog Hamiltonian will be submitted to the Aquila system.
 
 Aquila is a "field programmable qubit array" operated as an analog 
 Hamiltonian simulator on a user-configurable architecture, executing 
 programmable coherent quantum dynamics on up to 256 neutral-atom qubits.
 Refer to QuEra's `whitepaper <https://cdn.prod.website-files.com/643b94c382e84463a9e52264/648f5bf4d19795aaf36204f7_Whitepaper%20June%2023.pdf>`__ for details.
 
-Due to the nature of the underlying hardware, this target only supports the 
-``evolve`` and ``evolve_async`` APIs.
-The `hamiltonian` must be an `Operator` of the type `RydbergHamiltonian`. Only 
-other parameters supported are `schedule` (mandatory) and `shots_count` (optional).
+Submitting
+`````````````````````````
+.. tab:: Python
 
-For example,
+        The target to which quantum kernels are submitted
+        can be controlled with the ``cudaq::set_target()`` function.
 
-.. code:: python
+        .. code:: python
 
-    evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
-                                                 amplitude=omega,
-                                                 phase=phi,
-                                                 delta_global=delta),
-                               schedule=schedule)
+            cudaq.set_target('quera')
 
-The number of shots for a kernel execution can be set through the ``shots_count``
-argument to ``evolve`` or ``evolve_async``. By default, the ``shots_count`` is 
-set to 100.
+        Due to the nature of the underlying hardware, this target only supports the 
+        ``evolve`` and ``evolve_async`` APIs.
+        The `hamiltonian` must be an `Operator` of the type `RydbergHamiltonian`. Only 
+        other parameters supported are `schedule` (mandatory) and `shots_count` (optional).
 
-.. code:: python 
+        For example,
 
-    cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
+        .. code:: python
 
-To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
+            evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
+                                                        amplitude=omega,
+                                                        phase=phi,
+                                                        delta_global=delta),
+                                    schedule=schedule)
+
+        The number of shots for a kernel execution can be set through the ``shots_count``
+        argument to ``evolve`` or ``evolve_async``. By default, the ``shots_count`` is 
+        set to 100.
+
+        .. code:: python 
+
+            cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
+
+        To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
+
+.. tab:: C++
+
+        To target quantum kernel code for execution on QuEra's Aquila,
+        pass the flag ``--target quera`` to the ``nvq++`` compiler.
+
+        .. code:: bash
+
+            nvq++ --target quera src.cpp
+        
+        Due to the nature of the underlying hardware, this target only supports the 
+        ``evolve`` and ``evolve_async`` APIs.
+        The `hamiltonian` must be of the type `rydberg_hamiltonian`. Only 
+        other parameters supported are `schedule` (mandatory) and `shots_count` (optional).
+
+        For example,
+
+        .. code:: cpp
+
+            auto evolution_result = cudaq::evolve(
+                cudaq::rydberg_hamiltonian(register_sites, omega, phi, delta),
+                schedule);
+
+        The number of shots for a kernel execution can be set through the ``shots_count``
+        argument to ``evolve`` or ``evolve_async``. By default, the ``shots_count`` is 
+        set to 100.
+
+        .. code:: cpp
+
+            auto evolution_result = cudaq::evolve(cudaq::rydberg_hamiltonian(...), schedule, 1000);
+
+        To see a complete example for using QuEra's backend, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
+
+.. note:: 
+
+    Local emulation via ``emulate`` flag is not yet supported on the `quera` target.

@@ -180,7 +180,7 @@ breathe_show_enumvalue_initializer = True
 autosummary_generate = True
 
 # This is unfortunately not sufficient for docs generation, due to the use of Union type;
-# see also https://github.com/sphinx-doc/sphinx/issues/11211. 
+# see also https://github.com/sphinx-doc/sphinx/issues/11211.
 # autodoc_mock_imports = ['cuquantum', 'cupy']
 
 intersphinx_mapping = {
@@ -210,6 +210,13 @@ nitpick_ignore = [
     ('py:class', 'type'),
     ('py:class', 'cudaq::spin_op'),
     ('py:class', 'numpy.ndarray[]'),
+    # FIXME: remove these after adding proper documentation
+    # (also reexamine why some of the ones above are ignored)
+    ('py:class', 'cudaq::sum_op<cudaq::spin_handler>'),
+    ('py:class', 'SpinOperatorTerm'),
+    ('cpp:identifier', 'cudaq::spin_op'),
+    ('cpp:identifier', 'spin_op'),
+    ('cpp:identifier', 'spin_op_term'),
 ]
 
 napoleon_google_docstring = True
