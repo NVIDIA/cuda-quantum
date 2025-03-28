@@ -291,6 +291,15 @@
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -843,7 +852,7 @@
 <section id="Quantum-Probability-Image-Encoding-(QPIE):">
 <h2>Quantum Probability Image Encoding (QPIE):<a class="headerlink" href="#Quantum-Probability-Image-Encoding-(QPIE):" title="Permalink to this heading">¶</a></h2>
 <p>Lets take as an example a classical 2x2 image (4 pixels). We can label each pixel with its position</p>
-<div><p><img alt="f943f19eaad14e1a9966fc749195f511" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
+<div><p><img alt="51ddc7491c0a4f3c975380d601c3960f" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
 </div><p>Each pixel will have its own color intensity represented along with its position label as an 8-bit black and white color. To convert the pixel intensity to probability amplitudes of a quantum state</p>
 <div class="math notranslate nohighlight">
 \[c_i = \frac{I_{yx}}{\sqrt(\sum I^2_{yx})}\]</div>

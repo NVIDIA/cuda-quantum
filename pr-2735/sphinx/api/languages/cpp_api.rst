@@ -4,9 +4,6 @@ CUDA-Q C++ API
 Operators 
 =============
 
-.. doxygenclass:: cudaq::spin_op
-    :members:
-
 .. doxygenclass:: cudaq::scalar_callback
     :members:
 
@@ -22,6 +19,20 @@ Operators
 .. doxygenclass:: cudaq::fermion_handler
 
 .. doxygenclass:: cudaq::spin_handler
+
+.. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
+
+    Alias for a tuple containing vectors for complex values, indices, and sizes.
+
+    The tuple elements are:
+
+    - ``std::vector<std::complex<double>>``: Complex values.
+    - ``std::vector<std::size_t>``: Indices.
+    - ``std::vector<std::size_t>``: Sizes.
+
+.. cpp:type:: int64_t = std::int64_t
+
+    64-bit signed integer type from ``<cstdint>``.
 
 .. doxygenclass:: cudaq::operator_handler
 
@@ -65,9 +76,9 @@ Common
 .. doxygenstruct:: cudaq::observe_options
     :members:
 
-.. doxygenfunction:: cudaq::observe(const observe_options &options, QuantumKernel &&kernel, spin_op H, Args &&...args)
-.. doxygenfunction:: cudaq::observe(std::size_t shots, QuantumKernel &&kernel, spin_op H, Args &&...args)
-.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, spin_op H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(const observe_options &options, QuantumKernel &&kernel, const spin_op &H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(std::size_t shots, QuantumKernel &&kernel, const spin_op &H, Args &&...args)
+.. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, const spin_op &H, Args &&...args)
 .. doxygenfunction:: cudaq::observe(QuantumKernel &&kernel, const SpinOpContainer &termList, Args &&...args)
 
 .. doxygenclass:: cudaq::ExecutionContext

@@ -288,6 +288,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -1671,7 +1680,7 @@ parameters of the time bin interferometer.</p>
 <span class="c1">// password, use `pasqal`_`auth`.`py` in this folder.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/dynamics_integrators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/operators.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/schedule.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cmath&gt;</span>
@@ -1948,7 +1957,7 @@ parameters of the time bin interferometer.</p>
 <span class="c1">// Assumes a valid set of credentials have been stored.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/dynamics_integrators.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/schedule.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cmath&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>

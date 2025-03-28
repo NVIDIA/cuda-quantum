@@ -290,6 +290,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -955,8 +964,8 @@ complex spin Hamiltonians on multiple qubits.</p>
 </div>
 <input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
 <p>The <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> method takes a kernel and its arguments as inputs, along with a <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code>.</p>
-<p>Within the <code class="code docutils literal notranslate"><span class="pre">cudaq::spin</span></code> namespace, operators may be defined as a linear combination of Pauli strings. Functions, such
-as <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::i</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::x</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::y</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin::z</span></code> may be used to construct more
+<p>Operators may be defined as a linear combination of Pauli strings. Functions, such
+as <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op::i</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op::x</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op::y</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op::z</span></code> may be used to construct more
 complex spin Hamiltonians on multiple qubits.</p>
 </div>
 </div>
@@ -985,16 +994,13 @@ The Hamiltonian is printed to confirm it has been constructed properly.</p>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
 
-<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="o">::</span><span class="nn">spin</span><span class="p">;</span>
-
 <span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">qubit</span><span class="p">;</span>
 <span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">);</span>
 <span class="p">}</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="w"> </span><span class="n">spin_operator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="w">  </span><span class="c1">// Prints: [1+0j] Z</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">spin_operator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">spin_operator</span><span class="p">.</span><span class="n">to_string</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
 </pre></div>
 </div>

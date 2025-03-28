@@ -291,6 +291,15 @@
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
@@ -935,7 +944,7 @@ Using BFL2 method to generate coresets
 <p>The divisive clustering problem will be implemented on a quantum computer using a variational quantum algorithm (VQA) approach. A VQA takes a Hamiltonian (encoded with the optimization problem) and a parameterized ansatz and evaluates expectation values (quantum computer) that inform updates to the ansatz parameters (classical computer). The graph <span class="math notranslate nohighlight">\(G\)</span> (Code in the “src” file) is used to construct the Hamiltonian, derived specifically for the divisive clustering problem, and motivated by a
 max-cut Hamiltonian. The <code class="docutils literal notranslate"><span class="pre">spin.z(i)</span></code> method in CUDA-Q adds a Pauli Z operation that acts on qubit <span class="math notranslate nohighlight">\(i\)</span> to the Hamiltonian.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_K2_Hamiltonian</span><span class="p">(</span><span class="n">G</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">:</span>
