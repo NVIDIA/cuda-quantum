@@ -17,7 +17,7 @@ target_link_libraries(test_oqc
   cudaq-builder
   cudaq-mlir-runtime
   cudaq-rest-qpu
-  cudaq-spin 
+  cudaq-operator
   cudaq-platform-default 
   gtest_main)
 
