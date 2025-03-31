@@ -9,6 +9,7 @@
 #pragma once
 
 #include <functional>
+#include <random>
 #include <set>
 #include <type_traits>
 #include <unordered_map>
@@ -17,7 +18,6 @@
 #include "operators/evaluation.h"
 #include "operators/operator_leafs.h"
 #include "operators/templates.h"
-#include "utils/cudaq_utils.h"
 #include "utils/matrix.h"
 
 namespace cudaq {
