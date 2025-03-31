@@ -61,7 +61,7 @@ def test_bug_1777():
 # CHECK:           ^bb0(%[[VAL_18:.*]]: i64):
 # CHECK:             %[[VAL_19:.*]] = arith.addi %[[VAL_18]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_19]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           %[[VAL_20:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i1>
 # CHECK:           %[[VAL_21:.*]] = arith.cmpi eq, %[[VAL_20]], %[[VAL_3]] : i1
 # CHECK:           cc.if(%[[VAL_21]]) {

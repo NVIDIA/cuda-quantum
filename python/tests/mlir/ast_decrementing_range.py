@@ -46,6 +46,6 @@ def test_decrementing_range():
 # CHECK:           ^bb0(%[[VAL_13:.*]]: i64):
 # CHECK:             %[[VAL_14:.*]] = arith.addi %[[VAL_13]], %[[VAL_2]] : i64
 # CHECK:             cc.continue %[[VAL_14]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }

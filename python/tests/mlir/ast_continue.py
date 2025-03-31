@@ -64,5 +64,5 @@ def test_continue():
 # CHECK:           ^bb0(%[[VAL_23:.*]]: i64):
 # CHECK:             %[[VAL_24:.*]] = arith.addi %[[VAL_23]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_24]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:          }

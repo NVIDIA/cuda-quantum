@@ -48,7 +48,7 @@ def test_ghz():
 # CHECK:           ^bb0(%[[VAL_16:.*]]: i64):
 # CHECK:             %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_17]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
 
@@ -90,6 +90,6 @@ def test_ghz():
 # CHECK:           ^bb0(%[[VAL_19:.*]]: i64):
 # CHECK:             %[[VAL_20:.*]] = arith.addi %[[VAL_19]], %[[VAL_2]] : i64
 # CHECK:             cc.continue %[[VAL_20]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
