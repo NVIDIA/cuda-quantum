@@ -423,7 +423,7 @@ sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(const sum_op<T> &other) {
       product_op<HandlerTy> &&other);                                          \
                                                                                \
   template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(                    \
-      const product_op<HandlerTy> &other);                                     \
+      const product_op<HandlerTy> &other);
 
 template sum_op<matrix_handler> &
 sum_op<matrix_handler>::operator=(const product_op<spin_handler> &other);

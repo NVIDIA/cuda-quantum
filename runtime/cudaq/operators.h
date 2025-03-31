@@ -746,7 +746,8 @@ public:
   product_op<HandlerTy> &operator=(const product_op<T> &other);
 
   // assignment operator
-  product_op<HandlerTy> &operator=(const product_op<HandlerTy> &other) = default;
+  product_op<HandlerTy> &
+  operator=(const product_op<HandlerTy> &other) = default;
 
   // move assignment operator
   product_op<HandlerTy> &operator=(product_op<HandlerTy> &&other) = default;

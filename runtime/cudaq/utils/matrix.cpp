@@ -51,7 +51,8 @@ access(cudaq::complex_matrix::value_type *p,
   return p[row * sizes.second + col];
 }
 
-const cudaq::complex_matrix::EigenMatrix cudaq::complex_matrix::as_eigen() const {
+const cudaq::complex_matrix::EigenMatrix
+cudaq::complex_matrix::as_eigen() const {
   return Eigen::Map<cudaq::complex_matrix::EigenMatrix>(
       this->data, this->dimensions.first, this->dimensions.second);
 }
