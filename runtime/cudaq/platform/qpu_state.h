@@ -19,6 +19,14 @@
 
 namespace cudaq {
 namespace details {
+
+#ifdef CUDAQ_LIBRARY_MODE
+template <typename QuantumKernel>
+QuantumKernel createQKernel(QuantumKernel &&kernel) {
+  return kernel;
+}
+#else
+
 #if CUDAQ_USE_STD20
 template <typename T>
 using remove_cvref_t = typename std::remove_cvref_t<T>;
@@ -42,6 +50,7 @@ template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
 QKernel createQKernel(QuantumKernel &&kernel) {
   return {kernel};
 }
+#endif
 }; // namespace details
 
 /// @brief Implementation of `SimulationState` for quantum device backends.

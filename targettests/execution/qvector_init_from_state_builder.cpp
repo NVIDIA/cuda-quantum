@@ -9,7 +9,6 @@
 // clang-format off
 // Simulators
 // RUN: nvq++ %cpp_std --enable-mlir  %s                              -o %t && %t | FileCheck %s
-
 // Quantum emulators
 // RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
@@ -31,7 +30,6 @@ void printCounts(cudaq::sample_result &result) {
   for (auto &&[bits, counts] : result) {
     values.push_back(bits);
   }
-
   std::sort(values.begin(), values.end());
   for (auto &&bits : values) {
     std::cout << bits << std::endl;
@@ -40,9 +38,8 @@ void printCounts(cudaq::sample_result &result) {
 
 int main() {
   auto [test_init_state, n] = cudaq::make_kernel<int>();
-  auto q = test_init_state.qalloc(3);
+  auto q = test_init_state.qalloc(n);
   test_init_state.ry(M_PI / 2.0, q[0]);
-
   auto [test_state_param, s] = cudaq::make_kernel<cudaq::state *>();
   auto q1 = test_state_param.qalloc(s);
   test_state_param.x(q1);
@@ -53,39 +50,37 @@ int main() {
   auto state = cudaq::state::from_data(vec);
   auto state1 = cudaq::state::from_data(vec1);
   {
-    std::cout << "Passing state created from data as argument (kernel mode)"
+    std::cout << "Passing state created from data as argument (builder mode)"
               << std::endl;
     auto counts = cudaq::sample(test_state_param, &state);
     printCounts(counts);
-
     counts = cudaq::sample(test_state_param, &state1);
     printCounts(counts);
   }
   // clang-format off
-  // CHECK: Passing state created from data as argument (kernel mode)
+  // CHECK: Passing state created from data as argument (builder mode)
   // CHECK: 011
   // CHECK: 111
-
   // CHECK: 000
   // CHECK: 100
   // clang-format on
 
   {
-    std::cout << "Passing state from another kernel as argument (kernel mode)"
+    std::cout << "Passing state from another kernel as argument (builder mode)"
               << std::endl;
     auto state = cudaq::get_state(test_init_state, 2);
     auto counts = cudaq::sample(test_state_param, &state);
     printCounts(counts);
   }
   // clang-format off
-  // CHECK: Passing state from another kernel as argument (kernel mode)
+  // CHECK: Passing state from another kernel as argument (builder mode)
   // CHECK: 01
   // CHECK: 11
   // clang-format on
 
   {
     std::cout
-        << "Passing large state from another kernel as argument (kernel mode)"
+        << "Passing large state from another kernel as argument (builder mode)"
         << std::endl;
     // TODO: State larger than 5 qubits fails on iqm machines with Adonis
     // architecture
@@ -96,14 +91,14 @@ int main() {
     printCounts(counts);
   }
   // clang-format off
-  // CHECK: Passing large state from another kernel as argument (kernel mode)
+  // CHECK: Passing large state from another kernel as argument (builder mode)
   // CHECK: 01111
   // CHECK: 11111
   // clang-format on
 
   {
     std::cout << "Passing state from another kernel as argument iteratively "
-                 "(kernel mode)"
+                 "(builder mode)"
               << std::endl;
     auto state = cudaq::get_state(test_init_state, 2);
     for (auto i = 0; i < 4; i++) {
@@ -114,7 +109,7 @@ int main() {
     }
   }
   // clang-format off
-  // CHECK: Passing state from another kernel as argument iteratively (kernel mode)
+  // CHECK: Passing state from another kernel as argument iteratively (builder mode)
   // CHECK: Iteration: 0
   // CHECK: 01
   // CHECK: 11
@@ -129,4 +124,3 @@ int main() {
   // CHECK: 10
   // clang-format on
 }
-

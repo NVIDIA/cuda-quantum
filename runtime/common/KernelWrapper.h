@@ -540,11 +540,12 @@ std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
     if constexpr (std::is_class_v<std::decay_t<QuantumKernel>>) {
       // FIXME: this shouldn't use the serialization code any longer. It should
       // build a vector of void* and pass that instead.
-      cudaq::get_platform().launchKernel(cudaq::getKernelName(fn), nullptr,
-                                         (void *)serializedArgsBuffer.data(),
-                                         serializedArgsBuffer.size(), 0, {});
+      [[maybe_unused]] auto result = cudaq::get_platform().launchKernel(
+          cudaq::getKernelName(fn), nullptr,
+          (void *)serializedArgsBuffer.data(), serializedArgsBuffer.size(), 0,
+          {});
     } else {
-      cudaq::get_platform().launchKernel(
+      [[maybe_unused]] auto result = cudaq::get_platform().launchKernel(
           cudaq::getKernelName(fn),
           reinterpret_cast<cudaq::KernelThunkType>(&fn),
           (void *)serializedArgsBuffer.data(), serializedArgsBuffer.size(), 0,
