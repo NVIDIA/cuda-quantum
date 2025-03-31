@@ -20,7 +20,7 @@ static void launchVqeImpl(cudaq::ExecutionContext *executionContextPtr,
                           std::unique_ptr<cudaq::RemoteRuntimeClient> &m_client,
                           const std::string &m_simName, const std::string &name,
                           const void *kernelArgs, cudaq::gradient *gradient,
-                          cudaq::spin_op &H, cudaq::optimizer &optimizer,
+                          const cudaq::spin_op &H, cudaq::optimizer &optimizer,
                           const int n_params, const std::size_t shots) {
   auto *wrapper = reinterpret_cast<const cudaq::ArgWrapper *>(kernelArgs);
   auto m_module = wrapper->mod;
@@ -31,7 +31,7 @@ static void launchVqeImpl(cudaq::ExecutionContext *executionContextPtr,
 
   auto ctx = std::make_unique<cudaq::ExecutionContext>("observe", shots);
   ctx->kernelName = name;
-  ctx->spin = &H;
+  ctx->spin = cudaq::spin_op::canonicalize(H);
   if (shots > 0)
     ctx->shots = shots;
 
@@ -119,7 +119,7 @@ public:
   virtual bool isEmulated() override { return true; }
 
   void launchVQE(const std::string &name, const void *kernelArgs,
-                 cudaq::gradient *gradient, cudaq::spin_op H,
+                 cudaq::gradient *gradient, const cudaq::spin_op &H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
     cudaq::info(
@@ -170,7 +170,7 @@ public:
   virtual bool isEmulated() override { return true; }
 
   void launchVQE(const std::string &name, const void *kernelArgs,
-                 cudaq::gradient *gradient, cudaq::spin_op H,
+                 cudaq::gradient *gradient, const cudaq::spin_op &H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
     cudaq::info(
