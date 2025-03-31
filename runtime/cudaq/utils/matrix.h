@@ -194,9 +194,9 @@ public:
   std::size_t cols() const { return dimensions.second; }
   std::size_t size() const { return get_size(dimensions); }
 
-  /// @brief Return the Eigen matrix representation of this matrix. The Eigen
-  /// matrix is a thin wrapper around the internal data. If the data ever
-  /// becomes invalidated, this return value will become invalid.
+  /// @brief Return the `EigenMatrix` representation of this matrix. The
+  /// `EigenMatrix` matrix is a thin wrapper around the internal data. If the
+  /// data ever becomes invalidated, this return value will become invalid.
   const EigenMatrix as_eigen() const;
 
   friend void bindComplexMatrix(pybind11::module_ &mod);
