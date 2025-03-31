@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#pragma once
 #include "cudaq/utils/matrix.h"
 #include <unordered_map>
 #include <vector>
@@ -23,10 +24,17 @@ using csr_spmatrix =
                std::vector<std::size_t>>;
 
 namespace detail {
+struct states_hash {
+  int operator()(const std::vector<int64_t> &vect) const;
+};
 
 // SparseMatrix really wants a *signed* type
 using EigenSparseMatrix =
     Eigen::SparseMatrix<std::complex<double>, 0x1, long>; // row major
+
+/// Generates all possible states for the given dimensions.
+std::vector<std::vector<int64_t>>
+generate_all_states(const std::vector<int64_t> &dimensions);
 
 /// Generates all possible states for the given dimensions ordered according
 /// to the sequence of degrees (ordering is relevant if dimensions differ).

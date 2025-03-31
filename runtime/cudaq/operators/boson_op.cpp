@@ -168,31 +168,6 @@ boson_handler::boson_handler(std::size_t target, int op_id)
 
 // evaluations
 
-// FIXME: refactor helper instead and use that
-std::vector<std::string>
-generate_all_states(const std::vector<int64_t> &dimensions) {
-  if (dimensions.size() == 0)
-    return {};
-  auto dit = dimensions.crbegin();
-
-  std::vector<std::string> states;
-  for (auto state = 0; state < *dit; state++) {
-    states.push_back(std::to_string(state));
-  }
-
-  while (++dit != dimensions.crend()) {
-    std::vector<std::string> result;
-    for (auto current : states) {
-      for (auto state = 0; state < *dit; state++) {
-        result.push_back(std::to_string(state) + current);
-      }
-    }
-    states = result;
-  }
-
-  return states;
-}
-
 void boson_handler::create_matrix(
     const std::string &boson_word, const std::vector<int64_t> &dimensions,
     const std::function<void(std::size_t, std::size_t, std::complex<double>)>
@@ -209,19 +184,17 @@ void boson_handler::create_matrix(
     return tokens;
   };
 
-  auto map_state = [&tokenize](std::string encoding, char state) {
+  auto map_state = [&tokenize](std::string encoding, int64_t old_state) {
     if (encoding == "I")
-      return std::pair<double, char>{1., state};
+      return std::pair<double, int64_t>{1., old_state};
     auto ops = tokenize(encoding, '.');
     assert(ops.size() > 0);
-    int old_state = state - '0'; // FIXME: only works 0 to 9...!
 
     auto it = ops.cbegin();
-    int additional_terms = std::stoi(*it);
-    int new_state =
-        old_state + additional_terms; // new_state = row, old_state = column
+    int additional_terms = std::stol(*it);
+    int64_t new_state = old_state + additional_terms;
     if (new_state < 0)
-      return std::pair<double, char>{0., state};
+      return std::pair<double, int64_t>{0., old_state};
 
     double value = 1.;
     if (additional_terms > 0)
@@ -231,18 +204,17 @@ void boson_handler::create_matrix(
       for (auto offset = -additional_terms; offset > 0; --offset)
         value *= std::sqrt(new_state + offset);
     while (++it != ops.cend())
-      value *= (new_state + std::stoi(*it));
-    return std::pair<double, char>{value,
-                                   std::to_string(new_state)[0]}; // FIXME...
+      value *= (new_state + std::stol(*it));
+    return std::pair<double, int64_t>{value, new_state};
   };
 
-  auto states = generate_all_states(dimensions);
+  auto states = cudaq::detail::generate_all_states(dimensions);
   if (states.size() == 0)
     process_element(0, 0, 1.);
   std::vector<std::string> boson_terms = tokenize(boson_word, '_');
   std::size_t old_state_idx = 0;
-  for (std::string old_state : states) {
-    std::string new_state(old_state.size(), '0');
+  for (const auto &old_state : states) {
+    std::vector<int64_t> new_state(old_state.size(), 0);
     std::complex<double> entry = 1.;
     for (std::size_t degree = 0; degree < old_state.size(); ++degree) {
       auto state = old_state[degree];
@@ -250,12 +222,14 @@ void boson_handler::create_matrix(
           boson_terms[invert_order ? old_state.size() - 1 - degree : degree];
       auto mapped = map_state(op, state);
       entry *= mapped.first;
-      auto mapped_state = mapped.second - '0'; // FIXME: only works 0 to 9...!
-      if (mapped_state >= dimensions[degree])
+      if (mapped.second >= dimensions[degree])
         entry = 0.;
       else
         new_state[degree] = mapped.second;
     }
+
+    // probably not worth creating a hashmap for states
+    // (perf downsides for iteration)
     auto it = std::find(states.cbegin(), states.cend(), new_state);
     assert(it != states.cend());
     if (entry != 0.)
