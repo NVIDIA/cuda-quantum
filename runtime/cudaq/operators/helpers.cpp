@@ -17,19 +17,19 @@ namespace detail {
 
 int states_hash::operator()(const std::vector<int64_t> &vect) const {
   int hash = vect.size();
-  for(auto &i : vect)
+  for (auto &i : vect)
     hash ^= i + 0x9e3779b9 + (hash << 6) + (hash >> 2);
   return hash;
 }
 
-std::vector<std::vector<int64_t>> generate_all_states(
-  const std::vector<int64_t> &dimensions) {
+std::vector<std::vector<int64_t>>
+generate_all_states(const std::vector<int64_t> &dimensions) {
   if (dimensions.size() == 0)
     return {};
   auto dit = dimensions.cbegin();
   auto tot_nr_states = 1;
   for (auto d : dimensions)
-      tot_nr_states *= d;
+    tot_nr_states *= d;
 
   std::vector<std::vector<int64_t>> states;
   states.reserve(tot_nr_states);
@@ -46,7 +46,8 @@ std::vector<std::vector<int64_t>> generate_all_states(
       for (std::size_t idx = 0; idx < current_size; ++idx) {
         std::vector<int64_t> expanded_state;
         expanded_state.reserve(dimensions.size());
-        expanded_state.insert(expanded_state.end(), states[idx].cbegin(), states[idx].cend());
+        expanded_state.insert(expanded_state.end(), states[idx].cbegin(),
+                              states[idx].cend());
         expanded_state.push_back(state);
         states.push_back(expanded_state);
       }
@@ -55,12 +56,12 @@ std::vector<std::vector<int64_t>> generate_all_states(
       states[idx].push_back(0);
   }
 
-  return states; 
+  return states;
 }
 
 std::vector<std::vector<int64_t>> generate_all_states(
-  const std::vector<std::size_t> &degrees,
-  const std::unordered_map<std::size_t, int64_t> &dimensions) {
+    const std::vector<std::size_t> &degrees,
+    const std::unordered_map<std::size_t, int64_t> &dimensions) {
   std::vector<int64_t> relevant_dimensions;
   relevant_dimensions.reserve(degrees.size());
   for (auto d : degrees) {
@@ -77,9 +78,11 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
                     const std::unordered_map<std::size_t, int64_t> dimensions) {
   // canon_degrees and op_degrees should be the same up to permutation
   assert(op_degrees.size() == canon_degrees.size());
-  assert(std::set<std::size_t>(op_degrees.cbegin(), op_degrees.cend()).size() == op_degrees.size());
-  assert(std::set<std::size_t>(canon_degrees.cbegin(), canon_degrees.cend()).size() == canon_degrees.size());
-  assert(std::set<std::size_t>(op_degrees.cbegin(), op_degrees.cend()) == 
+  assert(std::set<std::size_t>(op_degrees.cbegin(), op_degrees.cend()).size() ==
+         op_degrees.size());
+  assert(std::set<std::size_t>(canon_degrees.cbegin(), canon_degrees.cend())
+             .size() == canon_degrees.size());
+  assert(std::set<std::size_t>(op_degrees.cbegin(), op_degrees.cend()) ==
          std::set<std::size_t>(canon_degrees.cbegin(), canon_degrees.cend()));
 
   auto states = cudaq::detail::generate_all_states(canon_degrees, dimensions);
@@ -93,7 +96,8 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
 
   auto op_states = cudaq::detail::generate_all_states(op_degrees, dimensions);
   // probably worth creating a hashmap for faster lookup
-  std::unordered_map<std::vector<int64_t>, std::size_t, states_hash> op_states_map;
+  std::unordered_map<std::vector<int64_t>, std::size_t, states_hash>
+      op_states_map;
   op_states_map.reserve(op_states.size());
   for (std::size_t idx = 0; idx < op_states.size(); ++idx)
     op_states_map[std::move(op_states[idx])] = idx;
