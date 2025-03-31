@@ -12,6 +12,10 @@
 #include <set>
 #include <unordered_map>
 
+#include <iostream>
+
+#include <Eigen/Core>
+
 namespace cudaq {
 namespace detail {
 
@@ -120,23 +124,41 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
 
 void permute_matrix(cudaq::complex_matrix &matrix,
                     const std::vector<std::size_t> &permutation) {
+  assert(matrix.rows() == matrix.cols());
+  assert(permutation.size() == 0 || permutation.size() == matrix.rows());
   if (permutation.size() == 0) {
-    assert(matrix.rows() == matrix.cols() == 1);
+    assert(matrix.rows() == 1);
     return;
   }
 
-  std::vector<std::complex<double>> sorted_values;
-  sorted_values.reserve(permutation.size() * permutation.size());
-  for (std::size_t permuted : permutation) {
-    for (std::size_t permuted_again : permutation) {
-      sorted_values.push_back(matrix[{permuted, permuted_again}]);
+  // We do an in-place permutation of rows and columns.
+  // Since we don't (can't?) do it simultaneously, the number of operators is 
+  // roughly 2*N*N. The same number of operators would be required if we first
+  // copy the matrix, and then populate a new matrix directly with the correct
+  // entries. So, runtime-wise both should amount to the same, but we safe a 
+  // factor 2 of memory this way.
+  // The outermost for-loop walks the cycles in the permutation, the second 
+  // for-loop performs the permutations for that cycle, and the innermost for-
+  // loop iterates over the columns/rows to grab the entire row/column.
+
+  // in-place permutation of rows
+  std::vector<bool> processed_row (matrix.rows(), false);
+  for (auto row_it = processed_row.begin(); row_it != processed_row.end(); row_it = std::find(row_it, processed_row.end(), false)) {
+    processed_row[row_it - processed_row.cbegin()] = true;
+    for (std::size_t row = row_it - processed_row.cbegin(); permutation[row] != row_it - processed_row.cbegin(); row = permutation[row]) {
+      processed_row[permutation[row]] = true;
+      for (std::size_t col = 0; col < matrix.cols(); ++col)
+        std::swap(matrix[{row, col}], matrix[{permutation[row], col}]);
     }
   }
-  std::size_t idx = 0;
-  for (std::size_t row = 0; row < matrix.rows(); row++) {
-    for (std::size_t col = 0; col < matrix.cols(); col++) {
-      matrix[{row, col}] = sorted_values[idx];
-      idx++;
+  // in-place permutation of columns
+  std::vector<bool> processed_col (matrix.cols(), false);
+  for (auto col_it = processed_col.begin(); col_it != processed_col.end(); col_it = std::find(col_it, processed_col.end(), false)) {
+    processed_col[col_it - processed_col.cbegin()] = true;
+    for (std::size_t col = col_it - processed_col.cbegin(); permutation[col] != col_it - processed_col.cbegin(); col = permutation[col]) {
+      processed_col[permutation[col]] = true;
+      for (std::size_t row = 0; row < matrix.rows(); row++)
+        std::swap(matrix[{row, col}], matrix[{row, permutation[col]}]);
     }
   }
 }
