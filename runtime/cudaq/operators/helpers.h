@@ -30,7 +30,7 @@ using EigenSparseMatrix =
 
 /// Generates all possible states for the given dimensions ordered according
 /// to the sequence of degrees (ordering is relevant if dimensions differ).
-std::vector<std::string>
+std::vector<std::vector<int64_t>>
 generate_all_states(const std::vector<std::size_t> &degrees,
                     const std::unordered_map<std::size_t, int64_t> &dimensions);
 

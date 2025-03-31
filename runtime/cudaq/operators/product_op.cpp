@@ -1496,14 +1496,6 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
           .terms);
   assert(terms.size() == 1);
 
-  std::vector<int64_t> relevant_dims;
-  relevant_dims.reserve(this->operators.size());
-  for (const auto &op : this->operators) {
-    auto it = dimensions.find(op.degree);
-    assert(it != dimensions.end());
-    relevant_dims.push_back(it->second);
-  }
-
   auto matrix = HandlerTy::to_sparse_matrix(terms[0].encoding,
                                             terms[0].relevant_dimensions,
                                             terms[0].coefficient, invert_order);

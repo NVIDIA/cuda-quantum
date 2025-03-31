@@ -198,13 +198,6 @@ void boson_handler::create_matrix(
     const std::function<void(std::size_t, std::size_t, std::complex<double>)>
         &process_element,
     bool invert_order) {
-  /*
-  // check if the operator quenches all states
-  auto it = std::find(fermi_word.cbegin(), fermi_word.cend(), '0');
-  if (it != fermi_word.cend())
-      return;
-  */
-
   auto tokenize = [](std::string s, char delim) {
     std::vector<std::string> tokens;
     int start, end = -1;

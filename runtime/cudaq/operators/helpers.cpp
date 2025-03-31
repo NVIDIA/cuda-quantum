@@ -14,28 +14,31 @@
 namespace cudaq {
 namespace detail {
 
-std::vector<std::string> generate_all_states(
+std::vector<std::vector<int64_t>> generate_all_states(
     const std::vector<std::size_t> &degrees,
     const std::unordered_map<std::size_t, int64_t> &dimensions) {
   if (degrees.size() == 0)
     return {};
   auto dit = degrees.crbegin();
 
-  std::vector<std::string> states;
+  std::vector<std::vector<int64_t>> states;
   auto entry = dimensions.find(*dit);
   assert(entry != dimensions.end());
-  for (auto state = 0; state < entry->second; state++) {
-    states.push_back(std::to_string(state));
+  for (int64_t state = 0; state < entry->second; state++) {
+    states.push_back({state});
   }
 
   while (++dit != degrees.crend()) {
     auto entry = dimensions.find(*dit);
     assert(entry != dimensions.end());
-    std::vector<std::string> result;
-    for (auto current : states) {
-      for (auto state = 0; state < entry->second; state++) {
-        // FIXME: THIS REALLY ONLY WORKS IF DIM IS 1 DIGIT?!
-        result.push_back(std::to_string(state) + current);
+    std::vector<std::vector<int64_t>> result;
+    for (const std::vector<int64_t> &current : states) {
+      for (int64_t state = 0; state < entry->second; state++) {
+        std::vector<int64_t> expanded_state;
+        expanded_state.reserve(current.size() + 1);
+        expanded_state.push_back(state);
+        expanded_state.insert(expanded_state.end(), current.cbegin(), current.cend());
+        result.push_back(expanded_state);
       }
     }
     states = result;
@@ -51,22 +54,22 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
   assert(op_degrees.size() == canon_degrees.size());
   auto states = cudaq::detail::generate_all_states(canon_degrees, dimensions);
 
-  std::vector<std::size_t> reordering;
+  std::vector<int64_t> reordering;
   reordering.reserve(op_degrees.size());
   for (auto degree : op_degrees) {
     auto it = std::find(canon_degrees.cbegin(), canon_degrees.cend(), degree);
     reordering.push_back(it - canon_degrees.cbegin());
   }
 
-  std::vector<std::string> op_states =
-      cudaq::detail::generate_all_states(op_degrees, dimensions);
+  auto op_states = cudaq::detail::generate_all_states(op_degrees, dimensions);
 
   std::vector<std::size_t> permutation;
   permutation.reserve(states.size());
   for (const auto &state : states) {
-    std::string term;
+    std::vector<int64_t> term;
+    term.reserve(reordering.size());
     for (auto i : reordering) {
-      term += state[i];
+      term.push_back(state[i]);
     }
     auto it = std::find(op_states.cbegin(), op_states.cend(), term);
     permutation.push_back(it - op_states.cbegin());

@@ -17,7 +17,11 @@ TEST(OperatorHelpersTest, GenerateAllStates_TwoQubits) {
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
-  std::vector<std::string> expected_states = {"00", "10", "01", "11"};
+  std::vector<std::vector<int64_t>> expected_states;
+  expected_states.push_back({0, 0});
+  expected_states.push_back({1, 0});
+  expected_states.push_back({0, 1});
+  expected_states.push_back({1, 1});
 
   EXPECT_EQ(states, expected_states);
 }
@@ -27,8 +31,47 @@ TEST(OperatorHelpersTest, GenerateAllStates_ThreeQubits) {
   cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
 
   auto states = generate_all_states(degrees, dimensions);
-  std::vector<std::string> expected_states = {"000", "100", "010", "110",
-                                              "001", "101", "011", "111"};
+  std::vector<std::vector<int64_t>> expected_states;
+  expected_states.push_back({0, 0, 0});
+  expected_states.push_back({1, 0, 0});
+  expected_states.push_back({0, 1, 0});
+  expected_states.push_back({1, 1, 0});
+  expected_states.push_back({0, 0, 1});
+  expected_states.push_back({1, 0, 1});
+  expected_states.push_back({0, 1, 1});
+  expected_states.push_back({1, 1, 1});
+
+  EXPECT_EQ(states, expected_states);
+}
+
+TEST(OperatorHelpersTest, GenerateAllStates_Qudits) {
+  std::vector<std::size_t> degrees = {0, 1};
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 11}};
+
+  auto states = generate_all_states(degrees, dimensions);
+  std::vector<std::vector<int64_t>> expected_states;
+  expected_states.push_back({0, 0});
+  expected_states.push_back({1, 0});
+  expected_states.push_back({0, 1});
+  expected_states.push_back({1, 1});
+  expected_states.push_back({0, 2});
+  expected_states.push_back({1, 2});
+  expected_states.push_back({0, 3});
+  expected_states.push_back({1, 3});
+  expected_states.push_back({0, 4});
+  expected_states.push_back({1, 4});
+  expected_states.push_back({0, 5});
+  expected_states.push_back({1, 5});
+  expected_states.push_back({0, 6});
+  expected_states.push_back({1, 6});
+  expected_states.push_back({0, 7});
+  expected_states.push_back({1, 7});
+  expected_states.push_back({0, 8});
+  expected_states.push_back({1, 8});
+  expected_states.push_back({0, 9});
+  expected_states.push_back({1, 9});
+  expected_states.push_back({0, 10});
+  expected_states.push_back({1, 10});
 
   EXPECT_EQ(states, expected_states);
 }
