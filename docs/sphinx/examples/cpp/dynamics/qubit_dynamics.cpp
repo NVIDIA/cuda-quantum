@@ -38,9 +38,9 @@ int main() {
   cudaq::integrators::runge_kutta integrator(4, 0.01);
 
   // Run the simulation without collapse operators (ideal evolution)
-  auto evolve_result = cudaq::evolve(
-      hamiltonian, dimensions, schedule, psi0, integrator, {},
-      {cudaq::spin_op::y(0), cudaq::spin_op::z(0)}, true);
+  auto evolve_result =
+      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator, {},
+                    {cudaq::spin_op::y(0), cudaq::spin_op::z(0)}, true);
 
   constexpr double decay_rate = 0.05;
   auto collapse_operator = std::sqrt(decay_rate) * cudaq::spin_op::x(0);

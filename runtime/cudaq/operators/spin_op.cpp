@@ -30,8 +30,13 @@ std::string spin_handler::op_code_to_string() const {
   return "I";
 }
 
-std::string spin_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int64_t> &dimensions) const {
+// Used internally for canonical evaluation -
+// use a single char for representing the operator.
+// Relevant dimensions is not used but only exists
+// for consistency with other operator classes.
+std::string spin_handler::canonical_form(
+    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::vector<int64_t> &relevant_dims) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     dimensions[this->degree] = 2;
@@ -160,11 +165,12 @@ spin_handler::to_sparse_matrix(const std::string &pauli_word,
 }
 
 cudaq::detail::EigenSparseMatrix
-spin_handler::to_sparse_matrix(const std::string &pauli, 
+spin_handler::to_sparse_matrix(const std::string &pauli,
                                const std::vector<int64_t> &dimensions,
                                std::complex<double> coeff, bool invert_order) {
   // private method, so we only assert dimensions
-  assert(std::find_if(dimensions.cbegin(), dimensions.cend(), [](int64_t d) { return d != 2; }) == dimensions.cend());
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
+                      [](int64_t d) { return d != 2; }) == dimensions.cend());
   return to_sparse_matrix(pauli, coeff, invert_order);
 }
 
@@ -185,9 +191,10 @@ complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
 complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
                                        const std::vector<int64_t> &dimensions,
                                        std::complex<double> coeff,
-                                       bool invert_order) { 
+                                       bool invert_order) {
   // private method, so we only assert dimensions
-  assert(std::find_if(dimensions.cbegin(), dimensions.cend(), [](int64_t d) { return d != 2; }) == dimensions.cend());
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
+                      [](int64_t d) { return d != 2; }) == dimensions.cend());
   return to_matrix(pauli_word, coeff, invert_order);
 }
 
@@ -195,7 +202,8 @@ complex_matrix spin_handler::to_matrix(
     std::unordered_map<std::size_t, int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  return spin_handler::to_matrix(this->op_code_to_string(dimensions));
+  std::vector<int64_t> rel_dims;
+  return spin_handler::to_matrix(this->canonical_form(dimensions, rel_dims));
 }
 
 std::string spin_handler::to_string(bool include_degrees) const {

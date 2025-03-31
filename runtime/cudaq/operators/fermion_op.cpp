@@ -59,10 +59,13 @@ std::string fermion_handler::op_code_to_string() const {
   return "I";
 }
 
-// used internally for canonical evaluation -
-// use a single char for representing the operator
-std::string fermion_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int64_t> &dimensions) const {
+// Used internally for canonical evaluation -
+// use a single char for representing the operator.
+// Relevant dimensions is not used but only exists
+// for consistency with other operator classes.
+std::string fermion_handler::canonical_form(
+    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::vector<int64_t> &relevant_dims) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     dimensions[this->degree] = 2;
@@ -192,13 +195,12 @@ void fermion_handler::create_matrix(
   }
 }
 
-cudaq::detail::EigenSparseMatrix
-fermion_handler::to_sparse_matrix(const std::string &fermi_word,
-                                  const std::vector<int64_t> &dimensions,
-                                  std::complex<double> coeff,
-                                  bool invert_order) {
+cudaq::detail::EigenSparseMatrix fermion_handler::to_sparse_matrix(
+    const std::string &fermi_word, const std::vector<int64_t> &dimensions,
+    std::complex<double> coeff, bool invert_order) {
   // private method, so we only assert dimensions
-  assert(std::find_if(dimensions.cbegin(), dimensions.cend(), [](int64_t d) { return d != 2; }) == dimensions.cend());
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
+                      [](int64_t d) { return d != 2; }) == dimensions.cend());
 
   using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1 << fermi_word.size();
@@ -215,12 +217,13 @@ fermion_handler::to_sparse_matrix(const std::string &fermi_word,
   return matrix;
 }
 
-complex_matrix fermion_handler::to_matrix(const std::string &fermi_word,
-                                          const std::vector<int64_t> &dimensions,
-                                          std::complex<double> coeff,
-                                          bool invert_order) {
+complex_matrix
+fermion_handler::to_matrix(const std::string &fermi_word,
+                           const std::vector<int64_t> &dimensions,
+                           std::complex<double> coeff, bool invert_order) {
   // private method, so we only assert dimensions
-  assert(std::find_if(dimensions.cbegin(), dimensions.cend(), [](int64_t d) { return d != 2; }) == dimensions.cend());
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
+                      [](int64_t d) { return d != 2; }) == dimensions.cend());
 
   auto dim = 1 << fermi_word.size();
   complex_matrix matrix(dim, dim);
@@ -237,7 +240,9 @@ complex_matrix fermion_handler::to_matrix(
     std::unordered_map<std::size_t, int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  return fermion_handler::to_matrix(this->op_code_to_string(dimensions));
+  std::vector<int64_t> relevant_dims;
+  return fermion_handler::to_matrix(
+      this->canonical_form(dimensions, relevant_dims));
 }
 
 std::string fermion_handler::to_string(bool include_degrees) const {

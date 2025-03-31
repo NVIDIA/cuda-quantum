@@ -39,15 +39,13 @@ int main() {
   // are defined as: S^+ = 0.5 * (X + `iY`) and S^- = 0.5 * (X - `iY`) These
   // operators allow transitions between the spin states (|0> and |1>).
   auto spin_plus = [](int degree) {
-    return 0.5 *
-           (cudaq::spin_op::x(degree) +
-            std::complex<double>(0.0, 1.0) * cudaq::spin_op::y(degree));
+    return 0.5 * (cudaq::spin_op::x(degree) +
+                  std::complex<double>(0.0, 1.0) * cudaq::spin_op::y(degree));
   };
 
   auto spin_minus = [](int degree) {
-    return 0.5 *
-           (cudaq::spin_op::x(degree) -
-            std::complex<double>(0.0, 1.0) * cudaq::spin_op::y(degree));
+    return 0.5 * (cudaq::spin_op::x(degree) -
+                  std::complex<double>(0.0, 1.0) * cudaq::spin_op::y(degree));
   };
 
   // The Hamiltonian describes the energy and dynamics of our 2-qubit system.
@@ -63,8 +61,7 @@ int main() {
   auto hamiltonian =
       (delta / 2.0) * cudaq::spin_op::z(0) +
       J * (spin_minus(1) * spin_plus(0) + spin_plus(1) * spin_minus(0)) +
-      Omega * cudaq::spin_op::x(0) +
-      m_12 * Omega * cudaq::spin_op::x(1);
+      Omega * cudaq::spin_op::x(0) + m_12 * Omega * cudaq::spin_op::x(1);
 
   // Each qubit is a 2-level system (dimension 2).
   // The composite system (two qubits) has a total Hilbert space dimension of 2

@@ -34,12 +34,12 @@ enum class pauli;
 #define PROPERTY_SPECIFIC_TEMPLATE(property)                                   \
   template <typename T = HandlerTy,                                            \
             std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
-                            std::true_type> = std::true_type()>
+                             std::true_type> = std::true_type()>
 
 #define PROPERTY_AGNOSTIC_TEMPLATE(property)                                   \
   template <typename T = HandlerTy,                                            \
             std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
-                            std::false_type> = std::false_type()>
+                             std::false_type> = std::false_type()>
 
 #define SPIN_OPS_BACKWARD_COMPATIBILITY(deprecation_message)                   \
   template <typename T = HandlerTy,                                            \

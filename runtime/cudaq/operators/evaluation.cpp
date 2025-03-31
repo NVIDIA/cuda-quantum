@@ -97,19 +97,17 @@ operator_arithmetics<operator_handler::matrix_evaluation>::add(
 operator_handler::canonical_evaluation
 operator_arithmetics<operator_handler::canonical_evaluation>::evaluate(
     const operator_handler &op) {
-  auto canon_str = op.op_code_to_string(this->dimensions);
-  operator_handler::canonical_evaluation eval;
-  eval.push_back(
-      std::make_pair(std::complex<double>(1.), std::move(canon_str)));
-  return eval;
+  std::vector<int64_t> relevant_dims;
+  auto canon_str = op.canonical_form(this->dimensions, relevant_dims);
+  return operator_handler::canonical_evaluation(std::move(canon_str),
+                                                std::move(relevant_dims));
 }
 
 operator_handler::canonical_evaluation
 operator_arithmetics<operator_handler::canonical_evaluation>::evaluate(
     const scalar_operator &scalar) const {
-  operator_handler::canonical_evaluation eval;
-  eval.push_back(std::make_pair(scalar.evaluate(this->parameters), ""));
-  return eval;
+  return operator_handler::canonical_evaluation(
+      scalar.evaluate(this->parameters));
 }
 
 operator_handler::canonical_evaluation
@@ -117,8 +115,9 @@ operator_arithmetics<operator_handler::canonical_evaluation>::tensor(
     operator_handler::canonical_evaluation &&val1,
     operator_handler::canonical_evaluation &&val2) const {
   assert(val1.terms.size() == 1 && val2.terms.size() == 1);
-  assert(val2.terms[0].first == std::complex<double>(1.)); // should be trivial
-  val1.push_back(val2.terms[0].second);
+  assert(val2.terms[0].coefficient ==
+         std::complex<double>(1.)); // should be trivial
+  val1.push_back(val2.terms[0].encoding, val2.terms[0].relevant_dimensions);
   return std::move(val1);
 }
 
@@ -145,7 +144,7 @@ operator_arithmetics<operator_handler::canonical_evaluation>::add(
     operator_handler::canonical_evaluation &&val1,
     operator_handler::canonical_evaluation &&val2) const {
   assert(val2.terms.size() == 1);
-  val1.push_back(std::move(val2.terms[0]));
+  val1.terms.push_back(std::move(val2.terms[0]));
   return std::move(val1);
 }
 

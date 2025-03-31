@@ -61,12 +61,14 @@ std::string boson_handler::op_code_to_string() const {
 
 // used internally for canonical evaluation -
 // use a encoding that makes it convenient to reconstruct the operator
-std::string boson_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int64_t> &dimensions) const {
+std::string boson_handler::canonical_form(
+    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::vector<int64_t> &relevant_dims) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " +
                              std::to_string(this->degree));
+  relevant_dims.push_back(it->second);
 
   if (this->additional_terms == 0 && this->number_offsets.size() == 0)
     return "I_";
@@ -311,11 +313,9 @@ complex_matrix boson_handler::to_matrix(
     std::unordered_map<std::size_t, int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto boson_word = this->op_code_to_string(dimensions);
-  auto it = dimensions.find(this->degree);
-  assert(it !=
-         dimensions.end()); // op_code_to_string above should fail in this case
-  return boson_handler::to_matrix(boson_word, {it->second});
+  std::vector<int64_t> relevant_dims;
+  auto boson_word = this->canonical_form(dimensions, relevant_dims);
+  return boson_handler::to_matrix(boson_word, relevant_dims);
 }
 
 std::string boson_handler::to_string(bool include_degrees) const {

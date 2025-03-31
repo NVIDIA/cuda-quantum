@@ -49,8 +49,9 @@ private:
   // user friendly string encoding
   std::string op_code_to_string() const;
   // internal only string encoding
-  virtual std::string op_code_to_string(
-      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
+  virtual std::string
+  canonical_form(std::unordered_map<std::size_t, int64_t> &dimensions,
+                 std::vector<int64_t> &relevant_dims) const override;
 
 #if !defined(NDEBUG)
   // Here to check if my reasoning regarding only ever needing the operators

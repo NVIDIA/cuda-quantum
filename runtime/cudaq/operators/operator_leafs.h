@@ -229,8 +229,9 @@ private:
   // operator acts on, and return a string that identifies the operator but not
   // what degrees it acts on. Use for canonical evaluation and not expected to
   // be user friendly.
-  virtual std::string op_code_to_string(
-      std::unordered_map<std::size_t, int64_t> &dimensions) const = 0;
+  virtual std::string
+  canonical_form(std::unordered_map<std::size_t, int64_t> &dimensions,
+                 std::vector<int64_t> &relevant_dims) const = 0;
 
   // data storage classes for evaluation
 
@@ -266,17 +267,25 @@ private:
     friend class operator_arithmetics;
 
   private:
-    std::vector<std::pair<std::complex<double>, std::string>> terms;
+    struct term_data {
+      std::string encoding;
+      std::complex<double> coefficient;
+      std::vector<int64_t> relevant_dimensions;
+    };
+    std::vector<term_data> terms;
 
   public:
     canonical_evaluation();
+    canonical_evaluation(std::complex<double> &&coefficient);
+    canonical_evaluation(std::string &&encoding,
+                         std::vector<int64_t> &&relevant_dims);
     canonical_evaluation(canonical_evaluation &&other);
     canonical_evaluation &operator=(canonical_evaluation &&other);
     // delete copy constructor and copy assignment to avoid unnecessary copies
     canonical_evaluation(const canonical_evaluation &other) = delete;
     canonical_evaluation &operator=(const canonical_evaluation &other) = delete;
-    void push_back(std::pair<std::complex<double>, std::string> &&term);
-    void push_back(const std::string &op);
+    void push_back(const std::string &op,
+                   const std::vector<int64_t> &relevant_dimensions);
   };
 
 public:

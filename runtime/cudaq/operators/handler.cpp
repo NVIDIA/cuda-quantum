@@ -87,6 +87,24 @@ operator_handler::matrix_evaluation::operator=(matrix_evaluation &&other) {
 operator_handler::canonical_evaluation::canonical_evaluation() = default;
 
 operator_handler::canonical_evaluation::canonical_evaluation(
+    std::complex<double> &&coefficient) {
+  term_data data;
+  data.coefficient = std::move(coefficient);
+  data.encoding = "";
+  data.relevant_dimensions = {};
+  this->terms.push_back(data);
+}
+
+operator_handler::canonical_evaluation::canonical_evaluation(
+    std::string &&encoding, std::vector<int64_t> &&relevant_dims) {
+  term_data data;
+  data.coefficient = std::complex<double>(1.);
+  data.encoding = std::move(encoding);
+  data.relevant_dimensions = std::move(relevant_dims);
+  this->terms.push_back(data);
+}
+
+operator_handler::canonical_evaluation::canonical_evaluation(
     canonical_evaluation &&other)
     : terms(std::move(other.terms)) {}
 
@@ -99,13 +117,13 @@ operator_handler::canonical_evaluation::operator=(
 }
 
 void operator_handler::canonical_evaluation::push_back(
-    std::pair<std::complex<double>, std::string> &&term) {
-  this->terms.push_back(term);
-}
-
-void operator_handler::canonical_evaluation::push_back(const std::string &op) {
+    const std::string &op, const std::vector<int64_t> &relevant_dimensions) {
   assert(this->terms.size() != 0);
-  this->terms.back().second.append(op);
+  auto &current_term = this->terms.back();
+  current_term.encoding.append(op);
+  current_term.relevant_dimensions.insert(
+      current_term.relevant_dimensions.end(), relevant_dimensions.cbegin(),
+      relevant_dimensions.cend());
 }
 
 } // namespace cudaq
