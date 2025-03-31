@@ -160,7 +160,7 @@ complex_matrix fermion_handler::to_matrix(
     mat[{1, 0}] = 1.;
   if (this->op_code & 8)
     mat[{1, 1}] = 1.;
-  return std::move(mat);
+  return mat;
 }
 
 std::string fermion_handler::to_string(bool include_degrees) const {

@@ -47,7 +47,7 @@ std::string boson_handler::op_code_to_string() const {
     str += "Ad";
   for (auto i = 0; i > this->additional_terms; --i)
     str += "A";
-  return std::move(str);
+  return str;
 }
 
 std::string boson_handler::op_code_to_string(
@@ -186,7 +186,7 @@ complex_matrix boson_handler::to_matrix(
         mat[{i, i}] *= (i + offset);
     }
   }
-  return std::move(mat);
+  return mat;
 }
 
 std::string boson_handler::to_string(bool include_degrees) const {
