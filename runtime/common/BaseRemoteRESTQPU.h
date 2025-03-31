@@ -18,6 +18,7 @@
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -29,9 +30,9 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/TargetConfig.h"
+#include "cudaq/operators.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
-#include "cudaq/spin_op.h"
 #include "nvqpp_config.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -424,8 +425,8 @@ public:
     for (auto &op : m_module.getOps()) {
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
-      // `lift-array-alloc`, `quake-synthesizer`, and `get-concrete-matrix`
-      // passes.
+      // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`,
+      // and `get-concrete-matrix` passes.
       if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
         moduleOp.push_back(globalOp.clone());
     }
@@ -453,16 +454,36 @@ public:
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
         cudaq::info("Run Argument Synth.\n");
-        opt::ArgumentConverter argCon(kernelName, moduleOp, false);
+        // For quantum devices, we generate a collection of `init` and
+        // `num_qubits` functions and their substitutions created
+        // from a kernel and arguments that generated a state argument.
+        cudaq::opt::ArgumentConverter argCon(kernelName, moduleOp);
         argCon.gen(rawArgs);
-        std::string kernName = cudaq::runtime::cudaqGenPrefixName + kernelName;
-        mlir::SmallVector<mlir::StringRef> kernels = {kernName};
-        std::string substBuff;
-        llvm::raw_string_ostream ss(substBuff);
-        ss << argCon.getSubstitutionModule();
-        mlir::SmallVector<mlir::StringRef> substs = {substBuff};
-        pm.addPass(opt::createArgumentSynthesisPass(kernels, substs));
+
+        // Store kernel and substitution strings on the stack.
+        // We pass string references to the `createArgumentSynthesisPass`.
+        mlir::SmallVector<std::string> kernels;
+        mlir::SmallVector<std::string> substs;
+        for (auto *kInfo : argCon.getKernelSubstitutions()) {
+          std::string kernName =
+              cudaq::runtime::cudaqGenPrefixName + kInfo->getKernelName().str();
+          kernels.emplace_back(kernName);
+          std::string substBuff;
+          llvm::raw_string_ostream ss(substBuff);
+          ss << kInfo->getSubstitutionModule();
+          substs.emplace_back(substBuff);
+        }
+
+        // Collect references for the argument synthesis.
+        mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
+                                                      kernels.end()};
+        mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
+                                                     substs.end()};
+        pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
         pm.addPass(opt::createDeleteStates());
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createReplaceStateWithKernel());
+        pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
@@ -516,7 +537,7 @@ public:
     if (executionContext && executionContext->name == "observe") {
       mapping_reorder_idx.clear();
       runPassPipeline("canonicalize,cse", moduleOp);
-      cudaq::spin_op &spin = *executionContext->spin.value();
+      cudaq::spin_op &spin = executionContext->spin.value();
       for (const auto &term : spin) {
         if (term.is_identity())
           continue;
@@ -530,14 +551,12 @@ public:
         // Create a new Module to clone the ansatz into it
         auto tmpModuleOp = moduleOp.clone();
 
-        // Extract the binary symplectic encoding
-        auto [binarySymplecticForm, coeffs] = term.get_raw_data();
-
         // Create the pass manager, add the quake observe ansatz pass and run it
         // followed by the canonicalizer
         mlir::PassManager pm(&context);
         pm.addNestedPass<mlir::func::FuncOp>(
-            cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
+            cudaq::opt::createObserveAnsatzPass(
+                term.get_binary_symplectic_form()));
         if (disableMLIRthreading || enablePrintMLIREachPass)
           tmpModuleOp.getContext()->disableMultithreading();
         if (enablePrintMLIREachPass)
@@ -554,7 +573,7 @@ public:
             runPassPipeline(pass, tmpModuleOp);
         if (!emulate && combineMeasurements)
           runPassPipeline("func.func(combine-measurements)", tmpModuleOp);
-        modules.emplace_back(term.to_string(false), tmpModuleOp);
+        modules.emplace_back(term.get_term_id(), tmpModuleOp);
       }
     } else
       modules.emplace_back(kernelName, moduleOp);

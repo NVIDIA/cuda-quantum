@@ -46,7 +46,7 @@ def test_observe_result():
     for index, sub_term in enumerate(hamiltonian):
         print(sub_term)
         # Extract the register name from the spin term.
-        name = str(sub_term).split(" ")[1].rstrip()
+        name = sub_term.get_term_id()
         # Does the register exist in the measurement results?
         assert name in register_names
         # Check `cudaq.ObserveResult::counts(sub_term)`
@@ -93,7 +93,7 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
         kernel.x(qubit)
 
     # Measuring in the Z-basis.
-    hamiltonian = spin.z(0)
+    hamiltonian = cudaq.SpinOperator(spin.z(0)) # test is written assuming this is a sum
 
     # Call `cudaq.observe()` at the specified number of shots.
     observe_result = cudaq.observe(kernel=kernel,
@@ -111,7 +111,7 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
         # Check that each register is in the proper state.
         for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(" ")[1].rstrip()
+            got_name = sub_term.get_term_id()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -176,7 +176,7 @@ def test_observe_single_param(angle, want_state, want_expectation, shots_count):
         # Check that each register is in the proper state.
         for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(" ")[1].rstrip()
+            got_name = sub_term.get_term_id()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -255,7 +255,7 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
         # Check that each register is in the proper state.
         for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(" ")[1].rstrip()
+            got_name = sub_term.get_term_id()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -371,7 +371,7 @@ def test_observe_async_single_param(angle, want_state, want_expectation,
         # Check that each register is in the proper state.
         for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(" ")[1].rstrip()
+            got_name = sub_term.get_term_id()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -454,7 +454,7 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
         # Check that each register is in the proper state.
         for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(" ")[1].rstrip()
+            got_name = sub_term.get_term_id()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -541,7 +541,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
         # Check that each register is in the proper state.
     for index, sub_term in enumerate(hamiltonian):
         # Extract the register name from the spin term.
-        got_name = str(sub_term).split(" ")[1].rstrip()
+        got_name = sub_term.get_term_id()
         # Pull the counts for that hamiltonian sub term from the
         # `ObserveResult::counts` overload.
         sub_term_counts = observe_result.counts(sub_term=sub_term)
