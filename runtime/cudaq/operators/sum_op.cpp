@@ -8,7 +8,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <numeric>
 #include <set>
 #include <tuple>
 #include <type_traits>
@@ -294,10 +293,6 @@ sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other, bool is_default,
 }
 
 template <typename HandlerTy>
-sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other)
-    : sum_op(other, other.is_default, 0) {}
-
-template <typename HandlerTy>
 sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other, bool is_default,
                           std::size_t size)
     : is_default(is_default && other.is_default),
@@ -309,10 +304,6 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other, bool is_default,
     this->terms.reserve(size);
   }
 }
-
-template <typename HandlerTy>
-sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
-    : sum_op(std::move(other), other.is_default, 0) {}
 
 #define INSTANTIATE_SUM_CONSTRUCTORS(HandlerTy)                                \
                                                                                \
@@ -334,12 +325,8 @@ sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other)
   template sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other,           \
                                      bool is_default, std::size_t size);       \
                                                                                \
-  template sum_op<HandlerTy>::sum_op(const sum_op<HandlerTy> &other);          \
-                                                                               \
   template sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other,                \
-                                     bool is_default, std::size_t size);       \
-                                                                               \
-  template sum_op<HandlerTy>::sum_op(sum_op<HandlerTy> &&other);
+                                     bool is_default, std::size_t size);
 
 // Note:
 // These are the private constructors needed by friend classes and functions
@@ -430,29 +417,6 @@ sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(const sum_op<T> &other) {
   return *this;
 }
 
-template <typename HandlerTy>
-sum_op<HandlerTy> &
-sum_op<HandlerTy>::operator=(const sum_op<HandlerTy> &other) {
-  if (this != &other) {
-    this->is_default = other.is_default;
-    this->coefficients = other.coefficients;
-    this->term_map = other.term_map;
-    this->terms = other.terms;
-  }
-  return *this;
-}
-
-template <typename HandlerTy>
-sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(sum_op<HandlerTy> &&other) {
-  if (this != &other) {
-    this->is_default = other.is_default;
-    this->coefficients = std::move(other.coefficients);
-    this->term_map = std::move(other.term_map);
-    this->terms = std::move(other.terms);
-  }
-  return *this;
-}
-
 #define INSTANTIATE_SUM_ASSIGNMENTS(HandlerTy)                                 \
                                                                                \
   template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(                    \
@@ -460,12 +424,6 @@ sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(sum_op<HandlerTy> &&other) {
                                                                                \
   template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(                    \
       const product_op<HandlerTy> &other);                                     \
-                                                                               \
-  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(                    \
-      const sum_op<HandlerTy> &other);                                         \
-                                                                               \
-  template sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(                    \
-      sum_op<HandlerTy> &&other);
 
 template sum_op<matrix_handler> &
 sum_op<matrix_handler>::operator=(const product_op<spin_handler> &other);

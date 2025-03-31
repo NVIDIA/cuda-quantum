@@ -25,12 +25,12 @@ class scalar_operator {
 private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
-  std::variant<std::complex<double>, scalar_callback> value;
+  std::variant<std::complex<double>, scalar_callback> value = 1.;
 
 public:
   // constructors and destructors
 
-  constexpr scalar_operator() : value(1.) {}
+  constexpr scalar_operator() = default;
 
   scalar_operator(double value);
 
@@ -46,20 +46,20 @@ public:
   scalar_operator(scalar_callback &&create);
 
   // copy constructor
-  scalar_operator(const scalar_operator &other);
+  scalar_operator(const scalar_operator &other) = default;
 
   // move constructor
-  scalar_operator(scalar_operator &&other);
+  scalar_operator(scalar_operator &&other) = default;
 
   ~scalar_operator() = default;
 
   // assignments
 
   // assignment operator
-  scalar_operator &operator=(const scalar_operator &other);
+  scalar_operator &operator=(const scalar_operator &other) = default;
 
   // move assignment operator
-  scalar_operator &operator=(scalar_operator &&other);
+  scalar_operator &operator=(scalar_operator &&other) = default;
 
   // evaluations
 
