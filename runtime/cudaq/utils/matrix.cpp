@@ -147,13 +147,11 @@ cudaq::operator*(const cudaq::complex_matrix &matrix,
     throw std::runtime_error("size mismatch for vector multiplication - "
                              "expecting a vector of length " +
                              std::to_string(matrix.cols()));
-  std::vector<cudaq::complex_matrix::value_type> res;
-  res.reserve(matrix.rows());
-  for (std::size_t i = 0; i < matrix.rows(); i++) {
-    res[i] = 0.;
+  // Initialized res to the correct size and set all elements to 0
+  std::vector<cudaq::complex_matrix::value_type> res(matrix.rows());
+  for (std::size_t i = 0; i < matrix.rows(); i++)
     for (std::size_t j = 0; j < matrix.cols(); j++)
       res[i] += matrix(i, j) * vect[j];
-  }
   return res;
 }
 
