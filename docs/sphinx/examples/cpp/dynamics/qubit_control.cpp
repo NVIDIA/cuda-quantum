@@ -46,8 +46,8 @@ int main() {
   // 2. A time-dependent driving term: omega_x * cos(omega_drive * t) * `Sx`_0,
   // which induces rotations about the X-axis. The scalar_operator(mod_`func`)
   // allows the drive term to vary in time according to mod_`func`.
-  auto hamiltonian = 0.5 * omega_z * cudaq::spin_handler::z(0) +
-                     mod_func * cudaq::spin_handler::x(0) * omega_x;
+  auto hamiltonian = 0.5 * omega_z * cudaq::spin_op::z(0) +
+                     mod_func * cudaq::spin_op::x(0) * omega_x;
 
   // A single qubit with dimension 2.
   cudaq::dimension_map dimensions = {{0, 2}};
@@ -76,8 +76,8 @@ int main() {
 
   // Measure the expectation values of the `qubit's` spin components along the
   // X, Y, and Z directions.
-  auto observables = {cudaq::spin_handler::x(0), cudaq::spin_handler::y(0),
-                      cudaq::spin_handler::z(0)};
+  auto observables = {cudaq::spin_op::x(0), cudaq::spin_op::y(0),
+                      cudaq::spin_op::z(0)};
 
   // Simulation without decoherence
   // Evolve the system under the Hamiltonian, using the specified schedule and
@@ -93,7 +93,7 @@ int main() {
   double gamma_sz = 1.0;
   auto evolve_result_decay = cudaq::evolve(
       hamiltonian, dimensions, schedule, psi0, integrator,
-      {std::sqrt(gamma_sz) * cudaq::spin_handler::z(0)}, observables, true);
+      {std::sqrt(gamma_sz) * cudaq::spin_op::z(0)}, observables, true);
 
   // Lambda to extract expectation values for a given observable index
   auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
