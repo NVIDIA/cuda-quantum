@@ -71,7 +71,6 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
 namespace cudaq {
 
 static std::once_flag mlir_init_flag;
-static bool mlirLLVMInitialized = false;
 
 std::unique_ptr<MLIRContext> initializeMLIR() {
   // One-time initialization of LLVM/MLIR components
@@ -82,7 +81,6 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
-    mlirLLVMInitialized = true;
   });
 
   // Per-context initialization
