@@ -65,7 +65,8 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.7")
   set (BASE_TENSOR_BACKEND_SRS  
         simulator_cutensornet.cpp 
         tensornet_spin_op.cpp
-        tensornet_state.cpp)
+        tensornet_state.cpp
+        tensornet_utils.cpp)
   get_filename_component(CUTENSORNET_INCLUDE_DIR ${CUTENSORNET_INC} DIRECTORY)
   get_filename_component(CUTENSORNET_LIB_DIR ${CUTENSORNET_LIB} DIRECTORY)
   get_filename_component(CUTENSOR_LIB_DIR ${CUTENSOR_LIB} DIRECTORY)
