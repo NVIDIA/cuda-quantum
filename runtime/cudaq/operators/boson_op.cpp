@@ -228,12 +228,16 @@ void boson_handler::create_matrix(
         new_state[degree] = mapped.second;
     }
 
-    // probably not worth creating a hashmap for states
-    // (perf downsides for iteration)
-    auto it = std::find(states.cbegin(), states.cend(), new_state);
-    assert(it != states.cend());
-    if (entry != 0.)
-      process_element(it - states.cbegin(), old_state_idx, entry);
+    if (entry != 0.) {
+      auto new_state_idx = 0;
+      for (std::size_t idx = 0; idx < new_state.size(); ++idx) {
+        auto offset = 1;
+        for (std::size_t d = 0; d < idx; ++d)
+          offset *= dimensions[d];
+        new_state_idx += new_state[idx] * offset;
+      }
+      process_element(new_state_idx, old_state_idx, entry);  
+    }
     old_state_idx += 1;
   }
 }
