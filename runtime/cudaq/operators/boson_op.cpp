@@ -56,7 +56,7 @@ std::string boson_handler::op_code_to_string() const {
     if (-this->additional_terms > 1)
       str += "^" + std::to_string(-this->additional_terms);
   }
-  return std::move(str);
+  return str;
 }
 
 // used internally for canonical evaluation -

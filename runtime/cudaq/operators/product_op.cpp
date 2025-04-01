@@ -283,7 +283,7 @@ EvalTy product_op<HandlerTy>::evaluate(
       EvalTy eval = arithmetics.evaluate(this->operators[op_idx]);
       prod = arithmetics.tensor(std::move(prod), std::move(eval));
     }
-    return std::move(prod);
+    return prod;
   }
 }
 
@@ -384,7 +384,7 @@ std::string product_op<HandlerTy>::get_term_id() const {
   std::string term_id;
   for (const auto &op : this->operators)
     term_id += op.unique_id();
-  return std::move(term_id);
+  return term_id;
 }
 
 template <typename HandlerTy>
@@ -889,7 +889,7 @@ product_op<HandlerTy>::operator*(const product_op<HandlerTy> &other) const & {
                              this->operators.size() + other.operators.size());
   for (HandlerTy op : other.operators)
     prod.insert(std::move(op));
-  return std::move(prod);
+  return prod;
 }
 
 template <typename HandlerTy>
@@ -910,7 +910,7 @@ product_op<HandlerTy>::operator*(product_op<HandlerTy> &&other) const & {
                              this->operators.size() + other.operators.size());
   for (auto &&op : other.operators)
     prod.insert(std::move(op));
-  return std::move(prod);
+  return prod;
 }
 
 template <typename HandlerTy>
@@ -968,7 +968,7 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
         *this * product_op<HandlerTy>(other.coefficients[i], other.terms[i]);
     sum.insert(std::move(prod));
   }
-  return std::move(sum);
+  return sum;
 }
 
 #define PRODUCT_ADDITION_SUM(op)                                               \
@@ -985,7 +985,7 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
     for (auto &coeff : other.coefficients)                                     \
       sum.coefficients.push_back(op coeff);                                    \
     sum.insert(*this);                                                         \
-    return std::move(sum);                                                     \
+    return sum;                                                                \
   }                                                                            \
                                                                                \
   template <typename HandlerTy>                                                \
@@ -1000,7 +1000,7 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
     for (auto &coeff : other.coefficients)                                     \
       sum.coefficients.push_back(op coeff);                                    \
     sum.insert(std::move(*this));                                              \
-    return std::move(sum);                                                     \
+    return sum;                                                                \
   }                                                                            \
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> product_op<HandlerTy>::operator op(                        \
@@ -1009,7 +1009,7 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
       return *this;                                                            \
     sum_op<HandlerTy> sum(op std::move(other));                                \
     sum.insert(*this);                                                         \
-    return std::move(sum);                                                     \
+    return sum;                                                                \
   }                                                                            \
                                                                                \
   template <typename HandlerTy>                                                \
@@ -1019,7 +1019,7 @@ product_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
       return *this;                                                            \
     sum_op<HandlerTy> sum(op std::move(other));                                \
     sum.insert(std::move(*this));                                              \
-    return std::move(sum);                                                     \
+    return sum;                                                                \
   }
 
 PRODUCT_ADDITION_SUM(+)
