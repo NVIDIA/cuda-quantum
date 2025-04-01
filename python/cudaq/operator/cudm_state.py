@@ -6,12 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy, cupy, atexit
 from typing import Sequence
+import cupy
+import numpy
 from cupy.cuda.memory import MemoryPointer, UnownedMemory
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from .helpers import InitialState
 import warnings
+
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from .helpers import InitialState
 
 # Suppress deprecation warnings on `cuquantum` import.
 # FIXME: remove this after `cuquantum` no longer warns on import.
