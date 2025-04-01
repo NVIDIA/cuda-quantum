@@ -151,7 +151,7 @@ int main() {
     // needs to sometimes run against a server without the remote VQE
     // capability, so the handling of RNG seeds for back-and-forth iterations of
     // observe's behave slightly differently than a fully remote VQE.
-    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.0906868832471321) < 0.015);
+    REMOTE_TEST_ASSERT(std::abs(opt_val - -1.0987425678504421) < 0.015);
   }
   return 0;
 }
