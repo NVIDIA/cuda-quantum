@@ -41,6 +41,33 @@ spin_op fromOpenFermionQubitOperator(py::object &op) {
   return H;
 }
 
+void bindSpinClass(py::module &mod) {
+  // Binding the functions in `cudaq::spin` as `_pycudaq` submodule
+  // so it's accessible directly in the cudaq namespace.
+  auto spin_submodule = mod.def_submodule("spin");
+  spin_submodule.def("i", &cudaq::spin_op::i<cudaq::spin_handler>,
+                     py::arg("target"),
+                     "Returns a Pauli I spin operator on the given "
+                     "target qubit index.");
+  spin_submodule.def(
+      "x", &cudaq::spin_op::x<cudaq::spin_handler>, py::arg("target"),
+      "Returns a Pauli X spin operator on the given target qubit index.");
+  spin_submodule.def(
+      "y", &cudaq::spin_op::y<cudaq::spin_handler>, py::arg("target"),
+      "Returns a Pauli Y spin operator on the given target qubit index.");
+  spin_submodule.def(
+      "z", &cudaq::spin_op::z<cudaq::spin_handler>, py::arg("target"),
+      "Returns a Pauli Z spin operator on the given target qubit index.");
+  spin_submodule.def("plus", &cudaq::spin_op::plus<cudaq::spin_handler>,
+                     py::arg("target"),
+                     "Return a sigma plus spin operator on the given "
+                     "target qubit index.");
+  spin_submodule.def("minus", &cudaq::spin_op::minus<cudaq::spin_handler>,
+                     py::arg("target"),
+                     "Return a sigma minus spin operator on the given "
+                     "target qubit index.");
+}
+
 // FIXME: add proper deprecation warnings to the bindings
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -50,33 +77,6 @@ spin_op fromOpenFermionQubitOperator(py::object &op) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
-
-void bindSpinClass(py::module &mod) {
-  // Binding the `cudaq::spin` class to `_pycudaq` as a submodule
-  // so it's accessible directly in the cudaq namespace.
-  auto spin_submodule = mod.def_submodule("spin");
-  spin_submodule.def("i", &cudaq::spin_op::i<cudaq::spin_handler>,
-                     py::arg("target"),
-                     "Return an identity :class:`SpinOperator` on the given "
-                     "target qubit index.");
-  spin_submodule.def(
-      "x", &cudaq::spin_op::x<cudaq::spin_handler>, py::arg("target"),
-      "Return an X :class:`SpinOperator` on the given target qubit index.");
-  spin_submodule.def(
-      "y", &cudaq::spin_op::y<cudaq::spin_handler>, py::arg("target"),
-      "Return a Y :class:`SpinOperator` on the given target qubit index.");
-  spin_submodule.def(
-      "z", &cudaq::spin_op::z<cudaq::spin_handler>, py::arg("target"),
-      "Return a Z :class:`SpinOperator` on the given target qubit index.");
-  spin_submodule.def("plus", &cudaq::spin_op::plus<cudaq::spin_handler>,
-                     py::arg("target"),
-                     "Return a sigma plus :class:`SpinOperator` on the given "
-                     "target qubit index.");
-  spin_submodule.def("minus", &cudaq::spin_op::minus<cudaq::spin_handler>,
-                     py::arg("target"),
-                     "Return a sigma minus :class:`SpinOperator` on the given "
-                     "target qubit index.");
-}
 
 void bindSpinOperator(py::module &mod) {
   py::enum_<cudaq::pauli>(
