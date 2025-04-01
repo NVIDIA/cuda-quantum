@@ -619,7 +619,6 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api/api.html">   API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/languages/cpp_api.html">C++ API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#operators">Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#quantum">Quantum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#common">Common</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
@@ -873,10 +872,6 @@ CUDA-Q containers are shipped with a pre-built MPI plugin; hence no additional s
 If you do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>.
 See the section <a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Setting random seed, via <code class="code docutils literal notranslate"><span class="pre">cudaq::set_random_seed</span></code>, is not supported for this backend due to a limitation of the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This will be fixed in future release once this feature becomes available.</p>
-</div>
 </section>
 <section id="matrix-product-state">
 <h2>Matrix product state<a class="headerlink" href="#matrix-product-state" title="Permalink to this heading">¶</a></h2>
@@ -916,12 +911,18 @@ See the section <a class="reference internal" href="../../install/local_installa
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Setting random seed, via <code class="code docutils literal notranslate"><span class="pre">cudaq::set_random_seed</span></code>, is not supported for this backend due to a limitation of the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This will be fixed in future release once this feature becomes available.</p>
+<p>The parallelism of Jacobi method (the default <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting) gives GPU better performance on small and medium size matrices.
+If you expect a large number of singular values (e.g., increasing the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> setting), please adjust the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting accordingly.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The parallelism of Jacobi method (the default <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting) gives GPU better performance on small and medium size matrices.
-If you expect a large number of singular values (e.g., increasing the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_MAX_BOND</span></code> setting), please adjust the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> setting accordingly.</p>
+<p>Both <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> and <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backends will allocate a scratch space on GPU device memory for their operations.
+For example, the scratch space can be used to store the contracted reduced density matrix to generate measurement bit strings.</p>
+<p>By default, these backends reserve 50% of free memory for its scratch space.
+This ratio can be customized using the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_TENSORNET_SCRATCH_SIZE_PERCENTAGE</span></code> environment variable.
+Valid setting must be between 5% and 95%.
+Users may encounter runtime errors, e.g., insufficient workspace or CUDA memory allocation errors,
+when setting <code class="code docutils literal notranslate"><span class="pre">CUDAQ_TENSORNET_SCRATCH_SIZE_PERCENTAGE</span></code> toward its limits.</p>
 </div>
 </section>
 <section id="fermioniq">
