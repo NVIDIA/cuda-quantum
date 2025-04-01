@@ -11,6 +11,7 @@
 #include "cudaq/host_config.h"
 #include <array>
 #include <complex>
+#include <cstdint>
 #include <functional>
 #include <math.h>
 #include <unordered_map>
