@@ -104,16 +104,20 @@ int main() {
     }
   }
   cudaq::set_random_seed(123);
-  const int shots = 100;
+  const std::size_t shots = 100;
   auto phases = cudaq::run<double>(
       shots, std::function<double(int, double, double)>{rwpe{}}, 24, 0.7951,
       0.6065);
-  c = 0;
-  for (auto phase : phases) {
-    printf("%d: %lf\n", c++, phase);
-  }
 
-  printf("success!\n");
+  if (phases.size() != shots) {
+    printf("FAILED! Expected %lu shots. Got %lu\n", shots, phases.size());
+  } else {
+    c = 0;
+    for (auto phase : phases) {
+      printf("%d: %lf\n", c++, phase);
+    }
+    printf("success!\n");
+  }
 
   return 0;
 }
