@@ -8,16 +8,8 @@
 
 // clang-format off
 // Simulators
-// RUN: nvq++ %cpp_std --enable-mlir  %s                              -o %t && %t | FileCheck %s
-// Quantum emulators
-// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target anyon                    --emulate %s -o %t && %t | FileCheck %s
-// 2 different IQM machines for 2 different topologies
-// RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %braket_avail; then nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: nvq++ %cpp_std --enable-mlir  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --library-mode %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -30,6 +22,7 @@ void printCounts(cudaq::sample_result &result) {
   for (auto &&[bits, counts] : result) {
     values.push_back(bits);
   }
+
   std::sort(values.begin(), values.end());
   for (auto &&bits : values) {
     std::cout << bits << std::endl;

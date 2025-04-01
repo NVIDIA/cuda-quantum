@@ -11,48 +11,11 @@
 #include "common/SimulationState.h"
 #include "cudaq.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "../qis/qkernel.h"
-#include "../utils/registry.h"
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace cudaq {
-namespace details {
-
-#ifdef CUDAQ_LIBRARY_MODE
-template <typename QuantumKernel>
-QuantumKernel createQKernel(QuantumKernel &&kernel) {
-  return kernel;
-}
-#else
-
-#if CUDAQ_USE_STD20
-template <typename T>
-using remove_cvref_t = typename std::remove_cvref_t<T>;
-#else
-template <typename T>
-using remove_cvref_t = typename std::remove_cv_t<std::remove_reference_t<T>>;
-#endif
-
-template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
-          typename Operator = typename cudaq::qkernel_deduction_guide_helper<
-              decltype(&QuantumKernel::operator())>::type,
-          typename QKernel = cudaq::qkernel<Operator>,
-          std::enable_if_t<std::is_class_v<Q>, bool> = true>
-QKernel createQKernel(QuantumKernel &&kernel) {
-  return {kernel};
-}
-
-template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
-          typename QKernel = cudaq::qkernel<Q>,
-          std::enable_if_t<!std::is_class_v<Q>, bool> = true>
-QKernel createQKernel(QuantumKernel &&kernel) {
-  return {kernel};
-}
-#endif
-}; // namespace details
-
 /// @brief Implementation of `SimulationState` for quantum device backends.
 /// The state is represented by a quantum kernel.
 /// Quantum state contains all the information we need to replicate a
@@ -98,23 +61,9 @@ public:
   }
 
   /// @brief Constructor
-  template <typename QuantumKernel, typename... Args>
-  QPUState(QuantumKernel &&kernel, Args &&...args) {
-    if constexpr (has_name<QuantumKernel>::value) {
-      // kernel_builder kernel: need to JIT code to get it registered.
-      static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
-      kernelName = kernel.name();
-    } else {
-      // R (S::operator())(Args..) or  R(*)(Args...) kernels are registered
-      // and made linkable in GenDeviceCodeLoader pass.
-      auto qKernel =
-          cudaq::details::createQKernel(std::forward<QuantumKernel>(kernel));
-      auto key = cudaq::registry::__cudaq_getLinkableKernelKey(&qKernel);
-      auto name = cudaq::registry::getLinkableKernelNameOrNull(key);
-      if (!name)
-        throw std::runtime_error("Cannot determine kernel name in QPUState");
-      kernelName = name;
-    }
+  template <typename... Args>
+  QPUState(std::string &&name, Args &&...args) {
+    kernelName = name;
     (addArgument(args), ...);
   }
 
