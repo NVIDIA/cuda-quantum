@@ -42,7 +42,8 @@ struct RunResultSpan {
 // pointer to a buffer and the size of that buffer in bytes.
 RunResultSpan runTheKernel(std::function<void()> &&kernel,
                            quantum_platform &platform,
-                           const std::string &kernel_name, std::size_t shots);
+                           const std::string &kernel_name, std::size_t shots,
+                           bool remote_sim);
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
 // `std::vector<T>` object. This special code is required because a
@@ -97,7 +98,11 @@ std::vector<RESULT> run(std::size_t shots,
                         ARGS &&...args) {
   if (shots == 0)
     return {};
-
+#if defined(CUDAQ_REMOTE_SIM)
+  constexpr bool isRemoteSim = true;
+#else
+  constexpr bool isRemoteSim = false;
+#endif
   // Launch the kernel in the appropriate context.
   auto &platform = cudaq::get_platform();
   std::string kernelName{cudaq::getKernelName(kernel)};
@@ -105,7 +110,7 @@ std::vector<RESULT> run(std::size_t shots,
       [&]() mutable {
         cudaq::invokeKernel(std::move(kernel), std::forward<ARGS>(args)...);
       },
-      platform, kernelName, shots);
+      platform, kernelName, shots, isRemoteSim);
 
   return {reinterpret_cast<RESULT *>(span.data),
           reinterpret_cast<RESULT *>(span.data + span.lengthInBytes)};

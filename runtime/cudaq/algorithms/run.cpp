@@ -14,14 +14,14 @@
 
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
-    const std::string &kernel_name, std::size_t shots) {
+    const std::string &kernel_name, std::size_t shots, bool remote_sim) {
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
 
   circuitSimulator->outputLog.clear();
 
   // 2. Launch the kernel on the QPU.
-  if (platform.is_remote()) {
+  if (remote_sim) {
     // In a remote execution environment, set the `run` context name and number
     // of iterations (shots)
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", shots);

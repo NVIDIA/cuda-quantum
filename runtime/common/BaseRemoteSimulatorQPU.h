@@ -239,9 +239,6 @@ public:
   void onRandomSeedSet(std::size_t seed) override {
     m_client->resetRemoteRandomSeed(seed);
   }
-
-  // Set the remote flag for `BaseRemoteSimulatorQPU`
-  bool isRemote() override { return true; }
 };
 
 /// Implementation of base QPU subtype that submits simulation request to
