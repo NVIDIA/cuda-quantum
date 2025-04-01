@@ -14,6 +14,8 @@ If you have already installed and configured CUDA-Q, or if you are using our
 :doc:`Basics Section <basics/basics>`. More information about working with containers and Docker alternatives can be 
 found in our complete :doc:`Installation Guide <install/install>`.
 
+If you are new to quantum computing or need a refresher, try the `quick start to quantum notebooks <https://github.com/NVIDIA/cuda-q-academic/blob/main/quick-start-to-quantum/READ_ME.md>`_.
+
 .. note::
 
     If you are using CUDA 12.8 on Blackwell, you may need to install additional
