@@ -236,7 +236,7 @@ void boson_handler::create_matrix(
           offset *= dimensions[d];
         new_state_idx += new_state[idx] * offset;
       }
-      process_element(new_state_idx, old_state_idx, entry);  
+      process_element(new_state_idx, old_state_idx, entry);
     }
     old_state_idx += 1;
   }
