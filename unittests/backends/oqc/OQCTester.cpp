@@ -104,9 +104,10 @@ CUDAQ_TEST(OQCTester, checkObserveSync) {
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
 
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
   auto result = cudaq::observe(kernel, h, .59);
   result.dump();
 
@@ -127,9 +128,10 @@ CUDAQ_TEST(OQCTester, checkObserveAsync) {
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
 
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
   auto future = cudaq::observe_async(kernel, h, .59);
 
   auto result = future.get();
@@ -152,9 +154,10 @@ CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
 
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
   auto future = cudaq::observe_async(kernel, h, .59);
 
   {

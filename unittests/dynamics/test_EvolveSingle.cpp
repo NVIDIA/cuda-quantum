@@ -9,7 +9,7 @@
 #include "CuDensityMatState.h"
 #include "common/EigenDense.h"
 #include "cudaq/algorithms/evolve_internal.h"
-#include "cudaq/dynamics_integrators.h"
+#include "cudaq/algorithms/integrator.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -18,15 +18,14 @@
 TEST(EvolveTester, checkSimple) {
   const cudaq::dimension_map dims = {{0, 2}};
   cudaq::product_op<cudaq::matrix_handler> ham1 =
-      (2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0));
+      (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0));
   cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
 
   constexpr int numSteps = 10;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
   cudaq::schedule schedule(steps, {"t"});
 
-  cudaq::product_op<cudaq::matrix_handler> pauliZ_t =
-      cudaq::sum_op<cudaq::spin_handler>::z(0);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
@@ -52,15 +51,14 @@ TEST(EvolveTester, checkSimple) {
 TEST(EvolveTester, checkSimpleRK4) {
   const cudaq::dimension_map dims = {{0, 2}};
   cudaq::product_op<cudaq::matrix_handler> ham1 =
-      (2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0));
+      (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0));
   cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
 
   constexpr int numSteps = 10;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
   cudaq::schedule schedule(steps, {"t"});
 
-  cudaq::product_op<cudaq::matrix_handler> pauliZ_t =
-      cudaq::sum_op<cudaq::spin_handler>::z(0);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
@@ -86,15 +84,14 @@ TEST(EvolveTester, checkSimpleRK4) {
 TEST(EvolveTester, checkDensityMatrixSimple) {
   const cudaq::dimension_map dims = {{0, 2}};
   cudaq::product_op<cudaq::matrix_handler> ham1 =
-      (2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0));
+      (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0));
   cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
 
   constexpr int numSteps = 10;
   std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
   cudaq::schedule schedule(steps, {"t"});
 
-  cudaq::product_op<cudaq::matrix_handler> pauliZ_t =
-      cudaq::sum_op<cudaq::spin_handler>::z(0);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
   auto initialState = cudaq::state::from_data(
       std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});

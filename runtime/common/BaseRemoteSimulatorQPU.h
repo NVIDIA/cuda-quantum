@@ -81,7 +81,7 @@ public:
   }
 
   void launchVQE(const std::string &name, const void *kernelArgs,
-                 cudaq::gradient *gradient, cudaq::spin_op H,
+                 cudaq::gradient *gradient, const cudaq::spin_op &H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
     cudaq::ExecutionContext *executionContextPtr =
@@ -92,7 +92,7 @@ public:
 
     auto ctx = std::make_unique<ExecutionContext>("observe", shots);
     ctx->kernelName = name;
-    ctx->spin = &H;
+    ctx->spin = cudaq::spin_op::canonicalize(H);
     if (shots > 0)
       ctx->shots = shots;
 

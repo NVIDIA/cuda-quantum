@@ -37,7 +37,7 @@ protected:
 TEST_F(CuDensityMatExpectationTest, checkCompute) {
   const std::vector<int64_t> dims = {10};
   // Check number operator on boson Fock space
-  auto op = cudaq::matrix_handler::number(0);
+  auto op = cudaq::matrix_op::number(0);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
                     .convertToCudensitymatOperator({}, op, dims);
@@ -59,7 +59,7 @@ TEST_F(CuDensityMatExpectationTest, checkCompute) {
 TEST_F(CuDensityMatExpectationTest, checkCompositeSystem) {
   const std::vector<int64_t> dims = {2, 10};
   // Check number operator on boson Fock space
-  auto op = cudaq::matrix_handler::number(1);
+  auto op = cudaq::matrix_op::number(1);
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
                     .convertToCudensitymatOperator({}, op, dims);

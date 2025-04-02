@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/ObserveResult.h"
+#include "cudaq/operators.h"
 #include "cudaq/qis/state.h"
 #include <memory>
 #include <optional>
@@ -50,8 +51,7 @@ public:
       : states(std::make_optional<std::vector<cudaq::state>>(
             std::vector<cudaq::state>{std::move(state)})) {
     std::vector<observe_result> result;
-    const spin_op emptyOp(
-        std::unordered_map<spin_op::spin_op_term, std::complex<double>>{});
+    const spin_op emptyOp = spin_op::empty();
     for (auto e : expectations) {
       result.push_back(observe_result(e, emptyOp));
     }
@@ -77,8 +77,7 @@ public:
                 const std::vector<std::vector<double>> &expectations)
       : states(std::make_optional<std::vector<state>>(states)) {
     std::vector<std::vector<observe_result>> result;
-    const spin_op emptyOp(
-        std::unordered_map<spin_op::spin_op_term, std::complex<double>>{});
+    const spin_op emptyOp = spin_op::empty();
     for (const auto &vec : expectations) {
       std::vector<observe_result> subResult;
       for (auto e : vec) {

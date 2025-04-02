@@ -7,7 +7,7 @@
 //  ******************************************************************************/
 
 #include "cudaq/algorithms/evolve.h"
-#include "cudaq/dynamics_integrators.h"
+#include "cudaq/algorithms/integrator.h"
 #include <cmath>
 #include <complex>
 #include <functional>
@@ -19,14 +19,14 @@
 
 TEST(EvolveAPITester, checkSimple) {
   const cudaq::dimension_map dims = {{0, 2}};
-  auto ham = 2.0 * M_PI * 0.1 * cudaq::sum_op<cudaq::spin_handler>::x(0);
+  auto ham = 2.0 * M_PI * 0.1 * cudaq::spin_op::x(0);
   constexpr int numSteps = 10;
   cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
   auto initialState =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
   cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::evolve(ham, dims, schedule, initialState, integrator, {},
-                              {cudaq::sum_op<cudaq::spin_handler>::z(0)}, true);
+                              {cudaq::spin_op::z(0)}, true);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
 
