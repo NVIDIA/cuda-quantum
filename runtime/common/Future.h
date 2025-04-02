@@ -106,14 +106,18 @@ protected:
 
 public:
   async_result() = default;
-  async_result(spin_op *s) {
-    if (s)
+  async_result(const spin_op *s) {
+    if (s) {
       spinOp = *s;
+      spinOp.value().canonicalize();
+    }
   }
-  async_result(details::future &&f, spin_op *op = nullptr)
+  async_result(details::future &&f, const spin_op *op = nullptr)
       : result(std::move(f)) {
-    if (op)
+    if (op) {
       spinOp = *op;
+      spinOp.value().canonicalize();
+    }
   }
 
   /// @brief Return the asynchronously computed data, will
@@ -129,20 +133,30 @@ public:
         throw std::runtime_error(
             "Returning an observe_result requires a spin_op.");
 
-      auto checkRegName = spinOp->to_string(false);
+      auto checkRegName = spinOp->to_string();
       if (data.has_expectation(checkRegName))
         return observe_result(data.expectation(checkRegName), *spinOp, data);
 
       // this assumes we ran in shots mode.
       double sum = 0.0;
-      spinOp->for_each_term([&](spin_op &term) {
+      for (const auto &term : spinOp.value()) {
         if (term.is_identity())
-          sum += term.get_coefficient().real();
+          // FIXME: simply taking real here is very unclean at best,
+          // and might be wrong/hiding a user error that should cause a failure
+          // at worst. It would be good to not store a general spin op for the
+          // result, but instead store the term ids and the evaluated
+          // (double-valued) coefficient. Similarly, evaluate would fail if
+          // the operator was parameterized. In general, both parameters, and
+          // complex coefficients are valid for a spin-op term.
+          // The code here (and in all other places that do something similar)
+          // will work perfectly fine as long as there is no user error, but
+          // the passed observable should really be validated properly and not
+          // processed here as is making assumptions about correctness.
+          sum += term.evaluate_coefficient().real();
         else
-          sum += data.expectation(term.to_string(false)) *
-                 term.get_coefficient().real();
-      });
-
+          sum += data.expectation(term.get_term_id()) *
+                 term.evaluate_coefficient().real();
+      }
       return observe_result(sum, *spinOp, data);
     }
 
