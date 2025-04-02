@@ -350,11 +350,12 @@ static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
                          SmallVectorImpl<std::complex<float>> &vec) {
-  SmallVector<Attribute> vec2;
-  for (auto c : vec)
-    vec2.push_back(builder.getF32ArrayAttr({c.real(), c.imag()}));
-
-  auto arrayAttr = builder.getArrayAttr(vec2);
+  SmallVector<float> vec2;
+  for (auto c : vec) {
+    vec2.push_back(c.real());
+    vec2.push_back(c.imag());
+  }
+  auto arrayAttr = builder.getF32ArrayAttr(vec2);
   return synthesizeVectorArgument<ComplexType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeComplexElement<float>);
@@ -364,11 +365,12 @@ static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
                          SmallVectorImpl<std::complex<double>> &vec) {
-  SmallVector<Attribute> vec2;
-  for (auto c : vec)
-    vec2.push_back(builder.getF64ArrayAttr({c.real(), c.imag()}));
-
-  auto arrayAttr = builder.getArrayAttr(vec2);
+  SmallVector<double> vec2;
+  for (auto c : vec) {
+    vec2.push_back(c.real());
+    vec2.push_back(c.imag());
+  }
+  auto arrayAttr = builder.getF64ArrayAttr(vec2);
   return synthesizeVectorArgument<ComplexType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeComplexElement<double>);

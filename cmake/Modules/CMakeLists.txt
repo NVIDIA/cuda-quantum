@@ -10,6 +10,7 @@ set(CONFIG_FILES
   CUDAQCommonConfig.cmake
   CUDAQEmDefaultConfig.cmake
   CUDAQNloptConfig.cmake
+  CUDAQSpinConfig.cmake
   CUDAQOperatorConfig.cmake
   CUDAQConfig.cmake
   CUDAQEnsmallenConfig.cmake

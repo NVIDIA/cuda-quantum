@@ -6,6 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+add_subdirectory(spin)
+
 set(LIBRARY_NAME cudaq)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
@@ -16,9 +18,6 @@ add_library(${LIBRARY_NAME}
                 target_control.cpp
                 algorithms/draw.cpp
                 algorithms/run.cpp
-                algorithms/evolve.cpp
-                algorithms/schedule.cpp
-                platform/qpu_state.cpp
                 platform/quantum_platform.cpp
                 qis/execution_manager_c_api.cpp
                 qis/execution_manager.cpp
@@ -42,7 +41,7 @@ if (CUDA_FOUND)
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
+    PUBLIC dl cudaq-spin cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
     PRIVATE nvqir fmt::fmt-header-only CUDA::cudart_static)
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -54,7 +53,7 @@ else()
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
+    PUBLIC dl cudaq-spin cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
     PRIVATE nvqir fmt::fmt-header-only)
 endif()
 
@@ -63,7 +62,7 @@ add_subdirectory(algorithms)
 add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
-add_subdirectory(operators)
+add_subdirectory(dynamics)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 

@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <complex>
 #include <memory>
-#include <optional>
 #include <variant>
 #include <vector>
 
@@ -139,16 +138,6 @@ public:
 
     auto [size, ptr] = getSizeAndPtr(data);
     return createFromSizeAndPtr(size, ptr, data.index());
-  }
-
-  /// @brief True if the state has amplitudes or density matrix
-  // is available or can be computed.
-  virtual bool hasData() const { return true; }
-
-  /// @brief Helper to retrieve (kernel name, `args` pointers)
-  virtual std::optional<std::pair<std::string, std::vector<void *>>>
-  getKernelInfo() const {
-    return std::nullopt;
   }
 
   /// @brief Return the tensor at the given index. Throws

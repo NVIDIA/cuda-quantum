@@ -24,21 +24,22 @@ spin_op fromOpenFermionQubitOperator(const py::object &op) {
   if (!py::hasattr(op, "terms"))
     throw std::runtime_error(
         "This is not an openfermion operator, must have 'terms' attribute.");
-  std::map<std::string, std::function<spin_op_term(std::size_t)>> creatorMap{
-      {"X", [](std::size_t i) { return spin_op::x(i); }},
-      {"Y", [](std::size_t i) { return spin_op::y(i); }},
-      {"Z", [](std::size_t i) { return spin_op::z(i); }}};
+  std::map<std::string, std::function<spin_op(std::size_t)>> creatorMap{
+      {"X", [](std::size_t i) { return spin::x(i); }},
+      {"Y", [](std::size_t i) { return spin::y(i); }},
+      {"Z", [](std::size_t i) { return spin::z(i); }}};
   auto terms = op.attr("terms");
-  auto H = spin_op::empty();
+  spin_op H;
   for (auto term : terms) {
     auto termTuple = term.cast<py::tuple>();
-    auto localTerm = spin_op::identity();
+    spin_op localTerm;
     for (auto &element : termTuple) {
       auto casted = element.cast<std::pair<std::size_t, std::string>>();
       localTerm *= creatorMap[casted.second](casted.first);
     }
     H += terms[term].cast<double>() * localTerm;
   }
+  H -= spin::i(H.num_qubits() - 1);
   return H;
 }
 

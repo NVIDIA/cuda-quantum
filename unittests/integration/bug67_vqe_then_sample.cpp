@@ -21,6 +21,7 @@ CUDAQ_TEST(VqeThenSample, checkBug67) {
     const int n_qubits;
     const int n_layers;
     void operator()(std::vector<double> theta) __qpu__ {
+      using namespace cudaq::spin;
       cudaq::qvector q(n_qubits);
 
       // Prepare the initial state by superposition
@@ -45,10 +46,9 @@ CUDAQ_TEST(VqeThenSample, checkBug67) {
     }
   };
 
-  cudaq::spin_op Hp = 0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) +
-                      0.5 * cudaq::spin_op::z(1) * cudaq::spin_op::z(2) +
-                      0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(3) +
-                      0.5 * cudaq::spin_op::z(2) * cudaq::spin_op::z(3);
+  using namespace cudaq::spin;
+  cudaq::spin_op Hp = 0.5 * z(0) * z(1) + 0.5 * z(1) * z(2) +
+                      0.5 * z(0) * z(3) + 0.5 * z(2) * z(3);
 
   int n_qubits = 4;
   int n_layers = 2;

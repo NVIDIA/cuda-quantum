@@ -22,7 +22,7 @@ add_executable(test_quake_synth QuakeSynthTester.cpp)
 target_link_libraries(test_quake_synth
   PRIVATE 
   cudaq
-  cudaq-operator
+  cudaq-spin
   cudaq-mlir-runtime
   cudaq-builder
   cudaq-common

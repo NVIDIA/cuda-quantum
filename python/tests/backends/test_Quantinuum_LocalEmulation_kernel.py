@@ -21,8 +21,7 @@ def requires_openfermion():
     except:
         open_fermion_found = False
     return pytest.mark.skipif(not open_fermion_found,
-                              reason=f"openfermion is not installed")
-
+        reason=f"openfermion is not installed")
 
 def assert_close(want, got, tolerance=1.0e-1) -> bool:
     return abs(want - got) < tolerance
@@ -231,21 +230,6 @@ def test_exp_pauli_param():
     assert not '10' in counts
 
 
-def test_list_complex_param():
-
-    @cudaq.kernel
-    def kernel(coefficients: list[complex]):
-        q = cudaq.qvector(2)
-        for i in range(len(coefficients)):
-            exp_pauli(coefficients[i].real, q, "XX")
-
-    counts = cudaq.sample(kernel, [10. + 0.j, 30. + 0.j])
-    assert "00" in counts
-    assert "11" in counts
-    assert not '01' in counts
-    assert not '10' in counts
-
-
 def test_1q_unitary_synthesis():
 
     cudaq.register_operation("custom_h",
@@ -348,17 +332,16 @@ def test_3q_unitary_synthesis():
 @requires_openfermion()
 def test_observe_chemistry():
     geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
-    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
-        geometry, 'sto-3g', 1, 0)
-
+    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(geometry, 'sto-3g', 1, 0)
+    
     qubit_count = data.n_orbitals * 2
-
+    
     @cudaq.kernel
     def kernel(thetas: list[float]):
         qubits = cudaq.qvector(qubit_count)
-
-    result = cudaq.observe(kernel, molecule, [.0, .0, .0, .0], shots_count=1000)
-
+    
+    result = cudaq.observe(kernel, molecule, [.0,.0,.0,.0], shots_count = 1000)
+    
     expectation = result.expectation()
     assert_close(expectation, 0.707)
 

@@ -143,7 +143,7 @@ bool quantum_platform::supports_explicit_measurements(
 
 void quantum_platform::launchVQE(const std::string kernelName,
                                  const void *kernelArgs, gradient *gradient,
-                                 const spin_op &H, optimizer &optimizer,
+                                 spin_op H, optimizer &optimizer,
                                  const int n_params, const std::size_t shots) {
   std::size_t qpu_id = 0;
 

@@ -415,10 +415,14 @@ private:
   std::vector<QuakeValue> arguments;
 
   /// @brief Return a string representation of the given spin operator.
-  auto toPauliWord(const std::variant<std::string, spin_op_term> &term) {
-    if (std::holds_alternative<spin_op_term>(term)) {
-      auto op = std::get<spin_op_term>(term);
-      return op.get_pauli_word();
+  /// Throw an exception if the spin operator provided is not a single term.
+  auto toPauliWord(const std::variant<std::string, spin_op> &term) {
+    if (term.index()) {
+      auto op = std::get<spin_op>(term);
+      if (op.num_terms() > 1)
+        throw std::runtime_error(
+            "exp_pauli requires a spin operator with a single term.");
+      return op.to_string(false);
     }
     return std::get<std::string>(term);
   }
@@ -717,9 +721,7 @@ public:
   /// representing a register of qubits.
   template <QuakeValueOrNumericType ParamT>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
-                 const std::variant<std::string, spin_op_term> &op) {
-    // FIXME: this ignores the coefficient defined in the spin_op_term -
-    // it would be better to just force passing the pauli word only
+                 const std::variant<std::string, spin_op> &op) {
     auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
@@ -733,10 +735,8 @@ public:
   /// list of QuakeValues representing a individual qubits.
   template <QuakeValueOrNumericType ParamT, typename... QubitArgs>
   void exp_pauli(const ParamT &theta,
-                 const std::variant<std::string, spin_op_term> &op,
+                 const std::variant<std::string, spin_op> &op,
                  QubitArgs &&...qubits) {
-    // FIXME: this ignores the coefficient defined in the spin_op_term -
-    // it would be better to just force passing the pauli word only
     auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits...};
     if constexpr (std::is_floating_point_v<ParamT>)

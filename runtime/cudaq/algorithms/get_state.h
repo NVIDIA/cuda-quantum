@@ -14,7 +14,6 @@
 #include "cudaq/host_config.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
-#include "cudaq/platform/qpu_state.h"
 #include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
 #include <complex>
@@ -119,23 +118,6 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
     return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
                                            std::forward<Args>(args)...));
   }
-#elif defined(CUDAQ_QUANTUM_DEVICE) && !defined(CUDAQ_LIBRARY_MODE)
-  // Store kernel name and arguments for quantum states.
-  if (!cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
-    return state(new QPUState(std::forward<QuantumKernel>(kernel),
-                              std::forward<Args>(args)...));
-  throw std::runtime_error(
-      "cudaq::state* argument synthesis is not supported for quantum hardware"
-      " for c-like functions, use class kernels instead");
-#elif defined(CUDAQ_QUANTUM_DEVICE)
-  // Kernel builder is MLIR-based kernel.
-  if constexpr (has_name<QuantumKernel>::value)
-    return state(new QPUState(std::forward<QuantumKernel>(kernel),
-                              std::forward<Args>(args)...));
-
-  throw std::runtime_error(
-      "cudaq::state* argument synthesis is not supported for quantum hardware"
-      " for c-like functions in library mode");
 #endif
   return details::extractState([&]() mutable {
     cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),

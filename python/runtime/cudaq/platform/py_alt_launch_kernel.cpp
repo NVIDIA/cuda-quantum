@@ -543,33 +543,18 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
   auto isSimulator = isLocalSimulator || isRemoteSimulator;
 
-  cudaq::opt::ArgumentConverter argCon(name, unwrap(module));
+  cudaq::opt::ArgumentConverter argCon(name, unwrap(module), isSimulator);
   argCon.gen(runtimeArgs.getArgs());
-
-  // Store kernel and substitution strings on the stack.
-  // We pass string references to the `createArgumentSynthesisPass`.
-  mlir::SmallVector<std::string> kernels;
-  mlir::SmallVector<std::string> substs;
-  for (auto *kInfo : argCon.getKernelSubstitutions()) {
-    std::string kernName =
-        cudaq::runtime::cudaqGenPrefixName + kInfo->getKernelName().str();
-    kernels.emplace_back(kernName);
-    std::string substBuff;
-    llvm::raw_string_ostream ss(substBuff);
-    ss << kInfo->getSubstitutionModule();
-    substs.emplace_back(substBuff);
-  }
-
-  // Collect references for the argument synthesis.
-  mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(), kernels.end()};
-  mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(), substs.end()};
-
+  std::string kernName = cudaq::runtime::cudaqGenPrefixName + name;
+  SmallVector<StringRef> kernels = {kernName};
+  std::string substBuff;
+  llvm::raw_string_ostream ss(substBuff);
+  ss << argCon.getSubstitutionModule();
+  SmallVector<StringRef> substs = {substBuff};
   PassManager pm(context);
-  pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
+  pm.addPass(opt::createArgumentSynthesisPass(kernels, substs));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(opt::createDeleteStates());
-  pm.addNestedPass<mlir::func::FuncOp>(opt::createReplaceStateWithKernel());
-  pm.addPass(mlir::createSymbolDCEPass());
 
   // Run state preparation for quantum devices (or their emulation) only.
   // Simulators have direct implementation of state initialization

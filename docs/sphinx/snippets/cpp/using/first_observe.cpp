@@ -13,13 +13,16 @@
 
 #include <iostream>
 
+using namespace cudaq::spin;
+
 __qpu__ void kernel() {
   cudaq::qubit qubit;
   h(qubit);
 }
 
 int main() {
-  auto spin_operator = cudaq::spin_op::z(0);
+  cudaq::spin_op spin_operator = z(0);
+  // Prints: [1+0j] Z
   std::cout << spin_operator.to_string() << "\n";
   // [End Observe1]
 
