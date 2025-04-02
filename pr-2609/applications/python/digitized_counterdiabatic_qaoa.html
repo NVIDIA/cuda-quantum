@@ -785,161 +785,94 @@ produce the maximum weighted clique which corresponds to the best (most strongly
 </section>
 <section id="CUDA-Q-Implementation">
 <h2>CUDA-Q Implementation<a class="headerlink" href="#CUDA-Q-Implementation" title="Permalink to this heading">¶</a></h2>
-<p>First, the appropriate libraries are imported and the <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> backend is selected to run on GPUs if available. This notebook makes use of the <a class="reference external" href="https://nvidia.github.io/cudaqx/components/solvers/introduction.html">CUDA-Q Solvers library</a> to streamline the workflow. If you would like to see afully worked out example, see the Max Cut QAOA example in the applications section of the CUDA-Q Docs.</p>
+<p>First, the appropriate libraries are imported and the <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> backend is selected to run on GPUs if available.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
-<span class="c1"># libgfortran is a dependency of solvers, please make sure it is installed on your system first.</span>
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span>cudaq-solvers<span class="w"> </span>-q
-<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_solvers</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">solvers</span>
-</pre></div>
+<br/></pre></div>
 </div>
 </div>
-<p>The block below defines two of the BIG data sets from the paper. The first is a smaller example, but it can be swapped with the commented out example below at your discretion. The weights are specified for each node based on the nature of the ligand and protein pharmacores represented by the node. A graph is built from this information using the <code class="docutils literal notranslate"><span class="pre">networkx</span></code> package.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<p>The block below defines two of the BIG data sets from the paper. The first is a smaller example, but it can be swapped with the commented out example below at your discretion. The weights are specified for each node based on the nature of the ligand and protein pharmacores represented by the node.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The two graph inputs from the paper</span>
 
-<span class="c1"># BIG 1 (Smaller Simulation)</span>
-<span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+<span class="c1"># BIG 1</span>
+
+<span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">qubit_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
 <span class="n">edges</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
          <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]]</span>
+<span class="n">non_edges</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">nodes</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">nodes</span> <span class="k">if</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">v</span> <span class="ow">and</span> <span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">edges</span>
+<span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Edges: &#39;</span><span class="p">,</span> <span class="n">edges</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Non-Edges: &#39;</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span>
 
 <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.6686</span><span class="p">,</span> <span class="mf">0.6686</span><span class="p">,</span> <span class="mf">0.6686</span><span class="p">,</span> <span class="mf">0.1453</span><span class="p">,</span> <span class="mf">0.1453</span><span class="p">,</span> <span class="mf">0.1453</span><span class="p">]</span>
-
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">weights</span><span class="p">):</span>
-    <span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
-<span class="n">G</span><span class="o">.</span><span class="n">add_edges_from</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
-
 <span class="n">penalty</span> <span class="o">=</span> <span class="mf">6.0</span>
 <span class="n">num_layers</span> <span class="o">=</span> <span class="mi">3</span>
 
 <span class="c1"># BIG 2 (More expensive simulation)</span>
 <span class="c1">#nodes=[0,1,2,3,4,5,6,7]</span>
+<span class="c1">#qubit_num=len(nodes)</span>
 <span class="c1">#edges=[[0,1],[0,2],[0,5],[0,6],[0,7],[1,2],[1,4],[1,6],[1,7],[2,4],[2,5],[2,7],[3,4],[3,5],[3,6],\</span>
 <span class="c1">#    [4,5],[4,6],[5,6]]</span>
+<span class="c1">#non_edges=[[u,v] for u in nodes for v in nodes if u&lt;v and [u,v] not in edges]</span>
+<span class="c1">#print(&#39;Edges: &#39;, edges)</span>
+<span class="c1">#print(&#39;Non-edges: &#39;, non_edges)</span>
 <span class="c1">#weights=[0.6686,0.6686,0.6886,0.1091,0.0770,0.0770,0.0770,0.0770]</span>
 <span class="c1">#penalty=8.0</span>
 <span class="c1">#num_layers=8</span>
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Edges:  [[0, 1], [0, 2], [0, 4], [0, 5], [1, 2], [1, 3], [1, 5], [2, 3], [2, 4], [3, 4], [3, 5], [4, 5]]
+Non-Edges:  [[0, 3], [1, 4], [2, 5]]
+</pre></div></div>
+</div>
 <p>Next, the Hamiltonian is constructed:</p>
 <div class="math notranslate nohighlight">
 \[H = \frac{1}{2}\sum_{i \in V}w_i(\sigma^z_i - 1) + \frac{P}{4} \sum_{(i,j) \notin E, i \neq j} (\sigma^z_i -1)(\sigma^z_j - 1)\]</div>
-<p>The first term concerns the vertices and the weights of the given pharmacores. The second term is a penalty term that penalizes edges of the graph with no interactions. The penalty <span class="math notranslate nohighlight">\(P\)</span> is set by the user and is defined as 6 in the cell above. Solvers handles Hamiltonian construction so all you need to do is input the graph and penalty into <code class="docutils literal notranslate"><span class="pre">get_clique_hamiltonian</span></code> to produce a spin operator corresponding to the problem Hamiltonian.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H</span> <span class="o">=</span> <span class="n">solvers</span><span class="o">.</span><span class="n">get_clique_hamiltonian</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">penalty</span><span class="o">=</span><span class="n">penalty</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[1.5+0j] IIZIIZ
-[-1.1657+0j] IZIIII
-[-1.1657+0j] IIZIII
-[-1.42735+0j] IIIIIZ
-[-1.1657+0j] ZIIIII
-[3.2791499999999996+0j] IIIIII
-[-1.42735+0j] IIIZII
-[1.5+0j] ZIIZII
-[1.5+0j] IZIIZI
-[-1.42735+0j] IIIIZI
-
-</pre></div></div>
-</div>
-<p>The next cell determines the parameter count and initial parameters for a QAOA kernel. The difference between standard QAOA and DC-QAOA is the inclusion of additional counteradiabatic terms to better drive the optimization to the ground state. These terms are digitized and applied as additional operations following each QAOA layer. The increase in parameters is hopefully offset by requiring fewer layers. In this example, the DC terms are the additional parameterized <span class="math notranslate nohighlight">\(Y\)</span> operations applied
-to each qubit.</p>
-<p>Setting <code class="docutils literal notranslate"><span class="pre">counteradiabatic=True</span></code> automatically adjusts the parameter count and the quantum circuit used. Calling <code class="docutils literal notranslate"><span class="pre">solvers.qaoa()</span></code> peerforms the entire optimization procedure and returns the minimum energy</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">()))</span>
-    <span class="k">return</span> <span class="n">result</span>
-
-    <span class="c1"># Collect Pauli words from a spin operator so we can pass them to a kernel</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">ham</span><span class="o">.</span><span class="n">for_each_term</span><span class="p">(</span><span class="k">lambda</span> <span class="n">term</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">False</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="n">result</span>
-
-
-<span class="n">ham</span> <span class="o">=</span> <span class="n">ham_clique</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
-
-<span class="n">coef</span> <span class="o">=</span> <span class="n">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
-<span class="n">words</span> <span class="o">=</span> <span class="n">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">))</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-
-[(1.5+0j), (1.5+0j), (-1.1657+0j), (1.5+0j), (-1.42735+0j), (3.2791499999999996+0j), (-1.1657+0j), (-1.42735+0j), (-1.1657+0j), (-1.42735+0j)]
-[&#39;IIZIIZ&#39;, &#39;ZIIZII&#39;, &#39;IZIIII&#39;, &#39;IZIIZI&#39;, &#39;IIIZII&#39;, &#39;IIIIII&#39;, &#39;IIZIII&#39;, &#39;IIIIIZ&#39;, &#39;ZIIIII&#39;, &#39;IIIIZI&#39;]
-</pre></div></div>
-</div>
-<p>The kernel below defines a DC-QAOA circuit. What makes the approach “DC” is the inclusion of additional counteradiabatic terms to better drive the optimization to the ground state. These terms are digitized and applied as additional operations following each QAOA layer. The increase in parameters is hopefully offset by requiring fewer layers. In this example, the DC terms are the additional parameterized <span class="math notranslate nohighlight">\(Y\)</span> operations applied to each qubit. These can be commented out to run conventional
-QAOA.</p>
+<p>The first term concerns the vertices and the weights of the given pharmacores. The second term is a penalty term that penalizes edges of the graph with no interactions. The penalty <span class="math notranslate nohighlight">\(P\)</span> is set by the user and is defined as 6 in the cell above. The function below returns the Hamiltonian as a CUDA-Q <code class="docutils literal notranslate"><span class="pre">spin_op</span></code> object.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">dc_qaoa</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>\
-    <span class="n">coef</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span> <span class="n">words</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the Hamiltonian</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ham_clique</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">:</span>
 
-    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
+    <span class="n">spin_ham</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">wt</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">nodes</span><span class="p">):</span>
+        <span class="c1">#print(wt,node)</span>
+        <span class="n">spin_ham</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">wt</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="n">spin_ham</span> <span class="o">-=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">wt</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 
-    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">non_edge</span> <span class="ow">in</span> <span class="n">non_edges</span><span class="p">:</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="p">(</span><span class="n">non_edge</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">non_edge</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1">#print(u,v)</span>
+        <span class="n">spin_ham</span> <span class="o">+=</span> <span class="n">penalty</span> <span class="o">/</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">-</span>
+                                     <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
 
-    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
-
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coef</span><span class="p">)):</span>
-            <span class="n">exp_pauli</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">*</span> <span class="n">coef</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">):</span>
-            <span class="n">rx</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="c1">#Comment out this for loop for conventional QAOA</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">):</span>
-            <span class="n">ry</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">spin_ham</span>
 </pre></div>
 </div>
 </div>
-<p>The classical optimizer for the QAOA procedure can be specified as one of the built-in CUDA-Q optimizers, in this case Nelder Mead. The parameter count is defined for DC-QAOA, but can be swapped with the commented line below for conventional QAOA.</p>
+<p>The code below strips the Hamiltonian into a list of coefficients and corresponding Pauli words which can be passed into a quantum kernel.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
@@ -978,9 +911,9 @@ QAOA.</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-
-[(1.5+0j), (1.5+0j), (-1.1657+0j), (1.5+0j), (-1.42735+0j), (3.2791499999999996+0j), (-1.1657+0j), (-1.42735+0j), (-1.1657+0j), (-1.42735+0j)]
-[&#39;IIZIIZ&#39;, &#39;ZIIZII&#39;, &#39;IZIIII&#39;, &#39;IZIIZI&#39;, &#39;IIIZII&#39;, &#39;IIIIII&#39;, &#39;IIZIII&#39;, &#39;IIIIIZ&#39;, &#39;ZIIIII&#39;, &#39;IIIIZI&#39;]
+(-0.072650+0.000000i) * I5 + (-1.427350+0.000000i) * Z5 + (-0.072650+0.000000i) * I4 + (-1.427350+0.000000i) * Z4 + (-0.072650+0.000000i) * I3 + (-1.427350+0.000000i) * Z3 + (-0.334300+0.000000i) * I2 + (-1.165700+0.000000i) * Z2 + (-0.334300+0.000000i) * I1 + (-1.165700+0.000000i) * Z1 + (-0.334300+0.000000i) * I0 + (-1.165700+0.000000i) * Z0 + (0.000000+0.000000i) + (1.500000+0.000000i) * I0I3 + (1.500000+0.000000i) * Z0Z3 + (1.500000+0.000000i) * I1I4 + (1.500000+0.000000i) * Z1Z4 + (1.500000+0.000000i) * I2I5 + (1.500000+0.000000i) * Z2Z5
+[(-0.07265+0j), (0.07265+0j), (-0.07265+0j), (0.07265+0j), (-0.07265+0j), (0.07265+0j), (-0.3343+0j), (0.3343+0j), (-0.3343+0j), (0.3343+0j), (-0.3343+0j), (0.3343+0j), 0j, (1.5+0j), (-1.5+0j), (-1.5+0j), (1.5+0j), (1.5+0j), (-1.5+0j), (-1.5+0j), (1.5+0j), (1.5+0j), (-1.5+0j), (-1.5+0j), (1.5+0j)]
+[&#39;IIIIII&#39;, &#39;IIIIIZ&#39;, &#39;IIIIII&#39;, &#39;IIIIZI&#39;, &#39;IIIIII&#39;, &#39;IIIZII&#39;, &#39;IIIIII&#39;, &#39;IIZIII&#39;, &#39;IIIIII&#39;, &#39;IZIIII&#39;, &#39;IIIIII&#39;, &#39;ZIIIII&#39;, &#39;IIIIII&#39;, &#39;IIIIII&#39;, &#39;IIIZII&#39;, &#39;ZIIIII&#39;, &#39;ZIIZII&#39;, &#39;IIIIII&#39;, &#39;IIIIZI&#39;, &#39;IZIIII&#39;, &#39;IZIIZI&#39;, &#39;IIIIII&#39;, &#39;IIIIIZ&#39;, &#39;IIZIII&#39;, &#39;IIZIIZ&#39;]
 </pre></div></div>
 </div>
 <p>The kernel below defines a DC-QAOA circuit. What makes the approach “DC” is the inclusion of additional counteradiabatic terms to better drive the optimization to the ground state. These terms are digitized and applied as additional operations following each QAOA layer. The increase in parameters is hopefully offset by requiring fewer layers. In this example, the DC terms are the additional parameterized <span class="math notranslate nohighlight">\(Y\)</span> operations applied to each qubit. These can be commented out to run conventional
@@ -1045,8 +978,8 @@ QAOA.</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Total number of parameters:  66
-Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.2546877639814583, 0.3657985647468064, 0.37118004688049144, -0.03656087558321203, 0.08564174998504231, 0.21639801853794682, 0.11122286088634259, 0.1743727097033635, -0.36518146001762486, -0.15829741539542244, -0.3467434780387345, 0.28043500852894776, -0.09986021299050934, 0.14125225086023052, -0.19141728018199775, -0.11970943368650361, -0.3853063093646483, -0.1112643868789806, 0.3527177454825464, -0.22156160012057186, -0.1418496891385843, 0.32811766468303116, -0.367642000671186, -0.34158180583996006, 0.10196745745501312, 0.29359239180502594, -0.3858537615546677, 0.19366130907065582, 0.24570488114056754, -0.3332307385378807, 0.12287973244618389, 0.007274514934614895, -0.015799547372526146, 0.3578070967202224, -0.39268963055535144, -0.19872246354138554, 0.16668715544467982, -0.13777293592446055, -0.17514665212709513, 0.15350249947988204, 0.32872977428061945, -0.20068831419712105, -0.032919322131134854, -0.19399909325771983, -0.09477141125241506, 0.08210460401106645, 0.21392577760158515, -0.3393568044538389, 0.14615087942938465, 0.03790339186006314, -0.2843250892879255, -0.3151384847055956, -0.19983741137121905, -0.27348611567665115, 0.33457528180906904, 0.14145414847455462, -0.20604220093940323, 0.05410235084309195, 0.04447870918600966, -0.3355714098595045, 0.266806440171265, -0.07436189654442632, -0.2789176729721685, -0.2427508182662484]
+Total number of parameters:  111
+Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.2546877639814583, 0.3657985647468064, 0.37118004688049144, -0.03656087558321203, 0.08564174998504231, 0.21639801853794682, 0.11122286088634259, 0.1743727097033635, -0.36518146001762486, -0.15829741539542244, -0.3467434780387345, 0.28043500852894776, -0.09986021299050934, 0.14125225086023052, -0.19141728018199775, -0.11970943368650361, -0.3853063093646483, -0.1112643868789806, 0.3527177454825464, -0.22156160012057186, -0.1418496891385843, 0.32811766468303116, -0.367642000671186, -0.34158180583996006, 0.10196745745501312, 0.29359239180502594, -0.3858537615546677, 0.19366130907065582, 0.24570488114056754, -0.3332307385378807, 0.12287973244618389, 0.007274514934614895, -0.015799547372526146, 0.3578070967202224, -0.39268963055535144, -0.19872246354138554, 0.16668715544467982, -0.13777293592446055, -0.17514665212709513, 0.15350249947988204, 0.32872977428061945, -0.20068831419712105, -0.032919322131134854, -0.19399909325771983, -0.09477141125241506, 0.08210460401106645, 0.21392577760158515, -0.3393568044538389, 0.14615087942938465, 0.03790339186006314, -0.2843250892879255, -0.3151384847055956, -0.19983741137121905, -0.27348611567665115, 0.33457528180906904, 0.14145414847455462, -0.20604220093940323, 0.05410235084309195, 0.04447870918600966, -0.3355714098595045, 0.266806440171265, -0.07436189654442632, -0.2789176729721685, -0.2427508182662484, -0.007351219158674538, 0.16652355413124942, 0.3808697740391629, 0.2943566301288585, -0.0007526597041920824, -0.3088342705284747, 0.3245365797019699, -0.10609475622422088, -0.21473737933378598, 0.29250730067679076, -0.28560348266311547, -0.20704653805110443, 0.07492639208926116, 0.050204699769995864, 0.3604464956189818, -0.036725741805424705, -0.2914156467694673, 0.20464937477384804, -0.2343360494257549, -0.2546811698770065, -0.04938739737483455, -0.1254588720659109, 0.3669797333052197, -0.2803666634362036, 0.27061563884884454, 0.13305127120906368, -0.3068512076427221, -0.3233849134464092, 0.36635843051388706, -0.240098193659686, -0.32837492497817505, -0.181124836778538, 0.1179122331174225, 0.036738762582488205, 0.1545073310569931, 0.363716379700769, -0.17457710231173657, -0.20920928764228694, 0.2714901967257429, -0.21660301905921672, 0.14836666072760274, -0.27214467572455214, -0.23279347949098783, -0.3396070348147753, 0.19594560698856422]
 </pre></div></div>
 </div>
 <p>A cost function is specified which computes the expectation value of the DC-QAOA circuit and the Hamiltonian using the <code class="docutils literal notranslate"><span class="pre">observe</span></code> function. Running the optimization returns the minimized expectation value and the optimal parameters.</p>
@@ -1079,8 +1012,8 @@ Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.254687763981
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-optimal_expectation = -2.0057493966746804
-optimal_parameters = [2.0508763934174787, 0.013930789730781493, 0.5793211220774144, 0.878009560684498, 0.5277129177248182, 0.4404810513078178, 0.5755552245467919, 0.14125558672355468, 0.3724262117066903, 0.1318978057007808, -1.1228708513911436, 0.932342804955409, -0.8478237950658537, 0.46345886313018125, -0.5809397306340341, 0.2408342488137229, 0.11216088888484882, -0.009704173265255175, 0.4757346661223584, -0.7281211610985926, 0.06051951319169091, -0.7794512146826196, 0.09249435261907034, 0.09998378319110682, 1.255349350720572, 1.2607038244228248, 0.2060124032311757, 0.13991934581192997, 0.9874814082082164, -0.1591291464755939, 0.30815482837046393, -0.9701804681517978, -0.002609462845755913, 0.43533533568363353, 0.642630110681613, 0.6137063363954748, -0.7204687246344496, 0.08390768435524378, 0.5480630700433249, -0.38905723227347905, -0.6837811162838194, -0.17239016898719284, 0.1649341118754853, -0.46771209183422724, -0.008565327035838663, 1.982230359328883, -0.4232972687799105, 0.22765896988428905, 0.04207923928239914, -0.36758378917672285, -0.01825447063622079, -0.059755059728027485, -0.6849697218162497, 0.2711684382411018, -0.2904257415666667, -0.16359529445017368, -0.09168623367396612, 0.5786087806926155, -0.3476755367718726, 0.1209273564533628, 0.605136043801364, -0.19128215816141694, 0.16756583092588012, 1.0715488214105267, -0.5269641128095075, -0.3029128369198704]
+optimal_expectation = -2.005748270379595
+optimal_parameters = [0.17576464307887707, 1.4848306387533396, 1.9143085381619223, 2.002118131030208, 0.33632701711782076, 1.587519795579704, 1.737066482512641, 0.23329536118733668, 0.16936735323861488, 0.13057738706246813, -0.3411775611657995, 1.3883721560273572, 0.9917773419115768, 1.6057700902560956, -0.18979534767209766, 0.23904764313445614, 0.0011044114507255853, -0.08786989059789757, 0.5063599556344257, -0.24581889330918832, 0.03777170732191358, -0.0421078041501959, 0.9594504980394571, -0.3510930712943139, -0.10170527107798188, -0.2732851611784905, 2.0024675638280125, 0.2810916872761711, -0.6441540064872276, 0.7131200849689061, 1.834369894480892, 0.20110580791781296, 0.26201228741693994, 0.21560785320140888, -0.6913416812540294, 0.3360724245382795, 1.4658579541242658, 2.01119269111667, 0.40305962296842834, 0.16715001495475162, 0.06373714816956161, 1.4174541527386297, 0.28744535065853316, -0.11144457307740356, 0.9838100747648171, -0.4592225867168316, -0.32844455974376896, -0.13096484833448632, 0.052702869365487265, 1.589647653550549, 2.6476558587518118, -0.20173339736842594, -0.11093262963784412, -0.116572898924135, -0.8362927400515681, 0.219488703910662, 0.06999157567050396, 0.06863001989376344, 0.012646626837876854, 0.022456483679027202, 2.810503410063524, -0.2404788460274312, 0.49346805888596584, -0.20354734150278564, 0.2928560358159552, -0.21274666376909057, 0.1921968092072488, -0.4352872943173568, 0.8011877391269554, 0.26427816334422716, 0.2912985599797482, -0.16344686437647044, 0.386268538494336, -0.02919691152579508, 0.524708029740582, -0.24135889742418942, 0.31518636582723103, -0.06101418023991616, 0.31575539874217246, 0.4929638167140593, 0.43334778737811985, -0.4704013682248823, -0.3230148758426816, 0.6713851869911511, -0.490526587442989, 0.24256688249946967, 1.2459128631553105, -0.2461500526203213, 0.2339523609416535, -0.4887426805969012, 0.2771926373277283, 1.7793088975628617, 1.5629372449029462, -0.2876115331698138, 2.113785213373891, -0.041127204740079235, 0.2455044916970957, -0.6892763009857277, 0.3697764260654725, 0.2362854903602551, 0.04910050065863437, 1.3303536877362205, -0.44541793312340544, -0.08396552404839075, 0.3312617334500346, -0.5212842068128023, 0.30652883792939006, -0.22227144068070853, -0.3683916976515427, -0.8729170862146759, 0.0562440521165778]
 </pre></div></div>
 </div>
 <p>Sampling the circuit with the optimal parameters allows for the <code class="docutils literal notranslate"><span class="pre">most_probable</span></code> command to reveal the bitsting corresponding to the ideal graph partitioning solution. This indicates what sort of interactions are present in the ideal docking configuration</p>
@@ -1088,23 +1021,18 @@ optimal_parameters = [2.0508763934174787, 0.013930789730781493, 0.57932112207741
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Specify the optimizer and its initial parameters.</span>
-<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">NelderMead</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">shots</span> <span class="o">=</span> <span class="mi">200000</span>
 
-<span class="c1">#Specify random seeds</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">dc_qaoa</span><span class="p">,</span>
+                      <span class="n">qubit_num</span><span class="p">,</span>
+                      <span class="n">num_layers</span><span class="p">,</span>
+                      <span class="n">optimal_parameters</span><span class="p">,</span>
+                      <span class="n">coef</span><span class="p">,</span>
+                      <span class="n">words</span><span class="p">,</span>
+                      <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
 
-<span class="c1"># if dc_qaoa used</span>
-<span class="n">parameter_count</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">qubit_num</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef</span><span class="p">))</span> <span class="o">*</span> <span class="n">num_layers</span>
-
-<span class="c1"># if qaoa used</span>
-<span class="c1"># parameter_count=(qubit_num+len(coef))*num_layers</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of parameters: &#39;</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
-<span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span>
-                                                 <span class="n">parameter_count</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial parameters = &quot;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The MVWCP is given by the partition: &#39;</span><span class="p">,</span> <span class="n">counts</span><span class="o">.</span><span class="n">most_probable</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -1113,89 +1041,35 @@ optimal_parameters = [2.0508763934174787, 0.013930789730781493, 0.57932112207741
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{ 110001:16 011100:4 111000:199979 011000:1 }
-
-Optimal Configuration:  111000
-</pre></div></div>
-</div>
-<p>A cost function is specified which computes the expectation value of the DC-QAOA circuit and the Hamiltonian using the <code class="docutils literal notranslate"><span class="pre">observe</span></code> function. Running the optimization returns the minimized expectation value and the optimal parameters.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cost_values</span> <span class="o">=</span> <span class="p">[]</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
-
-    <span class="n">cost</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">dc_qaoa</span><span class="p">,</span> <span class="n">ham</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span>
-                         <span class="n">words</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-    <span class="n">cost_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">cost</span>
-
-
-<span class="c1"># Optimize!</span>
-<span class="n">optimal_expectation</span><span class="p">,</span> <span class="n">optimal_parameters</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span>
-    <span class="n">dimensions</span><span class="o">=</span><span class="n">parameter_count</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">objective</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;optimal_expectation =&#39;</span><span class="p">,</span> <span class="n">optimal_expectation</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;optimal_parameters =&#39;</span><span class="p">,</span> <span class="n">optimal_parameters</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-optimal_expectation = -2.0057493966746804
-optimal_parameters = [2.0508763934174787, 0.013930789730781493, 0.5793211220774144, 0.878009560684498, 0.5277129177248182, 0.4404810513078178, 0.5755552245467919, 0.14125558672355468, 0.3724262117066903, 0.1318978057007808, -1.1228708513911436, 0.932342804955409, -0.8478237950658537, 0.46345886313018125, -0.5809397306340341, 0.2408342488137229, 0.11216088888484882, -0.009704173265255175, 0.4757346661223584, -0.7281211610985926, 0.06051951319169091, -0.7794512146826196, 0.09249435261907034, 0.09998378319110682, 1.255349350720572, 1.2607038244228248, 0.2060124032311757, 0.13991934581192997, 0.9874814082082164, -0.1591291464755939, 0.30815482837046393, -0.9701804681517978, -0.002609462845755913, 0.43533533568363353, 0.642630110681613, 0.6137063363954748, -0.7204687246344496, 0.08390768435524378, 0.5480630700433249, -0.38905723227347905, -0.6837811162838194, -0.17239016898719284, 0.1649341118754853, -0.46771209183422724, -0.008565327035838663, 1.982230359328883, -0.4232972687799105, 0.22765896988428905, 0.04207923928239914, -0.36758378917672285, -0.01825447063622079, -0.059755059728027485, -0.6849697218162497, 0.2711684382411018, -0.2904257415666667, -0.16359529445017368, -0.09168623367396612, 0.5786087806926155, -0.3476755367718726, 0.1209273564533628, 0.605136043801364, -0.19128215816141694, 0.16756583092588012, 1.0715488214105267, -0.5269641128095075, -0.3029128369198704]
-</pre></div></div>
-</div>
-<p>Sampling the circuit with the optimal parameters allows for the <code class="docutils literal notranslate"><span class="pre">most_probable</span></code> command to reveal the bitsting corresponding to the ideal graph partitioning solution. This indicates what sort of interactions are present in the ideal docking configuration</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">parameter_count</span> <span class="o">=</span> <span class="n">solvers</span><span class="o">.</span><span class="n">get_num_qaoa_parameters</span><span class="p">(</span><span class="n">H</span><span class="p">,</span>
-                                                  <span class="n">num_layers</span><span class="p">,</span>
-                                                  <span class="n">full_parameterization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                                  <span class="n">counterdiabatic</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-<span class="n">init_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
-
-<span class="n">opt_value</span><span class="p">,</span> <span class="n">opt_params</span><span class="p">,</span> <span class="n">opt_config</span> <span class="o">=</span> <span class="n">solvers</span><span class="o">.</span><span class="n">qaoa</span><span class="p">(</span><span class="n">H</span><span class="p">,</span>
-                                                 <span class="n">num_layers</span><span class="p">,</span>
-                                                 <span class="n">init_params</span><span class="p">,</span>
-                                                 <span class="n">full_parameterization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                                 <span class="n">counterdiabatic</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-
-<span class="nb">print</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Optimal energy: &#39;</span><span class="p">,</span> <span class="n">opt_value</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Sampled states: &#39;</span><span class="p">,</span> <span class="n">opt_config</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Optimal Configuration: &#39;</span><span class="p">,</span> <span class="n">opt_config</span><span class="o">.</span><span class="n">most_probable</span><span class="p">())</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-{ 110001:16 011100:4 111000:199979 011000:1 }
+{ 101010:20 111000:199980 }
 
 The MVWCP is given by the partition:  111000
 </pre></div></div>
 </div>
-<p>The graph below represents the optimal solution from the QAOA procecure and corresponds to the optimal oritentation between the ligand and protein.</p>
 <p><img alt="dockin" class="no-scaled-link" src="../../_images/partition.png" style="width: 300px;" /></p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<p>The convergence of the optimization can be plotted below.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="n">x_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cost_values</span><span class="p">)))</span>
+<span class="n">y_values</span> <span class="o">=</span> <span class="n">cost_values</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_values</span><span class="p">,</span> <span class="n">y_values</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Epochs&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Cost Value&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/applications_python_digitized_counterdiabatic_qaoa_20_0.png" src="../../_images/applications_python_digitized_counterdiabatic_qaoa_20_0.png" />
 </div>
 </div>
 </section>
