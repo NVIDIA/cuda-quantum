@@ -87,6 +87,61 @@ Backend Configuration
 .. autofunction:: cudaq::reset_target
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
+
+.. function:: cudaq.apply_noise(error_type, parameters..., targets...)
+
+    This function is a type-safe injection of noise into a quantum kernel,
+    occurring precisely at the call site of the function invocation. The
+    function should be called inside CUDA-Q kernels (those annotated with
+    `@cudaq.kernel`). The functionality is only supported for simulation targets, so
+    it is automatically (and silently) stripped from any programs submitted to
+    hardware targets.
+
+    :param error_type: A subtype of :class:`cudaq.KrausChannel` that
+        implements/defines the desired noise mechanisms as Kraus channels (e.g.
+        :class:`cudaq.Depolarization2`). If you want to use a custom
+        :class:`cudaq.KrausChannel` (i.e. not built-in to CUDA-Q), it must
+        first be registered *outside the kernel* with `register_channel`, like
+        this:
+
+        .. code-block:: python
+
+            class CustomNoiseChannel(cudaq.KrausChannel):
+                num_parameters = 1
+                num_targets = 1
+
+            def __init__(self, params: list[float]):
+                cudaq.KrausChannel.__init__(self)
+                # Example: Create Kraus ops based on params
+                p = params[0]
+                k0 = np.array([[np.sqrt(1 - p), 0], [0, np.sqrt(1 - p)]],
+                            dtype=np.complex128)
+                k1 = np.array([[0, np.sqrt(p)], [np.sqrt(p), 0]],
+                            dtype=np.complex128)
+
+                # Create KrausOperators and add to channel
+                self.append(cudaq.KrausOperator(k0))
+                self.append(cudaq.KrausOperator(k1))
+
+                self.noise_type = cudaq.NoiseModelType.Unknown
+
+            noise = cudaq.NoiseModel()
+            noise.register_channel(CustomNoiseChannel)
+
+    :param parameters: The precise argument pack depend on the concrete
+        :class:`cudaq.KrausChannel` being used. The arguments are a concatenated
+        list of parameters and targets.  For example, to apply a 2-qubit
+        depolarization channel, which has `num_parameters = 1` and `num_targets =
+        2`, one would write the call like this:
+
+        .. code-block:: python
+
+            q, r = cudaq.qubit(), cudaq.qubit()
+            cudaq.apply_noise(cudaq.Depolarization2, 0.1, q, r)
+
+    :param targets: The target qubits on which to apply the noise
+
+
 .. automethod:: cudaq::initialize_cudaq
 .. automethod:: cudaq::num_available_gpus
 .. automethod:: cudaq::set_random_seed

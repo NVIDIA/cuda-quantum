@@ -9,14 +9,11 @@
 import uuid
 import numpy as np
 
-from ..mlir.ir import *
-from ..mlir.passmanager import *
-from ..mlir.execution_engine import *
-from ..mlir.dialects import quake, cc
-from ..mlir.dialects import builtin, func, arith
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import deletePointersToCudaqState
-from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import deletePointersToStateData
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import arith, cc, func
+from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FlatSymbolRefAttr,
+                           FunctionType, InsertionPoint, IntegerAttr,
+                           IntegerType, StringAttr, TypeAttr)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -48,8 +45,8 @@ class CapturedDataStorage(object):
         """
         Remove pointers to stored data for the current kernel.
         """
-        deletePointersToCudaqState(self.cudaqStateIDs)
-        deletePointersToStateData(self.arrayIDs)
+        cudaq_runtime.deletePointersToCudaqState(self.cudaqStateIDs)
+        cudaq_runtime.deletePointersToStateData(self.arrayIDs)
 
     def getIntegerAttr(self, type, value):
         """

@@ -8,7 +8,7 @@
 
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
-#include "cudaq/dynamics_integrators.h"
+#include "cudaq/algorithms/integrator.h"
 #include "test_Mocks.h"
 #include <cmath>
 #include <gtest/gtest.h>
@@ -59,7 +59,7 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
   const std::vector<std::complex<double>> initialStateVec = {{1.0, 0.0},
                                                              {0.0, 0.0}};
   const std::vector<int64_t> dims = {2};
-  auto spin_op_x = cudaq::sum_op<cudaq::spin_handler>::x(0);
+  auto spin_op_x = cudaq::spin_op::x(0);
   cudaq::product_op<cudaq::matrix_handler> ham1 = 2.0 * M_PI * 0.1 * spin_op_x;
   cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
   SystemDynamics system(dims, ham);

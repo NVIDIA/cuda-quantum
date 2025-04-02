@@ -1595,7 +1595,7 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
     cc_PointerType:$data,
     AnySignlessInteger:$length
   );
-  let results = (outs cc_PointerType:$result);
+  let results = (outs PointerOf<[quake_StateType]>:$result);
   let assemblyFormat = [{
       $data `,` $length `:` functional-type(operands, results) attr-dict
   }];
@@ -1613,7 +1613,7 @@ def QuakeOp_DeleteStateOp : QuakeOp<"delete_state", [] > {
     ```
   }];
 
-  let arguments = (ins cc_PointerType:$state);
+  let arguments = (ins PointerOf<[quake_StateType]>:$state);
   let results = (outs);
   let assemblyFormat = [{
       $state `:` type(operands) attr-dict
@@ -1633,30 +1633,43 @@ def quake_GetNumberOfQubitsOp : QuakeOp<"get_number_of_qubits", [Pure] > {
     ```
   }];
 
-  let arguments = (ins cc_PointerType:$state);
+  let arguments = (ins PointerOf<[quake_StateType]>:$state);
   let results = (outs AnySignlessInteger:$result);
   let assemblyFormat = [{
       $state `:` functional-type(operands, results) attr-dict
   }];
 }
 
-def QuakeOp_GetStateOp : QuakeOp<"get_state", [Pure] > {
+def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
   let summary = "Get state from kernel with the provided name.";
   let description = [{
     This operation is created by argument synthesis of state pointer arguments
-    for quantum devices. It takes a kernel name as ASCIIZ string literal value
-    and returns the kernel's quantum state. The operation is replaced by a call
-    to the kernel with the provided name in ReplaceStateByKernel pass.
+    for quantum devices.
+
+    It takes two kernel names as symbol references:
+      - @num_qubits for determining the size of the allocation to initialize
+      - @init for initializing the state the same way as the original kernel
+        passed to `cudaq::get_state`.
+
+    This operation will return the state of the original kernel called with
+    arguments passed to `cudaq::get_state`.
+
+    The operation may be replaced by calls to the @num_qubits and @init calls,
+    which will reproduce the specified state in the `ReplaceStateByKernel`
+    pass.
 
     ```mlir
-      %0 = quake.get_state "callee" : !cc.ptr<!quake.state>
+      %0 = quake.materialize_state @num_qubits, @init : !cc.ptr<!quake.state>
     ```
   }];
 
-  let arguments = (ins StrAttr:$calleeName);
-  let results = (outs cc_PointerType:$result);
+  let arguments = (ins
+    FlatSymbolRefAttr:$numQubitsFunc,
+    FlatSymbolRefAttr:$initFunc
+  );
+  let results = (outs PointerOf<[quake_StateType]>:$result);
   let assemblyFormat = [{
-     $calleeName `:` qualified(type(results)) attr-dict
+     $numQubitsFunc `,` $initFunc `:` qualified(type(results)) attr-dict
   }];
 }
 
