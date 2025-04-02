@@ -48,7 +48,8 @@ CUDA-Q Applications
     <h3>Filter by Backend:</h3>
     <div class="backend-group">
         <button class="tag-button backend-toggle" data-tag="noiseless">Noiseless Simulator</button>
-        <div class="backend-options">
+        <div class="backend-options">    
+            <button class="tag-button sub-option" data-tag="cpu">CPU</button>
             <button class="tag-button sub-option" data-tag="gpu">Single GPU</button>
             <button class="tag-button sub-option" data-tag="mgpu">Multi-GPU</button>
             <button class="tag-button sub-option" data-tag="mqpu">Multi-QPU</button>
@@ -101,7 +102,7 @@ CUDA-Q Applications
         <img src="/_static/app_title_images/krylov_preview.png" alt="Krylov Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
+    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,cpu">
         <a href="/applications/python/Bernstein-Vazirani.html" class="notebook-title">The Bernstein-Vazirani Algorithm</a>
         <div class="notebook-content">
             Learn a famous quantum algorithm that provides intuition for why exponential speedups can be achieved with quantum computers.
@@ -109,7 +110,7 @@ CUDA-Q Applications
         <img src="/_static/app_title_images/bv_preview.png" alt="BV Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
+    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,cpu">
         <a href="/applications/python/deutsch_jozsa.html" class="notebook-title">Deutsch's Algorithm</a>
         <div class="notebook-content">
             Learn how quantum computers can provide an exponential speedup for identifying if a Boolean function is constant or balanced.
@@ -157,7 +158,7 @@ CUDA-Q Applications
         <img src="/_static/app_title_images/trotter_preview.png" alt="Trotter Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
+    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,cpu">
         <a href="/applications/python/quantum_Fourier_transform.html" class="notebook-title">The Quantum Fourier Transform</a>
         <div class="notebook-content">
             The Quantum Fourier transform (QFT) is a fundamental quantum algorithm that is also an important subroutine of quantum phase estimation, Shor's, and other quantum algorithms. Learn the basics of the QFT and how to implement it in CUDA-Q.
@@ -165,7 +166,7 @@ CUDA-Q Applications
         <img src="/_static/app_title_images/qft_preview.png" alt="QFT Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
+    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu.cpu">
         <a href="/applications/python/quantum_teleportation.html" class="notebook-title">Quantum Teleportation</a>
         <div class="notebook-content">
             Quantum teleportation is one of the strange phenomena that makes quantum computing so interesting. Learn how teleportation works and how it is implemented in CUDA-Q.
@@ -200,7 +201,7 @@ CUDA-Q Applications
     <div class="notebook-entry" data-tags="chemistry,noiseless,mqpu">
         <a href="/applications/python/VQE_advanced.html" class="notebook-title">The Variational Quantum Eigensolver</a>
         <div class="notebook-content">
-            The variational quantum eigensolver is a hybrid quantum classical algorithm for predicting the ground state of a Hamiltonian. Learn how to predict molecular energies with the VQE in CUDA-Q using active spaces, how to parallelize gradient evaluation, and how to use performance optimizations like gate fusion.
+        i    The variational quantum eigensolver is a hybrid quantum classical algorithm for predicting the ground state of a Hamiltonian. Learn how to predict molecular energies with the VQE in CUDA-Q using active spaces, how to parallelize gradient evaluation, and how to use performance optimizations like gate fusion.
         </div>
         <img src="/_static/app_title_images/vqe_preview.png" alt="VQE Preview" class="notebook-image">
     </div>
@@ -228,4 +229,23 @@ CUDA-Q Applications
         </div>
         <img src="/_static/app_title_images/adapt_qaoa_preview.png" alt="ADAPT Preview" class="notebook-image">
     </div>
+
+
+    <div class="notebook-entry" data-tags="chemistry,noiseless,gpu">
+        <a href="/applications/python/adapt-vqe.html" class="notebook-title">ADAPT VQE</a>
+        <div class="notebook-content">
+            Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter (ADAPT) to predict molecular ground state energies. The method iteratively builds an ansatz to more efficiently converge compared to traditional VQE.
+        </div>
+        <img src="/_static/app_title_images/adaptvqe_preview.png" alt="ADAPT VQE  Preview" class="notebook-image">
+    </div>
+
+
+    <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
+        <a href="/applications/python/edge-detection.html" class="notebook-title">Quantum Edge Detection</a>
+        <div class="notebook-content">
+            Learn how to encode image data with a quantum circuit and use a quantum algorithm to identify object boundaries in an image.
+        </div>
+        <img src="/_static/app_title_images/edgedetection_preview.png" alt="Edge Detection Preview" class="notebook-image">
+    </div>
+
 
