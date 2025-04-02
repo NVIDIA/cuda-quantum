@@ -11,9 +11,6 @@ get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 include(CMakeFindDependencyMacro)
 list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
-set (CUDAQSpin_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQSpin REQUIRED)
-
 set (CUDAQOperator_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQOperator REQUIRED)
 

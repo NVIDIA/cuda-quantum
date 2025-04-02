@@ -86,7 +86,10 @@ Returns:
     spin_operator = to_spin_op(spin_operator)
     if isinstance(spin_operator, list):
         for idx, op in enumerate(spin_operator):
-            spin_operator[idx] = to_spin_op(op)
+            spin_operator[idx] = to_spin_op(op).canonicalize()
+    else:
+        spin_operator.canonicalize()
+
     # Handle parallel execution use cases
     if execution != None:
         return cudaq_runtime.observe_parallel(kernel,
@@ -100,12 +103,12 @@ Returns:
         cudaq_runtime.set_noise(noise_model)
 
     # Process spin_operator if its a list
-    localOp = spin_operator
-    localOp = cudaq_runtime.SpinOperator()
-    if isinstance(spin_operator, list):
+    if isinstance(spin_operator, cudaq_runtime.SpinOperatorTerm):
+        localOp = cudaq_runtime.SpinOperator(spin_operator)
+    elif isinstance(spin_operator, list):
+        localOp = cudaq_runtime.SpinOperator.empty()
         for o in spin_operator:
             localOp += o
-        localOp -= cudaq_runtime.SpinOperator()
     else:
         localOp = spin_operator
 
@@ -145,9 +148,10 @@ Returns:
                     sum += term.get_coefficient().real
                 else:
                     sum += res.expectation(
-                        term.to_string(False)) * term.get_coefficient().real
+                        term.get_term_id()) * term.get_coefficient().real
 
-            localOp.for_each_term(computeExpVal)
+            for term in localOp:
+                computeExpVal(term)
             expVal = sum
 
         observeResult = cudaq_runtime.ObserveResult(expVal, localOp, res)

@@ -6,11 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-module {
-  cc.arg_subst[0] {
-    %0 = arith.constant 2 : i32
-  }
-  func.func private @callee5(%arg0: i32) -> (i32) {
-    return %arg0: i32
-  }
+cc.arg_subst[0] {
+  %0 = arith.constant 2 : i32
+}
+func.func private @callee5(%arg0: i32) -> (i32) {
+  return %arg0: i32
 }
