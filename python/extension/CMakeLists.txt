@@ -69,6 +69,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/operators/py_fermion_op.cpp
     ../runtime/cudaq/operators/py_boson_op.cpp
     ../runtime/cudaq/operators/py_matrix_op.cpp
+    ../runtime/cudaq/operators/py_handlers.cpp
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/mlir/py_register_dialects.cpp

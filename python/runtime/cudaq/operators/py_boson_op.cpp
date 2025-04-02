@@ -142,7 +142,6 @@ void bindBosonOperator(py::module &mod) {
   ;
 
   py::class_<boson_op_term>(mod, "MatrixOperatorTerm")
-  /* todo: bind iterator 
   .def(
     "__iter__",
     [](boson_op_term &self) {
@@ -150,7 +149,6 @@ void bindBosonOperator(py::module &mod) {
     },
     py::keep_alive<0, 1>(),
     "Loop through each term of the operator.")
-  */
   // properties
   .def("degrees", &boson_op_term::degrees,
     "Returns a vector that lists all degrees of freedom that the operator targets. "

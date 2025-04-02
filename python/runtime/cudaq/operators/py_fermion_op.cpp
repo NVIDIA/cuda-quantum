@@ -133,7 +133,6 @@ void bindFermionOperator(py::module &mod) {
   ;
 
   py::class_<fermion_op_term>(mod, "MatrixOperatorTerm")
-  /* todo: bind iterator 
   .def(
     "__iter__",
     [](fermion_op_term &self) {
@@ -141,7 +140,6 @@ void bindFermionOperator(py::module &mod) {
     },
     py::keep_alive<0, 1>(),
     "Loop through each term of the operator.")
-  */
   // properties
   .def("degrees", &fermion_op_term::degrees,
     "Returns a vector that lists all degrees of freedom that the operator targets. "

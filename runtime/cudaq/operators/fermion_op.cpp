@@ -103,6 +103,8 @@ std::vector<std::size_t> fermion_handler::degrees() const {
   return {this->degree};
 }
 
+std::size_t fermion_handler::target() const { return this->degree; }
+
 // constructors
 
 fermion_handler::fermion_handler(std::size_t target)

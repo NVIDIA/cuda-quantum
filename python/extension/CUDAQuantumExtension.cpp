@@ -33,6 +33,7 @@
 #include "runtime/cudaq/operators/py_fermion_op.h"
 #include "runtime/cudaq/operators/py_boson_op.h"
 #include "runtime/cudaq/operators/py_matrix_op.h"
+#include "runtime/cudaq/operators/py_handlers.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
 #include "runtime/interop/PythonCppInterop.h"
@@ -97,6 +98,10 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindObserveResult(cudaqRuntime);
   cudaq::bindComplexMatrix(cudaqRuntime);
   cudaq::bindSpinWrapper(cudaqRuntime);
+  cudaq::bindFermionWrapper(cudaqRuntime);
+  cudaq::bindBosonWrapper(cudaqRuntime);
+  cudaq::bindOperatorsWrapper(cudaqRuntime);
+  cudaq::bindHandlersWrapper(cudaqRuntime);
   cudaq::bindQIS(cudaqRuntime);
   cudaq::bindOptimizerWrapper(cudaqRuntime);
   cudaq::bindNoise(cudaqRuntime);

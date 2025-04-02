@@ -131,6 +131,8 @@ std::vector<std::size_t> boson_handler::degrees() const {
   return {this->degree};
 }
 
+std::size_t boson_handler::target() const { return this->degree; }
+
 // constructors
 
 boson_handler::boson_handler(std::size_t target)
