@@ -42,27 +42,27 @@ spin_op fromOpenFermionQubitOperator(py::object &op) {
 }
 
 void bindSpinClass(py::module &mod) {
-  // Binding the functions in `cudaq::spin` as `_pycudaq` submodule
+  // Binding the functions in `spin` as `_pycudaq` submodule
   // so it's accessible directly in the cudaq namespace.
   auto spin_submodule = mod.def_submodule("spin");
-  spin_submodule.def("i", &cudaq::spin_op::i<cudaq::spin_handler>,
+  spin_submodule.def("i", &spin_op::i<spin_handler>,
                      py::arg("target"),
                      "Returns a Pauli I spin operator on the given "
                      "target qubit index.");
   spin_submodule.def(
-      "x", &cudaq::spin_op::x<cudaq::spin_handler>, py::arg("target"),
+      "x", &spin_op::x<spin_handler>, py::arg("target"),
       "Returns a Pauli X spin operator on the given target qubit index.");
   spin_submodule.def(
-      "y", &cudaq::spin_op::y<cudaq::spin_handler>, py::arg("target"),
+      "y", &spin_op::y<spin_handler>, py::arg("target"),
       "Returns a Pauli Y spin operator on the given target qubit index.");
   spin_submodule.def(
-      "z", &cudaq::spin_op::z<cudaq::spin_handler>, py::arg("target"),
+      "z", &spin_op::z<spin_handler>, py::arg("target"),
       "Returns a Pauli Z spin operator on the given target qubit index.");
-  spin_submodule.def("plus", &cudaq::spin_op::plus<cudaq::spin_handler>,
+  spin_submodule.def("plus", &spin_op::plus<spin_handler>,
                      py::arg("target"),
                      "Return a sigma plus spin operator on the given "
                      "target qubit index.");
-  spin_submodule.def("minus", &cudaq::spin_op::minus<cudaq::spin_handler>,
+  spin_submodule.def("minus", &spin_op::minus<spin_handler>,
                      py::arg("target"),
                      "Return a sigma minus spin operator on the given "
                      "target qubit index.");
@@ -79,27 +79,27 @@ void bindSpinClass(py::module &mod) {
 #endif
 
 void bindSpinOperator(py::module &mod) {
-  py::enum_<cudaq::pauli>(
+  py::enum_<pauli>(
       mod, "Pauli", "An enumeration representing the types of Pauli matrices.")
       .value("X", pauli::X)
       .value("Y", pauli::Y)
       .value("Z", pauli::Z)
       .value("I", pauli::I);
 
-  py::class_<cudaq::spin_op_term>(mod, "SpinOperatorTerm")
-      .def(py::init([]() { return cudaq::spin_op::identity(); }))
-      .def(py::init<cudaq::spin_op_term>(), py::arg("spin_operator"),
+  py::class_<spin_op_term>(mod, "SpinOperatorTerm")
+      .def(py::init([]() { return spin_op::identity(); }))
+      .def(py::init<spin_op_term>(), py::arg("spin_operator"),
            "Copy constructor, given another :class:`SpinOperatorTerm`.")
 
       /// @brief Bind the member functions.
 
-      .def("get_ops_count", &cudaq::spin_op_term::num_ops,
+      .def("get_ops_count", &spin_op_term::num_ops,
            "Return the number of terms in this :class:`SpinOperator`.")
       .def(
           "get_coefficient",
-          [](cudaq::spin_op_term &op) { return op.evaluate_coefficient(); },
+          [](spin_op_term &op) { return op.evaluate_coefficient(); },
           "Return the coefficient of this :class:`SpinOperatorTerm`.")
-      .def("is_identity", &cudaq::spin_op_term::is_identity,
+      .def("is_identity", &spin_op_term::is_identity,
            "Returns a bool indicating if this :class:`SpinOperatorTerm` is "
            "equal "
            "to the "
@@ -107,26 +107,26 @@ void bindSpinOperator(py::module &mod) {
       // FIXME: deprecate
       .def(
           "to_string",
-          [](cudaq::spin_op_term &op, bool print_coefficient) {
+          [](spin_op_term &op, bool print_coefficient) {
             return op.to_string(print_coefficient);
           },
           py::arg("print_coefficient") = true,
           "Return a string representation of this :class:`SpinOperatorTerm`.")
       .def(
-          "__str__", [](cudaq::spin_op_term &op) { return op.to_string(); },
+          "__str__", [](spin_op_term &op) { return op.to_string(); },
           "Return a string representation of this :class:`SpinOperatorTerm`.")
-      .def("dump", &cudaq::spin_op_term::dump,
+      .def("dump", &spin_op_term::dump,
            "Print a string representation of this :class:`SpinOperatorTerm`.")
       .def(
           "canonicalize",
-          [](cudaq::spin_op_term &op) { return op.canonicalize(); },
+          [](spin_op_term &op) { return op.canonicalize(); },
           "Removes all identity operators from the operator.")
-      .def("get_term_id", &cudaq::spin_op_term::get_term_id,
+      .def("get_term_id", &spin_op_term::get_term_id,
            "Gets the id with which counts and expectation values for this term "
            "can be retrieved.")
       .def(
           "get_pauli_word",
-          [](cudaq::spin_op_term &op, std::size_t pad_identities) {
+          [](spin_op_term &op, std::size_t pad_identities) {
             return op.get_pauli_word(pad_identities);
           },
           py::arg("pad_identities") = 0,
@@ -134,7 +134,7 @@ void bindSpinOperator(py::module &mod) {
           ":class:`SpinOperatorTerm`.")
       .def(
           "get_binary_symplectic_form",
-          &cudaq::spin_op_term::get_binary_symplectic_form<cudaq::spin_handler>,
+          &spin_op_term::get_binary_symplectic_form<spin_handler>,
           "Gets the binary symplectic representation of this "
           ":class:`SpinOperatorTerm`.")
       .def(
@@ -146,7 +146,7 @@ void bindSpinOperator(py::module &mod) {
           "Return `self` as a :class:`ComplexMatrix`.")
       // iteration over terms is not bound here since we didn't bind the
       // handlers
-      .def("__eq__", &cudaq::spin_op_term::operator==, py::arg("other"),
+      .def("__eq__", &spin_op_term::operator==, py::arg("other"),
            "Return true if the two :class:`SpinOperatorTerm`'s are equal. "
            "Equality "
            "does "
@@ -166,14 +166,14 @@ void bindSpinOperator(py::module &mod) {
       // for backward compatiblity).
       .def(
           "get_raw_data",
-          [](cudaq::spin_op_term &op) {
-            return cudaq::spin_op(op).get_raw_data();
+          [](spin_op_term &op) {
+            return spin_op(op).get_raw_data();
           },
           "Return the raw data of this :class:`SpinOperatorTerm`.")
       .def(
           "to_json",
-          [](const cudaq::spin_op_term &p) {
-            cudaq::spin_op op(p);
+          [](const spin_op_term &p) {
+            spin_op op(p);
             py::object json = py::module_::import("json");
             auto data = op.get_data_representation();
             return json.attr("dumps")(data);
@@ -181,17 +181,17 @@ void bindSpinOperator(py::module &mod) {
           "Convert spin_op to JSON string: '[d1, d2, d3, ...]'")
       .def(
           "get_qubit_count",
-          [](cudaq::spin_op_term &op) {
-            return cudaq::spin_op(op).num_qubits();
+          [](spin_op_term &op) {
+            return spin_op(op).num_qubits();
           },
           "Return the number of qubits this :class:`SpinOperatorTerm` acts on.")
       .def(
-          "get_term_count", [](cudaq::spin_op_term &op) { return 1; },
+          "get_term_count", [](spin_op_term &op) { return 1; },
           "Return the number of terms (always 1).")
       .def(
           "for_each_pauli",
           [](spin_op_term &self, py::function functor) {
-            return cudaq::spin_op(self).for_each_pauli(functor);
+            return spin_op(self).for_each_pauli(functor);
           },
           py::arg("function"),
           "For a single :class:`SpinOperator` term, apply the given function "
@@ -200,8 +200,8 @@ void bindSpinOperator(py::module &mod) {
           "type and the `int` is the qubit index.")
       .def(
           "distribute_terms",
-          [](cudaq::spin_op_term &op, std::size_t chunks) {
-            return cudaq::spin_op(op).distribute_terms(chunks);
+          [](spin_op_term &op, std::size_t chunks) {
+            return spin_op(op).distribute_terms(chunks);
           },
           py::arg("chunk_count"),
           "Return a list of :class:`SpinOperator` representing a distribution "
@@ -302,24 +302,24 @@ void bindSpinOperator(py::module &mod) {
            "return "
            "result as a new :class:`SpinOperatorTerm`.");
 
-  py::class_<cudaq::spin_op>(mod, "SpinOperator")
+  py::class_<spin_op>(mod, "SpinOperator")
       // FIXME: deprecate this one
-      .def(py::init([]() { return cudaq::spin_op::identity(); }),
+      .def(py::init([]() { return spin_op::identity(); }),
            "Empty constructor, creates the identity term.")
-      .def(py::init([](std::size_t size) { return cudaq::spin_op(size); }),
+      .def(py::init([](std::size_t size) { return spin_op(size); }),
            "Empty constructor, creates a sum operator with no terms, reserving "
            "memory for the given number of terms.")
       // FIXME: deprecate name
-      .def_static("empty_op", &cudaq::spin_op::empty)
-      .def_static("empty", &cudaq::spin_op::empty)
+      .def_static("empty_op", &spin_op::empty)
+      .def_static("empty", &spin_op::empty)
       .def(py::init([](std::string fileName) {
-             cudaq::binary_spin_op_reader reader;
+             binary_spin_op_reader reader;
              return reader.read(fileName);
            }),
            "Read in :class:`SpinOperator` from file.")
-      .def(py::init<const cudaq::spin_op>(), py::arg("spin_operator"),
+      .def(py::init<const spin_op>(), py::arg("spin_operator"),
            "Copy constructor, given another :class:`SpinOperator`.")
-      .def(py::init<const cudaq::spin_op_term>(), py::arg("spin_operator"),
+      .def(py::init<const spin_op_term>(), py::arg("spin_operator"),
            "Constructor given a :class:`SpinOperatorTerm`.")
       .def(py::init<std::vector<double> &>(), py::arg("data"),
            "Construct a :class:`SpinOperator` from a list of numeric values.")
@@ -340,7 +340,7 @@ void bindSpinOperator(py::module &mod) {
       */
       .def(
           "to_json",
-          [](const cudaq::spin_op &p) {
+          [](const spin_op &p) {
             py::object json = py::module_::import("json");
             auto data = p.get_data_representation();
             return json.attr("dumps")(data);
@@ -351,7 +351,7 @@ void bindSpinOperator(py::module &mod) {
           [](const std::string &j) {
             py::object json = py::module_::import("json");
             auto data = py::list(json.attr("loads")(j));
-            cudaq::spin_op p(data.cast<std::vector<double>>());
+            spin_op p(data.cast<std::vector<double>>());
             return p;
           },
           "Convert JSON string ('[[d1, d2, d3, ...], numQubits]') to spin_op")
@@ -359,16 +359,16 @@ void bindSpinOperator(py::module &mod) {
       /// @brief Bind the member functions.
 
       // FIXME: deprecate
-      .def("get_raw_data", &cudaq::spin_op::get_raw_data<cudaq::spin_handler>,
+      .def("get_raw_data", &spin_op::get_raw_data<spin_handler>,
            "Return the raw data of this :class:`SpinOperator`.")
-      .def("get_term_count", &cudaq::spin_op::num_terms,
+      .def("get_term_count", &spin_op::num_terms,
            "Return the number of terms in this :class:`SpinOperator`.")
-      .def("get_qubit_count", &cudaq::spin_op::num_qubits<cudaq::spin_handler>,
+      .def("get_qubit_count", &spin_op::num_qubits<spin_handler>,
            "Return the number of qubits this :class:`SpinOperator` is on.")
       // FIXME: deprecate
       .def(
           "get_coefficient",
-          [](cudaq::spin_op &op) {
+          [](spin_op &op) {
             if (op.num_terms() == 0)
               return std::complex<double>(0.);
             if (op.num_terms() != 1)
@@ -379,33 +379,33 @@ void bindSpinOperator(py::module &mod) {
           "Return the coefficient of this :class:`SpinOperator`. Must be a "
           "`SpinOperator` with one term, otherwise an exception is thrown.")
       // FIXME: deprecate
-      .def("is_identity", &cudaq::spin_op::is_identity<cudaq::spin_handler>,
+      .def("is_identity", &spin_op::is_identity<spin_handler>,
            "Returns a bool indicating if this :class:`SpinOperator` is equal "
            "to the "
            "identity.")
       // FIXME: deprecate
       .def(
           "to_string",
-          [](cudaq::spin_op &op, bool print_coefficient) {
+          [](spin_op &op, bool print_coefficient) {
             return op.to_string(print_coefficient);
           },
           py::arg("print_coefficient") = true,
           "Return a string representation of this :class:`SpinOperator`.")
       .def(
-          "__str__", [](cudaq::spin_op &op) { return op.to_string(); },
+          "__str__", [](spin_op &op) { return op.to_string(); },
           "Return a string representation of this :class:`SpinOperator`.")
-      .def("dump", &cudaq::spin_op::dump,
+      .def("dump", &spin_op::dump,
            "Print a string representation of this :class:`SpinOperator`.")
       .def(
-          "canonicalize", [](cudaq::spin_op &op) { return op.canonicalize(); },
+          "canonicalize", [](spin_op &op) { return op.canonicalize(); },
           "Removes all identity operators from the operator.")
-      .def("distribute_terms", &cudaq::spin_op::distribute_terms,
+      .def("distribute_terms", &spin_op::distribute_terms,
            py::arg("chunk_count"),
            "Return a list of :class:`SpinOperator` representing a distribution "
            "of the "
            "terms in this :class:`SpinOperator` into `chunk_count` sized "
            "chunks.")
-      .def_static("random", &cudaq::spin_op::random<cudaq::spin_handler>,
+      .def_static("random", &spin_op::random<spin_handler>,
                   py::arg("qubit_count"), py::arg("term_count"),
                   py::arg("seed") = std::random_device{}(),
                   "Return a random :class:`SpinOperator` on the given number "
@@ -413,7 +413,7 @@ void bindSpinOperator(py::module &mod) {
                   "composed of the given number of terms (`term_count`). An "
                   "optional seed value may also be provided.")
       .def_static(
-          "from_word", &cudaq::spin_op::from_word<cudaq::spin_handler>,
+          "from_word", &spin_op::from_word<spin_handler>,
           py::arg("word"),
           R"#(Return a :class:`SpinOperator` corresponding to the provided Pauli `word`.
 
@@ -445,7 +445,7 @@ void bindSpinOperator(py::module &mod) {
           "to each pauli element in the term. The function must have "
           "`void(pauli, int)` signature where `pauli` is the Pauli matrix "
           "type and the `int` is the qubit index.")
-      .def("serialize", &spin_op::get_data_representation<cudaq::spin_handler>,
+      .def("serialize", &spin_op::get_data_representation<spin_handler>,
            "Return a serialized representation of the :class:`SpinOperator`. "
            "Specifically, this encoding is via a vector of doubles. The "
            "encoding is as follows: for each term, a list of doubles where the "
@@ -462,7 +462,7 @@ void bindSpinOperator(py::module &mod) {
                                      // additional (optional) args
           },
           "Return `self` as a :class:`ComplexMatrix`.")
-      .def("to_sparse_matrix", &spin_op::to_sparse_matrix<cudaq::spin_handler>,
+      .def("to_sparse_matrix", &spin_op::to_sparse_matrix<spin_handler>,
            "Return `self` as a sparse matrix. This representation is a "
            "`Tuple[list[complex], list[int], list[int]]`, encoding the "
            "non-zero values, rows, and columns of the matrix. "
@@ -475,7 +475,7 @@ void bindSpinOperator(py::module &mod) {
           py::keep_alive<0, 1>(),
           "Loop through each term of this :class:`SpinOperator`.")
       // :class:`SpinOperator` == :class:`SpinOperator`
-      .def("__eq__", &cudaq::spin_op::operator==, py::arg("other"),
+      .def("__eq__", &spin_op::operator==, py::arg("other"),
            "Return true if the two :class:`SpinOperator`'s are equal.")
       // not sure if we should consider a sum_op and a product_op equal if the
       // content matches...

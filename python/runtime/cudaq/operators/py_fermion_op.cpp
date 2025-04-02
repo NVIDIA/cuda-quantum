@@ -22,16 +22,113 @@ void bindFermionModule(py::module &mod) {
   // so it's accessible directly in the cudaq namespace.
   auto fermion_submodule = mod.def_submodule("fermion");
   fermion_submodule.def(
-      "create", &cudaq::fermion_op::create<cudaq::fermion_handler>, py::arg("target"),
+      "create", &fermion_op::create<fermion_handler>, py::arg("target"),
       "Returns a fermionic creation operator on the given target index.");
   fermion_submodule.def(
-      "annihilate", &cudaq::fermion_op::annihilate<cudaq::fermion_handler>, py::arg("target"),
+      "annihilate", &fermion_op::annihilate<fermion_handler>, py::arg("target"),
       "Returns a fermionic annihilation operator on the given target index.");
   fermion_submodule.def(
-      "number", &cudaq::fermion_op::number<cudaq::fermion_handler>, py::arg("target"),
+      "number", &fermion_op::number<fermion_handler>, py::arg("target"),
       "Returns a fermionic number operator on the given target index.");
 }
 
+void bindFermionOperator(py::module &mod) {
+  py::class_<fermion_op>(mod, "FermionOperator")
+  .def(
+    "__iter__",
+    [](fermion_op &self) {
+    return py::make_iterator(self.begin(), self.end());
+    },
+    py::keep_alive<0, 1>(),
+    "Loop through each term of the operator.")
+  // properties
+  // todo: add a target property?      
+  .def("degrees", &fermion_op::degrees,
+    "Returns a vector that lists all degrees of freedom that the operator targets.")
+  .def("min_degree", &fermion_op::min_degree,
+    "Returns the smallest index of the degrees of freedom that the operator targets.")
+  .def("max_degree", &fermion_op::max_degree,
+    "Returns the smallest index of the degrees of freedom that the operator targets.")
+  .def("num_terms", &fermion_op::num_terms,
+    "Returns the number of terms in the operator.")
+  // constructors
+  .def(py::init<>(), "Creates a default instantiated sum. A default instantiated "
+    "sum has no value; it will take a value the first time an arithmetic operation "
+    "is applied to it. In that sense, it acts as both the additive and multiplicative "
+    "identity. To construct a `0` value in the mathematical sense (neutral element "
+    "for addition), use `empty()` instead.")
+  .def(py::init<std::size_t>(), "Creates a sum operator with no terms, reserving "
+    "space for the given number of terms.")
+  .def(py::init<const fermion_op_term &>(),
+    "Creates a sum operator with the given term.")
+  .def(py::init<const fermion_op &>(),
+    "Copy constructor.")
+  // evaluations
+  // todo: add to_sparse_matrix
+  .def("to_matrix", &fermion_op::to_matrix,
+    py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(), py::arg("invert_order") = false,
+    "Returns the matrix representation of the operator."
+    "The matrix is ordered according to the convention (endianness) "
+    "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+    "can be inverted by setting the optional `invert_order` argument to `True`. "
+    "See also the documentation for `degrees` for more detail.")
+  // comparisons
+  .def("__eq__", &fermion_op::operator==,
+    "Return true if the two operators are equivalent. The equivalence check takes "
+    "commutation relations into account. Operators acting on different degrees of "
+    "freedom are never equivalent, even if they only differ by an identity operator.")
+  // unary operators
+  .def("__neg__", [](const fermion_op &self) { return -self; })
+  .def("__pos__", [](const fermion_op &self) { return +self; })
+  // right-hand arithmetics
+  .def("__mul__", [](const fermion_op &self, const fermion_op &other) { return self * other; })
+  .def("__add__", [](const fermion_op &self, const fermion_op &other) { return self + other; })
+  .def("__sub__", [](const fermion_op &self, const fermion_op &other) { return self - other; })
+  .def("__mul__", [](const fermion_op &self, const fermion_op_term &other) { return self * other; })
+  .def("__add__", [](const fermion_op &self, const fermion_op_term &other) { return self + other; })
+  .def("__sub__", [](const fermion_op &self, const fermion_op_term &other) { return self - other; })
+  .def("__imul__", [](fermion_op &self, const fermion_op &other) { return self *= other; })
+  .def("__iadd__", [](fermion_op &self, const fermion_op &other) { return self += other; })
+  .def("__isub__", [](fermion_op &self, const fermion_op &other) { return self -= other; })
+  .def("__imul__", [](fermion_op &self, const fermion_op_term &other) { return self *= other; })
+  .def("__iadd__", [](fermion_op &self, const fermion_op_term &other) { return self += other; })
+  .def("__isub__", [](fermion_op &self, const fermion_op_term &other) { return self -= other; })
+  // common operators
+  .def_static("empty", &fermion_op::empty,
+    "Creates a sum operator with no terms. And empty sum is the neutral element for addition; "
+    "multiplying an empty sum with anything will still result in an empty sum.")
+  .def_static("identity", []() { return fermion_op::identity(); },
+    "Creates a product operator with constant value 1. The identity operator is the neutral "
+    "element for multiplication.")
+  .def_static("identity", [](std::size_t target) { return fermion_op::identity(target); },
+    "Creates a product operator that applies the identity to the given target index.")
+  // general utility functions
+  .def("to_string", [](const fermion_op &self) { return self.to_string(); },
+    "Returns the string representation of the operator.")
+  .def("dump", &fermion_op::dump,
+    "Prints the string representation of the operator to the standard output.")
+  .def("trim", &fermion_op::trim,
+    py::arg("tol") = 0.0, py::arg("parameters") = parameter_map(),
+    "Removes all terms from the sum for which the absolute value of the coefficient is below "
+    "the given tolerance.")
+  .def("canonicalize", [](fermion_op &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
+    "Removes all identity operators from the operator.")
+  .def_static("canonicalize", [](const fermion_op &orig) { return fermion_op::canonicalize(orig); },
+    "Removes all identity operators from the operator.")
+  .def("canonicalize", [](fermion_op &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
+    "Expands the operator to act on all given degrees, applying identities as needed. "
+    "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
+    "degrees of freedom.")
+  .def_static("canonicalize", [](const fermion_op &orig, const std::set<std::size_t> &degrees) { return fermion_op::canonicalize(orig, degrees); },
+    "Expands the operator to act on all given degrees, applying identities as needed. "
+    "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
+    "degrees of freedom.")
+  .def("distribute_terms", &fermion_op::distribute_terms,
+    "Partitions the terms of the sums into the given number of separate sums.")
+
+  ;
+}
+  
 void bindFermionWrapper(py::module &mod) {
   bindFermionModule(mod);
   //bindFermionOperator(mod);
