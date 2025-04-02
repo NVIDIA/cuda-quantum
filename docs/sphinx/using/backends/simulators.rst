@@ -30,13 +30,13 @@ technical details and code examples for using each circuit simulator.
      - State Vector
      - General purpose (default); Trajectory simulation for noisy circuits
      - Single GPU
-     - single / double (default)
+     - single (default) / double
      - < 33 / 32 (64 GB)
    * - `nvidia, option=mgpu` *
      - State Vector
      - Large-scale simulation
      - multi-GPU multi-node
-     - single / double (default)
+     - single (default) / double
      - 33+
    * - `tensornet` *
      - Tensor Network
@@ -60,7 +60,7 @@ technical details and code examples for using each circuit simulator.
      - State Vector 
      - Asynchronous distribution across multiple simulated QPUs to speedup applications
      - multi-GPU multi-node
-     - single / double
+     - single (default) / double
      - < 33 / 32 (64 GB)
    * - `remote-mqpu` *
      - State Vector / Tensor Network
