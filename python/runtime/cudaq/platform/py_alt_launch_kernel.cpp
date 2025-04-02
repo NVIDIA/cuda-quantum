@@ -38,8 +38,6 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
-#include <iostream>
-
 namespace py = pybind11;
 using namespace mlir;
 
@@ -315,9 +313,9 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
     if (auto error = setStateFPtr.takeError()) {
       auto message = "python alt_launch_kernel failed to get set cudaq state "
                      "function for kernel: " +
-                     name + "with hash: " + stateHash;
+                     name;
       llvm::logAllUnhandledErrors(std::move(error), llvm::errs(), message);
-      continue;
+      throw std::runtime_error(message);
     }
 
     auto setStateFunc =
@@ -878,8 +876,6 @@ void bindAltLaunchKernel(py::module &mod) {
       "storePointerToCudaqState",
       [](const std::string &name, const std::string &hash, py::object data) {
         auto state = data.cast<cudaq::state>();
-        std::cout << "storing state for " << name << ", hash: " << hash
-                  << std::endl;
         cudaqStateStorage->insert({hash, PyStateData{state, name}});
       },
       "Store qalloc state initialization states.");
@@ -891,8 +887,6 @@ void bindAltLaunchKernel(py::module &mod) {
              iter != cudaqStateStorage->end();) {
           if (std::find(hashes.begin(), hashes.end(), iter->first) !=
               hashes.end()) {
-            std::cout << "deleting state for " << iter->second.kernelName
-                      << ", hash: " << iter->first << std::endl;
             cudaqStateStorage->erase(iter++);
             continue;
           }

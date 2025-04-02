@@ -21,6 +21,7 @@ class QPUState : public cudaq::SimulationState {
 protected:
   std::string kernelName;
   using ArgDeleter = std::function<void(void *)>;
+
   /// @brief  Vector of arguments
   // Note: we create a copy of all arguments except pointers.
   std::vector<void *> args;
@@ -55,18 +56,25 @@ public:
     }
   }
 
+  // /// @brief Constructor
+  // template <typename QuantumKernel, typename... Args>
+  // QPUState(QuantumKernel &&kernel, Args &&...args) {
+  //   if constexpr (has_name<QuantumKernel>::value) {
+  //     // kernel_builder kernel: need to JIT code to get it registered.
+  //     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+  //     kernelName = kernel.name();
+  //   } else {
+  //     kernelName = cudaq::getKernelName(kernel);
+  //   }
+  //   (addArgument(args), ...);
+  // }
+
   /// @brief Constructor
-  template <typename QuantumKernel, typename... Args>
-  QPUState(QuantumKernel &&kernel, Args &&...args) {
-    if constexpr (has_name<QuantumKernel>::value) {
-      // kernel_builder kernel: need to JIT code to get it registered.
-      static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
-      kernelName = kernel.name();
-    } else {
-      kernelName = cudaq::getKernelName(kernel);
-    }
+  template <typename... Args>
+  QPUState(const std::string &name, Args &&...args): kernelName(name) {
     (addArgument(args), ...);
   }
+
   QPUState() = default;
   QPUState(const QPUState &other)
       : kernelName(other.kernelName), args(other.args), deleters() {}

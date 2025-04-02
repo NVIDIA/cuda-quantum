@@ -140,28 +140,26 @@ state pyGetStateRemote(py::object kernel, py::args args) {
                                            size, returnOffset));
 }
 
-/// @brief Python implementation of the `QPUState`.
-// Note: Python kernel arguments are wrapped hence need to be unwrapped
-// accordingly.
-class PyQPUState : public QPUState {
-  // Holder of args data for clean-up.
-  cudaq::OpaqueArguments *argsData;
-  mlir::ModuleOp kernelMod;
+// /// @brief Python implementation of the `QPUState`.
+// // Note: Python kernel arguments are wrapped hence need to be unwrapped
+// // accordingly.
+// class PyQPUState : public QPUState {
+//   // Holder of args data for clean-up.
+//   cudaq::OpaqueArguments *argsData;
 
-public:
-  PyQPUState(const std::string &in_kernelName,
-             cudaq::OpaqueArguments *argsDataToOwn)
-      : argsData(argsDataToOwn) {
-    this->kernelName = in_kernelName;
-  }
+// public:
+//   PyQPUState(const std::string &in_kernelName,
+//              vector<void*> args)
+//       : QPUState(in_kernelName, argsDataToOwn->getArgs()),
+//         argsData(argsDataToOwn) {}
 
-  std::optional<std::pair<std::string, std::vector<void *>>>
-  getKernelInfo() const override {
-    return std::make_pair(kernelName, argsData->getArgs());
-  }
+//   // std::optional<std::pair<std::string, std::vector<void *>>>
+//   // getKernelInfo() const override {
+//   //   return std::make_pair(kernelName, argsData->getArgs());
+//   // }
 
-  ~PyQPUState() { delete argsData; }
-};
+//   ~PyQPUState() { delete argsData; }
+// };
 
 /// @brief Run `cudaq::get_state` for qpu targets on the provided
 /// kernel and args
@@ -175,7 +173,9 @@ state pyGetStateQPU(py::object kernel, py::args args) {
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
   auto [argWrapper, size, returnOffset] =
       pyCreateNativeKernel(kernelName, kernelMod, *argData);
-  return state(new PyQPUState(kernelName, argData));
+  auto stateImpl = new QPUState(kernelName, argData->getArgs());
+  delete argData;
+  return state(stateImpl);
 }
 
 state pyGetStateLibraryMode(py::object kernel, py::args args) {
