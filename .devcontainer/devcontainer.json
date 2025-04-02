@@ -229,7 +229,7 @@
 					{
 						"language": "*",
 						"template": [
-							"Copyright (c) <<yeartoyear(fc!P,now)>> <<copyrightholder>>.",
+							"Copyright (c) <<projectCreationYear>> - <<year>> <<copyrightholder>>.",
 							"All rights reserved.",
 							"",
 							"This source code and the accompanying materials are made available under",

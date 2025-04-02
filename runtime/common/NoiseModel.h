@@ -413,16 +413,10 @@ public:
   /// @param pred Callback function that generates a noise channel.
   void add_channel(const std::string &quantumOp, const PredicateFuncTy &pred);
 
-  /// @brief SFINAE helper to enable a function only if `T` is constructible
-  /// with `Args...`.
-  /// @tparam T The type to check
-  /// @tparam Args The argument types required for construction.
   template <typename T, typename... Args>
   using requires_constructor =
       std::enable_if_t<std::is_constructible_v<T, Args...>>;
 
-  /// @brief Register a Kraus channel. This must be called outside of a CUDA-Q
-  /// kernel before the channel can be recognized inside a CUDA-Q kernel.
   template <typename KrausChannelT,
             typename = requires_constructor<KrausChannelT,
                                             const std::vector<cudaq::real> &>>
@@ -582,10 +576,7 @@ public:
 /// a single-qubit depolarization error channel.
 class depolarization_channel : public kraus_channel {
 public:
-  /// @brief Number of parameters. The one parameter is the probability that the
-  /// error will occur.
   constexpr static std::size_t num_parameters = 1;
-  /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
   depolarization_channel(const std::vector<cudaq::real> &ps) {
     auto three = static_cast<real>(3.);
@@ -616,10 +607,7 @@ public:
 /// a single-qubit amplitude damping error channel.
 class amplitude_damping_channel : public kraus_channel {
 public:
-  /// @brief Number of parameters. The one parameter is the probability that the
-  /// error will occur.
   constexpr static std::size_t num_parameters = 1;
-  /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
   amplitude_damping_channel(const std::vector<cudaq::real> &ps) {
     auto probability = ps[0];
@@ -643,10 +631,7 @@ public:
 /// a single-qubit bit flipping error channel.
 class bit_flip_channel : public kraus_channel {
 public:
-  /// @brief Number of parameters. The one parameter is the probability that the
-  /// error will occur.
   constexpr static std::size_t num_parameters = 1;
-  /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
   bit_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
@@ -670,10 +655,7 @@ public:
 /// a single-qubit phase flip error channel.
 class phase_flip_channel : public kraus_channel {
 public:
-  /// @brief Number of parameters. The one parameter is the probability that the
-  /// error will occur.
   constexpr static std::size_t num_parameters = 1;
-  /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
   phase_flip_channel(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
@@ -713,10 +695,7 @@ public:
 /// a single-qubit phase damping error channel.
 class phase_damping : public kraus_channel {
 public:
-  /// @brief Number of parameters. The one parameter is the probability that the
-  /// error will occur.
   constexpr static std::size_t num_parameters = 1;
-  /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
   phase_damping(const std::vector<cudaq::real> &ps) {
     auto probability = ps[0];
@@ -765,10 +744,7 @@ public:
 /// occurs.
 class y_error : public kraus_channel {
 public:
-  /// @brief Number of parameters. The one parameter is the probability that the
-  /// error will occur.
   constexpr static std::size_t num_parameters = 1;
-  /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
   y_error(const std::vector<cudaq::real> &p) {
     cudaq::real probability = p[0];
@@ -791,11 +767,7 @@ public:
 /// or Z error, with 3 probabilities specified as inputs
 class pauli1 : public kraus_channel {
 public:
-  /// @brief Number of parameters. The 3 parameters are the probability that an
-  /// X error, Y error, or Z error happens. Only 1 of the 3 possible errors will
-  /// happen (at most).
   constexpr static std::size_t num_parameters = 3;
-  /// @brief Number of targets
   constexpr static std::size_t num_targets = 1;
 
   /// @brief Construct a single-qubit Pauli error Kraus channel
@@ -846,11 +818,7 @@ public:
 /// XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ.
 class pauli2 : public kraus_channel {
 public:
-  /// @brief Number of parameters. The 15 parameters are the probability that
-  /// each one of the above errors will happen. Only 1 of the 15 possible
-  /// errors will happen (at most).
   constexpr static std::size_t num_parameters = 15;
-  /// @brief Number of targets
   constexpr static std::size_t num_targets = 2;
 
   /// @brief Construct a 2-qubit Pauli error Kraus channel
@@ -936,11 +904,7 @@ public:
 /// ZY, and ZZ.
 class depolarization2 : public kraus_channel {
 public:
-  /// @brief Number of parameters. The 1 parameter is the probability that each
-  /// one of the 15 error possibilities list above will occur. Only 1 of the 15
-  /// possible errors will happen (at most).
   constexpr static std::size_t num_parameters = 1;
-  /// @brief Number of targets
   constexpr static std::size_t num_targets = 2;
   depolarization2(const std::vector<cudaq::real> p) : kraus_channel() {
     auto three = static_cast<cudaq::real>(3.);

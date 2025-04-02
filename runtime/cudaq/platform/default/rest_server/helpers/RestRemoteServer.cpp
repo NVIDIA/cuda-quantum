@@ -325,8 +325,7 @@ public:
         gradient->setKernel(fnWrapper);
 
       bool requiresGrad = optimizer.requiresGradients();
-      auto theSpin = *io_context.spin;
-      assert(cudaq::spin_op::canonicalize(theSpin) == theSpin);
+      auto theSpin = **io_context.spin;
 
       result = optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                                 std::vector<double> &grad_vec) {

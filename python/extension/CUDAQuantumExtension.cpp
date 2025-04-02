@@ -233,7 +233,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
           targetInfo.emplace_back(t[0], t[1]);
         }
         cudaq::getExecutionManager()->apply(name, params, {}, targetInfo, false,
-                                            cudaq::spin_op::identity());
+                                            cudaq::spin_op());
       },
       "Apply the input photonics operation on the target qudits.",
       py::arg("name"), py::arg("params"), py::arg("targets"));

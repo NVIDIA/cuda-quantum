@@ -8,7 +8,7 @@
 // password, use pasqal_auth.py in this folder.
 
 #include "cudaq/algorithms/evolve.h"
-#include "cudaq/algorithms/integrator.h"
+#include "cudaq/dynamics_integrators.h"
 #include "cudaq/operators.h"
 #include "cudaq/schedule.h"
 #include <cmath>

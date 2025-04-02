@@ -313,11 +313,19 @@ public:
   }
 
   cudaq::observe_result observe(const cudaq::spin_op &op) override {
-    assert(cudaq::spin_op::canonicalize(op) == op);
+
     flushGateQueue();
 
     // The op is on the following target bits.
-    auto targets = op.degrees();
+    std::vector<std::size_t> targets;
+    op.for_each_term([&](cudaq::spin_op &term) {
+      term.for_each_pauli(
+          [&](cudaq::pauli p, std::size_t idx) { targets.push_back(idx); });
+    });
+
+    std::sort(targets.begin(), targets.end());
+    const auto last_iter = std::unique(targets.begin(), targets.end());
+    targets.erase(last_iter, targets.end());
 
     // Get the matrix as an Eigen matrix
     auto matrix = op.to_matrix();
@@ -332,9 +340,9 @@ public:
       ee = qpp::apply(asEigen, state, targets).trace().real();
     }
 
-    return cudaq::observe_result(
-        ee, op,
-        cudaq::sample_result(cudaq::ExecutionResult({}, op.to_string(), ee)));
+    return cudaq::observe_result(ee, op,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, op.to_string(false), ee)));
   }
 
   /// @brief Reset the qubit

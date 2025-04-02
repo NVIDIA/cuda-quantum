@@ -111,7 +111,7 @@ public:
   virtual void applyExpPauli(double theta,
                              const std::vector<std::size_t> &controls,
                              const std::vector<std::size_t> &qubitIds,
-                             const cudaq::spin_op_term &op) override {
+                             const cudaq::spin_op &op) override {
     if (this->isInTracerMode()) {
       nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubitIds, op);
       return;
@@ -123,32 +123,28 @@ public:
     // Hence, we check if this is a Rxx(theta), Ryy(theta), or Rzz(theta), which
     // are commonly-used gates and apply the operation directly (the base
     // decomposition will result in 2 CNOT gates).
-    const auto shouldHandlePauliOp = [](const std::string &pauli_word) -> bool {
-      return pauli_word == "XX" || pauli_word == "YY" || pauli_word == "ZZ";
+    const auto shouldHandlePauliOp =
+        [](const cudaq::spin_op &opToCheck) -> bool {
+      const std::string opStr = opToCheck.to_string(false);
+      return opStr == "XX" || opStr == "YY" || opStr == "ZZ";
     };
-
-    // FIXME: the implementation here assumes that  the spin op term is not
-    // a general spin op term, but really just a pauli word; it's coefficient is
-    // silently ignored. This works because it was actually constructed from a
-    // pauli word - we should just pass that one along.
-    auto pauli_word = op.get_pauli_word();
-    if (controls.empty() && qubitIds.size() == 2 &&
-        shouldHandlePauliOp(pauli_word)) {
+    if (controls.empty() && qubitIds.size() == 2 && shouldHandlePauliOp(op)) {
       flushGateQueue();
       cudaq::info("[SimulatorMPS] (apply) exp(i*{}*{}) ({}, {}).", theta,
-                  op.to_string(), qubitIds[0], qubitIds[1]);
+                  op.to_string(false), qubitIds[0], qubitIds[1]);
       const GateApplicationTask task = [&]() {
+        const std::string opStr = op.to_string(false);
         // Note: Rxx(angle) ==  exp(-i*angle/2 XX)
         // i.e., exp(i*theta XX) == Rxx(-2 * theta)
-        if (pauli_word == "XX") {
+        if (opStr == "XX") {
           // Note: use a special name so that the gate matrix caching procedure
           // works properly.
           return GateApplicationTask("Rxx", generateXX(-2.0 * theta), {},
                                      qubitIds, {theta});
-        } else if (pauli_word == "YY") {
+        } else if (opStr == "YY") {
           return GateApplicationTask("Ryy", generateYY(-2.0 * theta), {},
                                      qubitIds, {theta});
-        } else if (pauli_word == "ZZ") {
+        } else if (opStr == "ZZ") {
           return GateApplicationTask("Rzz", generateZZ(-2.0 * theta), {},
                                      qubitIds, {theta});
         }
@@ -252,21 +248,35 @@ public:
   }
 
   // Helper to prepare term-by-term data from a spin op
-  static std::tuple<std::vector<std::string>, std::vector<cudaq::spin_op_term>>
+  static std::tuple<std::vector<std::string>,
+                    std::vector<cudaq::spin_op::spin_op_term>,
+                    std::vector<std::complex<double>>>
   prepareSpinOpTermData(const cudaq::spin_op &ham) {
     std::vector<std::string> termStrs;
-    std::vector<cudaq::spin_op_term> prods;
+    std::vector<cudaq::spin_op::spin_op_term> terms;
+    std::vector<std::complex<double>> coeffs;
     termStrs.reserve(ham.num_terms());
-    prods.reserve(ham.num_terms());
-    for (auto &&term : prods) {
-      termStrs.emplace_back(term.get_term_id());
-      prods.push_back(std::move(term));
-    }
-    return std::make_tuple(termStrs, prods);
+    terms.reserve(ham.num_terms());
+    coeffs.reserve(ham.num_terms());
+
+    // Note: as the spin_op terms are stored as an unordered map, we need to
+    // iterate in one loop to collect all the data (string, symplectic data, and
+    // coefficient).
+    ham.for_each_term([&](cudaq::spin_op &term) {
+      termStrs.emplace_back(term.to_string(false));
+      auto [symplecticRep, coeff] = term.get_raw_data();
+      if (symplecticRep.size() != 1 || coeff.size() != 1)
+        throw std::runtime_error(fmt::format(
+            "Unexpected data encountered when iterating spin operator terms: "
+            "expecting a single term, got {} terms.",
+            symplecticRep.size()));
+      terms.emplace_back(symplecticRep[0]);
+      coeffs.emplace_back(coeff[0]);
+    });
+    return std::make_tuple(termStrs, terms, coeffs);
   }
 
   cudaq::observe_result observe(const cudaq::spin_op &ham) override {
-    assert(cudaq::spin_op::canonicalize(ham) == ham);
     LOG_API_TIME();
     const bool hasNoise = executionContext && executionContext->noiseModel;
     // If no noise, just use base class implementation.
@@ -279,7 +289,7 @@ public:
             ? this->executionContext->numberTrajectories.value()
             : TensorNetState::g_numberTrajectoriesForObserve;
 
-    auto [termStrs, terms] = prepareSpinOpTermData(ham);
+    auto [termStrs, terms, coeffs] = prepareSpinOpTermData(ham);
     std::vector<std::complex<double>> termExpVals(terms.size(), 0.0);
 
     for (std::size_t i = 0; i < numObserveTrajectories; ++i) {
@@ -301,6 +311,7 @@ public:
     results.reserve(terms.size());
 
     for (std::size_t i = 0; i < terms.size(); ++i) {
+      expVal += (coeffs[i] * termExpVals[i]);
       results.emplace_back(
           cudaq::ExecutionResult({}, termStrs[i], termExpVals[i].real()));
     }

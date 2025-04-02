@@ -168,8 +168,8 @@ matrix:
       - open: '([A-Za-z_\\\/]+\.)+'
         close: '($|(?=[^a-z]))'
         content: '\S+?'
-      # Ignore the doxygen @param (or @tparam) command and the code artifact after it.
-      - open: '[\\@](?:tparam|param)(\s+\[\w+\])?(?:\s+\S)?'
+      # Ignore the doxygen \param command and the code artifact after it.
+      - open: '[\\@]param(\s+\[\w+\])?(?:\s+\S)?'
         close: '(\s|$)'
       # Ignore the first word after \command or @command, which is a code artifact
       - open: '[\\@]([acep])(?:\s+\S)?'

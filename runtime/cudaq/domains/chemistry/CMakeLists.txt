@@ -9,7 +9,7 @@
 add_library(cudaq-chemistry SHARED molecule.cpp)
 
 set (CHEMISTRY_DEPENDENCIES "")
-list(APPEND CHEMISTRY_DEPENDENCIES cudaq-operator)
+list(APPEND CHEMISTRY_DEPENDENCIES cudaq-spin)
 add_openmp_configurations(cudaq-chemistry CHEMISTRY_DEPENDENCIES)
 
 target_link_libraries(cudaq-chemistry PRIVATE ${CHEMISTRY_DEPENDENCIES})

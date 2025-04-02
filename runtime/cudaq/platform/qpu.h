@@ -73,8 +73,7 @@ protected:
                                  "without a cudaq::spin_op.");
 
       std::vector<cudaq::ExecutionResult> results;
-      cudaq::spin_op &H = localContext->spin.value();
-      assert(cudaq::spin_op::canonicalize(H) == H);
+      cudaq::spin_op &H = *localContext->spin.value();
 
       // If the backend supports the observe task,
       // let it compute the expectation value instead of
@@ -87,17 +86,17 @@ protected:
       } else {
 
         // Loop over each term and compute coeff * <term>
-        for (const auto &term : H) {
+        H.for_each_term([&](cudaq::spin_op &term) {
           if (term.is_identity())
-            sum += term.evaluate_coefficient().real();
+            sum += term.get_coefficient().real();
           else {
             // This takes a longer time for the first iteration unless
             // flushGateQueue() is called above.
             auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.get_term_id(), exp);
-            sum += term.evaluate_coefficient().real() * exp;
+            results.emplace_back(data.to_map(), term.to_string(false), exp);
+            sum += term.get_coefficient().real() * exp;
           }
-        };
+        });
 
         localContext->expectationValue = sum;
         localContext->result = cudaq::sample_result(sum, results);
@@ -170,7 +169,7 @@ public:
   virtual void setTargetBackend(const std::string &backend) {}
 
   virtual void launchVQE(const std::string &name, const void *kernelArgs,
-                         cudaq::gradient *gradient, const cudaq::spin_op &H,
+                         cudaq::gradient *gradient, cudaq::spin_op H,
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}
 
