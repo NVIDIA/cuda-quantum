@@ -165,9 +165,11 @@ void permute_matrix(cudaq::complex_matrix &matrix,
   }
 }
 
-complex_matrix
-create_matrix(std::size_t dim, std::complex<double> coeff,
-              const std::function<void(const std::function<void(std::size_t, std::size_t, std::complex<double>)> &)> &create) {
+complex_matrix create_matrix(
+    std::size_t dim, std::complex<double> coeff,
+    const std::function<void(const std::function<void(std::size_t, std::size_t,
+                                                      std::complex<double>)> &)>
+        &create) {
   complex_matrix matrix(dim, dim);
   auto process_entry = [&matrix, &coeff](std::size_t new_state,
                                          std::size_t old_state,
@@ -178,9 +180,11 @@ create_matrix(std::size_t dim, std::complex<double> coeff,
   return matrix;
 }
 
-EigenSparseMatrix
-create_sparse_matrix(std::size_t dim, std::complex<double> coeff,
-                     const std::function<void(const std::function<void(std::size_t, std::size_t, std::complex<double>)> &)> &create) {
+EigenSparseMatrix create_sparse_matrix(
+    std::size_t dim, std::complex<double> coeff,
+    const std::function<void(const std::function<void(std::size_t, std::size_t,
+                                                      std::complex<double>)> &)>
+        &create) {
   using Triplet = Eigen::Triplet<std::complex<double>>;
   std::vector<Triplet> triplets;
   triplets.reserve(dim);

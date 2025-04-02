@@ -150,10 +150,13 @@ cudaq::detail::EigenSparseMatrix
 spin_handler::to_sparse_matrix(const std::string &pauli_word,
                                std::complex<double> coeff, bool invert_order) {
   auto dim = 1ul << pauli_word.size();
-  return cudaq::detail::create_sparse_matrix(dim, coeff, [&pauli_word, invert_order]
-    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
-    create_matrix(pauli_word, process_entry, invert_order);
-  });
+  return cudaq::detail::create_sparse_matrix(
+      dim, coeff,
+      [&pauli_word, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(pauli_word, process_entry, invert_order);
+      });
 }
 
 cudaq::detail::EigenSparseMatrix
@@ -170,10 +173,13 @@ complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
                                        std::complex<double> coeff,
                                        bool invert_order) {
   auto dim = 1ul << pauli_word.size();
-  return cudaq::detail::create_matrix(dim, coeff, [&pauli_word, invert_order]
-    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
-    create_matrix(pauli_word, process_entry, invert_order);
-  });
+  return cudaq::detail::create_matrix(
+      dim, coeff,
+      [&pauli_word, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(pauli_word, process_entry, invert_order);
+      });
 }
 
 complex_matrix spin_handler::to_matrix(const std::string &pauli_word,

@@ -62,18 +62,22 @@ void permute_matrix(cudaq::complex_matrix &matrix,
                     const std::vector<std::size_t> &permutation);
 
 /// Helper function for matrix creation.
-/// The matrix creation function should call its function argument for 
+/// The matrix creation function should call its function argument for
 /// every entry in the matrix.
-complex_matrix
-create_matrix(std::size_t dim, std::complex<double> coeff,
-              const std::function<void(const std::function<void(std::size_t, std::size_t, std::complex<double>)> &)> &create);
+complex_matrix create_matrix(
+    std::size_t dim, std::complex<double> coeff,
+    const std::function<void(const std::function<void(std::size_t, std::size_t,
+                                                      std::complex<double>)> &)>
+        &create);
 
 /// Helper function for sparse matrix creation.
-/// The matrix creation function should call its function argument for 
+/// The matrix creation function should call its function argument for
 /// every entry in the matrix.
-EigenSparseMatrix
-create_sparse_matrix(std::size_t dim, std::complex<double> coeff,
-                     const std::function<void(const std::function<void(std::size_t, std::size_t, std::complex<double>)> &)> &create);
+EigenSparseMatrix create_sparse_matrix(
+    std::size_t dim, std::complex<double> coeff,
+    const std::function<void(const std::function<void(std::size_t, std::size_t,
+                                                      std::complex<double>)> &)>
+        &create);
 
 /// Converts and Eigen sparse matrix to the `csr_spmatrix` format used in
 /// CUDA-Q.

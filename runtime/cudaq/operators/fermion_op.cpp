@@ -202,10 +202,13 @@ cudaq::detail::EigenSparseMatrix fermion_handler::to_sparse_matrix(
   assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
                       [](int64_t d) { return d != 2; }) == dimensions.cend());
   auto dim = 1 << fermi_word.size();
-  return cudaq::detail::create_sparse_matrix(dim, coeff, [&fermi_word, invert_order]
-    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
-    create_matrix(fermi_word, process_entry, invert_order);
-  });
+  return cudaq::detail::create_sparse_matrix(
+      dim, coeff,
+      [&fermi_word, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(fermi_word, process_entry, invert_order);
+      });
 }
 
 complex_matrix
@@ -216,10 +219,13 @@ fermion_handler::to_matrix(const std::string &fermi_word,
   assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
                       [](int64_t d) { return d != 2; }) == dimensions.cend());
   auto dim = 1 << fermi_word.size();
-  return cudaq::detail::create_matrix(dim, coeff, [&fermi_word, invert_order]
-    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
-    create_matrix(fermi_word, process_entry, invert_order);
-  });
+  return cudaq::detail::create_matrix(
+      dim, coeff,
+      [&fermi_word, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(fermi_word, process_entry, invert_order);
+      });
 }
 
 complex_matrix fermion_handler::to_matrix(
