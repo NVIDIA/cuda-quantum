@@ -28,19 +28,6 @@ document.addEventListener('DOMContentLoaded', function() {
         qpu: ['neutral']
     };
 
-    const activeFilters = {
-        domain: 'all',
-        backend: 'all',
-        occasion: 'all',
-        subFilter: 'all'
-    };
-
-    const backendCategories = {
-        noiseless: ['gpu', 'mgpu', 'mqpu'],
-        noisy: ['density'],
-        qpu: ['neutral']
-    };
-
     tagButtons.forEach(button => {
         button.addEventListener('click', function() {
             const group = this.getAttribute('data-group');
@@ -65,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.querySelectorAll('.backend-toggle').forEach(toggle =>
                         toggle.classList.toggle('active',
                             toggle.getAttribute('data-tag') === activeFilters.backend));
-                    
+
                     document.querySelector('.tag-button[data-tag="all"]').classList.remove('active');
                 }
             } else if (this.classList.contains('backend-toggle')) {
