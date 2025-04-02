@@ -122,13 +122,13 @@ void bindMatrixOperator(py::module &mod) {
     "the given tolerance.")
   .def("canonicalize", [](matrix_op &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
     "Removes all identity operators from the operator.")
-  .def_static("canonicalize", [](const matrix_op &orig) { return matrix_op::canonicalize(orig); },
+  .def_static("canonicalized", [](const matrix_op &orig) { return matrix_op::canonicalize(orig); },
     "Removes all identity operators from the operator.")
   .def("canonicalize", [](matrix_op &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
     "degrees of freedom.")
-  .def_static("canonicalize", [](const matrix_op &orig, const std::set<std::size_t> &degrees) { return matrix_op::canonicalize(orig, degrees); },
+  .def_static("canonicalized", [](const matrix_op &orig, const std::set<std::size_t> &degrees) { return matrix_op::canonicalize(orig, degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
     "degrees of freedom.")
@@ -216,13 +216,13 @@ void bindMatrixOperator(py::module &mod) {
     "Prints the string representation of the operator to the standard output.")
   .def("canonicalize", [](matrix_op_term &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
     "Removes all identity operators from the operator.")
-  .def_static("canonicalize", [](const matrix_op_term &orig) { return matrix_op_term::canonicalize(orig); },
+  .def_static("canonicalized", [](const matrix_op_term &orig) { return matrix_op_term::canonicalize(orig); },
     "Removes all identity operators from the operator.")
   .def("canonicalize", [](matrix_op_term &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "The canonicalization will throw a runtime exception if the operator acts on any degrees "
     "of freedom that are not included in the given set.")
-  .def_static("canonicalize", [](const matrix_op_term &orig, const std::set<std::size_t> &degrees) { return matrix_op_term::canonicalize(orig, degrees); },
+  .def_static("canonicalized", [](const matrix_op_term &orig, const std::set<std::size_t> &degrees) { return matrix_op_term::canonicalize(orig, degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "The canonicalization will throw a runtime exception if the operator acts on any degrees "
     "of freedom that are not included in the given set.")
