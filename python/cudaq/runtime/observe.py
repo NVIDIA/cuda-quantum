@@ -5,10 +5,8 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from ..kernel.kernel_builder import PyKernel
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .utils import __isBroadcast, __createArgumentSet
-from ..mlir.dialects import quake, cc
 
 
 def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):

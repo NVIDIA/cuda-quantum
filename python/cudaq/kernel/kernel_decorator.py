@@ -5,22 +5,23 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import ast, sys, traceback
+import ast
 import importlib
 import inspect
 import json
-from typing import Callable
-from ..mlir.ir import *
-from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc, func
-from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli, globalRegisteredTypes
-from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from .captured_data import CapturedDataStorage
-from ..handlers import PhotonicsHandler
-
 import numpy as np
+
+from cudaq.handlers import PhotonicsHandler
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import cc, func
+from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
+                           SymbolTable)
+from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
+from .ast_bridge import compile_to_mlir, PyASTBridge
+from .captured_data import CapturedDataStorage
+from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
+                    globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
+                    nvqppPrefix)
 
 # This file implements the decorator mechanism needed to
 # JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
