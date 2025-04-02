@@ -21,8 +21,24 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   circuitSimulator->outputLog.clear();
 
   // 2. Launch the kernel on the QPU.
-  for (std::size_t i = 0; i < shots; ++i)
+  if (platform.get_remote_capabilities().isRemoteSimulator) {
+    // In a remote simulator execution environment, set the `run` context name
+    // and number of iterations (shots)
+    auto ctx = std::make_unique<cudaq::ExecutionContext>("run", shots);
+    platform.set_exec_ctx(ctx.get());
+    // Launch the kernel a single time to post the 'run' request to the remote
+    // server.
     kernel();
+    platform.reset_exec_ctx();
+    // Retrieve the result output log.
+    // FIXME: this currently assumes all the shots are good.
+    std::string remoteOutputLog(ctx->invocationResultBuffer.begin(),
+                                ctx->invocationResultBuffer.end());
+    circuitSimulator->outputLog.swap(remoteOutputLog);
+  } else {
+    for (std::size_t i = 0; i < shots; ++i)
+      kernel();
+  }
 
   // 3. Pass the outputLog to the decoder (target-specific?)
   cudaq::RecordLogDecoder decoder;
