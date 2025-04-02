@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.querySelectorAll('.backend-toggle').forEach(toggle =>
                         toggle.classList.toggle('active',
                             toggle.getAttribute('data-tag') === activeFilters.backend));
-                    
+
                     document.querySelector('.tag-button[data-tag="all"]').classList.remove('active');
                 }
             } else if (this.classList.contains('backend-toggle')) {
