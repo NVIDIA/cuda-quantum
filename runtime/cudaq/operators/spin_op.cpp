@@ -149,19 +149,11 @@ void spin_handler::create_matrix(
 cudaq::detail::EigenSparseMatrix
 spin_handler::to_sparse_matrix(const std::string &pauli_word,
                                std::complex<double> coeff, bool invert_order) {
-  using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1ul << pauli_word.size();
-  std::vector<Triplet> triplets;
-  triplets.reserve(dim);
-  auto process_entry = [&triplets, &coeff](std::size_t new_state,
-                                           std::size_t old_state,
-                                           std::complex<double> entry) {
-    triplets.push_back(Triplet(new_state, old_state, coeff * entry));
-  };
-  create_matrix(pauli_word, process_entry, invert_order);
-  cudaq::detail::EigenSparseMatrix matrix(dim, dim);
-  matrix.setFromTriplets(triplets.begin(), triplets.end());
-  return matrix;
+  return cudaq::detail::create_sparse_matrix(dim, coeff, [&pauli_word, invert_order]
+    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
+    create_matrix(pauli_word, process_entry, invert_order);
+  });
 }
 
 cudaq::detail::EigenSparseMatrix
@@ -178,14 +170,10 @@ complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
                                        std::complex<double> coeff,
                                        bool invert_order) {
   auto dim = 1ul << pauli_word.size();
-  complex_matrix matrix(dim, dim);
-  auto process_entry = [&matrix, &coeff](std::size_t new_state,
-                                         std::size_t old_state,
-                                         std::complex<double> entry) {
-    matrix[{new_state, old_state}] = coeff * entry;
-  };
-  create_matrix(pauli_word, process_entry, invert_order);
-  return matrix;
+  return cudaq::detail::create_matrix(dim, coeff, [&pauli_word, invert_order]
+    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
+    create_matrix(pauli_word, process_entry, invert_order);
+  });
 }
 
 complex_matrix spin_handler::to_matrix(const std::string &pauli_word,

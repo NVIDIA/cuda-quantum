@@ -201,20 +201,11 @@ cudaq::detail::EigenSparseMatrix fermion_handler::to_sparse_matrix(
   // private method, so we only assert dimensions
   assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
                       [](int64_t d) { return d != 2; }) == dimensions.cend());
-
-  using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1 << fermi_word.size();
-  std::vector<Triplet> triplets;
-  triplets.reserve(dim);
-  auto process_entry = [&triplets, &coeff](std::size_t new_state,
-                                           std::size_t old_state,
-                                           std::complex<double> entry) {
-    triplets.push_back(Triplet(new_state, old_state, coeff * entry));
-  };
-  create_matrix(fermi_word, process_entry, invert_order);
-  cudaq::detail::EigenSparseMatrix matrix(dim, dim);
-  matrix.setFromTriplets(triplets.begin(), triplets.end());
-  return matrix;
+  return cudaq::detail::create_sparse_matrix(dim, coeff, [&fermi_word, invert_order]
+    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
+    create_matrix(fermi_word, process_entry, invert_order);
+  });
 }
 
 complex_matrix
@@ -224,16 +215,11 @@ fermion_handler::to_matrix(const std::string &fermi_word,
   // private method, so we only assert dimensions
   assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
                       [](int64_t d) { return d != 2; }) == dimensions.cend());
-
   auto dim = 1 << fermi_word.size();
-  complex_matrix matrix(dim, dim);
-  auto process_entry = [&matrix, &coeff](std::size_t new_state,
-                                         std::size_t old_state,
-                                         std::complex<double> entry) {
-    matrix[{new_state, old_state}] = coeff * entry;
-  };
-  create_matrix(fermi_word, process_entry, invert_order);
-  return matrix;
+  return cudaq::detail::create_matrix(dim, coeff, [&fermi_word, invert_order]
+    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
+    create_matrix(fermi_word, process_entry, invert_order);
+  });
 }
 
 complex_matrix fermion_handler::to_matrix(

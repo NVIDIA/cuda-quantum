@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #pragma once
+
 #include "cudaq/utils/matrix.h"
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -59,12 +61,24 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
 void permute_matrix(cudaq::complex_matrix &matrix,
                     const std::vector<std::size_t> &permutation);
 
-// FIXME: do we really want to stick with this tuple or should we rather switch
-// to just using the Eigen sparse matrix? Depends on our general usage of Eigen.
+/// Helper function for matrix creation.
+/// The matrix creation function should call its function argument for 
+/// every entry in the matrix.
+complex_matrix
+create_matrix(std::size_t dim, std::complex<double> coeff,
+              const std::function<void(const std::function<void(std::size_t, std::size_t, std::complex<double>)> &)> &create);
+
+/// Helper function for sparse matrix creation.
+/// The matrix creation function should call its function argument for 
+/// every entry in the matrix.
+EigenSparseMatrix
+create_sparse_matrix(std::size_t dim, std::complex<double> coeff,
+                     const std::function<void(const std::function<void(std::size_t, std::size_t, std::complex<double>)> &)> &create);
+
 /// Converts and Eigen sparse matrix to the `csr_spmatrix` format used in
 /// CUDA-Q.
-cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
-                                    std::size_t estimated_num_entries);
+csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
+                             std::size_t estimated_num_entries);
 
 } // namespace detail
 } // namespace cudaq

@@ -165,6 +165,36 @@ void permute_matrix(cudaq::complex_matrix &matrix,
   }
 }
 
+complex_matrix
+create_matrix(std::size_t dim, std::complex<double> coeff,
+              const std::function<void(const std::function<void(std::size_t, std::size_t, std::complex<double>)> &)> &create) {
+  complex_matrix matrix(dim, dim);
+  auto process_entry = [&matrix, &coeff](std::size_t new_state,
+                                         std::size_t old_state,
+                                         std::complex<double> entry) {
+    matrix[{new_state, old_state}] = coeff * entry;
+  };
+  create(process_entry);
+  return matrix;
+}
+
+EigenSparseMatrix
+create_sparse_matrix(std::size_t dim, std::complex<double> coeff,
+                     const std::function<void(const std::function<void(std::size_t, std::size_t, std::complex<double>)> &)> &create) {
+  using Triplet = Eigen::Triplet<std::complex<double>>;
+  std::vector<Triplet> triplets;
+  triplets.reserve(dim);
+  auto process_entry = [&triplets, &coeff](std::size_t new_state,
+                                           std::size_t old_state,
+                                           std::complex<double> entry) {
+    triplets.push_back(Triplet(new_state, old_state, coeff * entry));
+  };
+  create(process_entry);
+  cudaq::detail::EigenSparseMatrix matrix(dim, dim);
+  matrix.setFromTriplets(triplets.begin(), triplets.end());
+  return matrix;
+}
+
 cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
                                     std::size_t estimated_num_entries) {
   std::vector<std::complex<double>> values;

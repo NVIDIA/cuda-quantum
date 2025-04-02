@@ -8,6 +8,7 @@
 
 #include <cmath>
 #include <complex>
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -175,12 +176,12 @@ void boson_handler::create_matrix(
     bool invert_order) {
   auto tokenize = [](std::string s, char delim) {
     std::vector<std::string> tokens;
-    int start, end = -1;
-    do {
-      start = end + 1;
-      end = s.find(delim, start);
-      tokens.push_back(s.substr(start, end - start));
-    } while (end != -1);
+    std::size_t start = 0, end = 0;
+    while((end = s.find(delim, start)) != std::string::npos) {
+        tokens.push_back(s.substr(start, end - start));
+        start = end + 1;
+    }
+    tokens.push_back(s.substr(start));
     return tokens;
   };
 
@@ -246,21 +247,13 @@ cudaq::detail::EigenSparseMatrix
 boson_handler::to_sparse_matrix(const std::string &boson_word,
                                 const std::vector<int64_t> &dimensions,
                                 std::complex<double> coeff, bool invert_order) {
-  using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1;
   for (auto d : dimensions)
     dim *= d;
-  std::vector<Triplet> triplets;
-  triplets.reserve(dim);
-  auto process_entry = [&triplets, &coeff](std::size_t new_state,
-                                           std::size_t old_state,
-                                           std::complex<double> entry) {
-    triplets.push_back(Triplet(new_state, old_state, coeff * entry));
-  };
-  create_matrix(boson_word, dimensions, process_entry, invert_order);
-  cudaq::detail::EigenSparseMatrix matrix(dim, dim);
-  matrix.setFromTriplets(triplets.begin(), triplets.end());
-  return matrix;
+  return cudaq::detail::create_sparse_matrix(dim, coeff, [&boson_word, &dimensions, invert_order]
+    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
+    create_matrix(boson_word, dimensions, process_entry, invert_order);
+  });
 }
 
 complex_matrix boson_handler::to_matrix(const std::string &boson_word,
@@ -270,14 +263,10 @@ complex_matrix boson_handler::to_matrix(const std::string &boson_word,
   auto dim = 1;
   for (auto d : dimensions)
     dim *= d;
-  complex_matrix matrix(dim, dim);
-  auto process_entry = [&matrix, &coeff](std::size_t new_state,
-                                         std::size_t old_state,
-                                         std::complex<double> entry) {
-    matrix[{new_state, old_state}] = coeff * entry;
-  };
-  create_matrix(boson_word, dimensions, process_entry, invert_order);
-  return matrix;
+  return cudaq::detail::create_matrix(dim, coeff, [&boson_word, &dimensions, invert_order]
+    (const std::function<void(std::size_t, std::size_t, std::complex<double>)> &process_entry) {
+    create_matrix(boson_word, dimensions, process_entry, invert_order);
+  });
 }
 
 complex_matrix boson_handler::to_matrix(
