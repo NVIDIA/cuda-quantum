@@ -442,6 +442,23 @@ public:
                              platform.set_exec_ctx(&io_context);
                          });
         io_context.result = counts;
+      } else if (io_context.name == "run") {
+        // Handle cudaq::run: it should be executed in a context-free manner;
+        // the output log is accumulated in the simulator output log.
+        platform.reset_exec_ctx();
+        //  Clear the outputLog.
+        auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+        circuitSimulator->outputLog.clear();
+        // Invoke the kernel multiple times.
+        invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
+                         std::string(kernelName), io_context.shots);
+        // Save the output log to the result buffer to be sent back to the
+        // client.
+        io_context.invocationResultBuffer.assign(
+            circuitSimulator->outputLog.c_str(),
+            circuitSimulator->outputLog.c_str() +
+                circuitSimulator->outputLog.size());
+        circuitSimulator->outputLog.clear();
       } else {
         invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
                          std::string(kernelName));
