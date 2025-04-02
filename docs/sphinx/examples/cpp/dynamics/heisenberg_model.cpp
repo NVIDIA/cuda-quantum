@@ -46,7 +46,7 @@ int main() {
   // in sign. For even sites, we add `sz`; for odd sites, we subtract `sz`.
   auto staggered_magnetization_t = cudaq::sum_op<cudaq::spin_handler>::empty();
   for (int i = 0; i < num_spins; i++) {
-    auto sz = cudaq::spin_handler::z(i);
+    auto sz = cudaq::spin_op::z(i);
     if (i % 2 == 0) {
       staggered_magnetization_t += sz;
     } else {
@@ -85,12 +85,12 @@ int main() {
     // This is a form of the `anisotropic` Heisenberg (or `XYZ`) model.
     auto hamiltonian = cudaq::sum_op<cudaq::spin_handler>::empty();
     for (int i = 0; i < num_spins - 1; i++) {
-      hamiltonian = hamiltonian + Jx * cudaq::spin_handler::x(i) *
-                                      cudaq::spin_handler::x(i + 1);
-      hamiltonian = hamiltonian + Jy * cudaq::spin_handler::y(i) *
-                                      cudaq::spin_handler::y(i + 1);
-      hamiltonian = hamiltonian + Jz * cudaq::spin_handler::z(i) *
-                                      cudaq::spin_handler::z(i + 1);
+      hamiltonian =
+          hamiltonian + Jx * cudaq::spin_op::x(i) * cudaq::spin_op::x(i + 1);
+      hamiltonian =
+          hamiltonian + Jy * cudaq::spin_op::y(i) * cudaq::spin_op::y(i + 1);
+      hamiltonian =
+          hamiltonian + Jz * cudaq::spin_op::z(i) * cudaq::spin_op::z(i + 1);
     }
 
     // Initial state vector
