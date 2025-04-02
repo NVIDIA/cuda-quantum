@@ -21,6 +21,9 @@ public:
   state compute(const state &inputState, double t, double step_size,
                 const std::unordered_map<std::string, std::complex<double>>
                     &parameters) override;
+  void computeImpl(
+      cudensitymatState_t inState, cudensitymatState_t outState, double t,
+      const std::unordered_map<std::string, std::complex<double>> &parameters);
 
 private:
   cudensitymatHandle_t m_handle;
