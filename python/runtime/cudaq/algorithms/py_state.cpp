@@ -75,6 +75,7 @@ public:
                           std::size_t size, std::size_t returnOffset)
       : argsData(argsDataToOwn), kernelMod(args.mod) {
     this->kernelName = in_kernelName;
+    this->args = argsData->getArgs();
   }
 
   void execute() const override {
@@ -98,11 +99,6 @@ public:
     }
   }
 
-  std::optional<std::pair<std::string, std::vector<void *>>>
-  getKernelInfo() const override {
-    return std::make_pair(kernelName, argsData->getArgs());
-  }
-
   std::complex<double> overlap(const cudaq::SimulationState &other) override {
     const auto &otherState =
         dynamic_cast<const PyRemoteSimulationState &>(other);
@@ -121,7 +117,7 @@ public:
     return context.overlapResult.value();
   }
 
-  ~PyRemoteSimulationState() { delete argsData; }
+  virtual ~PyRemoteSimulationState() override { delete argsData; }
 };
 
 /// @brief Run `cudaq::get_state` for remote execution targets on the provided
@@ -140,26 +136,23 @@ state pyGetStateRemote(py::object kernel, py::args args) {
                                            size, returnOffset));
 }
 
-// /// @brief Python implementation of the `QPUState`.
-// // Note: Python kernel arguments are wrapped hence need to be unwrapped
-// // accordingly.
-// class PyQPUState : public QPUState {
-//   // Holder of args data for clean-up.
-//   cudaq::OpaqueArguments *argsData;
+/// @brief Python implementation of the `QPUState`.
+// Note: Python kernel arguments are wrapped hence need to be unwrapped
+// accordingly.
+class PyQPUState : public QPUState {
+  // Holder of args data for clean-up.
+  cudaq::OpaqueArguments *argsData;
 
-// public:
-//   PyQPUState(const std::string &in_kernelName,
-//              vector<void*> args)
-//       : QPUState(in_kernelName, argsDataToOwn->getArgs()),
-//         argsData(argsDataToOwn) {}
+public:
+  PyQPUState(const std::string &in_kernelName,
+             cudaq::OpaqueArguments *argsDataToOwn)
+      : argsData(argsDataToOwn) {
+    this->kernelName = in_kernelName;
+    this->args = argsData->getArgs();
+  }
 
-//   // std::optional<std::pair<std::string, std::vector<void *>>>
-//   // getKernelInfo() const override {
-//   //   return std::make_pair(kernelName, argsData->getArgs());
-//   // }
-
-//   ~PyQPUState() { delete argsData; }
-// };
+  virtual ~PyQPUState() override { delete argsData; }
+};
 
 /// @brief Run `cudaq::get_state` for qpu targets on the provided
 /// kernel and args
@@ -173,9 +166,7 @@ state pyGetStateQPU(py::object kernel, py::args args) {
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
   auto [argWrapper, size, returnOffset] =
       pyCreateNativeKernel(kernelName, kernelMod, *argData);
-  auto stateImpl = new QPUState(kernelName, argData->getArgs());
-  delete argData;
-  return state(stateImpl);
+  return state(new PyQPUState(kernelName, argData));
 }
 
 state pyGetStateLibraryMode(py::object kernel, py::args args) {

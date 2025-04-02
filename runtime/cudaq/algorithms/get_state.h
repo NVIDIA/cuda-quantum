@@ -94,7 +94,7 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
 }
 
 template <typename QuantumKernel>
-std::string &registerAndGetKernelName(QuantumKernel &&kernel) {
+std::string registerAndGetKernelName(QuantumKernel &&kernel) {
   if constexpr (has_name<QuantumKernel>::value) {
     // kernel_builder kernel: need to JIT code to get it registered.
     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
@@ -134,16 +134,18 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
 #elif defined(CUDAQ_QUANTUM_DEVICE) && !defined(CUDAQ_LIBRARY_MODE)
   // Store kernel name and arguments for quantum states.
   if (!cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
-    return state(new QPUState(registerAndGetKernelName(std::forward<QuantumKernel>(kernel)),
-                              std::forward<Args>(args)...));
+    return state(new QPUState(
+        details::registerAndGetKernelName(std::forward<QuantumKernel>(kernel)),
+        std::forward<Args>(args)...));
   throw std::runtime_error(
       "cudaq::state* argument synthesis is not supported for quantum hardware"
       " for c-like functions, use class kernels instead");
 #elif defined(CUDAQ_QUANTUM_DEVICE)
   // Kernel builder is MLIR-based kernel.
   if constexpr (has_name<QuantumKernel>::value)
-    return state(new QPUState(cudaq::getKernelName(std::forward<QuantumKernel>(kernel)),
-                              std::forward<Args>(args)...));
+    return state(
+        new QPUState(cudaq::getKernelName(std::forward<QuantumKernel>(kernel)),
+                     std::forward<Args>(args)...));
   throw std::runtime_error(
       "cannot detect a kernel name in library mode for quantum devices");
 #endif
