@@ -24,9 +24,11 @@ CUDA-Q Applications
    /applications/python/unitary_compilation_diffusion_models
    /applications/python/vqe_advanced
    /applications/python/quantum_transformer
+   /applications/python/afqmc.ipynb
    /applications/python/adapt_qaoa
    /applications/python/adapt_vqe
    /applications/python/edge_detection
+
 
 
 .. raw:: html
@@ -48,7 +50,7 @@ CUDA-Q Applications
     <h3>Filter by Backend:</h3>
     <div class="backend-group">
         <button class="tag-button backend-toggle" data-tag="noiseless">Noiseless Simulator</button>
-        <div class="backend-options">    
+        <div class="backend-options">
             <button class="tag-button sub-option" data-tag="cpu">CPU</button>
             <button class="tag-button sub-option" data-tag="gpu">Single GPU</button>
             <button class="tag-button sub-option" data-tag="mgpu">Multi-GPU</button>
@@ -95,206 +97,7 @@ CUDA-Q Applications
         <img src="../_static/app_title_images/krylov_preview.png" alt="Krylov Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,cpu">
-        <a href="/applications/python/Bernstein-Vazirani.html" class="notebook-title">The Bernstein-Vazirani Algorithm</a>
-        <div class="notebook-content">
-            Learn a famous quantum algorithm that provides intuition for why exponential speedups can be achieved with quantum computers.
-        </div>
-        <img src="/_static/app_title_images/bv_preview.png" alt="BV Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,cpu">
-        <a href="/applications/python/deutsch_jozsa.html" class="notebook-title">Deutsch's Algorithm</a>
-        <div class="notebook-content">
-            Learn how quantum computers can provide an exponential speedup for identifying if a Boolean function is constant or balanced.
-        </div>
-        <img src="/_static/app_title_images/dj_preview.png" alt="DJ Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="qforai,noiseless,mgpu,collab">
-        <a href="/applications/python/divisive_clustering_coresets.html" class="notebook-title">Divisive Clustering with Coresets</a>
-        <div class="notebook-content">
-            Explore an implementation of the work in this paper (https://arxiv.org/abs/2402.01529) which looks at ways to cluster large data sets on quantum computers using a data reduction technique called coresets. This notebook includes the full workflow, a QAOA implementation, and an example of using the <code>mgpu</code> backend to scale the problem to greater qubit numbers.
-        </div>
-        <img src="/_static/app_title_images/clustering_preview.png" alt="Clustering Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
-        <a href="/applications/python/hybrid_hybrid_quantum_neural_networks.html" class="notebook-title">Hybrid Quantum Neural Networks</a>
-        <div class="notebook-content">
-            Learn how to implement Neural Network composed of a traditional PyTorch layer and a quantum layer added with CUDA-Q
-        </div>
-        <img src="/_static/app_title_images/hqnn_preview.png" alt="HQNN Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,mqpu">
-        <a href="/applications/python/Hadamard_test.html" class="notebook-title">The Hadamard Test</a>
-        <div class="notebook-content">
-            Learn about the Hadamard test and how it can be used to estimate expectation values. This notebook also explores how the Hadamard test can be used for Krylov subspace method and accelerated with the <code>mqpu</code> backend to evaluate execution on multiple simulated QPUs in parallel.
-        </div>
-        <img src="/_static/app_title_images/hadamard_preview.png" alt="Hadamard Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="chemistry,qec,qpu,neutral,collab">
-        <a href="/applications/python/logical_aim_Sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
-        <div class="notebook-content">
-            A collaboration between NVIDIA and Infleqtion demonstrated a logical qubit workflow built in CUDA-Q and executed on the Infleqtion's neutral atom QPU. (https://arxiv.org/abs/2412.07670)
-        </div>
-        <img src="/_static/app_title_images/aim_preview.png" alt="AIM Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
-        <a href="/applications/python/Hamiltonian_simulation.html" class="notebook-title">Trotterized Hamiltonian Simulation</a>
-        <div class="notebook-content">
-            Trotterization is an approximation to enable simulation of a Hamiltonian. Learn how this technique works and simulate the dynamics of the Heisenberg model.
-        </div>
-        <img src="/_static/app_title_images/trotter_preview.png" alt="Trotter Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,cpu">
-        <a href="/applications/python/quantum_Fourier_transform.html" class="notebook-title">The Quantum Fourier Transform</a>
-        <div class="notebook-content">
-            The Quantum Fourier transform (QFT) is a fundamental quantum algorithm that is also an important subroutine of quantum phase estimation, Shor's, and other quantum algorithms. Learn the basics of the QFT and how to implement it in CUDA-Q.
-        </div>
-        <img src="/_static/app_title_images/qft_preview.png" alt="QFT Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu.cpu">
-        <a href="/applications/python/quantum_teleportation.html" class="notebook-title">Quantum Teleportation</a>
-        <div class="notebook-content">
-            Quantum teleportation is one of the strange phenomena that makes quantum computing so interesting. Learn how teleportation works and how it is implemented in CUDA-Q.
-        </div>
-        <img src="/_static/app_title_images/teleport_preview.png" alt="Quantum Teleportation Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="fundamental,noisy,density">
-        <a href="/applications/python/quantum_volume.html" class="notebook-title">Quantum Volume</a>
-        <div class="notebook-content">
-            Benchmarking the performance of quantum computers, especially between different qubit modalities, is challenging. One method is to experimentally perform the quantum volume test. Learn how this test is performed and how it is implemented in CUDA-Q.
-        </div>
-        <img src="/_static/app_title_images/qv_preview.png" alt="Quantum Volume Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="noisy,density,qec">
-        <a href="/applications/python/readout_error_mitigation.html" class="notebook-title">Readout Error Mitigation</a>
-        <div class="notebook-content">
-            Quantum computers are limited by their noise, which corrupts the outcome of applications. Error mitigation is a technique used to compensate for such errors via postprocessing. Learn how to combat noise in this CUDA-Q readout error mitigation tutorial.
-        </div>
-        <img src="/_static/app_title_images/readout_preview.png" alt="Readout Error Mitigation Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="aiforq,noiseless,gpu">
-        <a href="/applications/python/unitary_compilation_diffusion_models.html" class="notebook-title">Compiling Unitaries with Diffusion Models</a>
-        <div class="notebook-content">
-            Implementing quantum circuits to apply arbitrary unitary operations is a complex task. This tutorial explores an AI for quantum application where a diffusion model can be used to compile unitaries.
-        </div>
-        <img src="/_static/app_title_images/diffusion_preview.png" alt="Diffusion Model Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="chemistry,noiseless,mqpu">
-        <a href="/applications/python/VQE_advanced.html" class="notebook-title">The Variational Quantum Eigensolver</a>
-        <div class="notebook-content">
-        i    The variational quantum eigensolver is a hybrid quantum classical algorithm for predicting the ground state of a Hamiltonian. Learn how to predict molecular energies with the VQE in CUDA-Q using active spaces, how to parallelize gradient evaluation, and how to use performance optimizations like gate fusion.
-        </div>
-        <img src="/_static/app_title_images/vqe_preview.png" alt="VQE Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="chemistry,collab,qforai,noiseless,gpu">
-        <a href="/applications/python/quantum_transformer.html" class="notebook-title">Quantum Transformer Model for Generating Molecules</a>
-        <div class="notebook-content">
-            Learn how to implement a hybrid quantum transformer model for generating molecules. The tutorial is based off a collaboration between NVIDIA and Yale. (https://arxiv.org/pdf/2502.19214)
-        </div>
-        <img src="/_static/app_title_images/quantum_transformer_preview.png" alt="Transformer Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="chemistry,noiseless,gpu,collab">
-        <a href="/applications/python/AFQMC.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
-        <div class="notebook-content">
-            Quantum Enhanced Auxiliary Field Quantum Monte Carlo is an advanced variational technique for simulating molecular energies. Learn how NVIDIA and BASF collaborated to implement this technique.
-        </div>
-        <img src="/_static/app_title_images/afmqc_preview.png" alt="AFQMC Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="optimization,noiseless,gpu">
-        <a href="/applications/python/adapt_QAOA.html" class="notebook-title">ADAPT QAOA</a>
-        <div class="notebook-content">
-            Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter (ADAPT) ansatz QAOA using CUDA-Q. The method iteratively builds an ansatz to more efficiently converge to the ground state of a problem Hamiltonian.
-        </div>
-        <img src="/_static/app_title_images/adapt_qaoa_preview.png" alt="ADAPT Preview" class="notebook-image">
-    </div>
-
-
-    <div class="notebook-entry" data-tags="chemistry,noiseless,gpu">
-        <a href="/applications/python/adapt-vqe.html" class="notebook-title">ADAPT VQE</a>
-        <div class="notebook-content">
-            Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter (ADAPT) to predict molecular ground state energies. The method iteratively builds an ansatz to more efficiently converge compared to traditional VQE.
-        </div>
-        <img src="/_static/app_title_images/adaptvqe_preview.png" alt="ADAPT VQE  Preview" class="notebook-image">
-    </div>
-
-
-    <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
-        <a href="/applications/python/edge-detection.html" class="notebook-title">Quantum Edge Detection</a>
-        <div class="notebook-content">
-            Learn how to encode image data with a quantum circuit and use a quantum algorithm to identify object boundaries in an image.
-        </div>
-        <img src="/_static/app_title_images/edgedetection_preview.png" alt="Edge Detection Preview" class="notebook-image">
-    </div>
-
-
-.. raw:: html
-
-
-    <div class="notebook-entry" data-tags="optimization" style="margin-bottom: 50px;">
-
-.. rst-class:: notebook-title
-
-**QAOA for Max Cut Problem**
-
-.. figure:: /applications/app_title_images/qaoa_preview.png
-    :align: right
-    :width: 300px
-    :alt: QAOA Preview
-    :class: notebook-image
-
-This notebook explains the theory behind the Quantum Approximate Optimization Algorithm (QAOA) and explains how it can be used to solve the Max Cut problem. 
-
-.. toctree::
-    :maxdepth: 1
-
-    /applications/python/qaoa
-
-.. raw:: html
-
-    </div>
-
-.. raw:: html
-
-    <div class="notebook-entry" data-tags="optimization,solvers">
-        <a href="/applications/python/qaoa.html" class="notebook-title">QAOA for Max Cut Problem</a>
-        <div class="notebook-content">
-            This notebook explains the theory behind the Quantum Approximate Optimization Algorithm (QAOA) and explains how it can be used to solve the Max Cut problem.
-        </div>
-        <img src="/_static/app_title_images/qaoa_preview.png" alt="QAOA Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="chemistry,optimization,noiseless,gpu">
-        <a href="/applications/python/digitized_counterdiabatic_QAOA.html" class="notebook-title">Digitized Counterdiabatic QAOA</a>
-        <div class="notebook-content">
-            Learn how the DC-QAOA algorithm is used to predict molecules that might be good candidates for drugs based on their interactions with proteins.
-        </div>
-        <img src="/_static/app_title_images/dcqaoa_preview.png" alt="DC-QAOA Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="chemistry,noiseless,mqpu">
-        <a href="/applications/python/Krylov.html" class="notebook-title">Krylov Subspace Methods</a>
-        <div class="notebook-content">
-            Learn how the Krylov method uses the Hadamard test to predict the ground state energy of molecules. Also learn how to implement the same approach with the <code>mqpu</code> backend and simulate execution on multiple QPUs in parallel.
-        </div>
-        <img src="/_static/app_title_images/krylov_preview.png" alt="Krylov Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
+    <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
         <a href="../applications/python/bernstein_vazirani.html" class="notebook-title">The Bernstein-Vazirani Algorithm</a>
         <div class="notebook-content">
             Learn a famous quantum algorithm that provides intuition for why exponential speedups can be achieved with quantum computers.
@@ -302,7 +105,7 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="../_static/app_title_images/bv_preview.png" alt="BV Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
+    <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
         <a href="../applications/python/deutsch_jozsa.html" class="notebook-title">Deutsch's Algorithm</a>
         <div class="notebook-content">
             Learn how quantum computers can provide an exponential speedup for identifying if a Boolean function is constant or balanced.
@@ -350,7 +153,7 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="../_static/app_title_images/trotter_preview.png" alt="Trotter Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
+    <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
         <a href="../applications/python/quantum_fourier_transform.html" class="notebook-title">The Quantum Fourier Transform</a>
         <div class="notebook-content">
             The Quantum Fourier transform (QFT) is a fundamental quantum algorithm that is also an important subroutine of quantum phase estimation, Shor's, and other quantum algorithms. Learn the basics of the QFT and how to implement it in CUDA-Q.
@@ -358,7 +161,7 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="../_static/app_title_images/qft_preview.png" alt="QFT Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
+    <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
         <a href="../applications/python/quantum_teleportation.html" class="notebook-title">Quantum Teleportation</a>
         <div class="notebook-content">
             Quantum teleportation is one of the strange phenomena that makes quantum computing so interesting. Learn how teleportation works and how it is implemented in CUDA-Q.
@@ -422,6 +225,23 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         <img src="../_static/app_title_images/adapt_qaoa_preview.png" alt="ADAPT Preview" class="notebook-image">
     </div>
 
+    <div class="notebook-entry" data-tags="chemistry,noiseless,gpu">
+        <a href="/applications/python/adapt-vqe.html" class="notebook-title">ADAPT VQE</a>
+        <div class="notebook-content">
+            Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter (ADAPT) to predict molecular ground state energies. The method iteratively builds an ansatz to more efficiently converge compared to traditional VQE.
+        </div>
+        <img src="../_static/app_title_images/adaptvqe_preview.png" alt="ADAPT VQE  Preview" class="notebook-image">
+    </div>
+
+
+    <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
+        <a href="/applications/python/edge-detection.html" class="notebook-title">Quantum Edge Detection</a>
+        <div class="notebook-content">
+            Learn how to encode image data with a quantum circuit and use a quantum algorithm to identify object boundaries in an image.
+        </div>
+        <img src="../_static/app_title_images/edgedetection_preview.png" alt="Edge Detection Preview" class="notebook-image">
+    </div>
+
     <script>
     document.addEventListener("DOMContentLoaded", function() {
         document.querySelectorAll('.notebook-entry').forEach(entry => {
@@ -439,4 +259,3 @@ This notebook explains the theory behind the Quantum Approximate Optimization Al
         });
     });
     </script>
-
