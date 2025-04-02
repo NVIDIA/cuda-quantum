@@ -49,7 +49,12 @@ void bindBosonOperator(py::module &mod) {
     "Loop through each term of the operator.")
   // properties
   .def("degrees", &boson_op::degrees,
-    "Returns a vector that lists all degrees of freedom that the operator targets.")
+    "Returns a vector that lists all degrees of freedom that the operator targets. "
+    "The order of degrees is from smallest to largest and reflects the ordering of "
+    "the matrix returned by `to_matrix`. Specifically, the indices of a statevector "
+    "with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates "
+    "that a state where the qubit with index 0 equals 1 with probability 1 is given by "
+    "the vector {0., 1., 0., 0.}.")
   .def("min_degree", &boson_op::min_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
   .def("max_degree", &boson_op::max_degree,
@@ -134,7 +139,99 @@ void bindBosonOperator(py::module &mod) {
     "degrees of freedom.")
   .def("distribute_terms", &boson_op::distribute_terms,
     "Partitions the terms of the sums into the given number of separate sums.")
+  ;
 
+  py::class_<boson_op_term>(mod, "MatrixOperatorTerm")
+  /* todo: bind iterator 
+  .def(
+    "__iter__",
+    [](boson_op_term &self) {
+      return py::make_iterator(self.begin(), self.end());
+    },
+    py::keep_alive<0, 1>(),
+    "Loop through each term of the operator.")
+  */
+  // properties
+  .def("degrees", &boson_op_term::degrees,
+    "Returns a vector that lists all degrees of freedom that the operator targets. "
+    "The order of degrees is from smallest to largest and reflects the ordering of "
+    "the matrix returned by `to_matrix`. Specifically, the indices of a statevector "
+    "with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates "
+    "that a state where the qubit with index 0 equals 1 with probability 1 is given by "
+    "the vector {0., 1., 0., 0.}.")
+  .def("min_degree", &boson_op_term::min_degree,
+    "Returns the smallest index of the degrees of freedom that the operator targets.")
+  .def("max_degree", &boson_op_term::max_degree,
+    "Returns the smallest index of the degrees of freedom that the operator targets.")
+  .def("num_ops", &boson_op_term::num_ops,
+    "Returns the number of operators in the product.")
+  .def("get_term_id", &boson_op_term::get_term_id,
+    "The term id uniquely identifies the operators and targets (degrees) that they act on, "
+    "but does not include information about the coefficient.")
+  // todo: get_coefficient?
+  // constructors
+  .def(py::init<>(), "Creates a product operator with constant value 1. The returned "
+    "operator does not target any degrees of freedom but merely represents a constant.")
+  .def(py::init<std::size_t, std::size_t>(), 
+    py::arg("first_degree"), py::arg("last_degree"),
+    "Creates a product operator that applies an identity operation to all degrees of "
+    "freedom in the range [first_degree, last_degree).")
+  .def(py::init<double>(), "Creates a product operator with the given constant value. "
+    "The returned operator does not target any degrees of freedom.")
+  .def(py::init<std::complex<double>>(), "Creates a product operator with the given "
+    "constant value. The returned operator does not target any degrees of freedom.")
+  .def(py::init<const boson_op_term &, std::size_t>(),
+    py::arg("operator"), py::arg("size") = 0,
+    "Creates a copy of the given operator and reserves space for storing the given "
+    "number of product terms (if a size is provided).")
+  // evaluations
+  .def("evaluate_coefficient", &boson_op_term::evaluate_coefficient,
+    py::arg("parameters") = parameter_map(),
+    "Returns the evaluated coefficient of the product operator.")
+  // todo: add to_sparse_matrix
+  .def("to_matrix", &boson_op_term::to_matrix,
+    py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(), py::arg("invert_order") = false,
+    "Returns the matrix representation of the operator."
+    "The matrix is ordered according to the convention (endianness) "
+    "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+    "can be inverted by setting the optional `invert_order` argument to `True`. "
+    "See also the documentation for `degrees` for more detail.")
+  // comparisons
+  .def("__eq__", &boson_op_term::operator==,
+    "Return true if the two operators are equivalent. The equivalence check takes "
+    "commutation relations into account. Operators acting on different degrees of "
+    "freedom are never equivalent, even if they only differ by an identity operator.")
+  // unary operators
+  .def("__neg__", [](const boson_op_term &self) { return -self; })
+  .def("__pos__", [](const boson_op_term &self) { return +self; })
+  // right-hand arithmetics
+  .def("__mul__", [](const boson_op_term &self, const boson_op_term &other) { return self * other; })
+  .def("__add__", [](const boson_op_term &self, const boson_op_term &other) { return self + other; })
+  .def("__sub__", [](const boson_op_term &self, const boson_op_term &other) { return self - other; })
+  .def("__mul__", [](const boson_op_term &self, const boson_op &other) { return self * other; })
+  .def("__add__", [](const boson_op_term &self, const boson_op &other) { return self + other; })
+  .def("__sub__", [](const boson_op_term &self, const boson_op &other) { return self - other; })
+  .def("__imul__", [](boson_op_term &self, const boson_op_term &other) { return self *= other; })
+  // general utility functions
+  .def("is_identity", &boson_op_term::is_identity,
+    "Checks if all operators in the product are the identity. "
+    "Note: this function returns true regardless of the value of the coefficient.")
+  .def("to_string", [](const boson_op_term &self) { return self.to_string(); },
+    "Returns the string representation of the operator.")
+  .def("dump", &boson_op_term::dump,
+    "Prints the string representation of the operator to the standard output.")
+  .def("canonicalize", [](boson_op_term &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
+    "Removes all identity operators from the operator.")
+  .def_static("canonicalize", [](const boson_op_term &orig) { return boson_op_term::canonicalize(orig); },
+    "Removes all identity operators from the operator.")
+  .def("canonicalize", [](boson_op_term &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
+    "Expands the operator to act on all given degrees, applying identities as needed. "
+    "The canonicalization will throw a runtime exception if the operator acts on any degrees "
+    "of freedom that are not included in the given set.")
+  .def_static("canonicalize", [](const boson_op_term &orig, const std::set<std::size_t> &degrees) { return boson_op_term::canonicalize(orig, degrees); },
+    "Expands the operator to act on all given degrees, applying identities as needed. "
+    "The canonicalization will throw a runtime exception if the operator acts on any degrees "
+    "of freedom that are not included in the given set.")
   ;
 }
 

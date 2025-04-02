@@ -671,7 +671,7 @@ public:
 #endif
 
   /// @brief The degrees of freedom that the operator acts on.
-  /// The order of degrees is from smallest to largest and reflect
+  /// The order of degrees is from smallest to largest and reflects
   /// the ordering of the matrix returned by `to_matrix`.
   /// Specifically, the indices of a statevector with two qubits are {00, 01,
   /// 10, 11}. An ordering of degrees {0, 1} then indicates that a state where
