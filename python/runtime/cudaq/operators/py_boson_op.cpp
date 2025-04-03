@@ -8,6 +8,7 @@
 
 #include <complex>
 #include <pybind11/complex.h>
+#include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
@@ -39,6 +40,17 @@ void bindBosonModule(py::module &mod) {
 }
 
 void bindBosonOperator(py::module &mod) {
+  auto cmat_to_numpy = [](const complex_matrix &m) {
+    std::vector<ssize_t> shape = {static_cast<ssize_t>(m.rows()),
+                                  static_cast<ssize_t>(m.cols())};
+    std::vector<ssize_t> strides = {
+      static_cast<ssize_t>(sizeof(std::complex<double>) * m.cols()),
+      static_cast<ssize_t>(sizeof(std::complex<double>))};
+
+    // Return a numpy array without copying data
+    return py::array_t<std::complex<double>>(shape, strides, m.data);
+  };
+
   py::class_<boson_op>(mod, "BosonOperator")
   .def(
     "__iter__",
@@ -75,7 +87,12 @@ void bindBosonOperator(py::module &mod) {
     "Copy constructor.")
   // evaluations
   // todo: add to_sparse_matrix
-  .def("to_matrix", &boson_op::to_matrix,
+  .def("to_matrix", [&cmat_to_numpy](const boson_op &self,
+                                     dimension_map &dimensions,
+                                     const parameter_map &params,
+                                     bool invert_order) {
+      return cmat_to_numpy(self.to_matrix(dimensions, params, invert_order));
+    },
     py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(), py::arg("invert_order") = false,
     "Returns the matrix representation of the operator."
     "The matrix is ordered according to the convention (endianness) "
@@ -187,7 +204,12 @@ void bindBosonOperator(py::module &mod) {
     py::arg("parameters") = parameter_map(),
     "Returns the evaluated coefficient of the product operator.")
   // todo: add to_sparse_matrix
-  .def("to_matrix", &boson_op_term::to_matrix,
+  .def("to_matrix", [&cmat_to_numpy](const boson_op_term &self,
+                                     dimension_map &dimensions,
+                                     const parameter_map &params,
+                                     bool invert_order) {
+      return cmat_to_numpy(self.to_matrix(dimensions, params, invert_order));
+    },
     py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(), py::arg("invert_order") = false,
     "Returns the matrix representation of the operator."
     "The matrix is ordered according to the convention (endianness) "

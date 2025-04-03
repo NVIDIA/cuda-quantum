@@ -1558,7 +1558,7 @@ std::string sum_op<HandlerTy>::to_string() const {
 template <typename HandlerTy>
 void sum_op<HandlerTy>::dump() const {
   auto str = to_string();
-  std::cout << str;
+  std::cout << str << std::endl;
 }
 
 template <typename HandlerTy>

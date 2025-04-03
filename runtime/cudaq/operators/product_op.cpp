@@ -1290,7 +1290,7 @@ std::string product_op<HandlerTy>::to_string() const {
 template <typename HandlerTy>
 void product_op<HandlerTy>::dump() const {
   auto str = to_string();
-  std::cout << str;
+  std::cout << str << std::endl;
 }
 
 template <typename HandlerTy>
