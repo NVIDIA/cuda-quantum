@@ -27,6 +27,7 @@ DCO
 DGX
 DOI
 Deuteron
+Deutsch
 Doxygen
 FPGAs
 Fock
@@ -54,6 +55,7 @@ Jupyter
 JupyterLab
 Kagome
 Kraus
+Krylov
 LLVM
 LSB
 Libraries
@@ -99,6 +101,7 @@ QPU
 QPUs
 QPU’s
 QTX
+QX
 Qiskit
 QuEra
 QuTiP
@@ -130,6 +133,7 @@ acknowledgement
 adaptor
 adaptors
 adjoint
+afqmc
 al
 amongst
 ancilla
@@ -140,6 +144,7 @@ arity
 auxillary
 backend
 backends
+bernstein
 bitcode
 bitstring
 bitstrings
@@ -170,7 +175,9 @@ coprocessor
 coprocessors
 copyable
 coreset
+coresets
 cortex-cli
+counterdiabatic
 coupler
 couplers
 cuQuantum
@@ -189,6 +196,7 @@ dendrogram
 deserialize
 destructor
 detuning
+deutsch
 dimensionality
 discoverable
 discretization
@@ -222,8 +230,11 @@ extremal
 fermionic
 fermioniq
 fmt
+fourier
 frontend
 frontends
+hadamard
+hamiltonian
 homogenous
 iff
 increment
@@ -242,6 +253,7 @@ intrinsics
 iterable
 iteratively
 kets
+krylov
 linker
 linkers
 logarithmically
@@ -275,6 +287,7 @@ preprocessor
 probability
 programmatically
 pybind
+qaoa
 quantize
 quantized
 qubit
@@ -295,6 +308,7 @@ shifter
 shifters
 splitter
 splitters
+sqale
 statevector
 struct
 structs
@@ -335,9 +349,11 @@ unoptimized
 upvote
 variadic
 variational
+vazirani
 vdots
 verifier
 vertices
+vqe
 waveforms
 wavefunction
 workflow
