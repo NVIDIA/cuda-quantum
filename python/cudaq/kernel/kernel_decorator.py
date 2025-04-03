@@ -211,7 +211,7 @@ class PyKernelDecorator(object):
         # Cleanup up the captured data if the module needs recompilation.
         self.capturedDataStorage = self.createStorage()
 
-        # Caches the module and stores captured data into self.capturedDataStorage.
+        # Caches the module and stores captured data into `self.capturedDataStorage`.
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
             self.metadata,
