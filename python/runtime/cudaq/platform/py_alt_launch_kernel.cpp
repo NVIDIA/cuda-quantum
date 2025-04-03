@@ -245,6 +245,69 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   return {jit, rawArgs, size, returnOffset};
 }
 
+/// @brief Set captured data into globals read by the kernel.
+///
+/// Kernel compilation prepares the state storage as following:
+/// - creates globals to hold captured vector and state data
+/// - adds code to the kernel that reads the data from globals
+/// - creates setter functions to store values into the globals
+/// - saves unique setter hashes and the captured data into state storage
+///
+/// Now we can use the setters to store captured data into the globals.
+void storeCapturedData(ExecutionEngine *jit, const std::string &kernelName) {
+  auto &platform = cudaq::get_platform();
+  // If we have any state vector data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, stateData] : *stateStorage) {
+    if (stateData.kernelName != kernelName)
+      continue;
+
+    // Ignore stale kernel state data.
+    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
+    if (auto error = setStateFPtr.takeError()) {
+      llvm::logAllUnhandledErrors(std::move(error), llvm::nulls());
+      continue;
+    }
+
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
+
+    if (stateData.precision == simulation_precision::fp64) {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<double> *>(stateData.data));
+      continue;
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
+    setStateFunc(reinterpret_cast<std::complex<float> *>(stateData.data));
+  }
+
+  // If we have any cudaq state data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, stateData] : *cudaqStateStorage) {
+    if (stateData.kernelName != kernelName)
+      continue;
+
+    // Ignore stale kernel state data.
+    auto setStateFPtr = jit->lookup("nvqpp.set.cudaq.state." + stateHash);
+    if (auto error = setStateFPtr.takeError()) {
+      llvm::logAllUnhandledErrors(std::move(error), llvm::nulls());
+      continue;
+    }
+
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured states are not supported on quantum "
+                               "hardware or remote simulators");
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(cudaq::state *)>(*setStateFPtr);
+    setStateFunc(&stateData.data);
+  }
+}
+
 std::tuple<void *, std::size_t, std::int32_t>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                       Type returnType, cudaq::OpaqueArguments &runtimeArgs,
@@ -267,57 +330,8 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   std::string properName = name;
 
-  auto &platform = cudaq::get_platform();
-  // If we have any state vector data, we need to extract the function pointer
-  // to set that data, and then set it.
-  for (auto &[stateHash, stateData] : *stateStorage) {
-    if (platform.is_remote() || platform.is_emulated())
-      throw std::runtime_error("captured vectors are not supported on quantum "
-                               "hardware or remote simulators");
-
-    if (stateData.kernelName != name)
-      continue;
-
-    // Ignore stale kernel state data.
-    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
-    if (auto error = setStateFPtr.takeError()) {
-      llvm::logAllUnhandledErrors(std::move(error), llvm::nulls());
-      continue;
-    }
-
-    if (stateData.precision == simulation_precision::fp64) {
-      auto setStateFunc =
-          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
-      setStateFunc(reinterpret_cast<std::complex<double> *>(stateData.data));
-      continue;
-    }
-
-    auto setStateFunc =
-        reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
-    setStateFunc(reinterpret_cast<std::complex<float> *>(stateData.data));
-  }
-
-  // If we have any cudaq state data, we need to extract the function pointer
-  // to set that data, and then set it.
-  for (auto &[stateHash, stateData] : *cudaqStateStorage) {
-    if (platform.is_remote() || platform.is_emulated())
-      throw std::runtime_error("captured states are not supported on quantum "
-                               "hardware or remote simulators");
-
-    if (stateData.kernelName != name)
-      continue;
-
-    // Ignore stale kernel state data.
-    auto setStateFPtr = jit->lookup("nvqpp.set.cudaq.state." + stateHash);
-    if (auto error = setStateFPtr.takeError()) {
-      llvm::logAllUnhandledErrors(std::move(error), llvm::nulls());
-      continue;
-    }
-
-    auto setStateFunc =
-        reinterpret_cast<void (*)(cudaq::state *)>(*setStateFPtr);
-    setStateFunc(&stateData.data);
-  }
+  // Store captured vectors and states into globals read by the kernel.
+  storeCapturedData(jit, name);
 
   // Need to first invoke the init_func()
   auto kernelInitFunc = properName + ".init_func";
@@ -384,62 +398,14 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
       jitAndCreateArgs(name, module, runtimeArgs, {},
                        mlir::NoneType::get(unwrap(module).getContext()));
 
-  auto &platform = cudaq::get_platform();
   auto thunkName = name + ".thunk";
   auto thunkPtr = jit->lookup(thunkName);
   if (!thunkPtr)
     throw std::runtime_error("Failed to get thunk function");
   const std::string properName = name;
-  // If we have any state vector data, we need to extract the function pointer
-  // to set that data, and then set it.
-  for (auto &[stateHash, svdata] : *stateStorage) {
-    if (platform.is_remote() || platform.is_emulated())
-      throw std::runtime_error("captured vectors are not supported on quantum "
-                               "hardware or remote simulators");
 
-    if (svdata.kernelName != name)
-      continue;
-
-    // Ignore stale kernel state data.
-    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
-    if (auto error = setStateFPtr.takeError()) {
-      llvm::logAllUnhandledErrors(std::move(error), llvm::nulls());
-      continue;
-    }
-
-    if (svdata.precision == simulation_precision::fp64) {
-      auto setStateFunc =
-          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
-      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
-      continue;
-    }
-
-    auto setStateFunc =
-        reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
-    setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
-  }
-
-  // If we have any cudaq state data, we need to extract the function pointer
-  // to set that data, and then set it.
-  for (auto &[stateHash, stateData] : *cudaqStateStorage) {
-    if (platform.is_remote() || platform.is_emulated())
-      throw std::runtime_error("captured states are not supported on quantum "
-                               "hardware or remote simulators");
-
-    if (stateData.kernelName != name)
-      continue;
-
-    // Ignore stale kernel state data.
-    auto setStateFPtr = jit->lookup("nvqpp.set.cudaq.state." + stateHash);
-    if (auto error = setStateFPtr.takeError()) {
-      llvm::logAllUnhandledErrors(std::move(error), llvm::errs());
-      continue;
-    }
-
-    auto setStateFunc =
-        reinterpret_cast<void (*)(cudaq::state *)>(*setStateFPtr);
-    setStateFunc(&stateData.data);
-  }
+  // Store captured vectors and states into globals read by the kernel.
+  storeCapturedData(jit, name);
 
   // Need to first invoke the init_func()
   auto kernelInitFunc = properName + ".init_func";
@@ -855,7 +821,8 @@ void bindAltLaunchKernel(py::module &mod) {
   mod.def(
       "deletePointersToStateData",
       [](const std::vector<std::string> &hashes) {
-        for (auto iter = stateStorage->cbegin(); iter != stateStorage->end();) {
+        for (auto iter = stateStorage->cbegin();
+             iter != stateStorage->cend();) {
           if (std::find(hashes.begin(), hashes.end(), iter->first) !=
               hashes.end()) {
             stateStorage->erase(iter++);
@@ -878,7 +845,7 @@ void bindAltLaunchKernel(py::module &mod) {
       "deletePointersToCudaqState",
       [](const std::vector<std::string> &hashes) {
         for (auto iter = cudaqStateStorage->cbegin();
-             iter != cudaqStateStorage->end();) {
+             iter != cudaqStateStorage->cend();) {
           if (std::find(hashes.begin(), hashes.end(), iter->first) !=
               hashes.end()) {
             cudaqStateStorage->erase(iter++);
