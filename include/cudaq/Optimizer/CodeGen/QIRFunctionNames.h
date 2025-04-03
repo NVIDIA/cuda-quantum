@@ -98,7 +98,7 @@ static constexpr const char QIRClearResultMaps[] =
 static constexpr const char QIRBoolRecordOutput[] =
     "__quantum__rt__bool_record_output";
 static constexpr const char QIRIntegerRecordOutput[] =
-    "__quantum__rt__integer_record_output";
+    "__quantum__rt__int_record_output";
 static constexpr const char QIRDoubleRecordOutput[] =
     "__quantum__rt__double_record_output";
 static constexpr const char QIRTupleRecordOutput[] =
