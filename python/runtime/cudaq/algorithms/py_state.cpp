@@ -75,6 +75,7 @@ public:
                           std::size_t size, std::size_t returnOffset)
       : argsData(argsDataToOwn), kernelMod(args.mod) {
     this->kernelName = in_kernelName;
+    this->args = argsData->getArgs();
   }
 
   void execute() const override {
@@ -98,11 +99,6 @@ public:
     }
   }
 
-  std::optional<std::pair<std::string, std::vector<void *>>>
-  getKernelInfo() const override {
-    return std::make_pair(kernelName, argsData->getArgs());
-  }
-
   std::complex<double> overlap(const cudaq::SimulationState &other) override {
     const auto &otherState =
         dynamic_cast<const PyRemoteSimulationState &>(other);
@@ -121,7 +117,7 @@ public:
     return context.overlapResult.value();
   }
 
-  ~PyRemoteSimulationState() { delete argsData; }
+  virtual ~PyRemoteSimulationState() override { delete argsData; }
 };
 
 /// @brief Run `cudaq::get_state` for remote execution targets on the provided
@@ -138,6 +134,39 @@ state pyGetStateRemote(py::object kernel, py::args args) {
       pyCreateNativeKernel(kernelName, kernelMod, *argData);
   return state(new PyRemoteSimulationState(kernelName, argWrapper, argData,
                                            size, returnOffset));
+}
+
+/// @brief Python implementation of the `QPUState`.
+// Note: Python kernel arguments are wrapped hence need to be unwrapped
+// accordingly.
+class PyQPUState : public QPUState {
+  // Holder of args data for clean-up.
+  cudaq::OpaqueArguments *argsData;
+
+public:
+  PyQPUState(const std::string &in_kernelName,
+             cudaq::OpaqueArguments *argsDataToOwn)
+      : argsData(argsDataToOwn) {
+    this->kernelName = in_kernelName;
+    this->args = argsData->getArgs();
+  }
+
+  virtual ~PyQPUState() override { delete argsData; }
+};
+
+/// @brief Run `cudaq::get_state` for qpu targets on the provided
+/// kernel and args
+state pyGetStateQPU(py::object kernel, py::args args) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  args = simplifiedValidateInputArguments(args);
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+  auto [argWrapper, size, returnOffset] =
+      pyCreateNativeKernel(kernelName, kernelMod, *argData);
+  return state(new PyQPUState(kernelName, argData));
 }
 
 state pyGetStateLibraryMode(py::object kernel, py::args args) {
@@ -671,6 +700,8 @@ index pair.
           return pyGetStateRemote(kernel, args);
         if (holder.getTarget().name == "orca-photonics")
           return pyGetStateLibraryMode(kernel, args);
+        if (holder.getTarget().is_remote() || holder.getTarget().is_emulated())
+          return pyGetStateQPU(kernel, args);
         return pyGetState(kernel, args);
       },
       R"#(Return the :class:`State` of the system after execution of the provided `kernel`.

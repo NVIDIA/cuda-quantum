@@ -67,7 +67,7 @@ def trotter():
         def termWords(op: cudaq.SpinOperator) -> list[str]:
             result = []
             for term in op:
-                # The way the trotter kernel is written, it 
+                # The way the trotter kernel is written, it
                 # wants exp pauli to act on the entire state.
                 # That means we need to make it explicit that each term
                 # in this Hamiltonian indeed is supposed to act on each qubit.
