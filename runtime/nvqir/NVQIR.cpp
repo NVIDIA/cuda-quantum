@@ -432,7 +432,7 @@ void __quantum__rt__bool_record_output(bool val, const char *label) {
   quantumRTGenericRecordOutput("BOOL", (val ? "true" : "false"), label);
 }
 
-void __quantum__rt__integer_record_output(std::int64_t val, const char *label) {
+void __quantum__rt__int_record_output(std::int64_t val, const char *label) {
   quantumRTGenericRecordOutput("INT", val, label);
 }
 
