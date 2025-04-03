@@ -26,23 +26,23 @@ std::vector<std::vector<int64_t>>
 generate_all_states(const std::vector<int64_t> &dimensions) {
   if (dimensions.size() == 0)
     return {};
-  auto dim_it = dimensions.cbegin();
-  auto tot_nr_states = 1;
+  auto dim_itr = dimensions.cbegin();
+  auto total_states = 1;
   for (auto d : dimensions)
-    tot_nr_states *= d;
+    total_states *= d;
 
   std::vector<std::vector<int64_t>> states;
-  states.reserve(tot_nr_states);
-  for (int64_t state = 0; state < *dim_it; state++) {
+  states.reserve(total_states);
+  for (int64_t state = 0; state < *dim_itr; state++) {
     std::vector<int64_t> expanded_state;
     expanded_state.reserve(dimensions.size());
     expanded_state.push_back(state);
     states.push_back(expanded_state);
   }
 
-  while (++dim_it != dimensions.cend()) {
+  while (++dim_itr != dimensions.cend()) {
     std::size_t current_size = states.size();
-    for (int64_t state = 1; state < *dim_it; state++) {
+    for (int64_t state = 1; state < *dim_itr; state++) {
       for (std::size_t idx = 0; idx < current_size; ++idx) {
         std::vector<int64_t> expanded_state;
         expanded_state.reserve(dimensions.size());
