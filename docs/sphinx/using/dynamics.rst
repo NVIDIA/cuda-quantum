@@ -40,7 +40,7 @@ Using CUDA-Q `operator`, the above time-dependent Hamiltonian can be set up as f
 
 .. tab:: C++
 
-  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
         :language: cpp
         :start-after: [Begin Transmon]
         :end-before: [End Transmon]
@@ -61,7 +61,7 @@ with `cudaq.evolve`.
 
 .. tab:: C++
 
-  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
         :language: cpp
         :start-after: [Begin Evolve]
         :end-before: [End Evolve]
@@ -104,7 +104,7 @@ For example, we can plot the Pauli expectation value for the above simulation as
 
 .. tab:: C++
 
-  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
         :language: cpp
         :start-after: [Begin Print]
         :end-before: [End Print]
@@ -180,7 +180,7 @@ This Hamiltonian can be converted to CUDA-Q `Operator` representation with
 
 .. tab:: C++
 
-  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
         :language: cpp
         :start-after: [Begin Jaynes-Cummings]
         :end-before: [End Jaynes-Cummings]
@@ -218,7 +218,7 @@ The following code sets up the problem
 
 .. tab:: C++
 
-  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
         :language: cpp
         :start-after: [Begin Hamiltonian]
         :end-before: [End Hamiltonian]
@@ -240,7 +240,7 @@ As an example, let's looks at the `displacement operator <https://en.wikipedia.o
 
 .. tab:: C++
 
-  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
         :language: cpp
         :start-after: [Begin DefineOp]
         :end-before: [End DefineOp]
@@ -257,7 +257,7 @@ operator under a time dependent displacement amplitude, we can define how the am
 
 .. tab:: C++
 
-  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
         :language: cpp
         :start-after: [Begin Schedule1]
         :end-before: [End Schedule1]
@@ -275,7 +275,7 @@ the desired value for each parameter:
 
 .. tab:: C++
 
-  .. literalinclude:: ../../snippets/cpp/using/backends/dynamics.cpp
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
         :language: cpp
         :start-after: [Begin Schedule2]
         :end-before: [End Schedule2]
