@@ -26,23 +26,23 @@ std::vector<std::vector<int64_t>>
 generate_all_states(const std::vector<int64_t> &dimensions) {
   if (dimensions.size() == 0)
     return {};
-  auto dit = dimensions.cbegin();
+  auto dim_it = dimensions.cbegin();
   auto tot_nr_states = 1;
   for (auto d : dimensions)
     tot_nr_states *= d;
 
   std::vector<std::vector<int64_t>> states;
   states.reserve(tot_nr_states);
-  for (int64_t state = 0; state < *dit; state++) {
+  for (int64_t state = 0; state < *dim_it; state++) {
     std::vector<int64_t> expanded_state;
     expanded_state.reserve(dimensions.size());
     expanded_state.push_back(state);
     states.push_back(expanded_state);
   }
 
-  while (++dit != dimensions.cend()) {
+  while (++dim_it != dimensions.cend()) {
     std::size_t current_size = states.size();
-    for (int64_t state = 1; state < *dit; state++) {
+    for (int64_t state = 1; state < *dim_it; state++) {
       for (std::size_t idx = 0; idx < current_size; ++idx) {
         std::vector<int64_t> expanded_state;
         expanded_state.reserve(dimensions.size());
@@ -133,36 +133,43 @@ void permute_matrix(cudaq::complex_matrix &matrix,
   // copy the matrix, and then populate a new matrix directly with the correct
   // entries. So, runtime-wise both should amount to the same, but we safe a
   // factor 2 of memory this way.
-  // The outermost for-loop walks the cycles in the permutation, the second
-  // for-loop performs the permutations for that cycle, and the innermost for-
-  // loop iterates over the columns/rows to grab the entire row/column.
+  // The outermost for-loop (the one with the iterator) walks the cycles in the
+  // permutation, the second for-loop (the one in process_cycle) performs the
+  // permutations for that cycle, and the innermost for-loop (the one in
+  // swap_row/swap_col) iterates over the columns/rows to grab the entire
+  // row/column.
+  std::vector<bool> processed;
+  processed.reserve(matrix.rows());
+  auto process_cycle = [&processed, &permutation](
+                           std::size_t start,
+                           std::function<void(std::size_t, std::size_t)> swap) {
+    processed[start] = true;
+    for (std::size_t row = start; permutation[row] != start;
+         row = permutation[row]) {
+      processed[permutation[row]] = true;
+      swap(row, permutation[row]);
+    }
+  };
 
   // in-place permutation of rows
-  std::vector<bool> processed_row(matrix.rows(), false);
-  for (auto row_it = processed_row.begin(); row_it != processed_row.end();
-       row_it = std::find(row_it, processed_row.end(), false)) {
-    processed_row[row_it - processed_row.cbegin()] = true;
-    for (std::size_t row = row_it - processed_row.cbegin();
-         permutation[row] != row_it - processed_row.cbegin();
-         row = permutation[row]) {
-      processed_row[permutation[row]] = true;
-      for (std::size_t col = 0; col < matrix.cols(); ++col)
-        std::swap(matrix[{row, col}], matrix[{permutation[row], col}]);
-    }
-  }
+  auto swap_row = [&matrix](std::size_t row1, std::size_t row2) {
+    for (std::size_t col = 0; col < matrix.cols(); ++col)
+      std::swap(matrix[{row1, col}], matrix[{row2, col}]);
+  };
+  processed.assign(matrix.rows(), false);
+  for (auto it = processed.begin(); it != processed.end();
+       it = std::find(it, processed.end(), false))
+    process_cycle(it - processed.cbegin(), swap_row);
+
   // in-place permutation of columns
-  std::vector<bool> processed_col(matrix.cols(), false);
-  for (auto col_it = processed_col.begin(); col_it != processed_col.end();
-       col_it = std::find(col_it, processed_col.end(), false)) {
-    processed_col[col_it - processed_col.cbegin()] = true;
-    for (std::size_t col = col_it - processed_col.cbegin();
-         permutation[col] != col_it - processed_col.cbegin();
-         col = permutation[col]) {
-      processed_col[permutation[col]] = true;
-      for (std::size_t row = 0; row < matrix.rows(); row++)
-        std::swap(matrix[{row, col}], matrix[{row, permutation[col]}]);
-    }
-  }
+  auto swap_col = [&matrix](std::size_t col1, std::size_t col2) {
+    for (std::size_t row = 0; row < matrix.rows(); ++row)
+      std::swap(matrix[{row, col1}], matrix[{row, col2}]);
+  };
+  processed.assign(matrix.cols(), false);
+  for (auto it = processed.begin(); it != processed.end();
+       it = std::find(it, processed.end(), false))
+    process_cycle(it - processed.cbegin(), swap_col);
 }
 
 complex_matrix create_matrix(
