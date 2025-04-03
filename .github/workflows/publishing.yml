@@ -30,6 +30,11 @@ on:
       - Deployments
     types:
       - completed
+    branches:
+      - 'main'
+      - 'releases/*'
+      - 'staging/*'
+      - 'experimental/*'
 
 name: Publishing
 
