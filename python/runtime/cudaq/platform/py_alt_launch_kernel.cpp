@@ -267,19 +267,22 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   std::string properName = name;
 
+  auto &platform = cudaq::get_platform();
   // If we have any state vector data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, stateData] : *stateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
+
     if (stateData.kernelName != name)
       continue;
 
+    // Ignore stale kernel state data.
     auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
     if (auto error = setStateFPtr.takeError()) {
-      auto message = "python alt_launch_kernel failed to get set state "
-                     "function for kernel: " +
-                     name;
-      llvm::logAllUnhandledErrors(std::move(error), llvm::errs(), message);
-      throw std::runtime_error(message);
+      llvm::logAllUnhandledErrors(std::move(error), llvm::nulls());
+      continue;
     }
 
     if (stateData.precision == simulation_precision::fp64) {
@@ -297,16 +300,18 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   // If we have any cudaq state data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, stateData] : *cudaqStateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured states are not supported on quantum "
+                               "hardware or remote simulators");
+
     if (stateData.kernelName != name)
       continue;
 
+    // Ignore stale kernel state data.
     auto setStateFPtr = jit->lookup("nvqpp.set.cudaq.state." + stateHash);
     if (auto error = setStateFPtr.takeError()) {
-      auto message = "python alt_launch_kernel failed to get set cudaq state "
-                     "function for kernel: " +
-                     name;
-      llvm::logAllUnhandledErrors(std::move(error), llvm::errs(), message);
-      throw std::runtime_error(message);
+      llvm::logAllUnhandledErrors(std::move(error), llvm::nulls());
+      continue;
     }
 
     auto setStateFunc =
@@ -363,6 +368,7 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
       jitAndCreateArgs(name, module, runtimeArgs, {},
                        mlir::NoneType::get(unwrap(module).getContext()));
 
+  auto &platform = cudaq::get_platform();
   auto thunkName = name + ".thunk";
   auto thunkPtr = jit->lookup(thunkName);
   if (!thunkPtr)
@@ -371,12 +377,19 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
   // If we have any state vector data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, svdata] : *stateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured vectors are not supported on quantum "
+                               "hardware or remote simulators");
+
     if (svdata.kernelName != name)
       continue;
+
+    // Ignore stale kernel state data.
     auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
-    if (!setStateFPtr)
-      throw std::runtime_error(
-          "python CreateNativeKernel failed to get set state function.");
+    if (auto error = setStateFPtr.takeError()) {
+      llvm::logAllUnhandledErrors(std::move(error), llvm::nulls());
+      continue;
+    }
 
     if (svdata.precision == simulation_precision::fp64) {
       auto setStateFunc =
@@ -388,6 +401,28 @@ pyCreateNativeKernel(const std::string &name, MlirModule module,
     auto setStateFunc =
         reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
     setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+  }
+
+  // If we have any cudaq state data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, stateData] : *cudaqStateStorage) {
+    if (platform.is_remote() || platform.is_emulated())
+      throw std::runtime_error("captured states are not supported on quantum "
+                               "hardware or remote simulators");
+
+    if (stateData.kernelName != name)
+      continue;
+
+    // Ignore stale kernel state data.
+    auto setStateFPtr = jit->lookup("nvqpp.set.cudaq.state." + stateHash);
+    if (auto error = setStateFPtr.takeError()) {
+      llvm::logAllUnhandledErrors(std::move(error), llvm::errs());
+      continue;
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(cudaq::state *)>(*setStateFPtr);
+    setStateFunc(&stateData.data);
   }
 
   // Need to first invoke the init_func()
