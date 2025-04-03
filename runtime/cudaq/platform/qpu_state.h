@@ -25,7 +25,6 @@ protected:
   using ArgDeleter = std::function<void(void *)>;
 
   std::string kernelName;
-
   /// @brief  Vector of arguments
   // Note: we create a copy of all arguments except pointers.
   std::vector<void *> args;
