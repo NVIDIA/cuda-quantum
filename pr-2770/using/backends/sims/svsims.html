@@ -893,11 +893,25 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 <td><p>positive integer, or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
 <td><p>GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. <code class="code docutils literal notranslate"><span class="pre">NONE</span></code> means unlimited (up to physical memory constraints). This is the default.</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_ALLOW_FP32_EMULATED</span></code></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">TRUE</span></code> (<code class="code docutils literal notranslate"><span class="pre">1</span></code>, <code class="code docutils literal notranslate"><span class="pre">ON</span></code>) or <code class="code docutils literal notranslate"><span class="pre">FALSE</span></code> (<code class="code docutils literal notranslate"><span class="pre">0</span></code>, <code class="code docutils literal notranslate"><span class="pre">OFF</span></code>)</p></td>
+<td><p>[Blackwell (compute capability 10.0+) only] Enable or disable floating point math emulation. If enabled, allows <code class="code docutils literal notranslate"><span class="pre">FP32</span></code> emulation kernels using <code class="code docutils literal notranslate"><span class="pre">BFloat16</span></code> (<code class="code docutils literal notranslate"><span class="pre">BF16</span></code>) whenever possible. Enabled by default.</p></td>
+</tr>
 </tbody>
 </table>
 <div class="deprecated">
 <p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> targets, which is equivalent setting the <code class="code docutils literal notranslate"><span class="pre">fp64</span></code> option on the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target,
 is deprecated and will be removed in a future release.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In host-device simulation, <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MAX_CPU_MEMORY_GB</span></code> is not 0, the backend automatically switching between inner product (default) and operator matrix-based
+methods for expectation calculations (<code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code>) depending on whether a clone of the state can be allocated or not.</p>
+<p>For example, when <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MAX_GPU_MEMORY_GB</span></code> is unconstrained, the quantum state vector would consume all device memory before utilizing host memory.
+Thus, the backend would fall back to the operator matrix-based approach as cloning the state is not possible.
+For performance reason, only Pauli operator matrices of up to 8 qubits (identity padding not included) are allowed in this mode.
+This constrain can be relaxed by setting the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MATRIX_EXP_VAL_MAX_SIZE</span></code> environment variable.
+Users would need to take into account the full operator matrix size when increasing this setting.</p>
 </div>
 </section>
 <section id="multi-node-multi-gpu">
@@ -1009,6 +1023,10 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_HOST_DEVICE_MIGRATION_LEVEL</span></code></p></td>
 <td><p>positive integer</p></td>
 <td><p>Specify host-device memory migration w.r.t. the network structure. If provided, this setting determines the position to insert the number of migration index bits to the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code> list. By default, if not set, the number of migration index bits (CPU-GPU data transfers) is appended to the end of the array of index bits (aka, state vector distribution scheme). This default behavior is optimized for systems with fast GPU-GPU interconnects (NVLink, InfiniBand, etc.)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_DATA_TRANSFER_BUFFER_BITS</span></code></p></td>
+<td><p>positive integer greater than or equal to 24</p></td>
+<td><p>Specify the temporary buffer size (<code class="code docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;&lt;</span> <span class="pre">CUDAQ_DATA_TRANSFER_BUFFER_BITS</span></code> bytes) for inter-node data transfer. The default is set to 26 (64 MB). The minimum allowed value is 24 (16 MB). Depending on systems, setting a larger value to <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DATA_TRANSFER_BUFFER_BITS</span></code> can accelerate inter-node data transfers.</p></td>
 </tr>
 </tbody>
 </table>
