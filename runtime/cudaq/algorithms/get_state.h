@@ -132,7 +132,6 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   if constexpr (has_name<QuantumKernel>::value)
     return state(new QPUState(std::forward<QuantumKernel>(kernel),
                               std::forward<Args>(args)...));
-
   throw std::runtime_error(
       "cudaq::state* argument synthesis is not supported for quantum hardware"
       " for c-like functions in library mode");
