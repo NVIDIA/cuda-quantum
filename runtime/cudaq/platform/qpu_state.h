@@ -19,14 +19,13 @@ namespace cudaq {
 /// call to kernel that created the state.
 class QPUState : public cudaq::SimulationState {
 protected:
-  using ArgDeleter = std::function<void(void *)>;
-
   std::string kernelName;
+  using ArgDeleter = std::function<void(void *)>;
   /// @brief  Vector of arguments
   // Note: we create a copy of all arguments except pointers.
   std::vector<void *> args;
   /// @brief Deletion functions for the arguments.
-  std::vector<ArgDeleter> deleters;
+  std::vector<std::function<void(void *)>> deleters;
 
 public:
   template <typename T>
@@ -57,11 +56,17 @@ public:
   }
 
   /// @brief Constructor
-  template <typename... Args>
-  QPUState(const std::string &&name, Args &&...args) : kernelName(name) {
+  template <typename QuantumKernel, typename... Args>
+  QPUState(QuantumKernel &&kernel, Args &&...args) {
+    if constexpr (has_name<QuantumKernel>::value) {
+      // kernel_builder kernel: need to JIT code to get it registered.
+      static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+      kernelName = kernel.name();
+    } else {
+      kernelName = cudaq::getKernelName(kernel);
+    }
     (addArgument(args), ...);
   }
-
   QPUState() = default;
   QPUState(const QPUState &other)
       : kernelName(other.kernelName), args(other.args), deleters() {}
