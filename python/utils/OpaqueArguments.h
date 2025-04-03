@@ -336,7 +336,7 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
         })
         .Case([&](cudaq::cc::PointerType ty) {
           if (isa<quake::StateType>(ty.getElementType())) {
-            valueArgument(argData, arg.cast<cudaq::state *>());
+            addArgument(argData, cudaq::state(*arg.cast<cudaq::state *>()));
           } else {
             throw std::runtime_error("Invalid pointer type argument: " +
                                      py::str(arg).cast<std::string>() +
