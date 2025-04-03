@@ -7,13 +7,17 @@
 # ============================================================================ #
 
 from __future__ import annotations
-import inspect, math, numpy, json  # type: ignore
-from typing import Any, Callable, Generator, Iterable, Mapping, Optional, Sequence, Tuple
+import inspect
+import json
+import math
+import numpy
+from typing import (Any, Callable, Generator, Iterable, Mapping, Optional,
+                    Sequence, Tuple)
 from numpy.typing import NDArray
 
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .helpers import _OperatorHelpers, NumericType
 from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint, _SpinArithmetics
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 class OperatorSum:

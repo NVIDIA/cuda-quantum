@@ -3,9 +3,8 @@
 // nvq++ --target pasqal pasqal.cpp -o out.x
 // ./out.x
 // ```
-// Assumes a valid set of credentials (PASQAL_AUTH_TOKEN, PASQAL_PROJECT_ID)
-// have been set. To set PASQAL_AUTH_TOKEN from Pasqal Cloud username and
-// password, use pasqal_auth.py in this folder.
+// Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)
+// have been set.
 
 #include "cudaq/algorithms/evolve.h"
 #include "cudaq/algorithms/integrator.h"

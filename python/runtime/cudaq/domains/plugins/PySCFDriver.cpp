@@ -8,6 +8,7 @@
 
 #include "cudaq/domains/chemistry/MoleculePackageDriver.h"
 #include "cudaq/target_control.h"
+#include <map>
 #include <pybind11/embed.h>
 
 namespace py = pybind11;

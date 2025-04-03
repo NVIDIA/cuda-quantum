@@ -604,47 +604,12 @@ product_op<HandlerTy>::operator=(const product_op<T> &other) {
   return *this;
 }
 
-template <typename HandlerTy>
-product_op<HandlerTy> &
-product_op<HandlerTy>::operator=(const product_op<HandlerTy> &other) {
-  if (this != &other) {
-    this->coefficient = other.coefficient;
-    this->operators = other.operators;
-  }
-  return *this;
-}
-
-template <typename HandlerTy>
-product_op<HandlerTy> &
-product_op<HandlerTy>::operator=(product_op<HandlerTy> &&other) {
-  if (this != &other) {
-    this->coefficient = std::move(other.coefficient);
-    this->operators = std::move(other.operators);
-  }
-  return *this;
-}
-
-#define INSTANTIATE_PRODUCT_ASSIGNMENTS(HandlerTy)                             \
-                                                                               \
-  template product_op<HandlerTy> &product_op<HandlerTy>::operator=(            \
-      const product_op<HandlerTy> &other);                                     \
-                                                                               \
-  template product_op<HandlerTy> &product_op<HandlerTy>::operator=(            \
-      product_op<HandlerTy> &&other);
-
 template product_op<matrix_handler> &
 product_op<matrix_handler>::operator=(const product_op<spin_handler> &other);
 template product_op<matrix_handler> &
 product_op<matrix_handler>::operator=(const product_op<boson_handler> &other);
 template product_op<matrix_handler> &
 product_op<matrix_handler>::operator=(const product_op<fermion_handler> &other);
-
-#if !defined(__clang__)
-INSTANTIATE_PRODUCT_ASSIGNMENTS(matrix_handler);
-INSTANTIATE_PRODUCT_ASSIGNMENTS(spin_handler);
-INSTANTIATE_PRODUCT_ASSIGNMENTS(boson_handler);
-INSTANTIATE_PRODUCT_ASSIGNMENTS(fermion_handler);
-#endif
 
 // evaluations
 

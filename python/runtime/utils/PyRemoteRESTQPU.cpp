@@ -107,6 +107,7 @@ protected:
     auto cloned = m_module->clone();
     PassManager pm(cloned.getContext());
 
+    pm.addPass(cudaq::opt::createLambdaLiftingPass());
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
