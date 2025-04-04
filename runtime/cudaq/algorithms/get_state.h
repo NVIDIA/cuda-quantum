@@ -141,7 +141,7 @@ std::string getKernelName(QuantumKernel &&kernel) {
     auto key = cudaq::registry::__cudaq_getLinkableKernelKey(&qKernel);
     auto name = cudaq::registry::getLinkableKernelNameOrNull(key);
     if (!name)
-      throw std::runtime_error("Cannot determine kernel name in QPUState");
+      throw std::runtime_error("Cannot determine kernel name in get_state");
     return name;
   }
 }
