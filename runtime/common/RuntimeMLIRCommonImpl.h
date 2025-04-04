@@ -305,7 +305,9 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
 
 // Verify that only the allowed LLVM instructions are present
 mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
-                                           bool isBaseProfile) {
+                                           bool isBaseProfile,
+                                           bool integerComputations,
+                                           bool floatComputations) {
   bool isAdaptiveProfile = !isBaseProfile;
   for (llvm::Function &func : *llvmModule)
     for (llvm::BasicBlock &block : func)
@@ -330,8 +332,53 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
           llvm::errs() << "error - invalid instruction found: " << inst << '\n';
           return mlir::failure();
         } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
-          llvm::errs() << "error - invalid instruction found: " << inst << '\n';
-          return mlir::failure();
+          // Not a valid adaptive profile instruction
+          // Check if it's in the extended instruction set
+          const auto isValidIntegerBinaryInst = [](const auto &inst) {
+            if (!llvm::isa<llvm::BinaryOperator>(inst))
+              return false;
+            const auto opCode = inst.getOpcode();
+            static const std::vector<int> integerOps = {
+                llvm::BinaryOperator::Add,  llvm::BinaryOperator::Sub,
+                llvm::BinaryOperator::Mul,  llvm::BinaryOperator::UDiv,
+                llvm::BinaryOperator::SDiv, llvm::BinaryOperator::URem,
+                llvm::BinaryOperator::SRem, llvm::BinaryOperator::And,
+                llvm::BinaryOperator::Or,   llvm::BinaryOperator::Xor,
+                llvm::BinaryOperator::Shl,  llvm::BinaryOperator::LShr,
+                llvm::BinaryOperator::AShr};
+            return std::find(integerOps.begin(), integerOps.end(), opCode) !=
+                   integerOps.end();
+          };
+
+          const bool isValidIntExtension =
+              integerComputations && (isValidIntegerBinaryInst(inst) ||
+                                      llvm::isa<llvm::ICmpInst>(inst) ||
+                                      llvm::isa<llvm::ZExtInst>(inst) ||
+                                      llvm::isa<llvm::SExtInst>(inst) ||
+                                      llvm::isa<llvm::TruncInst>(inst) ||
+                                      llvm::isa<llvm::SelectInst>(inst) ||
+                                      llvm::isa<llvm::PHINode>(inst));
+
+          const auto isValidFloatBinaryInst = [](const auto &inst) {
+            if (!llvm::isa<llvm::BinaryOperator>(inst))
+              return false;
+            const auto opCode = inst.getOpcode();
+            static const std::vector<int> floatOps = {
+                llvm::BinaryOperator::FAdd, llvm::BinaryOperator::FSub,
+                llvm::BinaryOperator::FMul, llvm::BinaryOperator::FDiv};
+            return std::find(floatOps.begin(), floatOps.end(), opCode) !=
+                   floatOps.end();
+          };
+
+          const bool isValidFloatExtension =
+              floatComputations && (isValidFloatBinaryInst(inst) ||
+                                    llvm::isa<llvm::FPExtInst>(inst) ||
+                                    llvm::isa<llvm::FPTruncInst>(inst));
+          if (!isValidIntExtension && !isValidFloatExtension) {
+            llvm::errs() << "error - invalid instruction found: " << inst
+                         << '\n';
+            return mlir::failure();
+          }
         }
         // Only inttoptr and getelementptr instructions are present as inlined
         // call argument operations. These instructions may not be present
@@ -368,7 +415,14 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   const std::uint32_t qir_major_version = 1;
   const std::uint32_t qir_minor_version = 0;
 
-  const bool isAdaptiveProfile = std::string{qirProfile} == "qir-adaptive";
+  const bool isAdaptiveProfile =
+      std::string{qirProfile}.starts_with("qir-adaptive");
+  const bool supportIntegerComputations =
+      (std::string{qirProfile} == "qir-adaptive-i" ||
+       std::string{qirProfile} == "qir-adaptive-if");
+  const bool supportFloatComputations =
+      (std::string{qirProfile} == "qir-adaptive-f" ||
+       std::string{qirProfile} == "qir-adaptive-if");
   const bool isBaseProfile = !isAdaptiveProfile;
 
   auto context = op->getContext();
@@ -384,10 +438,12 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
           return mlir::WalkResult::interrupt();
         }).wasInterrupted();
 
+  const std::string rootQirProfileName =
+      isAdaptiveProfile ? "qir-adaptive" : qirProfile;
   if (containsWireSet)
-    cudaq::opt::addWiresetToProfileQIRPipeline(pm, qirProfile);
+    cudaq::opt::addWiresetToProfileQIRPipeline(pm, rootQirProfileName);
   else
-    cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
+    cudaq::opt::addPipelineConvertToQIR(pm, rootQirProfileName);
 
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&
@@ -468,7 +524,9 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   if (failed(verifyQubitAndResultRanges(llvmModule.get())))
     return mlir::failure();
 
-  if (failed(verifyLLVMInstructions(llvmModule.get(), isBaseProfile)))
+  if (failed(verifyLLVMInstructions(llvmModule.get(), isBaseProfile,
+                                    supportIntegerComputations,
+                                    supportFloatComputations)))
     return mlir::failure();
 
   // Map the LLVM Module to Bitcode that can be submitted
@@ -494,8 +552,20 @@ void registerToQIRTranslation() {
   // Base Profile and Adaptive Profile are very similar, so they use the same
   // overall function. We just pass a string to it to tell the function which
   // one is being done.
+  // The adaptive profile can support optional integer and/or floating point
+  // computations capabilities. These additional capabilities will determine how
+  // we validate the output QIR.
   CREATE_QIR_REGISTRATION(regBase, "qir-base");
+  // Base adaptive profile
   CREATE_QIR_REGISTRATION(regAdaptive, "qir-adaptive");
+  // Adaptive with integer computations
+  CREATE_QIR_REGISTRATION(regAdaptiveI, "qir-adaptive-i");
+  // Adaptive with floating point computations
+  // FIXME: not sure if there is a platform with floating point support but not
+  // integer. We just have it here for completeness.
+  CREATE_QIR_REGISTRATION(regAdaptiveF, "qir-adaptive-f");
+  // Adaptive with integer and floating point computations
+  CREATE_QIR_REGISTRATION(regAdaptiveIF, "qir-adaptive-if");
 }
 
 void registerToOpenQASMTranslation() {
