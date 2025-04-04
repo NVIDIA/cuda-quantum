@@ -150,7 +150,7 @@ public:
         !isa<quake::WireType>(targets[1].getType()) ||
         !isa<quake::WireType>(prevTrgs[1].getType()) ||
         !matches(targets[0], targets[1], prev0.getResult(last - 1),
-                prev0.getResult(last))) {
+                 prev0.getResult(last))) {
       LLVM_DEBUG(llvm::dbgs() << "target wires must thread\n");
       return failure();
     }
