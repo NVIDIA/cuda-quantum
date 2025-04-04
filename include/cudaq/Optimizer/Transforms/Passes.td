@@ -1067,6 +1067,14 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
 }
 
+def QuakeSimplify : Pass<"quake-simplify"> {
+  let summary = "Perform simplifications on the quake ops.";
+  let description = [{
+    This pass performs several simplifications on quake operations. The
+    IR is expected to be in value-semantics form.
+  }];
+}
+
 def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   let summary = "Converts register-SSA to memory-SSA form.";
   let description = [{
