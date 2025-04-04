@@ -13,19 +13,17 @@
 // RUN: nvq++ -fenable-cudaq-run %cpp_std --target quantinuum --emulate  %s -o %t && %t | FileCheck %s
 // clang-format on
 
-// TODO: merge this with the `cudaq_run.cpp` test once the QIR lowering pipeline
-// can handle non-constant expressions.
-
 #include <cudaq.h>
 
 __qpu__ int test_kernel(int count) {
   unsigned result = 0;
   cudaq::qvector v(count);
-  h(v);
-  // Note: Hardware QIR lowering pipeline cannot handle non-constant
-  // expressions.
+  h(v[0]);
+  for (int i = 0; i < count - 1; i++)
+    cx(v[i], v[i + 1]);
   for (int i = 0; i < count; i++)
-    result += 1;
+    if (mz(v[i]))
+      result += 1;
   return result;
 }
 
@@ -39,7 +37,7 @@ int main() {
     } else {
       for (auto i : results) {
         printf("%d: %d\n", c++, i);
-        if (i != 4)
+        if (i != 0 && i != 4)
           break;
       }
       if (c == 100)

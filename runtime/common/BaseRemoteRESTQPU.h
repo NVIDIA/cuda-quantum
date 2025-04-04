@@ -846,7 +846,7 @@ public:
   }
 
 private:
-  /// @brief Helper to parse codegen translation, with optional feature
+  /// @brief Helper to parse `codegen` translation, with optional feature
   /// annotation.
   // e.g., "qir-adaptive[int_computations, float_computations]"
   static std::pair<std::string, std::vector<std::string>>
