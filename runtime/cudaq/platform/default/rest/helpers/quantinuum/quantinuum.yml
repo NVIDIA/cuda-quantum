@@ -20,7 +20,7 @@ config:
   # Define the lowering pipeline
   platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,expand-measurements,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),quantinuum-gate-set-mapping"
   # Tell the rest-qpu that we are generating Adaptive QIR.
-  codegen-emission: qir-adaptive
+  codegen-emission: qir-adaptive[int_computations]
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 
