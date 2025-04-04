@@ -227,10 +227,8 @@ mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
         auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
         auto func = callInst ? callInst->getCalledFunction() : nullptr;
         // All call arguments must be constants
-        // FIXME: remove the below block once we can confirm that const argument
-        // is not a requirement. if (func &&
-        // failed(verifyConstArguments(callInst)))
-        //   return mlir::failure();
+        if (isBaseProfile && func && failed(verifyConstArguments(callInst)))
+          return mlir::failure();
         // If it's an output function, do additional verification
         if (func && func->getName() == cudaq::opt::QIRRecordOutput)
           if (failed(verifyOutputCalls(callInst, outputList)))
