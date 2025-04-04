@@ -219,14 +219,15 @@ mlir::LogicalResult verifyConstArguments(llvm::CallBase *callInst) {
 }
 
 // Loop over the recording output functions and verify their characteristics
-mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
+mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule,
+                                                   bool isBaseProfile) {
   for (llvm::Function &func : *llvmModule) {
     std::set<std::string> outputList;
     for (llvm::BasicBlock &block : func)
       for (llvm::Instruction &inst : block) {
         auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
         auto func = callInst ? callInst->getCalledFunction() : nullptr;
-        // All call arguments must be constants
+        // All call arguments must be constants if this is a base profile
         if (isBaseProfile && func && failed(verifyConstArguments(callInst)))
           return mlir::failure();
         // If it's an output function, do additional verification
@@ -316,16 +317,12 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
             llvm::isa<llvm::CallBase>(inst) ||
             llvm::isa<llvm::BranchInst>(inst) ||
             llvm::isa<llvm::ReturnInst>(inst);
-        // Note: there is an outstanding question about the adaptive profile
-        // with respect to `switch` and `select` instructions. They are
-        // currently described as "optional" in the spec, but there is no way to
-        // specify their presence via module flags. So to be cautious, for now
-        // we will assume they are not allowed in cuda-quantum programs.
+        // By default, the adaptive profile supports the same set of
+        // instructions as the base profile. Extra/optional
+        // instructions/capabilities can be enabled in the target config. For
+        // example, `qir-adaptive[int_computations]` to allow integer
+        // computation instructions.
         bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
-        // bool isValidAdaptiveProfileInstruction =
-        //     isValidBaseProfileInstruction ||
-        //     llvm::isa<llvm::SwitchInst>(inst) ||
-        //     llvm::isa<llvm::SelectInst>(inst);
         if (isBaseProfile && !isValidBaseProfileInstruction) {
           llvm::errs() << "error - invalid instruction found: " << inst << '\n';
           return mlir::failure();
@@ -512,7 +509,7 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   if (printIR)
     llvm::errs() << *llvmModule;
 
-  if (failed(verifyOutputRecordingFunctions(llvmModule.get())))
+  if (failed(verifyOutputRecordingFunctions(llvmModule.get(), isBaseProfile)))
     return mlir::failure();
 
   if (isBaseProfile &&

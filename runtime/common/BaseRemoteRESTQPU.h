@@ -763,66 +763,66 @@ public:
             if (hasConditionals && isObserve)
               throw std::runtime_error("error: spin_ops not yet supported with "
                                        "kernels containing conditionals");
-            if (!isRun && hasConditionals) {
+            if (isRun || hasConditionals) {
               executor->setShots(1); // run one shot at a time
 
-              // If this is adaptive profile and the kernel has conditionals,
-              // then you have to run the code localShots times instead of
-              // running the kernel once and sampling the state localShots
-              // times.
-              if (hasConditionals) {
-                // Populate `counts` one shot at a time
-                cudaq::sample_result counts;
-                for (std::size_t shot = 0; shot < localShots; shot++) {
-                  cudaq::ExecutionContext context("sample", 1);
-                  context.hasConditionalsOnMeasureResults = true;
+              // If this is adaptive profile and the kernel has conditionals or
+              // executed via cudaq::run, then you have to run the code
+              // localShots times instead of running the kernel once and
+              // sampling the state localShots times.
+
+              // If not executed via cudaq::run, we populate `counts` one shot
+              // at a time.
+              cudaq::sample_result counts;
+              for (std::size_t shot = 0; shot < localShots; shot++) {
+                cudaq::ExecutionContext context("sample", 1);
+                context.hasConditionalsOnMeasureResults = true;
+                if (!isRun)
                   cudaq::getExecutionManager()->setExecutionContext(&context);
-                  invokeJITKernel(localJIT[0], kernelName);
+
+                invokeJITKernel(localJIT[0], kernelName);
+                if (!isRun) {
                   cudaq::getExecutionManager()->resetExecutionContext();
                   counts += context.result;
                 }
+              }
+              if (!isRun) {
                 // Process `counts` and store into `results`
                 for (auto &regName : counts.register_names()) {
                   results.emplace_back(counts.to_map(regName), regName);
                   results.back().sequentialData =
                       counts.sequential_data(regName);
                 }
+              } else {
+                // Get QIR output log
+                const auto qirOutputLog = nvqir::getQirOutputLog();
+                executionContext->invocationResultBuffer.assign(
+                    qirOutputLog.begin(), qirOutputLog.end());
               }
             }
 
             for (std::size_t i = 0; i < codes.size(); i++) {
-              if (isRun) {
-                cudaq::getExecutionManager()->resetExecutionContext();
-                for (std::size_t shot = 0; shot < localShots; ++shot)
-                  invokeJITKernel(localJIT[i], kernelName);
-                // Delete/release JIT
-                delete localJIT[i];
-                const auto qirOutputLog = nvqir::getQirOutputLog();
-                executionContext->invocationResultBuffer.assign(
-                    qirOutputLog.begin(), qirOutputLog.end());
-              } else {
-                cudaq::ExecutionContext context("sample", localShots);
-                context.reorderIdx = reorderIdx;
-                cudaq::getExecutionManager()->setExecutionContext(&context);
-                invokeJITKernelAndRelease(localJIT[i], kernelName);
-                cudaq::getExecutionManager()->resetExecutionContext();
+              cudaq::ExecutionContext context("sample", localShots);
+              context.reorderIdx = reorderIdx;
+              cudaq::getExecutionManager()->setExecutionContext(&context);
+              invokeJITKernelAndRelease(localJIT[i], kernelName);
+              cudaq::getExecutionManager()->resetExecutionContext();
 
-                if (isObserve) {
-                  // Use the code name instead of the global register.
-                  results.emplace_back(context.result.to_map(), codes[i].name);
+              if (isObserve) {
+                // Use the code name instead of the global register.
+                results.emplace_back(context.result.to_map(), codes[i].name);
+                results.back().sequentialData =
+                    context.result.sequential_data();
+              } else {
+                // For each register, add the context results into result.
+                for (auto &regName : context.result.register_names()) {
+                  results.emplace_back(context.result.to_map(regName), regName);
                   results.back().sequentialData =
-                      context.result.sequential_data();
-                } else {
-                  // For each register, add the context results into result.
-                  for (auto &regName : context.result.register_names()) {
-                    results.emplace_back(context.result.to_map(regName),
-                                         regName);
-                    results.back().sequentialData =
-                        context.result.sequential_data(regName);
-                  }
+                      context.result.sequential_data(regName);
                 }
               }
             }
+
             localJIT.clear();
             return cudaq::sample_result(results);
           }));
