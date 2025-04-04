@@ -141,7 +141,7 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                       std::size_t qpu_id = 0) {
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument(
-        "Provided qpu_id is invalid (must be <= to platform.num_qpus()).");
+        "Provided qpu_id is invalid (must be < to platform.num_qpus()).");
   }
 
   // If we are remote, then create the sampling executor with `cudaq::future`

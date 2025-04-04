@@ -141,7 +141,7 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
   auto &platform = cudaq::get_platform();
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument(
-        "Provided qpu_id is invalid (must be <= to platform.num_qpus()).");
+        "Provided qpu_id is invalid (must be < to platform.num_qpus()).");
   }
   std::promise<evolve_result> promise;
   auto f = promise.get_future();
