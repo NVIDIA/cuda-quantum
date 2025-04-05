@@ -21,7 +21,7 @@ int main() {
   // Qubit `hamiltonian`: 2 * pi * 0.1 * sigma_x
   // Physically, this represents a qubit (a two-level system) driven by a weak
   // transverse field along the x-axis.
-  auto hamiltonian = 2.0 * M_PI * 0.1 * cudaq::spin_handler::x(0);
+  auto hamiltonian = 2.0 * M_PI * 0.1 * cudaq::spin_op::x(0);
 
   // Dimensions: one subsystem of dimension 2 (a two-level system).
   const cudaq::dimension_map dimensions = {{0, 2}};
@@ -38,17 +38,17 @@ int main() {
   cudaq::integrators::runge_kutta integrator(4, 0.01);
 
   // Run the simulation without collapse operators (ideal evolution)
-  auto evolve_result = cudaq::evolve(
-      hamiltonian, dimensions, schedule, psi0, integrator, {},
-      {cudaq::spin_handler::y(0), cudaq::spin_handler::z(0)}, true);
+  auto evolve_result =
+      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator, {},
+                    {cudaq::spin_op::y(0), cudaq::spin_op::z(0)}, true);
 
   constexpr double decay_rate = 0.05;
-  auto collapse_operator = std::sqrt(decay_rate) * cudaq::spin_handler::x(0);
+  auto collapse_operator = std::sqrt(decay_rate) * cudaq::spin_op::x(0);
 
   // Evolve with collapse operators
   cudaq::evolve_result evolve_result_decay = cudaq::evolve(
       hamiltonian, dimensions, schedule, psi0, integrator, {collapse_operator},
-      {cudaq::spin_handler::y(0), cudaq::spin_handler::z(0)}, true);
+      {cudaq::spin_op::y(0), cudaq::spin_op::z(0)}, true);
 
   // Lambda to extract expectation values for a given observable index
   auto get_expectation = [](int idx, auto &result) -> std::vector<double> {

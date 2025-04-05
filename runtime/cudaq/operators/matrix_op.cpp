@@ -109,8 +109,9 @@ matrix_handler::instantiate(std::string operator_id,
 
 // private helpers
 
-std::string matrix_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int64_t> &dimensions) const {
+std::string matrix_handler::canonical_form(
+    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::vector<int64_t> &relevant_dims) const {
   auto it = matrix_handler::defined_ops.find(this->op_code);
   assert(it != matrix_handler::defined_ops
                    .end()); // should be validated upon instantiation
@@ -122,6 +123,7 @@ std::string matrix_handler::op_code_to_string(
       if (entry == dimensions.end())
         throw std::runtime_error("missing dimension for degree " +
                                  std::to_string(this->targets[i]));
+      relevant_dims.push_back(entry->second);
     } else {
       if (entry == dimensions.end())
         dimensions[this->targets[i]] = expected_dim;
@@ -129,6 +131,7 @@ std::string matrix_handler::op_code_to_string(
         throw std::runtime_error(
             "invalid dimension for degree " + std::to_string(this->targets[i]) +
             ", expected dimension is " + std::to_string(expected_dim));
+      relevant_dims.push_back(expected_dim);
     }
   }
   return this->op_code;
