@@ -25,9 +25,9 @@ class FermioniqServerHelper : public ServerHelper {
   static constexpr int POLLING_INTERVAL_IN_SECONDS = 1;
 
   static constexpr const char *DEFAULT_URL =
-      "https://fermioniq-api-fapp-prod.azurewebsites.net";
+      "https://fermioniq-api-prod.azurewebsites.net";
   static constexpr const char *DEFAULT_API_KEY =
-      "gCUVmJOKVCdPKRYpgk7nNWM_kTAsZfPeYTbte2sNuKtXAzFuYdj9ag==";
+      "ZBwmQS4eR92BDnvz0B0QuSNBdLAydWKOlldLEGZ5sDxSAzFuvQB89A==";
 
   static constexpr const char *CFG_URL_KEY = "base_url";
   static constexpr const char *CFG_ACCESS_TOKEN_ID_KEY = "access_token_id";
