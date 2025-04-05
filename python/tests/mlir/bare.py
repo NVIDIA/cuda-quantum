@@ -8,12 +8,13 @@
 
 # RUN: PYTHONPATH=../../ python3 %s | FileCheck %s
 
+from cudaq.mlir import register_all_dialects
 from cudaq.mlir.ir import *
 from cudaq.mlir.dialects import quake
 from cudaq.mlir.dialects import builtin, func, arith
 
 with Context() as ctx:
-    quake.register_dialect()
+    register_all_dialects(ctx)
     m = Module.create(loc=Location.unknown())
     with InsertionPoint(m.body), Location.unknown():
         f = func.FuncOp('main', ([], []))
