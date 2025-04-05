@@ -60,7 +60,7 @@ def test_banjo():
 # CHECK:           ^bb0(%[[VAL_17:.*]]: i64):
 # CHECK:             %[[VAL_18:.*]] = arith.addi %[[VAL_17]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_18]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
 
