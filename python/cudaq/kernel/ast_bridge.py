@@ -1759,6 +1759,7 @@ class PyASTBridge(ast.NodeVisitor):
                 qubitTargets = [self.popValue() for _ in range(numValues - 1)]
                 qubitTargets.reverse()
                 param = self.popValue()
+                param = self.ifPointerThenLoad(param)
                 if IntegerType.isinstance(param.type):
                     param = arith.SIToFPOp(self.getFloatType(), param).result
                 elif not F64Type.isinstance(param.type):
@@ -1781,6 +1782,7 @@ class PyASTBridge(ast.NodeVisitor):
                 control = self.popValue()
                 self.checkControlAndTargetTypes([control], [target])
                 param = self.popValue()
+                param = self.ifPointerThenLoad(param)
                 if IntegerType.isinstance(param.type):
                     param = arith.SIToFPOp(self.getFloatType(), param).result
                 elif not F64Type.isinstance(param.type):
@@ -1907,6 +1909,8 @@ class PyASTBridge(ast.NodeVisitor):
                 self.checkControlAndTargetTypes([], qubitTargets)
                 params = all_args[-3:]
                 params.reverse()
+                for i, p in enumerate(params):
+                    params[i] = self.ifPointerThenLoad(p)
                 for idx, val in enumerate(params):
                     if IntegerType.isinstance(val.type):
                         params[idx] = arith.SIToFPOp(self.getFloatType(),
@@ -2014,6 +2018,7 @@ class PyASTBridge(ast.NodeVisitor):
                 qubits = self.popValue()
                 self.checkControlAndTargetTypes([], [qubits])
                 theta = self.popValue()
+                theta = self.ifPointerThenLoad(theta)
                 if IntegerType.isinstance(theta.type):
                     theta = arith.SIToFPOp(self.getFloatType(), theta).result
                 quake.ExpPauliOp([], [theta], [], [qubits], pauli=pauliWord)
