@@ -1,6 +1,50 @@
 CUDA-Q C++ API
 ******************************
 
+Operators 
+=============
+
+.. doxygenclass:: cudaq::scalar_callback
+    :members:
+
+.. doxygenclass:: cudaq::scalar_operator
+    :members:
+
+.. doxygenstruct:: cudaq::commutation_relations
+
+.. doxygenclass:: cudaq::matrix_callback
+
+.. doxygenclass:: cudaq::boson_handler
+
+.. doxygenclass:: cudaq::fermion_handler
+
+.. doxygenclass:: cudaq::spin_handler
+
+.. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
+
+    Alias for a tuple containing vectors for complex values, indices, and sizes.
+
+    The tuple elements are:
+
+    - ``std::vector<std::complex<double>>``: Complex values.
+    - ``std::vector<std::size_t>``: Indices.
+    - ``std::vector<std::size_t>``: Sizes.
+
+.. cpp:type:: int64_t = std::int64_t
+
+    64-bit signed integer type from ``<cstdint>``.
+
+.. doxygenclass:: cudaq::operator_handler
+
+.. doxygenclass:: cudaq::matrix_handler
+    :members:
+
+.. doxygenclass:: cudaq::product_op
+    :members:
+
+.. doxygenclass:: cudaq::sum_op
+    :members:
+
 Quantum
 =========
 
