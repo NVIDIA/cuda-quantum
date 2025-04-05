@@ -950,7 +950,7 @@ def test_invalid_cudaq_type():
         print(test)
 
 
-def test_bool_list_elements():
+def test_bool_list_element():
 
     @cudaq.kernel
     def kernel(var: list[bool]):
@@ -964,6 +964,33 @@ def test_bool_list_elements():
 
     counts = cudaq.sample(kernel, [True], shots_count=100)
     assert '0' in counts and len(counts) == 1
+
+
+def test_list_bool_elements():
+    import cudaq
+
+    @cudaq.kernel
+    def kernel(n: int, bools: list[bool]):
+        q = cudaq.qvector(n)
+        for j in range(n):
+            b = bools[j]
+            if b == False:
+                x(q[j])
+
+    counts = cudaq.sample(kernel, 2, [True, True])
+    assert "00" in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, 2, [False, True])
+    assert "10" in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, 2, [True, False])
+    assert "01" in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, 2, [False, False])
+    assert "11" in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, 5, [True, True, False, True, True])
+    assert "00100" in counts and len(counts) == 1
 
 
 def test_list_float_pass_list_int():
@@ -1017,12 +1044,14 @@ def test_aug_assign_add():
 def test_empty_lists():
 
     @cudaq.kernel
-    def empty(var: list[cudaq.pauli_word], varvar: list[float],
-              varvarvar: list[bool]):
+    def empty(a: list[cudaq.pauli_word], b: list[bool], c: list[int],
+              d: list[float], e: list[complex]) -> int:
+
         q = cudaq.qvector(2)
         x(q[0])
+        return len(a) + len(b) + len(c) + len(d) + len(e)
 
-    empty([], [], [])
+    assert empty([], [], [], [], []) == 0
 
 
 def test_no_valueerror_np_array():
