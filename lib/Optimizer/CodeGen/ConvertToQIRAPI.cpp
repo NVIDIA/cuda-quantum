@@ -2143,6 +2143,8 @@ struct QuakeToQIRAPIPrepPass
           } else if (api == "adaptive-profile") {
             funcAttrs.push_back(builder.getStrArrayAttr(
                 {cudaq::opt::QIRProfilesAttrName, "adaptive_profile"}));
+            funcAttrs.push_back(builder.getStrArrayAttr(
+                {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}));
           }
           if (totalQubits)
             funcAttrs.push_back(builder.getStrArrayAttr(
