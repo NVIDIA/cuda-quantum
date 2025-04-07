@@ -44,7 +44,7 @@ public:
     }
     Value trgt = targets[0];
 
-    // Check that these are the same rotation op back-to-back.
+    // Check that these are the same Hermitian op back-to-back.
     auto prev = targets[0].template getDefiningOp<QOP>();
     if (!prev) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be the same\n");
