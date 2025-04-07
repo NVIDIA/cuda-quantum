@@ -50,6 +50,8 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be the same\n");
       return failure();
     }
+    if (prev.getNegatedQubitControls())
+      return failure();
 
     // Check target is properly threaded.
     auto prevTrgs = prev.getTargets();
@@ -134,6 +136,8 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous operations must be the same\n");
       return failure();
     }
+    if (prev0.getNegatedQubitControls())
+      return failure();
 
     // Check target is properly threaded.
     auto prevTrgs = prev0.getTargets();
@@ -214,6 +218,8 @@ public:
                               << qop << '\n');
       return failure();
     }
+    if (prev.getNegatedQubitControls())
+      return failure();
 
     // Check target is properly threaded.
     auto prevTrgs = prev.getTargets();
