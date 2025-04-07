@@ -14,6 +14,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform/QuantumExecutionQueue.h"
 #include <cstdint>
 
 extern "C" {
@@ -86,15 +87,22 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
 
 } // namespace details
 
-/// cudaq::run allows an entry-point kernel to be executed a \p shots number of
-/// times and return a `std::vector` of results.
-template <typename RESULT, typename... ARGS>
+/// @brief Run a kernel \p shots number of times and return a `std::vector` of
+/// results.
+/// @tparam QuantumKernel  Quantum kernel type (must return a non-void result)
+/// @tparam ...ARGS Quantum kernel argument types
+/// @param shots Number of shots to run
+/// @param kernel Quantum kernel
+/// @param ...args Kernel arguments
+/// @return A vector of results
+template <typename QuantumKernel, typename... ARGS>
 #if CUDAQ_USE_STD20
-  requires(!std::is_void_v<RESULT>)
+  requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                                std::decay_t<ARGS>...>>)
 #endif
-std::vector<RESULT> run(std::size_t shots,
-                        std::function<RESULT(ARGS...)> &&kernel,
-                        ARGS &&...args) {
+std::vector<
+    std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
+run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   if (shots == 0)
     return {};
 
@@ -103,14 +111,96 @@ std::vector<RESULT> run(std::size_t shots,
   std::string kernelName{cudaq::getKernelName(kernel)};
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable {
-        cudaq::invokeKernel(std::move(kernel), std::forward<ARGS>(args)...);
+        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                            std::forward<ARGS>(args)...);
       },
       platform, kernelName, shots);
-
-  return {reinterpret_cast<RESULT *>(span.data),
-          reinterpret_cast<RESULT *>(span.data + span.lengthInBytes)};
+  using ResultTy =
+      std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>;
+  return {reinterpret_cast<ResultTy *>(span.data),
+          reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
 }
 
-// FIXME: Provide an async variant of run?
+/// @brief Launch a run of a kernel for \p shots number of times on a specific
+/// QPU
+/// @tparam QuantumKernel Quantum kernel type (must return a non-void result)
+/// @tparam ...ARGS Quantum kernel argument types
+/// @param qpu_id QPU to launch
+/// @param shots Number of shots to run
+/// @param kernel Quantum kernel
+/// @param ...args Kernel arguments
+/// @return A handle (`std::future`) to a vector of results
+template <typename QuantumKernel, typename... ARGS>
+#if CUDAQ_USE_STD20
+  requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                                std::decay_t<ARGS>...>>)
+#endif
+std::future<std::vector<
+    std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>>
+run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
+          ARGS &&...args) {
+  auto &platform = cudaq::get_platform();
 
+  if (qpu_id >= platform.num_qpus())
+    throw std::invalid_argument(
+        "Provided qpu_id is invalid (must be <= to platform.num_qpus()).");
+
+  // Launch the kernel in the appropriate context.
+  using ResultTy =
+      std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>;
+  std::promise<std::vector<ResultTy>> promise;
+  auto fut = promise.get_future();
+#if CUDAQ_USE_STD20
+  QuantumTask wrapped = detail::make_copyable_function(
+      [p = std::move(promise), qpu_id, shots, &platform, &kernel,
+       ... args = std::forward<ARGS>(args)]() mutable {
+        if (shots == 0) {
+          p.set_value({});
+          return;
+        }
+        const std::string kernelName{cudaq::getKernelName(kernel)};
+        details::RunResultSpan span = details::runTheKernel(
+            [&]() mutable {
+              cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                  std::forward<ARGS>(args)...);
+            },
+            platform, kernelName, shots);
+        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                         std::decay_t<ARGS>...>>
+            results{
+                reinterpret_cast<ResultTy *>(span.data),
+                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+        p.set_value(std::move(results));
+      });
+#else
+  QuantumTask wrapped = detail::make_copyable_function(
+      [p = std::move(promise), qpu_id, shots, &platform, &kernel,
+       args = std::make_tuple(std::forward<ARGS>(args)...)]() mutable {
+        if (shots == 0) {
+          p.set_value({});
+          return;
+        }
+        const std::string kernelName{cudaq::getKernelName(kernel)};
+        details::RunResultSpan span = details::runTheKernel(
+            [&]() mutable {
+              std::apply(
+                  [&kernel](ARGS &&...args) {
+                    return cudaq::invokeKernel(
+                        std::forward<QuantumKernel>(kernel),
+                        std::forward<ARGS>(args)...);
+                  },
+                  std::move(args));
+            },
+            platform, kernelName, shots);
+        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                         std::decay_t<ARGS>...>>
+            results{
+                reinterpret_cast<ResultTy *>(span.data),
+                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+        p.set_value(std::move(results));
+      });
+#endif
+  platform.enqueueAsyncTask(qpu_id, wrapped);
+  return fut;
+}
 } // namespace cudaq

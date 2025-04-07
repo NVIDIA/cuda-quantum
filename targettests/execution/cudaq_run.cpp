@@ -37,8 +37,7 @@ __qpu__ int unary_test(int count) {
 int main() {
   int c = 0;
   {
-    std::vector<int> results =
-        cudaq::run<int>(100, std::function<int()>{nullary_test});
+    const auto results = cudaq::run(100, nullary_test);
     if (results.size() != 100) {
       printf("FAILED! Expected 100 shots. Got %lu\n", results.size());
     } else {
@@ -49,8 +48,33 @@ int main() {
   }
 
   {
-    std::vector<int> results =
-        cudaq::run<int>(50, std::function<int(int)>{unary_test}, 4);
+    const auto results = cudaq::run(50, unary_test, 4);
+    c = 0;
+    if (results.size() != 50) {
+      printf("FAILED! Expected 50 shots. Got %lu\n", results.size());
+    } else {
+      for (auto i : results)
+        printf("%d: %d\n", c++, i);
+      printf("success!\n");
+    }
+  }
+
+  // Run async
+  {
+    const auto results =
+        cudaq::run_async(/*qpu_id=*/0, 100, nullary_test).get();
+    if (results.size() != 100) {
+      printf("FAILED! Expected 100 shots. Got %lu\n", results.size());
+    } else {
+      for (auto i : results)
+        printf("%d: %d\n", c++, i);
+      printf("success!\n");
+    }
+  }
+
+  {
+    const auto results =
+        cudaq::run_async(/*qpu_id=*/0, 50, unary_test, 4).get();
     c = 0;
     if (results.size() != 50) {
       printf("FAILED! Expected 50 shots. Got %lu\n", results.size());
@@ -64,5 +88,7 @@ int main() {
   return 0;
 }
 
+// CHECK: success!
+// CHECK: success!
 // CHECK: success!
 // CHECK: success!
