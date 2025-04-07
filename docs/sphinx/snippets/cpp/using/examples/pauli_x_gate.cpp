@@ -20,8 +20,9 @@ __qpu__ void pauli_x_gate() {
 }
 
 int main() {
-  // Sample the kernel and print the results.
+  // Sample the qubit for 1000 shots to gather statistics.
   auto result = cudaq::sample(pauli_x_gate);
-  result.dump(); // prints { 0:1000 }
+  result.dump();
+  return 0;
 }
 // [End Docs]
