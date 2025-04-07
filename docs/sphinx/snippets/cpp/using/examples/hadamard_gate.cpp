@@ -11,21 +11,25 @@
 #include <iostream>
 
 __qpu__ void hadamard_gate() {
-    // Allocate a qubit.
-    cudaq::qubit q;
-    // Apply a hadamard gate to the qubit.
-    h(q);
-    // Measure the qubit.
-    mz(q);
+  // Allocate a qubit.
+  cudaq::qubit q;
+  // Apply a hadamard gate to the qubit.
+  h(q);
+  // Measure the qubit.
+  mz(q);
 }
 
 int main() {
-    // Call the kernel to run the hadamard gate.
-    auto result = cudaq::sample(hadamard_gate);
-    std::cout << "Measured |0> with probability " <<
-    static_cast<double>(result.count("0")) / std::accumulate(result.begin(), result.end(), 0) << std::endl;
-    std::cout << "Measured |1> with probability " <<
-    static_cast<double>(result.count("1")) / std::accumulate(result.begin(), result.end(), 0) << std::endl;
-    return 0;
+  // Call the kernel to run the hadamard gate.
+  auto result = cudaq::sample(hadamard_gate);
+  std::cout << "Measured |0> with probability "
+            << static_cast<double>(result.count("0")) /
+                   std::accumulate(result.begin(), result.end(), 0)
+            << std::endl;
+  std::cout << "Measured |1> with probability "
+            << static_cast<double>(result.count("1")) /
+                   std::accumulate(result.begin(), result.end(), 0)
+            << std::endl;
+  return 0;
 }
 // [End Docs]
