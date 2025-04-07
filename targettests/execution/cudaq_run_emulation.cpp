@@ -30,8 +30,8 @@ __qpu__ int test_kernel(int count) {
 int main() {
   int c = 0;
   {
-    std::vector<int> results =
-        cudaq::run<int>(100, std::function<int(int)>{test_kernel}, 4);
+    constexpr int numQubits = 4;
+    auto results = cudaq::run(100, test_kernel, numQubits);
     if (results.size() != 100) {
       printf("FAILED! Expected 100 shots. Got %lu\n", results.size());
     } else {
