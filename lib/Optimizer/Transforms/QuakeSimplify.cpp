@@ -119,7 +119,7 @@ public:
       return failure();
     }
 
-    // Check that these are the same rotation op back-to-back.
+    // Check that these are the same swap op back-to-back.
     auto prev0 = targets[0].template getDefiningOp<quake::SwapOp>();
     if (!prev0) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation 0 must be the same\n");
