@@ -7,21 +7,21 @@
  ******************************************************************************/
 
 // [Begin Docs]
-# include <cudaq.h>
-# include <iostream>
+#include <cudaq.h>
+#include <iostream>
 
 __qpu__ void kernel() {
-    // 2 qubits both initialized to the ground/ zero state.
-    cudaq::qvector qubits(2);
-    x(qubits[0]);
-    // Controlled-not gate operation.
-    cx(qubits[0], qubits[1]);
-    mz(qubits[0]);
-    mz(qubits[1]);
+  // 2 qubits both initialized to the ground/ zero state.
+  cudaq::qvector qubits(2);
+  x(qubits[0]);
+  // Controlled-not gate operation.
+  cx(qubits[0], qubits[1]);
+  mz(qubits[0]);
+  mz(qubits[1]);
 }
 
 int main() {
-    auto result = cudaq::sample(kernel);
-    result.dump();
+  auto result = cudaq::sample(kernel);
+  result.dump();
 }
 // [End Docs]
