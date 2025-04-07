@@ -37,8 +37,15 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
                                 ctx->invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
   } else {
-    for (std::size_t i = 0; i < shots; ++i)
+    auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+    for (std::size_t i = 0; i < shots; ++i) {
+      // Set the execution context since as noise model is attached to this
+      // context.
+      platform.set_exec_ctx(ctx.get());
       kernel();
+      // Reset the context to flush qubit deallocation.
+      platform.reset_exec_ctx();
+    }
   }
 
   // 3. Pass the outputLog to the decoder (target-specific?)
