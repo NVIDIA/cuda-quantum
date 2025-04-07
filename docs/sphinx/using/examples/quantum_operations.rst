@@ -68,10 +68,19 @@ For example, the Pauli X gate allows us to flip the state of the qubit:
 
 .. math::  \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix} 
 
-.. literalinclude:: ../../snippets/python/using/examples/pauli_x_gate.py
-    :language: python
-    :start-after: [Begin Docs]
-    :end-before: [End Docs]
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/examples/pauli_x_gate.py
+        :language: python
+        :start-after: [Begin Docs]
+        :end-before: [End Docs]
+
+.. tab:: C++
+
+    .. literalinclude:: ../../snippets/cpp/using/examples/pauli_x_gate.cpp
+        :language: cpp
+        :start-after: [Begin Docs]
+        :end-before: [End Docs]
 
 .. parsed-literal::
 
