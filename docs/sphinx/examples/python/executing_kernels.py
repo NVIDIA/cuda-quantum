@@ -18,9 +18,9 @@ def kernel(qubit_count: int):
     for i in range(1, qubit_count):
         x.ctrl(qvector[0], qvector[i])
 
-    # If we dont specify measurements, all qubits are measured in
+    # If we do not specify measurements, all qubits are measured in
     # the Z-basis by default or we can manually specify it also
-    # mz(qvector)
+    mz(qvector)
 
 
 print(cudaq.draw(kernel, qubit_count))
@@ -65,7 +65,7 @@ print(np.array(result))
  [End GetStateOutput] '''
 
 # [Begin ObserveAsync]
-# Measuring the expectation value of 2 different hamiltonians in parallel
+# Measuring the expectation value of 2 different Hamiltonians in parallel
 hamiltonian_1 = spin.x(0) + spin.y(1) + spin.z(0) * spin.y(1)
 
 # Asynchronous execution on multiple qpus via nvidia gpus.
@@ -77,10 +77,3 @@ print(result_1.get().expectation())
 ''' [Begin ObserveAsyncOutput]  
 2.220446049250313e-16
  [End ObserveAsyncOutput] '''
-
-# [Begin CudaQVersion]
-print(cudaq.__version__)
-# [End CudaQVersion]
-''' [Begin CudaQVersionOutput]  
-CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 0eb6b444eb5b3a687e6fd64529ee9223aaa2870e)
- [End CudaQVersionOutput] '''

@@ -118,7 +118,8 @@ master_doc = 'index'
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb', 'examples/python/measuring_kernels.ipynb', 'examples/python/executing_kernels.ipynb'
+    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb', 'examples/python/measuring_kernels.ipynb', 'examples/python/executing_kernels.ipynb',
+    'examples/python/operators.ipynb'
 ]
 
 #redirect links 

@@ -6,6 +6,7 @@ AST
 Aer
 AlmaLinux
 Anyon
+Async
 Asynchronous
 BFGS
 Bloch
@@ -34,6 +35,8 @@ Fermion
 Fock
 Fortran
 Fourier
+GetState
+GetStateOutput
 GHCR
 GPU
 GPUDirect
@@ -112,6 +115,7 @@ Quantinuum
 RHEL
 RSA
 RSH
+SampleOutput
 SDK
 SLED
 SLES
@@ -144,6 +148,7 @@ ansatz
 ansatzes
 archiver
 arity
+async
 auxillary
 backend
 backends
@@ -236,7 +241,11 @@ fmt
 fourier
 frontend
 frontends
+<<<<<<< HEAD
 grovers
+=======
+gpus
+>>>>>>> 9031aa3d7f (Adding operators cpp examples)
 hadamard
 hamiltonian
 heisenberg
@@ -276,12 +285,14 @@ namespaces
 natively
 normalization
 nullary
+nvidia
 observables
 optimizer
 optimizers
 pagerank
 parallelization
 parallelize
+parallelized
 parallelizing
 parameterization
 performant
