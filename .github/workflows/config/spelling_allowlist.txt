@@ -6,6 +6,7 @@ AST
 Aer
 AlmaLinux
 Anyon
+Async
 Asynchronous
 BFGS
 Bloch
@@ -33,6 +34,8 @@ FPGAs
 Fock
 Fortran
 Fourier
+GetState
+GetStateOutput
 GHCR
 GPU
 GPUDirect
@@ -73,6 +76,9 @@ NVIDIA
 NVLink
 NVQC
 NVQIR
+ObserveAsync
+ObserveAsyncOutput
+ObserveOutput
 OQC
 ORCA
 OpenACC
@@ -110,6 +116,7 @@ Quantinuum
 RHEL
 RSA
 RSH
+SampleOutput
 SDK
 SLED
 SLES
@@ -141,6 +148,7 @@ ansatz
 ansatzes
 archiver
 arity
+async
 auxillary
 backend
 backends
@@ -233,6 +241,7 @@ fmt
 fourier
 frontend
 frontends
+gpus
 hadamard
 hamiltonian
 homogenous
@@ -270,11 +279,13 @@ namespaces
 natively
 normalization
 nullary
+nvidia
 observables
 optimizer
 optimizers
 parallelization
 parallelize
+parallelized
 parallelizing
 parameterization
 performant
@@ -288,6 +299,7 @@ probability
 programmatically
 pybind
 qaoa
+qpus
 quantize
 quantized
 qubit
