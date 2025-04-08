@@ -19,6 +19,13 @@ Quantum states collapse upon measurement and hence need to be sampled many times
         :start-after: [Begin Sample]
         :end-before: [End Sample]
 
+.. tab:: C++
+
+    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+        :language: cpp
+        :start-after: [Begin Sample]
+        :end-before: [End Sample]
+
 .. literalinclude:: ../../examples/python/executing_kernels.py
         :start-after: [Begin SampleOutput]
         :end-before: [End SampleOutput]
@@ -39,9 +46,23 @@ The `observe` function allows us to calculate expectation values. We must supply
         :start-after: [Begin Observe]
         :end-before: [End Observe]
 
-.. literalinclude:: ../../examples/python/executing_kernels.py
+    .. literalinclude:: ../../examples/python/executing_kernels.py
+        :language: python
         :start-after: [Begin ObserveOutput]
         :end-before: [End ObserveOutput]
+
+.. tab:: C++
+
+    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+        :language: cpp
+        :start-after: [Begin Observe]
+        :end-before: [End Observe]
+
+    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+        :language: cpp
+        :start-after: [Begin ObserveOutput]
+        :end-before: [End ObserveOutput]
+
 
 Get State
 ---------
@@ -55,7 +76,20 @@ The `get_state` function gives us access to the quantum statevector of the compu
         :start-after: [Begin GetState]
         :end-before: [End GetState]
 
-.. literalinclude:: ../../examples/python/executing_kernels.py
+    .. literalinclude:: ../../examples/python/executing_kernels.py
+        :language: python
+        :start-after: [Begin GetStateOutput]
+        :end-before: [End GetStateOutput]
+
+.. tab:: C++
+
+    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+        :language: cpp
+        :start-after: [Begin GetState]
+        :end-before: [End GetState]
+
+    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+        :language: cpp
         :start-after: [Begin GetStateOutput]
         :end-before: [End GetStateOutput]
 
@@ -93,7 +127,20 @@ Asynchronous programming is a technique that enables your program to start a pot
         :start-after: [Begin ObserveAsync]
         :end-before: [End ObserveAsync]
 
-.. literalinclude:: ../../examples/python/executing_kernels.py
+    .. literalinclude:: ../../examples/python/executing_kernels.py
+        :language: python
+        :start-after: [Begin ObserveAsyncOutput]
+        :end-before: [End ObserveAsyncOutput]
+
+.. tab:: C++
+
+    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+        :language: cpp
+        :start-after: [Begin ObserveAsync]
+        :end-before: [End ObserveAsync]
+
+    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+        :language: cpp
         :start-after: [Begin ObserveAsyncOutput]
         :end-before: [End ObserveAsyncOutput]
 
@@ -116,6 +163,6 @@ Similar to `sample_async` above, `get_state_async` also supports asynchronous ex
         :start-after: [Begin CudaQVersion]
         :end-before: [End CudaQVersion]
 
-.. literalinclude:: ../../examples/python/executing_kernels.py
+    .. literalinclude:: ../../examples/python/executing_kernels.py
         :start-after: [Begin CudaQVersionOutput]
         :end-before: [End CudaQVersionOutput]
