@@ -28,14 +28,14 @@ Inputs to kernels are defined by specifying a parameter in the kernel definition
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin InputDefinition]
-      :end-before: [End InputDefinition]
+      :start-after: [Begin `InputDefinition`]
+      :end-before: [End `InputDefinition`]
 
 .. tab:: C++
 
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
-      :start-after: [Begin InputDefinition]
-      :end-before: [End InputDefinition]
+      :start-after: [Begin `InputDefinition`]
+      :end-before: [End `InputDefinition`]
 
 Initializing states
 -------------------
@@ -48,15 +48,15 @@ It is often helpful to define an initial state for a kernel. There are a few way
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin PassingComplexVector]
-      :end-before: [End PassingComplexVector]
+      :start-after: [Begin `PassingComplexVector`]
+      :end-before: [End `PassingComplexVector`]
 
 .. tab:: C++
    
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin PassingComplexVector]
-      :end-before: [End PassingComplexVector]
+      :start-after: [Begin `PassingComplexVector`]
+      :end-before: [End `PassingComplexVector`]
 
 2. Capturing complex vectors
 
@@ -64,15 +64,15 @@ It is often helpful to define an initial state for a kernel. There are a few way
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin CapturingComplexVector]
-      :end-before: [End CapturingComplexVector]
+      :start-after: [Begin `CapturingComplexVector`]
+      :end-before: [End `CapturingComplexVector`]
 
 .. tab:: C++
    
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin CapturingComplexVector]
-      :end-before: [End CapturingComplexVector]
+      :start-after: [Begin `CapturingComplexVector`]
+      :end-before: [End `CapturingComplexVector`]
 
 3. Precision-agnostic API
 
@@ -80,15 +80,15 @@ It is often helpful to define an initial state for a kernel. There are a few way
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin PrecisionAgnosticAPI]
-      :end-before: [End PrecisionAgnosticAPI]
+      :start-after: [Begin `PrecisionAgnosticAPI`]
+      :end-before: [End `PrecisionAgnosticAPI`]
 
 .. tab:: C++
    
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin PrecisionAgnosticAPI]
-      :end-before: [End PrecisionAgnosticAPI]
+      :start-after: [Begin `PrecisionAgnosticAPI`]
+      :end-before: [End `PrecisionAgnosticAPI`]
 
 4. Define as CUDA-Q amplitudes
 
@@ -96,8 +96,8 @@ It is often helpful to define an initial state for a kernel. There are a few way
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin CUDAQAmplitudes]
-      :end-before: [End CUDAQAmplitudes]
+      :start-after: [Begin `CUDAQAmplitudes`]
+      :end-before: [End `CUDAQAmplitudes`]
 
 5. Pass in a state from another kernel
 
@@ -105,8 +105,8 @@ It is often helpful to define an initial state for a kernel. There are a few way
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin PassingState]
-      :end-before: [End PassingState]
+      :start-after: [Begin `PassingState`]
+      :end-before: [End `PassingState`]
 
 Applying Gates
 --------------
@@ -121,15 +121,15 @@ Gates can be applied to all qubits in a register.
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin AllQubits]
-      :end-before: [End AllQubits]
+      :start-after: [Begin `AllQubits`]
+      :end-before: [End `AllQubits`]
 
 .. tab:: C++
    
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin AllQubits]
-      :end-before: [End AllQubits]
+      :start-after: [Begin `AllQubits`]
+      :end-before: [End `AllQubits`]
 
 Or, to individual qubits in a register.
 
@@ -137,15 +137,15 @@ Or, to individual qubits in a register.
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin IndividualQubits]
-      :end-before: [End IndividualQubits]
+      :start-after: [Begin `IndividualQubits`]
+      :end-before: [End `IndividualQubits`]
 
 .. tab:: C++
    
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin IndividualQubits]
-      :end-before: [End IndividualQubits]
+      :start-after: [Begin `IndividualQubits`]
+      :end-before: [End `IndividualQubits`]
 
 Controlled Operations
 ---------------------
@@ -156,8 +156,8 @@ Controlled operations are available for any gate and can be used by adding `.ctr
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin ControlledOperations]
-      :end-before: [End ControlledOperations]
+      :start-after: [Begin `ControlledOperations`]
+      :end-before: [End `ControlledOperations`]
 
 Multi-Controlled Operations
 ---------------------------
@@ -168,15 +168,15 @@ It is valid for more than one qubit to be used for multi-controlled gates. The c
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin MultiControlledOperations]
-      :end-before: [End MultiControlledOperations]
+      :start-after: [Begin `MultiControlledOperations`]
+      :end-before: [End `MultiControlledOperations`]
 
 .. tab:: C++
    
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin MultiControlledOperations]
-      :end-before: [End MultiControlledOperations]
+      :start-after: [Begin `MultiControlledOperations`]
+      :end-before: [End `MultiControlledOperations`]
 
 You can also call a controlled kernel within a kernel.
 
@@ -184,15 +184,15 @@ You can also call a controlled kernel within a kernel.
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin ControlledKernel]
-      :end-before: [End ControlledKernel]
+      :start-after: [Begin `ControlledKernel`]
+      :end-before: [End `ControlledKernel`]
 
 .. tab:: C++
    
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin ControlledKernel]
-      :end-before: [End ControlledKernel]
+      :start-after: [Begin `ControlledKernel`]
+      :end-before: [End `ControlledKernel`]
 
 Adjoint Operations
 ------------------
@@ -203,15 +203,15 @@ The adjoint of a gate can be applied by appending the gate with the `adj` design
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin AdjointOperations]
-      :end-before: [End AdjointOperations]
+      :start-after: [Begin `AdjointOperations`]
+      :end-before: [End `AdjointOperations`]
 
 .. tab:: C++
    
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin AdjointOperations]
-      :end-before: [End AdjointOperations]
+      :start-after: [Begin `AdjointOperations`]
+      :end-before: [End `AdjointOperations`]
 
 Custom Operations
 -----------------
@@ -222,8 +222,8 @@ Custom gate operations can be specified using `cudaq.register_operation`. A one-
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin CustomOperations]
-      :end-before: [End CustomOperations]
+      :start-after: [Begin `CustomOperations`]
+      :end-before: [End `CustomOperations`]
 
 Building Kernels with Kernels
 -----------------------------
@@ -234,15 +234,15 @@ For many complex applications, it is helpful for a kernel to call another kernel
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin BuildingKernelsWithKernels]
-      :end-before: [End BuildingKernelsWithKernels]
+      :start-after: [Begin `BuildingKernelsWithKernels`]
+      :end-before: [End `BuildingKernelsWithKernels`]
 
 .. tab:: C++
 
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin BuildingKernelsWithKernels]
-      :end-before: [End BuildingKernelsWithKernels]   
+      :start-after: [Begin `BuildingKernelsWithKernels`]
+      :end-before: [End `BuildingKernelsWithKernels`]   
 
 Parameterized Kernels
 ---------------------
@@ -253,12 +253,12 @@ It is often useful to define parameterized circuit kernels which can be used for
 
    .. literalinclude:: ../../examples/python/building_kernels.py
       :language: python
-      :start-after: [Begin ParameterizedKernels]
-      :end-before: [End ParameterizedKernels]
+      :start-after: [Begin `ParameterizedKernels`]
+      :end-before: [End `ParameterizedKernels`]
 
 .. tab:: C++
 
    .. literalinclude:: ../../examples/cpp/building_kernels.cpp
       :language: cpp
-      :start-after: [Begin ParameterizedKernels]
-      :end-before: [End ParameterizedKernels]   
+      :start-after: [Begin `ParameterizedKernels`]
+      :end-before: [End `ParameterizedKernels`]
