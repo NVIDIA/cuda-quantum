@@ -63,24 +63,18 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
-
 html_static_path = ['_static']
 html_js_files = ['filter.js']
 
-
-
 # Enable dynamic filtering in sphinx-needs
 needs_include_needs = True  # Enable needs processing
-needs_types = [
-    {
-        'directive': 'notebook',
-        'title': 'Notebook',
-        'prefix': 'NB_',
-        'color': '#BFD8D2',
-        'style': 'node'
-    }
-]
-
+needs_types = [{
+    'directive': 'notebook',
+    'title': 'Notebook',
+    'prefix': 'NB_',
+    'color': '#BFD8D2',
+    'style': 'node'
+}]
 
 tags_create_tags = True  # Automatically generate tag pages
 nbsphinx_allow_errors = False
@@ -118,15 +112,13 @@ master_doc = 'index'
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb', 'examples/python/measuring_kernels.ipynb', 'examples/python/executing_kernels.ipynb',
-    'examples/python/operators.ipynb'
+    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb',
+    'examples/python/measuring_kernels.ipynb',
+    'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb'
 ]
 
-#redirect links 
-redirects = {
-    "backends/dynamics": "../dynamics.html"
-}
-
+#redirect links
+redirects = {"backends/dynamics": "../dynamics.html"}
 
 # Generate OpenAPI spec for the REST API
 import ruamel.yaml

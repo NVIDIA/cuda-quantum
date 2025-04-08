@@ -147,6 +147,7 @@ amongst
 ancilla
 ansatz
 ansatzes
+api
 archiver
 arity
 async
@@ -191,6 +192,7 @@ coupler
 couplers
 cuQuantum
 cuTensor
+cuda
 cudaq
 dataflow
 ddots
@@ -247,6 +249,7 @@ hadamard
 hamiltonian
 heisenberg
 homogenous
+https
 iff
 increment
 incrementing
@@ -261,6 +264,7 @@ integrators
 interferometer
 interoperational
 intrinsics
+io
 iterable
 iteratively
 kets
