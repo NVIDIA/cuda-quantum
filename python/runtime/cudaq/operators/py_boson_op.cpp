@@ -23,6 +23,16 @@ void bindBosonModule(py::module &mod) {
   // so it's accessible directly in the cudaq namespace.
   auto boson_submodule = mod.def_submodule("boson");
   boson_submodule.def(
+      "empty", &boson_op::empty,
+      "Returns sum operator with no terms. Note that a sum with no terms "
+      "multiplied by anything still is a sum with no terms.");
+  boson_submodule.def(
+      "identity", []() { return boson_op::identity(); },
+      "Returns product operator with constant value 1.");
+  boson_submodule.def(
+      "identity", [](std::size_t target) { return boson_op::identity(target); }, py::arg("target"),
+      "Returns an identity operator on the given target index.");
+  boson_submodule.def(
       "create", &boson_op::create<boson_handler>, py::arg("target"),
       "Returns a bosonic creation operator on the given target index.");
   boson_submodule.def(
@@ -37,6 +47,18 @@ void bindBosonModule(py::module &mod) {
   boson_submodule.def(
       "momentum", &boson_op::momentum<boson_handler>, py::arg("target"),
       "Returns a bosonic momentum operator on the given target index.");
+  boson_submodule.def("canonicalized", [](const boson_op_term &orig) { return boson_op_term::canonicalize(orig); },
+    "Removes all identity operators from the operator.");
+  boson_submodule.def("canonicalized", [](const boson_op_term &orig, const std::set<std::size_t> &degrees) { return boson_op_term::canonicalize(orig, degrees); },
+    "Expands the operator to act on all given degrees, applying identities as needed. "
+    "The canonicalization will throw a runtime exception if the operator acts on any degrees "
+    "of freedom that are not included in the given set.");
+  boson_submodule.def("canonicalized", [](const boson_op &orig) { return boson_op::canonicalize(orig); },
+    "Removes all identity operators from the operator.");
+  boson_submodule.def("canonicalized", [](const boson_op &orig, const std::set<std::size_t> &degrees) { return boson_op::canonicalize(orig, degrees); },
+    "Expands the operator to act on all given degrees, applying identities as needed. "
+    "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
+    "degrees of freedom.");
 }
 
 void bindBosonOperator(py::module &mod) {
@@ -85,6 +107,8 @@ void bindBosonOperator(py::module &mod) {
     "Creates a sum operator with the given term.")
   .def(py::init<const boson_op &>(),
     "Copy constructor.")
+  .def("copy", [](const boson_op &self) { return boson_op(self); },
+    "Creates a copy of the operator.")
   // evaluations
   // todo: add to_sparse_matrix
   .def("to_matrix", [&cmat_to_numpy](const boson_op &self,
@@ -144,13 +168,7 @@ void bindBosonOperator(py::module &mod) {
     "the given tolerance.")
   .def("canonicalize", [](boson_op &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
     "Removes all identity operators from the operator.")
-  .def_static("canonicalized", [](const boson_op &orig) { return boson_op::canonicalize(orig); },
-    "Removes all identity operators from the operator.")
   .def("canonicalize", [](boson_op &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
-    "Expands the operator to act on all given degrees, applying identities as needed. "
-    "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
-    "degrees of freedom.")
-  .def_static("canonicalized", [](const boson_op &orig, const std::set<std::size_t> &degrees) { return boson_op::canonicalize(orig, degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
     "degrees of freedom.")
@@ -199,6 +217,8 @@ void bindBosonOperator(py::module &mod) {
     py::arg("operator"), py::arg("size") = 0,
     "Creates a copy of the given operator and reserves space for storing the given "
     "number of product terms (if a size is provided).")
+  .def("copy", [](const boson_op_term &self) { return boson_op_term(self); },
+    "Creates a copy of the operator.")
   // evaluations
   .def("evaluate_coefficient", &boson_op_term::evaluate_coefficient,
     py::arg("parameters") = parameter_map(),
@@ -242,13 +262,7 @@ void bindBosonOperator(py::module &mod) {
     "Prints the string representation of the operator to the standard output.")
   .def("canonicalize", [](boson_op_term &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
     "Removes all identity operators from the operator.")
-  .def_static("canonicalized", [](const boson_op_term &orig) { return boson_op_term::canonicalize(orig); },
-    "Removes all identity operators from the operator.")
   .def("canonicalize", [](boson_op_term &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
-    "Expands the operator to act on all given degrees, applying identities as needed. "
-    "The canonicalization will throw a runtime exception if the operator acts on any degrees "
-    "of freedom that are not included in the given set.")
-  .def_static("canonicalized", [](const boson_op_term &orig, const std::set<std::size_t> &degrees) { return boson_op_term::canonicalize(orig, degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "The canonicalization will throw a runtime exception if the operator acts on any degrees "
     "of freedom that are not included in the given set.")
@@ -259,6 +273,7 @@ void bindBosonWrapper(py::module &mod) {
   bindBosonModule(mod);
   bindBosonOperator(mod);
   py::implicitly_convertible<boson_op_term, boson_op>();
+  py::implicitly_convertible<double, boson_op_term>();
 }
 
 } // namespace cudaq

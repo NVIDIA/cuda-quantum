@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy as np, pytest
+import numpy as np, pytest, random
 from cudaq.ops import * # FIXME: module name
 from op_utils import * # test helpers
 
@@ -24,7 +24,25 @@ def test_definitions():
 
 
 def test_construction():
-    pass
+    prod = identity()
+    assert np.allclose(prod.to_matrix(), identity_matrix(1))
+    prod *= number(0)
+    assert np.allclose(prod.to_matrix({0: 3}), number_matrix(3))
+    sum = empty()
+    assert np.allclose(sum.to_matrix(), zero_matrix(1))
+    sum *= number(0)
+    assert sum.degrees() == []
+    assert np.allclose(sum.to_matrix(), zero_matrix(1))
+    sum += identity(1)
+    assert sum.degrees() == [1]
+    assert np.allclose(sum.to_matrix({1: 3}), identity_matrix(3))
+    sum *= number(1)
+    assert np.allclose(sum.to_matrix({1: 3}), number_matrix(3))
+    sum = empty()
+    assert np.allclose(sum.to_matrix(), zero_matrix(1))
+    sum -= identity(0)
+    assert sum.degrees() == [0]
+    assert np.allclose(sum.to_matrix({0: 3}), -identity_matrix(3))
 
 
 def test_iteration():
@@ -74,11 +92,137 @@ def test_properties():
 
 
 def test_canonicalization():
-    pass
+    dims = {0: 2, 1: 3, 2: 2, 3: 4}
+    all_degrees = [0, 1, 2, 3]
+
+    # product operator
+    for id_target in all_degrees:
+        op = identity()
+        expected = identity()
+        for target in all_degrees:
+            if target == id_target:
+                op *= identity(target)
+            elif target % 2 == 0:
+                op *= parity(target)
+                expected *= parity(target)
+            else:
+                op *= number(target)
+                expected *= number(target)
+
+        assert op != expected
+        assert op.degrees() == all_degrees
+        op.canonicalize()
+        assert op == expected
+        assert op.degrees() != all_degrees
+        assert op.degrees() == expected.degrees()
+        assert np.allclose(op.to_matrix(dims), expected.to_matrix(dims))
+
+        op.canonicalize(set(all_degrees))
+        assert op.degrees() == all_degrees
+        canon = canonicalized(op)
+        assert op.degrees() == all_degrees
+        assert canon.degrees() == expected.degrees()
+
+    # sum operator
+    previous = empty()
+    expected = empty()
+    def check_expansion(got, want_degrees):
+        canon = got.copy() # standard python behavior is for assignments not to copy
+        term_with_missing_degrees = False
+        for term in canon:
+            if term.degrees() != all_degrees:
+                term_with_missing_degrees = True
+        assert term_with_missing_degrees
+        assert canon == got
+        canon.canonicalize(want_degrees)
+        assert canon != got
+        assert canon.degrees() == all_degrees
+        for term in canon:
+            assert term.degrees() == all_degrees
+
+    for id_target in all_degrees:
+        term = identity()
+        expected_term = identity()
+        for target in all_degrees:
+            if target == id_target:
+                term *= identity(target)
+            elif target & 2:
+                term *= position(target)
+                expected_term *= position(target)
+            else:
+                term *= momentum(target)
+                expected_term *= momentum(target)
+        previous += term
+        expected += expected_term
+        got = previous
+
+        assert got != expected
+        assert canonicalized(got) == expected
+        assert got != expected
+        got.canonicalize()
+        assert got == expected
+        assert got.degrees() == expected.degrees()
+        assert np.allclose(got.to_matrix(dims), expected.to_matrix(dims))
+        check_expansion(got, set(all_degrees))
+        if id_target > 0: check_expansion(got, set())
+        with pytest.raises(Exception):
+            got.canonicalize(got.degrees()[1:])
+
+
+def test_trimming():
+    all_degrees = [idx for idx in range(6)]
+    dims = dict(((d, 2) for d in all_degrees))
+    random.seed(10)
+    for rep in range(10):
+        bit_mask = random.getrandbits(len(all_degrees))
+        expected = empty()
+        terms = [identity()] * len(all_degrees)
+        # randomize order in which we add terms
+        term_order = np.random.permutation(range(len(all_degrees)))
+        for idx in range(len(all_degrees)):
+            coeff = (bit_mask >> idx) & 1
+            prod = identity(all_degrees[idx]) * float(coeff)
+            if coeff > 0:
+                expected += prod
+            terms[term_order[idx]] = prod
+        orig = empty()
+        for term in terms:
+            orig += term
+        assert orig.num_terms() == len(all_degrees)
+        assert orig.degrees() == all_degrees
+        orig.trim()
+        assert orig.num_terms() < len(all_degrees)
+        assert orig.num_terms() == expected.num_terms()
+        assert orig.degrees() == expected.degrees()
+        assert np.allclose(orig.to_matrix(dims), expected.to_matrix(dims))
+        # check that our term map seems accurate
+        for term in expected:
+            orig += term * float(term.degrees()[0]) # FIXME: SUPPORT REVERSE ORDER AS WELL
+        assert orig.num_terms() == expected.num_terms()
+        assert orig.degrees() == expected.degrees()
+        for term in orig:
+            assert term.evaluate_coefficient() == term.degrees()[0] + 1.
 
 
 def test_equality():
-    pass
+    prod1 = position(0) * momentum(0)
+    prod2 = position(1) * momentum(1)
+    prod3 = position(0) * momentum(1)
+    prod4 = momentum(1) * position(0)
+    sum = MatrixOperator(prod1)
+    assert prod1 != prod2
+    assert prod3 == prod4
+    assert sum == prod1
+    sum += prod3
+    assert sum != prod1
+    assert sum == (prod3 + prod1)
+    sum += prod1
+    assert sum != (prod3 + prod1)
+    #assert sum == (prod3 + 2. * prod1)
+    #assert sum != sum + 1.
+    assert sum != identity(2) * sum
+    dims = {0: 2, 1: 3, 2: 2, 3: 4}
+    assert np.allclose(np.kron(identity_matrix(2), sum.to_matrix(dims)), (identity(2) * sum).to_matrix(dims))
 
 
 # Run with: pytest -rP

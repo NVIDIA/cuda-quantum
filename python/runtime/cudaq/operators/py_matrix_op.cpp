@@ -23,6 +23,16 @@ void bindOperatorsModule(py::module &mod) {
   // so it's accessible directly in the cudaq namespace.
   auto operators_submodule = mod.def_submodule("operators");
   operators_submodule.def(
+      "empty", &matrix_op::empty,
+      "Returns sum operator with no terms. Note that a sum with no terms "
+      "multiplied by anything still is a sum with no terms.");
+  operators_submodule.def(
+      "identity", []() { return matrix_op::identity(); },
+      "Returns product operator with constant value 1.");
+  operators_submodule.def(
+      "identity", [](std::size_t target) { return matrix_op::identity(target); }, py::arg("target"),
+      "Returns an identity operator on the given target index.");
+  operators_submodule.def(
       "number", &matrix_op::number<matrix_handler>, py::arg("target"),
       "Returns a number operator on the given target index.");
   operators_submodule.def(
@@ -40,6 +50,18 @@ void bindOperatorsModule(py::module &mod) {
   operators_submodule.def( // FIXME: PYTHON WRAPPING FOR CALLBACK
       "displace", &matrix_op::displace<matrix_handler>, py::arg("target"),
       "Returns a displacement operator on the given target index.");
+  operators_submodule.def("canonicalized", [](const matrix_op_term &orig) { return matrix_op_term::canonicalize(orig); },
+    "Removes all identity operators from the operator.");
+  operators_submodule.def("canonicalized", [](const matrix_op_term &orig, const std::set<std::size_t> &degrees) { return matrix_op_term::canonicalize(orig, degrees); },
+    "Expands the operator to act on all given degrees, applying identities as needed. "
+    "The canonicalization will throw a runtime exception if the operator acts on any degrees "
+    "of freedom that are not included in the given set.");
+  operators_submodule.def("canonicalized", [](const matrix_op &orig) { return matrix_op::canonicalize(orig); },
+    "Removes all identity operators from the operator.");
+  operators_submodule.def("canonicalized", [](const matrix_op &orig, const std::set<std::size_t> &degrees) { return matrix_op::canonicalize(orig, degrees); },
+    "Expands the operator to act on all given degrees, applying identities as needed. "
+    "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
+    "degrees of freedom.");
 }
 
 void bindMatrixOperator(py::module &mod) {
@@ -83,6 +105,8 @@ void bindMatrixOperator(py::module &mod) {
     "Creates a sum operator with the given term.")
   .def(py::init<const matrix_op &>(),
     "Copy constructor.")
+  .def("copy", [](const matrix_op &self) { return matrix_op(self); },
+    "Creates a copy of the operator.")
   // evaluations
   // todo: add to_sparse_matrix
   .def("to_matrix", [&cmat_to_numpy](const matrix_op &self,
@@ -139,13 +163,7 @@ void bindMatrixOperator(py::module &mod) {
     "the given tolerance.")
   .def("canonicalize", [](matrix_op &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
     "Removes all identity operators from the operator.")
-  .def_static("canonicalized", [](const matrix_op &orig) { return matrix_op::canonicalize(orig); },
-    "Removes all identity operators from the operator.")
   .def("canonicalize", [](matrix_op &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
-    "Expands the operator to act on all given degrees, applying identities as needed. "
-    "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
-    "degrees of freedom.")
-  .def_static("canonicalized", [](const matrix_op &orig, const std::set<std::size_t> &degrees) { return matrix_op::canonicalize(orig, degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
     "degrees of freedom.")
@@ -194,6 +212,8 @@ void bindMatrixOperator(py::module &mod) {
     py::arg("operator"), py::arg("size") = 0,
     "Creates a copy of the given operator and reserves space for storing the given "
     "number of product terms (if a size is provided).")
+  .def("copy", [](const matrix_op_term &self) { return matrix_op_term(self); },
+    "Creates a copy of the operator.")
   // evaluations
   .def("evaluate_coefficient", &matrix_op_term::evaluate_coefficient,
     py::arg("parameters") = parameter_map(),
@@ -238,13 +258,7 @@ void bindMatrixOperator(py::module &mod) {
     "Prints the string representation of the operator to the standard output.")
   .def("canonicalize", [](matrix_op_term &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
     "Removes all identity operators from the operator.")
-  .def_static("canonicalized", [](const matrix_op_term &orig) { return matrix_op_term::canonicalize(orig); },
-    "Removes all identity operators from the operator.")
   .def("canonicalize", [](matrix_op_term &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
-    "Expands the operator to act on all given degrees, applying identities as needed. "
-    "The canonicalization will throw a runtime exception if the operator acts on any degrees "
-    "of freedom that are not included in the given set.")
-  .def_static("canonicalized", [](const matrix_op_term &orig, const std::set<std::size_t> &degrees) { return matrix_op_term::canonicalize(orig, degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "The canonicalization will throw a runtime exception if the operator acts on any degrees "
     "of freedom that are not included in the given set.")
@@ -255,6 +269,7 @@ void bindOperatorsWrapper(py::module &mod) {
   bindOperatorsModule(mod);
   bindMatrixOperator(mod);
   py::implicitly_convertible<matrix_op_term, matrix_op>();
+  py::implicitly_convertible<double, matrix_op_term>();
 }
 
 } // namespace cudaq

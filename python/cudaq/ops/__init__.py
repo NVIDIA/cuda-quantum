@@ -7,3 +7,4 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.operators import *
+from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, MatrixOperatorTerm

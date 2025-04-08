@@ -6,24 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq
 import numpy as np
 import scipy as sp
 
 def zero_matrix(size):
-    return np.zeros(size, size, dtype=np.complex128)
+    return np.zeros((size, size), dtype=np.complex128)
 
 def identity_matrix(size):
     return np.eye(size, dtype=np.complex128)
 
 def paulix_matrix():
-    mat = np.zeros(2, 2, dtype=np.complex128)
+    mat = np.zeros((2, 2), dtype=np.complex128)
     mat[0, 1] = 1
     mat[1, 0] = 1
     return mat
 
 def pauliy_matrix():
-    mat = np.zeros(2, 2, dtype=np.complex128)
+    mat = np.zeros((2, 2), dtype=np.complex128)
     mat[0, 1] = -1j
     mat[1, 0] = 1j
     return mat
