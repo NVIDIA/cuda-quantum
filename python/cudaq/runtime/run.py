@@ -92,7 +92,7 @@ Args:
   noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel`
     to add noise to the kernel execution on the simulator. Defaults to
     an empty noise model.
-  qpu_id (Optional[int]): The id of the QPU.
+  `qpu_id` (Optional[int]): The id of the QPU.
     Defaults to 0. Key-word only.
 
 Returns:
