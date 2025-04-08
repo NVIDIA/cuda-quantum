@@ -12,6 +12,7 @@
       <link rel="stylesheet" href="../../_static/cudaq_override.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/_static/cudaq_override.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -27,6 +28,7 @@
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+        <script src="../../_static/filter.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -196,41 +198,57 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/applications.html">   Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q">Implementing in CUDA-Q</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-compilation">Setup and compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-model">Load model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Simulate-kernels">Simulate kernels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Compare-unitaries">Compare unitaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/trotter.html">Computing Magnetization With The Suzuki-Trotter Approximation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/trotter.html#Problem-Setup">Problem Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/trotter.html#Running-the-Simulation">Running the Simulation</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html">Deutsch’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html">The Deutsch-Jozsa Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Theory">The Theory</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Data-preprocessing">Data preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Quantum-functions">Quantum functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation">QAOA Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hybrid_quantum_neural_networks.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test">Using <code class="docutils literal notranslate"><span class="pre">Sample</span></code> to perform the Hadamard test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test">Multi-GPU evaluation of QKSD matrix elements using the Hadamard Test</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix">Classically Diagonalize the Subspace Matrix</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX">Performing logical Variational Quantum Eigensolver (VQE) with CUDA-QX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-[[4,2,2]]-encoding">Constructing circuits in the <code class="docutils literal notranslate"><span class="pre">[[4,2,2]]</span></code> encoding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
@@ -257,43 +275,40 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Relevant-references">Relevant references</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Data-preprocessing">Data preprocessing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Quantum-functions">Quantum functions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation">QAOA Implementation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/shors.html">Factoring Integers With Shor’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/shors.html#Shor's-algorithm">Shor’s algorithm</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/shors.html#Solving-the-order-finding-problem-classically">Solving the order-finding problem classically</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/shors.html#Solving-the-order-finding-problem-with-a-quantum-algorithm">Solving the order-finding problem with a quantum algorithm</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/shors.html#Determining-the-order-from-the-measurement-results-of-the-phase-kernel">Determining the order from the measurement results of the phase kernel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/shors.html#Postscript">Postscript</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qaoa.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Setup">Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_teleportation.html">Quantum Teleporation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_volume.html">Quantum Volume</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-compilation">Setup and compilation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-model">Load model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Simulate-kernels">Simulate kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Compare-unitaries">Compare unitaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_transformer.html">Quantum Transformer</a><ul>
@@ -310,42 +325,13 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_volume.html">Quantum Volume</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test">Using <code class="docutils literal notranslate"><span class="pre">Sample</span></code> to perform the Hadamard test</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test">Multi-GPU evaluation of QKSD matrix elements using the Hadamard Test</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix">Classically Diagonalize the Subspace Matrix</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX">Performing logical Variational Quantum Eigensolver (VQE) with CUDA-QX</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-[[4,2,2]]-encoding">Constructing circuits in the <code class="docutils literal notranslate"><span class="pre">[[4,2,2]]</span></code> encoding</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
@@ -356,18 +342,32 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/edge-detection.html">Quantum edge detection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Image">Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_vqe.html">ADAPT-VQE algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Single-excitation">Single excitation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Double-excitation">Double excitation</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Reference-State:">Reference State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge-detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge-detection.html#Post-processing">Post-processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/edge_detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Post-processing">Post-processing</a></li>
 </ul>
 </li>
 </ul>
@@ -379,11 +379,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/svsims.html">     State Vector Simulators</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/svsims.html#cpu">CPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/svsims.html#single-gpu">Single-GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/svsims.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/svsims.html#multi-gpu-multi-node">Multi-GPU multi-node</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/tnsims.html">     Tensor Network Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/tnsims.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/tnsims.html#multi-gpu-multi-node">Multi-GPU multi-node</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/tnsims.html#matrix-product-state">Matrix product state</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/tnsims.html#fermioniq">Fermioniq</a></li>
 </ul>
@@ -429,14 +429,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html">     Dynamics Simulation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/dynamics.html#quick-start">Quick Start</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/dynamics.html#operator">Operator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics_backends.html">     Dynamics Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/cloud.html">     Cloud</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/cloud/braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
@@ -456,12 +449,17 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../using/backends/dynamics.html">   Dynamics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#quick-start">Quick Start</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#operator">Operator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../using/dynamics.html">   Dynamics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#quick-start">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#operator">Operator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../using/cudaqx/cudaqx.html">   CUDA-QX</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/cudaqx/cudaqx.html#cuda-q-solvers">CUDA-Q Solvers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/cudaqx/cudaqx.html#cuda-q-qec">CUDA-Q QEC</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/install/install.html">   Installation</a><ul>
@@ -596,7 +594,6 @@
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">   API Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="cpp_api.html">C++ API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="cpp_api.html#operators">Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#quantum">Quantum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#common">Common</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#noise-modeling">Noise Modeling</a></li>
@@ -641,6 +638,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
@@ -1488,6 +1486,64 @@ information about the data computed during evolution.</p>
 <dd></dd></dl>
 
 <p>Clear backend simulation from any existing noise models.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.cudaq.apply_noise">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">apply_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets...</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.cudaq.apply_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function is a type-safe injection of noise into a quantum kernel,
+occurring precisely at the call site of the function invocation. The
+function should be called inside CUDA-Q kernels (those annotated with
+<code class="code docutils literal notranslate"><span class="pre">&#64;cudaq.kernel</span></code>). The functionality is only supported for simulation targets, so
+it is automatically (and silently) stripped from any programs submitted to
+hardware targets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>error_type</strong> – <p>A subtype of <a class="reference internal" href="#cudaq.KrausChannel" title="cudaq.KrausChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.KrausChannel</span></code></a> that
+implements/defines the desired noise mechanisms as Kraus channels (e.g.
+<a class="reference internal" href="#cudaq.Depolarization2" title="cudaq.Depolarization2"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.Depolarization2</span></code></a>). If you want to use a custom
+<a class="reference internal" href="#cudaq.KrausChannel" title="cudaq.KrausChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.KrausChannel</span></code></a> (i.e. not built-in to CUDA-Q), it must
+first be registered <em>outside the kernel</em> with <code class="code docutils literal notranslate"><span class="pre">register_channel</span></code>, like
+this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">CustomNoiseChannel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">KrausChannel</span><span class="p">):</span>
+    <span class="n">num_parameters</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">num_targets</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">KrausChannel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="c1"># Example: Create Kraus ops based on params</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">k0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">)]],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+    <span class="n">k1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="p">)],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="mi">0</span><span class="p">]],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+
+    <span class="c1"># Create KrausOperators and add to channel</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">KrausOperator</span><span class="p">(</span><span class="n">k0</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">KrausOperator</span><span class="p">(</span><span class="n">k1</span><span class="p">))</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">noise_type</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModelType</span><span class="o">.</span><span class="n">Unknown</span>
+
+<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+<span class="n">noise</span><span class="o">.</span><span class="n">register_channel</span><span class="p">(</span><span class="n">CustomNoiseChannel</span><span class="p">)</span>
+</pre></div>
+</div>
+</p></li>
+<li><p><strong>parameters</strong> – <p>The precise argument pack depend on the concrete
+<a class="reference internal" href="#cudaq.KrausChannel" title="cudaq.KrausChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.KrausChannel</span></code></a> being used. The arguments are a concatenated
+list of parameters and targets.  For example, to apply a 2-qubit
+depolarization channel, which has <code class="code docutils literal notranslate"><span class="pre">num_parameters</span> <span class="pre">=</span> <span class="pre">1</span></code> and <code class="code docutils literal notranslate"><span class="pre">num_targets</span> <span class="pre">=</span>
+<span class="pre">2</span></code>, one would write the call like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">(),</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">apply_noise</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">Depolarization2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+</pre></div>
+</div>
+</p></li>
+<li><p><strong>targets</strong> – The target qubits on which to apply the noise</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -2714,26 +2770,10 @@ for more information on this programming pattern.</p>
 <ol class="arabic" start="2">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term:</span> <span class="pre">cudaq::product_op&lt;cudaq::spin_handler&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
-</ol>
-<p>Given a <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> of the global <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was passed
-to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>, return its measurement counts.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>sub_term</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – An individual sub-term of the
-<code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The measurement counts data for the individual <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a></p>
-</dd>
-</dl>
-<ol class="arabic" start="3">
 <li><dl class="py function">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
@@ -2755,6 +2795,14 @@ to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><co
 <dd class="field-odd"><p><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a></p>
 </dd>
 </dl>
+<ol class="arabic" start="4">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term:</span> <span class="pre">cudaq::sum_op&lt;cudaq::spin_handler&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
 </dd></dl>
 
 <dl class="py method">
@@ -2784,6 +2832,12 @@ to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><co
 <ol class="arabic" start="2">
 <li><dl class="py function">
 <dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term:</span> <span class="pre">cudaq::product_op&lt;cudaq::spin_handler&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+<li><dl class="py function">
+<dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
 <dd></dd></dl>
 
@@ -2793,7 +2847,7 @@ to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><co
 global <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>sub_term</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – An individual sub-term of the
+<dd class="field-odd"><p><strong>sub_term</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperatorTerm</span></code>) – An individual sub-term of the
 <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2804,53 +2858,14 @@ global <code class="code docutils literal notranslate"><span class="pre">spin_op
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.ObserveResult.expectation_z">
-<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.expectation_z" title="Permalink to this definition">¶</a></dt>
-<dd><p>Overloaded function.</p>
-<ol class="arabic">
+<ol class="arabic" start="4">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term:</span> <span class="pre">cudaq::sum_op&lt;cudaq::spin_handler&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
 </ol>
-<p>Return the expectation value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was
-provided in <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="code docutils literal notranslate"><span class="pre">expectation_z</span></code> has been deprecated in favor of <code class="code docutils literal notranslate"><span class="pre">expectation</span></code>.</p>
-</div>
-<ol class="arabic" start="2">
-<li><dl class="py function">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span></dt>
-<dd></dd></dl>
-
-</li>
-</ol>
-<p>Return the expectation value of an individual <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> of the
-global <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="code docutils literal notranslate"><span class="pre">expectation_z</span></code> has been deprecated in favor of <code class="code docutils literal notranslate"><span class="pre">expectation</span></code>.</p>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>sub_term</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – An individual sub-term of the
-<code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The expectation value of the <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> with respect to the
-<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -2858,7 +2873,7 @@ global <code class="code docutils literal notranslate"><span class="pre">spin_op
 <span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.get_spin" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">cudaq::sum_op&lt;cudaq::spin_handler&gt;</span></span></span></dt>
 <dd></dd></dl>
 
 <p>Return the <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> corresponding to this <code class="code docutils literal notranslate"><span class="pre">ObserveResult</span></code>.</p>
