@@ -62,7 +62,10 @@ void bindRunAsync(py::module &mod) {
         result.ready = promise.get_future();
         QuantumTask wrapped = detail::make_copyable_function(
             [p = std::move(promise), bufferPtr, qpu_id, shots, &platform,
-             &kernel, argData, kernelName, kernelMod]() mutable {
+             &kernel, argData, kernelName, kernelMod,
+             noise_model = std::move(noise_model)]() mutable {
+              if (noise_model.has_value())
+                platform.set_noise(&noise_model.value());
               details::RunResultSpan span = details::runTheKernel(
                   [&]() mutable {
                     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
@@ -71,12 +74,13 @@ void bindRunAsync(py::module &mod) {
 
               std::memcpy(bufferPtr, span.data, span.lengthInBytes);
               p.set_value();
+              platform.reset_noise();
             });
         platform.enqueueAsyncTask(qpu_id, wrapped);
         return result;
       },
       py::arg("result_buffer"), py::arg("kernel"), py::kw_only(),
-      py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
+      py::arg("shots_count") = 1, py::arg("noise_model") = py::none(),
       py::arg("qpu_id") = 0, "");
 }
 } // namespace cudaq

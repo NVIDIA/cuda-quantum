@@ -85,7 +85,7 @@ Args:
     times on the QPU.
   *arguments (Optional[Any]): The concrete values to evaluate the kernel
     function at. Leave empty if the kernel doesn't accept any arguments. For 
-    example, if the kernel takes two `float` values as input, the `sample` call 
+    example, if the kernel takes two `float` values as input, the `run` call 
     should be structured as `cudaq.run(kernel, firstFloat, secondFloat)`.
   shots_count (Optional[int]): The number of kernel executions on the QPU.
     Defaults to 1. Key-word only.
@@ -97,7 +97,7 @@ Args:
 
 Returns:
   `AsyncRunResult`: 
-  An async. handle, which can be waited on via a `get()` method, which returns an array of `kernel` return values. The length of the list is equal to `shots_count`.
+  A handle, which can be waited on via a `get()` method, which returns an array of `kernel` return values. The length of the list is equal to `shots_count`.
   """
     kernel.enable_return_to_log()
     if kernel.returnType is None:
@@ -106,8 +106,18 @@ Returns:
     if shots_count < 0:
         raise ValueError("Invalid shots_count. Must be non-negative.")
 
-    if shots_count == 0:
-        return np.array([])
+    target = cudaq_runtime.get_target()
+    num_qpus = target.num_qpus()
+    if qpu_id >= num_qpus:
+        raise ValueError(
+            f"qpu_id ({qpu_id}) exceeds the number of available QPUs ({num_qpus})."
+        )
+
+    if noise_model != None:
+        if target.is_remote_simulator() or target.is_remote():
+            raise ValueError(
+                "Noise model is not supported on remote simulator or hardware QPU"
+            )
 
     # Default construct the result array (allocate memory buffer)
     results = np.array([kernel.returnType() for _ in range(shots_count)])
@@ -116,6 +126,7 @@ Returns:
                                                      kernel,
                                                      *args,
                                                      shots_count=shots_count,
+                                                     noise_model=noise_model,
                                                      qpu_id=qpu_id)
 
     return async_results
