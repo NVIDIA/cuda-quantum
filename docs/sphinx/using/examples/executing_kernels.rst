@@ -155,14 +155,3 @@ Get State Async
 ---------------
 
 Similar to `sample_async` above, `get_state_async` also supports asynchronous execution for the `input arguments it accepts <https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.get_state_async>`_.
-
-.. tab:: Python
-
-    .. literalinclude:: ../../examples/python/executing_kernels.py
-        :language: python
-        :start-after: [Begin CudaQVersion]
-        :end-before: [End CudaQVersion]
-
-    .. literalinclude:: ../../examples/python/executing_kernels.py
-        :start-after: [Begin CudaQVersionOutput]
-        :end-before: [End CudaQVersionOutput]
