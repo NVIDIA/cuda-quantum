@@ -12,6 +12,8 @@
 #include "cudaq/simulators.h"
 #include "nvqir/CircuitSimulator.h"
 
+#include <iostream>
+
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
     const std::string &kernel_name, std::size_t shots) {
@@ -55,5 +57,6 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
 
   // 6. Pass the span back as a RunResultSpan. NB: it is the responsibility of
   // the caller to free the buffer.
+  std::cout << "Buffer size: " << bufferSize << std::endl;
   return {buffer, bufferSize};
 }

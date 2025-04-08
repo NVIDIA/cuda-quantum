@@ -391,6 +391,84 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   return std::make_tuple(rawArgs, size, returnOffset);
 }
 
+// std::tuple<void *, std::size_t, std::int32_t>
+// pyRunKernelBase(const std::string &name, MlirModule module,
+//                       Type returnType, cudaq::OpaqueArguments &runtimeArgs) {
+
+//   auto [jit, rawArgs, size, returnOffset] = jitAndCreateArgs(
+//       name, module, runtimeArgs, names, returnType, startingArgIdx);
+
+//   auto mod = unwrap(module);
+//   auto thunkName = name + ".thunk";
+//   auto thunkPtr = jit->lookup(thunkName);
+//   if (!thunkPtr)
+//     throw std::runtime_error("cudaq::builder failed to get thunk function");
+
+//   auto thunk = reinterpret_cast<KernelThunkType>(*thunkPtr);
+
+//   std::string properName = name;
+
+//   // Store captured vectors and states into globals read by the kernel.
+//   storeCapturedData(jit, name);
+
+//   // Need to first invoke the init_func()
+//   auto kernelInitFunc = properName + ".init_func";
+//   auto initFuncPtr = jit->lookup(kernelInitFunc);
+//   if (!initFuncPtr) {
+//     throw std::runtime_error(
+//         "cudaq::builder failed to get kernelReg function.");
+//   }
+//   auto kernelInit = reinterpret_cast<void (*)()>(*initFuncPtr);
+//   kernelInit();
+
+//   // Need to first invoke the kernelRegFunc()
+//   auto kernelRegFunc = properName + ".kernelRegFunc";
+//   auto regFuncPtr = jit->lookup(kernelRegFunc);
+//   if (!regFuncPtr) {
+//     throw std::runtime_error(
+//         "cudaq::builder failed to get kernelReg function.");
+//   }
+//   auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
+//   kernelReg();
+
+//   if (launch) {
+//     auto &platform = cudaq::get_platform();
+//     auto uReturnOffset = static_cast<std::uint64_t>(returnOffset);
+//     auto isRemoteSimulator =
+//         platform.get_remote_capabilities().isRemoteSimulator;
+//     auto isQuantumDevice =
+//         !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+
+//     if (isRemoteSimulator) {
+//       // Remote simulator - use altLaunchKernel to support returning values.
+//       // TODO: after cudaq::run support this should be merged with the quantum
+//       // device case.
+//       auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
+//       auto dynamicResult = cudaq::altLaunchKernel(
+//           name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
+//           uReturnOffset);
+//       if (dynamicResult.data_buffer || dynamicResult.size)
+//         throw std::runtime_error("not implemented: support dynamic results");
+//       delete wrapper;
+//     } else if (isQuantumDevice) {
+//       // Quantum devices or their emulation - we can use streamlinedLaunchKernel
+//       // as quantum platform do not support direct returns.
+//       auto dynamicResult =
+//           cudaq::streamlinedLaunchKernel(name.c_str(), runtimeArgs.getArgs());
+//       if (dynamicResult.data_buffer || dynamicResult.size)
+//         throw std::runtime_error("not implemented: support dynamic results");
+//     } else {
+//       // Local simulator - use altLaunchKernel with the thunk function.
+//       auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
+//                                                   size, uReturnOffset);
+//       if (dynamicResult.data_buffer || dynamicResult.size)
+//         throw std::runtime_error("not implemented: support dynamic results");
+//     }
+//   }
+
+//   return std::make_tuple(rawArgs, size, returnOffset);
+// }
+
 cudaq::KernelArgsHolder
 pyCreateNativeKernel(const std::string &name, MlirModule module,
                      cudaq::OpaqueArguments &runtimeArgs) {
