@@ -7,12 +7,18 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
+#include "common/RecordLogDecoder.h"
 #include "cudaq/platform.h"
 #include <fmt/core.h>
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
+
+namespace nvqir {
+std::string_view getQirOutputLog();
+void clearQirOutputLog();
+} // namespace nvqir
 
 namespace cudaq {
 
@@ -65,5 +71,19 @@ void bindExecutionContext(py::module &mod) {
     auto &self = cudaq::get_platform();
     return self.get_exec_ctx()->name;
   });
+  mod.def("getQirOutputLog", []() {
+    return nvqir::getQirOutputLog();
+  });
+  mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
+  mod.def("decodeQirOutputLog",
+          [](const std::string &outputLog, py::buffer decodedResults) {
+            cudaq::RecordLogDecoder decoder;
+            decoder.decode(outputLog);
+            auto info = decodedResults.request();
+            // Get the buffer and length of buffer (in bytes) from the decoder.
+            auto *origBuffer = decoder.getBufferPtr();
+            const std::size_t bufferSize = decoder.getBufferSize();
+            std::memcpy(info.ptr, origBuffer, bufferSize);
+          });
 }
 } // namespace cudaq

@@ -1,0 +1,55 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.ir import UnitAttr
+import numpy as np
+
+def run(kernel,
+           *args,
+           shots_count=1,
+           noise_model=None):
+    """Run the provided `kernel` at the given kernel 
+`arguments` over the specified number of circuit executions (`shots_count`). 
+
+Args:
+  kernel (:class:`Kernel`): The :class:`Kernel` to execute `shots_count`
+    times on the QPU.
+  *arguments (Optional[Any]): The concrete values to evaluate the kernel
+    function at. Leave empty if the kernel doesn't accept any arguments. For 
+    example, if the kernel takes two `float` values as input, the `sample` call 
+    should be structured as `cudaq.run(kernel, firstFloat, secondFloat)`.
+  shots_count (Optional[int]): The number of kernel executions on the QPU.
+    Defaults to 1. Key-word only.
+  noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel`
+    to add noise to the kernel execution on the simulator. Defaults to
+    an empty noise model.
+
+Returns:
+  `numpy.array[Any]`: 
+  An array of `kernel` return values. The length of the list is equal to `shots_count`."""
+    kernel.enable_return_to_log()
+    ctx = cudaq_runtime.ExecutionContext("run", 1)
+    if kernel.returnType is None:
+      raise ValueError("cudaq.run only supports kernels that return values.")
+    
+    if shots_count < 0:
+      raise ValueError("Invalid shots_count. Must be non-negative.")
+    
+    if shots_count == 0:
+      return np.array([])
+
+    # Default construct the result array (allocate memory buffer)
+    results = np.array([kernel.returnType() for _ in range(shots_count)]) 
+    for i in range(shots_count):
+        cudaq_runtime.setExecutionContext(ctx)
+        kernel(*args)
+        cudaq_runtime.resetExecutionContext()
+
+    cudaq_runtime.decodeQirOutputLog(cudaq_runtime.getQirOutputLog(), results)
+    cudaq_runtime.clearQirOutputLog()
+    return results
