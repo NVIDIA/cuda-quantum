@@ -80,8 +80,7 @@ __qpu__ int unary_test(int count) {
 int main() {
   int c = 0;
   {
-    std::vector<int> results =
-        cudaq::run<int>(100, std::function<int()>{nullary_test});
+    const auto results = cudaq::run(100, nullary_test);
     if (results.size() != 100) {
       printf("FAILED! Expected 100 shots. Got %lu\n", results.size());
     } else {
@@ -92,8 +91,7 @@ int main() {
   }
 
   {
-    std::vector<int> results =
-        cudaq::run<int>(50, std::function<int(int)>{unary_test}, 4);
+    const auto results = cudaq::run(50, unary_test, 4);
     c = 0;
     if (results.size() != 50) {
       printf("FAILED! Expected 50 shots. Got %lu\n", results.size());
@@ -105,9 +103,10 @@ int main() {
   }
   cudaq::set_random_seed(123);
   const std::size_t shots = 100;
-  auto phases = cudaq::run<double>(
-      shots, std::function<double(int, double, double)>{rwpe{}}, 24, 0.7951,
-      0.6065);
+  constexpr int numIters = 24;
+  constexpr double mu = 0.7951;
+  constexpr double sigma = 0.6065;
+  auto phases = cudaq::run(shots, rwpe{}, numIters, mu, sigma);
 
   if (phases.size() != shots) {
     printf("FAILED! Expected %lu shots. Got %lu\n", shots, phases.size());
