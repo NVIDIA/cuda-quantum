@@ -11,7 +11,7 @@ def kernel():
 
 # [End Definition]
 
-# [Begin InputDefinition]
+# [Begin `InputDefinition`]
 N = 2
 
 
@@ -20,9 +20,9 @@ def kernel(N: int):
     register = cudaq.qvector(N)
 
 
-# [End InputDefinition]
+# [End `InputDefinition`]
 
-# [Begin PassingComplexVector]
+# [Begin `PassingComplexVector`]
 # Passing complex vectors as parameters
 c = [.707 + 0j, 0 - .707j]
 
@@ -32,9 +32,9 @@ def kernel(vec: list[complex]):
     q = cudaq.qubit(vec)
 
 
-# [End PassingComplexVector]
+# [End `PassingComplexVector`]
 
-# [Begin CapturingComplexVector]
+# [Begin `CapturingComplexVector`]
 # Capturing complex vectors
 c = [0.70710678 + 0j, 0., 0., 0.70710678]
 
@@ -44,9 +44,9 @@ def kernel():
     q = cudaq.qvector(c)
 
 
-# [End CapturingComplexVector]
+# [End `CapturingComplexVector`]
 
-# [Begin PrecisionAgnosticAPI]
+# [Begin `PrecisionAgnosticAPI`]
 # Precision-Agnostic API
 import numpy as np
 
@@ -58,9 +58,9 @@ def kernel():
     q = cudaq.qvector(c)
 
 
-# [End PrecisionAgnosticAPI]
+# [End `PrecisionAgnosticAPI`]
 
-# [Begin CUDAQAmplitudes]
+# [Begin `CUDAQAmplitudes`]
 # Define as CUDA-Q amplitudes
 c = cudaq.amplitudes([0.70710678 + 0j, 0., 0., 0.70710678])
 
@@ -70,9 +70,9 @@ def kernel():
     q = cudaq.qvector(c)
 
 
-# [End CUDAQAmplitudes]
+# [End `CUDAQAmplitudes`]
 
-# [Begin PassingState]
+# [Begin `PassingState`]
 # Pass in a state from another kernel
 c = [0.70710678 + 0j, 0., 0., 0.70710678]
 
@@ -91,20 +91,20 @@ def kernel(state: cudaq.State):
 
 
 kernel(state_to_pass)
-# [End PassingState]
+# [End `PassingState`]
 
 
-# [Begin AllQubits]
+# [Begin `AllQubits`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
     h(register)
 
 
-# [End AllQubits]
+# [End `AllQubits`]
 
 
-# [Begin IndividualQubits]
+# [Begin `IndividualQubits`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
@@ -112,10 +112,10 @@ def kernel():
     h(register[-1])  # last qubit
 
 
-# [End IndividualQubits]
+# [End `IndividualQubits`]
 
 
-# [Begin ControlledOperations]
+# [Begin `ControlledOperations`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
@@ -123,10 +123,10 @@ def kernel():
            register[1])  # CNOT gate applied with qubit 0 as control
 
 
-# [End ControlledOperations]
+# [End `ControlledOperations`]
 
 
-# [Begin MultiControlledOperations]
+# [Begin `MultiControlledOperations`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
@@ -134,10 +134,10 @@ def kernel():
            register[2])  # X applied to qubit two controlled by qubit 0 and 1
 
 
-# [End MultiControlledOperations]
+# [End `MultiControlledOperations`]
 
 
-# [Begin ControlledKernel]
+# [Begin `ControlledKernel`]
 @cudaq.kernel
 def x_kernel(qubit: cudaq.qubit):
     x(qubit)
@@ -168,19 +168,19 @@ def kernel():
 
 results = cudaq.sample(kernel)
 print(results)
-# [End ControlledKernel]
+# [End `ControlledKernel`]
 
 
-# [Begin AdjointOperations]
+# [Begin `AdjointOperations`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
     t.adj(register[0])
 
 
-# [End AdjointOperations]
+# [End `AdjointOperations`]
 
-# [Begin CustomOperations]
+# [Begin `CustomOperations`]
 import numpy as np
 
 cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
@@ -194,10 +194,10 @@ def kernel():
     custom_x.ctrl(qubits[0], qubits[1])
 
 
-# [End CustomOperations]
+# [End `CustomOperations`]
 
 
-# [Begin BuildingKernelsWithKernels]
+# [Begin `BuildingKernelsWithKernels`]
 @cudaq.kernel
 def kernel_A(qubit_0: cudaq.qubit, qubit_1: cudaq.qubit):
     x.ctrl(qubit_0, qubit_1)
@@ -210,10 +210,10 @@ def kernel_B():
         kernel_A(reg[i], reg[i + 1])
 
 
-#[End BuildingKernelsWithKernels]
+#[End `BuildingKernelsWithKernels`]
 
 
-# [Begin ParameterizedKernels]
+# [Begin `ParameterizedKernels`]
 @cudaq.kernel
 def kernel(thetas: list[float]):
     qubits = cudaq.qvector(2)
@@ -223,4 +223,4 @@ def kernel(thetas: list[float]):
 
 thetas = [.024, .543]
 kernel(thetas)
-# [End ParameterizedKernels]
+# [End `ParameterizedKernels`]
