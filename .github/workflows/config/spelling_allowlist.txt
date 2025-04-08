@@ -77,6 +77,7 @@ NVIDIA
 NVLink
 NVQC
 NVQIR
+Numpy
 OQC
 ORCA
 ObserveAsync
@@ -147,6 +148,7 @@ amongst
 ancilla
 ansatz
 ansatzes
+api
 archiver
 arity
 async
@@ -191,6 +193,7 @@ coupler
 couplers
 cuQuantum
 cuTensor
+cuda
 cudaq
 dataflow
 ddots
@@ -242,10 +245,12 @@ fmt
 fourier
 frontend
 frontends
+github
 gpus
 hadamard
 hamiltonian
 homogenous
+https
 iff
 increment
 incrementing
@@ -260,6 +265,7 @@ integrators
 interferometer
 interoperational
 intrinsics
+io
 iterable
 iteratively
 kets
