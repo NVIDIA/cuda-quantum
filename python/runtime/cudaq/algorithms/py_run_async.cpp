@@ -11,7 +11,6 @@
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-
 #include <fmt/core.h>
 #include <pybind11/stl.h>
 
