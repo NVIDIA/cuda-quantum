@@ -10,6 +10,7 @@
 #include "CuDensityMatErrorHandling.h"
 #include "common/Logger.h"
 #include <iostream>
+#include <map>
 #include <ranges>
 
 namespace {

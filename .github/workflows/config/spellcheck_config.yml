@@ -236,6 +236,10 @@ matrix:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
+      # Ignore apostrophy-s endings of words (e.g. NVIDIA's)
+      - open: '(?=\S)'
+        close: '($|(?=[^a-z]))'
+        content: '\u0027s'
 
 - name: python
   sources:

@@ -98,6 +98,7 @@ Returns:
 
     counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:
+        print("running sample")
         kernel(*args)
         cudaq_runtime.resetExecutionContext()
         if counts.get_total_shots() == 0 and ctx.result.get_total_shots(

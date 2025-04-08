@@ -10,12 +10,12 @@ These backends are available for use from both C++ and Python.
 
 Tensor network simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via :code:`cudaq::observe` can be performed efficiently, thanks to :code:`cuTensorNet` contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
 
-Multi-node multi-GPU 
+Multi-GPU multi-node 
 ++++++++++++++++++++++
 
 The :code:`tensornet` backend represents quantum states and circuits as tensor networks in an exact form (no approximation). 
 Measurement samples and expectation values are computed via tensor network contractions. 
-This backend supports multi-node, multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
+This backend supports multi-GPU, multi-node distribution of tensor operations required to evaluate and simulate the circuit.
 
 To execute a program on the :code:`tensornet` target using a *single GPU*, use the following commands:
 

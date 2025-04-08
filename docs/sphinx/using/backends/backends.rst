@@ -4,7 +4,7 @@ CUDA-Q Backends
 .. _backends:
 
 
-The CUDA-Q platform has is a powerful tool with many different backends for running hybrid quantum applications and other simulations.  This page will help you understand what backends are available and what the best choices are for your purpose. 
+The CUDA-Q platform is a powerful tool with many different backends for running hybrid quantum applications and other simulations.  This page will help you understand what backends are available and what the best choices are for your purpose. 
 
 The figure below groups the backends into four categories, and described the general purpose for each.  See the following sections for a breakdown of the backends included in each section.
 
@@ -21,8 +21,9 @@ Click on the links below for each category to learn more about the backends it c
 
 .. toctree::
    :maxdepth: 1
-      
-        Dynamics Simulation <dynamics.rst>
+
+        Dynamics Simulation  <dynamics_backends.rst>
+   
 
 .. toctree::
    :maxdepth: 2

@@ -11,8 +11,9 @@
 namespace cudaq {
 
 QPUState::~QPUState() {
-  for (std::size_t counter = 0; auto &ptr : args)
-    deleters[counter++](ptr);
+  if (!deleters.empty())
+    for (std::size_t counter = 0; auto &ptr : args)
+      deleters[counter++](ptr);
 
   args.clear();
   deleters.clear();

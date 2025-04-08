@@ -276,8 +276,8 @@ struct ReturnToOutputLogPass
 
   void runOnOperation() override {
     auto module = getOperation();
-    if (!module->hasAttr(cudaq::runtime::enableCudaqRun))
-      return;
+    //if (!module->hasAttr(cudaq::runtime::enableCudaqRun))
+    //  return;
 
     auto *ctx = &getContext();
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
