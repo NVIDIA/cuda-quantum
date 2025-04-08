@@ -71,9 +71,7 @@ void bindExecutionContext(py::module &mod) {
     auto &self = cudaq::get_platform();
     return self.get_exec_ctx()->name;
   });
-  mod.def("getQirOutputLog", []() {
-    return nvqir::getQirOutputLog();
-  });
+  mod.def("getQirOutputLog", []() { return nvqir::getQirOutputLog(); });
   mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
   mod.def("decodeQirOutputLog",
           [](const std::string &outputLog, py::buffer decodedResults) {

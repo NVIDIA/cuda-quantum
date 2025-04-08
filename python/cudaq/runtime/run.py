@@ -9,10 +9,8 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import UnitAttr
 import numpy as np
 
-def run(kernel,
-           *args,
-           shots_count=1,
-           noise_model=None):
+
+def run(kernel, *args, shots_count=1, noise_model=None):
     """Run the provided `kernel` at the given kernel 
 `arguments` over the specified number of circuit executions (`shots_count`). 
 
@@ -35,16 +33,19 @@ Returns:
     kernel.enable_return_to_log()
     ctx = cudaq_runtime.ExecutionContext("run", 1)
     if kernel.returnType is None:
-      raise ValueError("cudaq.run only supports kernels that return values.")
-    
+        raise ValueError("cudaq.run only supports kernels that return values.")
+
     if shots_count < 0:
-      raise ValueError("Invalid shots_count. Must be non-negative.")
-    
+        raise ValueError("Invalid shots_count. Must be non-negative.")
+
     if shots_count == 0:
-      return np.array([])
+        return np.array([])
 
     # Default construct the result array (allocate memory buffer)
-    results = np.array([kernel.returnType() for _ in range(shots_count)]) 
+    results = np.array([kernel.returnType() for _ in range(shots_count)])
+    if noise_model != None:
+        cudaq_runtime.set_noise(noise_model)
+
     for i in range(shots_count):
         cudaq_runtime.setExecutionContext(ctx)
         kernel(*args)
@@ -52,4 +53,5 @@ Returns:
 
     cudaq_runtime.decodeQirOutputLog(cudaq_runtime.getQirOutputLog(), results)
     cudaq_runtime.clearQirOutputLog()
+    cudaq_runtime.unset_noise()
     return results

@@ -276,7 +276,8 @@ class PyKernelDecorator(object):
         Enable translation from `return` statements to QIR output log
         """
         self.compile()
-        self.module.operation.attributes.__setitem__('quake.cudaq_run', UnitAttr.get(context=self.module.context))
+        self.module.operation.attributes.__setitem__(
+            'quake.cudaq_run', UnitAttr.get(context=self.module.context))
 
     def _repr_svg_(self):
         """
