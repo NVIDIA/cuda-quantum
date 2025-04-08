@@ -31,7 +31,7 @@ There are a number of convenient methods for combining, comparing, iterating thr
 Pauli Words and Exponentiating Pauli Words
 ------------------------------------------
 
-The `pauli_word` type specifies a string of Pauli operations (e.g. 'XYXZ') and is convenient for applying operations based on exponentiated Pauli words. The code below demonstrates how a list of Pauli words, along with their coefficients, are provided as kernel inputs and converted into operators by the `exp_pauli` function.
+The `pauli_word` type specifies a string of Pauli operations (e.g. `XYXZ`) and is convenient for applying operations based on exponentiated Pauli words. The code below demonstrates how a list of Pauli words, along with their coefficients, are provided as kernel inputs and converted into operators by the `exp_pauli` function.
 
 The code below applies the following operation: :math:`e^{i(0.432XYZ + 0.324IXX)}`
 

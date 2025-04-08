@@ -30,6 +30,7 @@ DOI
 Deuteron
 Deutsch
 Doxygen
+Exponentiating
 FPGAs
 Fermion
 Fock
