@@ -28,6 +28,8 @@
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script src="../../_static/filter.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -123,7 +125,18 @@
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="examples.html">   Examples</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="introduction.html">   Introduction</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">   Building Kernels</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Building Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#defining-kernels">Defining Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#initializing-states">Initializing states</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#applying-gates">Applying Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#controlled-operations">Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-controlled-operations">Multi-Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#adjoint-operations">Adjoint Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#custom-operations">Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#building-kernels-with-kernels">Building Kernels with Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parameterized-kernels">Parameterized Kernels</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-gates">Quantum Gates</a></li>
@@ -155,7 +168,6 @@
 <li class="toctree-l3"><a class="reference internal" href="expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="multi_control.html">   Multi-Control Synthesis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
@@ -770,17 +782,12 @@
 <h1>Building Kernels<a class="headerlink" href="#building-kernels" title="Permalink to this heading">¶</a></h1>
 <p>This section will cover the most basic CUDA-Q construct, a quantum kernel.
 Topics include, building kernels, initializing states, and applying gate operations.</p>
+<section id="defining-kernels">
+<h2>Defining Kernels<a class="headerlink" href="#defining-kernels" title="Permalink to this heading">¶</a></h2>
+<p>Kernels are the building blocks of quantum algorithms in CUDA-Q. A kernel is specified by using the following syntax. <code class="code docutils literal notranslate"><span class="pre">cudaq.qubit</span></code> builds a register consisting of a single qubit, while <code class="code docutils literal notranslate"><span class="pre">cudaq.qvector</span></code> builds a register of <span class="math notranslate nohighlight">\(N\)</span> qubits.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ### Defining Kernels</span>
-<span class="c1">#</span>
-<span class="c1"># Kernels are the building blocks of quantum algorithms in CUDA-Q. A kernel is specified by using the following syntax. `cudaq.qubit` builds a register consisting of a single qubit, while `cudaq.qvector` builds a register of $N$ qubits.</span>
-
-<span class="c1"># In[14]:</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-
-<span class="c1"># In[15]:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -790,11 +797,25 @@ Topics include, building kernels, initializing states, and applying gate operati
     <span class="n">C</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
 
 
-<span class="c1"># Inputs to kernels are defined by specifying a parameter in the kernel definition along with the appropriate type. The kernel below takes an integer to define a register of N qubits.</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
-<span class="c1"># In[16]:</span>
-
-<span class="n">N</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">A</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">B</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">C</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Inputs to kernels are defined by specifying a parameter in the kernel definition along with the appropriate type. The kernel below takes an integer to define a register of N qubits.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">N</span> <span class="o">=</span> <span class="mi">2</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -802,19 +823,27 @@ Topics include, building kernels, initializing states, and applying gate operati
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
 
 
-<span class="c1"># ### Initializing states</span>
-<span class="c1">#</span>
-<span class="c1"># It is often helpful to define an initial state for a kernel. There are a few ways to do this in CUDA-Q. Note, method 5 is particularly useful for cases where the state of one kernel is passed into a second kernel to prepare its initial state.</span>
-<span class="c1">#</span>
-<span class="c1"># 1. Passing complex vectors as parameters</span>
-<span class="c1"># 2. Capturing complex vectors</span>
-<span class="c1"># 3. Precision-agnostic API</span>
-<span class="c1"># 4. Define as CUDA-Q amplitudes</span>
-<span class="c1"># 5. Pass in a state from another kernel</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">int</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
 
-<span class="c1"># In[17]:</span>
-
-<span class="c1"># Passing complex vectors as parameters</span>
+<span class="n">__qpu__</span> <span class="n">void</span> <span class="n">kernel</span><span class="p">(</span><span class="nb">int</span> <span class="n">N</span><span class="p">)</span> <span class="p">{</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">qvector</span> <span class="n">r</span><span class="p">(</span><span class="n">N</span><span class="p">);</span> <span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="initializing-states">
+<h2>Initializing states<a class="headerlink" href="#initializing-states" title="Permalink to this heading">¶</a></h2>
+<p>It is often helpful to define an initial state for a kernel. There are a few ways to do this in CUDA-Q. Note, method 5 is particularly useful for cases where the state of one kernel is passed into a second kernel to prepare its initial state.</p>
+<ol class="arabic simple">
+<li><p>Passing complex vectors as parameters</p></li>
+</ol>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Passing complex vectors as parameters</span>
 <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="mf">.707</span> <span class="o">+</span> <span class="mi">0</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span> <span class="o">-</span> <span class="mf">.707</span><span class="n">j</span><span class="p">]</span>
 
 
@@ -823,7 +852,26 @@ Topics include, building kernels, initializing states, and applying gate operati
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span>
 
 
-<span class="c1"># Capturing complex vectors</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Passing complex vectors as parameters</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">.707</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">0</span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">.707</span><span class="n">j</span><span class="p">};</span>
+
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">vec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">vec</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Capturing complex vectors</p></li>
+</ol>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Capturing complex vectors</span>
 <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.70710678</span> <span class="o">+</span> <span class="mi">0</span><span class="n">j</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">]</span>
 
 
@@ -832,7 +880,24 @@ Topics include, building kernels, initializing states, and applying gate operati
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
 
 
-<span class="c1"># Precision-Agnostic API</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Capturing complex vectors</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">0.70710678</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">0</span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="mf">0.70710678</span><span class="p">};</span>
+
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">c</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Precision-agnostic API</p></li>
+</ol>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Precision-Agnostic API</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.70710678</span> <span class="o">+</span> <span class="mi">0</span><span class="n">j</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">complex</span><span class="p">())</span>
@@ -843,7 +908,24 @@ Topics include, building kernels, initializing states, and applying gate operati
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
 
 
-<span class="c1"># Define as CUDA-Q amplitudes</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Precision-Agnostic API</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">complex</span><span class="p">{</span><span class="mf">0.70710678</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">0</span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="mf">0.70710678</span><span class="p">};</span>
+
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">c</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Define as CUDA-Q amplitudes</p></li>
+</ol>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define as CUDA-Q amplitudes</span>
 <span class="n">c</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">amplitudes</span><span class="p">([</span><span class="mf">0.70710678</span> <span class="o">+</span> <span class="mi">0</span><span class="n">j</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">])</span>
 
 
@@ -852,7 +934,16 @@ Topics include, building kernels, initializing states, and applying gate operati
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
 
 
-<span class="c1"># Pass in a state from another kernel</span>
+</pre></div>
+</div>
+</div>
+</div>
+<ol class="arabic simple" start="5">
+<li><p>Pass in a state from another kernel</p></li>
+</ol>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Pass in a state from another kernel</span>
 <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.70710678</span> <span class="o">+</span> <span class="mi">0</span><span class="n">j</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">]</span>
 
 
@@ -870,72 +961,107 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="n">kernel</span><span class="p">(</span><span class="n">state_to_pass</span><span class="p">)</span>
-
-<span class="c1"># ### Applying Gates</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1"># After a kernel is constructed, gates can be applied to start building out a quantum circuit.</span>
-<span class="c1"># All the predefined gates in CUDA-Q can be found here:</span>
-<span class="c1"># https://nvidia.github.io/cuda-quantum/api/default_ops.</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1"># Gates can be applied to all qubits in a register:</span>
-
-<span class="c1"># In[18]:</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="applying-gates">
+<h2>Applying Gates<a class="headerlink" href="#applying-gates" title="Permalink to this heading">¶</a></h2>
+<p>After a kernel is constructed, gates can be applied to start building out a quantum circuit.
+All the predefined gates in CUDA-Q can be found here:
+<a class="reference external" href="https://nvidia.github.io/cuda-quantum/api/default_ops">https://nvidia.github.io/cuda-quantum/api/default_ops</a>.</p>
+<p>Gates can be applied to all qubits in a register.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--7-input--1" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">register</span><span class="p">)</span>
 
 
-<span class="c1"># Or, to individual qubits in a register:</span>
-
-<span class="c1"># In[19]:</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--7-input--2" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">r</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">h</span><span class="p">(</span><span class="n">r</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Or, to individual qubits in a register.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--8-input--1" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">register</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># first qubit</span>
     <span class="n">h</span><span class="p">(</span><span class="n">register</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># last qubit</span>
 
 
-<span class="c1"># ### Controlled Operations</span>
-<span class="c1">#</span>
-<span class="c1"># Controlled operations are available for any gate and can be used by adding `.ctrl` to the end of any gate, followed by specification of the control qubit and the target qubit.</span>
-
-<span class="c1"># In[20]:</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--8-input--2" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">r</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">h</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span><span class="w"> </span><span class="c1">// first qubit</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">h</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">9</span><span class="p">]);</span><span class="w"> </span><span class="c1">// last qubit</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="controlled-operations">
+<h2>Controlled Operations<a class="headerlink" href="#controlled-operations" title="Permalink to this heading">¶</a></h2>
+<p>Controlled operations are available for any gate and can be used by adding <code class="code docutils literal notranslate"><span class="pre">.ctrl</span></code> to the end of any gate, followed by specification of the control qubit and the target qubit.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--9-input--1" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">register</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
            <span class="n">register</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># CNOT gate applied with qubit 0 as control</span>
 
 
-<span class="c1"># ### Multi-Controlled Operations</span>
-<span class="c1">#</span>
-<span class="c1"># It is valid for more than one qubit to be used for multi-controlled gates. The control qubits are specified as a list.</span>
-
-<span class="c1"># In[21]:</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="multi-controlled-operations">
+<h2>Multi-Controlled Operations<a class="headerlink" href="#multi-controlled-operations" title="Permalink to this heading">¶</a></h2>
+<p>It is valid for more than one qubit to be used for multi-controlled gates. The control qubits are specified as a list.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--10-input--1" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">register</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">register</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
            <span class="n">register</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>  <span class="c1"># X applied to qubit two controlled by qubit 0 and 1</span>
 
 
-<span class="c1"># You can also call a controlled kernel within a kernel:</span>
-
-<span class="c1"># In[22]:</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--10-input--2" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">r</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">({</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]},</span>
+<span class="w">                 </span><span class="n">r</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span><span class="w"> </span><span class="c1">// CNOT gate applied with qubit 0 and 1 as control</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>You can also call a controlled kernel within a kernel.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--11-input--1" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">x_kernel</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
@@ -954,8 +1080,6 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="c1"># The above is equivalent to:</span>
-
-
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
@@ -967,27 +1091,72 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--11-input--2" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">x_kernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
 
-<span class="c1"># ### Adjoint Operations</span>
-<span class="c1">#</span>
-<span class="c1"># The adjoint of a gate can be applied by appending the gate with the `adj` designation.</span>
+<span class="c1">// A kernel that will call `x_kernel` as a controlled operation.</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">control_vector</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">target</span><span class="p">;</span>
 
-<span class="c1"># In[23]:</span>
+<span class="w">  </span><span class="n">x</span><span class="p">(</span><span class="n">control_vector</span><span class="p">);</span>
+<span class="w">  </span><span class="n">x</span><span class="p">(</span><span class="n">target</span><span class="p">);</span>
+<span class="w">  </span><span class="n">x</span><span class="p">(</span><span class="n">control_vector</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">control</span><span class="p">(</span><span class="n">x_kernel</span><span class="p">,</span><span class="w"> </span><span class="n">control_vector</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="p">}</span>
 
+<span class="c1">// The above is equivalent to:</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qvector</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
 
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="w">  </span><span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">);</span>
+<span class="w">  </span><span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">({</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">]},</span><span class="w"> </span><span class="n">qvector</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+<span class="w">  </span><span class="n">results</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="adjoint-operations">
+<h2>Adjoint Operations<a class="headerlink" href="#adjoint-operations" title="Permalink to this heading">¶</a></h2>
+<p>The adjoint of a gate can be applied by appending the gate with the <code class="code docutils literal notranslate"><span class="pre">adj</span></code> designation.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--12-input--1" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">register</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">t</span><span class="o">.</span><span class="n">adj</span><span class="p">(</span><span class="n">register</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 
-<span class="c1"># ### Custom Operations</span>
-<span class="c1">#</span>
-<span class="c1"># Custom gate operations can be specified using `cudaq.register_operation`. A one-dimensional Numpy array specifies the unitary matrix to be applied. The entries of the array read from top to bottom through the rows.</span>
-
-<span class="c1"># In[24]:</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--12-input--2" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">r</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">adjoint</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="custom-operations">
+<h2>Custom Operations<a class="headerlink" href="#custom-operations" title="Permalink to this heading">¶</a></h2>
+<p>Custom gate operations can be specified using <code class="code docutils literal notranslate"><span class="pre">cudaq.register_operation</span></code>. A one-dimensional Numpy array specifies the unitary matrix to be applied. The entries of the array read from top to bottom through the rows.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--13-input--1" name="tab-set--13" type="radio"><label class="tab-label" for="tab-set--13-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">register_operation</span><span class="p">(</span><span class="s2">&quot;custom_x&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
 
@@ -1000,14 +1169,17 @@ Topics include, building kernels, initializing states, and applying gate operati
     <span class="n">custom_x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 
-<span class="c1"># ### Building Kernels with Kernels</span>
-<span class="c1">#</span>
-<span class="c1"># For many complex applications, it is helpful for a kernel to call another kernel to perform a specific subroutine. The example blow shows how `kernel_A` can be called within `kernel_B` to perform CNOT operations.</span>
-
-<span class="c1"># In[25]:</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="building-kernels-with-kernels">
+<h2>Building Kernels with Kernels<a class="headerlink" href="#building-kernels-with-kernels" title="Permalink to this heading">¶</a></h2>
+<p>For many complex applications, it is helpful for a kernel to call another kernel to perform a specific subroutine. The example blow shows how <code class="code docutils literal notranslate"><span class="pre">kernel_A</span></code> can be called within <code class="code docutils literal notranslate"><span class="pre">kernel_B</span></code> to perform CNOT operations.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--14-input--1" name="tab-set--14" type="radio"><label class="tab-label" for="tab-set--14-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel_A</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubit_0</span><span class="p">,</span> <span class="n">qubit_1</span><span class="p">)</span>
 
@@ -1019,14 +1191,31 @@ Topics include, building kernels, initializing states, and applying gate operati
         <span class="n">kernel_A</span><span class="p">(</span><span class="n">reg</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">reg</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
 
 
-<span class="c1"># ### Parameterized Kernels</span>
-<span class="c1">#</span>
-<span class="c1"># It is often useful to define parameterized circuit kernels which can be used for applications like VQE.</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--14-input--2" name="tab-set--14" type="radio"><label class="tab-label" for="tab-set--14-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel_A</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q0</span><span class="p">,</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q0</span><span class="p">,</span><span class="w"> </span><span class="n">q1</span><span class="p">);</span>
+<span class="p">}</span>
 
-<span class="c1"># In[26]:</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel_B</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">reg</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">kernel_A</span><span class="p">(</span><span class="n">reg</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">reg</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="parameterized-kernels">
+<h2>Parameterized Kernels<a class="headerlink" href="#parameterized-kernels" title="Permalink to this heading">¶</a></h2>
+<p>It is often useful to define parameterized circuit kernels which can be used for applications like VQE.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--15-input--1" name="tab-set--15" type="radio"><label class="tab-label" for="tab-set--15-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">rx</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -1034,12 +1223,24 @@ Topics include, building kernels, initializing states, and applying gate operati
 
 
 <span class="n">thetas</span> <span class="o">=</span> <span class="p">[</span><span class="mf">.024</span><span class="p">,</span> <span class="mf">.543</span><span class="p">]</span>
-
 <span class="n">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
+<input class="tab-input" id="tab-set--15-input--2" name="tab-set--15" type="radio"><label class="tab-label" for="tab-set--15-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">thetas</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qubits</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">rx</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">ry</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="p">}</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">thetas</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">.024</span><span class="p">,</span><span class="w"> </span><span class="mf">.543</span><span class="p">};</span>
+<span class="n">kernel</span><span class="p">(</span><span class="n">thetas</span><span class="p">);</span>
+</pre></div>
 </div>
+</div>
+</div>
+</section>
 </section>
 
 

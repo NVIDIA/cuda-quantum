@@ -16,7 +16,6 @@ Examples that illustrate how to use CUDA-Q for application development are avail
       Visualizing Kernels <../../examples/python/visualization.ipynb>
       Executing Kernels <executing_kernels.rst>
       Computing Expectation Values <expectation_values.rst>
-      Multi-Control Synthesis <multi_control.rst>
       Multi-GPU Workflows <multi_gpu_workflows.rst>
       Optimizers & Gradients  <../../examples/python/optimizers_gradients.ipynb>
       Noisy Simulations <../../examples/python/noisy_simulations.ipynb>

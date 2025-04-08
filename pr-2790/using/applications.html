@@ -123,7 +123,18 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/building_kernels.html">   Building Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/building_kernels.html">   Building Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#defining-kernels">Defining Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#initializing-states">Initializing states</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#applying-gates">Applying Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#controlled-operations">Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#multi-controlled-operations">Multi-Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#adjoint-operations">Adjoint Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#custom-operations">Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#building-kernels-with-kernels">Building Kernels with Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#parameterized-kernels">Parameterized Kernels</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="examples/quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
@@ -155,7 +166,6 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="examples/multi_control.html">   Multi-Control Synthesis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
@@ -838,7 +848,7 @@
 </div>
 
 <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
-    <a href="../applications/python/deutsch_jozsa.html" class="notebook-title">Deutsch's Algorithm</a>
+    <a href="../applications/python/deutsch_algorithm.html" class="notebook-title">Deutsch's Algorithm</a>
     <div class="notebook-content">
         Learn how quantum computers can provide an exponential speedup for identifying if a Boolean function is constant or balanced.
     </div>
@@ -854,7 +864,7 @@
 </div>
 
 <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
-    <a href="../applications/python/hybrid_hybrid_quantum_neural_networks.html" class="notebook-title">Hybrid Quantum Neural Networks</a>
+    <a href="../applications/python/hybrid_quantum_neural_networks.html" class="notebook-title">Hybrid Quantum Neural Networks</a>
     <div class="notebook-content">
         Learn how to implement Neural Network composed of a traditional PyTorch layer and a quantum layer added with CUDA-Q
     </div>
@@ -862,7 +872,7 @@
 </div>
 
 <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,mqpu">
-    <a href="../applications/python/Hadamard_test.html" class="notebook-title">The Hadamard Test</a>
+    <a href="../applications/python/hadamard_test.html" class="notebook-title">The Hadamard Test</a>
     <div class="notebook-content">
         Learn about the Hadamard test and how it can be used to estimate expectation values. This notebook also explores how the Hadamard test can be used for Krylov subspace method and accelerated with the <code>mqpu</code> backend to evaluate execution on multiple simulated QPUs in parallel.
     </div>
@@ -942,7 +952,7 @@
 </div>
 
 <div class="notebook-entry" data-tags="chemistry,noiseless,gpu,collab">
-    <a href="../applications/python/afmqc.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
+    <a href="../applications/python/afqmc.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
     <div class="notebook-content">
         Quantum Enhanced Auxiliary Field Quantum Monte Carlo is an advanced variational technique for simulating molecular energies. Learn how NVIDIA and BASF collaborated to implement this technique.
     </div>
@@ -958,7 +968,7 @@
 </div>
 
 <div class="notebook-entry" data-tags="chemistry,noiseless,gpu">
-    <a href="/applications/python/adapt-vqe.html" class="notebook-title">ADAPT VQE</a>
+    <a href="../applications/python/adapt_vqe.html" class="notebook-title">ADAPT VQE</a>
     <div class="notebook-content">
         Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter (ADAPT) to predict molecular ground state energies. The method iteratively builds an ansatz to more efficiently converge compared to traditional VQE.
     </div>
@@ -967,7 +977,7 @@
 
 
 <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
-    <a href="/applications/python/edge-detection.html" class="notebook-title">Quantum Edge Detection</a>
+    <a href="../applications/python/edge_detection.html" class="notebook-title">Quantum Edge Detection</a>
     <div class="notebook-content">
         Learn how to encode image data with a quantum circuit and use a quantum algorithm to identify object boundaries in an image.
     </div>
