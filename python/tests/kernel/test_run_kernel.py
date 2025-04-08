@@ -40,8 +40,13 @@ def test_simple_run_ghz():
     results = cudaq.run(simple, qubitCount, shots_count=shots)
     print(results)
     assert len(results) == shots
+    non_zero_count = 0
     for result in results:
         assert result == 0 or result == qubitCount  # 00..0 or 1...11
+        if result == qubitCount:
+            non_zero_count += 1
+
+    assert non_zero_count > 0
 
 
 def test_simple_run_ghz_with_noise():
@@ -63,6 +68,21 @@ def test_simple_run_ghz_with_noise():
             noisy_count += 1
     assert noisy_count > 0
     cudaq.reset_target()
+
+
+def test_run_async():
+    shots = 100
+    qubitCount = 4
+    results = cudaq.run_async(simple, qubitCount, shots_count=shots).get()
+    print(results)
+    assert len(results) == shots
+    non_zero_count = 0
+    for result in results:
+        assert result == 0 or result == qubitCount  # 00..0 or 1...11
+        if result == qubitCount:
+            non_zero_count += 1
+
+    assert non_zero_count > 0
 
 
 # leave for gdb debugging
