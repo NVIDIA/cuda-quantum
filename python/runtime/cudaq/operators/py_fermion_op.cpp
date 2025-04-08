@@ -148,6 +148,9 @@ void bindFermionOperator(py::module &mod) {
   .def("__rmul__", [](const fermion_op &other, double self) { return self * other; })
   .def("__radd__", [](const fermion_op &other, double self) { return self + other; })
   .def("__rsub__", [](const fermion_op &other, double self) { return self - other; })
+  .def("__rmul__", [](const fermion_op &other, std::complex<double> self) { return self * other; })
+  .def("__radd__", [](const fermion_op &other, std::complex<double> self) { return self + other; })
+  .def("__rsub__", [](const fermion_op &other, std::complex<double> self) { return self - other; })
   // common operators
   .def_static("empty", &fermion_op::empty,
     "Creates a sum operator with no terms. And empty sum is the neutral element for addition; "
@@ -256,6 +259,9 @@ void bindFermionOperator(py::module &mod) {
   .def("__rmul__", [](const fermion_op_term &other, double self) { return self * other; })
   .def("__radd__", [](const fermion_op_term &other, double self) { return self + other; })
   .def("__rsub__", [](const fermion_op_term &other, double self) { return self - other; })
+  .def("__rmul__", [](const fermion_op_term &other, std::complex<double> self) { return self * other; })
+  .def("__radd__", [](const fermion_op_term &other, std::complex<double> self) { return self + other; })
+  .def("__rsub__", [](const fermion_op_term &other, std::complex<double> self) { return self - other; })
   // general utility functions
   .def("is_identity", &fermion_op_term::is_identity,
     "Checks if all operators in the product are the identity. "
@@ -278,6 +284,7 @@ void bindFermionWrapper(py::module &mod) {
   bindFermionOperator(mod);
   py::implicitly_convertible<fermion_op_term, fermion_op>();
   py::implicitly_convertible<double, fermion_op_term>();
+  py::implicitly_convertible<std::complex<double>, fermion_op_term>();
 }
 
 } // namespace cudaq

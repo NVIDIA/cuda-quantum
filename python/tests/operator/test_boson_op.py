@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 import numpy as np, pytest, random
-from cudaq.ops import * # FIXME: module name
+from cudaq.boson import *
 from op_utils import * # test helpers
 
 
@@ -19,14 +19,11 @@ def setup():
 
 def test_definitions():
     dims = {0: 2, 1: 3}
-    # FIXME: allow for params as kwargs
-    params = {"squeezing": 0.5 + 1.2j, "displacement": 0.5 + 1.2j}
+    assert np.allclose(create(1).to_matrix(dims), create_matrix(3))
+    assert np.allclose(annihilate(1).to_matrix(dims), annihilate_matrix(3))
     assert np.allclose(number(1).to_matrix(dims), number_matrix(3))
-    assert np.allclose(parity(1).to_matrix(dims), parity_matrix(3))
     assert np.allclose(position(1).to_matrix(dims), position_matrix(3))
     assert np.allclose(momentum(1).to_matrix(dims), momentum_matrix(3))
-    assert np.allclose(squeeze(1).to_matrix(dims, params), squeeze_matrix(3, 0.5 + 1.2j))
-    assert np.allclose(displace(1).to_matrix(dims, params), displace_matrix(3, 0.5 + 1.2j))
 
 
 def test_construction():
@@ -59,9 +56,10 @@ def test_construction():
 
 
 def test_iteration():
-    prod1 = position(1) * momentum(0)
-    prod2 = number(0) * parity(0)
+    prod1 = annihilate(1) * create(0)
+    prod2 = number(0) * create(1)
     sum = prod1 + prod2
+    print(sum.to_string())
     for p1, p2 in zip(sum, [prod1, prod2]):
         for t1, t2 in zip(p1, p2):
             assert t1 == t2
@@ -81,7 +79,7 @@ def test_iteration():
 def test_properties():
 
     prod1 = position(1) * momentum(0)
-    prod2 = number(1) * parity(3)
+    prod2 = number(1) * annihilate(3)
     sum = prod1 + prod2
     assert prod1.degrees() == [0, 1]
     assert prod2.degrees() == [1, 3]
@@ -94,19 +92,19 @@ def test_properties():
     assert sum.max_degree() == 3
 
     dims = {0: 2, 1: 3, 2: 2, 3: 4}
-    assert sum.num_terms() == 2
-    assert prod1.num_ops() == 2
+    assert sum.num_terms() == 5 # position an momentum are a sum of two terms each
+    assert prod2.num_ops() == 2
     sum += prod1
-    assert sum.num_terms() == 2
+    assert sum.num_terms() == 5
     prod1_mat = np.kron(identity_matrix(4), np.kron(position_matrix(3), momentum_matrix(2)))
-    prod2_mat = np.kron(parity_matrix(4), np.kron(number_matrix(3), identity_matrix(2)))
+    prod2_mat = np.kron(annihilate_matrix(4), np.kron(number_matrix(3), identity_matrix(2)))
     assert np.allclose(sum.to_matrix(dims), prod1_mat + prod1_mat + prod2_mat)
 
     prod1.dump()
     sum.dump()
-    assert prod1.to_string() == "(1.000000+0.000000i) * momentum(0)position(1)"
-    assert sum.to_string() == "(2.000000+0.000000i) * momentum(0)position(1) + (1.000000+0.000000i) * number(1)parity(3)"
-    assert prod1.get_term_id() == "momentum(0)position(1)"
+    assert prod1.to_string() == "(0.000000+0.250000i) * Ad0Ad1 + (0.000000-0.250000i) * A0Ad1 + (0.000000+0.250000i) * Ad0A1 + (0.000000-0.250000i) * A0A1"
+    assert sum.to_string() == "(0.000000+0.500000i) * Ad0Ad1 + (0.000000-0.500000i) * A0Ad1 + (0.000000+0.500000i) * Ad0A1 + (0.000000-0.500000i) * A0A1 + (1.000000+0.000000i) * N1A3"
+    assert prod2.get_term_id() == "N1A3"
 
 
 def test_canonicalization():
@@ -121,11 +119,11 @@ def test_canonicalization():
             if target == id_target:
                 op *= identity(target)
             elif target % 2 == 0:
-                op *= parity(target)
-                expected *= parity(target)
+                op *= create(target)
+                expected *= create(target)
             else:
-                op *= number(target)
-                expected *= number(target)
+                op *= annihilate(target)
+                expected *= annihilate(target)
 
         assert op != expected
         assert op.degrees() == all_degrees
@@ -159,8 +157,8 @@ def test_canonicalization():
             assert term.degrees() == all_degrees
 
     for id_target in all_degrees:
-        term = identity()
-        expected_term = identity()
+        term = BosonOperator()
+        expected_term = BosonOperator()
         for target in all_degrees:
             if target == id_target:
                 term *= identity(target)
@@ -226,7 +224,7 @@ def test_equality():
     prod2 = position(1) * momentum(1)
     prod3 = position(0) * momentum(1)
     prod4 = momentum(1) * position(0)
-    sum = MatrixOperator(prod1)
+    sum = BosonOperator(prod1)
     assert prod1 != prod2
     assert prod3 == prod4
     assert sum == prod1

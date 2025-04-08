@@ -152,6 +152,9 @@ void bindMatrixOperator(py::module &mod) {
   .def("__rmul__", [](const matrix_op &other, double self) { return self * other; })
   .def("__radd__", [](const matrix_op &other, double self) { return self + other; })
   .def("__rsub__", [](const matrix_op &other, double self) { return self - other; })
+  .def("__rmul__", [](const matrix_op &other, std::complex<double> self) { return self * other; })
+  .def("__radd__", [](const matrix_op &other, std::complex<double> self) { return self + other; })
+  .def("__rsub__", [](const matrix_op &other, std::complex<double> self) { return self - other; })
   // common operators
   .def_static("empty", &matrix_op::empty,
     "Creates a sum operator with no terms. And empty sum is the neutral element for addition; "
@@ -261,6 +264,9 @@ void bindMatrixOperator(py::module &mod) {
   .def("__rmul__", [](const matrix_op_term &other, double self) { return self * other; })
   .def("__radd__", [](const matrix_op_term &other, double self) { return self + other; })
   .def("__rsub__", [](const matrix_op_term &other, double self) { return self - other; })
+  .def("__rmul__", [](const matrix_op_term &other, std::complex<double> self) { return self * other; })
+  .def("__radd__", [](const matrix_op_term &other, std::complex<double> self) { return self + other; })
+  .def("__rsub__", [](const matrix_op_term &other, std::complex<double> self) { return self - other; })
   // general utility functions
   .def("is_identity", &matrix_op_term::is_identity,
     "Checks if all operators in the product are the identity. "
@@ -283,6 +289,7 @@ void bindOperatorsWrapper(py::module &mod) {
   bindMatrixOperator(mod);
   py::implicitly_convertible<matrix_op_term, matrix_op>();
   py::implicitly_convertible<double, matrix_op_term>();
+  py::implicitly_convertible<std::complex<double>, matrix_op_term>();
 }
 
 } // namespace cudaq
