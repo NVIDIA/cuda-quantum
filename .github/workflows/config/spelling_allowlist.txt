@@ -35,12 +35,12 @@ Fermion
 Fock
 Fortran
 Fourier
-GetState
-GetStateOutput
 GHCR
 GPU
 GPUDirect
 GPUs
+GetState
+GetStateOutput
 GitHub
 HPC
 HTTP
@@ -115,12 +115,12 @@ Quantinuum
 RHEL
 RSA
 RSH
-SampleOutput
 SDK
 SLED
 SLES
 SLURM
 SVD
+SampleOutput
 Sqale
 Stim
 Superpositions
@@ -241,11 +241,7 @@ fmt
 fourier
 frontend
 frontends
-<<<<<<< HEAD
 grovers
-=======
-gpus
->>>>>>> 9031aa3d7f (Adding operators cpp examples)
 hadamard
 hamiltonian
 heisenberg
