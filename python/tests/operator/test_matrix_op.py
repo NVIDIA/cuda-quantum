@@ -11,6 +11,12 @@ from cudaq.ops import * # FIXME: module name
 from op_utils import * # test helpers
 
 
+@pytest.fixture(autouse=True)
+def setup():
+    random.seed(10)
+    yield
+
+
 def test_definitions():
     dims = {0: 2, 1: 3}
     # FIXME: allow for params as kwargs
@@ -43,6 +49,13 @@ def test_construction():
     sum -= identity(0)
     assert sum.degrees() == [0]
     assert np.allclose(sum.to_matrix({0: 3}), -identity_matrix(3))
+    ids = identities(3, 5)
+    assert ids.degrees() == [3, 4]
+    assert np.allclose(ids.to_matrix({3: 3, 4: 3}), identity_matrix(3 * 3))
+    canon = ids.copy().canonicalize()
+    assert ids.degrees() == [3, 4]
+    assert canon.degrees() == []
+    assert canon.to_matrix() == identity_matrix(1)
 
 
 def test_iteration():
@@ -56,8 +69,11 @@ def test_iteration():
     prod_terms = 0
     for prod in sum:
         sum_terms += 1
-        for t in prod:
+        term_id = ""
+        for op in prod:
             prod_terms += 1
+            term_id += op.to_string(include_degrees = True)
+        assert term_id == prod.get_term_id()
     assert sum_terms == 2
     assert prod_terms == 4
 
@@ -79,6 +95,7 @@ def test_properties():
 
     dims = {0: 2, 1: 3, 2: 2, 3: 4}
     assert sum.num_terms() == 2
+    assert prod1.num_ops() == 2
     sum += prod1
     assert sum.num_terms() == 2
     prod1_mat = np.kron(identity_matrix(4), np.kron(position_matrix(3), momentum_matrix(2)))
@@ -89,6 +106,7 @@ def test_properties():
     sum.dump()
     assert prod1.to_string() == "(1.000000+0.000000i) * momentum(0)position(1)"
     assert sum.to_string() == "(2.000000+0.000000i) * momentum(0)position(1) + (1.000000+0.000000i) * number(1)parity(3)"
+    assert prod1.get_term_id() == "momentum(0)position(1)"
 
 
 def test_canonicalization():
@@ -172,8 +190,7 @@ def test_canonicalization():
 def test_trimming():
     all_degrees = [idx for idx in range(6)]
     dims = dict(((d, 2) for d in all_degrees))
-    random.seed(10)
-    for rep in range(10):
+    for _ in range(10):
         bit_mask = random.getrandbits(len(all_degrees))
         expected = empty()
         terms = [identity()] * len(all_degrees)
@@ -197,7 +214,7 @@ def test_trimming():
         assert np.allclose(orig.to_matrix(dims), expected.to_matrix(dims))
         # check that our term map seems accurate
         for term in expected:
-            orig += term * float(term.degrees()[0]) # FIXME: SUPPORT REVERSE ORDER AS WELL
+            orig += float(term.degrees()[0]) * term
         assert orig.num_terms() == expected.num_terms()
         assert orig.degrees() == expected.degrees()
         for term in orig:
@@ -218,11 +235,89 @@ def test_equality():
     assert sum == (prod3 + prod1)
     sum += prod1
     assert sum != (prod3 + prod1)
-    #assert sum == (prod3 + 2. * prod1)
-    #assert sum != sum + 1.
+    assert sum == (prod3 + 2. * prod1)
+    assert sum != sum + 1.
     assert sum != identity(2) * sum
     dims = {0: 2, 1: 3, 2: 2, 3: 4}
     assert np.allclose(np.kron(identity_matrix(2), sum.to_matrix(dims)), (identity(2) * sum).to_matrix(dims))
+
+
+def test_arithmetics():
+    # basic tests for all arithmetic related bindings - 
+    # more complex expressions are tested as part of the C++ tests
+    dims = {0: 3, 1: 2}
+    id = identity(0)
+    sum = momentum(0) + position(1)
+    sum_matrix = np.kron(position_matrix(2), identity_matrix(3)) +\
+                 np.kron(identity_matrix(2), momentum_matrix(3))
+    assert np.allclose(id.to_matrix(dims), identity_matrix(3))
+    assert np.allclose(sum.to_matrix(dims), sum_matrix)
+
+    # unary operators
+    assert np.allclose((-id).to_matrix(dims), -1. * identity_matrix(3))
+    assert np.allclose((-sum).to_matrix(dims), -1. * sum_matrix)
+    assert np.allclose(id.to_matrix(dims), identity_matrix(3))
+    assert np.allclose(sum.to_matrix(dims), sum_matrix)
+    assert np.allclose((+id).canonicalize().to_matrix(), identity_matrix(1))
+    assert np.allclose((+sum).canonicalize().to_matrix(dims), sum_matrix)
+    assert np.allclose(id.to_matrix(dims), identity_matrix(3))
+
+    # right-hand arithmetics
+    assert np.allclose((id * 2.).to_matrix(dims), 2. * identity_matrix(3))
+    assert np.allclose((sum * 2.).to_matrix(dims), 2. * sum_matrix)
+    assert np.allclose((sum * id).to_matrix(dims), sum_matrix)
+    assert np.allclose((id * sum).to_matrix(dims), sum_matrix)
+    assert np.allclose((id + 2.).to_matrix(dims), 3. * identity_matrix(3))
+    assert np.allclose((sum + 2.).to_matrix(dims), sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose((sum + id).to_matrix(dims), sum_matrix + identity_matrix(2 * 3))
+    assert np.allclose((id + sum).to_matrix(dims), sum_matrix + identity_matrix(2 * 3))
+    assert np.allclose((id - 2.).to_matrix(dims), -1. * identity_matrix(3))
+    assert np.allclose((sum - 2.).to_matrix(dims), sum_matrix - 2. * identity_matrix(2 * 3))
+    assert np.allclose((sum - id).to_matrix(dims), sum_matrix - identity_matrix(2 * 3))
+    assert np.allclose((id - sum).to_matrix(dims), identity_matrix(2 * 3) - sum_matrix)
+
+    # in-place arithmetics
+    term = id.copy()
+    op = +sum
+    term *= 2.
+    op *= 2.
+    assert np.allclose(term.to_matrix(dims), 2. * identity_matrix(3))
+    assert np.allclose(op.to_matrix(dims), 2. * sum_matrix)
+    op *= term
+    assert np.allclose(op.to_matrix(dims), 4. * sum_matrix)
+
+    op += 2.
+    assert np.allclose(op.to_matrix(dims), 4. * sum_matrix + 2. * identity_matrix(2 * 3))
+    op += term
+    assert np.allclose(op.to_matrix(dims), 4. * sum_matrix + 4. * identity_matrix(2 * 3))
+    op -= 2.
+    assert np.allclose(op.to_matrix(dims), 4. * sum_matrix + 2. * identity_matrix(2 * 3))
+    op -= term
+    assert np.allclose(op.to_matrix(dims), 4. * sum_matrix)
+
+    # left-hand arithmetics
+    assert np.allclose((2. * id).to_matrix(dims), 2. * identity_matrix(3))
+    assert np.allclose((2. * sum).to_matrix(dims), 2. * sum_matrix)
+    assert np.allclose((2. + id).to_matrix(dims), 3. * identity_matrix(3))
+    assert np.allclose((2. + sum).to_matrix(dims), sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose((2. - id).to_matrix(dims), identity_matrix(3))
+    assert np.allclose((2. - sum).to_matrix(dims), 2. * identity_matrix(2 * 3) - sum_matrix)
+
+
+def test_term_distribution():
+    op = empty()
+    for target in range(7):
+        op += identity(target)
+    batches = op.distribute_terms(4)
+    assert op.num_terms() == 7
+    assert len(batches) == 4
+    for idx in range(3):
+        assert batches[idx].num_terms() == 2
+    assert batches[3].num_terms() == 1
+    sum = empty()
+    for batch in batches:
+        sum += batch
+    assert sum == op
 
 
 # Run with: pytest -rP

@@ -33,6 +33,11 @@ void bindFermionModule(py::module &mod) {
       "identity", [](std::size_t target) { return fermion_op::identity(target); }, py::arg("target"),
       "Returns an identity operator on the given target index.");
   fermion_submodule.def(
+      "identities", [](std::size_t first, std::size_t last) { return fermion_op_term(first, last); },
+      py::arg("first"), py::arg("last"),
+      "Creates a product operator that applies an identity operation to all degrees of "
+      "freedom in the open range [first, last).");
+  fermion_submodule.def(
       "create", &fermion_op::create<fermion_handler>, py::arg("target"),
       "Returns a fermionic creation operator on the given target index.");
   fermion_submodule.def(
@@ -139,6 +144,10 @@ void bindFermionOperator(py::module &mod) {
   .def("__imul__", [](fermion_op &self, const fermion_op_term &other) { return self *= other; })
   .def("__iadd__", [](fermion_op &self, const fermion_op_term &other) { return self += other; })
   .def("__isub__", [](fermion_op &self, const fermion_op_term &other) { return self -= other; })
+  // left-hand arithmetics
+  .def("__rmul__", [](const fermion_op &other, double self) { return self * other; })
+  .def("__radd__", [](const fermion_op &other, double self) { return self + other; })
+  .def("__rsub__", [](const fermion_op &other, double self) { return self - other; })
   // common operators
   .def_static("empty", &fermion_op::empty,
     "Creates a sum operator with no terms. And empty sum is the neutral element for addition; "
@@ -157,9 +166,9 @@ void bindFermionOperator(py::module &mod) {
     py::arg("tol") = 0.0, py::arg("parameters") = parameter_map(),
     "Removes all terms from the sum for which the absolute value of the coefficient is below "
     "the given tolerance.")
-  .def("canonicalize", [](fermion_op &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
+  .def("canonicalize", [](fermion_op &self) { return self.canonicalize(); },
     "Removes all identity operators from the operator.")
-  .def("canonicalize", [](fermion_op &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
+  .def("canonicalize", [](fermion_op &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
     "degrees of freedom.")
@@ -243,6 +252,10 @@ void bindFermionOperator(py::module &mod) {
   .def("__add__", [](const fermion_op_term &self, const fermion_op &other) { return self + other; })
   .def("__sub__", [](const fermion_op_term &self, const fermion_op &other) { return self - other; })
   .def("__imul__", [](fermion_op_term &self, const fermion_op_term &other) { return self *= other; })
+  // left-hand arithmetics
+  .def("__rmul__", [](const fermion_op_term &other, double self) { return self * other; })
+  .def("__radd__", [](const fermion_op_term &other, double self) { return self + other; })
+  .def("__rsub__", [](const fermion_op_term &other, double self) { return self - other; })
   // general utility functions
   .def("is_identity", &fermion_op_term::is_identity,
     "Checks if all operators in the product are the identity. "
@@ -251,9 +264,9 @@ void bindFermionOperator(py::module &mod) {
     "Returns the string representation of the operator.")
   .def("dump", &fermion_op_term::dump,
     "Prints the string representation of the operator to the standard output.")
-  .def("canonicalize", [](fermion_op_term &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
+  .def("canonicalize", [](fermion_op_term &self) { return self.canonicalize(); },
     "Removes all identity operators from the operator.")
-  .def("canonicalize", [](fermion_op_term &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
+  .def("canonicalize", [](fermion_op_term &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "The canonicalization will throw a runtime exception if the operator acts on any degrees "
     "of freedom that are not included in the given set.")

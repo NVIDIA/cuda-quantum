@@ -33,6 +33,11 @@ void bindOperatorsModule(py::module &mod) {
       "identity", [](std::size_t target) { return matrix_op::identity(target); }, py::arg("target"),
       "Returns an identity operator on the given target index.");
   operators_submodule.def(
+      "identities", [](std::size_t first, std::size_t last) { return matrix_op_term(first, last); },
+      py::arg("first"), py::arg("last"),
+      "Creates a product operator that applies an identity operation to all degrees of "
+      "freedom in the open range [first, last).");
+  operators_submodule.def(
       "number", &matrix_op::number<matrix_handler>, py::arg("target"),
       "Returns a number operator on the given target index.");
   operators_submodule.def(
@@ -143,6 +148,10 @@ void bindMatrixOperator(py::module &mod) {
   .def("__imul__", [](matrix_op &self, const matrix_op_term &other) { return self *= other; })
   .def("__iadd__", [](matrix_op &self, const matrix_op_term &other) { return self += other; })
   .def("__isub__", [](matrix_op &self, const matrix_op_term &other) { return self -= other; })
+  // left-hand arithmetics
+  .def("__rmul__", [](const matrix_op &other, double self) { return self * other; })
+  .def("__radd__", [](const matrix_op &other, double self) { return self + other; })
+  .def("__rsub__", [](const matrix_op &other, double self) { return self - other; })
   // common operators
   .def_static("empty", &matrix_op::empty,
     "Creates a sum operator with no terms. And empty sum is the neutral element for addition; "
@@ -161,9 +170,9 @@ void bindMatrixOperator(py::module &mod) {
     py::arg("tol") = 0.0, py::arg("parameters") = parameter_map(),
     "Removes all terms from the sum for which the absolute value of the coefficient is below "
     "the given tolerance.")
-  .def("canonicalize", [](matrix_op &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
+  .def("canonicalize", [](matrix_op &self) { return self.canonicalize(); },
     "Removes all identity operators from the operator.")
-  .def("canonicalize", [](matrix_op &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
+  .def("canonicalize", [](matrix_op &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "If an empty set is passed, canonicalizes all terms in the sum to act on the same "
     "degrees of freedom.")
@@ -248,6 +257,10 @@ void bindMatrixOperator(py::module &mod) {
   .def("__add__", [](const matrix_op_term &self, const matrix_op &other) { return self + other; })
   .def("__sub__", [](const matrix_op_term &self, const matrix_op &other) { return self - other; })
   .def("__imul__", [](matrix_op_term &self, const matrix_op_term &other) { return self *= other; })
+  // left-hand arithmetics
+  .def("__rmul__", [](const matrix_op_term &other, double self) { return self * other; })
+  .def("__radd__", [](const matrix_op_term &other, double self) { return self + other; })
+  .def("__rsub__", [](const matrix_op_term &other, double self) { return self - other; })
   // general utility functions
   .def("is_identity", &matrix_op_term::is_identity,
     "Checks if all operators in the product are the identity. "
@@ -256,9 +269,9 @@ void bindMatrixOperator(py::module &mod) {
     "Returns the string representation of the operator.")
   .def("dump", &matrix_op_term::dump,
     "Prints the string representation of the operator to the standard output.")
-  .def("canonicalize", [](matrix_op_term &self) { return self.canonicalize(); }, // FIXME: check if this works as expected...
+  .def("canonicalize", [](matrix_op_term &self) { return self.canonicalize(); },
     "Removes all identity operators from the operator.")
-  .def("canonicalize", [](matrix_op_term &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); }, // FIXME: check if this works as expected...
+  .def("canonicalize", [](matrix_op_term &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); },
     "Expands the operator to act on all given degrees, applying identities as needed. "
     "The canonicalization will throw a runtime exception if the operator acts on any degrees "
     "of freedom that are not included in the given set.")
