@@ -94,8 +94,6 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args, py::int_ shots_
 
 /// @brief Bind the run cudaq function
 void bindPyRun(py::module &mod) {
-  // mod.def("run", py::overload_cast<py::object &, py::args>(&pyRun),
-  //         R"#()#")
     mod.def("run", &pyRun, py::arg("kernel"), py::kw_only(),
           py::arg("shots_count") = 1000,
           R"#()#");
