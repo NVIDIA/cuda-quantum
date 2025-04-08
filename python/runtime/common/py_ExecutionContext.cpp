@@ -38,6 +38,8 @@ void bindExecutionContext(py::module &mod) {
                      &cudaq::ExecutionContext::numberTrajectories)
       .def_readwrite("explicitMeasurements",
                      &cudaq::ExecutionContext::explicitMeasurements)
+      .def_readonly("invocationResultBuffer",
+                    &cudaq::ExecutionContext::invocationResultBuffer)
       .def("setSpinOperator",
            [](cudaq::ExecutionContext &ctx, cudaq::spin_op &spin) {
              ctx.spin = spin;

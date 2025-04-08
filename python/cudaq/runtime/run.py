@@ -31,7 +31,6 @@ Returns:
   `numpy.array[Any]`: 
   An array of `kernel` return values. The length of the list is equal to `shots_count`."""
     kernel.enable_return_to_log()
-    ctx = cudaq_runtime.ExecutionContext("run", 1)
     if kernel.returnType is None:
         raise ValueError("cudaq.run only supports kernels that return values.")
 
@@ -43,15 +42,35 @@ Returns:
 
     # Default construct the result array (allocate memory buffer)
     results = np.array([kernel.returnType() for _ in range(shots_count)])
+
+    target = cudaq_runtime.get_target()
+
     if noise_model != None:
+        if target.is_remote_simulator() or target.is_remote():
+            raise ValueError(
+                "Noise model is not supported on remote simulator or hardware QPU"
+            )
+
         cudaq_runtime.set_noise(noise_model)
 
-    for i in range(shots_count):
+    if target.is_remote_simulator() or target.is_remote() or target.is_emulated(
+    ):
+        ctx = cudaq_runtime.ExecutionContext("run", shots_count)
         cudaq_runtime.setExecutionContext(ctx)
         kernel(*args)
         cudaq_runtime.resetExecutionContext()
+        cudaq_runtime.decodeQirOutputLog(''.join(ctx.invocationResultBuffer),
+                                         results)
+    else:
+        ctx = cudaq_runtime.ExecutionContext("run", 1)
+        for i in range(shots_count):
+            cudaq_runtime.setExecutionContext(ctx)
+            kernel(*args)
+            cudaq_runtime.resetExecutionContext()
 
-    cudaq_runtime.decodeQirOutputLog(cudaq_runtime.getQirOutputLog(), results)
-    cudaq_runtime.clearQirOutputLog()
+        cudaq_runtime.decodeQirOutputLog(cudaq_runtime.getQirOutputLog(),
+                                         results)
+        cudaq_runtime.clearQirOutputLog()
+
     cudaq_runtime.unset_noise()
     return results
