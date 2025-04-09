@@ -152,13 +152,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Executing Kernels</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Executing Kernels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#get-state">Get State</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#parallelization-techniques">Parallelization Techniques</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parallelization-techniques">Parallelization Techniques</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#observe-asynchronous">Observe Asynchronous</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#sample-asynchronous">Sample Asynchronous</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#get-state-asynchronous">Get State Asynchronous</a></li>
@@ -941,11 +939,11 @@ q1 : ─────┤ x ├
 3 = \textcolor{red}{1}*2^0 + \textcolor{blue}{1} *2^1 &amp; \textcolor{red}{1}\textcolor{blue}{1}
 \end{matrix}\end{split}\]</div>
 </section>
-</section>
 <section id="parallelization-techniques">
-<h1>Parallelization Techniques<a class="headerlink" href="#parallelization-techniques" title="Permalink to this heading">¶</a></h1>
+<h2>Parallelization Techniques<a class="headerlink" href="#parallelization-techniques" title="Permalink to this heading">¶</a></h2>
 <p>The most intensive task in the computation is the execution of the quantum kernel hence each execution function: <code class="code docutils literal notranslate"><span class="pre">sample</span></code>, <code class="code docutils literal notranslate"><span class="pre">observe</span></code> and <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> can be parallelized given access to multiple quantum processing units (multi-QPU).</p>
 <p>Since multi-QPU platforms are not yet feasible, we emulate each QPU with a GPU.</p>
+</section>
 <section id="observe-asynchronous">
 <h2>Observe Asynchronous<a class="headerlink" href="#observe-asynchronous" title="Permalink to this heading">¶</a></h2>
 <p>Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result.</p>
