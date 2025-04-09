@@ -110,6 +110,7 @@ void bindMatrixOperator(py::module &mod) {
     "for addition), use `empty()` instead.")
   .def(py::init<std::size_t>(), "Creates a sum operator with no terms, reserving "
     "space for the given number of terms.")
+  .def(py::init<spin_op>())
   .def(py::init<fermion_op>())
   .def(py::init<boson_op>())
   .def(py::init<const matrix_op_term &>(),
@@ -245,6 +246,7 @@ void bindMatrixOperator(py::module &mod) {
     "The returned operator does not target any degrees of freedom.")
   .def(py::init<std::complex<double>>(), "Creates a product operator with the given "
     "constant value. The returned operator does not target any degrees of freedom.")
+  .def(py::init<spin_op_term>())
   .def(py::init<fermion_op_term>())
   .def(py::init<boson_op_term>())
   .def(py::init<const matrix_op_term &, std::size_t>(),

@@ -17,6 +17,15 @@
 
 namespace cudaq {
 
+void bindPauli(py::module mod) {
+  py::enum_<pauli>(
+      mod, "Pauli", "An enumeration representing the types of Pauli matrices.")
+      .value("X", pauli::X)
+      .value("Y", pauli::Y)
+      .value("Z", pauli::Z)
+      .value("I", pauli::I);
+}
+
 void bindOperatorHandlers(py::module &mod) {
   auto cmat_to_numpy = [](const complex_matrix &m) {
     std::vector<ssize_t> shape = {static_cast<ssize_t>(m.rows()),
@@ -108,6 +117,7 @@ void bindOperatorHandlers(py::module &mod) {
 }
 
 void bindHandlersWrapper(py::module &mod) {
+  bindPauli(mod);
   bindOperatorHandlers(mod);
   //py::implicitly_convertible<matrix_op_term, matrix_op>();
 }

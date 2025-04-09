@@ -7,9 +7,7 @@
 # ============================================================================ #
 
 import numpy as np, pytest
-from cudaq import boson, fermion, ops
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import spin as spin_op # FIXME
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import SpinOperator, SpinOperatorTerm # FIXME
+from cudaq import boson, fermion, ops, spin_op # FIXME
 from op_utils import * # test helpers
 
 
@@ -30,11 +28,11 @@ def test_product_conversions():
     fermion_product_expected = np.kron(create_matrix(2), annihilate_matrix(2))
 
     product_ops = [(matrix_product, matrix_product_expected), 
-                   #(spin_product, spin_product_expected), 
+                   (spin_product, spin_product_expected), 
                    (boson_product, boson_product_expected),
                    (fermion_product, fermion_product_expected)]
-    type_map = dict([(ops.MatrixOperatorTerm, ops.MatrixOperator), 
-                     (SpinOperatorTerm, SpinOperator), 
+    sum_type = dict([(ops.MatrixOperatorTerm, ops.MatrixOperator), 
+                     (spin_op.SpinOperatorTerm, spin_op.SpinOperator), 
                      (boson.BosonOperatorTerm, boson.BosonOperator), 
                      (fermion.FermionOperatorTerm, fermion.FermionOperator)])
 
@@ -42,44 +40,25 @@ def test_product_conversions():
         assert type(op) == expected_type
         assert np.allclose(op.to_matrix(dims, params), expected)
 
-    def prod_type(op):
-        return type(op)
-    def sum_type(op):
-        return type_map[type(op)]
-
+    for (op1, expected1) in product_ops:
+        for (op2, expected2) in product_ops:
+            print("check arithmetics for {t1} with {t2}".format(t1=type(op1), t2=type(op2)))
+            base_type = type(op1)
+            if type(op1) != type(op2):
+                base_type = ops.MatrixOperatorTerm
+            check_equals(op1 + op2, expected1 + expected2, sum_type[base_type])
+            check_equals(op1 - op2, expected1 - expected2, sum_type[base_type])
+            if isinstance(op1, fermion.FermionOperatorTerm) != isinstance(op2, fermion.FermionOperatorTerm):
+                with pytest.raises(Exception): op1 * op2 
+            else:
+                check_equals(op1 * op2, np.dot(expected1, expected2), base_type)
     for (op, expected) in product_ops:
-        check_equals(op + op, expected + expected, sum_type(op))
-        check_equals(op - op, expected - expected, sum_type(op))
-        check_equals(op * op, np.dot(expected, expected), prod_type(op))
-    for (op, expected) in product_ops[1:]:
-        check_equals(matrix_product + op, matrix_product_expected + expected, ops.MatrixOperator)
-        check_equals(op + matrix_product, matrix_product_expected + expected, ops.MatrixOperator)
-        check_equals(matrix_product - op, matrix_product_expected - expected, ops.MatrixOperator)
-        check_equals(op - matrix_product, expected - matrix_product_expected, ops.MatrixOperator)
-        if isinstance(op, fermion.FermionOperatorTerm):
-            with pytest.raises(Exception): matrix_product * op
-            with pytest.raises(Exception): op * matrix_product
-        else:
-            check_equals(matrix_product * op, np.dot(matrix_product_expected, expected), ops.MatrixOperatorTerm)
-            check_equals(op * matrix_product, np.dot(expected, matrix_product_expected), ops.MatrixOperatorTerm)
-    for (op1, expected1) in product_ops[1:]:
-        for (op2, expected2) in product_ops[1:]:
-            if type(op1) != type(op2): # FIXME: COMPARE FALSE FOR OPS OF DIFFERENT TYPES
-                check_equals(op1 + op2, expected1 + expected2, ops.MatrixOperator)
-                check_equals(op2 + op1, expected2 + expected1, ops.MatrixOperator)
-                check_equals(op1 - op2, expected1 - expected2, ops.MatrixOperator)
-                check_equals(op2 - op1, expected2 - expected1, ops.MatrixOperator)
-                if isinstance(op1, fermion.FermionOperatorTerm) or isinstance(op2, fermion.FermionOperatorTerm):
-                    with pytest.raises(Exception): op1 * op2 
-                    with pytest.raises(Exception): op2 * op1 
-                else:
-                    check_equals(op1 * op2, np.dot(expected1, expected2), ops.MatrixOperator)
-                    check_equals(op2 * op1, np.dot(expected2, expected1), ops.MatrixOperator)
-    for (op, expected) in product_ops:
+        print("check in-place arithmetics for {t} with itself".format(t=type(op)))
         prod = op.copy()
         prod *= op
         check_equals(prod, np.dot(expected, expected), type(op))
     for (op, expected) in product_ops[1:]:
+        print("check in-place arithmetics for matrix product with {t}".format(t=type(op)))
         prod = matrix_product.copy()
         if isinstance(op, fermion.FermionOperatorTerm):
             with pytest.raises(Exception): prod *= op
@@ -108,7 +87,7 @@ def test_sum_conversions():
     fermion_product_expected = np.kron(create_matrix(2), annihilate_matrix(2))
 
     product_ops = [(matrix_product, matrix_product_expected), 
-                   #(spin_product, spin_product_expected), 
+                   (spin_product, spin_product_expected), 
                    (boson_product, boson_product_expected),
                    (fermion_product, fermion_product_expected)]
 
@@ -126,12 +105,12 @@ def test_sum_conversions():
                            np.kron(identity_matrix(2), annihilate_matrix(2))
 
     sum_ops = [(matrix_sum, matrix_sum_expected), 
-               #(spin_sum, spin_sum_expected), 
+               (spin_sum, spin_sum_expected), 
                (boson_sum, boson_sum_expected),
                (fermion_sum, fermion_sum_expected)]
 
-    type_map = dict([(ops.MatrixOperatorTerm, ops.MatrixOperator), 
-                     (SpinOperatorTerm, SpinOperator), 
+    sum_type = dict([(ops.MatrixOperatorTerm, ops.MatrixOperator), 
+                     (spin_op.SpinOperatorTerm, spin_op.SpinOperator), 
                      (boson.BosonOperatorTerm, boson.BosonOperator), 
                      (fermion.FermionOperatorTerm, fermion.FermionOperator)])
 
@@ -139,33 +118,27 @@ def test_sum_conversions():
         assert type(op) == expected_type
         assert np.allclose(op.to_matrix(dims, params), expected)
 
-    def sum_type(op):
-        return type_map[type(op)]
-
     for (sum1, expected1) in sum_ops:
         for (sum2, expected2) in sum_ops:
+            print("check arithmetics for {t1} with {t2}".format(t1=type(sum1), t2=type(sum2)))
             expected_type = type(sum1)
             if type(sum1) != type(sum2):
                 expected_type = ops.MatrixOperator
             check_equals(sum1 + sum2, expected1 + expected2, expected_type)
-            check_equals(sum2 + sum1, expected2 + expected1, expected_type)
             check_equals(sum1 - sum2, expected1 - expected2, expected_type)
-            check_equals(sum2 - sum1, expected2 - expected1, expected_type)
             if isinstance(sum1, fermion.FermionOperator) != isinstance(sum2, fermion.FermionOperator):
                 with pytest.raises(Exception): sum1 * sum2
-                with pytest.raises(Exception): sum2 * sum1
             elif isinstance(sum1, fermion.FermionOperator):
                 # need to take commutation relations into account here...
                 check_equals(sum1 * sum2, zero_matrix(4), expected_type)
-                check_equals(sum2 * sum1, zero_matrix(4), expected_type)
             else:
                 check_equals(sum1 * sum2, np.dot(expected1, expected2), expected_type)
-                check_equals(sum2 * sum1, np.dot(expected2, expected1), expected_type)
 
     for (sum, sum_expected) in sum_ops:
         for (prod, prod_expected) in product_ops:
+            print("check arithmetics for {t1} with {t2} and vice versa".format(t1=type(sum), t2=type(prod)))
             expected_type = ops.MatrixOperator
-            if sum_type(prod) == type(sum):
+            if sum_type[type(prod)] == type(sum):
                 expected_type = type(sum)
             check_equals(sum + prod, sum_expected + prod_expected, expected_type)
             check_equals(prod + sum, sum_expected + prod_expected, expected_type)
@@ -179,6 +152,7 @@ def test_sum_conversions():
                 check_equals(prod * sum, np.dot(prod_expected, sum_expected), expected_type)
 
     for (op, expected) in sum_ops:
+        print("check in-place arithmetics for {t} with itself".format(t=type(op)))
         sum = op.copy()
         sum += op
         check_equals(sum, expected + expected, type(op))
@@ -193,6 +167,7 @@ def test_sum_conversions():
         else:
             check_equals(sum, np.dot(expected, expected), type(op))
     for (op, expected) in sum_ops[1:]:
+        print("check in-place arithmetics for matrix sum with {t}".format(t=type(op)))
         sum = matrix_sum.copy()
         sum += op
         check_equals(sum, matrix_sum_expected + expected, ops.MatrixOperator)
@@ -206,6 +181,7 @@ def test_sum_conversions():
             sum *= op
             check_equals(sum, np.dot(matrix_sum_expected, expected), ops.MatrixOperator)
     for (op, expected) in product_ops[1:]:
+        print("check in-place arithmetics for matrix sum with {t}".format(t=type(op)))
         sum = matrix_sum.copy()
         sum += op
         check_equals(sum, matrix_sum_expected + expected, ops.MatrixOperator)

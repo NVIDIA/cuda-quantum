@@ -423,7 +423,7 @@ class OperatorSum:
         return result
 
     def __sub__(self: OperatorSum, other: Any) -> OperatorSum:
-        result = self + (-1 * other)
+        result = self + (-1. * other)
         result.clear_cache()
         return result
 
@@ -455,7 +455,7 @@ class OperatorSum:
 
     def __rsub__(self: OperatorSum, other: Any) -> OperatorSum:
         minus_terms = [
-            ProductOperator((ScalarOperator.const(-1), *term._operators))
+            ProductOperator((ScalarOperator.const(-1.), *term._operators))
             for term in self._terms
         ]
         return OperatorSum(
@@ -563,7 +563,7 @@ class ProductOperator(OperatorSum):
         return NotImplemented
 
     def __sub__(self: ProductOperator, other: Any) -> OperatorSum:
-        return self + (-1 * other)
+        return self + (-1. * other)
 
     def __rmul__(self: ProductOperator, other: Any) -> ProductOperator:
         if isinstance(other, (complex, float, int)):
@@ -578,7 +578,7 @@ class ProductOperator(OperatorSum):
 
     def __rsub__(self: ProductOperator, other: Any) -> OperatorSum:
         minus_self = ProductOperator(
-            (ScalarOperator.const(-1), *self._operators))
+            (ScalarOperator.const(-1.), *self._operators))
         return minus_self + other  # Operator addition is commutative.
 
     # Convert from a Pauli word to an Operator
@@ -981,7 +981,7 @@ class ElementaryOperator(ProductOperator):
         return NotImplemented
 
     def __sub__(self: ElementaryOperator, other: Any) -> OperatorSum:
-        return self + (-1 * other)
+        return self + (-1. * other)
 
     def __rmul__(self: ElementaryOperator, other: Any) -> ProductOperator:
         return other * ProductOperator((self,))
@@ -990,7 +990,7 @@ class ElementaryOperator(ProductOperator):
         return self + other  # Operator addition is commutative.
 
     def __rsub__(self: ElementaryOperator, other: Any) -> OperatorSum:
-        minus_self = ProductOperator((ScalarOperator.const(-1), self))
+        minus_self = ProductOperator((ScalarOperator.const(-1.), self))
         return minus_self + other  # Operator addition is commutative.
 
 
