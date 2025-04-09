@@ -43,8 +43,10 @@ private:
   template <typename T>
   static std::string type_prefix();
 
-  virtual std::string op_code_to_string(
-      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
+  // internal only string encoding
+  virtual std::string
+  canonical_form(std::unordered_map<std::size_t, int64_t> &dimensions,
+                 std::vector<int64_t> &relevant_dims) const override;
 
 protected:
   std::string op_code;
