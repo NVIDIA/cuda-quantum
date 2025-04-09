@@ -60,8 +60,8 @@ void bindRunAsync(py::module &mod) {
         std::promise<void> promise;
         result.ready = promise.get_future();
         QuantumTask wrapped = detail::make_copyable_function(
-            [p = std::move(promise), bufferPtr, qpu_id, shots, &platform,
-             &kernel, argData, kernelName, kernelMod,
+            [p = std::move(promise), bufferPtr, shots, &platform, argData,
+             kernelName, kernelMod,
              noise_model = std::move(noise_model)]() mutable {
               if (noise_model.has_value())
                 platform.set_noise(&noise_model.value());
