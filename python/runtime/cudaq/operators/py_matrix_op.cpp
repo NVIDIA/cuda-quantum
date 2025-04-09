@@ -106,6 +106,8 @@ void bindMatrixOperator(py::module &mod) {
     "for addition), use `empty()` instead.")
   .def(py::init<std::size_t>(), "Creates a sum operator with no terms, reserving "
     "space for the given number of terms.")
+  .def(py::init<fermion_op>())
+  .def(py::init<boson_op>())
   .def(py::init<const matrix_op_term &>(),
     "Creates a sum operator with the given term.")
   .def(py::init<const matrix_op &>(),
@@ -220,6 +222,8 @@ void bindMatrixOperator(py::module &mod) {
     "The returned operator does not target any degrees of freedom.")
   .def(py::init<std::complex<double>>(), "Creates a product operator with the given "
     "constant value. The returned operator does not target any degrees of freedom.")
+  .def(py::init<fermion_op_term>())
+  .def(py::init<boson_op_term>())
   .def(py::init<const matrix_op_term &, std::size_t>(),
     py::arg("operator"), py::arg("size") = 0,
     "Creates a copy of the given operator and reserves space for storing the given "
@@ -287,6 +291,10 @@ void bindMatrixOperator(py::module &mod) {
 void bindOperatorsWrapper(py::module &mod) {
   bindOperatorsModule(mod);
   bindMatrixOperator(mod);
+  py::implicitly_convertible<boson_op_term, matrix_op_term>();
+  py::implicitly_convertible<boson_op, matrix_op>();
+  py::implicitly_convertible<fermion_op_term, matrix_op_term>();
+  py::implicitly_convertible<fermion_op, matrix_op>();
   py::implicitly_convertible<matrix_op_term, matrix_op>();
   py::implicitly_convertible<double, matrix_op_term>();
   py::implicitly_convertible<std::complex<double>, matrix_op_term>();
