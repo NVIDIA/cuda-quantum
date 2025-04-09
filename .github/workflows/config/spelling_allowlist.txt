@@ -29,6 +29,7 @@ DOI
 Deuteron
 Deutsch
 Doxygen
+Exponentiating
 FPGAs
 Fock
 Fortran
@@ -73,6 +74,7 @@ NVIDIA
 NVLink
 NVQC
 NVQIR
+Numpy
 OQC
 ORCA
 OpenACC
@@ -182,6 +184,7 @@ coupler
 couplers
 cuQuantum
 cuTensor
+cuda
 cudaq
 dataflow
 ddots
@@ -233,6 +236,8 @@ fmt
 fourier
 frontend
 frontends
+github
+gpus
 hadamard
 hamiltonian
 homogenous
@@ -250,6 +255,7 @@ integrators
 interferometer
 interoperational
 intrinsics
+io
 iterable
 iteratively
 kets
@@ -270,11 +276,13 @@ namespaces
 natively
 normalization
 nullary
+nvidia
 observables
 optimizer
 optimizers
 parallelization
 parallelize
+parallelized
 parallelizing
 parameterization
 performant
