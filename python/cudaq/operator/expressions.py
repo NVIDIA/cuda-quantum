@@ -1169,7 +1169,7 @@ class ScalarOperator(ProductOperator):
         if not isinstance(evaluated, (complex, float, int)):
             raise TypeError(
                 f"generator of {type(self).__name__} must return a number")
-        return evaluated
+        return numpy.complex128(evaluated)
 
     def _evaluate(self: ScalarOperator,
                   arithmetics: OperatorArithmetics[TEval],
