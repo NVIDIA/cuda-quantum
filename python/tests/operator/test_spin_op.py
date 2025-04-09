@@ -12,6 +12,12 @@ from cudaq.spin_op import *
 from cudaq import spin # FIXME: REMOVE
 from op_utils import * # test helpers
 
+has_scipy = True
+try:
+    import scipy
+except ImportError:
+    has_scipy = False
+
 
 @pytest.fixture(autouse=True)
 def setup():
@@ -199,10 +205,10 @@ def test_matrix_construction():
     for i, value in enumerate(data):
         print(rows[i], cols[i], value)
         assert np.isclose(mat[rows[i], cols[i]], value)
-    # can use scipy
-    # scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(2**numQubits,2**numQubits))
-    # E, ev = scipy.sparse.linalg.eigsh(scipyM, k=1, which='SA')
-    # assert np.isclose(E[0], -1.7488, 1e-2)
+    if has_scipy:
+        scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(2**numQubits,2**numQubits))
+        E, ev = scipy.sparse.linalg.eigsh(scipyM, k=1, which='SA')
+        assert np.isclose(E[0], -1.7488, 1e-2)
 
 
 def test_canonicalization():
