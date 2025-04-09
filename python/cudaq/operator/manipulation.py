@@ -7,14 +7,15 @@
 # ============================================================================ #
 
 from __future__ import annotations
-import numpy, re, sys  # type: ignore
+import numpy
+import re
 from abc import ABC, abstractmethod
-from typing import Generic, Iterable, TypeVar, Tuple
-from numpy.typing import NDArray
 from functools import lru_cache
+from numpy.typing import NDArray
+from typing import Generic, Iterable, TypeVar, Tuple
 
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .helpers import _OperatorHelpers, NumericType
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 TEval = TypeVar('TEval')
 
@@ -253,10 +254,18 @@ class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator |
         # FIXME(OperatorCpp): `SpinOperator` only exposes `+` operator for `double`, needs to multiply with an identity operator before adding.
         if isinstance(op1, NumericType) and isinstance(
                 op2, cudaq_runtime.SpinOperator):
-            return op1 * cudaq_runtime.SpinOperator() + op2
+            return op1 * cudaq_runtime.SpinOperatorTerm() + op2
+        if isinstance(op1, NumericType) and isinstance(
+                op2, cudaq_runtime.SpinOperatorTerm):
+            return op1 * cudaq_runtime.SpinOperatorTerm(
+            ) + cudaq_runtime.SpinOperator(op2)
         if isinstance(op2, NumericType) and isinstance(
                 op1, cudaq_runtime.SpinOperator):
-            return op2 * cudaq_runtime.SpinOperator() + op1
+            return op2 * cudaq_runtime.SpinOperatorTerm() + op1
+        if isinstance(op2, NumericType) and isinstance(
+                op1, cudaq_runtime.SpinOperatorTerm):
+            return op2 * cudaq_runtime.SpinOperatorTerm(
+            ) + cudaq_runtime.SpinOperator(op1)
         return op1 + op2
 
     def evaluate(

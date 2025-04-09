@@ -194,10 +194,9 @@ public:
   std::size_t cols() const { return dimensions.second; }
   std::size_t size() const { return get_size(dimensions); }
 
-  EigenMatrix as_eigen() const;
+  const EigenMatrix as_eigen() const;
 
   friend void bindComplexMatrix(pybind11::module_ &mod);
-  friend class spin_op;
 
 private:
   complex_matrix(const complex_matrix::value_type *v,

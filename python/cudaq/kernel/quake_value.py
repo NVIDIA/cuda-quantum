@@ -5,19 +5,11 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-from functools import partialmethod
-import inspect
-import sys
-import random
-import string
-import numpy as np
-import ctypes
 
-from ..mlir.ir import *
-from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc
-from ..mlir.dialects import builtin, func, arith
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import arith, quake, cc
+from cudaq.mlir.ir import (DenseI32ArrayAttr, F64Type, FloatAttr, Location,
+                           IntegerAttr, IntegerType)
 from .utils import mlirTypeFromPyType
 
 qvector = cudaq_runtime.qvector

@@ -120,21 +120,33 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
   * - ``CUDAQ_MAX_GPU_MEMORY_GB``
     - positive integer, or `NONE`
     - GPU memory (in GB) allowed for on-device state-vector allocation. As the state-vector size exceeds this limit, host memory will be utilized for migration. `NONE` means unlimited (up to physical memory constraints). This is the default.
-
+  * - ``CUDAQ_ALLOW_FP32_EMULATED``
+    - `TRUE` (`1`, `ON`) or `FALSE` (`0`, `OFF`)
+    - [Blackwell (compute capability 10.0+) only] Enable or disable floating point math emulation. If enabled, allows `FP32` emulation kernels using `BFloat16` (`BF16`) whenever possible. Enabled by default. 
 
 .. deprecated:: 0.8
     The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
     is deprecated and will be removed in a future release.
 
+.. note:: 
+
+    In host-device simulation, `CUDAQ_MAX_CPU_MEMORY_GB` is not 0, the backend automatically switching between inner product (default) and operator matrix-based 
+    methods for expectation calculations (`cudaq::observe`) depending on whether a clone of the state can be allocated or not. 
+
+    For example, when `CUDAQ_MAX_GPU_MEMORY_GB` is unconstrained, the quantum state vector would consume all device memory before utilizing host memory.
+    Thus, the backend would fall back to the operator matrix-based approach as cloning the state is not possible. 
+    For performance reason, only Pauli operator matrices of up to 8 qubits (identity padding not included) are allowed in this mode.
+    This constrain can be relaxed by setting the `CUDAQ_MATRIX_EXP_VAL_MAX_SIZE` environment variable. 
+    Users would need to take into account the full operator matrix size when increasing this setting.
 
 
-Multi-node multi-GPU 
+Multi-GPU multi-node 
 +++++++++++++++++++++++
 
 .. _nvidia-mgpu-backend:
 
 The :code:`nvidia` backend also provides a state vector simulator accelerated with 
-the :code:`cuStateVec` library with support for Multi-Node, Multi-GPU distribution of the 
+the :code:`cuStateVec` library with support for Multi-GPU, Multi-node distribution of the 
 state vector.
 
 This backend is necessary to scale applications that require a state vector that cannot fit on a single GPU memory.
@@ -208,7 +220,7 @@ See the `Divisive Clustering <https://nvidia.github.io/cuda-quantum/latest/appli
   
   The number of processes and nodes should be always power-of-2. 
 
-  Host-device state vector migration is also supported in the multi-node multi-GPU configuration. 
+  Host-device state vector migration is also supported in the multi-GPU multi-node configuration. 
 
 
 In addition to those environment variable options supported in the single-GPU mode,
@@ -246,6 +258,9 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
   * - ``CUDAQ_HOST_DEVICE_MIGRATION_LEVEL``
     - positive integer
     - Specify host-device memory migration w.r.t. the network structure. If provided, this setting determines the position to insert the number of migration index bits to the `CUDAQ_GLOBAL_INDEX_BITS` list. By default, if not set, the number of migration index bits (CPU-GPU data transfers) is appended to the end of the array of index bits (aka, state vector distribution scheme). This default behavior is optimized for systems with fast GPU-GPU interconnects (NVLink, InfiniBand, etc.) 
+  * - ``CUDAQ_DATA_TRANSFER_BUFFER_BITS``
+    - positive integer greater than or equal to 24
+    - Specify the temporary buffer size (:code:`1 << CUDAQ_DATA_TRANSFER_BUFFER_BITS` bytes) for inter-node data transfer. The default is set to 26 (64 MB). The minimum allowed value is 24 (16 MB). Depending on systems, setting a larger value to `CUDAQ_DATA_TRANSFER_BUFFER_BITS` can accelerate inter-node data transfers.
 
 .. deprecated:: 0.8
     The :code:`nvidia-mgpu` backend, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`

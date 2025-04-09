@@ -229,7 +229,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
       {paramName, paramValue}};
 
   auto tensorFunction =
-      [paramName](const std::vector<int> &dimensions,
+      [paramName](const std::vector<int64_t> &dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
                       &parameters) -> complex_matrix {
     if (dimensions.empty())

@@ -5,22 +5,23 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import ast, sys, traceback
+import ast
 import importlib
 import inspect
 import json
-from typing import Callable
-from ..mlir.ir import *
-from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc, func
-from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli, globalRegisteredTypes
-from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from .captured_data import CapturedDataStorage
-from ..handlers import PhotonicsHandler
-
 import numpy as np
+
+from cudaq.handlers import PhotonicsHandler
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import cc, func
+from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
+                           SymbolTable)
+from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
+from .ast_bridge import compile_to_mlir, PyASTBridge
+from .captured_data import CapturedDataStorage
+from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
+                    globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
+                    nvqppPrefix)
 
 # This file implements the decorator mechanism needed to
 # JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
@@ -207,6 +208,10 @@ class PyKernelDecorator(object):
         if self.module != None:
             return
 
+        # Cleanup up the captured data if the module needs recompilation.
+        self.capturedDataStorage = self.createStorage()
+
+        # Caches the module and stores captured data into `self.capturedDataStorage`.
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
             self.metadata,
@@ -416,9 +421,6 @@ class PyKernelDecorator(object):
             PhotonicsHandler(self.kernelFunction)(*callable_args)
             return
 
-        # Prepare captured state storage for the run
-        self.capturedDataStorage = self.createStorage()
-
         # Compile, no-op if the module is not None
         self.compile()
 
@@ -498,8 +500,6 @@ class PyKernelDecorator(object):
                                             self.module,
                                             *processedArgs,
                                             callable_names=callableNames)
-            self.capturedDataStorage.__del__()
-            self.capturedDataStorage = None
         else:
             result = cudaq_runtime.pyAltLaunchKernelR(
                 self.name,
@@ -507,9 +507,6 @@ class PyKernelDecorator(object):
                 mlirTypeFromPyType(self.returnType, self.module.context),
                 *processedArgs,
                 callable_names=callableNames)
-
-            self.capturedDataStorage.__del__()
-            self.capturedDataStorage = None
             return result
 
 

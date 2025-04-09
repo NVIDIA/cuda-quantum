@@ -6,11 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import ast, inspect, importlib, textwrap
+import ast
+import inspect
+import importlib
+import textwrap
+
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import cc
 from .utils import globalAstRegistry, globalKernelRegistry, mlirTypeFromAnnotation
-from ..mlir.dialects import cc
-from ..mlir.ir import *
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):

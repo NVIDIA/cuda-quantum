@@ -8,6 +8,7 @@
 
 #include "cudaq/domains/chemistry/MoleculePackageDriver.h"
 #include "cudaq/target_control.h"
+#include <map>
 #include <pybind11/embed.h>
 
 namespace py = pybind11;
@@ -24,22 +25,21 @@ spin_op fromOpenFermionQubitOperator(const py::object &op) {
   if (!py::hasattr(op, "terms"))
     throw std::runtime_error(
         "This is not an openfermion operator, must have 'terms' attribute.");
-  std::map<std::string, std::function<spin_op(std::size_t)>> creatorMap{
-      {"X", [](std::size_t i) { return spin::x(i); }},
-      {"Y", [](std::size_t i) { return spin::y(i); }},
-      {"Z", [](std::size_t i) { return spin::z(i); }}};
+  std::map<std::string, std::function<spin_op_term(std::size_t)>> creatorMap{
+      {"X", [](std::size_t i) { return spin_op::x(i); }},
+      {"Y", [](std::size_t i) { return spin_op::y(i); }},
+      {"Z", [](std::size_t i) { return spin_op::z(i); }}};
   auto terms = op.attr("terms");
-  spin_op H;
+  auto H = spin_op::empty();
   for (auto term : terms) {
     auto termTuple = term.cast<py::tuple>();
-    spin_op localTerm;
+    auto localTerm = spin_op::identity();
     for (auto &element : termTuple) {
       auto casted = element.cast<std::pair<std::size_t, std::string>>();
       localTerm *= creatorMap[casted.second](casted.first);
     }
     H += terms[term].cast<double>() * localTerm;
   }
-  H -= spin::i(H.num_qubits() - 1);
   return H;
 }
 

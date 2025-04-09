@@ -6,12 +6,17 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import inspect, itertools, numpy, os, re, sys, typing  # type: ignore
+import inspect
+import numpy
+import os
+import re
+import sys
+import typing
 from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Tuple
 from numpy.typing import NDArray
 from enum import Enum
 
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 if (3, 11) <= sys.version_info:
     NumericType = typing.SupportsComplex
