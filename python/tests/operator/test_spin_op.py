@@ -24,7 +24,8 @@ def test_definitions():
     assert np.allclose(x(1).to_matrix(), paulix_matrix())
     assert np.allclose(y(1).to_matrix(), pauliy_matrix())
     assert np.allclose(z(1).to_matrix(), pauliz_matrix())
-    # FIXME: PLUS AND MINUS
+    assert np.allclose(plus(1).to_matrix(), 0.5 * paulix_matrix() + 0.5j * pauliy_matrix())
+    assert np.allclose(minus(1).to_matrix(), 0.5 * paulix_matrix() - 0.5j * pauliy_matrix())
 
     # legacy test cases
 
