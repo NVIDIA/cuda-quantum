@@ -112,8 +112,7 @@ Applying Gates
 --------------
 
 After a kernel is constructed, gates can be applied to start building out a quantum circuit.
-All the predefined gates in CUDA-Q can be found here:
-https://nvidia.github.io/cuda-quantum/api/default_ops.
+All the predefined gates in CUDA-Q can be found `here <https://nvidia.github.io/cuda-quantum/api/default_ops>`_.
 
 Gates can be applied to all qubits in a register.
 

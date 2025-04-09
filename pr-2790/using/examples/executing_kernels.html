@@ -159,9 +159,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#parallelization-techniques">Parallelization Techniques</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#observe-async">Observe Async</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#sample-async">Sample Async</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#get-state-async">Get State Async</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#observe-asynchronous">Observe Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sample-asynchronous">Sample Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-state-asynchronous">Get State Asynchronous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="expectation_values.html">   Computing Expectation Values</a><ul>
@@ -946,8 +946,8 @@ q1 : ─────┤ x ├
 <h1>Parallelization Techniques<a class="headerlink" href="#parallelization-techniques" title="Permalink to this heading">¶</a></h1>
 <p>The most intensive task in the computation is the execution of the quantum kernel hence each execution function: <code class="code docutils literal notranslate"><span class="pre">sample</span></code>, <code class="code docutils literal notranslate"><span class="pre">observe</span></code> and <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> can be parallelized given access to multiple quantum processing units (multi-QPU).</p>
 <p>Since multi-QPU platforms are not yet feasible, we emulate each QPU with a GPU.</p>
-<section id="observe-async">
-<h2>Observe Async<a class="headerlink" href="#observe-async" title="Permalink to this heading">¶</a></h2>
+<section id="observe-asynchronous">
+<h2>Observe Asynchronous<a class="headerlink" href="#observe-asynchronous" title="Permalink to this heading">¶</a></h2>
 <p>Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result.</p>
 <p><code class="code docutils literal notranslate"><span class="pre">observe</span></code> can be a time intensive task. We can parallelize the execution of <code class="code docutils literal notranslate"><span class="pre">observe</span></code> via the arguments it accepts.</p>
 <div class="tab-set docutils">
@@ -955,7 +955,7 @@ q1 : ─────┤ x ├
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Measuring the expectation value of 2 different Hamiltonians in parallel</span>
 <span class="n">hamiltonian_1</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="c1"># Asynchronous execution on multiple qpus via nvidia gpus.</span>
+<span class="c1"># Asynchronous execution on multiple `qpus` via nvidia gpus.</span>
 <span class="n">result_1</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian_1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="c1"># Retrieve results</span>
@@ -971,7 +971,7 @@ q1 : ─────┤ x ├
 <span class="k">auto</span><span class="w"> </span><span class="n">hamiltonian_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span>
 <span class="w">                     </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
 
-<span class="c1">// Asynchronous execution on multiple qpus via nvidia gpus.</span>
+<span class="c1">// Asynchronous execution on multiple `qpus` via nvidia gpus.</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe_async</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">hamiltonian_1</span><span class="p">,</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">result_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">future</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
@@ -987,12 +987,12 @@ q1 : ─────┤ x ├
 </div>
 <p>Above we parallelized the <code class="code docutils literal notranslate"><span class="pre">observe</span></code> call over the <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> parameter; however, we can parallelize over any of the arguments it accepts by just iterating over the <code class="code docutils literal notranslate"><span class="pre">qpu_id</span></code>.</p>
 </section>
-<section id="sample-async">
-<h2>Sample Async<a class="headerlink" href="#sample-async" title="Permalink to this heading">¶</a></h2>
-<p>Similar to observe_async above, sample also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async">arguments it accepts</a>. One can parallelize over various kernels, variational parameters or even distribute shots counts over multiple QPUs.</p>
+<section id="sample-asynchronous">
+<h2>Sample Asynchronous<a class="headerlink" href="#sample-asynchronous" title="Permalink to this heading">¶</a></h2>
+<p>Similar to <code class="code docutils literal notranslate"><span class="pre">observe_async</span></code> above, sample also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async">arguments it accepts</a>. One can parallelize over various kernels, variational parameters or even distribute shots counts over multiple QPUs.</p>
 </section>
-<section id="get-state-async">
-<h2>Get State Async<a class="headerlink" href="#get-state-async" title="Permalink to this heading">¶</a></h2>
+<section id="get-state-asynchronous">
+<h2>Get State Asynchronous<a class="headerlink" href="#get-state-asynchronous" title="Permalink to this heading">¶</a></h2>
 <p>Similar to <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code> above, <code class="code docutils literal notranslate"><span class="pre">get_state_async</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.get_state_async">input arguments it accepts</a>.</p>
 </section>
 </section>
