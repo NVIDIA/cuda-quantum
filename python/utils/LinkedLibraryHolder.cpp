@@ -76,6 +76,12 @@ bool RuntimeTarget::is_remote() {
   auto &platform = cudaq::get_platform();
   return platform.is_remote();
 }
+
+bool RuntimeTarget::is_remote_simulator() {
+  auto &platform = cudaq::get_platform();
+  return platform.get_remote_capabilities().isRemoteSimulator;
+}
+
 bool RuntimeTarget::is_emulated() {
   auto &platform = cudaq::get_platform();
   return platform.is_emulated();

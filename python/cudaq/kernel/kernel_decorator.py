@@ -15,7 +15,7 @@ from cudaq.handlers import PhotonicsHandler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
-                           SymbolTable)
+                           SymbolTable, UnitAttr)
 from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage
@@ -270,6 +270,14 @@ class PyKernelDecorator(object):
         """
         self.compile()
         return str(self.module)
+
+    def enable_return_to_log(self):
+        """
+        Enable translation from `return` statements to QIR output log
+        """
+        self.compile()
+        self.module.operation.attributes.__setitem__(
+            'quake.cudaq_run', UnitAttr.get(context=self.module.context))
 
     def _repr_svg_(self):
         """
