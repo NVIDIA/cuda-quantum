@@ -6,7 +6,6 @@ AST
 Aer
 AlmaLinux
 Anyon
-Async
 Asynchronous
 BFGS
 Bloch
@@ -39,8 +38,6 @@ GHCR
 GPU
 GPUDirect
 GPUs
-GetState
-GetStateOutput
 GitHub
 HPC
 HTTP
@@ -80,9 +77,6 @@ NVQIR
 Numpy
 OQC
 ORCA
-ObserveAsync
-ObserveAsyncOutput
-ObserveOutput
 OpenACC
 OpenMP
 OpenMPI
@@ -123,7 +117,6 @@ SLED
 SLES
 SLURM
 SVD
-SampleOutput
 Sqale
 Stim
 Superpositions
@@ -148,10 +141,8 @@ amongst
 ancilla
 ansatz
 ansatzes
-api
 archiver
 arity
-async
 auxillary
 backend
 backends
@@ -250,7 +241,6 @@ gpus
 hadamard
 hamiltonian
 homogenous
-https
 iff
 increment
 incrementing
@@ -306,7 +296,6 @@ probability
 programmatically
 pybind
 qaoa
-qpus
 quantize
 quantized
 qubit
