@@ -34,7 +34,7 @@ Parallelizing across Multiple Processors
 
 
 
-One typical use case of :ref:`multi-processor platforms <mqpu-platform>` is to distribute the
+One typical use case of multi-processor platforms is to distribute the
 expectation value computations of a multi-term Hamiltonian across multiple virtual QPUs.
 
 The following shows an example using the :code:`nvidia-mqpu` platform:
