@@ -62,7 +62,7 @@ def test_spin_op_operators():
     spin_a = cudaq.SpinOperator.empty()
     spin_b = spin.x(0)
     # Test the copy constructor.
-    spin_b_copy = cudaq.SpinOperator(spin_operator=spin_b)
+    spin_b_copy = cudaq.SpinOperator(spin_b)
     assert (spin_b_copy == spin_b)
     assert (spin_b_copy != spin_a)
     spin_c = spin.y(1)
@@ -343,8 +343,7 @@ def test_spin_op_iter():
         count += 1
     assert count == 5
 
-# FIXME
-@pytest.mark.skip("to sparse matrix not yet supported")
+
 def test_spin_op_sparse_matrix():
     """
     Test that the `cudaq.SpinOperator` can produce its sparse matrix representation 

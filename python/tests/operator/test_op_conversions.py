@@ -12,6 +12,7 @@ from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import spin as spin_op #
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import SpinOperator, SpinOperatorTerm # FIXME
 from op_utils import * # test helpers
 
+
 def test_product_conversions():
     params = {"squeezing": 0.5, "displacement": 0.25}
     dims = {0: 2, 1: 2}

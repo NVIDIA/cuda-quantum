@@ -59,7 +59,6 @@ def test_iteration():
     prod1 = annihilate(1) * create(0)
     prod2 = number(0) * create(1)
     sum = prod1 + prod2
-    print(sum.to_string())
     for p1, p2 in zip(sum, [prod1, prod2]):
         for t1, t2 in zip(p1, p2):
             assert t1 == t2
@@ -84,26 +83,26 @@ def test_properties():
     assert prod1.degrees() == [0, 1]
     assert prod2.degrees() == [1, 3]
     assert sum.degrees() == [0, 1, 3]
-    assert prod1.min_degree() == 0
-    assert prod1.max_degree() == 1
-    assert prod2.min_degree() == 1
-    assert prod2.max_degree() == 3
-    assert sum.min_degree() == 0
-    assert sum.max_degree() == 3
+    assert prod1.get_min_degree() == 0
+    assert prod1.get_max_degree() == 1
+    assert prod2.get_min_degree() == 1
+    assert prod2.get_max_degree() == 3
+    assert sum.get_min_degree() == 0
+    assert sum.get_max_degree() == 3
 
     dims = {0: 2, 1: 3, 2: 2, 3: 4}
-    assert sum.num_terms() == 5 # position an momentum are a sum of two terms each
-    assert prod2.num_ops() == 2
+    assert sum.get_term_count() == 5 # position an momentum are a sum of two terms each
+    assert prod2.get_ops_count() == 2
     sum += prod1
-    assert sum.num_terms() == 5
+    assert sum.get_term_count() == 5
     prod1_mat = np.kron(identity_matrix(4), np.kron(position_matrix(3), momentum_matrix(2)))
     prod2_mat = np.kron(annihilate_matrix(4), np.kron(number_matrix(3), identity_matrix(2)))
     assert np.allclose(sum.to_matrix(dims), prod1_mat + prod1_mat + prod2_mat)
 
     prod1.dump()
     sum.dump()
-    assert prod1.to_string() == "(0.000000+0.250000i) * Ad0Ad1 + (0.000000-0.250000i) * A0Ad1 + (0.000000+0.250000i) * Ad0A1 + (0.000000-0.250000i) * A0A1"
-    assert sum.to_string() == "(0.000000+0.500000i) * Ad0Ad1 + (0.000000-0.500000i) * A0Ad1 + (0.000000+0.500000i) * Ad0A1 + (0.000000-0.500000i) * A0A1 + (1.000000+0.000000i) * N1A3"
+    assert str(prod1) == "(0.000000+0.250000i) * Ad0Ad1 + (0.000000-0.250000i) * A0Ad1 + (0.000000+0.250000i) * Ad0A1 + (0.000000-0.250000i) * A0A1"
+    assert str(sum) == "(0.000000+0.500000i) * Ad0Ad1 + (0.000000-0.500000i) * A0Ad1 + (0.000000+0.500000i) * Ad0A1 + (0.000000-0.500000i) * A0A1 + (1.000000+0.000000i) * N1A3"
     assert prod2.get_term_id() == "N1A3"
 
 
@@ -203,17 +202,17 @@ def test_trimming():
         orig = empty()
         for term in terms:
             orig += term
-        assert orig.num_terms() == len(all_degrees)
+        assert orig.get_term_count() == len(all_degrees)
         assert orig.degrees() == all_degrees
         orig.trim()
-        assert orig.num_terms() < len(all_degrees)
-        assert orig.num_terms() == expected.num_terms()
+        assert orig.get_term_count() < len(all_degrees)
+        assert orig.get_term_count() == expected.get_term_count()
         assert orig.degrees() == expected.degrees()
         assert np.allclose(orig.to_matrix(dims), expected.to_matrix(dims))
         # check that our term map seems accurate
         for term in expected:
             orig += float(term.degrees()[0]) * term
-        assert orig.num_terms() == expected.num_terms()
+        assert orig.get_term_count() == expected.get_term_count()
         assert orig.degrees() == expected.degrees()
         for term in orig:
             assert term.evaluate_coefficient() == term.degrees()[0] + 1.
@@ -323,16 +322,17 @@ def test_term_distribution():
     for target in range(7):
         op += identity(target)
     batches = op.distribute_terms(4)
-    assert op.num_terms() == 7
+    assert op.get_term_count() == 7
     assert len(batches) == 4
     for idx in range(3):
-        assert batches[idx].num_terms() == 2
-    assert batches[3].num_terms() == 1
+        assert batches[idx].get_term_count() == 2
+    assert batches[3].get_term_count() == 1
     sum = empty()
     for batch in batches:
         sum += batch
     assert sum == op
 
+# FIXME: add to_sparse_matrix to test once corresponding PR is merged
 
 # Run with: pytest -rP
 if __name__ == "__main__":

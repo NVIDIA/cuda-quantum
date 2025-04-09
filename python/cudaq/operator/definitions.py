@@ -228,7 +228,7 @@ class SpinOperator(OperatorSum):
         # Handle copy constructor
         if len(args) == 1 and hasattr(args[0], "_to_spinop"):
             return OperatorSum._from_spin_op(
-                cudaq_runtime.SpinOperator(spin_operator=args[0]._to_spinop()))
+                cudaq_runtime.SpinOperator(args[0]._to_spinop()))
         if "spin_operator" in kwargs and hasattr(kwargs["spin_operator"],
                                                  "_to_spinop"):
             return OperatorSum._from_spin_op(

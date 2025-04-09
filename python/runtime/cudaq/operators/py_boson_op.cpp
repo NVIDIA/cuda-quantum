@@ -86,7 +86,9 @@ void bindBosonOperator(py::module &mod) {
     },
     py::keep_alive<0, 1>(),
     "Loop through each term of the operator.")
+
   // properties
+
   .def("degrees", &boson_op::degrees,
     "Returns a vector that lists all degrees of freedom that the operator targets. "
     "The order of degrees is from smallest to largest and reflects the ordering of "
@@ -94,13 +96,15 @@ void bindBosonOperator(py::module &mod) {
     "with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates "
     "that a state where the qubit with index 0 equals 1 with probability 1 is given by "
     "the vector {0., 1., 0., 0.}.")
-  .def("min_degree", &boson_op::min_degree,
+  .def("get_min_degree", &boson_op::min_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("max_degree", &boson_op::max_degree,
+  .def("get_max_degree", &boson_op::max_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("num_terms", &boson_op::num_terms,
+  .def("get_term_count", &boson_op::num_terms,
     "Returns the number of terms in the operator.")
+
   // constructors
+
   .def(py::init<>(), "Creates a default instantiated sum. A default instantiated "
     "sum has no value; it will take a value the first time an arithmetic operation "
     "is applied to it. In that sense, it acts as both the additive and multiplicative "
@@ -114,8 +118,9 @@ void bindBosonOperator(py::module &mod) {
     "Copy constructor.")
   .def("copy", [](const boson_op &self) { return boson_op(self); },
     "Creates a copy of the operator.")
+
   // evaluations
-  // todo: add to_sparse_matrix
+
   .def("to_matrix", [&cmat_to_numpy](const boson_op &self,
                                      dimension_map &dimensions,
                                      const parameter_map &params,
@@ -128,41 +133,71 @@ void bindBosonOperator(py::module &mod) {
     "used in CUDA-Q, and the ordering returned by `degrees`. This order "
     "can be inverted by setting the optional `invert_order` argument to `True`. "
     "See also the documentation for `degrees` for more detail.")
+  /* FIXME: uncomment once corresponding PR is merged
+  .def("to_sparse_matrix", [](const boson_op &self, 
+                              dimension_map &dimensions,
+                              const parameter_map &params,
+                              bool invert_order) {
+      return self.to_sparse_matrix(dimensions, params, invert_order);     
+    },
+    py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(), py::arg("invert_order") = false,
+    "Return the sparse matrix representation of the operator. This representation is a "
+    "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+    "non-zero values, rows, and columns of the matrix. "
+    "This format is supported by `scipy.sparse.csr_array`."
+    "The matrix is ordered according to the convention (endianness) "
+    "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+    "can be inverted by setting the optional `invert_order` argument to `True`. "
+    "See also the documentation for `degrees` for more detail.")
+  */
+
   // comparisons
+
   .def("__eq__", &boson_op::operator==,
     "Return true if the two operators are equivalent. The equivalence check takes "
     "commutation relations into account. Operators acting on different degrees of "
     "freedom are never equivalent, even if they only differ by an identity operator.")
+
   // unary operators
+
   .def("__neg__", [](const boson_op &self) { return -self; })
   .def("__pos__", [](const boson_op &self) { return +self; })
-  // right-hand arithmetics
-  .def("__mul__", [](const boson_op &self, const fermion_op &other) { return self * other; })
-  .def("__add__", [](const boson_op &self, const fermion_op &other) { return self + other; })
-  .def("__sub__", [](const boson_op &self, const fermion_op &other) { return self - other; })
-  .def("__mul__", [](const boson_op &self, const matrix_op &other) { return self * other; })
-  .def("__add__", [](const boson_op &self, const matrix_op &other) { return self + other; })
-  .def("__sub__", [](const boson_op &self, const matrix_op &other) { return self - other; })
-  .def("__mul__", [](const boson_op &self, const boson_op &other) { return self * other; })
-  .def("__add__", [](const boson_op &self, const boson_op &other) { return self + other; })
-  .def("__sub__", [](const boson_op &self, const boson_op &other) { return self - other; })
-  .def("__mul__", [](const boson_op &self, const boson_op_term &other) { return self * other; })
-  .def("__add__", [](const boson_op &self, const boson_op_term &other) { return self + other; })
-  .def("__sub__", [](const boson_op &self, const boson_op_term &other) { return self - other; })
-  .def("__imul__", [](boson_op &self, const boson_op &other) { return self *= other; })
-  .def("__iadd__", [](boson_op &self, const boson_op &other) { return self += other; })
-  .def("__isub__", [](boson_op &self, const boson_op &other) { return self -= other; })
+
+  // in-place arithmetics
+
   .def("__imul__", [](boson_op &self, const boson_op_term &other) { return self *= other; })
   .def("__iadd__", [](boson_op &self, const boson_op_term &other) { return self += other; })
   .def("__isub__", [](boson_op &self, const boson_op_term &other) { return self -= other; })
+  .def("__imul__", [](boson_op &self, const boson_op &other) { return self *= other; })
+  .def("__iadd__", [](boson_op &self, const boson_op &other) { return self += other; })
+  .def("__isub__", [](boson_op &self, const boson_op &other) { return self -= other; })
+
+  // right-hand arithmetics
+
+  .def("__mul__", [](const boson_op &self, const boson_op_term &other) { return self * other; })
+  .def("__add__", [](const boson_op &self, const boson_op_term &other) { return self + other; })
+  .def("__sub__", [](const boson_op &self, const boson_op_term &other) { return self - other; })
+  .def("__mul__", [](const boson_op &self, const boson_op &other) { return self * other; })
+  .def("__add__", [](const boson_op &self, const boson_op &other) { return self + other; })
+  .def("__sub__", [](const boson_op &self, const boson_op &other) { return self - other; })
+  .def("__mul__", [](const boson_op &self, const matrix_op_term &other) { return self * other; })
+  .def("__add__", [](const boson_op &self, const matrix_op_term &other) { return self + other; })
+  .def("__sub__", [](const boson_op &self, const matrix_op_term &other) { return self - other; })
+  .def("__mul__", [](const boson_op &self, const matrix_op &other) { return self * other; })
+  .def("__add__", [](const boson_op &self, const matrix_op &other) { return self + other; })
+  .def("__sub__", [](const boson_op &self, const matrix_op &other) { return self - other; })
+
   // left-hand arithmetics
+
   .def("__rmul__", [](const boson_op &other, double self) { return self * other; })
   .def("__radd__", [](const boson_op &other, double self) { return self + other; })
   .def("__rsub__", [](const boson_op &other, double self) { return self - other; })
   .def("__rmul__", [](const boson_op &other, std::complex<double> self) { return self * other; })
   .def("__radd__", [](const boson_op &other, std::complex<double> self) { return self + other; })
   .def("__rsub__", [](const boson_op &other, std::complex<double> self) { return self - other; })
+
   // common operators
+
   .def_static("empty", &boson_op::empty,
     "Creates a sum operator with no terms. And empty sum is the neutral element for addition; "
     "multiplying an empty sum with anything will still result in an empty sum.")
@@ -171,8 +206,10 @@ void bindBosonOperator(py::module &mod) {
     "element for multiplication.")
   .def_static("identity", [](std::size_t target) { return boson_op::identity(target); },
     "Creates a product operator that applies the identity to the given target index.")
+
   // general utility functions
-  .def("to_string", [](const boson_op &self) { return self.to_string(); },
+
+  .def("__str__", [](const boson_op &self) { return self.to_string(); },
     "Returns the string representation of the operator.")
   .def("dump", &boson_op::dump,
     "Prints the string representation of the operator to the standard output.")
@@ -198,7 +235,9 @@ void bindBosonOperator(py::module &mod) {
     },
     py::keep_alive<0, 1>(),
     "Loop through each term of the operator.")
+
   // properties
+
   .def("degrees", &boson_op_term::degrees,
     "Returns a vector that lists all degrees of freedom that the operator targets. "
     "The order of degrees is from smallest to largest and reflects the ordering of "
@@ -206,17 +245,18 @@ void bindBosonOperator(py::module &mod) {
     "with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates "
     "that a state where the qubit with index 0 equals 1 with probability 1 is given by "
     "the vector {0., 1., 0., 0.}.")
-  .def("min_degree", &boson_op_term::min_degree,
+  .def("get_min_degree", &boson_op_term::min_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("max_degree", &boson_op_term::max_degree,
+  .def("get_max_degree", &boson_op_term::max_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("num_ops", &boson_op_term::num_ops,
+  .def("get_ops_count", &boson_op_term::num_ops,
     "Returns the number of operators in the product.")
   .def("get_term_id", &boson_op_term::get_term_id,
     "The term id uniquely identifies the operators and targets (degrees) that they act on, "
     "but does not include information about the coefficient.")
-  // todo: get_coefficient?
+
   // constructors
+
   .def(py::init<>(), "Creates a product operator with constant value 1. The returned "
     "operator does not target any degrees of freedom but merely represents a constant.")
   .def(py::init<std::size_t, std::size_t>(), 
@@ -233,11 +273,12 @@ void bindBosonOperator(py::module &mod) {
     "number of product terms (if a size is provided).")
   .def("copy", [](const boson_op_term &self) { return boson_op_term(self); },
     "Creates a copy of the operator.")
+
   // evaluations
+
   .def("evaluate_coefficient", &boson_op_term::evaluate_coefficient,
     py::arg("parameters") = parameter_map(),
     "Returns the evaluated coefficient of the product operator.")
-  // todo: add to_sparse_matrix
   .def("to_matrix", [&cmat_to_numpy](const boson_op_term &self,
                                      dimension_map &dimensions,
                                      const parameter_map &params,
@@ -250,46 +291,70 @@ void bindBosonOperator(py::module &mod) {
     "used in CUDA-Q, and the ordering returned by `degrees`. This order "
     "can be inverted by setting the optional `invert_order` argument to `True`. "
     "See also the documentation for `degrees` for more detail.")
+  /* FIXME: uncomment once corresponding PR is merged
+  .def("to_sparse_matrix", [](const boson_op_term &self, 
+                              dimension_map &dimensions,
+                              const parameter_map &params,
+                              bool invert_order) {
+      return self.to_sparse_matrix(dimensions, params, invert_order);     
+    },
+    py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(), py::arg("invert_order") = false,
+    "Return the sparse matrix representation of the operator. This representation is a "
+    "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+    "non-zero values, rows, and columns of the matrix. "
+    "This format is supported by `scipy.sparse.csr_array`."
+    "The matrix is ordered according to the convention (endianness) "
+    "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+    "can be inverted by setting the optional `invert_order` argument to `True`. "
+    "See also the documentation for `degrees` for more detail.")
+  */
+
   // comparisons
+
   .def("__eq__", &boson_op_term::operator==,
     "Return true if the two operators are equivalent. The equivalence check takes "
     "commutation relations into account. Operators acting on different degrees of "
     "freedom are never equivalent, even if they only differ by an identity operator.")
+
   // unary operators
+
   .def("__neg__", [](const boson_op_term &self) { return -self; })
   .def("__pos__", [](const boson_op_term &self) { return +self; })
+
+  // in-place arithmetics
+
+  .def("__imul__", [](boson_op_term &self, const boson_op_term &other) { return self *= other; })
+
   // right-hand arithmetics
-  .def("__mul__", [](const boson_op_term &self, const fermion_op_term &other) { return self * other; })
-  .def("__add__", [](const boson_op_term &self, const fermion_op_term &other) { return self + other; })
-  .def("__sub__", [](const boson_op_term &self, const fermion_op_term &other) { return self - other; })
-  .def("__mul__", [](const boson_op_term &self, const fermion_op &other) { return self * other; })
-  .def("__add__", [](const boson_op_term &self, const fermion_op &other) { return self + other; })
-  .def("__sub__", [](const boson_op_term &self, const fermion_op &other) { return self - other; })
-  .def("__mul__", [](const boson_op_term &self, const matrix_op_term &other) { return self * other; })
-  .def("__add__", [](const boson_op_term &self, const matrix_op_term &other) { return self + other; })
-  .def("__sub__", [](const boson_op_term &self, const matrix_op_term &other) { return self - other; })
-  .def("__mul__", [](const boson_op_term &self, const matrix_op &other) { return self * other; })
-  .def("__add__", [](const boson_op_term &self, const matrix_op &other) { return self + other; })
-  .def("__sub__", [](const boson_op_term &self, const matrix_op &other) { return self - other; })
+
   .def("__mul__", [](const boson_op_term &self, const boson_op_term &other) { return self * other; })
   .def("__add__", [](const boson_op_term &self, const boson_op_term &other) { return self + other; })
   .def("__sub__", [](const boson_op_term &self, const boson_op_term &other) { return self - other; })
   .def("__mul__", [](const boson_op_term &self, const boson_op &other) { return self * other; })
   .def("__add__", [](const boson_op_term &self, const boson_op &other) { return self + other; })
   .def("__sub__", [](const boson_op_term &self, const boson_op &other) { return self - other; })
-  .def("__imul__", [](boson_op_term &self, const boson_op_term &other) { return self *= other; })
+  .def("__mul__", [](const boson_op_term &self, const matrix_op_term &other) { return self * other; })
+  .def("__add__", [](const boson_op_term &self, const matrix_op_term &other) { return self + other; })
+  .def("__sub__", [](const boson_op_term &self, const matrix_op_term &other) { return self - other; })
+  .def("__mul__", [](const boson_op_term &self, const matrix_op &other) { return self * other; })
+  .def("__add__", [](const boson_op_term &self, const matrix_op &other) { return self + other; })
+  .def("__sub__", [](const boson_op_term &self, const matrix_op &other) { return self - other; })
+
   // left-hand arithmetics
+
   .def("__rmul__", [](const boson_op_term &other, double self) { return self * other; })
   .def("__radd__", [](const boson_op_term &other, double self) { return self + other; })
   .def("__rsub__", [](const boson_op_term &other, double self) { return self - other; })
   .def("__rmul__", [](const boson_op_term &other, std::complex<double> self) { return self * other; })
   .def("__radd__", [](const boson_op_term &other, std::complex<double> self) { return self + other; })
   .def("__rsub__", [](const boson_op_term &other, std::complex<double> self) { return self - other; })
+
   // general utility functions
+
   .def("is_identity", &boson_op_term::is_identity,
     "Checks if all operators in the product are the identity. "
     "Note: this function returns true regardless of the value of the coefficient.")
-  .def("to_string", [](const boson_op_term &self) { return self.to_string(); },
+  .def("__str__", [](const boson_op_term &self) { return self.to_string(); },
     "Returns the string representation of the operator.")
   .def("dump", &boson_op_term::dump,
     "Prints the string representation of the operator to the standard output.")
@@ -305,9 +370,9 @@ void bindBosonOperator(py::module &mod) {
 void bindBosonWrapper(py::module &mod) {
   bindBosonModule(mod);
   bindBosonOperator(mod);
-  py::implicitly_convertible<boson_op_term, boson_op>();
   py::implicitly_convertible<double, boson_op_term>();
   py::implicitly_convertible<std::complex<double>, boson_op_term>();
+  py::implicitly_convertible<boson_op_term, boson_op>();
 }
 
 } // namespace cudaq
