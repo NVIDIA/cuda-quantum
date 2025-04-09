@@ -215,6 +215,10 @@ std::string_view getQirOutputLog() {
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   return circuitSimulator->outputLog;
 }
+void clearQirOutputLog() {
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  return circuitSimulator->outputLog.clear();
+}
 } // namespace nvqir
 
 using namespace nvqir;
