@@ -6,7 +6,6 @@ AST
 Aer
 AlmaLinux
 Anyon
-Async
 Asynchronous
 BFGS
 Bloch
@@ -40,8 +39,6 @@ GHCR
 GPU
 GPUDirect
 GPUs
-GetState
-GetStateOutput
 GitHub
 HPC
 HTTP
@@ -121,7 +118,6 @@ SLED
 SLES
 SLURM
 SVD
-SampleOutput
 Sqale
 Stim
 Superpositions
@@ -147,10 +143,8 @@ amongst
 ancilla
 ansatz
 ansatzes
-api
 archiver
 arity
-async
 auxillary
 backend
 backends
@@ -249,7 +243,6 @@ hadamard
 hamiltonian
 heisenberg
 homogenous
-https
 iff
 increment
 incrementing

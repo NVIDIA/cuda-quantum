@@ -54,26 +54,26 @@ print('<H> =', result)
 <H> = 0.0
  [End ObserveOutput] '''
 
-# [Begin GetState]
+# [Begin `GetState`]
 # Compute the statevector of the kernel
 result = cudaq.get_state(kernel, qubit_count)
 
 print(np.array(result))
-# [End GetState]
-''' [Begin GetStateOutput]  
+# [End `GetState`]
+''' [Begin `GetStateOutput`]
 [0.70710678+0.j 0.        +0.j 0.        +0.j 0.70710678+0.j]
- [End GetStateOutput] '''
+ [End `GetStateOutput`] '''
 
-# [Begin ObserveAsync]
+# [Begin `ObserveAsync`]
 # Measuring the expectation value of 2 different Hamiltonians in parallel
 hamiltonian_1 = spin.x(0) + spin.y(1) + spin.z(0) * spin.y(1)
 
-# Asynchronous execution on multiple qpus via nvidia gpus.
+# Asynchronous execution on multiple `qpus` via nvidia gpus.
 result_1 = cudaq.observe_async(kernel, hamiltonian_1, qubit_count, qpu_id=0)
 
 # Retrieve results
 print(result_1.get().expectation())
-# [End ObserveAsync]
-''' [Begin ObserveAsyncOutput]  
+# [End `ObserveAsync`]
+''' [Begin `ObserveAsyncOutput`]  
 2.220446049250313e-16
- [End ObserveAsyncOutput] '''
+ [End `ObserveAsyncOutput`] '''
