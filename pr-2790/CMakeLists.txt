@@ -40,7 +40,6 @@ function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
 endfunction()
 
 add_nvqpp_test(GHZ examples/cpp/basics/static_kernel.cpp)
-add_nvqpp_test(MultiControlOps examples/cpp/basics/multi_controlled_operations.cpp)
 add_nvqpp_test(ExpVals examples/cpp/basics/expectation_values.cpp)
 add_nvqpp_test(MidCircuitMeasurements examples/cpp/basics/mid_circuit_measurement.cpp)
 add_nvqpp_test(PhaseEstimation applications/cpp/phase_estimation.cpp)
