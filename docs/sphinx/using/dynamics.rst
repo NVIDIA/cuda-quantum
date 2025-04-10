@@ -325,3 +325,10 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
 
     - Some combinations of quantum states and quantum many-body operators are not supported. Errors will be raised in those cases. 
 
+
+
+Examples
+^^^^^^^^^^^^^
+The :ref:`Dynamics Examples <dynamics_examples>` section of the docs contains a number of excellent dynamics examples demonstrating how to simulate basic physics models, specific qubit modalities, and utilize multi-GPU multi-Node capabilities.
+
+
