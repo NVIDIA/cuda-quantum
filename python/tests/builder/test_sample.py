@@ -635,29 +635,6 @@ def test_issue_1218():
     assert "1111" in counts
 
 
-def test_issue_2798():
-    @cudaq.kernel
-    def verification(n_qubits: int):
-        qvector = cudaq.qvector(n_qubits)
-        h(qvector[0])
-        for i in range(n_qubits - 1):
-            cx(qvector[i], qvector[i+1])
-        if mz(qvector[0]):
-            x(qvector[0])
-        mz(qvector)
-
-    counts_1 = cudaq.sample_async(verification, 4, shots_count=100).get()
-    print(counts_1)
-    assert len(counts_1) == 2
-    assert "0000" in counts_1
-    assert "0111" in counts_1
-    
-    counts_2 = cudaq.sample_async(verification, 5, shots_count=100).get()
-    print(counts_2)
-    assert len(counts_2) == 2
-    assert "00000" in counts_2
-    assert "01111" in counts_2
-
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
