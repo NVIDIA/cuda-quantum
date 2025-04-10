@@ -112,7 +112,7 @@ for more information on this programming pattern.)#")
             // kernel contains measurement feedback.
             cudaq::detail::make_copyable_function(
                 [argData = std::move(argData), kernel = std::move(kernelPtr),
-                 kernelName, kernelMod, shots]() mutable {
+                 kernelName, kernelMod]() mutable {
                   pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
                 }),
             platform, kernelName, shots, explicitMeasurements, qpu_id);
