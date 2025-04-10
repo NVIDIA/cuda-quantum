@@ -30,11 +30,8 @@ on:
       - PR merged
     types:
       - completed
-    branches:
-      - 'main'
-      - 'releases/*'
-      - 'staging/*'
-      - 'experimental/*'
+    # PR merged workflow runs after merge into certain branches an on pull_request_target;
+    # there should hence be no need for additional branch filtering here.
   push:
     branches:
       - 'releases/*'
