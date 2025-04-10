@@ -18,6 +18,9 @@
 namespace py = pybind11;
 
 namespace cudaq {
+std::string get_quake_by_name(const std::string &, bool,
+                              std::optional<std::string>);
+
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
@@ -50,7 +53,25 @@ for more information on this programming pattern.)#")
       "sample_async",
       [&](py::object kernel, py::args args, std::size_t shots,
           bool explicitMeasurements, std::size_t qpu_id) {
+        // The kernel object can be an 'rvalue' created in the `sample_async`
+        // call, e.g., `sample_async(kernel_factory())`, where
+        // `kernel_factory()` returns a kernel object. Hence, care must be taken
+        // to make sure it's still alive in the async. functor that we post to
+        // the execution queue.
+        // (1) Manually increase the reference count so that the underlying
+        // `PyObject` is alive.
         kernel.inc_ref();
+        // (2) A unique_ptr with a custom deleter is used to hold the `PyObject`
+        // ptr and decrement the reference count when going out of scope.
+        auto kernelDeleter = [](PyObject *ptr) {
+          // Reacquire the GIL.
+          // Note: We've finished the async. execution at this point.
+          py::gil_scoped_acquire acquire;
+          py::handle(ptr).dec_ref();
+        };
+        std::unique_ptr<PyObject, decltype(kernelDeleter)> kernelPtr(
+            kernel.ptr(), kernelDeleter);
+
         auto &platform = cudaq::get_platform();
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
@@ -58,35 +79,42 @@ for more information on this programming pattern.)#")
         auto kernelName = kernel.attr("name").cast<std::string>();
         auto kernelMod = kernel.attr("module").cast<MlirModule>();
         args = simplifiedValidateInputArguments(args);
-        auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+
+        // This kernel may not have been registered to the quake registry
+        // (usually, the first invocation would register the kernel)
+        // i.e., `cudaq::kernelHasConditionalFeedback` won't be able to tell if
+        // this kernel has qubit measurement feedback on the first invocation.
+        if (cudaq::get_quake_by_name(kernelName, false, std::nullopt).empty()) {
+          auto moduleOp = unwrap(kernelMod);
+          std::string mlirCode;
+          llvm::raw_string_ostream outStr(mlirCode);
+          mlir::OpPrintingFlags opf;
+          moduleOp.print(outStr, opf);
+          cudaq::registry::__cudaq_deviceCodeHolderAdd(kernelName.c_str(),
+                                                       mlirCode.c_str());
+        }
 
         // The function below will be executed multiple times
         // if the kernel has conditional feedback. In that case,
         // we have to be careful about deleting the `argData` and
         // only do so after the last invocation of that function.
-
-        // Look and see if this is a kernel with conditional feedback
-        bool hasQubitMeasurementFeedback =
-            unwrap(kernelMod)
-                .lookupSymbol<mlir::func::FuncOp>("__nvqpp__mlirgen__" +
-                                                  kernelName)
-                ->hasAttrOfType<mlir::BoolAttr>("qubitMeasurementFeedback");
+        // Hence, pass it as a unique_ptr for the functor to manage its
+        // lifetime.
+        std::unique_ptr<OpaqueArguments> argData(
+            toOpaqueArgs(args, kernelMod, kernelName));
 
         // Should only have C++ going on here, safe to release the GIL
         py::gil_scoped_release release;
         return cudaq::details::runSamplingAsync(
-            [argData, kernelName, kernelMod, shots, hasQubitMeasurementFeedback,
-             &kernel]() mutable {
-              static std::size_t localShots = 0;
-              pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
-              // delete the raw arg data pointer.
-              if (hasQubitMeasurementFeedback) {
-                if (localShots == shots - 1)
-                  delete argData;
-                localShots++;
-                kernel.dec_ref();
-              }
-            },
+            // Notes:
+            // (1) no Python data access is allowed in this lambda body.
+            // (2) This lambda might be executed multiple times, e.g, when the
+            // kernel contains measurement feedback.
+            cudaq::detail::make_copyable_function(
+                [argData = std::move(argData), kernel = std::move(kernelPtr),
+                 kernelName, kernelMod, shots]() mutable {
+                  pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
+                }),
             platform, kernelName, shots, explicitMeasurements, qpu_id);
       },
       py::arg("kernel"), py::kw_only(), py::arg("shots_count") = 1000,
