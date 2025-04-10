@@ -214,6 +214,12 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
       auto val = attr.getInt();
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
+        auto srcTy = getValue().getType();
+        auto srcWidth = srcTy.getIntOrFloatBitWidth();
+        if (isa<IntegerType>(srcTy) && (srcWidth == 1)) {
+          // Const value can be any integer (i.e -1), convert to 0/1 value.
+          val = static_cast<std::int64_t>(val != 0);
+        }
         return builder.create<arith::ConstantIntOp>(loc, val, width)
             .getResult();
       } else if (ty == fltTy) {
