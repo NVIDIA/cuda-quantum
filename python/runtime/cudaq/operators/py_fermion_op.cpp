@@ -72,6 +72,16 @@ void bindFermionOperator(py::module &mod) {
     return py::array_t<std::complex<double>>(shape, strides, m.data);
   };
 
+  auto kwargs_to_param_map = [](const py::kwargs& kwargs) {
+    parameter_map params;
+    for (auto &[keyPy, valuePy] : kwargs) {
+      std::string key = py::str(keyPy);
+      std::complex<double> value = valuePy.cast<std::complex<double>>();
+      params.insert(params.end(), std::pair<std::string, std::complex<double>>(key, value));
+    }
+    return params;
+  };
+
   py::class_<fermion_op>(mod, "FermionOperator")
   .def(
     "__iter__",
@@ -97,6 +107,8 @@ void bindFermionOperator(py::module &mod) {
     "Returns the smallest index of the degrees of freedom that the operator targets.")
   .def("get_term_count", &fermion_op::num_terms,
     "Returns the number of terms in the operator.")
+  .def("get_parameter_descriptions", &fermion_op::get_parameter_descriptions,
+    "Returns a dictionary that maps each parameter name to its description.")
 
   // constructors
 
@@ -128,6 +140,18 @@ void bindFermionOperator(py::module &mod) {
     "used in CUDA-Q, and the ordering returned by `degrees`. This order "
     "can be inverted by setting the optional `invert_order` argument to `True`. "
     "See also the documentation for `degrees` for more detail.")
+  .def("to_matrix", [&cmat_to_numpy, &kwargs_to_param_map](const fermion_op &self,
+                                     dimension_map &dimensions,
+                                     bool invert_order,
+                                     const py::kwargs &kwargs) {
+      return cmat_to_numpy(self.to_matrix(dimensions, kwargs_to_param_map(kwargs), invert_order));
+    },
+    py::arg("dimensions") = dimension_map(), py::arg("invert_order") = false,
+    "Returns the matrix representation of the operator."
+    "The matrix is ordered according to the convention (endianness) "
+    "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+    "can be inverted by setting the optional `invert_order` argument to `True`. "
+    "See also the documentation for `degrees` for more detail.")
   /* FIXME: uncomment once corresponding PR is merged
   .def("to_sparse_matrix", [](const fermion_op &self, 
                               dimension_map &dimensions,
@@ -136,6 +160,21 @@ void bindFermionOperator(py::module &mod) {
       return self.to_sparse_matrix(dimensions, params, invert_order);     
     },
     py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(), py::arg("invert_order") = false,
+    "Return the sparse matrix representation of the operator. This representation is a "
+    "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+    "non-zero values, rows, and columns of the matrix. "
+    "This format is supported by `scipy.sparse.csr_array`."
+    "The matrix is ordered according to the convention (endianness) "
+    "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+    "can be inverted by setting the optional `invert_order` argument to `True`. "
+    "See also the documentation for `degrees` for more detail.")
+  .def("to_sparse_matrix", [&cmat_to_numpy, &kwargs_to_param_map](const fermion_op &self,
+                                     dimension_map &dimensions,
+                                     bool invert_order,
+                                     const py::kwargs &kwargs) {
+      return self.to_sparse_matrix(dimensions, kwargs_to_param_map(kwargs), invert_order);
+    },
+    py::arg("dimensions") = dimension_map(), py::arg("invert_order") = false,
     "Return the sparse matrix representation of the operator. This representation is a "
     "`Tuple[list[complex], list[int], list[int]]`, encoding the "
     "non-zero values, rows, and columns of the matrix. "
@@ -212,6 +251,12 @@ void bindFermionOperator(py::module &mod) {
     py::arg("tol") = 0.0, py::arg("parameters") = parameter_map(),
     "Removes all terms from the sum for which the absolute value of the coefficient is below "
     "the given tolerance.")
+  .def("trim", [&kwargs_to_param_map](fermion_op &self, double tol, const py::kwargs &kwargs) {
+      return self.trim(tol, kwargs_to_param_map(kwargs));
+    },
+    py::arg("tol") = 0.0,
+    "Removes all terms from the sum for which the absolute value of the coefficient is below "
+    "the given tolerance.")
   .def("canonicalize", [](fermion_op &self) { return self.canonicalize(); },
     "Removes all identity operators from the operator.")
   .def("canonicalize", [](fermion_op &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); },
@@ -249,6 +294,8 @@ void bindFermionOperator(py::module &mod) {
   .def("get_term_id", &fermion_op_term::get_term_id,
     "The term id uniquely identifies the operators and targets (degrees) that they act on, "
     "but does not include information about the coefficient.")
+  .def("get_parameter_descriptions", &fermion_op_term::get_parameter_descriptions,
+    "Returns a dictionary that maps each parameter name to its description.")
 
   // constructors
 
@@ -286,6 +333,18 @@ void bindFermionOperator(py::module &mod) {
     "used in CUDA-Q, and the ordering returned by `degrees`. This order "
     "can be inverted by setting the optional `invert_order` argument to `True`. "
     "See also the documentation for `degrees` for more detail.")
+  .def("to_matrix", [&cmat_to_numpy, &kwargs_to_param_map](const fermion_op_term &self,
+                                     dimension_map &dimensions,
+                                     bool invert_order,
+                                     const py::kwargs &kwargs) {
+      return cmat_to_numpy(self.to_matrix(dimensions, kwargs_to_param_map(kwargs), invert_order));
+    },
+    py::arg("dimensions") = dimension_map(), py::arg("invert_order") = false,
+    "Returns the matrix representation of the operator."
+    "The matrix is ordered according to the convention (endianness) "
+    "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+    "can be inverted by setting the optional `invert_order` argument to `True`. "
+    "See also the documentation for `degrees` for more detail.")
   /* FIXME: uncomment once corresponding PR is merged
   .def("to_sparse_matrix", [](const fermion_op_term &self, 
                               dimension_map &dimensions,
@@ -294,6 +353,21 @@ void bindFermionOperator(py::module &mod) {
       return self.to_sparse_matrix(dimensions, params, invert_order);     
     },
     py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(), py::arg("invert_order") = false,
+    "Return the sparse matrix representation of the operator. This representation is a "
+    "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+    "non-zero values, rows, and columns of the matrix. "
+    "This format is supported by `scipy.sparse.csr_array`."
+    "The matrix is ordered according to the convention (endianness) "
+    "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+    "can be inverted by setting the optional `invert_order` argument to `True`. "
+    "See also the documentation for `degrees` for more detail.")
+  .def("to_sparse_matrix", [&cmat_to_numpy, &kwargs_to_param_map](const fermion_op_term &self,
+                                     dimension_map &dimensions,
+                                     bool invert_order,
+                                     const py::kwargs &kwargs) {
+      return self.to_sparse_matrix(dimensions, kwargs_to_param_map(kwargs), invert_order);
+    },
+    py::arg("dimensions") = dimension_map(), py::arg("invert_order") = false,
     "Return the sparse matrix representation of the operator. This representation is a "
     "`Tuple[list[complex], list[int], list[int]]`, encoding the "
     "non-zero values, rows, and columns of the matrix. "

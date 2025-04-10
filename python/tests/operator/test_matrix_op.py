@@ -19,14 +19,27 @@ def setup():
 
 def test_definitions():
     dims = {0: 2, 1: 3}
-    # FIXME: allow for params as kwargs
-    params = {"squeezing": 0.5 + 1.2j, "displacement": 0.5 + 1.2j}
     assert np.allclose(number(1).to_matrix(dims), number_matrix(3))
     assert np.allclose(parity(1).to_matrix(dims), parity_matrix(3))
     assert np.allclose(position(1).to_matrix(dims), position_matrix(3))
     assert np.allclose(momentum(1).to_matrix(dims), momentum_matrix(3))
+    assert np.allclose(squeeze(1).to_matrix(dims, squeezing = 0.5 + 1.2j, displacement = 0.5 + 1.2j), squeeze_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(displace(1).to_matrix(dims, squeezing = 0.5 + 1.2j, displacement = 0.5 + 1.2j), displace_matrix(3, 0.5 + 1.2j))
+    params = {"squeezing": 0.5 + 1.2j, "displacement": 0.5 + 1.2j}
     assert np.allclose(squeeze(1).to_matrix(dims, params), squeeze_matrix(3, 0.5 + 1.2j))
     assert np.allclose(displace(1).to_matrix(dims, params), displace_matrix(3, 0.5 + 1.2j))
+    with pytest.raises(Exception): squeeze(1).to_matrix(dims, displacement = 0.5 + 1.2j)
+    with pytest.raises(Exception): displace(1).to_matrix(dims, squeeze = 0.5 + 1.2j)
+
+    squeeze_params = squeeze(1).get_parameter_descriptions()
+    print(squeeze_params)
+    assert "squeezing" in squeeze_params
+    assert squeeze_params["squeezing"] != ""
+
+    displace_params = displace(1).get_parameter_descriptions()
+    print(displace_params)
+    assert "displacement" in displace_params
+    assert displace_params["displacement"] != ""
 
 
 def test_construction():

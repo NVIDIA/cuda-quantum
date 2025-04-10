@@ -186,6 +186,44 @@ std::size_t sum_op<HandlerTy>::num_terms() const {
   return this->terms.size();
 }
 
+template <typename HandlerTy>
+std::unordered_map<std::string, std::string>
+sum_op<HandlerTy>::get_parameter_descriptions() const {
+  std::unordered_map<std::string, std::string> descriptions;
+  for (const auto &coeff : this->coefficients)
+    for (const auto &entry : coeff.get_parameter_descriptions()) {
+      // don't overwrite an existing entry with an empty description,
+      // but generally just overwrite descriptions otherwise
+      if (!entry.second.empty())
+        descriptions.insert_or_assign(entry.first, entry.second);
+      else if (descriptions.find(entry.first) == descriptions.end())
+        descriptions.insert(descriptions.end(), entry);
+    }
+  return descriptions;
+}
+
+template <>
+std::unordered_map<std::string, std::string>
+sum_op<matrix_handler>::get_parameter_descriptions() const {
+  std::unordered_map<std::string, std::string> descriptions;
+  auto update_descriptions = [&descriptions](const std::pair<std::string, std::string> &entry) {
+      // don't overwrite an existing entry with an empty description,
+      // but generally just overwrite descriptions otherwise
+      if (!entry.second.empty())
+        descriptions.insert_or_assign(entry.first, entry.second);
+      else if (descriptions.find(entry.first) == descriptions.end())
+        descriptions.insert(descriptions.end(), entry);
+  };
+  for (const auto &coeff : this->coefficients)
+    for (const auto &entry : coeff.get_parameter_descriptions())
+      update_descriptions(entry);
+  for (const auto &term : this->terms)
+    for (const auto &op : term)
+      for (const auto &entry : op.get_parameter_descriptions())
+        update_descriptions(entry);
+  return descriptions;
+}
+
 #define INSTANTIATE_SUM_PROPERTIES(HandlerTy)                                  \
                                                                                \
   template std::vector<std::size_t> sum_op<HandlerTy>::degrees() const;        \
@@ -194,7 +232,10 @@ std::size_t sum_op<HandlerTy>::num_terms() const {
                                                                                \
   template std::size_t sum_op<HandlerTy>::max_degree() const;                  \
                                                                                \
-  template std::size_t sum_op<HandlerTy>::num_terms() const;
+  template std::size_t sum_op<HandlerTy>::num_terms() const;                   \
+                                                                               \
+  template std::unordered_map<std::string, std::string>                        \
+  sum_op<HandlerTy>::get_parameter_descriptions() const;
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_PROPERTIES(matrix_handler);

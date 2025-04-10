@@ -13,6 +13,17 @@
 
 namespace cudaq {
 
+// read-only properties
+
+bool scalar_operator::is_constant() const {
+  return std::holds_alternative<std::complex<double>>(value);
+}
+
+const std::unordered_map<std::string, std::string>&
+scalar_operator::get_parameter_descriptions() const {
+  return this->param_desc;
+}
+
 // constructors and destructors
 
 scalar_operator::scalar_operator(double value)
@@ -22,36 +33,21 @@ scalar_operator::scalar_operator(double value)
 scalar_operator::scalar_operator(std::complex<double> value)
     : value(std::variant<std::complex<double>, scalar_callback>(value)) {}
 
-scalar_operator::scalar_operator(const scalar_callback &create)
-    : value(std::variant<std::complex<double>, scalar_callback>(create)) {}
+scalar_operator::scalar_operator(const scalar_callback &create,
+                                 std::unordered_map<std::string, std::string> &&paramater_descriptions)
+    : value(std::variant<std::complex<double>, scalar_callback>(create)),
+      param_desc(std::move(paramater_descriptions)) {}
 
-scalar_operator::scalar_operator(scalar_callback &&create)
+scalar_operator::scalar_operator(scalar_callback &&create,
+                                 std::unordered_map<std::string, std::string> &&paramater_descriptions)
     : value(std::variant<std::complex<double>, scalar_callback>(
-          std::move(create))) {}
+          std::move(create))), param_desc(std::move(paramater_descriptions)) {}
 
 scalar_operator::scalar_operator(const scalar_operator &other)
-    : value(other.value) {}
+    : value(other.value), param_desc(other.param_desc) {}
 
 scalar_operator::scalar_operator(scalar_operator &&other)
-    : value(std::move(other.value)) {}
-
-bool scalar_operator::is_constant() const {
-  return std::holds_alternative<std::complex<double>>(value);
-}
-
-// assignments
-
-scalar_operator &scalar_operator::operator=(const scalar_operator &other) {
-  if (this != &other)
-    this->value = other.value;
-  return *this;
-}
-
-scalar_operator &scalar_operator::operator=(scalar_operator &&other) {
-  if (this != &other)
-    this->value = std::move(other.value);
-  return *this;
-}
+    : value(std::move(other.value)), param_desc(std::move(other.param_desc)) {}
 
 // evaluations
 

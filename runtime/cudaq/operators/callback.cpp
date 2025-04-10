@@ -37,12 +37,14 @@ complex_matrix matrix_callback::operator()(
 
 Definition::Definition(std::string operator_id,
                        const std::vector<int64_t> &expected_dimensions,
-                       matrix_callback &&create)
-    : id(operator_id), generator(std::move(create)),
+                       matrix_callback &&create, 
+                       std::unordered_map<std::string, std::string> &&parameter_descriptions)
+    : id(operator_id), generator(std::move(create)), parameter_descriptions(std::move(parameter_descriptions)),
       required_dimensions(expected_dimensions) {}
 
 Definition::Definition(Definition &&def)
     : id(def.id), generator(std::move(def.generator)),
+      parameter_descriptions(std::move(def.parameter_descriptions)),
       required_dimensions(std::move(def.expected_dimensions)) {}
 
 complex_matrix Definition::generate_matrix(

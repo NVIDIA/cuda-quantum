@@ -386,6 +386,31 @@ scalar_operator product_op<HandlerTy>::get_coefficient() const {
   return this->coefficient;
 }
 
+template <typename HandlerTy>
+std::unordered_map<std::string, std::string>
+product_op<HandlerTy>::get_parameter_descriptions() const {
+  return this->coefficient.get_parameter_descriptions();
+}
+
+template <>
+std::unordered_map<std::string, std::string>
+product_op<matrix_handler>::get_parameter_descriptions() const {
+  std::unordered_map<std::string, std::string> descriptions = 
+      this->coefficient.get_parameter_descriptions();
+  auto update_descriptions = [&descriptions](const std::pair<std::string, std::string> &entry) {
+      // don't overwrite an existing entry with an empty description,
+      // but generally just overwrite descriptions otherwise
+      if (!entry.second.empty())
+        descriptions.insert_or_assign(entry.first, entry.second);
+      else if (descriptions.find(entry.first) == descriptions.end())
+        descriptions.insert(descriptions.end(), entry);
+  };
+  for (const auto &op : this->operators)
+    for (const auto &entry : op.get_parameter_descriptions())
+      update_descriptions(entry);
+  return descriptions;
+}
+
 #define INSTANTIATE_PRODUCT_PROPERTIES(HandlerTy)                              \
                                                                                \
   template std::vector<std::size_t> product_op<HandlerTy>::degrees() const;    \
@@ -398,7 +423,10 @@ scalar_operator product_op<HandlerTy>::get_coefficient() const {
                                                                                \
   template std::string product_op<HandlerTy>::get_term_id() const;             \
                                                                                \
-  template scalar_operator product_op<HandlerTy>::get_coefficient() const;
+  template scalar_operator product_op<HandlerTy>::get_coefficient() const;     \
+                                                                               \
+  template std::unordered_map<std::string, std::string>                        \
+  product_op<HandlerTy>::get_parameter_descriptions() const;
 
 #if !defined(__clang__)
 INSTANTIATE_PRODUCT_PROPERTIES(matrix_handler);

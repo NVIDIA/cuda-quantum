@@ -50,14 +50,25 @@ std::string matrix_handler::type_prefix<fermion_handler>() {
 
 void matrix_handler::define(std::string operator_id,
                             std::vector<int64_t> expected_dimensions,
-                            matrix_callback &&create) {
+                            matrix_callback &&create, 
+                            std::unordered_map<std::string, std::string> &&parameter_descriptions) {
   auto defn = Definition(operator_id, expected_dimensions,
-                         std::forward<matrix_callback>(create));
+                         std::move(create), std::move(parameter_descriptions));
   auto result =
       matrix_handler::defined_ops.insert({operator_id, std::move(defn)});
   if (!result.second)
     throw std::runtime_error("an matrix operator with name " + operator_id +
                              "is already defined");
+}
+
+void matrix_handler::define(std::string operator_id,
+                            std::vector<int64_t> expected_dimensions,
+                            matrix_callback &&create, 
+                            const std::unordered_map<std::string, std::string> &parameter_descriptions) {
+  matrix_handler::define(std::move(operator_id), 
+                         std::move(expected_dimensions), 
+                         std::move(create),
+                         std::unordered_map<std::string, std::string>(parameter_descriptions));
 }
 
 product_op<matrix_handler>
@@ -105,6 +116,12 @@ matrix_handler::instantiate(std::string operator_id,
   }
   return product_op(
       matrix_handler(operator_id, std::move(degrees), commutation_behavior));
+}
+
+const std::unordered_map<std::string, std::string>& matrix_handler::get_parameter_descriptions() const {
+  auto it = matrix_handler::defined_ops.find(this->op_code);
+  assert(it != matrix_handler::defined_ops.end());
+  return it->second.parameter_descriptions;
 }
 
 // private helpers
@@ -462,7 +479,9 @@ matrix_handler matrix_handler::displace(std::size_t degree) {
       auto term2 = std::conj(displacement_amplitude) * annihilate;
       return (term1 - term2).exponential();
     };
-    matrix_handler::define(op_code, {-1}, func);
+    matrix_handler::define(op_code, {-1}, func, {
+      {"displacement", "Amplitude of the displacement operator. See also https://en.wikipedia.org/wiki/Displacement_operator."}
+    });
   }
   return matrix_handler(op_code, {degree});
 }
@@ -490,7 +509,9 @@ matrix_handler matrix_handler::squeeze(std::size_t degree) {
       auto difference = 0.5 * (term1 - term2);
       return difference.exponential();
     };
-    matrix_handler::define(op_code, {-1}, func);
+    matrix_handler::define(op_code, {-1}, func, {
+      {"squeezing", "Amplitude of the squeezing operator. See also https://en.wikipedia.org/wiki/Squeeze_operator."}
+    });
   }
   return matrix_handler(op_code, {degree});
 }

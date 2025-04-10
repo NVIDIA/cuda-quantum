@@ -12,6 +12,7 @@
 #include <functional>
 #include <map>
 #include <type_traits>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -26,25 +27,31 @@ private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
   std::variant<std::complex<double>, scalar_callback> value;
+  std::unordered_map<std::string, std::string> param_desc; // FIXME: MOVE INTO CALLBACK FUNCTION INSTEAD?
 
 public:
-  // constructors and destructors
-
-  constexpr scalar_operator() : value(1.) {}
-
-  scalar_operator(double value);
+  // read-only properties
 
   bool is_constant() const;
+  const std::unordered_map<std::string, std::string>& get_parameter_descriptions() const;
+
+  // constructors and destructors
+
+  scalar_operator() : value(1.) {}
+
+  scalar_operator(double value);
 
   /// @brief Constructor that just takes and returns a complex double value.
   scalar_operator(std::complex<double> value);
 
-  scalar_operator(const scalar_callback &create);
+  scalar_operator(const scalar_callback &create, 
+                  std::unordered_map<std::string, std::string> &&parameter_descriptions = {});
 
   /// @brief Constructor that just takes a callback function with no
   /// arguments.
-  scalar_operator(scalar_callback &&create);
-
+  scalar_operator(scalar_callback &&create,
+                  std::unordered_map<std::string, std::string> &&parameter_descriptions = {});
+  
   // copy constructor
   scalar_operator(const scalar_operator &other);
 
@@ -56,10 +63,10 @@ public:
   // assignments
 
   // assignment operator
-  scalar_operator &operator=(const scalar_operator &other);
+  scalar_operator &operator=(const scalar_operator &other) = default;
 
   // move assignment operator
-  scalar_operator &operator=(scalar_operator &&other);
+  scalar_operator &operator=(scalar_operator &&other) = default;
 
   // evaluations
 

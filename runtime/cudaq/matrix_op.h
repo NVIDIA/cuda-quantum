@@ -94,8 +94,40 @@ public:
   ///      the operator acts on, and an unordered map from string to complex
   ///      double that contains additional parameters the operator may use.
   static void define(std::string operator_id,
+    std::vector<int64_t> expected_dimensions,
+    matrix_callback &&create, 
+    const std::unordered_map<std::string, std::string> &parameter_descriptions = {});
+
+  /// @brief Adds the definition of an elementary operator with the given id to
+  /// the class. After definition, an the defined elementary operator can be
+  /// instantiated by providing the operator id as well as the degree(s) of
+  /// freedom that it acts on. An elementary operator is a parameterized object
+  /// acting on certain degrees of freedom. To evaluate an operator, for example
+  /// to compute its matrix, the level, that is the dimension, for each degree
+  /// of freedom it acts on must be provided, as well as all additional
+  /// parameters. Additional parameters must be provided in the form of keyword
+  /// arguments. Note: The dimensions passed during operator evaluation are
+  /// automatically validated against the expected dimensions specified during
+  /// definition - the `create` function does not need to do this.
+  /// @arg operator_id : A string that uniquely identifies the defined operator.
+  /// @arg expected_dimensions : Defines the number of levels, that is the
+  /// dimension,
+  ///      for each degree of freedom in canonical (that is sorted) order. A
+  ///      negative or zero value for one (or more) of the expected dimensions
+  ///      indicates that the operator is defined for any dimension of the
+  ///      corresponding degree of freedom.
+  /// @arg create : Takes any number of complex-valued arguments and returns the
+  ///      matrix representing the operator. The matrix must be ordered such
+  ///      that the value returned by `op.degrees()` matches the order of the
+  ///      matrix, where `op` is the instantiated the operator defined here. The
+  ///      `create` function must take a vector of integers that specifies the
+  ///      "number of levels" (the dimension) for each degree of freedom that
+  ///      the operator acts on, and an unordered map from string to complex
+  ///      double that contains additional parameters the operator may use.
+  static void define(std::string operator_id,
                      std::vector<int64_t> expected_dimensions,
-                     matrix_callback &&create);
+                     matrix_callback &&create, 
+                     std::unordered_map<std::string, std::string> &&parameter_descriptions);
 
   /// @brief Instantiates a custom operator.
   /// @arg operator_id : The ID of the operator as specified when it was
@@ -112,6 +144,10 @@ public:
   static product_op<matrix_handler>
   instantiate(std::string operator_id, std::vector<std::size_t> &&degrees,
               const commutation_behavior &behavior = commutation_behavior());
+
+  /// @brief Returns a map with parameter names and their description
+  /// if such a map was provided when the operator was defined.
+  const std::unordered_map<std::string, std::string>& get_parameter_descriptions() const;
 
   // read-only properties
 

@@ -156,6 +156,9 @@ public:
   /// @brief Return the number of operator terms that make up this operator sum.
   std::size_t num_terms() const;
 
+  std::unordered_map<std::string, std::string>
+  get_parameter_descriptions() const;
+
   // constructors and destructors
 
   // A default initialized sum will act as both the additive
@@ -693,6 +696,9 @@ public:
   std::string get_term_id() const;
 
   scalar_operator get_coefficient() const;
+
+  std::unordered_map<std::string, std::string>
+  get_parameter_descriptions() const;
 
   // constructors and destructors
 

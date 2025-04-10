@@ -38,6 +38,16 @@ void bindOperatorHandlers(py::module &mod) {
     return py::array_t<std::complex<double>>(shape, strides, m.data);
   };
 
+  auto kwargs_to_param_map = [](const py::kwargs& kwargs) {
+    parameter_map params;
+    for (auto &[keyPy, valuePy] : kwargs) {
+      std::string key = py::str(keyPy);
+      std::complex<double> value = valuePy.cast<std::complex<double>>();
+      params.insert(params.end(), std::pair<std::string, std::complex<double>>(key, value));
+    }
+    return params;
+  };
+
   py::class_<matrix_handler>(mod, "ElementaryMatrix")
   .def(py::init<std::size_t>(), "Creates and identity operator on the given target.")
   .def(py::init<const matrix_handler &>(),
@@ -54,6 +64,13 @@ void bindOperatorHandlers(py::module &mod) {
       return cmat_to_numpy(self.to_matrix(dimensions, params));
     },
     py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(),
+    "Returns the matrix representation of the operator.")
+  .def("to_matrix", [&cmat_to_numpy, &kwargs_to_param_map](const matrix_handler &self,
+                                     dimension_map &dimensions,
+                                     const py::kwargs &kwargs) {
+      return cmat_to_numpy(self.to_matrix(dimensions, kwargs_to_param_map(kwargs)));
+    },
+    py::arg("dimensions") = dimension_map(),
     "Returns the matrix representation of the operator.")
   ;
 
@@ -74,6 +91,13 @@ void bindOperatorHandlers(py::module &mod) {
     },
     py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(),
     "Returns the matrix representation of the operator.")
+  .def("to_matrix", [&cmat_to_numpy, &kwargs_to_param_map](const boson_handler &self,
+                                     dimension_map &dimensions,
+                                     const py::kwargs &kwargs) {
+      return cmat_to_numpy(self.to_matrix(dimensions, kwargs_to_param_map(kwargs)));
+    },
+    py::arg("dimensions") = dimension_map(),
+    "Returns the matrix representation of the operator.")
   ;
 
   py::class_<fermion_handler>(mod, "ElementaryFermion")
@@ -92,6 +116,13 @@ void bindOperatorHandlers(py::module &mod) {
       return cmat_to_numpy(self.to_matrix(dimensions, params));
     },
     py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(),
+    "Returns the matrix representation of the operator.")
+  .def("to_matrix", [&cmat_to_numpy, &kwargs_to_param_map](const fermion_handler &self,
+                                     dimension_map &dimensions,
+                                     const py::kwargs &kwargs) {
+      return cmat_to_numpy(self.to_matrix(dimensions, kwargs_to_param_map(kwargs)));
+    },
+    py::arg("dimensions") = dimension_map(),
     "Returns the matrix representation of the operator.")
   ;
 
@@ -113,13 +144,19 @@ void bindOperatorHandlers(py::module &mod) {
     },
     py::arg("dimensions") = dimension_map(), py::arg("parameters") = parameter_map(),
     "Returns the matrix representation of the operator.")
+  .def("to_matrix", [&cmat_to_numpy, &kwargs_to_param_map](const spin_handler &self,
+                                     dimension_map &dimensions,
+                                     const py::kwargs &kwargs) {
+      return cmat_to_numpy(self.to_matrix(dimensions, kwargs_to_param_map(kwargs)));
+    },
+    py::arg("dimensions") = dimension_map(),
+    "Returns the matrix representation of the operator.")
   ;
 }
 
 void bindHandlersWrapper(py::module &mod) {
   bindPauli(mod);
   bindOperatorHandlers(mod);
-  //py::implicitly_convertible<matrix_op_term, matrix_op>();
 }
 
 } // namespace cudaq
