@@ -143,7 +143,7 @@ public:
       (c->*fun)(arg);
   }
   void HandleTranslationUnit(clang::ASTContext &ctxt) override {
-    applyConsumers(&clang::ASTConsumer::HandleTranslationUnit, std::move(ctxt));
+    applyConsumers(&clang::ASTConsumer::HandleTranslationUnit, ctxt);
   }
   void HandleCXXStaticMemberVarInstantiation(clang::VarDecl *VD) override {
     applyConsumers(&clang::ASTConsumer::HandleCXXStaticMemberVarInstantiation,
