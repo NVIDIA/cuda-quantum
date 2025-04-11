@@ -37,7 +37,7 @@ class ScalarOperator:
         """
 
         __slots__ = ['_parameters', '_generator', 'name']
-
+            
         def __init__(self: ScalarOperator.Definition,
                      generator: Callable[..., NumericType],
                      parameter_info: Optional[Callable[[], Mapping[str, str]]],
@@ -60,6 +60,13 @@ class ScalarOperator:
             """
             assert(create_key == ScalarOperator._create_key), \
                    f"operator definitions must be created using the `{self.__class__.__name__}.generator` setter"
+            
+            if isinstance(generator, NumericType):
+                self._parameters = {}
+                self._generator = scalar_op_cpp(numpy.complex128(generator))
+                self.name = str(generator) # FIXME ??
+                return
+
             # A variable number of arguments (i.e. `*args`) cannot be supported
             # for generators; it would prevent proper argument handling while
             # supporting additions and multiplication of all kinds of operators.
@@ -111,15 +118,13 @@ class ScalarOperator:
         """
         Creates a scalar operator that has a constant value.
         """
-        instance = cls(lambda: constant_value)
-        instance._constant_value = constant_value
-        return instance
+        return cls(constant_value)
 
-    __slots__ = ['_degrees', '_definition', '_constant_value']
+    __slots__ = ['_definition']
 
     def __init__(
         self: ScalarOperator,
-        generator: Callable[..., NumericType],
+        generator: NumericType | Callable[..., NumericType],
         parameter_info: Optional[Callable[[], Mapping[str,
                                                       str]]] = None) -> None:
         """
@@ -131,10 +136,8 @@ class ScalarOperator:
                 arguments and must return a number. Each parameter must be passed
                 as a keyword argument when evaluating the operator. 
         """
-        self._degrees: Tuple[int] = ()
         self._definition = ScalarOperator.Definition(generator, parameter_info,
-                                                     self._create_key)
-        self._constant_value: Optional[NumericType] = None
+                                                    self._create_key)
 
     def __eq__(self: ScalarOperator, other: Any) -> bool:
         """
@@ -143,9 +146,7 @@ class ScalarOperator:
         """
         if type(other) != self.__class__:
             return False
-        elif self._constant_value is None or other._constant_value is None:
-            return self._definition.generator == other._definition.generator
-        return self._constant_value == other._constant_value
+        return self._definition.generator == other._definition.generator
 
     @property
     def generator(self: ScalarOperator) -> Callable[..., NumericType]: # FIXME: THIS IS A LIE
@@ -189,7 +190,7 @@ class ScalarOperator:
         arguments and invokes the generator. 
         """
         evaluated = self.generator.evaluate(**kwargs)
-        if not isinstance(evaluated, (complex, float, int)):
+        if not isinstance(evaluated, NumericType):
             raise TypeError(
                 f"generator of {type(self).__name__} must return a number")
         return numpy.complex128(evaluated)
@@ -231,8 +232,8 @@ class ScalarOperator:
         return numpy.array([self._invoke(**kwargs)], dtype=numpy.complex128)
 
     def __str__(self: ScalarOperator) -> str:
-        if self._constant_value is not None:
-            return str(self._constant_value)
+        if len(self.parameters) == 0:
+            return self._definition.name
         parameter_names = ", ".join(self.parameters)
         return f"{self._definition.name or 'f'}({parameter_names})"
 
@@ -244,22 +245,22 @@ class ScalarOperator:
         Helper function to avoid duplicate code in the various arithmetic 
         operations supported on a ScalarOperator.
         """
-        if isinstance(other, (complex, float, int)):
-            if self._constant_value is None:
-                generator = lambda **kwargs: fct(self._invoke(**kwargs), other)
-                return ScalarOperator(generator, self._definition.parameters)
-            return ScalarOperator.const(fct(self._constant_value, other))
+        if isinstance(other, NumericType):
+            if self._definition.generator.is_constant():
+                return ScalarOperator.const(fct(self._definition.generator.evaluate(), other))
+            generator = lambda **kwargs: fct(self._invoke(**kwargs), other)
+            return ScalarOperator(generator, self._definition.parameters)
         elif type(other) == ScalarOperator:
-            if self._constant_value is None or other._constant_value is None:
-                generator = lambda **kwargs: fct(self._invoke(**kwargs),
-                                                 other._invoke(**kwargs))
-                parameter_info = lambda: _OperatorHelpers.aggregate_parameters([
-                    self._definition.parameters(),
-                    other._definition.parameters()
-                ])
-                return ScalarOperator(generator, parameter_info)
-            return ScalarOperator.const(
-                fct(self._constant_value, other._constant_value))
+            if self._definition.generator.is_constant() and other._definition.generator.is_constant():
+                return ScalarOperator.const(
+                    fct(self._definition.generator.evaluate(), other._definition.generator.evaluate()))
+            generator = lambda **kwargs: fct(self._invoke(**kwargs),
+                                                other._invoke(**kwargs))
+            parameter_info = lambda: _OperatorHelpers.aggregate_parameters([
+                self._definition.parameters(),
+                other._definition.parameters()
+            ])
+            return ScalarOperator(generator, parameter_info)
         return NotImplemented
 
     def _compose(
@@ -269,7 +270,7 @@ class ScalarOperator:
         Helper function to avoid duplicate code in the various arithmetic 
         operations supported on a ScalarOperator.
         """
-        if isinstance(other, (complex, float, int)) or type(other) == ScalarOperator:
+        if isinstance(other, NumericType) or type(other) == ScalarOperator:
             return self._compose_scalar(other, fct)
         elif _OperatorHelpers.is_cpp_operator(other):
             return fct(self._definition.generator, other)
