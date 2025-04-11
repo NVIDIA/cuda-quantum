@@ -297,8 +297,8 @@ nlopt_result ccsa_quadratic_minimize(
      if (!no_precond) {
 	  dd.scratch = (double*) malloc(sizeof(double) * (4*n));
 	  if (!dd.scratch) {
-	       free(sigma);
-	       return NLOPT_OUT_OF_MEMORY;
+	       ret = NLOPT_OUT_OF_MEMORY;
+		   goto done;
 	  }
 	  pre_lb = dd.scratch + 2*n;
 	  pre_ub = pre_lb + n;
