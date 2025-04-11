@@ -29,6 +29,7 @@
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_qubit_qis.h"
 #include "runtime/cudaq/operators/py_matrix.h"
+#include "runtime/cudaq/operators/py_scalar_op.h"
 #include "runtime/cudaq/operators/py_spin_op.h"
 #include "runtime/cudaq/operators/py_fermion_op.h"
 #include "runtime/cudaq/operators/py_boson_op.h"
@@ -97,6 +98,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindMeasureCounts(cudaqRuntime);
   cudaq::bindObserveResult(cudaqRuntime);
   cudaq::bindComplexMatrix(cudaqRuntime);
+  cudaq::bindScalarWrapper(cudaqRuntime);
   cudaq::bindSpinWrapper(cudaqRuntime);
   cudaq::bindFermionWrapper(cudaqRuntime);
   cudaq::bindBosonWrapper(cudaqRuntime);

@@ -27,7 +27,7 @@ private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
   std::variant<std::complex<double>, scalar_callback> value;
-  std::unordered_map<std::string, std::string> param_desc; // FIXME: MOVE INTO CALLBACK FUNCTION INSTEAD?
+  std::unordered_map<std::string, std::string> param_desc;
 
 public:
   // read-only properties

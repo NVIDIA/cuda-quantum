@@ -257,7 +257,7 @@ void bindSpinOperator(py::module &mod) {
 
   // comparisons
 
-  .def("__eq__", &spin_op::operator==,
+  .def("__eq__", &spin_op::operator==, py::is_operator(),
     "Return true if the two operators are equivalent. The equivalence check takes "
     "commutation relations into account. Operators acting on different degrees of "
     "freedom are never equivalent, even if they only differ by an identity operator.")
@@ -266,49 +266,66 @@ void bindSpinOperator(py::module &mod) {
   .def("__eq__",
     [](const spin_op &self, const spin_op_term &other) {
       return self == spin_op(other);
-    }, "Return true if the two operators are equivalent.")
+    }, py::is_operator(), "Return true if the two operators are equivalent.")
   // FIXME: ADD OTHER OVERLOADS TO COMPATE OPERATORS OF DIFFERENT CLASSES
   // FIXME: UPDATE __eq__ overloads for other ops classes
 
   // unary operators
 
-  .def("__neg__", [](const spin_op &self) { return -self; })
-  .def("__pos__", [](const spin_op &self) { return +self; })
+  .def("__neg__", [](const spin_op &self) { return -self; }, py::is_operator())
+  .def("__pos__", [](const spin_op &self) { return +self; }, py::is_operator())
 
   // in-place arithmetics
 
-  .def("__imul__", [](spin_op &self, const spin_op_term &other) { return self *= other; })
-  .def("__iadd__", [](spin_op &self, const spin_op_term &other) { return self += other; })
-  .def("__isub__", [](spin_op &self, const spin_op_term &other) { return self -= other; })
-  .def("__imul__", [](spin_op &self, const spin_op &other) { return self *= other; })
-  .def("__iadd__", [](spin_op &self, const spin_op &other) { return self += other; })
-  .def("__isub__", [](spin_op &self, const spin_op &other) { return self -= other; })
+  .def("__itruediv__", [](spin_op &self, int other) { return self /= other; }, py::is_operator())
+  .def("__imul__", [](spin_op &self, int other) { return self *= other; }, py::is_operator())
+  .def("__iadd__", [](spin_op &self, int other) { return self += other; }, py::is_operator())
+  .def("__isub__", [](spin_op &self, int other) { return self -= other; }, py::is_operator())
+  .def("__itruediv__", [](spin_op &self, const scalar_operator &other) { return self /= other; }, py::is_operator())
+  .def("__imul__", [](spin_op &self, const scalar_operator &other) { return self *= other; }, py::is_operator())
+  .def("__iadd__", [](spin_op &self, const scalar_operator &other) { return self += other; }, py::is_operator())
+  .def("__isub__", [](spin_op &self, const scalar_operator &other) { return self -= other; }, py::is_operator())
+  .def("__imul__", [](spin_op &self, const spin_op_term &other) { return self *= other; }, py::is_operator())
+  .def("__iadd__", [](spin_op &self, const spin_op_term &other) { return self += other; }, py::is_operator())
+  .def("__isub__", [](spin_op &self, const spin_op_term &other) { return self -= other; }, py::is_operator())
+  .def("__imul__", [](spin_op &self, const spin_op &other) { return self *= other; }, py::is_operator())
+  .def("__iadd__", [](spin_op &self, const spin_op &other) { return self += other; }, py::is_operator())
+  .def("__isub__", [](spin_op &self, const spin_op &other) { return self -= other; }, py::is_operator())
 
   // right-hand arithmetics
 
-  .def("__mul__", [](const spin_op &self, const spin_op_term &other) { return self * other; })
-  .def("__add__", [](const spin_op &self, const spin_op_term &other) { return self + other; })
-  .def("__sub__", [](const spin_op &self, const spin_op_term &other) { return self - other; })
-  .def("__mul__", [](const spin_op &self, const spin_op &other) { return self * other; })
-  .def("__add__", [](const spin_op &self, const spin_op &other) { return self + other; })
-  .def("__sub__", [](const spin_op &self, const spin_op &other) { return self - other; })
-  .def("__mul__", [](const spin_op &self, const matrix_op_term &other) { return self * other; })
-  .def("__add__", [](const spin_op &self, const matrix_op_term &other) { return self + other; })
-  .def("__sub__", [](const spin_op &self, const matrix_op_term &other) { return self - other; })
-  .def("__mul__", [](const spin_op &self, const matrix_op &other) { return self * other; })
-  .def("__add__", [](const spin_op &self, const matrix_op &other) { return self + other; })
-  .def("__sub__", [](const spin_op &self, const matrix_op &other) { return self - other; })
+  .def("__truediv__", [](const spin_op &self, int other) { return self / other; }, py::is_operator())
+  .def("__mul__", [](const spin_op &self, int other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op &self, int other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op &self, int other) { return self - other; }, py::is_operator())
+  .def("__truediv__", [](const spin_op &self, const scalar_operator &other) { return self / other; }, py::is_operator())
+  .def("__mul__", [](const spin_op &self, const scalar_operator &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op &self, const scalar_operator &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op &self, const scalar_operator &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const spin_op &self, const spin_op_term &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op &self, const spin_op_term &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op &self, const spin_op_term &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const spin_op &self, const spin_op &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op &self, const spin_op &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op &self, const spin_op &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const spin_op &self, const matrix_op_term &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op &self, const matrix_op_term &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op &self, const matrix_op_term &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const spin_op &self, const matrix_op &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op &self, const matrix_op &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op &self, const matrix_op &other) { return self - other; }, py::is_operator())
 
   // left-hand arithmetics
 
-  // FIXME: RIGHT HAND OVERLOADS FOR THESE (FOR PERF REASONS, AND TO ADD DIVISION)
-  // FIXME: same adjustment for other ops classes
-  .def("__rmul__", [](const spin_op &other, double self) { return self * other; })
-  .def("__radd__", [](const spin_op &other, double self) { return self + other; })
-  .def("__rsub__", [](const spin_op &other, double self) { return self - other; })
-  .def("__rmul__", [](const spin_op &other, std::complex<double> self) { return self * other; })
-  .def("__radd__", [](const spin_op &other, std::complex<double> self) { return self + other; })
-  .def("__rsub__", [](const spin_op &other, std::complex<double> self) { return self - other; })
+  .def("__rmul__", [](const spin_op &other, int self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const spin_op &other, int self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const spin_op &other, int self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const spin_op &other, double self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const spin_op &other, double self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const spin_op &other, double self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const spin_op &other, std::complex<double> self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const spin_op &other, std::complex<double> self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const spin_op &other, std::complex<double> self) { return self - other; }, py::is_operator())
 
   // common operators
 
@@ -499,6 +516,9 @@ void bindSpinOperator(py::module &mod) {
     "The returned operator does not target any degrees of freedom.")
   .def(py::init<std::complex<double>>(), "Creates a product operator with the given "
     "constant value. The returned operator does not target any degrees of freedom.")
+  .def(py::init([](const scalar_operator &scalar) {
+      return spin_op_term() * scalar;
+    }), "Creates a product operator with non-constant scalar value.")
   .def(py::init<const spin_op_term &, std::size_t>(),
     py::arg("operator"), py::arg("size") = 0,
     "Creates a copy of the given operator and reserves space for storing the given "
@@ -568,7 +588,7 @@ void bindSpinOperator(py::module &mod) {
 
   // comparisons
 
-  .def("__eq__", &spin_op_term::operator==,
+  .def("__eq__", &spin_op_term::operator==, py::is_operator(),
     "Return true if the two operators are equivalent. The equivalence check takes "
     "commutation relations into account. Operators acting on different degrees of "
     "freedom are never equivalent, even if they only differ by an identity operator.")
@@ -577,42 +597,60 @@ void bindSpinOperator(py::module &mod) {
   .def("__eq__",
      [](const spin_op_term &self, const spin_op &other) {
        return spin_op(self) == other;
-     }, "Return true if the two operators are equivalent.")
+     }, py::is_operator(), "Return true if the two operators are equivalent.")
    // FIXME: ADD OTHER OVERLOADS TO COMPATE OPERATORS OF DIFFERENT CLASSES
    // FIXME: UPDATE __eq__ overloads for other ops classes
- 
+
   // unary operators
 
-  .def("__neg__", [](const spin_op_term &self) { return -self; })
-  .def("__pos__", [](const spin_op_term &self) { return +self; })
+  .def("__neg__", [](const spin_op_term &self) { return -self; }, py::is_operator())
+  .def("__pos__", [](const spin_op_term &self) { return +self; }, py::is_operator())
 
   // in-place arithmetics
 
-  .def("__imul__", [](spin_op_term &self, const spin_op_term &other) { return self *= other; })
+  .def("__itruediv__", [](spin_op_term &self, int other) { return self /= other; }, py::is_operator())
+  .def("__imul__", [](spin_op_term &self, int other) { return self *= other; }, py::is_operator())
+  .def("__itruediv__", [](spin_op_term &self, const scalar_operator &other) { return self /= other; }, py::is_operator())
+  .def("__imul__", [](spin_op_term &self, const scalar_operator &other) { return self *= other; }, py::is_operator())
+  .def("__imul__", [](spin_op_term &self, const spin_op_term &other) { return self *= other; }, py::is_operator())
 
   // right-hand arithmetics
 
-  .def("__mul__", [](const spin_op_term &self, const spin_op_term &other) { return self * other; })
-  .def("__add__", [](const spin_op_term &self, const spin_op_term &other) { return self + other; })
-  .def("__sub__", [](const spin_op_term &self, const spin_op_term &other) { return self - other; })
-  .def("__mul__", [](const spin_op_term &self, const spin_op &other) { return self * other; })
-  .def("__add__", [](const spin_op_term &self, const spin_op &other) { return self + other; })
-  .def("__sub__", [](const spin_op_term &self, const spin_op &other) { return self - other; })
-  .def("__mul__", [](const spin_op_term &self, const matrix_op_term &other) { return self * other; })
-  .def("__add__", [](const spin_op_term &self, const matrix_op_term &other) { return self + other; })
-  .def("__sub__", [](const spin_op_term &self, const matrix_op_term &other) { return self - other; })
-  .def("__mul__", [](const spin_op_term &self, const matrix_op &other) { return self * other; })
-  .def("__add__", [](const spin_op_term &self, const matrix_op &other) { return self + other; })
-  .def("__sub__", [](const spin_op_term &self, const matrix_op &other) { return self - other; })
+  .def("__truediv__", [](const spin_op_term &self, int other) { return self / other; }, py::is_operator())
+  .def("__mul__", [](const spin_op_term &self, int other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op_term &self, int other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op_term &self, int other) { return self - other; }, py::is_operator())
+  .def("__truediv__", [](const spin_op_term &self, const scalar_operator &other) { return self / other; }, py::is_operator())
+  .def("__mul__", [](const spin_op_term &self, const scalar_operator &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op_term &self, const scalar_operator &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op_term &self, const scalar_operator &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const spin_op_term &self, const spin_op_term &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op_term &self, const spin_op_term &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op_term &self, const spin_op_term &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const spin_op_term &self, const spin_op &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op_term &self, const spin_op &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op_term &self, const spin_op &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const spin_op_term &self, const matrix_op_term &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op_term &self, const matrix_op_term &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op_term &self, const matrix_op_term &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const spin_op_term &self, const matrix_op &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const spin_op_term &self, const matrix_op &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const spin_op_term &self, const matrix_op &other) { return self - other; }, py::is_operator())
 
   // left-hand arithmetics
 
-  .def("__rmul__", [](const spin_op_term &other, double self) { return self * other; })
-  .def("__radd__", [](const spin_op_term &other, double self) { return self + other; })
-  .def("__rsub__", [](const spin_op_term &other, double self) { return self - other; })
-  .def("__rmul__", [](const spin_op_term &other, std::complex<double> self) { return self * other; })
-  .def("__radd__", [](const spin_op_term &other, std::complex<double> self) { return self + other; })
-  .def("__rsub__", [](const spin_op_term &other, std::complex<double> self) { return self - other; })
+  .def("__rmul__", [](const spin_op_term &other, int self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const spin_op_term &other, int self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const spin_op_term &other, int self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const spin_op_term &other, double self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const spin_op_term &other, double self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const spin_op_term &other, double self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const spin_op_term &other, std::complex<double> self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const spin_op_term &other, std::complex<double> self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const spin_op_term &other, std::complex<double> self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const spin_op_term &other, const scalar_operator &self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const spin_op_term &other, const scalar_operator &self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const spin_op_term &other, const scalar_operator &self) { return self - other; }, py::is_operator())
 
   // general utility functions
 
@@ -712,6 +750,7 @@ void bindSpinWrapper(py::module &mod) {
   bindSpinOperator(mod);
   py::implicitly_convertible<double, spin_op_term>();
   py::implicitly_convertible<std::complex<double>, spin_op_term>();
+  py::implicitly_convertible<scalar_operator, spin_op_term>();
   py::implicitly_convertible<spin_op_term, spin_op>();
 }
 

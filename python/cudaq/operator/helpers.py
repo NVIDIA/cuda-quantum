@@ -12,6 +12,9 @@ from numpy.typing import NDArray
 from enum import Enum
 
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, MatrixOperatorTerm, SpinOperator, SpinOperatorTerm, BosonOperator, BosonOperatorTerm, FermionOperator, FermionOperatorTerm
+CppOperator = MatrixOperator | SpinOperator | BosonOperator | FermionOperator
+CppOperatorTerm = MatrixOperatorTerm | SpinOperatorTerm | BosonOperatorTerm | FermionOperatorTerm
 
 if (3, 11) <= sys.version_info:
     NumericType = typing.SupportsComplex
@@ -34,6 +37,10 @@ InitialStateArgT = cudaq_runtime.State | InitialState
 
 
 class _OperatorHelpers:
+
+    @staticmethod
+    def is_cpp_operator(value : Any):
+        return isinstance(value, CppOperatorTerm) or isinstance(value, CppOperator)
 
     @staticmethod
     def aggregate_parameters(

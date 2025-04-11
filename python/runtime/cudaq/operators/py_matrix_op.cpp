@@ -162,7 +162,7 @@ void bindMatrixOperator(py::module &mod) {
 
   // comparisons
 
-  .def("__eq__", &matrix_op::operator==,
+  .def("__eq__", &matrix_op::operator==, py::is_operator(),
     "Return true if the two operators are equivalent. The equivalence check takes "
     "into account that addition is commutative and so is multiplication on operators "
     "that act on different degrees of freedom. Operators acting on different degrees of "
@@ -170,35 +170,57 @@ void bindMatrixOperator(py::module &mod) {
 
   // unary operators
 
-  .def("__neg__", [](const matrix_op &self) { return -self; })
-  .def("__pos__", [](const matrix_op &self) { return +self; })
+  .def("__neg__", [](const matrix_op &self) { return -self; }, py::is_operator())
+  .def("__pos__", [](const matrix_op &self) { return +self; }, py::is_operator())
 
   // in-place arithmetics
 
-  .def("__imul__", [](matrix_op &self, const matrix_op_term &other) { return self *= other; })
-  .def("__iadd__", [](matrix_op &self, const matrix_op_term &other) { return self += other; })
-  .def("__isub__", [](matrix_op &self, const matrix_op_term &other) { return self -= other; })
-  .def("__imul__", [](matrix_op &self, const matrix_op &other) { return self *= other; })
-  .def("__iadd__", [](matrix_op &self, const matrix_op &other) { return self += other; })
-  .def("__isub__", [](matrix_op &self, const matrix_op &other) { return self -= other; })
+  .def("__itruediv__", [](matrix_op &self, int other) { return self /= other; }, py::is_operator())
+  .def("__imul__", [](matrix_op &self, int other) { return self *= other; }, py::is_operator())
+  .def("__iadd__", [](matrix_op &self, int other) { return self += other; }, py::is_operator())
+  .def("__isub__", [](matrix_op &self, int other) { return self -= other; }, py::is_operator())
+  .def("__itruediv__", [](matrix_op &self, const scalar_operator &other) { return self /= other; }, py::is_operator())
+  .def("__imul__", [](matrix_op &self, const scalar_operator &other) { return self *= other; }, py::is_operator())
+  .def("__iadd__", [](matrix_op &self, const scalar_operator &other) { return self += other; }, py::is_operator())
+  .def("__isub__", [](matrix_op &self, const scalar_operator &other) { return self -= other; }, py::is_operator())
+  .def("__imul__", [](matrix_op &self, const matrix_op_term &other) { return self *= other; }, py::is_operator())
+  .def("__iadd__", [](matrix_op &self, const matrix_op_term &other) { return self += other; }, py::is_operator())
+  .def("__isub__", [](matrix_op &self, const matrix_op_term &other) { return self -= other; }, py::is_operator())
+  .def("__imul__", [](matrix_op &self, const matrix_op &other) { return self *= other; }, py::is_operator())
+  .def("__iadd__", [](matrix_op &self, const matrix_op &other) { return self += other; }, py::is_operator())
+  .def("__isub__", [](matrix_op &self, const matrix_op &other) { return self -= other; }, py::is_operator())
 
   // right-hand arithmetics
 
-  .def("__mul__", [](const matrix_op &self, const matrix_op_term &other) { return self * other; })
-  .def("__add__", [](const matrix_op &self, const matrix_op_term &other) { return self + other; })
-  .def("__sub__", [](const matrix_op &self, const matrix_op_term &other) { return self - other; })
-  .def("__mul__", [](const matrix_op &self, const matrix_op &other) { return self * other; })
-  .def("__add__", [](const matrix_op &self, const matrix_op &other) { return self + other; })
-  .def("__sub__", [](const matrix_op &self, const matrix_op &other) { return self - other; })
+  .def("__truediv__", [](const matrix_op &self, int other) { return self / other; }, py::is_operator())
+  .def("__mul__", [](const matrix_op &self, int other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const matrix_op &self, int other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const matrix_op &self, int other) { return self - other; }, py::is_operator())
+  .def("__truediv__", [](const matrix_op &self, const scalar_operator &other) { return self / other; }, py::is_operator())
+  .def("__mul__", [](const matrix_op &self, const scalar_operator &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const matrix_op &self, const scalar_operator &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const matrix_op &self, const scalar_operator &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const matrix_op &self, const matrix_op_term &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const matrix_op &self, const matrix_op_term &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const matrix_op &self, const matrix_op_term &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const matrix_op &self, const matrix_op &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const matrix_op &self, const matrix_op &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const matrix_op &self, const matrix_op &other) { return self - other; }, py::is_operator())
 
   // left-hand arithmetics
 
-  .def("__rmul__", [](const matrix_op &other, double self) { return self * other; })
-  .def("__radd__", [](const matrix_op &other, double self) { return self + other; })
-  .def("__rsub__", [](const matrix_op &other, double self) { return self - other; })
-  .def("__rmul__", [](const matrix_op &other, std::complex<double> self) { return self * other; })
-  .def("__radd__", [](const matrix_op &other, std::complex<double> self) { return self + other; })
-  .def("__rsub__", [](const matrix_op &other, std::complex<double> self) { return self - other; })
+  .def("__rmul__", [](const matrix_op &other, int self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const matrix_op &other, int self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const matrix_op &other, int self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const matrix_op &other, double self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const matrix_op &other, double self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const matrix_op &other, double self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const matrix_op &other, std::complex<double> self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const matrix_op &other, std::complex<double> self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const matrix_op &other, std::complex<double> self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const matrix_op &other, const scalar_operator &self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const matrix_op &other, const scalar_operator &self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const matrix_op &other, const scalar_operator &self) { return self - other; }, py::is_operator())
 
   // common operators
 
@@ -279,6 +301,9 @@ void bindMatrixOperator(py::module &mod) {
     "The returned operator does not target any degrees of freedom.")
   .def(py::init<std::complex<double>>(), "Creates a product operator with the given "
     "constant value. The returned operator does not target any degrees of freedom.")
+  .def(py::init([](const scalar_operator &scalar) {
+      return matrix_op_term() * scalar;
+    }), "Creates a product operator with non-constant scalar value.")
   .def(py::init<spin_op_term>())
   .def(py::init<fermion_op_term>())
   .def(py::init<boson_op_term>())
@@ -321,7 +346,7 @@ void bindMatrixOperator(py::module &mod) {
 
   // comparisons
 
-  .def("__eq__", &matrix_op_term::operator==,
+  .def("__eq__", &matrix_op_term::operator==, py::is_operator(),
     "Return true if the two operators are equivalent. The equivalence check takes "
     "into account that multiplication of operators that act on different degrees of "
     "is commutative. Operators acting on different degrees of freedom are never "
@@ -329,30 +354,48 @@ void bindMatrixOperator(py::module &mod) {
 
   // unary operators
 
-  .def("__neg__", [](const matrix_op_term &self) { return -self; })
-  .def("__pos__", [](const matrix_op_term &self) { return +self; })
+  .def("__neg__", [](const matrix_op_term &self) { return -self; }, py::is_operator())
+  .def("__pos__", [](const matrix_op_term &self) { return +self; }, py::is_operator())
 
   // in-place arithmetics
 
-  .def("__imul__", [](matrix_op_term &self, const matrix_op_term &other) { return self *= other; })
+  .def("__itruediv__", [](matrix_op_term &self, int other) { return self /= other; }, py::is_operator())
+  .def("__imul__", [](matrix_op_term &self, int other) { return self *= other; }, py::is_operator())
+  .def("__itruediv__", [](matrix_op_term &self, const scalar_operator &other) { return self /= other; }, py::is_operator())
+  .def("__imul__", [](matrix_op_term &self, const scalar_operator &other) { return self *= other; }, py::is_operator())
+  .def("__imul__", [](matrix_op_term &self, const matrix_op_term &other) { return self *= other; }, py::is_operator())
 
   // right-hand arithmetics
 
-  .def("__mul__", [](const matrix_op_term &self, const matrix_op_term &other) { return self * other; })
-  .def("__add__", [](const matrix_op_term &self, const matrix_op_term &other) { return self + other; })
-  .def("__sub__", [](const matrix_op_term &self, const matrix_op_term &other) { return self - other; })
-  .def("__mul__", [](const matrix_op_term &self, const matrix_op &other) { return self * other; })
-  .def("__add__", [](const matrix_op_term &self, const matrix_op &other) { return self + other; })
-  .def("__sub__", [](const matrix_op_term &self, const matrix_op &other) { return self - other; })
+  .def("__truediv__", [](const matrix_op_term &self, int other) { return self / other; }, py::is_operator())
+  .def("__mul__", [](const matrix_op_term &self, int other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const matrix_op_term &self, int other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const matrix_op_term &self, int other) { return self - other; }, py::is_operator())
+  .def("__truediv__", [](const matrix_op_term &self, const scalar_operator &other) { return self / other; }, py::is_operator())
+  .def("__mul__", [](const matrix_op_term &self, const scalar_operator &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const matrix_op_term &self, const scalar_operator &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const matrix_op_term &self, const scalar_operator &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const matrix_op_term &self, const matrix_op_term &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const matrix_op_term &self, const matrix_op_term &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const matrix_op_term &self, const matrix_op_term &other) { return self - other; }, py::is_operator())
+  .def("__mul__", [](const matrix_op_term &self, const matrix_op &other) { return self * other; }, py::is_operator())
+  .def("__add__", [](const matrix_op_term &self, const matrix_op &other) { return self + other; }, py::is_operator())
+  .def("__sub__", [](const matrix_op_term &self, const matrix_op &other) { return self - other; }, py::is_operator())
 
   // left-hand arithmetics
 
-  .def("__rmul__", [](const matrix_op_term &other, double self) { return self * other; })
-  .def("__radd__", [](const matrix_op_term &other, double self) { return self + other; })
-  .def("__rsub__", [](const matrix_op_term &other, double self) { return self - other; })
-  .def("__rmul__", [](const matrix_op_term &other, std::complex<double> self) { return self * other; })
-  .def("__radd__", [](const matrix_op_term &other, std::complex<double> self) { return self + other; })
-  .def("__rsub__", [](const matrix_op_term &other, std::complex<double> self) { return self - other; })
+  .def("__rmul__", [](const matrix_op_term &other, int self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const matrix_op_term &other, int self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const matrix_op_term &other, int self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const matrix_op_term &other, double self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const matrix_op_term &other, double self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const matrix_op_term &other, double self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const matrix_op_term &other, std::complex<double> self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const matrix_op_term &other, std::complex<double> self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const matrix_op_term &other, std::complex<double> self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const matrix_op_term &other, const scalar_operator &self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const matrix_op_term &other, const scalar_operator &self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const matrix_op_term &other, const scalar_operator &self) { return self - other; }, py::is_operator())
 
   // general utility functions
 
@@ -377,6 +420,7 @@ void bindOperatorsWrapper(py::module &mod) {
   bindMatrixOperator(mod);
   py::implicitly_convertible<double, matrix_op_term>();
   py::implicitly_convertible<std::complex<double>, matrix_op_term>();
+  py::implicitly_convertible<scalar_operator, matrix_op_term>();
   py::implicitly_convertible<spin_op_term, matrix_op_term>();
   py::implicitly_convertible<spin_op, matrix_op>();
   py::implicitly_convertible<boson_op_term, matrix_op_term>();
