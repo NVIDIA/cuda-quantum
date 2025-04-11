@@ -99,21 +99,21 @@ void bindBosonOperator(py::module &mod) {
 
   // properties
 
-  .def("degrees", &boson_op::degrees,
+  .def_property_readonly("parameters", &boson_op::get_parameter_descriptions,
+    "Returns a dictionary that maps each parameter name to its description.")
+  .def_property_readonly("degrees", &boson_op::degrees,
     "Returns a vector that lists all degrees of freedom that the operator targets. "
     "The order of degrees is from smallest to largest and reflects the ordering of "
     "the matrix returned by `to_matrix`. Specifically, the indices of a statevector "
     "with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates "
     "that a state where the qubit with index 0 equals 1 with probability 1 is given by "
     "the vector {0., 1., 0., 0.}.")
-  .def("get_min_degree", &boson_op::min_degree,
+  .def_property_readonly("min_degree", &boson_op::min_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("get_max_degree", &boson_op::max_degree,
+  .def_property_readonly("max_degree", &boson_op::max_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("get_term_count", &boson_op::num_terms,
+  .def_property_readonly("term_count", &boson_op::num_terms,
     "Returns the number of terms in the operator.")
-  .def("get_parameter_descriptions", &boson_op::get_parameter_descriptions,
-    "Returns a dictionary that maps each parameter name to its description.")
 
   // constructors
 
@@ -302,24 +302,24 @@ void bindBosonOperator(py::module &mod) {
 
   // properties
 
-  .def("degrees", &boson_op_term::degrees,
+  .def_property_readonly("parameters", &boson_op_term::get_parameter_descriptions,
+    "Returns a dictionary that maps each parameter name to its description.")
+  .def_property_readonly("degrees", &boson_op_term::degrees,
     "Returns a vector that lists all degrees of freedom that the operator targets. "
     "The order of degrees is from smallest to largest and reflects the ordering of "
     "the matrix returned by `to_matrix`. Specifically, the indices of a statevector "
     "with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates "
     "that a state where the qubit with index 0 equals 1 with probability 1 is given by "
     "the vector {0., 1., 0., 0.}.")
-  .def("get_min_degree", &boson_op_term::min_degree,
+  .def_property_readonly("min_degree", &boson_op_term::min_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("get_max_degree", &boson_op_term::max_degree,
+  .def_property_readonly("max_degree", &boson_op_term::max_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("get_ops_count", &boson_op_term::num_ops,
+  .def_property_readonly("ops_count", &boson_op_term::num_ops,
     "Returns the number of operators in the product.")
-  .def("get_term_id", &boson_op_term::get_term_id,
+  .def_property_readonly("term_id", &boson_op_term::get_term_id,
     "The term id uniquely identifies the operators and targets (degrees) that they act on, "
     "but does not include information about the coefficient.")
-  .def("get_parameter_descriptions", &boson_op_term::get_parameter_descriptions,
-    "Returns a dictionary that maps each parameter name to its description.")
 
   // constructors
 

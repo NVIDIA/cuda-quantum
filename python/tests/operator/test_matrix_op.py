@@ -31,12 +31,12 @@ def test_definitions():
     with pytest.raises(Exception): squeeze(1).to_matrix(dims, displacement = 0.5 + 1.2j)
     with pytest.raises(Exception): displace(1).to_matrix(dims, squeeze = 0.5 + 1.2j)
 
-    squeeze_params = squeeze(1).get_parameter_descriptions()
+    squeeze_params = squeeze(1).parameters
     print(squeeze_params)
     assert "squeezing" in squeeze_params
     assert squeeze_params["squeezing"] != ""
 
-    displace_params = displace(1).get_parameter_descriptions()
+    displace_params = displace(1).parameters
     print(displace_params)
     assert "displacement" in displace_params
     assert displace_params["displacement"] != ""
@@ -50,24 +50,24 @@ def test_construction():
     sum = empty()
     assert np.allclose(sum.to_matrix(), zero_matrix(1))
     sum *= number(0)
-    assert sum.degrees() == []
+    assert sum.degrees == []
     assert np.allclose(sum.to_matrix(), zero_matrix(1))
     sum += identity(1)
-    assert sum.degrees() == [1]
+    assert sum.degrees == [1]
     assert np.allclose(sum.to_matrix({1: 3}), identity_matrix(3))
     sum *= number(1)
     assert np.allclose(sum.to_matrix({1: 3}), number_matrix(3))
     sum = empty()
     assert np.allclose(sum.to_matrix(), zero_matrix(1))
     sum -= identity(0)
-    assert sum.degrees() == [0]
+    assert sum.degrees == [0]
     assert np.allclose(sum.to_matrix({0: 3}), -identity_matrix(3))
     ids = identities(3, 5)
-    assert ids.degrees() == [3, 4]
+    assert ids.degrees == [3, 4]
     assert np.allclose(ids.to_matrix({3: 3, 4: 3}), identity_matrix(3 * 3))
     canon = ids.copy().canonicalize()
-    assert ids.degrees() == [3, 4]
-    assert canon.degrees() == []
+    assert ids.degrees == [3, 4]
+    assert canon.degrees == []
     assert canon.to_matrix() == identity_matrix(1)
 
 
@@ -86,7 +86,7 @@ def test_iteration():
         for op in prod:
             prod_terms += 1
             term_id += op.to_string(include_degrees = True)
-        assert term_id == prod.get_term_id()
+        assert term_id == prod.term_id
     assert sum_terms == 2
     assert prod_terms == 4
 
@@ -96,21 +96,21 @@ def test_properties():
     prod1 = position(1) * momentum(0)
     prod2 = number(1) * parity(3)
     sum = prod1 + prod2
-    assert prod1.degrees() == [0, 1]
-    assert prod2.degrees() == [1, 3]
-    assert sum.degrees() == [0, 1, 3]
-    assert prod1.get_min_degree() == 0
-    assert prod1.get_max_degree() == 1
-    assert prod2.get_min_degree() == 1
-    assert prod2.get_max_degree() == 3
-    assert sum.get_min_degree() == 0
-    assert sum.get_max_degree() == 3
+    assert prod1.degrees == [0, 1]
+    assert prod2.degrees == [1, 3]
+    assert sum.degrees == [0, 1, 3]
+    assert prod1.min_degree == 0
+    assert prod1.max_degree == 1
+    assert prod2.min_degree == 1
+    assert prod2.max_degree == 3
+    assert sum.min_degree == 0
+    assert sum.max_degree == 3
 
     dims = {0: 2, 1: 3, 2: 2, 3: 4}
-    assert sum.get_term_count() == 2
-    assert prod1.get_ops_count() == 2
+    assert sum.term_count == 2
+    assert prod1.ops_count == 2
     sum += prod1
-    assert sum.get_term_count() == 2
+    assert sum.term_count == 2
     prod1_mat = np.kron(identity_matrix(4), np.kron(position_matrix(3), momentum_matrix(2)))
     prod2_mat = np.kron(parity_matrix(4), np.kron(number_matrix(3), identity_matrix(2)))
     assert np.allclose(sum.to_matrix(dims), prod1_mat + prod1_mat + prod2_mat)
@@ -119,7 +119,7 @@ def test_properties():
     sum.dump()
     assert str(prod1) == "(1.000000+0.000000i) * momentum(0)position(1)"
     assert str(sum) == "(2.000000+0.000000i) * momentum(0)position(1) + (1.000000+0.000000i) * number(1)parity(3)"
-    assert prod1.get_term_id() == "momentum(0)position(1)"
+    assert prod1.term_id == "momentum(0)position(1)"
 
 
 def test_canonicalization():
@@ -141,18 +141,18 @@ def test_canonicalization():
                 expected *= number(target)
 
         assert op != expected
-        assert op.degrees() == all_degrees
+        assert op.degrees == all_degrees
         op.canonicalize()
         assert op == expected
-        assert op.degrees() != all_degrees
-        assert op.degrees() == expected.degrees()
+        assert op.degrees != all_degrees
+        assert op.degrees == expected.degrees
         assert np.allclose(op.to_matrix(dims), expected.to_matrix(dims))
 
         op.canonicalize(set(all_degrees))
-        assert op.degrees() == all_degrees
+        assert op.degrees == all_degrees
         canon = canonicalized(op)
-        assert op.degrees() == all_degrees
-        assert canon.degrees() == expected.degrees()
+        assert op.degrees == all_degrees
+        assert canon.degrees == expected.degrees
 
     # sum operator
     previous = empty()
@@ -161,15 +161,15 @@ def test_canonicalization():
         canon = got.copy() # standard python behavior is for assignments not to copy
         term_with_missing_degrees = False
         for term in canon:
-            if term.degrees() != all_degrees:
+            if term.degrees != all_degrees:
                 term_with_missing_degrees = True
         assert term_with_missing_degrees
         assert canon == got
         canon.canonicalize(want_degrees)
         assert canon != got
-        assert canon.degrees() == all_degrees
+        assert canon.degrees == all_degrees
         for term in canon:
-            assert term.degrees() == all_degrees
+            assert term.degrees == all_degrees
 
     for id_target in all_degrees:
         term = identity()
@@ -192,12 +192,12 @@ def test_canonicalization():
         assert got != expected
         got.canonicalize()
         assert got == expected
-        assert got.degrees() == expected.degrees()
+        assert got.degrees == expected.degrees
         assert np.allclose(got.to_matrix(dims), expected.to_matrix(dims))
         check_expansion(got, set(all_degrees))
         if id_target > 0: check_expansion(got, set())
         with pytest.raises(Exception):
-            got.canonicalize(got.degrees()[1:])
+            got.canonicalize(got.degrees[1:])
 
 
 def test_trimming():
@@ -218,20 +218,20 @@ def test_trimming():
         orig = empty()
         for term in terms:
             orig += term
-        assert orig.get_term_count() == len(all_degrees)
-        assert orig.degrees() == all_degrees
+        assert orig.term_count == len(all_degrees)
+        assert orig.degrees == all_degrees
         orig.trim()
-        assert orig.get_term_count() < len(all_degrees)
-        assert orig.get_term_count() == expected.get_term_count()
-        assert orig.degrees() == expected.degrees()
+        assert orig.term_count < len(all_degrees)
+        assert orig.term_count == expected.term_count
+        assert orig.degrees == expected.degrees
         assert np.allclose(orig.to_matrix(dims), expected.to_matrix(dims))
         # check that our term map seems accurate
         for term in expected:
-            orig += float(term.degrees()[0]) * term
-        assert orig.get_term_count() == expected.get_term_count()
-        assert orig.degrees() == expected.degrees()
+            orig += float(term.degrees[0]) * term
+        assert orig.term_count == expected.term_count
+        assert orig.degrees == expected.degrees
         for term in orig:
-            assert term.evaluate_coefficient() == term.degrees()[0] + 1.
+            assert term.evaluate_coefficient() == term.degrees[0] + 1.
 
 
 def test_equality():
@@ -338,11 +338,11 @@ def test_term_distribution():
     for target in range(7):
         op += identity(target)
     batches = op.distribute_terms(4)
-    assert op.get_term_count() == 7
+    assert op.term_count == 7
     assert len(batches) == 4
     for idx in range(3):
-        assert batches[idx].get_term_count() == 2
-    assert batches[3].get_term_count() == 1
+        assert batches[idx].term_count == 2
+    assert batches[3].term_count == 1
     sum = empty()
     for batch in batches:
         sum += batch

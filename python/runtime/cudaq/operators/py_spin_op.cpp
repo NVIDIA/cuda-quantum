@@ -130,25 +130,25 @@ void bindSpinOperator(py::module &mod) {
 
   // properties
 
-  // todo: add a target property?      
-  .def("degrees", &spin_op::degrees,
+  .def_property_readonly("parameters", &spin_op::get_parameter_descriptions,
+    "Returns a dictionary that maps each parameter name to its description.")
+  // todo: add a targets property?      
+  .def_property_readonly("degrees", &spin_op::degrees,
     "Returns a vector that lists all degrees of freedom that the operator targets. "
     "The order of degrees is from smallest to largest and reflects the ordering of "
     "the matrix returned by `to_matrix`. Specifically, the indices of a statevector "
     "with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates "
     "that a state where the qubit with index 0 equals 1 with probability 1 is given by "
     "the vector {0., 1., 0., 0.}.")
-  .def("get_min_degree", &spin_op::min_degree,
+  .def_property_readonly("min_degree", &spin_op::min_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("get_max_degree", &spin_op::max_degree,
+  .def_property_readonly("max_degree", &spin_op::max_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("get_term_count", &spin_op::num_terms,
+  .def_property_readonly("term_count", &spin_op::num_terms,
     "Returns the number of terms in the operator.")
   // only exists for spin operators
-  .def("get_qubit_count", &spin_op::num_qubits<spin_handler>,
+  .def_property_readonly("qubit_count", &spin_op::num_qubits<spin_handler>,
     "Return the number of qubits this operator acts on.")
-  .def("get_parameter_descriptions", &spin_op::get_parameter_descriptions,
-    "Returns a dictionary that maps each parameter name to its description.")
 
   // constructors
 
@@ -396,6 +396,20 @@ void bindSpinOperator(py::module &mod) {
          throw std::runtime_error("expecting a spin op with at most one term");
        return op.begin()->evaluate_coefficient();
      }, "Deprecated - use `evaluate_coefficient` on each term (product operator) instead.")
+  // deprecated just to make naming more consistent across the entire API
+  .def("get_term_count", [](const spin_op &op) {
+    PyErr_WarnEx(PyExc_DeprecationWarning, 
+       "use `term_count` instead", 
+       1);
+    return op.num_terms();
+  }, "Deprecated - use `term_count` instead.")
+  // deprecated just to make naming more consistent across the entire API
+  .def("get_qubit_count", [](const spin_op &op) {
+    PyErr_WarnEx(PyExc_DeprecationWarning, 
+       "use `qubit_count` instead", 
+       1);
+    return op.num_qubits();
+  }, "Deprecated - use `qubit_count` instead.")
   .def("get_raw_data", [](const spin_op &self) {
        PyErr_WarnEx(PyExc_DeprecationWarning, 
          "raw data access will no longer be supported", 
@@ -473,36 +487,27 @@ void bindSpinOperator(py::module &mod) {
 
   // properties
 
-  .def("degrees", &spin_op_term::degrees,
+  .def_property_readonly("parameters", &spin_op_term::get_parameter_descriptions,
+    "Returns a dictionary that maps each parameter name to its description.")
+  .def_property_readonly("degrees", &spin_op_term::degrees,
     "Returns a vector that lists all degrees of freedom that the operator targets. "
     "The order of degrees is from smallest to largest and reflects the ordering of "
     "the matrix returned by `to_matrix`. Specifically, the indices of a statevector "
     "with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates "
     "that a state where the qubit with index 0 equals 1 with probability 1 is given by "
     "the vector {0., 1., 0., 0.}.")
-  .def("get_min_degree", &spin_op_term::min_degree,
+  .def_property_readonly("min_degree", &spin_op_term::min_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("get_max_degree", &spin_op_term::max_degree,
+  .def_property_readonly("max_degree", &spin_op_term::max_degree,
     "Returns the smallest index of the degrees of freedom that the operator targets.")
-  .def("get_ops_count", &spin_op_term::num_ops,
+  .def_property_readonly("ops_count", &spin_op_term::num_ops,
     "Returns the number of operators in the product.")
   // only exists for spin operators
-  .def("get_qubit_count", &spin_op_term::num_qubits<spin_handler>,
+  .def_property_readonly("qubit_count", &spin_op_term::num_qubits<spin_handler>,
     "Return the number of qubits this operator acts on.")
-  .def("get_term_id", &spin_op_term::get_term_id,
+  .def_property_readonly("term_id", &spin_op_term::get_term_id,
     "The term id uniquely identifies the operators and targets (degrees) that they act on, "
     "but does not include information about the coefficient.")
-  .def("get_parameter_descriptions", &spin_op_term::get_parameter_descriptions,
-    "Returns a dictionary that maps each parameter name to its description.")
-  // only exists for spin operators
-  .def("get_pauli_word", [](spin_op_term &op, std::size_t pad_identities) {
-       return op.get_pauli_word(pad_identities);
-   }, py::arg("pad_identities") = 0,
-   "Gets the Pauli word representation of this product operator.")
-  // only exists for spin operators
-  .def("get_binary_symplectic_form",
-    &spin_op_term::get_binary_symplectic_form<spin_handler>,
-    "Gets the binary symplectic representation of this operator.")
 
   // constructors
 
@@ -675,6 +680,15 @@ void bindSpinOperator(py::module &mod) {
     },
     "Convert spin_op to JSON string: '[d1, d2, d3, ...]'") 
   */
+  // only exists for spin operators
+  .def("get_pauli_word", [](spin_op_term &op, std::size_t pad_identities) {
+       return op.get_pauli_word(pad_identities);
+   }, py::arg("pad_identities") = 0,
+   "Gets the Pauli word representation of this product operator.")
+  // only exists for spin operators
+  .def("get_binary_symplectic_form",
+    &spin_op_term::get_binary_symplectic_form<spin_handler>,
+    "Gets the binary symplectic representation of this operator.")
   .def("canonicalize", [](spin_op_term &self) { return self.canonicalize(); },
     "Removes all identity operators from the operator.")
   .def("canonicalize", [](spin_op_term &self, const std::set<std::size_t> &degrees) { return self.canonicalize(degrees); },
@@ -705,6 +719,13 @@ void bindSpinOperator(py::module &mod) {
           1);
        return op.evaluate_coefficient();
      }, "Deprecated - use `evaluate_coefficient` instead.")
+  // deprecated just to make naming more consistent across the entire API
+  .def("get_qubit_count", [](const spin_op_term &op) {
+       PyErr_WarnEx(PyExc_DeprecationWarning, 
+          "use `qubit_count` instead", 
+          1);
+       return op.num_qubits();
+     }, "Deprecated - use `qubit_count` instead.")
   .def("get_raw_data", [](const spin_op_term &self) {
        PyErr_WarnEx(PyExc_DeprecationWarning, 
           "raw data access will no longer be supported", 
