@@ -36,11 +36,11 @@ class ScalarOperator:
         Represents the definition of a scalar operator.
         """
 
-        __slots__ = ['_parameters', '_generator', 'name']
+        __slots__ = ['_generator', '_name']
             
         def __init__(self: ScalarOperator.Definition,
                      generator: Callable[..., NumericType],
-                     parameter_info: Optional[Callable[[], Mapping[str, str]]],
+                     parameter_info: Optional[Mapping[str, str]],
                      create_key: object) -> None:
             """
             Creates the definition of a scalar operator.
@@ -62,9 +62,8 @@ class ScalarOperator:
                    f"operator definitions must be created using the `{self.__class__.__name__}.generator` setter"
             
             if isinstance(generator, NumericType):
-                self._parameters = {}
                 self._generator = scalar_op_cpp(numpy.complex128(generator))
-                self.name = str(generator) # FIXME ??
+                self._name = None
                 return
 
             # A variable number of arguments (i.e. `*args`) cannot be supported
@@ -76,35 +75,28 @@ class ScalarOperator:
                     f"generator for a '{type(self).__name__}' must not take *args"
                 )
             if parameter_info is None:
-                parameters = {}
+                parameter_info = {}
                 for arg_name in arg_spec.args + arg_spec.kwonlyargs:
-                    parameters[arg_name] = _OperatorHelpers.parameter_docs(
+                    parameter_info[arg_name] = _OperatorHelpers.parameter_docs(
                         arg_name, generator.__doc__)
-                parameter_info = lambda: parameters
-            # We need a function to retrieve information about what parameters
-            # are required to invoke the generator, to ensure that the information
-            # accurately captures any updates to the generators of sub-operators.
-            self._parameters = parameter_info
             def generator_wrapper(kwargs : dict[str, NumericType]):
                 generator_args, remaining_kwargs = _OperatorHelpers.args_from_kwargs(generator, **kwargs)
                 return generator(*generator_args, **remaining_kwargs)
-            self._generator = scalar_op_cpp(generator_wrapper, **parameter_info())
-            self.name = generator.__name__
+            self._generator = scalar_op_cpp(generator_wrapper, **parameter_info)
+            self._name = generator.__name__
 
         @property
-        def parameters(
+        def name(
                 self: ScalarOperator.Definition
-        ) -> Callable[[], Mapping[str, str]]:
+        ) -> str:
             """
-            Contains information about the parameters required to evaluate the
-            generator function of the operator. The keys are the parameter names, 
-            and the values are their documentation (if available).
+            Contains the name of the generator.
             """
-            return self._parameters
+            return self._name
 
         @property
         def generator(
-                self: ScalarOperator.Definition) -> Callable[..., NumericType]:
+                self: ScalarOperator.Definition) -> scalar_op_cpp:
             """
             A callable that takes any number of complex-valued keyword arguments and 
             returns the scalar value representing the evaluated operator.
@@ -125,8 +117,7 @@ class ScalarOperator:
     def __init__(
         self: ScalarOperator,
         generator: NumericType | Callable[..., NumericType],
-        parameter_info: Optional[Callable[[], Mapping[str,
-                                                      str]]] = None) -> None:
+        parameter_info: Optional[Mapping[str, str]] = None) -> None:
         """
         Instantiates a scalar operator.
 
@@ -149,47 +140,19 @@ class ScalarOperator:
         return self._definition.generator == other._definition.generator
 
     @property
-    def generator(self: ScalarOperator) -> Callable[..., NumericType]: # FIXME: THIS IS A LIE
-        """
-        The function that generates the value of the scalar operator. 
-        The function can take any number of complex-valued arguments
-        and returns a number.
-        """
-        return self._definition.generator
-
-    @generator.setter
-    def generator(self: ScalarOperator,
-                  generator: Callable[..., NumericType]) -> None:
-        """
-        Sets the generator function. The generator function must not take a 
-        variable number of arguments (that is it must not take `*args`), and 
-        its parameter names should be descriptive keywords and the parameters 
-        should be documented following Google documentation comment style. 
-
-        Setting the generator of a scalar operator updates its evaluated value
-        in all operators that contain the scalar operator.
-        """
-        self._definition = ScalarOperator.Definition(generator, None,
-                                                     self._create_key)
-
-    @property
     def parameters(self: ScalarOperator) -> Mapping[str, str]:
         """
         A mapping that contains the documentation comment for each parameter 
         needed to evaluate the generator.
         """
-        return self._definition.parameters()
-
-    @property
-    def _is_spinop(self: ScalarOperator) -> bool:
-        return True  # supported as coefficient
+        return self._definition.generator.parameters
 
     def _invoke(self: ScalarOperator, **kwargs: NumericType) -> NumericType:
         """
         Helper function that extracts the necessary arguments from the given keyword 
         arguments and invokes the generator. 
         """
-        evaluated = self.generator.evaluate(**kwargs)
+        evaluated = self._definition.generator.evaluate(**kwargs)
         if not isinstance(evaluated, NumericType):
             raise TypeError(
                 f"generator of {type(self).__name__} must return a number")
@@ -232,8 +195,10 @@ class ScalarOperator:
         return numpy.array([self._invoke(**kwargs)], dtype=numpy.complex128)
 
     def __str__(self: ScalarOperator) -> str:
-        if len(self.parameters) == 0:
-            return self._definition.name
+        if self._definition.generator.is_constant():
+            return str(self._definition.generator.evaluate())
+        if len(self._definition.generator.parameters) == 0:
+            return self._definition.name or "lambda"
         parameter_names = ", ".join(self.parameters)
         return f"{self._definition.name or 'f'}({parameter_names})"
 
@@ -249,16 +214,16 @@ class ScalarOperator:
             if self._definition.generator.is_constant():
                 return ScalarOperator.const(fct(self._definition.generator.evaluate(), other))
             generator = lambda **kwargs: fct(self._invoke(**kwargs), other)
-            return ScalarOperator(generator, self._definition.parameters)
+            return ScalarOperator(generator, self._definition.generator.parameters)
         elif type(other) == ScalarOperator:
             if self._definition.generator.is_constant() and other._definition.generator.is_constant():
                 return ScalarOperator.const(
                     fct(self._definition.generator.evaluate(), other._definition.generator.evaluate()))
             generator = lambda **kwargs: fct(self._invoke(**kwargs),
                                                 other._invoke(**kwargs))
-            parameter_info = lambda: _OperatorHelpers.aggregate_parameters([
-                self._definition.parameters(),
-                other._definition.parameters()
+            parameter_info = _OperatorHelpers.aggregate_parameters([
+                self._definition.generator.parameters,
+                other._definition.generator.parameters
             ])
             return ScalarOperator(generator, parameter_info)
         return NotImplemented

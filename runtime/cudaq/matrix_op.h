@@ -52,12 +52,6 @@ protected:
   bool commutes;
   std::vector<std::size_t> targets;
 
-  matrix_handler(std::string operator_id,
-                 const std::vector<std::size_t> &degrees,
-                 const commutation_behavior &behavior = commutation_behavior());
-  matrix_handler(std::string operator_id, std::vector<std::size_t> &&degrees,
-                 const commutation_behavior &behavior = commutation_behavior());
-
 public:
 #if !defined(NDEBUG)
   static bool
@@ -161,6 +155,13 @@ public:
   // constructors and destructors
 
   matrix_handler(std::size_t target);
+
+  matrix_handler(std::string operator_id,
+                 const std::vector<std::size_t> &degrees,
+                 const commutation_behavior &behavior = commutation_behavior());
+
+  matrix_handler(std::string operator_id, std::vector<std::size_t> &&degrees,
+                 const commutation_behavior &behavior = commutation_behavior());
 
   template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
                                          bool> = true>

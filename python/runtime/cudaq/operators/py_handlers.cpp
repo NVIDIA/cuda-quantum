@@ -27,6 +27,8 @@ void bindPauli(py::module mod) {
 }
 
 void bindOperatorHandlers(py::module &mod) {
+  using matrix_callback = std::function<complex_matrix(const std::vector<int64_t> &, const parameter_map &)>;
+
   auto cmat_to_numpy = [](const complex_matrix &m) {
     std::vector<ssize_t> shape = {static_cast<ssize_t>(m.rows()),
                                   static_cast<ssize_t>(m.cols())};
@@ -48,8 +50,24 @@ void bindOperatorHandlers(py::module &mod) {
     return params;
   };
 
+  auto kwargs_to_param_description = [](const py::kwargs& kwargs) {
+    std::unordered_map<std::string, std::string> param_desc;
+    for (auto &[keyPy, valuePy] : kwargs) {
+      std::string key = py::str(keyPy);
+      std::string value = py::str(valuePy);
+      param_desc.insert(param_desc.end(), std::pair<std::string, std::string>(key, value));
+    }
+    return param_desc;
+  };
+
   py::class_<matrix_handler>(mod, "ElementaryMatrix")
-  .def(py::init<std::size_t>(), "Creates and identity operator on the given target.")
+  .def(py::init<std::size_t>(), "Creates an identity operator on the given target.")
+  .def(py::init([](std::string operator_id, 
+                   std::vector<std::size_t> degrees) {
+      return matrix_handler(std::move(operator_id), std::move(degrees)); // FIXME: BIND AND SUPPORT COMMUTATION BEHAVIOR
+    }), py::arg("id"), py::arg("degrees"),
+    "Creates the matrix operator with the given id acting on the given degrees of "
+    "freedom. Throws a runtime exception if no operator with that id has been defined.")
   .def(py::init<const matrix_handler &>(),
     "Copy constructor.")
   .def("__eq__", &matrix_handler::operator==)
@@ -72,10 +90,22 @@ void bindOperatorHandlers(py::module &mod) {
     },
     py::arg("dimensions") = dimension_map(),
     "Returns the matrix representation of the operator.")
+
+  // tools for custom operators
+  .def_static("define", [&kwargs_to_param_description](std::string operator_id, 
+                           std::vector<int64_t> expected_dimensions,
+                           const matrix_callback &func,
+                           const py::kwargs &kwargs) {
+      return matrix_handler::define(std::move(operator_id), 
+                                    std::move(expected_dimensions),
+                                    func, kwargs_to_param_description(kwargs));
+    }, py::arg("operator_id"), py::arg("expected_dimensions"), py::arg("callback"),
+    "Defines a matrix operator with the given name and dimensions whose"
+    "matrix representation can be obtained by invoking the given callback function.")
   ;
 
   py::class_<boson_handler>(mod, "ElementaryBoson")
-  .def(py::init<std::size_t>(), "Creates and identity operator on the given target.")
+  .def(py::init<std::size_t>(), "Creates an identity operator on the given target.")
   .def(py::init<const boson_handler &>(),
     "Copy constructor.")
   .def("__eq__", &boson_handler::operator==)
@@ -101,7 +131,7 @@ void bindOperatorHandlers(py::module &mod) {
   ;
 
   py::class_<fermion_handler>(mod, "ElementaryFermion")
-  .def(py::init<std::size_t>(), "Creates and identity operator on the given target.")
+  .def(py::init<std::size_t>(), "Creates an identity operator on the given target.")
   .def(py::init<const fermion_handler &>(),
     "Copy constructor.")
   .def("__eq__", &fermion_handler::operator==)
@@ -127,7 +157,7 @@ void bindOperatorHandlers(py::module &mod) {
   ;
 
   py::class_<spin_handler>(mod, "ElementarySpin")
-  .def(py::init<std::size_t>(), "Creates and identity operator on the given target.")
+  .def(py::init<std::size_t>(), "Creates an identity operator on the given target.")
   .def(py::init<const spin_handler &>(),
     "Copy constructor.")
   .def("__eq__", &spin_handler::operator==)

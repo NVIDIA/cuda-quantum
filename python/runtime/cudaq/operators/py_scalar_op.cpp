@@ -49,10 +49,8 @@ void bindScalarOperator(py::module &mod) {
 
   // properties
 
-  .def("__str__", &scalar_operator::to_string,
-    "Returns the string representation of the operator.")
-  .def("is_constant", &scalar_operator::is_constant,
-    "Returns true if the scalar is a constant value.")
+  .def_property_readonly("parameters", &scalar_operator::get_parameter_descriptions,
+    "Returns a dictionary that maps each parameter name to its description.")
 
   // constructors
 
@@ -61,8 +59,8 @@ void bindScalarOperator(py::module &mod) {
   .def(py::init<std::complex<double>>(), "Creates a scalar operator with the given constant value.")
   .def(py::init([&kwargs_to_param_description](const scalar_callback &func, const py::kwargs &kwargs) {
       return scalar_operator(func, kwargs_to_param_description(kwargs));
-    }), 
-    "Creates a scalar operator where the given callable function is invoked during evaluation.")
+    }), py::arg("callback"),
+    "Creates a scalar operator where the given callback function is invoked during evaluation.")
   .def(py::init<const scalar_operator &>(), "Copy constructor.")
 
   // evaluations
@@ -75,6 +73,13 @@ void bindScalarOperator(py::module &mod) {
   // comparisons
 
   .def("__eq__", &scalar_operator::operator==)
+
+  // general utility functions
+
+  .def("is_constant", &scalar_operator::is_constant,
+    "Returns true if the scalar is a constant value.")
+  .def("__str__", &scalar_operator::to_string,
+    "Returns the string representation of the operator.")
   ;
 }
 
