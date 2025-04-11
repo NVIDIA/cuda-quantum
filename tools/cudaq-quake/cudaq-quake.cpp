@@ -150,7 +150,7 @@ public:
                    std::move(VD));
   }
   void Initialize(clang::ASTContext &Ctx) override {
-    applyConsumers(&clang::ASTConsumer::Initialize, std::move(Ctx));
+    applyConsumers(&clang::ASTConsumer::Initialize, Ctx);
   }
   bool HandleTopLevelDecl(clang::DeclGroupRef D) override {
     bool result = true;
