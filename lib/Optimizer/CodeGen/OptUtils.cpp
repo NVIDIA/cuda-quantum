@@ -6,19 +6,23 @@
 //
 //===----------------------------------------------------------------------===//
 //
+// Additional modifications by NVIDIA Corporation.
+// - Use cudaq namespace instead of mlir namespace.
+// - Remove usage of formatv for error message (convenience)
+
+//===----------------------------------------------------------------------===//
+//
 // This file implements the utility functions to trigger LLVM optimizations from
 // MLIR Execution Engine.
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/ExecutionEngine/OptUtils.h"
+#include "cudaq/Optimizer/CodeGen/OptUtils.h"
 
-#include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Passes/OptimizationLevel.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/Error.h"
-#include "llvm/Support/FormatVariadic.h"
 #include "llvm/Target/TargetMachine.h"
 #include <optional>
 
@@ -53,15 +57,15 @@ static std::optional<OptimizationLevel> mapToLevel(unsigned optLevel,
 // Create and return a lambda that uses LLVM pass manager builder to set up
 // optimizations based on the given level.
 std::function<Error(Module *)>
-mlir::makeOptimizingTransformer(unsigned optLevel, unsigned sizeLevel,
-                                TargetMachine *targetMachine) {
-  return [optLevel, sizeLevel, targetMachine](Module *m) -> Error {
+cudaq::makeOptimizingTransformer(unsigned optLevel, unsigned sizeLevel,
+                                 TargetMachine *targetMachine,
+                                 bool allowVectorization) {
+  return [optLevel, sizeLevel, targetMachine,
+          allowVectorization](Module *m) -> Error {
     std::optional<OptimizationLevel> ol = mapToLevel(optLevel, sizeLevel);
     if (!ol) {
       return make_error<StringError>(
-          formatv("invalid optimization/size level {0}/{1}", optLevel,
-                  sizeLevel)
-              .str(),
+          std::string("invalid optimization/size level"),
           inconvertibleErrorCode());
     }
     LoopAnalysisManager lam;
@@ -72,8 +76,8 @@ mlir::makeOptimizingTransformer(unsigned optLevel, unsigned sizeLevel,
     PipelineTuningOptions tuningOptions;
     tuningOptions.LoopUnrolling = true;
     tuningOptions.LoopInterleaving = true;
-    tuningOptions.LoopVectorization = true;
-    tuningOptions.SLPVectorization = true;
+    tuningOptions.LoopVectorization = allowVectorization;
+    tuningOptions.SLPVectorization = allowVectorization;
 
     PassBuilder pb(targetMachine, tuningOptions);
 
