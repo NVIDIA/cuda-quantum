@@ -115,16 +115,14 @@ using remove_cvref_t = typename std::remove_cv_t<std::remove_reference_t<T>>;
 template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
           typename Operator = typename cudaq::qkernel_deduction_guide_helper<
               decltype(&QuantumKernel::operator())>::type,
-          typename QKernel = cudaq::qkernel<Operator>,
           std::enable_if_t<std::is_class_v<Q>, bool> = true>
-QKernel createQKernel(QuantumKernel &&kernel) {
+cudaq::qkernel<Operator> createQKernel(QuantumKernel &&kernel) {
   return {kernel};
 }
 
 template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
-          typename QKernel = cudaq::qkernel<Q>,
           std::enable_if_t<!std::is_class_v<Q>, bool> = true>
-QKernel createQKernel(QuantumKernel &&kernel) {
+cudaq::qkernel<Q> createQKernel(QuantumKernel &&kernel) {
   return {kernel};
 }
 #endif

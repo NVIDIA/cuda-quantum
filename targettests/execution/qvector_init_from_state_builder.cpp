@@ -116,4 +116,6 @@ int main() {
   // CHECK: 00
   // CHECK: 10
   // clang-format on
+
+  return 0;
 }
