@@ -11,10 +11,10 @@ from numpy.typing import NDArray
 from typing import Sequence
 
 from .helpers import NumericType
-from .expressions import OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator, RydbergHamiltonian
+#from .expressions import OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator, RydbergHamiltonian
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
-
+'''
 # Operators as defined here (watch out of differences in convention):
 # https://www.dynamiqs.org/stable/python_api/utils/operators/create.html
 class operators:
@@ -151,8 +151,9 @@ class operators:
     @classmethod
     def momentum(cls, degree: int) -> ElementaryOperator:
         return ElementaryOperator("op_momentum", [degree])
+'''
 
-
+'''
 class spin:
     ElementaryOperator.define(
         "pauli_x", [2], lambda: cudaq_runtime.spin.x(0).to_matrix())
@@ -184,8 +185,17 @@ class spin:
     @classmethod
     def minus(cls, degree: int) -> OperatorSum:
         return (cls.x(degree) - ScalarOperator.const(1j) * cls.y(degree)) / 2
+'''
 
+from cudaq import boson, fermion, spin_op as spin, ops as operators
+from ..spin_op import SpinOperator, SpinOperatorTerm
+from ..fermion import FermionOperator, FermionOperatorTerm
+from ..boson import BosonOperator, BosonOperatorTerm
+from ..ops import MatrixOperator, MatrixOperatorTerm
+from .scalar_op import ScalarOperator
+from .custom_op import ElementaryOperator
 
+'''
 # Trampoline class to maintain backward compatibility with native `SpinOperator` class.
 # In particular, it dispatches static methods, e.g., `random()` as well as various factory methods, e.g., create from file, serialized data, etc.
 class SpinOperator(OperatorSum):
@@ -255,3 +265,4 @@ class SpinOperator(OperatorSum):
             return OperatorSum._from_spin_op(
                 cudaq_runtime.SpinOperator.random(qubit_count, term_count,
                                                   seed))
+'''

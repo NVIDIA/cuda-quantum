@@ -8,6 +8,12 @@
 
 from .definitions import operators, spin
 from .evolution import evolve, evolve_async
-from .expressions import Operator, OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator, RydbergHamiltonian
+from .expressions import Operator, RydbergHamiltonian
 from .helpers import NumericType, InitialState
 from .schedule import Schedule
+from .scalar_op import ScalarOperator
+from .custom_op import ElementaryOperator
+from ..boson import *
+from ..fermion import *
+from ..spin_op import *
+from ..ops import *

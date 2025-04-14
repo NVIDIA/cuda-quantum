@@ -12,10 +12,15 @@ from typing import Any, Callable, Generator, Iterable, Mapping, Optional, Sequen
 from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType
-from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint, _SpinArithmetics
+from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
+from .helpers import CppOperator, CppOperatorTerm
+from .scalar_op import ScalarOperator
+from .custom_op import ElementaryOperator
+
+'''
 class OperatorSum:
     """
     Represents an operator expression consisting of a sum of terms, 
@@ -460,8 +465,9 @@ class OperatorSum:
         ]
         return OperatorSum(
             minus_terms) + other  # Operator addition is commutative.
+'''
 
-
+'''
 class ProductOperator(OperatorSum):
     """
     Represents an operator expression consisting of a product of elementary
@@ -641,8 +647,9 @@ class ProductOperator(OperatorSum):
                 call_back(op_id_to_enum[op._id], op.degrees[0])
             else:
                 raise ValueError("Unsupported operator type")
+'''
 
-
+'''
 class ElementaryOperator(ProductOperator):
     """
     Represents an elementary operator that acts on one or more degrees of freedom, 
@@ -992,8 +999,9 @@ class ElementaryOperator(ProductOperator):
     def __rsub__(self: ElementaryOperator, other: Any) -> OperatorSum:
         minus_self = ProductOperator((ScalarOperator.const(-1.), self))
         return minus_self + other  # Operator addition is commutative.
+'''
 
-
+'''
 class ScalarOperator(ProductOperator):
     """
     Represents a scalar operator defined as a function of zero or more 
@@ -1277,9 +1285,11 @@ class ScalarOperator(ProductOperator):
 
     def __rsub__(self: ScalarOperator, other: Any) -> ScalarOperator:
         return self._compose(other, lambda v1, v2: v2 - v1)
+'''
 
-
-class RydbergHamiltonian(OperatorSum):
+# FIXME: cpp version does not inherit from anything and does not define bindings
+# -> move to cpp bindings?
+class RydbergHamiltonian:
     """
     Representation for the time-dependent Hamiltonian which is simulated by
     analog neutral-atom machines such as QuEra's Aquila and Pasqal's Fresnel.
@@ -1339,7 +1349,8 @@ class RydbergHamiltonian(OperatorSum):
 # Doc strings for type alias are not supported in Python.
 # The string below hence merely serves to document it here;
 # within the Python AST it is not associated with the type alias.
-Operator = OperatorSum | ProductOperator | ElementaryOperator | ScalarOperator
+#Operator = OperatorSum | ProductOperator | ElementaryOperator | ScalarOperator
+Operator = CppOperator | CppOperatorTerm | ScalarOperator
 """
 Type of an arbitrary operator expression. 
 Operator expressions cannot be used within quantum kernels, but 

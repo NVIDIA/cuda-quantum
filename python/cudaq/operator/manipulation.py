@@ -230,6 +230,7 @@ class PrettyPrint(OperatorArithmetics[str]):
         return str(op)
 
 
+'''
 # FIXME(OperatorCpp): To be removed/replaced. We need to be able to pass general operators to cudaq.observe.
 class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator |
                                            NumericType]):
@@ -301,3 +302,4 @@ class _SpinArithmetics(OperatorArithmetics[cudaq_runtime.SpinOperator |
                 values of type `ElementaryOperator` or `ScalarOperator`.
         """
         self._kwargs = kwargs
+'''

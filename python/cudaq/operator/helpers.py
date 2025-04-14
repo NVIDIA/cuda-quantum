@@ -144,6 +144,7 @@ class _OperatorHelpers:
             return extracted_args, kwonlyargs
         return extracted_args, {}
 
+    '''
     @staticmethod
     def generate_all_states(degrees: Sequence[int],
                             dimensions: Mapping[int, int]) -> Tuple[str]:
@@ -180,3 +181,4 @@ class _OperatorHelpers:
         Returns the degrees sorted in canonical order.
         """
         return tuple(sorted(degrees, reverse=True))
+    '''
