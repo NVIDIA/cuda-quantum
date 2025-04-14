@@ -15,6 +15,11 @@
 #include <string>
 #include <vector>
 
+template <typename S, typename D>
+std::string cast_and_compare(S val, D expected) {
+  return ((D)val) == expected ? "1" : "0";
+}
+
 struct testBool {
   auto operator()() __qpu__ {
     cudaq::qubit qb;
@@ -300,28 +305,19 @@ void printCounts(cudaq::sample_result &result) {
 int main() {
   {
     std::string expected = "";
-    bool b = (bool)(true);
-    expected += b == true ? "1" : "0";
+    expected += cast_and_compare<bool, bool>(true, 1);
 
-    uint8_t u8 = (std::uint8_t)(true);
-    expected += u8 == 1 ? "1" : "0";
-    std::int8_t i8 = (std::int8_t)(true);
-    expected += i8 == 1 ? "1" : "0";
+    expected += cast_and_compare<bool, std::uint8_t>(true, 1);
+    expected += cast_and_compare<bool, std::int8_t>(true, 1);
 
-    uint16_t u16 = (std::uint16_t)(true);
-    expected += u16 == 1 ? "1" : "0";
-    std::int16_t i16 = (std::int16_t)(true);
-    expected += i16 == 1 ? "1" : "0";
+    expected += cast_and_compare<bool, std::uint16_t>(true, 1);
+    expected += cast_and_compare<bool, std::int16_t>(true, 1);
 
-    std::uint32_t u32 = (std::uint32_t)(true);
-    expected += u32 == 1 ? "1" : "0";
-    std::int32_t i32 = (std::int32_t)(true);
-    expected += i32 == 1 ? "1" : "0";
+    expected += cast_and_compare<bool, std::uint32_t>(true, 1);
+    expected += cast_and_compare<bool, std::int32_t>(true, 1);
 
-    std::uint64_t u64 = (std::uint64_t)(true);
-    expected += u64 == 1 ? "1" : "0";
-    std::int64_t i64 = (std::int64_t)(true);
-    expected += i64 == 1 ? "1" : "0";
+    expected += cast_and_compare<bool, std::uint64_t>(true, 1);
+    expected += cast_and_compare<bool, std::int64_t>(true, 1);
 
     printf("Expected: %s\n", expected.c_str());
 
@@ -332,29 +328,24 @@ int main() {
 
   {
     std::string expected = "";
+    expected += cast_and_compare<std::int8_t, bool>(
+        -1, std::numeric_limits<bool>::max());
 
-    bool b = (bool)((std::int8_t)-1);
-    expected += b == true ? "1" : "0";
+    expected += cast_and_compare<std::int8_t, std::uint8_t>(
+        -1, std::numeric_limits<std::uint8_t>::max());
+    expected += cast_and_compare<std::int8_t, std::int8_t>(-1, -1);
 
-    std::uint8_t u8 = (std::uint8_t)((std::int8_t)-1);
-    expected += u8 == 255 ? "1" : "0";
-    std::int8_t i8 = (std::int8_t)((std::int8_t)-1);
-    expected += i8 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int8_t, std::uint16_t>(
+        -1, std::numeric_limits<std::uint16_t>::max());
+    expected += cast_and_compare<std::int8_t, std::int16_t>(-1, -1);
 
-    std::uint16_t u16 = (std::uint16_t)((std::int8_t)-1);
-    expected += u16 == 65535 ? "1" : "0";
-    std::int16_t i16 = (std::int16_t)((std::int8_t)-1);
-    expected += i16 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int8_t, std::uint32_t>(
+        -1, std::numeric_limits<std::uint32_t>::max());
+    expected += cast_and_compare<std::int8_t, std::int32_t>(-1, -1);
 
-    std::uint32_t u32 = (std::uint32_t)((std::int8_t)-1);
-    expected += u32 == 4294967295 ? "1" : "0";
-    std::int32_t i32 = (std::int32_t)((std::int8_t)-1);
-    expected += i32 == -1 ? "1" : "0";
-
-    std::uint64_t u64 = (std::uint64_t)((std::int8_t)-1);
-    expected += u64 == 18446744073709551615UL ? "1" : "0";
-    std::int64_t i64 = (std::int64_t)((std::int8_t)-1);
-    expected += i64 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int8_t, std::uint64_t>(
+        -1, std::numeric_limits<std::uint64_t>::max());
+    expected += cast_and_compare<std::int8_t, std::int64_t>(-1, -1);
 
     printf("Expected: %s\n", expected.c_str());
 
@@ -365,29 +356,24 @@ int main() {
 
   {
     std::string expected = "";
+    expected += cast_and_compare<std::int16_t, bool>(
+        -1, std::numeric_limits<bool>::max());
 
-    bool b = (bool)((std::int16_t)-1);
-    expected += b == true ? "1" : "0";
+    expected += cast_and_compare<std::int16_t, std::uint8_t>(
+        -1, std::numeric_limits<std::uint8_t>::max());
+    expected += cast_and_compare<std::int16_t, std::int8_t>(-1, -1);
 
-    std::uint8_t u16_8 = (std::uint8_t)((std::int16_t)-1);
-    expected += u16_8 == 255 ? "1" : "0";
-    std::int8_t i16_8 = (std::int8_t)((std::int16_t)-1);
-    expected += i16_8 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int16_t, std::uint16_t>(
+        -1, std::numeric_limits<std::uint16_t>::max());
+    expected += cast_and_compare<std::int16_t, std::int16_t>(-1, -1);
 
-    std::uint16_t u16 = (std::uint16_t)((std::int16_t)-1);
-    expected += u16 == 65535U ? "1" : "0";
-    std::int16_t i16 = (std::int16_t)((std::int16_t)-1);
-    expected += i16 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int16_t, std::uint32_t>(
+        -1, std::numeric_limits<std::uint32_t>::max());
+    expected += cast_and_compare<std::int16_t, std::int32_t>(-1, -1);
 
-    std::uint32_t u32 = (std::uint32_t)((std::int16_t)-1);
-    expected += u32 == 4294967295 ? "1" : "0";
-    std::int32_t i32 = (std::int32_t)((std::int16_t)-1);
-    expected += i32 == -1 ? "1" : "0";
-
-    std::uint64_t u64 = (std::uint64_t)((std::int16_t)-1);
-    expected += u64 == 18446744073709551615UL ? "1" : "0";
-    std::int64_t i64 = (std::int64_t)((std::int16_t)-1);
-    expected += i64 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int16_t, std::uint64_t>(
+        -1, std::numeric_limits<std::uint64_t>::max());
+    expected += cast_and_compare<std::int16_t, std::int64_t>(-1, -1);
 
     printf("Expected: %s\n", expected.c_str());
 
@@ -398,29 +384,24 @@ int main() {
 
   {
     std::string expected = "";
+    expected += cast_and_compare<std::int32_t, bool>(
+        -1, std::numeric_limits<bool>::max());
 
-    bool b = (bool)((std::int32_t)-1);
-    expected += b == true ? "1" : "0";
+    expected += cast_and_compare<std::int32_t, std::uint8_t>(
+        -1, std::numeric_limits<std::uint8_t>::max());
+    expected += cast_and_compare<std::int32_t, std::int8_t>(-1, -1);
 
-    std::uint8_t u32_8 = (std::uint8_t)((std::int32_t)-1);
-    expected += u32_8 == 255 ? "1" : "0";
-    std::int8_t i32_8 = (std::int8_t)((std::int32_t)-1);
-    expected += i32_8 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int32_t, std::uint16_t>(
+        -1, std::numeric_limits<std::uint16_t>::max());
+    expected += cast_and_compare<std::int32_t, std::int16_t>(-1, -1);
 
-    std::uint16_t u32_16 = (std::uint16_t)((std::int32_t)-1);
-    expected += u32_16 == 65535U ? "1" : "0";
-    std::int16_t i32_16 = (std::int16_t)((std::int32_t)-1);
-    expected += i32_16 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int32_t, std::uint32_t>(
+        -1, std::numeric_limits<std::uint32_t>::max());
+    expected += cast_and_compare<std::int32_t, std::int32_t>(-1, -1);
 
-    std::uint32_t u32 = (std::uint32_t)((std::int32_t)-1);
-    expected += u32 == 4294967295 ? "1" : "0";
-    std::int32_t i32 = (std::int32_t)((std::int32_t)-1);
-    expected += i32 == -1 ? "1" : "0";
-
-    std::uint64_t u64 = (std::uint64_t)((std::int32_t)-1);
-    expected += u64 == 18446744073709551615UL ? "1" : "0";
-    std::int64_t i64 = (std::int64_t)((std::int32_t)-1);
-    expected += i64 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int32_t, std::uint64_t>(
+        -1, std::numeric_limits<std::uint64_t>::max());
+    expected += cast_and_compare<std::int32_t, std::int64_t>(-1, -1);
 
     printf("Expected: %s\n", expected.c_str());
 
@@ -431,29 +412,24 @@ int main() {
 
   {
     std::string expected = "";
+    expected += cast_and_compare<std::int64_t, bool>(
+        -1, std::numeric_limits<bool>::max());
 
-    bool b = (bool)((std::int64_t)-1);
-    expected += b == true ? "1" : "0";
+    expected += cast_and_compare<std::int64_t, std::uint8_t>(
+        -1, std::numeric_limits<std::uint8_t>::max());
+    expected += cast_and_compare<std::int64_t, std::int8_t>(-1, -1);
 
-    std::uint8_t u32_8 = (std::uint8_t)((std::int64_t)-1);
-    expected += u32_8 == 255 ? "1" : "0";
-    std::int8_t i32_8 = (std::int8_t)((std::int64_t)-1);
-    expected += i32_8 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int64_t, std::uint16_t>(
+        -1, std::numeric_limits<std::uint16_t>::max());
+    expected += cast_and_compare<std::int64_t, std::int16_t>(-1, -1);
 
-    std::uint16_t u32_16 = (std::uint16_t)((std::int64_t)-1);
-    expected += u32_16 == 65535U ? "1" : "0";
-    std::int16_t i32_16 = (std::int16_t)((std::int64_t)-1);
-    expected += i32_16 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int64_t, std::uint32_t>(
+        -1, std::numeric_limits<std::uint32_t>::max());
+    expected += cast_and_compare<std::int64_t, std::int32_t>(-1, -1);
 
-    std::uint32_t u32 = (std::uint32_t)((std::int64_t)-1);
-    expected += u32 == 4294967295 ? "1" : "0";
-    std::int32_t i32 = (std::int32_t)((std::int64_t)-1);
-    expected += i32 == -1 ? "1" : "0";
-
-    std::uint64_t u64 = (std::uint64_t)((std::int64_t)-1);
-    expected += u64 == 18446744073709551615UL ? "1" : "0";
-    std::int64_t i64 = (std::int64_t)((std::int64_t)-1);
-    expected += i64 == -1 ? "1" : "0";
+    expected += cast_and_compare<std::int64_t, std::uint64_t>(
+        -1, std::numeric_limits<std::uint64_t>::max());
+    expected += cast_and_compare<std::int64_t, std::int64_t>(-1, -1);
 
     printf("Expected: %s\n", expected.c_str());
 
