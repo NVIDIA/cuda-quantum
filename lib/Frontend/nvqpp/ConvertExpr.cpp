@@ -194,14 +194,14 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
   return true;
 }
 
-static Value getConstantInt(OpBuilder &builder, Location loc,
-                            int64_t value, unsigned int bitwidth) {
+static Value getConstantInt(OpBuilder &builder, Location loc, int64_t value,
+                            unsigned int bitwidth) {
   return builder.create<arith::ConstantIntOp>(loc, value,
                                               builder.getIntegerType(bitwidth));
 }
 
-static Value getConstantInt(OpBuilder &builder, Location loc,
-                            int64_t value, Type intTy) {
+static Value getConstantInt(OpBuilder &builder, Location loc, int64_t value,
+                            Type intTy) {
   assert(intTy.isa<IntegerType>());
   return builder.create<arith::ConstantIntOp>(loc, value, intTy);
 }

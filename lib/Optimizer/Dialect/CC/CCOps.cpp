@@ -224,22 +224,34 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
 
         auto castAndCreateConst = [&](std::int64_t val) -> mlir::Value {
           if (getZint()) {
-            switch(srcWidth) {
-              case 1: return createConst.template operator()<bool>(val);
-              case 8: return createConst.template operator()<std::uint8_t>(val);
-              case 16: return createConst.template operator()<std::uint16_t>(val);
-              case 32: return createConst.template operator()<std::uint32_t>(val);
-              case 64: return createConst.template operator()<std::uint64_t>(val);
-              default: return nullptr;
+            switch (srcWidth) {
+            case 1:
+              return createConst.template operator()<bool>(val);
+            case 8:
+              return createConst.template operator()<std::uint8_t>(val);
+            case 16:
+              return createConst.template operator()<std::uint16_t>(val);
+            case 32:
+              return createConst.template operator()<std::uint32_t>(val);
+            case 64:
+              return createConst.template operator()<std::uint64_t>(val);
+            default:
+              return nullptr;
             }
           }
-          switch(srcWidth) {
-            case 1: return createConst.template operator()<bool>(val);
-            case 8: return createConst.template operator()<std::int8_t>(val);
-            case 16: return createConst.template operator()<std::int16_t>(val);
-            case 32: return createConst.template operator()<std::int32_t>(val);
-            case 64: return createConst.template operator()<std::int64_t>(val);
-            default: return nullptr;
+          switch (srcWidth) {
+          case 1:
+            return createConst.template operator()<bool>(val);
+          case 8:
+            return createConst.template operator()<std::int8_t>(val);
+          case 16:
+            return createConst.template operator()<std::int16_t>(val);
+          case 32:
+            return createConst.template operator()<std::int32_t>(val);
+          case 64:
+            return createConst.template operator()<std::int64_t>(val);
+          default:
+            return nullptr;
           }
         };
         return castAndCreateConst(val);
