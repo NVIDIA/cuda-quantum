@@ -123,6 +123,12 @@ public:
                      matrix_callback &&create, 
                      std::unordered_map<std::string, std::string> &&parameter_descriptions);
 
+  /// Removes any definition for an operator with the given id.
+  /// Returns true if the definition was removed, returns false
+  /// if no definition of an operator with the given id existed
+  /// in the first place.
+  static bool remove_definition(const std::string &operator_id);
+
   /// @brief Instantiates a custom operator.
   /// @arg operator_id : The ID of the operator as specified when it was
   /// defined.
@@ -142,6 +148,11 @@ public:
   /// @brief Returns a map with parameter names and their description
   /// if such a map was provided when the operator was defined.
   const std::unordered_map<std::string, std::string>& get_parameter_descriptions() const;
+
+  /// @brief Returns a vector of integers representing the expected dimension
+  /// for each degree of freedom. A negative value indicates that the operator
+  /// is defined for any dimension of that degree.
+  const std::vector<int64_t>& get_expected_dimensions() const;
 
   // read-only properties
 

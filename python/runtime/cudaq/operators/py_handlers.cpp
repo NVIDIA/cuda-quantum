@@ -8,6 +8,7 @@
 
 #include <complex>
 #include <pybind11/complex.h>
+#include <pybind11/functional.h>
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
@@ -60,7 +61,15 @@ void bindOperatorHandlers(py::module &mod) {
     return param_desc;
   };
 
-  py::class_<matrix_handler>(mod, "ElementaryMatrix")
+  py::class_<matrix_handler>(mod, "ElementaryOperator")
+  .def_property_readonly("id", [](const matrix_handler &self) { return self.to_string(false); }, 
+    "Returns the id used to define and instantiate the operator.")
+  .def_property_readonly("parameters", &matrix_handler::get_parameter_descriptions, 
+    "Returns a dictionary that maps each parameter name to its description.")
+  .def_property_readonly("expected_dimensions", &matrix_handler::get_expected_dimensions,
+    "The number of levels, that is the dimension, for each degree of freedom "
+    "in canonical order that the operator acts on. A value of zero or less "
+    "indicates that the operator is defined for any dimension of that degree.")
   .def(py::init<std::size_t>(), "Creates an identity operator on the given target.")
   .def(py::init([](std::string operator_id, 
                    std::vector<std::size_t> degrees) {
@@ -92,14 +101,22 @@ void bindOperatorHandlers(py::module &mod) {
     "Returns the matrix representation of the operator.")
 
   // tools for custom operators
-  .def_static("define", [&kwargs_to_param_description](std::string operator_id, 
+  .def_static("_define", [&kwargs_to_param_description](std::string operator_id, 
                            std::vector<int64_t> expected_dimensions,
-                           const matrix_callback &func,
+                           const matrix_callback &func, bool overwrite,
                            const py::kwargs &kwargs) {
-      return matrix_handler::define(std::move(operator_id), 
-                                    std::move(expected_dimensions),
-                                    func, kwargs_to_param_description(kwargs));
-    }, py::arg("operator_id"), py::arg("expected_dimensions"), py::arg("callback"),
+      // we need to make sure the python function that is stored in 
+      // the static dictionary containing the operator definitions
+      // is properly cleaned up - otherwise python will hang on exit...
+      auto atexit = py::module_::import("atexit");
+      atexit.attr("register")(py::cpp_function([operator_id]() {
+          matrix_handler::remove_definition(operator_id);
+      }));
+      if (overwrite) matrix_handler::remove_definition(operator_id);
+      matrix_handler::define(std::move(operator_id), 
+                             std::move(expected_dimensions),
+                             func, kwargs_to_param_description(kwargs));
+    }, py::arg("operator_id"), py::arg("expected_dimensions"), py::arg("callback"), py::arg("overwrite") = false,
     "Defines a matrix operator with the given name and dimensions whose"
     "matrix representation can be obtained by invoking the given callback function.")
   ;

@@ -71,6 +71,10 @@ void matrix_handler::define(std::string operator_id,
                          std::unordered_map<std::string, std::string>(parameter_descriptions));
 }
 
+bool matrix_handler::remove_definition(const std::string &operator_id) {
+  return matrix_handler::defined_ops.erase(operator_id);
+}
+
 product_op<matrix_handler>
 matrix_handler::instantiate(std::string operator_id,
                             const std::vector<std::size_t> &degrees,
@@ -108,6 +112,12 @@ const std::unordered_map<std::string, std::string>& matrix_handler::get_paramete
   auto it = matrix_handler::defined_ops.find(this->op_code);
   assert(it != matrix_handler::defined_ops.end());
   return it->second.parameter_descriptions;
+}
+
+const std::vector<int64_t>& matrix_handler::get_expected_dimensions() const {
+  auto it = matrix_handler::defined_ops.find(this->op_code);
+  assert(it != matrix_handler::defined_ops.end());
+  return it->second.expected_dimensions;
 }
 
 // private helpers

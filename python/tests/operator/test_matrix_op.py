@@ -348,6 +348,25 @@ def test_term_distribution():
         sum += batch
     assert sum == op
 
+def op_definition(dim):
+    return np.diag([(-1. + 0j)**i for i in range(dim)])
+
+def define_ops(): 
+    ElementaryOperator.define(
+        "custom_parity1", [0],
+        lambda dim: np.diag([(-1. + 0j)**i for i in range(dim)]))
+    ElementaryOperator.define(
+        "custom_parity2", [0],
+        lambda dim: np.diag([(-1. + 0j)**i for i in range(dim)]))
+
+def test_custom_operators():
+    define_ops()
+    custom1 = ElementaryOperator("custom_parity1", [1])
+    print(custom1.to_matrix({1 : 5}))
+    custom2 = ElementaryOperator("custom_parity2", [1])
+    print(custom2.to_matrix({1 : 5}))
+    #assert False
+
 
 # Run with: pytest -rP
 if __name__ == "__main__":

@@ -13,9 +13,13 @@ from cudaq.operator.scalar_op import ScalarOperator
 def test_construction():
     def callback(x): return x
     scalar = ScalarOperator(callback)
+    scalar2 = ScalarOperator(lambda x: x*x)
     print(str(scalar))
+    print(str(scalar2))
     print(scalar.evaluate(x = 5))
+    print(scalar2.evaluate(x = 2))
     print(scalar.to_matrix(x = 5))
+    print(scalar2.to_matrix(x = 2))
 
 
 # for debugging
