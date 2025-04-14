@@ -133,7 +133,7 @@ if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   echo "Configuring nvq++ and local build to use the lld linker by default."
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
   LINKER_TO_USE="lld"
-  LINKER_FLAGS="-fuse-ld=lld"
+  LINKER_FLAGS="-fuse-ld=lld -B$LLVM_INSTALL_PREFIX/bin"
 else
   echo "No lld linker detected. Using the system linker."
   LINKER_TO_USE="ld"
