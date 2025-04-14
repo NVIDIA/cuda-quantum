@@ -39,9 +39,12 @@ bool portAvailable(int port) {
       (::bind(sock, (struct sockaddr *)&servAddr, sizeof(servAddr)) == 0);
 
   // Close the socket to avoid leaks
-  bool sockClosed = (::close(sock) == 0);
+  if (::close(sock) != 0) {
+    perror("Failed to close socket");
+    return false;
+  }
 
-  return available && sockClosed;
+  return available;
 }
 
 // Util to pick (at random) an available TCP/IP port for auto-launching a server
