@@ -23,66 +23,275 @@
 #include <string>
 #include <vector>
 
-struct testConstBool {
-  auto operator()() __qpu__ {
-    cudaq::qvector q(4);
-    unsigned i0 = (unsigned)(true);
-    if (i0 == 1) {
-      x(q[0]);
-    }
-    unsigned i1 = (unsigned)(false);
-    if (i1 == 0) {
-      x(q[1]);
-    }
-    signed i2 = (signed)(true);
-    if (i2 == 1) {
-      x(q[2]);
-    }
-    signed i3 = (signed)(false);
-    if (i3 == 0) {
-      x(q[3]);
-    }
-  }
-};
-
 struct testBool {
   auto operator()() __qpu__ {
-    cudaq::qvector q(4);
-    bool t = mz(q[0]);
-    bool b = !t;
-    unsigned i0 = (unsigned)(b);
-    if (i0 == 1) {
-      x(q[0]);
+    cudaq::qubit qb;
+    bool b = (bool)(true);
+    if (b == true) {
+      x(qb);
     }
-    unsigned i1 = (unsigned)(!b);
-    if (i1 == 0) {
-      x(q[1]);
+
+    cudaq::qubit qu8;
+    std::uint8_t u8 = (std::uint8_t)(true);
+    if (u8 == 1) {
+      x(qu8);
     }
-    signed i2 = (signed)(b);
-    if (i2 == 1) {
-      x(q[2]);
+    cudaq::qubit qi8;
+    std::int8_t i8 = (std::int8_t)(true);
+    if (i8 == 1) {
+      x(qi8);
     }
-    signed i3 = (signed)(!b);
-    if (i3 == 0) {
-      x(q[3]);
+
+    cudaq::qubit qu16;
+    std::uint16_t u16 = (std::uint16_t)(true);
+    if (u16 == 1) {
+      x(qu16);
+    }
+    cudaq::qubit qi16;
+    std::int16_t i16 = (std::int16_t)(true);
+    if (i16 == 1) {
+      x(qi16);
+    }
+
+    cudaq::qubit qu32;
+    std::uint32_t u32 = (std::uint32_t)(true);
+    if (u32 == 1) {
+      x(qu32);
+    }
+    cudaq::qubit qi32;
+    std::int32_t i32 = (std::int32_t)(true);
+    if (i32 == 1) {
+      x(qi32);
+    }
+
+    cudaq::qubit qu64;
+    std::uint64_t u64 = (std::uint64_t)(true);
+    if (u64 == 1) {
+      x(qu64);
+    }
+    cudaq::qubit qi64;
+    std::int64_t i64 = (std::int64_t)(true);
+    if (i64 == 1) {
+      x(qi64);
     }
   }
 };
 
-struct testInt {
-  auto operator()(int n) __qpu__ {
-    cudaq::qvector q(2);
-    unsigned i0 = (unsigned)(n);
-    if (i0) {
-      x(q[0]);
+struct testInt8 {
+  auto operator()() __qpu__ {
+    cudaq::qubit qb;
+    bool b = (bool)((std::int8_t)-1);
+    if (b == true) {
+      x(qb);
     }
-    signed i2 = (signed)(n);
-    if (i2) {
-      x(q[1]);
+
+    cudaq::qubit qu8;
+    std::uint8_t u8 = (std::uint8_t)((std::int8_t)-1);
+    if (u8 == 255) {
+      x(qu8);
+    }
+    cudaq::qubit qi8;
+    std::int8_t i8 = (std::int8_t)((std::int8_t)-1);
+    if (i8 == -1) {
+      x(qi8);
+    }
+
+    cudaq::qubit qu16;
+    std::uint16_t u16 = (std::uint16_t)((std::int8_t)-1);
+    if (u16 == 65535) {
+      x(qu16);
+    }
+    cudaq::qubit qi16;
+    std::int16_t i16 = (std::int16_t)((std::int8_t)-1);
+    if (i16 == -1) {
+      x(qi16);
+    }
+
+    cudaq::qubit qu32;
+    std::uint32_t u32 = (std::uint32_t)((std::int8_t)-1);
+    if (u32 == 4294967295) {
+      x(qu32);
+    }
+    cudaq::qubit qi32;
+    std::int32_t i32 = (std::int32_t)((std::int8_t)-1);
+    if (i32 == -1) {
+      x(qi32);
+    }
+
+    cudaq::qubit qu64;
+    std::uint64_t u64 = (std::uint64_t)((std::int8_t)-1);
+    if (u64 == 18446744073709551615UL) {
+      x(qu64);
+    }
+    cudaq::qubit qi64;
+    std::int64_t i64 = (std::int64_t)((std::int8_t)-1);
+    if (i64 == -1) {
+      x(qi64);
     }
   }
 };
 
+struct testInt16 {
+  auto operator()() __qpu__ {
+    cudaq::qubit qb;
+    bool b = (bool)((std::int16_t)-1);
+    if (b == true) {
+      x(qb);
+    }
+
+    cudaq::qubit qu8;
+    std::uint8_t u8 = (std::uint8_t)((std::int16_t)-1);
+    if (u8 == 255) {
+      x(qu8);
+    }
+    cudaq::qubit qi8;
+    std::int8_t i8 = (std::int8_t)((std::int16_t)-1);
+    if (i8 == -1) {
+      x(qi8);
+    }
+
+    cudaq::qubit qu16;
+    std::uint16_t u16 = (std::uint16_t)((std::int16_t)-1);
+    if (u16 == 65535) {
+      x(qu16);
+    }
+    cudaq::qubit qi16;
+    std::int16_t i16 = (std::int16_t)((std::int16_t)-1);
+    if (i16 == -1) {
+      x(qi16);
+    }
+
+    cudaq::qubit qu32;
+    std::uint32_t u32 = (std::uint32_t)((std::int16_t)-1);
+    if (u32 == 4294967295) {
+      x(qu32);
+    }
+    cudaq::qubit qi32;
+    std::int32_t i32 = (std::int32_t)((std::int16_t)-1);
+    if (i32 == -1) {
+      x(qi32);
+    }
+
+    cudaq::qubit qu64;
+    std::uint64_t u64 = (std::uint64_t)((std::int16_t)-1);
+    if (u64 == 18446744073709551615UL) {
+      x(qu64);
+    }
+    cudaq::qubit qi64;
+    std::int64_t i64 = (std::int64_t)((std::int16_t)-1);
+    if (i64 == -1) {
+      x(qi64);
+    }
+  }
+};
+
+struct testInt32 {
+  auto operator()() __qpu__ {
+    cudaq::qubit qb;
+    bool b = (bool)((std::int32_t)-1);
+    if (b == true) {
+      x(qb);
+    }
+
+    cudaq::qubit qu8;
+    std::uint8_t u8 = (std::uint8_t)((std::int32_t)-1);
+    if (u8 == 255) {
+      x(qu8);
+    }
+    cudaq::qubit qi8;
+    std::int8_t i8 = (std::int8_t)((std::int32_t)-1);
+    if (i8 == -1) {
+      x(qi8);
+    }
+
+    cudaq::qubit qu16;
+    std::uint16_t u16 = (std::uint16_t)((std::int32_t)-1);
+    if (u16 == 65535) {
+      x(qu16);
+    }
+    cudaq::qubit qi16;
+    std::int16_t i16 = (std::int16_t)((std::int32_t)-1);
+    if (i16 == -1) {
+      x(qi16);
+    }
+
+    cudaq::qubit qu32;
+    std::uint32_t u32 = (std::uint32_t)((std::int32_t)-1);
+    if (u32 == 4294967295) {
+      x(qu32);
+    }
+    cudaq::qubit qi32;
+    std::int32_t i32 = (std::int32_t)((std::int32_t)-1);
+    if (i32 == -1) {
+      x(qi32);
+    }
+
+    cudaq::qubit qu64;
+    std::uint64_t u64 = (std::uint64_t)((std::int32_t)-1);
+    if (u64 == 18446744073709551615UL) {
+      x(qu64);
+    }
+    cudaq::qubit qi64;
+    std::int64_t i64 = (std::int64_t)((std::int32_t)-1);
+    if (i64 == -1) {
+      x(qi64);
+    }
+  }
+};
+
+struct testInt64 {
+  auto operator()() __qpu__ {
+    cudaq::qubit qb;
+    bool b = (bool)((std::int64_t)-1);
+    if (b == true) {
+      x(qb);
+    }
+
+    cudaq::qubit qu8;
+    std::uint8_t u8 = (std::uint8_t)((std::int64_t)-1);
+    if (u8 == 255) {
+      x(qu8);
+    }
+    cudaq::qubit qi8;
+    std::int8_t i8 = (std::int8_t)((std::int64_t)-1);
+    if (i8 == -1) {
+      x(qi8);
+    }
+
+    cudaq::qubit qu16;
+    std::uint16_t u16 = (std::uint16_t)((std::int64_t)-1);
+    if (u16 == 65535) {
+      x(qu16);
+    }
+    cudaq::qubit qi16;
+    std::int16_t i16 = (std::int16_t)((std::int64_t)-1);
+    if (i16 == -1) {
+      x(qi16);
+    }
+
+    cudaq::qubit qu32;
+    std::uint32_t u32 = (std::uint32_t)((std::int64_t)-1);
+    if (u32 == 4294967295) {
+      x(qu32);
+    }
+    cudaq::qubit qi32;
+    std::int32_t i32 = (std::int32_t)((std::int64_t)-1);
+    if (i32 == -1) {
+      x(qi32);
+    }
+
+    cudaq::qubit qu64;
+    std::uint64_t u64 = (std::uint64_t)((std::int64_t)-1);
+    if (u64 == 18446744073709551615UL) {
+      x(qu64);
+    }
+    cudaq::qubit qi64;
+    std::int64_t i64 = (std::int64_t)((std::int64_t)-1);
+    if (i64 == -1) {
+      x(qi64);
+    }
+  }
+};
 
 void printCounts(cudaq::sample_result &result) {
   std::vector<std::string> values{};
@@ -99,39 +308,178 @@ void printCounts(cudaq::sample_result &result) {
 int main() {
   {
     std::string expected = "";
-    unsigned i0 = (unsigned)(true);
-    expected += i0 == 1 ? "1" : "0";
-    unsigned i1 = (unsigned)(false);
-    expected += i1 == 0 ? "1" : "0";
-    signed i2 = (signed)(true);
-    expected += i2 == 1 ? "1" : "0";
-    signed i3 = (signed)(false);
-    expected += i3 == 0 ? "1" : "0";
+    bool b = (bool)(true);
+    expected += b == true ? "1" : "0";
 
-    printf("%s\n", expected.c_str());
+    uint8_t u8 = (std::uint8_t)(true);
+    expected += u8 == 1 ? "1" : "0";
+    std::int8_t i8 = (std::int8_t)(true);
+    expected += i8 == 1 ? "1" : "0";
 
-    auto counts = cudaq::sample(testConstBool{});
-    printCounts(counts);
+    uint16_t u16 = (std::uint16_t)(true);
+    expected += u16 == 1 ? "1" : "0";
+    std::int16_t i16 = (std::int16_t)(true);
+    expected += i16 == 1 ? "1" : "0";
 
-    counts = cudaq::sample(testBool{});
+    std::uint32_t u32 = (std::uint32_t)(true);
+    expected += u32 == 1 ? "1" : "0";
+    std::int32_t i32 = (std::int32_t)(true);
+    expected += i32 == 1 ? "1" : "0";
+
+    std::uint64_t u64 = (std::uint64_t)(true);
+    expected += u64 == 1 ? "1" : "0";
+    std::int64_t i64 = (std::int64_t)(true);
+    expected += i64 == 1 ? "1" : "0";
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testBool{});
+    printf("Actual:   ");
     printCounts(counts);
   }
 
   {
     std::string expected = "";
-    unsigned i0 = (unsigned)(-1);
-    expected += i0 ? "1" : "0";
-    signed i2 = (signed)(-1);
-    expected += i2? "1" : "0";
 
-    printf("%s\n", expected.c_str());
+    bool b = (bool)((std::int8_t)-1);
+    expected += b == true ? "1" : "0";
 
-    auto counts = cudaq::sample(testInt{}, -1);
+    std::uint8_t u8 = (std::uint8_t)((std::int8_t)-1);
+    expected += u8 == 255 ? "1" : "0";
+    std::int8_t i8 = (std::int8_t)((std::int8_t)-1);
+    expected += i8 == -1 ? "1" : "0";
+
+    std::uint16_t u16 = (std::uint16_t)((std::int8_t)-1);
+    expected += u16 == 65535 ? "1" : "0";
+    std::int16_t i16 = (std::int16_t)((std::int8_t)-1);
+    expected += i16 == -1 ? "1" : "0";
+
+    std::uint32_t u32 = (std::uint32_t)((std::int8_t)-1);
+    expected += u32 == 4294967295 ? "1" : "0";
+    std::int32_t i32 = (std::int32_t)((std::int8_t)-1);
+    expected += i32 == -1 ? "1" : "0";
+
+    std::uint64_t u64 = (std::uint64_t)((std::int8_t)-1);
+    expected += u64 == 18446744073709551615UL ? "1" : "0";
+    std::int64_t i64 = (std::int64_t)((std::int8_t)-1);
+    expected += i64 == -1 ? "1" : "0";
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testInt8{});
+    printf("Actual:   ");
     printCounts(counts);
   }
+
+  {
+    std::string expected = "";
+
+    bool b = (bool)((std::int16_t)-1);
+    expected += b == true ? "1" : "0";
+
+    std::uint8_t u16_8 = (std::uint8_t)((std::int16_t)-1);
+    expected += u16_8 == 255 ? "1" : "0";
+    std::int8_t i16_8 = (std::int8_t)((std::int16_t)-1);
+    expected += i16_8 == -1 ? "1" : "0";
+
+    std::uint16_t u16 = (std::uint16_t)((std::int16_t)-1);
+    expected += u16 == 65535U ? "1" : "0";
+    std::int16_t i16 = (std::int16_t)((std::int16_t)-1);
+    expected += i16 == -1 ? "1" : "0";
+
+    std::uint32_t u32 = (std::uint32_t)((std::int16_t)-1);
+    expected += u32 == 4294967295 ? "1" : "0";
+    std::int32_t i32 = (std::int32_t)((std::int16_t)-1);
+    expected += i32 == -1 ? "1" : "0";
+
+    std::uint64_t u64 = (std::uint64_t)((std::int16_t)-1);
+    expected += u64 == 18446744073709551615UL ? "1" : "0";
+    std::int64_t i64 = (std::int64_t)((std::int16_t)-1);
+    expected += i64 == -1 ? "1" : "0";
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testInt16{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
+  {
+    std::string expected = "";
+
+    bool b = (bool)((std::int32_t)-1);
+    expected += b == true ? "1" : "0";
+
+    std::uint8_t u32_8 = (std::uint8_t)((std::int32_t)-1);
+    expected += u32_8 == 255 ? "1" : "0";
+    std::int8_t i32_8 = (std::int8_t)((std::int32_t)-1);
+    expected += i32_8 == -1 ? "1" : "0";
+
+    std::uint16_t u32_16 = (std::uint16_t)((std::int32_t)-1);
+    expected += u32_16 == 65535U ? "1" : "0";
+    std::int16_t i32_16 = (std::int16_t)((std::int32_t)-1);
+    expected += i32_16 == -1 ? "1" : "0";
+
+    std::uint32_t u32 = (std::uint32_t)((std::int32_t)-1);
+    expected += u32 == 4294967295 ? "1" : "0";
+    std::int32_t i32 = (std::int32_t)((std::int32_t)-1);
+    expected += i32 == -1 ? "1" : "0";
+
+    std::uint64_t u64 = (std::uint64_t)((std::int32_t)-1);
+    expected += u64 == 18446744073709551615UL ? "1" : "0";
+    std::int64_t i64 = (std::int64_t)((std::int32_t)-1);
+    expected += i64 == -1 ? "1" : "0";
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testInt32{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
+  {
+    std::string expected = "";
+
+    bool b = (bool)((std::int64_t)-1);
+    expected += b == true ? "1" : "0";
+
+    std::uint8_t u32_8 = (std::uint8_t)((std::int64_t)-1);
+    expected += u32_8 == 255 ? "1" : "0";
+    std::int8_t i32_8 = (std::int8_t)((std::int64_t)-1);
+    expected += i32_8 == -1 ? "1" : "0";
+
+    std::uint16_t u32_16 = (std::uint16_t)((std::int64_t)-1);
+    expected += u32_16 == 65535U ? "1" : "0";
+    std::int16_t i32_16 = (std::int16_t)((std::int64_t)-1);
+    expected += i32_16 == -1 ? "1" : "0";
+
+    std::uint32_t u32 = (std::uint32_t)((std::int64_t)-1);
+    expected += u32 == 4294967295 ? "1" : "0";
+    std::int32_t i32 = (std::int32_t)((std::int64_t)-1);
+    expected += i32 == -1 ? "1" : "0";
+
+    std::uint64_t u64 = (std::uint64_t)((std::int64_t)-1);
+    expected += u64 == 18446744073709551615UL ? "1" : "0";
+    std::int64_t i64 = (std::int64_t)((std::int64_t)-1);
+    expected += i64 == -1 ? "1" : "0";
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testInt64{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
   return 0;
 }
 
-// CHECK: 1111
-// CHECK: 1111
-// CHECK: 1111
+// CHECK: Expected: 111111111
+// CHECK: Actual:   111111111
+// CHECK: Expected: 111111111
+// CHECK: Actual:   111111111
+// CHECK: Expected: 111111111
+// CHECK: Actual:   111111111
+// CHECK: Expected: 111111111
+// CHECK: Actual:   111111111
+// CHECK: Expected: 111111111
+// CHECK: Actual:   111111111

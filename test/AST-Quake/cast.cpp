@@ -48,8 +48,9 @@ struct testCastBoolMeasurement {
     cudaq::qubit q0, q1;
     h(q0);
     bool bit = mz(q0);
+    // This tests casting from bool to uint32
     unsigned int i = (unsigned)(bit);
-    if (i > 0)
+    if (i == 1)
       x(q1);
     mz(q1);
   }
@@ -57,7 +58,7 @@ struct testCastBoolMeasurement {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__testCastBoolMeasurement() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0_i32:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_1_i32:.*]] = arith.constant 1 : i32
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
@@ -70,7 +71,7 @@ struct testCastBoolMeasurement {
 // CHECK:           %[[VAL_6:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_5]], %[[VAL_6]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_8:.*]] = arith.cmpi ugt, %[[VAL_7:.*]], %[[VAL_0_i32]] : i32
+// CHECK:           %[[VAL_8:.*]] = arith.cmpi eq, %[[VAL_7:.*]], %[[VAL_1_i32]] : i32
 // CHECK:           cc.if(%[[VAL_8]]) {
 // CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()
 // CHECK:           }
@@ -82,8 +83,10 @@ struct testCastBoolMeasurement {
 struct testUnsignedCastBoolConstTrue {
   void operator()() __qpu__ {
     cudaq::qubit q0;
-    unsigned int i = (unsigned)(true);
-    if (i > 0)
+    // This tests casting from bool to uint32
+    // and constant folding
+    unsigned i = (unsigned)(true);
+    if (i == 1)
       x(q0);
     mz(q0);
   }
@@ -92,12 +95,11 @@ struct testUnsignedCastBoolConstTrue {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__testUnsignedCastBoolConstTrue() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_1_i32:.*]] = arith.constant 1 : i32
-// CHECK:           %[[VAL_0_i32:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_1_i32]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_3:.*]] = arith.cmpi ugt, %[[VAL_2:.*]], %[[VAL_0_i32]] : i32
+// CHECK:           %[[VAL_3:.*]] = arith.cmpi eq, %[[VAL_2:.*]], %[[VAL_1_i32]] : i32
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
@@ -109,8 +111,10 @@ struct testUnsignedCastBoolConstTrue {
 struct testUnsignedCastBoolConstFalse {
   void operator()() __qpu__ {
     cudaq::qubit q0;
-    unsigned int i = (unsigned)(false);
-    if (i > 0)
+    // This tests casting from bool to uint32
+    // and constant folding
+    unsigned i = (unsigned)(false);
+    if (i == 0)
       x(q0);
     mz(q0);
   }
@@ -123,7 +127,7 @@ struct testUnsignedCastBoolConstFalse {
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0_i32]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_3:.*]] = arith.cmpi ugt, %[[VAL_2:.*]], %[[VAL_0_i32]] : i32
+// CHECK:           %[[VAL_3:.*]] = arith.cmpi eq, %[[VAL_2:.*]], %[[VAL_0_i32]] : i32
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
@@ -135,8 +139,10 @@ struct testUnsignedCastBoolConstFalse {
 struct testSignedCastBoolConstTrue {
   void operator()() __qpu__ {
     cudaq::qubit q0;
+    // This tests casting from bool to int32
+    // and constant folding
     signed int i = (signed)(true);
-    if (i > 0)
+    if (i == 1)
       x(q0);
     mz(q0);
   }
@@ -145,12 +151,11 @@ struct testSignedCastBoolConstTrue {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__testSignedCastBoolConstTrue() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_1_i32:.*]] = arith.constant 1 : i32
-// CHECK:           %[[VAL_0_i32:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_1_i32]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_3:.*]] = arith.cmpi sgt, %[[VAL_2:.*]], %[[VAL_0_i32]] : i32
+// CHECK:           %[[VAL_3:.*]] = arith.cmpi eq, %[[VAL_2:.*]], %[[VAL_1_i32]] : i32
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
@@ -162,8 +167,10 @@ struct testSignedCastBoolConstTrue {
 struct testSignedCastBoolConstFalse {
   void operator()() __qpu__ {
     cudaq::qubit q0;
+    // This tests casting from bool to int32
+    // and constant folding
     signed int i = (signed)(false);
-    if (i > 0)
+    if (i == 0)
       x(q0);
     mz(q0);
   }
@@ -176,7 +183,7 @@ struct testSignedCastBoolConstFalse {
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0_i32]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_3:.*]] = arith.cmpi sgt, %[[VAL_2:.*]], %[[VAL_0_i32]] : i32
+// CHECK:           %[[VAL_3:.*]] = arith.cmpi eq, %[[VAL_2:.*]], %[[VAL_0_i32]] : i32
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }

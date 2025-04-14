@@ -195,13 +195,13 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
 }
 
 static Value getConstantInt(OpBuilder &builder, Location loc,
-                            const uint64_t value, const int bitwidth) {
+                            int64_t value, unsigned int bitwidth) {
   return builder.create<arith::ConstantIntOp>(loc, value,
                                               builder.getIntegerType(bitwidth));
 }
 
 static Value getConstantInt(OpBuilder &builder, Location loc,
-                            const uint64_t value, Type intTy) {
+                            int64_t value, Type intTy) {
   assert(intTy.isa<IntegerType>());
   return builder.create<arith::ConstantIntOp>(loc, value, intTy);
 }
@@ -488,7 +488,7 @@ bool QuakeBridgeVisitor::VisitCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr *x) {
   auto intTy =
       builtinTypeToType(cast<clang::BuiltinType>(x->getType().getTypePtr()));
   auto intVal = x->getValue();
-  return pushValue(getConstantInt(builder, loc, intVal ? 1 : 0, intTy));
+  return pushValue(getConstantInt(builder, loc, intVal, intTy));
 }
 
 bool QuakeBridgeVisitor::VisitIntegerLiteral(clang::IntegerLiteral *x) {
@@ -604,18 +604,11 @@ Value QuakeBridgeVisitor::integerCoercion(Location loc,
                                           const clang::QualType &clangTy,
                                           Type dstTy, Value srcVal) {
   auto fromTy = getResultType(srcVal.getType());
-  if (dstTy == fromTy)
-    return srcVal;
-
   assert(fromTy.isa<IntegerType>() && dstTy.isa<IntegerType>());
-  if (fromTy.getIntOrFloatBitWidth() < dstTy.getIntOrFloatBitWidth()) {
-    auto mode = (clangTy->isUnsignedIntegerOrEnumerationType())
-                    ? cudaq::cc::CastOpMode::Unsigned
-                    : cudaq::cc::CastOpMode::Signed;
-    return builder.create<cudaq::cc::CastOp>(loc, dstTy, srcVal, mode);
-  }
-  assert(fromTy.getIntOrFloatBitWidth() > dstTy.getIntOrFloatBitWidth());
-  return builder.create<cudaq::cc::CastOp>(loc, dstTy, srcVal);
+  auto mode = (clangTy->isUnsignedIntegerOrEnumerationType())
+                  ? cudaq::cc::CastOpMode::Unsigned
+                  : cudaq::cc::CastOpMode::Signed;
+  return builder.create<cudaq::cc::CastOp>(loc, dstTy, srcVal, mode);
 }
 
 bool QuakeBridgeVisitor::TraverseCastExpr(clang::CastExpr *x,
