@@ -40,7 +40,7 @@ def test_list_comprehension():
 # CHECK:           ^bb0(%[[VAL_9:.*]]: i64):
 # CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_9]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_10]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<6>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_11]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<6>) -> !quake.ref

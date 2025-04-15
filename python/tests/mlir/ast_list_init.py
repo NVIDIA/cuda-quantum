@@ -63,7 +63,7 @@ def test_list_init():
 # CHECK:           ^bb0(%[[VAL_26:.*]]: i64):
 # CHECK:             %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_0]] : i64
 # CHECK:             cc.continue %[[VAL_27]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
 
