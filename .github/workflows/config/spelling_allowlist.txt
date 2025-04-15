@@ -21,6 +21,8 @@ CPUs
 CUDA
 Cartesian
 CentOS
+CoCalc
+Colab
 Conda
 CuPy
 DCO
@@ -128,6 +130,7 @@ UCCSD
 VQE
 Vazirani
 WSL
+Zener
 accessor
 acknowledgement
 adaptor
@@ -235,6 +238,7 @@ frontend
 frontends
 hadamard
 hamiltonian
+heisenberg
 homogenous
 iff
 increment
@@ -263,6 +267,7 @@ lossy
 lvalue
 makefiles
 merchantability
+mgmn
 multithreaded
 mutex
 namespace
@@ -287,7 +292,9 @@ preprocessor
 probability
 programmatically
 pybind
+qBraid
 qaoa
+qed
 quantize
 quantized
 qubit
@@ -306,6 +313,7 @@ scalable
 sexualized
 shifter
 shifters
+shors
 splitter
 splitters
 sqale
@@ -357,3 +365,4 @@ vqe
 waveforms
 wavefunction
 workflow
+zener
