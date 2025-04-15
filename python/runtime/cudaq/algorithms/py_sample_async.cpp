@@ -94,7 +94,8 @@ for more information on this programming pattern.)#")
         // (usually, the first invocation would register the kernel)
         // i.e., `cudaq::kernelHasConditionalFeedback` won't be able to tell if
         // this kernel has qubit measurement feedback on the first invocation.
-        if (cudaq::get_quake_by_name(kernelName, false, std::nullopt).empty()) {
+        // Thus, add kernel's MLIR code to the registry.
+        {
           auto moduleOp = unwrap(kernelMod);
           std::string mlirCode;
           llvm::raw_string_ostream outStr(mlirCode);
