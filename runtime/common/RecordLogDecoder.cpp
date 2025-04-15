@@ -68,10 +68,18 @@ void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
 
       if ("RESULT" == recType)
         throw std::runtime_error("This type is not yet supported");
-      if ("TUPLE" == recType)
-        throw std::runtime_error("This type is not yet supported");
-      if ("ARRAY" == recType)
-        throw std::runtime_error("This type is not yet supported");
+      if ("TUPLE" == recType) {
+        currentContainer = ContainerType::TUPLE;
+        containerSize = std::stoul(recValue);
+        break;
+      }
+      if ("ARRAY" == recType) {
+        currentContainer = ContainerType::ARRAY;
+        /// TODO: Use this value to allocate buffer beforehand if LABELED
+        ///       Also, use this to check the number of values returned
+        containerSize = std::stoul(recValue);
+        break;
+      }
 
       if ("BOOL" == recType)
         currentOutput = OutputType::BOOL;

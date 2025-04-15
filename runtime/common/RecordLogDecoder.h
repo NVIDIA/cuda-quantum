@@ -73,5 +73,7 @@ private:
   SchemaType schema = SchemaType::ORDERED;
   RecordType currentRecord;
   OutputType currentOutput;
+  ContainerType currentContainer;
+  std::size_t containerSize;
 };
 } // namespace cudaq

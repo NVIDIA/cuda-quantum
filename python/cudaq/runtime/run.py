@@ -19,7 +19,7 @@ Args:
     times on the QPU.
   *arguments (Optional[Any]): The concrete values to evaluate the kernel
     function at. Leave empty if the kernel doesn't accept any arguments. For 
-    example, if the kernel takes two `float` values as input, the `sample` call 
+    example, if the kernel takes two `float` values as input, the `run` call 
     should be structured as `cudaq.run(kernel, firstFloat, secondFloat)`.
   shots_count (Optional[int]): The number of kernel executions on the QPU.
     Defaults to 1. Key-word only.

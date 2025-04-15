@@ -50,3 +50,90 @@ CUDAQ_TEST(ParserTester, checkDoubles) {
   EXPECT_EQ(3.14, buffer[0]);
   EXPECT_EQ(2.717, buffer[1]);
 }
+
+CUDAQ_TEST(ParserTester, checkArrayOrdered) {
+  const std::string log = "OUTPUT\tARRAY\t2\n"
+                          "OUTPUT\tINT\t13\ti32\n"
+                          "OUTPUT\tINT\t71\ti32\n";
+  cudaq::RecordLogDecoder parser;
+  parser.decode(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  EXPECT_EQ(2, bufferSize / sizeof(int));
+  int *buffer = static_cast<int *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  EXPECT_EQ(13, buffer[0]);
+  EXPECT_EQ(71, buffer[1]);
+}
+
+CUDAQ_TEST(ParserTester, checkArrayLabeled) {
+  const std::string log = "OUTPUT\tARRAY\t4\tarray<i32 x 3>\n"
+                          "OUTPUT\tINT\t5\t[0]\n"
+                          "OUTPUT\tINT\t6\t[1]\n"
+                          "OUTPUT\tINT\t7\t[2]\n"
+                          "OUTPUT\tINT\t8\t[3]\n";
+  cudaq::RecordLogDecoder parser;
+  parser.decode(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  EXPECT_EQ(4, bufferSize / sizeof(int));
+  int *buffer = static_cast<int *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  EXPECT_EQ(5, buffer[0]);
+  EXPECT_EQ(6, buffer[1]);
+  EXPECT_EQ(7, buffer[2]);
+  EXPECT_EQ(8, buffer[3]);
+}
+
+CUDAQ_TEST(ParserTester, checkTupleOrdered) {
+  const std::string log = "OUTPUT\tTUPLE\t2\n"
+                          "OUTPUT\tINT\t561\ti32\n"
+                          "OUTPUT\tBOOL\tfalse\ti1\n";
+  cudaq::RecordLogDecoder parser;
+  parser.decode(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  int tuple_0;
+  bool tuple_1;
+  EXPECT_EQ(bufferSize, sizeof(tuple_0)+ sizeof(tuple_1));
+  std::memcpy(&tuple_0, buffer, sizeof(tuple_0));
+  std::memcpy(&tuple_1, buffer + sizeof(tuple_0), sizeof(tuple_1));
+  EXPECT_EQ(561, tuple_0);
+  EXPECT_EQ(false, tuple_1);
+}
+
+CUDAQ_TEST(ParserTester, checkTupleLabeled) {
+  const std::string log = "OUTPUT\tTUPLE\t3\ttuple<i1, i32, f64>\n"
+                          "OUTPUT\tBOOL\ttrue\t.0\n"
+                          "OUTPUT\tINT\t37\t.1\n"
+                          "OUTPUT\tDOUBLE\t3.1416\t.2\n";
+  cudaq::RecordLogDecoder parser;
+  try {
+    parser.decode(log);
+    FAIL();
+  } catch (std::exception &ex) {
+    EXPECT_STREQ("Unknown datatype in label", ex.what());
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkMultipleShots) {
+  const std::string log = "HEADER\tschema_name\tlabeled\n"
+                          "START\n"
+                          "OUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+                          "OUTPUT\tBOOL\ttrue\t[0]\n"
+                          "OUTPUT\tBOOL\ttrue\t[1]\n"
+                          "END\t0\n"
+                          "START\n"
+                          "OUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+                          "OUTPUT\tBOOL\tfalse\t[1]\n"
+                          "OUTPUT\tBOOL\ttrue\t[0]\n"
+                          "END\t0\n"
+                          "START\n"
+                          "OUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+                          "OUTPUT\tBOOL\ttrue\t[0]\n"
+                          "OUTPUT\tBOOL\tfalse\t[1]\n"
+                          "END\t0";
+  cudaq::RecordLogDecoder parser;
+}
