@@ -31,13 +31,6 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):
     return results
 
 
-# Helper to convert new a Operator instance to a native `SpinOperator`
-def to_spin_op(obj):
-    if hasattr(obj, "_to_spinop"):
-        return obj._to_spinop()
-    return obj
-
-
 def observe(kernel,
             spin_operator,
             *args,
@@ -83,10 +76,10 @@ Returns:
         raise RuntimeError('observe specification violated for \'' +
                            kernel.name + '\': ' + validityCheck[1])
 
-    spin_operator = to_spin_op(spin_operator)
+    spin_operator = spin_operator.copy()
     if isinstance(spin_operator, list):
         for idx, op in enumerate(spin_operator):
-            spin_operator[idx] = to_spin_op(op).canonicalize()
+            spin_operator[idx] = op.canonicalize()
     else:
         spin_operator.canonicalize()
 
@@ -148,7 +141,7 @@ Returns:
                     sum += term.get_coefficient().real
                 else:
                     sum += res.expectation(
-                        term.get_term_id()) * term.get_coefficient().real
+                        term.term_id) * term.get_coefficient().real
 
             for term in localOp:
                 computeExpVal(term)

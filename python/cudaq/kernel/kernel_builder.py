@@ -854,8 +854,6 @@ class PyKernel(object):
             for arg in args:
                 if isinstance(arg, cudaq_runtime.SpinOperatorTerm):
                     arg = arg.get_pauli_word()
-                elif hasattr(arg, "_to_spinop"):
-                    arg = arg._to_spinop()
                 if isinstance(arg, cudaq_runtime.SpinOperator):
                     if arg.get_term_count() > 1:
                         emitFatalError(

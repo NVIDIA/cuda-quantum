@@ -74,10 +74,9 @@ def _defineCustomOperator(cls, id: str,
 
 
 ElementaryOperator.define = classmethod(_defineCustomOperator)
+ElementaryOperator.define("op_zero", [0], lambda dim: numpy.diag(numpy.zeros(dim, dtype=numpy.complex128)))
+ElementaryOperator.define("op_identity", [0], lambda dim: numpy.diag(numpy.ones(dim, dtype=numpy.complex128)))
+ElementaryOperator.zero = classmethod(lambda target: ElementaryOperator("op_zero", [target]))
+ElementaryOperator.zero = classmethod(lambda target: ElementaryOperator("op_identity", [target]))
 
-#@classmethod
-#def zero(cls, degree: int) -> ElementaryOperator:
-
-#@classmethod
-#def identity(cls, degree: int) -> ElementaryOperator:
 

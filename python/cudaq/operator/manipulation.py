@@ -256,7 +256,7 @@ def _product_evaluation(term : CppOperatorTerm, arithmetics: OperatorArithmetics
             padded = arithmetics.tensor(padded, value)
         return padded
 
-    evaluated = arithmetics.evaluate(term.get_coefficient())
+    evaluated = arithmetics.evaluate(term.coefficient)
     if pad_terms:
         degrees = term.degrees
         for op in term:

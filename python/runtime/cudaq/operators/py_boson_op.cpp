@@ -320,6 +320,9 @@ void bindBosonOperator(py::module &mod) {
   .def_property_readonly("term_id", &boson_op_term::get_term_id,
     "The term id uniquely identifies the operators and targets (degrees) that they act on, "
     "but does not include information about the coefficient.")
+  .def_property_readonly("coefficient", &boson_op_term::get_coefficient,
+    "Returns the unevaluated coefficient of the operator. The coefficient is a "
+    "callback function that can be invoked with the `evaluate` method.")
 
   // constructors
 

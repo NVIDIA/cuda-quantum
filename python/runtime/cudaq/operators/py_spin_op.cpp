@@ -508,6 +508,9 @@ void bindSpinOperator(py::module &mod) {
   .def_property_readonly("term_id", &spin_op_term::get_term_id,
     "The term id uniquely identifies the operators and targets (degrees) that they act on, "
     "but does not include information about the coefficient.")
+  .def_property_readonly("coefficient", &spin_op_term::get_coefficient,
+    "Returns the unevaluated coefficient of the operator. The coefficient is a "
+    "callback function that can be invoked with the `evaluate` method.")
 
   // constructors
 
@@ -727,30 +730,29 @@ void bindSpinOperator(py::module &mod) {
        return op.num_qubits();
      }, "Deprecated - use `qubit_count` instead.")
   .def("get_raw_data", [](const spin_op_term &self) {
-       PyErr_WarnEx(PyExc_DeprecationWarning, 
+      PyErr_WarnEx(PyExc_DeprecationWarning, 
           "raw data access will no longer be supported", 
           1);
-       return spin_op(self).get_raw_data();
+      return spin_op(self).get_raw_data();
      }, "Deprecated.")
   .def("to_string", [](const spin_op_term &self, bool print_coefficient) {
-     PyErr_WarnEx(PyExc_DeprecationWarning, 
+      PyErr_WarnEx(PyExc_DeprecationWarning, 
          "use overload without boolean argument or use `get_pauli_word` instead", 
          1);
-     return self.to_string(print_coefficient);
+      return self.to_string(print_coefficient);
    }, py::arg("print_coefficient") = true,
    "Deprecated - use the standard `str` conversion or use `get_pauli_word` instead.")
-   /* FIXME: I DON'T THINK WE NEED THE DEPRECATION HERE
-      .def(
-          "distribute_terms",
-          [](spin_op_term &op, std::size_t chunks) {
-            return spin_op(op).distribute_terms(chunks);
-          },
-          py::arg("chunk_count"),
-          "Return a list of :class:`SpinOperator` representing a distribution "
-          "of the "
-          "terms in this :class:`SpinOperator` into `chunk_count` sized "
-          "chunks.");
-   */
+  .def(
+    "distribute_terms",
+    [](spin_op_term &op, std::size_t chunks) {
+      PyErr_WarnEx(PyExc_DeprecationWarning, 
+         "instantiate a `SpinOperator` from this `SpinOperatorTerm` and call distribute_terms on that", 
+         1);
+      return spin_op(op).distribute_terms(chunks);
+    },
+    py::arg("chunk_count"),
+    "Deprecated - instantiate a `SpinOperator` from this `SpinOperatorTerm` "
+    "and call distribute_terms on that.")
   .def("for_each_pauli", [](spin_op_term &self, py::function functor) {
      PyErr_WarnEx(PyExc_DeprecationWarning, 
          "use standard iteration instead", 
