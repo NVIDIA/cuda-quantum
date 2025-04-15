@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std %s -o %t && %t
+// TODO-FIX-KERNEL-EXEC
 // BROKEN: nvq++ %cpp_std -fkernel-exec-kind=2 %s -o %t && %t
 
 #include <cstdio>

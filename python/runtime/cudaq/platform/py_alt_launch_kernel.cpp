@@ -15,6 +15,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OptUtils.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -651,7 +652,7 @@ std::string getQIR(const std::string &name, MlirModule module,
   llvm::LLVMContext llvmContext;
   llvmContext.setOpaquePointers(false);
   auto llvmModule = translateModuleToLLVMIR(cloned, llvmContext);
-  auto optPipeline = makeOptimizingTransformer(
+  auto optPipeline = cudaq::makeOptimizingTransformer(
       /*optLevel=*/3, /*sizeLevel=*/0,
       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(llvmModule.get()))
