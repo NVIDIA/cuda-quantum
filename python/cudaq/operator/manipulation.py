@@ -9,11 +9,12 @@
 from __future__ import annotations
 import numpy, re, sys  # type: ignore
 from abc import ABC, abstractmethod
-from typing import Generic, Iterable, TypeVar, Tuple
+from typing import Generator, Generic, Iterable, Mapping, TypeVar, Tuple
 from numpy.typing import NDArray
 from functools import lru_cache
 
-from .helpers import _OperatorHelpers, NumericType
+from .helpers import _OperatorHelpers, NumericType, CppOperator, CppOperatorTerm, CppOperatorElement
+from .scalar_op import ScalarOperator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 TEval = TypeVar('TEval')
@@ -27,7 +28,7 @@ class OperatorArithmetics(ABC, Generic[TEval]):
 
     @abstractmethod
     def evaluate(self: OperatorArithmetics[TEval],
-                 op: ElementaryOperator | ScalarOperator) -> TEval:
+                 op: CppOperatorElement | ScalarOperator) -> TEval:
         """
         Accesses the relevant data to evaluate an operator expression in the leaf 
         nodes, that is in elementary and scalar operators.
@@ -60,6 +61,7 @@ class OperatorArithmetics(ABC, Generic[TEval]):
         pass
 
 
+# FIXME: deprecate
 class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
     """
     Encapsulates the functions needed to compute the matrix representation
@@ -174,10 +176,10 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
         return MatrixArithmetics.Evaluated(op1.degrees, op1.matrix + op2.matrix)
 
     def evaluate(
-            self: MatrixArithmetics, op: ElementaryOperator | ScalarOperator
+            self: MatrixArithmetics, op: CppOperatorElement | ScalarOperator
     ) -> MatrixArithmetics.Evaluated:
         """
-        Computes the matrix of an ElementaryOperator or ScalarOperator using its 
+        Computes the matrix of an elementary operator or scalar operator using its 
         `to_matrix` method.
         """
         matrix = op.to_matrix(self._dimensions, **self._kwargs)
@@ -195,7 +197,7 @@ class MatrixArithmetics(OperatorArithmetics['MatrixArithmetics.Evaluated']):
                 operator can act on.
             `kwargs`: Keyword arguments needed to evaluate, that is access data in,
                 the leaf nodes of the operator expression. Leaf nodes are 
-                values of type ElementaryOperator or ScalarOperator.
+                values of type elementary or scalar operator.
         """
         self._dimensions = dimensions
         self._kwargs = kwargs
@@ -226,8 +228,75 @@ class PrettyPrint(OperatorArithmetics[str]):
     def add(self, op1: str, op2: str) -> str:
         return f"{op1} + {op2}"
 
-    def evaluate(self, op: ElementaryOperator | ScalarOperator) -> str:
+    def evaluate(self, op: CppOperatorElement | ScalarOperator) -> str:
         return str(op)
+
+
+def _product_evaluation(term : CppOperatorTerm, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
+    """
+    Helper function used for evaluating operator expressions and computing arbitrary values
+    during evaluation. The value to be computed is defined by the OperatorArithmetics.
+    The evaluation guarantees that addition and multiplication of two operators will only
+    be called when both operators act on the same degrees of freedom, and the tensor product
+    will only be computed if they act on different degrees of freedom. 
+    """
+
+    def padded_op(op: CppOperatorElement | ScalarOperator,
+                    degrees: Iterable[int]):
+        # Creating the tensor product with op being last is most efficient.
+        def accumulate_ops() -> Generator[TEval]:
+            for degree in degrees:
+                if not degree in op._degrees:
+                    yield arithmetics.evaluate(op.__class__(degree))
+            yield arithmetics.evaluate(op)
+
+        evaluated_ops = accumulate_ops()
+        padded = next(evaluated_ops)
+        for value in evaluated_ops:
+            padded = arithmetics.tensor(padded, value)
+        return padded
+
+    evaluated = arithmetics.evaluate(term.get_coefficient())
+    if pad_terms:
+        degrees = term.degrees
+        for op in term:
+            if op != op.__class__(op.degrees[0]):
+                evaluated = arithmetics.mul(evaluated,
+                                            padded_op(op, degrees))
+    else:
+        for op in term:
+            evaluated = arithmetics.mul(
+                evaluated, arithmetics.evaluate(op))
+    return evaluated
+
+
+def _sum_evaluation(operator : CppOperator, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
+    """
+    Helper function used for evaluating operator expressions and computing arbitrary values
+    during evaluation. The value to be computed is defined by the OperatorArithmetics.
+    The evaluation guarantees that addition and multiplication of two operators will only
+    be called when both operators act on the same degrees of freedom, and the tensor product
+    will only be computed if they act on different degrees of freedom. 
+    """
+
+    def padded_term(term: CppOperatorTerm, degrees: Iterable[int]) -> CppOperatorTerm:
+        term_degrees = term.degrees
+        padded_term = term.copy()
+        for degree in degrees:
+            if not degree in term_degrees:
+                padded_term *= operator.__class__.identity(degree)
+        return padded_term
+
+    evaluated = arithmetics.evaluate(ScalarOperator.const(0))
+    if pad_terms:
+        for term in operator:
+            evaluated_term = _product_evaluation(padded_term(term), arithmetics, pad_terms)
+            evaluated = arithmetics.add(evaluated, evaluated_term)
+    else:
+        for term in operator:
+            evaluated_term = _product_evaluation(term, arithmetics, pad_terms)
+            evaluated = arithmetics.add(evaluated, evaluated_term)
+    return evaluated
 
 
 '''

@@ -12,9 +12,15 @@ from numpy.typing import NDArray
 from enum import Enum
 
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, MatrixOperatorTerm, SpinOperator, SpinOperatorTerm, BosonOperator, BosonOperatorTerm, FermionOperator, FermionOperatorTerm
+from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import \
+    MatrixOperator, MatrixOperatorTerm, \
+    SpinOperator, SpinOperatorTerm, \
+    BosonOperator, BosonOperatorTerm, \
+    FermionOperator, FermionOperatorTerm, \
+    ElementarySpin, ElementaryBoson, ElementaryFermion, ElementaryOperator
 CppOperator = MatrixOperator | SpinOperator | BosonOperator | FermionOperator
 CppOperatorTerm = MatrixOperatorTerm | SpinOperatorTerm | BosonOperatorTerm | FermionOperatorTerm
+CppOperatorElement = ElementarySpin | ElementaryBoson | ElementaryFermion | ElementaryOperator
 
 if (3, 11) <= sys.version_info:
     NumericType = typing.SupportsComplex

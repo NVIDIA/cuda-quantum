@@ -64,6 +64,8 @@ void bindOperatorHandlers(py::module &mod) {
   py::class_<matrix_handler>(mod, "ElementaryOperator")
   .def_property_readonly("id", [](const matrix_handler &self) { return self.to_string(false); }, 
     "Returns the id used to define and instantiate the operator.")
+  .def_property_readonly("degrees", &matrix_handler::degrees,
+    "Returns a vector that lists all degrees of freedom that the operator targets.")
   .def_property_readonly("parameters", &matrix_handler::get_parameter_descriptions, 
     "Returns a dictionary that maps each parameter name to its description.")
   .def_property_readonly("expected_dimensions", &matrix_handler::get_expected_dimensions,
@@ -80,8 +82,6 @@ void bindOperatorHandlers(py::module &mod) {
   .def(py::init<const matrix_handler &>(),
     "Copy constructor.")
   .def("__eq__", &matrix_handler::operator==)
-  .def("targets", &matrix_handler::degrees,
-    "Returns a vector that lists all degrees of freedom that the operator targets.")
   .def("to_string", &matrix_handler::to_string,
     py::arg("include_degrees"),
     "Returns the string representation of the operator.")
@@ -122,12 +122,14 @@ void bindOperatorHandlers(py::module &mod) {
   ;
 
   py::class_<boson_handler>(mod, "ElementaryBoson")
+  .def_property_readonly("target", &boson_handler::target,
+    "Returns the degree of freedom that the operator targets.")
+  .def_property_readonly("degrees", &boson_handler::degrees,
+    "Returns a vector that lists all degrees of freedom that the operator targets.")
   .def(py::init<std::size_t>(), "Creates an identity operator on the given target.")
   .def(py::init<const boson_handler &>(),
     "Copy constructor.")
   .def("__eq__", &boson_handler::operator==)
-  .def("target", &boson_handler::target,
-    "Returns the degrees of freedom that the operator targets.")
   .def("to_string", &boson_handler::to_string,
     py::arg("include_degrees"),
     "Returns the string representation of the operator.")
@@ -148,12 +150,14 @@ void bindOperatorHandlers(py::module &mod) {
   ;
 
   py::class_<fermion_handler>(mod, "ElementaryFermion")
+  .def_property_readonly("target", &fermion_handler::target,
+    "Returns the degree of freedom that the operator targets.")
+  .def_property_readonly("degrees", &fermion_handler::degrees,
+    "Returns a vector that lists all degrees of freedom that the operator targets.")
   .def(py::init<std::size_t>(), "Creates an identity operator on the given target.")
   .def(py::init<const fermion_handler &>(),
     "Copy constructor.")
   .def("__eq__", &fermion_handler::operator==)
-  .def("target", &fermion_handler::target,
-    "Returns the degrees of freedom that the operator targets.")
   .def("to_string", &fermion_handler::to_string,
     py::arg("include_degrees"),
     "Returns the string representation of the operator.")
@@ -174,13 +178,15 @@ void bindOperatorHandlers(py::module &mod) {
   ;
 
   py::class_<spin_handler>(mod, "ElementarySpin")
+  .def_property_readonly("target", &spin_handler::target,
+    "Returns the degree of freedom that the operator targets.")
+  .def_property_readonly("degrees", &spin_handler::degrees,
+    "Returns a vector that lists all degrees of freedom that the operator targets.")
   .def(py::init<std::size_t>(), "Creates an identity operator on the given target.")
   .def(py::init<const spin_handler &>(),
     "Copy constructor.")
   .def("__eq__", &spin_handler::operator==)
   .def("as_pauli", &spin_handler::as_pauli)
-  .def("target", &spin_handler::target,
-    "Returns the degrees of freedom that the operator targets.")
   .def("to_string", &spin_handler::to_string,
     py::arg("include_degrees"),
     "Returns the string representation of the operator.")

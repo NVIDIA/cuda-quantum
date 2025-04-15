@@ -7,18 +7,27 @@
 # ============================================================================ #
 
 from __future__ import annotations
-import inspect, math, numpy, json  # type: ignore
+import inspect, math, numpy, json, typing  # type: ignore
 from typing import Any, Callable, Generator, Iterable, Mapping, Optional, Sequence, Tuple
 from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType
-from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint
+from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint, _sum_evaluation, _product_evaluation
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
-from .helpers import CppOperator, CppOperatorTerm
+from .helpers import CppOperator, CppOperatorTerm, CppOperatorElement
 from .scalar_op import ScalarOperator
 from .custom_op import ElementaryOperator
+
+# FIXME: rename cppoperator to operatorsum etc
+
+# FIXME: deprecate _evaluate or make public?
+for op_type in typing.get_args(CppOperator):
+    op_type._evaluate = classmethod(_sum_evaluation)
+for op_type in typing.get_args(CppOperatorTerm):
+    op_type._evaluate = classmethod(_product_evaluation)
+
 
 '''
 class OperatorSum:
