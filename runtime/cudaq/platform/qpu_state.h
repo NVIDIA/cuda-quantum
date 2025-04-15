@@ -70,7 +70,7 @@ public:
   QPUState() = default;
   QPUState(const QPUState &other)
       : kernelName(other.kernelName), args(other.args), deleters() {}
-  virtual ~QPUState();
+  virtual ~QPUState() override;
 
   /// @brief True if the state has amplitudes or density matrix available.
   virtual bool hasData() const override { return false; }
