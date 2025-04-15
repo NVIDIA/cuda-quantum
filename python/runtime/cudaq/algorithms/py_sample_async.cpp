@@ -25,7 +25,33 @@ void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
 void bindSampleAsync(py::module &mod) {
-  py::class_<async_sample_result>(
+  // Async. result wrapper for Python kernels, which also holds the Python MLIR
+  // context.
+  //
+  // As a kernel is passed to an async. call, its lifetime on the main
+  // Python thread decouples from the C++ functor in the execution queue. While
+  // we can clone the MLIR module of the kernel in the functor, the context
+  // needs to be alive. Hence, we hold the context here to keep it alive on the
+  // main Python thread. For example,
+  //  `async_handle = sample_async(kernel_factory())`,
+  // where `kernel_factory()` returns a kernel object. The `async_handle` would
+  // then track a reference (ref count) to the context of the temporary (rval)
+  // kernel.
+  struct py_async_sample_result {
+    // The underlying result
+    async_sample_result result;
+    // Python MLIR context (optional)
+    py::object ctx;
+    // Ctors
+    py_async_sample_result(async_sample_result &&res)
+        : result(std::move(res)){};
+    py_async_sample_result(async_sample_result &&res, py::object &&mlirCtx)
+        : result(std::move(res)), ctx(std::move(mlirCtx)){};
+    // Async. get method
+    cudaq::sample_result get() { return result.get(); }
+  };
+
+  py::class_<py_async_sample_result>(
       mod, "AsyncSampleResult",
       R"#(A data-type containing the results of a call to :func:`sample_async`. 
 The `AsyncSampleResult` models a future-like type, whose 
@@ -37,15 +63,15 @@ for more information on this programming pattern.)#")
         async_sample_result f;
         std::istringstream is(inJson);
         is >> f;
-        return f;
+        return py_async_sample_result(std::move(f));
       }))
-      .def("get", &async_sample_result::get,
+      .def("get", &py_async_sample_result::get,
            py::call_guard<py::gil_scoped_release>(),
            "Return the :class:`SampleResult` from the asynchronous sample "
            "execution.\n")
-      .def("__str__", [](async_sample_result &res) {
+      .def("__str__", [](py_async_sample_result &res) {
         std::stringstream ss;
-        ss << res;
+        ss << res.result;
         return ss.str();
       });
 
@@ -53,31 +79,15 @@ for more information on this programming pattern.)#")
       "sample_async",
       [&](py::object kernel, py::args args, std::size_t shots,
           bool explicitMeasurements, std::size_t qpu_id) {
-        // The kernel object can be an 'rvalue' created in the `sample_async`
-        // call, e.g., `sample_async(kernel_factory())`, where
-        // `kernel_factory()` returns a kernel object. Hence, care must be taken
-        // to make sure it's still alive in the async. functor that we post to
-        // the execution queue.
-        // (1) Manually increase the reference count so that the underlying
-        // `PyObject` is alive.
-        kernel.inc_ref();
-        // (2) A unique_ptr with a custom deleter is used to hold the `PyObject`
-        // ptr and decrement the reference count when going out of scope.
-        auto kernelDeleter = [](PyObject *ptr) {
-          // Reacquire the GIL.
-          // Note: We've finished the async. execution at this point.
-          py::gil_scoped_acquire acquire;
-          py::handle(ptr).dec_ref();
-        };
-        std::unique_ptr<PyObject, decltype(kernelDeleter)> kernelPtr(
-            kernel.ptr(), kernelDeleter);
-
         auto &platform = cudaq::get_platform();
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
-
         auto kernelName = kernel.attr("name").cast<std::string>();
-        auto kernelMod = kernel.attr("module").cast<MlirModule>();
+        // Clone the kernel module
+        auto kernelMod = mlirModuleFromOperation(
+            wrap(unwrap(kernel.attr("module").cast<MlirModule>())->clone()));
+        // Get the MLIR context associated with the kernel
+        py::object mlirCtx = kernel.attr("module").attr("context");
         args = simplifiedValidateInputArguments(args);
 
         // This kernel may not have been registered to the quake registry
@@ -105,17 +115,19 @@ for more information on this programming pattern.)#")
 
         // Should only have C++ going on here, safe to release the GIL
         py::gil_scoped_release release;
-        return cudaq::details::runSamplingAsync(
-            // Notes:
-            // (1) no Python data access is allowed in this lambda body.
-            // (2) This lambda might be executed multiple times, e.g, when the
-            // kernel contains measurement feedback.
-            cudaq::detail::make_copyable_function(
-                [argData = std::move(argData), kernel = std::move(kernelPtr),
-                 kernelName, kernelMod]() mutable {
-                  pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
-                }),
-            platform, kernelName, shots, explicitMeasurements, qpu_id);
+        return py_async_sample_result(
+            cudaq::details::runSamplingAsync(
+                // Notes:
+                // (1) no Python data access is allowed in this lambda body.
+                // (2) This lambda might be executed multiple times, e.g, when
+                // the kernel contains measurement feedback.
+                cudaq::detail::make_copyable_function(
+                    [argData = std::move(argData), kernelName,
+                     kernelMod]() mutable {
+                      pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
+                    }),
+                platform, kernelName, shots, explicitMeasurements, qpu_id),
+            std::move(mlirCtx));
       },
       py::arg("kernel"), py::kw_only(), py::arg("shots_count") = 1000,
       py::arg("explicit_measurements") = false, py::arg("qpu_id") = 0,
