@@ -360,7 +360,7 @@ class TestCallbackTensor(TestSystem):
         # Qubit Hamiltonian
         hamiltonian = 0.5 * 2 * np.pi * nu_z * spin.z(0)
         # Add modulated driving term to the Hamiltonian
-        hamiltonian += 2 * np.pi * nu_x * ElementaryOperator(op_name, [0])
+        hamiltonian += 2 * np.pi * nu_x * MatrixOperatorTerm(ElementaryOperator(op_name, [0])) # FIXME: ARITHMETIC OPS FOR BACKWARDS COMPATIBILTY...
 
         # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
         dimensions = {0: 2}

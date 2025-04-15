@@ -196,16 +196,16 @@ class CuDensityMatOpConversion(
         self, op: ElementaryOperator | ScalarOperator
     ) -> CudmOperatorTerm | CallbackCoefficient | Number:
         logger.info(f"Evaluating {op}")
-        if isinstance(op, ScalarOperator):
-            if op._constant_value is None:
+        if not hasattr(op, "degrees"):
+            if not op.is_constant():
                 return CPUCallback(
-                    self._wrap_callback(op.generator, op.parameters))
+                    self._wrap_callback(lambda **kwargs: op.evaluate(**kwargs), op.parameters))
             else:
-                return op._constant_value
+                return op.evaluate()
         else:
-            if op._id == "identity":
+            if op == op.__class__(op.degrees[0]):
                 return 1.0
-            if len(op.parameters) > 0:
+            if hasattr(op, "parameters") and len(op.parameters) > 0:
                 for param in op.parameters:
                     if param not in self._schedule._parameters:
                         raise ValueError(

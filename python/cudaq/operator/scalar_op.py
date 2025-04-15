@@ -16,7 +16,8 @@ from .helpers import _OperatorHelpers, NumericType
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import ScalarOperator as scalar_op_cpp
 
 
-class ScalarOperator:
+# FIXME: rather than making this a separate class, extend the Cpp class
+class ScalarOperator(scalar_op_cpp):
     """
     Represents a scalar operator defined as a function of zero or more 
     complex-valued parameters.
@@ -129,6 +130,7 @@ class ScalarOperator:
         """
         self._definition = ScalarOperator.Definition(generator, parameter_info,
                                                     self._create_key)
+        super(ScalarOperator, self).__init__(self._definition.generator)
 
     def __eq__(self: ScalarOperator, other: Any) -> bool:
         """
@@ -138,14 +140,6 @@ class ScalarOperator:
         if type(other) != self.__class__:
             return False
         return self._definition.generator == other._definition.generator
-
-    @property
-    def parameters(self: ScalarOperator) -> Mapping[str, str]:
-        """
-        A mapping that contains the documentation comment for each parameter 
-        needed to evaluate the generator.
-        """
-        return self._definition.generator.parameters
 
     def _invoke(self: ScalarOperator, **kwargs: NumericType) -> NumericType:
         """

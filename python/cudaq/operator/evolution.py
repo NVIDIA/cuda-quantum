@@ -98,10 +98,7 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
                 hamiltonian.delta_global
         ]):
             if op is not None:
-                if op._constant_value is None:
-                    ts.append((op.generator(t), t))
-                else:
-                    ts.append((op._constant_value, t))
+                ts.append((op.evaluate(t), t))
 
     atoms = cudaq_runtime.ahs.AtomArrangement()
     atoms.sites = hamiltonian.atom_sites
@@ -241,7 +238,7 @@ def evolve_single(
     schedule.reset()
     tlist = [schedule.current_step for _ in schedule]
     observable_spinops = [
-        lambda step_parameters, op=op: op._to_spinop(
+        lambda step_parameters, op=op: op.evaluate(
             dimensions, **step_parameters) for op in observables
     ]
     compute_step_matrix = lambda step_parameters, dt: _compute_step_matrix(
@@ -462,7 +459,7 @@ def evolve_single_async(
     schedule.reset()
     tlist = [schedule.current_step for _ in schedule]
     observable_spinops = [
-        lambda step_parameters, op=op: op._to_spinop(
+        lambda step_parameters, op=op: op.evaluate(
             dimensions, **step_parameters) for op in observables
     ]
     compute_step_matrix = lambda step_parameters, dt: _compute_step_matrix(

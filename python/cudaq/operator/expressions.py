@@ -12,7 +12,7 @@ from typing import Any, Callable, Generator, Iterable, Mapping, Optional, Sequen
 from numpy.typing import NDArray
 
 from .helpers import _OperatorHelpers, NumericType
-from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint, _sum_evaluation, _product_evaluation
+from .manipulation import MatrixArithmetics, OperatorArithmetics, PrettyPrint, _sum_evaluation, _product_evaluation, _evaluation
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
@@ -24,9 +24,11 @@ from .custom_op import ElementaryOperator
 
 # FIXME: deprecate _evaluate or make public?
 for op_type in typing.get_args(CppOperator):
-    op_type._evaluate = classmethod(_sum_evaluation)
+    op_type._evaluate = _sum_evaluation
 for op_type in typing.get_args(CppOperatorTerm):
-    op_type._evaluate = classmethod(_product_evaluation)
+    op_type._evaluate = _product_evaluation
+for op_type in typing.get_args(CppOperatorTerm):
+    op_type.evaluate = _evaluation
 
 
 '''

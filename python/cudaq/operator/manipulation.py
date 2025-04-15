@@ -231,6 +231,51 @@ class PrettyPrint(OperatorArithmetics[str]):
     def evaluate(self, op: CppOperatorElement | ScalarOperator) -> str:
         return str(op)
 
+# FIXME: add a general evaluation logic in C++ to all operators?
+class OperatorEvaluation(OperatorArithmetics[CppOperator | CppOperatorTerm | NumericType]):
+
+    def tensor(
+        self: OperatorEvaluation, op1: CppOperator | CppOperatorTerm | NumericType,
+        op2: CppOperator | CppOperatorTerm | NumericType
+    ) -> CppOperator | CppOperatorTerm | NumericType:
+        return op1 * op2
+
+    def mul(
+        self: OperatorEvaluation, op1: CppOperator | CppOperatorTerm | NumericType,
+        op2: CppOperator | CppOperatorTerm | NumericType
+    ) -> CppOperator | CppOperatorTerm | NumericType:
+        return op1 * op2
+
+    def add(
+        self: OperatorEvaluation, op1: CppOperator | CppOperatorTerm | NumericType,
+        op2: CppOperator | CppOperatorTerm | NumericType
+    ) -> CppOperator | CppOperatorTerm | NumericType:
+        return op1 + op2
+
+    def evaluate(
+        self: OperatorEvaluation, op: CppOperatorElement | ScalarOperator
+    ) -> CppOperatorTerm | NumericType:
+        if isinstance(op, CppOperatorElement):
+            return self._term_type(op)
+        if isinstance(op, ScalarOperator) or isinstance(op, cudaq_runtime.ScalarOperator): # FIXME: MAKE ONE SCALAR CLASS
+            return op.evaluate(**self._kwargs)
+        else:
+            raise ValueError(f"operator '{str(op)}' (type: {type(op)}) is not a scalar or elementary operator")
+
+    def __init__(self: OperatorEvaluation, term_type, **kwargs: NumericType) -> None:
+        """
+        Instantiates a SpinEvaluation instance for the given keyword arguments.
+        This class is only defined for qubits, that is all degrees of freedom must 
+        have dimension two.
+
+        Arguments:
+            `kwargs`: Keyword arguments needed to evaluate, that is access data in,
+                the leaf nodes of the operator expression. Leaf nodes are 
+                elementary or scalar operators.
+        """
+        self._kwargs = kwargs
+        self._term_type = term_type
+
 
 def _product_evaluation(term : CppOperatorTerm, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
     """
@@ -245,8 +290,9 @@ def _product_evaluation(term : CppOperatorTerm, arithmetics: OperatorArithmetics
                     degrees: Iterable[int]):
         # Creating the tensor product with op being last is most efficient.
         def accumulate_ops() -> Generator[TEval]:
+            op_degrees = op.degrees
             for degree in degrees:
-                if not degree in op._degrees:
+                if not degree in op_degrees:
                     yield arithmetics.evaluate(op.__class__(degree))
             yield arithmetics.evaluate(op)
 
@@ -289,14 +335,39 @@ def _sum_evaluation(operator : CppOperator, arithmetics: OperatorArithmetics[TEv
 
     evaluated = arithmetics.evaluate(ScalarOperator.const(0))
     if pad_terms:
+        degrees = operator.degrees
         for term in operator:
-            evaluated_term = _product_evaluation(padded_term(term), arithmetics, pad_terms)
+            evaluated_term = _product_evaluation(padded_term(term, degrees), arithmetics, pad_terms)
             evaluated = arithmetics.add(evaluated, evaluated_term)
     else:
         for term in operator:
             evaluated_term = _product_evaluation(term, arithmetics, pad_terms)
             evaluated = arithmetics.add(evaluated, evaluated_term)
     return evaluated
+
+def _evaluation(operator: CppOperator | CppOperatorTerm,
+                   dimensions: Mapping[int, int] = {}, # FIXME: SHOULD WE HAVE THE DIMENSIONS (AND USE THEM!) OR NOT?
+                   **kwargs: NumericType) -> CppOperator | CppOperatorTerm:
+    term_type = type(operator)
+    if isinstance(operator, CppOperator) and operator.term_count > 0:
+        term, *_ = operator
+        term_type = type(term)
+    arithmetics = OperatorEvaluation(term_type, **kwargs)
+    if isinstance(operator, CppOperator):
+        evaluated = _sum_evaluation(operator, arithmetics, False)
+    elif isinstance(operator, CppOperatorTerm):
+        evaluated = _product_evaluation(operator, arithmetics, False)
+        # FIXME: CONVERT TO SUM?
+    else:
+        raise RuntimeError("the given value is not an operator")
+    if isinstance(evaluated, CppOperator) or isinstance(evaluated, CppOperatorTerm):
+        return evaluated
+    elif isinstance(evaluated, CppOperator):
+        evaluated_sum = operator.__class__.empty()
+        if evaluated != 0: evaluated_sum += evaluated
+        return evaluated_sum
+    else:
+        return operator.__class__(evaluated)
 
 
 '''

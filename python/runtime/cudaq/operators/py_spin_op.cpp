@@ -527,6 +527,8 @@ void bindSpinOperator(py::module &mod) {
   .def(py::init([](const scalar_operator &scalar) {
       return spin_op_term() * scalar;
     }), "Creates a product operator with non-constant scalar value.")
+  .def(py::init<spin_handler>(), 
+    "Creates a product operator with the given elementary operator.")
   .def(py::init<const spin_op_term &, std::size_t>(),
     py::arg("operator"), py::arg("size") = 0,
     "Creates a copy of the given operator and reserves space for storing the given "

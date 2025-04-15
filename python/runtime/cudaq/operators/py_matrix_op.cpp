@@ -307,6 +307,8 @@ void bindMatrixOperator(py::module &mod) {
   .def(py::init([](const scalar_operator &scalar) {
       return matrix_op_term() * scalar;
     }), "Creates a product operator with non-constant scalar value.")
+  .def(py::init<matrix_handler>(), 
+    "Creates a product operator with the given elementary operator.")
   .def(py::init<spin_op_term>())
   .def(py::init<fermion_op_term>())
   .def(py::init<boson_op_term>())

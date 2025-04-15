@@ -20,6 +20,10 @@ def test_construction():
     print(scalar2.evaluate(x = 2))
     print(scalar.to_matrix(x = 5))
     print(scalar2.to_matrix(x = 2))
+    assert ScalarOperator(5).is_constant()
+    assert not scalar.is_constant()
+    assert not scalar2.is_constant()
+    assert 'x' in scalar2.parameters
 
 
 # for debugging
