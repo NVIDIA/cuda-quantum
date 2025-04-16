@@ -84,7 +84,7 @@ class _OperatorHelpers:
         # Also, Python caches already used patterns, so compiling on
         # the fly seems fine.
         def keyword_pattern(word):
-            return r"(?:^\\s*" + word + ":\\s*\r?\n)"
+            return r"(?:^\s*" + word + r":\s*\r?\n)"
 
         def param_pattern(param_name):
             return r"(?:^\s*" + param_name + r"\s*(\(.*\))?:)\s*(.*)$"

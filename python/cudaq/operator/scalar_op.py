@@ -191,10 +191,12 @@ class ScalarOperator(scalar_op_cpp):
     def __str__(self: ScalarOperator) -> str:
         if self._definition.generator.is_constant():
             return str(self._definition.generator.evaluate())
+        fct_name = self._definition.name
+        if not fct_name or fct_name == "<lambda>": fct_name = "lambda"
         if len(self._definition.generator.parameters) == 0:
-            return self._definition.name or "lambda"
+            return fct_name
         parameter_names = ", ".join(self.parameters)
-        return f"{self._definition.name or 'f'}({parameter_names})"
+        return f"{fct_name}({parameter_names})"
 
     def _compose_scalar(
         self: ScalarOperator, other: Any,

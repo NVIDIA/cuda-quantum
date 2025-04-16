@@ -57,8 +57,8 @@ void matrix_handler::define(std::string operator_id,
   auto result =
       matrix_handler::defined_ops.insert({operator_id, std::move(defn)});
   if (!result.second)
-    throw std::runtime_error("an matrix operator with name " + operator_id +
-                             "is already defined");
+    throw std::runtime_error("a matrix operator with name " + operator_id +
+                             " is already defined");
 }
 
 void matrix_handler::define(std::string operator_id,
