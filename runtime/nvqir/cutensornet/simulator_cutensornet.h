@@ -14,9 +14,15 @@
 
 namespace nvqir {
 /// @brief Base class of `cutensornet` simulator backends
-class SimulatorTensorNetBase : public nvqir::CircuitSimulatorBase<double> {
-
+template <typename ScalarType = double>
+class SimulatorTensorNetBase : public nvqir::CircuitSimulatorBase<ScalarType> {
 public:
+  using GateApplicationTask =
+      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
+  using nvqir::CircuitSimulatorBase<ScalarType>::executionContext;
+  using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
+  using nvqir::CircuitSimulatorBase<ScalarType>::flushAnySamplingTasks;
+  using nvqir::CircuitSimulatorBase<ScalarType>::addQubitsToState;
   SimulatorTensorNetBase();
   SimulatorTensorNetBase(const SimulatorTensorNetBase &another) = delete;
   SimulatorTensorNetBase &
@@ -139,3 +145,5 @@ protected:
 };
 
 } // end namespace nvqir
+
+#include "simulator_cutensornet.inc"

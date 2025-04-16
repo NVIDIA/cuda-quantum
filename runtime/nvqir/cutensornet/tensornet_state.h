@@ -224,6 +224,7 @@ public:
   ~TensorNetState();
 
 private:
+  template <typename ScalarType>
   friend class SimulatorMPS;
   friend class TensorNetSimulationState;
   /// Internal method to contract the tensor network.

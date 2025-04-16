@@ -12,13 +12,21 @@
 #include <errno.h>
 
 namespace nvqir {
-
-class SimulatorMPS : public SimulatorTensorNetBase {
+template <typename ScalarType = double>
+class SimulatorMPS : public SimulatorTensorNetBase<ScalarType> {
   MPSSettings m_settings;
   std::vector<MPSTensor> m_mpsTensors_d;
 
 public:
-  SimulatorMPS() : SimulatorTensorNetBase() {}
+  using GateApplicationTask =
+      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
+  using SimulatorTensorNetBase<ScalarType>::m_cutnHandle;
+  using SimulatorTensorNetBase<
+      ScalarType>::m_maxControlledRankForFullTensorExpansion;
+  using SimulatorTensorNetBase<ScalarType>::m_state;
+  using SimulatorTensorNetBase<ScalarType>::scratchPad;
+  using SimulatorTensorNetBase<ScalarType>::m_randomEngine;
+  SimulatorMPS() : SimulatorTensorNetBase<ScalarType>() {}
 
   virtual void prepareQubitTensorState() override {
     LOG_API_TIME();
@@ -134,7 +142,7 @@ public:
     auto pauli_word = op.get_pauli_word();
     if (controls.empty() && qubitIds.size() == 2 &&
         shouldHandlePauliOp(pauli_word)) {
-      flushGateQueue();
+      this->flushGateQueue();
       cudaq::info("[SimulatorMPS] (apply) exp(i*{}*{}) ({}, {}).", theta,
                   op.to_string(), qubitIds[0], qubitIds[1]);
       const GateApplicationTask task = [&]() {
@@ -154,11 +162,12 @@ public:
         }
         __builtin_unreachable();
       }();
-      applyGate(task);
+      this->applyGate(task);
       return;
     }
     // Let the base class to handle this Pauli rotation
-    SimulatorTensorNetBase::applyExpPauli(theta, controls, qubitIds, op);
+    SimulatorTensorNetBase<ScalarType>::applyExpPauli(theta, controls, qubitIds,
+                                                      op);
   }
 
   // Helper to compute expectation value from a bit string distribution
@@ -198,9 +207,9 @@ public:
   /// @brief Sample a subset of qubits
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
-    const bool hasNoise = executionContext && executionContext->noiseModel;
+    const bool hasNoise = this->executionContext && this->executionContext->noiseModel;
     if (!hasNoise || shots < 1)
-      return SimulatorTensorNetBase::sample(measuredBits, shots);
+      return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots);
 
     LOG_API_TIME();
     cudaq::ExecutionResult counts;
@@ -268,10 +277,10 @@ public:
   cudaq::observe_result observe(const cudaq::spin_op &ham) override {
     assert(cudaq::spin_op::canonicalize(ham) == ham);
     LOG_API_TIME();
-    const bool hasNoise = executionContext && executionContext->noiseModel;
+    const bool hasNoise = this->executionContext && this->executionContext->noiseModel;
     // If no noise, just use base class implementation.
     if (!hasNoise)
-      return SimulatorTensorNetBase::observe(ham);
+      return SimulatorTensorNetBase<ScalarType>::observe(ham);
 
     setUpFactorizeForTrajectoryRuns();
     const std::size_t numObserveTrajectories =
@@ -415,4 +424,4 @@ public:
 };
 } // end namespace nvqir
 
-NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS, tensornet_mps)
+NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS<double>, tensornet_mps)

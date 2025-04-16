@@ -14,9 +14,17 @@
 extern "C" nvqir::CircuitSimulator *getCircuitSimulator_tensornet();
 
 namespace nvqir {
-class SimulatorTensorNet : public SimulatorTensorNetBase {
+template <typename ScalarType = double>
+class SimulatorTensorNet : public SimulatorTensorNetBase<ScalarType> {
+  using SimulatorTensorNetBase<ScalarType>::m_cutnHandle;
+  using SimulatorTensorNetBase<
+      ScalarType>::m_maxControlledRankForFullTensorExpansion;
+  using SimulatorTensorNetBase<ScalarType>::m_state;
+  using SimulatorTensorNetBase<ScalarType>::scratchPad;
+  using SimulatorTensorNetBase<ScalarType>::m_randomEngine;
+
 public:
-  SimulatorTensorNet() : SimulatorTensorNetBase() {
+  SimulatorTensorNet() : SimulatorTensorNetBase<ScalarType>() {
     // tensornet backend supports distributed tensor network contraction,
     // i.e., distributing tensor network contraction across multiple
     // GPUs/processes.
@@ -152,13 +160,13 @@ private:
 extern "C" {
 nvqir::CircuitSimulator *getCircuitSimulator_tensornet() {
   thread_local static auto simulator =
-      std::make_unique<nvqir::SimulatorTensorNet>();
+      std::make_unique<nvqir::SimulatorTensorNet<double>>();
   // Handle multiple runtime __nvqir__setCircuitSimulator calls before/after MPI
   // initialization. If the static simulator instance was created before MPI
   // initialization, it needs to be reset to support MPI if needed.
   if (cudaq::mpi::is_initialized() && !simulator->m_cutnMpiInitialized) {
     // Reset the static instance to pick up MPI.
-    simulator.reset(new nvqir::SimulatorTensorNet());
+    simulator.reset(new nvqir::SimulatorTensorNet<double>());
   }
   return simulator.get();
 }
