@@ -2,25 +2,6 @@ CUDA-Q Dynamics
 ===============
 .. _dynamics_examples:
 
-.. toctree::
-   :maxdepth: 1
-   :titlesonly:
-   :glob:
-
-   cavity_qed
-   cross_resonance
-   gate_calibration
-   heisenberg_model
-   landau_zener
-   pulse
-   qubit_control
-   qubit_dynamics
-   silicon_spin_qubit
-   tensor_callback
-   transmon_resonator
-   initial_state_mgmn
-   heisenberg_model_mgmn
-
 Cavity QED
 ---------------
 .. _cavity_qed:
