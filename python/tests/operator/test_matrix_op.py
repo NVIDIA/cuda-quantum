@@ -117,8 +117,8 @@ def test_properties():
 
     prod1.dump()
     sum.dump()
-    assert str(prod1) == "(1.000000+0.000000i) * momentum(0)position(1)"
-    assert str(sum) == "(2.000000+0.000000i) * momentum(0)position(1) + (1.000000+0.000000i) * number(1)parity(3)"
+    assert str(prod1) == "(1+0i) * momentum(0)position(1)"
+    assert str(sum) == "(2+0i) * momentum(0)position(1) + (1+0i) * number(1)parity(3)"
     assert prod1.term_id == "momentum(0)position(1)"
 
 

@@ -117,7 +117,6 @@ def _instantiate(cls,
             generator_args, remaining_kwargs = _OperatorHelpers.args_from_kwargs(generator, **kwargs)
             return generator(*generator_args, **remaining_kwargs)
         instance.__init__(generator_wrapper, **parameter_info)
-    return instance      
-
+    return instance
 ScalarOperator.__new__ = staticmethod(_instantiate)
 

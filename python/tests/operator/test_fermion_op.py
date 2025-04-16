@@ -156,8 +156,8 @@ def test_properties():
     prod1_mat = -(1. + 0.5j) * np.kron(identity_matrix(2), np.kron(create_matrix(2), annihilate_matrix(2)))
     prod2_mat = np.kron(create_matrix(2), np.kron(number_matrix(2), identity_matrix(2)))
     assert np.allclose(sum.to_matrix(), prod1_mat + prod1_mat + prod2_mat)
-    assert str(prod1) == "(-1.000000-0.500000i) * A0Ad1"
-    assert str(sum) == "(-2.000000-1.000000i) * A0Ad1 + (1.000000+0.000000i) * N1Ad3"
+    assert str(prod1) == "(-1-0.5i) * A0Ad1"
+    assert str(sum) == "(-2-1i) * A0Ad1 + (1+0i) * N1Ad3"
     assert prod1.term_id == "A0Ad1"
 
 

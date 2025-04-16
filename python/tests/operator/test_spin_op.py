@@ -202,8 +202,8 @@ def test_properties():
     prod1_mat = (1. + 0.5j) * np.kron(identity_matrix(2), np.kron(paulix_matrix(), pauliy_matrix()))
     prod2_mat = np.kron(paulix_matrix(), np.kron(pauliz_matrix(), identity_matrix(2)))
     assert np.allclose(sum.to_matrix(), prod1_mat + prod1_mat + prod2_mat)
-    assert str(prod1) == "(1.000000+0.500000i) * Y0X1"
-    assert str(sum) == "(2.000000+1.000000i) * Y0X1 + (1.000000+0.000000i) * Z1X3"
+    assert str(prod1) == "(1+0.5i) * Y0X1"
+    assert str(sum) == "(2+1i) * Y0X1 + (1+0i) * Z1X3"
     assert prod1.term_id == "Y0X1"
 
     spin_operator = empty()

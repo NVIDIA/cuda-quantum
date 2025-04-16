@@ -153,8 +153,8 @@ def test_properties():
 
     prod1.dump()
     sum.dump()
-    assert str(prod1) == "(0.000000+0.250000i) * Ad0Ad1 + (0.000000-0.250000i) * A0Ad1 + (0.000000+0.250000i) * Ad0A1 + (0.000000-0.250000i) * A0A1"
-    assert str(sum) == "(0.000000+0.500000i) * Ad0Ad1 + (0.000000-0.500000i) * A0Ad1 + (0.000000+0.500000i) * Ad0A1 + (0.000000-0.500000i) * A0A1 + (1.000000+0.000000i) * N1A3"
+    assert str(prod1) == "(0+0.25i) * Ad0Ad1 + (0-0.25i) * A0Ad1 + (0+0.25i) * Ad0A1 + (0-0.25i) * A0A1"
+    assert str(sum) == "(0+0.5i) * Ad0Ad1 + (0-0.5i) * A0Ad1 + (0+0.5i) * Ad0A1 + (0-0.5i) * A0A1 + (1+0i) * N1A3"
     assert prod2.term_id == "N1A3"
 
 
