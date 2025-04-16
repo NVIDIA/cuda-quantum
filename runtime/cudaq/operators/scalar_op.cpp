@@ -68,12 +68,20 @@ complex_matrix scalar_operator::to_matrix(
 }
 
 std::string scalar_operator::to_string() const {
+  std::stringstream sstr;
   if (std::holds_alternative<std::complex<double>>(this->value)) {
     auto value = std::get<std::complex<double>>(this->value);
-    return "(" + std::to_string(value.real()) + (value.imag() < 0 ? "-" : "+") +
-           std::to_string(std::abs(value.imag())) + "i)";
+    sstr << "(" << value.real() << (value.imag() < 0 ? "-" : "+") << std::abs(value.imag()) << "i)";
+    return sstr.str();
   }
-  return "scalar";
+  if (this->param_desc.size() == 0)
+    return "scalar";
+  auto it = this->param_desc.cbegin();
+  sstr << "scalar(" << it->first;
+  while (++it != this->param_desc.cend())
+    sstr << "," << it->first;
+  sstr << ")";
+  return sstr.str();
 }
 
 // comparison

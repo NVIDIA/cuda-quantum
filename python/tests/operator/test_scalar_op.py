@@ -17,7 +17,7 @@ def test_construction():
     assert const.is_constant()
     assert const.evaluate() == 5
     assert np.allclose(const.to_matrix(), [5])
-    assert str(const) == '5'
+    assert str(const) == '(5+0i)'
 
     def callback(x): return x * x
     fct = ScalarOperator(callback)
@@ -29,7 +29,7 @@ def test_construction():
     with pytest.raises(Exception): fct.to_matrix()
     assert np.allclose(fct.to_matrix(x = 3), [9])
     assert np.allclose(fct.to_matrix(x = 5), [25])
-    assert str(fct) == 'callback(x)'
+    assert str(fct) == 'scalar(x)'
     assert 'x' in fct.parameters
 
     lam = ScalarOperator(lambda z: z - 1)
@@ -41,7 +41,7 @@ def test_construction():
     with pytest.raises(Exception): lam.to_matrix()
     assert np.allclose(lam.to_matrix(z = 3), [2])
     assert np.allclose(lam.to_matrix(z = 5), [4])
-    assert str(lam) == 'lambda(z)'
+    assert str(lam) == 'scalar(z)'
     assert 'z' in lam.parameters
 
 
