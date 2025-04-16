@@ -64,7 +64,9 @@ struct AppliedTensorOp {
 
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDA-Q
 /// simulator implementation.
+template <typename ScalarType = double>
 class TensorNetState {
+  using DataType = std::complex<ScalarType>;
 
 protected:
   std::size_t m_numQubits;
@@ -224,8 +226,9 @@ public:
   ~TensorNetState();
 
 private:
-  template <typename ScalarType>
+  template <typename ScalarTy>
   friend class SimulatorMPS;
+  template <typename ScalarTy>
   friend class TensorNetSimulationState;
   /// Internal method to contract the tensor network.
   /// Returns device memory pointer and size (number of elements).
@@ -253,3 +256,5 @@ private:
                 bool enableCacheWorkspace);
 };
 } // namespace nvqir
+
+#include "tensornet_state.inc"

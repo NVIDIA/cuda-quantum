@@ -73,7 +73,7 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
-    return std::make_unique<TensorNetSimulationState>(
+    return std::make_unique<TensorNetSimulationState<ScalarType>>(
         std::move(m_state), scratchPad, m_cutnHandle, m_randomEngine);
   }
 
@@ -81,13 +81,13 @@ public:
     LOG_API_TIME();
     if (!m_state) {
       if (!ptr) {
-        m_state = std::make_unique<TensorNetState>(
+        m_state = std::make_unique<TensorNetState<ScalarType>>(
             numQubits, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
         auto *casted =
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
         std::span<std::complex<double>> stateVec(casted, 1ULL << numQubits);
-        m_state = TensorNetState::createFromStateVector(
+        m_state = TensorNetState<ScalarType>::createFromStateVector(
             stateVec, scratchPad, m_cutnHandle, m_randomEngine);
       }
     } else {
@@ -105,13 +105,13 @@ public:
   virtual void
   addQubitsToState(const cudaq::SimulationState &in_state) override {
     LOG_API_TIME();
-    const TensorNetSimulationState *const casted =
-        dynamic_cast<const TensorNetSimulationState *>(&in_state);
+    const TensorNetSimulationState<ScalarType> *const casted =
+        dynamic_cast<const TensorNetSimulationState<ScalarType> *>(&in_state);
     if (!casted)
       throw std::invalid_argument(
           "[Tensornet simulator] Incompatible state input");
     if (!m_state) {
-      m_state = TensorNetState::createFromOpTensors(
+      m_state = TensorNetState<ScalarType>::createFromOpTensors(
           in_state.getNumQubits(), casted->getAppliedTensors(), scratchPad,
           m_cutnHandle, m_randomEngine);
     } else {

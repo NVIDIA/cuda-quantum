@@ -18,10 +18,11 @@
 
 namespace nvqir {
 
+template <typename ScalarType = double>
 class TensorNetSimulationState : public cudaq::SimulationState {
 
 public:
-  TensorNetSimulationState(std::unique_ptr<TensorNetState> inState,
+  TensorNetSimulationState(std::unique_ptr<TensorNetState<ScalarType>> inState,
                            ScratchDeviceMem &inScratchPad,
                            cutensornetHandle_t cutnHandle,
                            std::mt19937 &randomEngine);
@@ -71,7 +72,7 @@ public:
   }
 
 protected:
-  std::unique_ptr<TensorNetState> m_state;
+  std::unique_ptr<TensorNetState<ScalarType>> m_state;
   ScratchDeviceMem &scratchPad;
   cutensornetHandle_t m_cutnHandle;
   // Max number of qubits whereby the tensor network state should be contracted
@@ -82,3 +83,5 @@ protected:
   std::mt19937 &m_randomEngine;
 };
 } // namespace nvqir
+
+#include "tn_simulation_state.inc"

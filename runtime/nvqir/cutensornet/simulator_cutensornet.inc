@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -478,7 +478,7 @@ void SimulatorTensorNetBase<ScalarType>::setToZeroState() {
   const auto numQubits = m_state->getNumQubits();
   m_state.reset();
   // Re-create a zero state of the same size
-  m_state = std::make_unique<TensorNetState>(numQubits, scratchPad,
+  m_state = std::make_unique<TensorNetState<ScalarType>>(numQubits, scratchPad,
                                              m_cutnHandle, m_randomEngine);
 }
 

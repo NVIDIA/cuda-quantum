@@ -49,13 +49,13 @@ public:
   virtual void
   addQubitsToState(const cudaq::SimulationState &in_state) override {
     LOG_API_TIME();
-    const MPSSimulationState *const casted =
-        dynamic_cast<const MPSSimulationState *>(&in_state);
+    const MPSSimulationState<ScalarType> *const casted =
+        dynamic_cast<const MPSSimulationState<ScalarType> *>(&in_state);
     if (!casted)
       throw std::invalid_argument(
           "[SimulatorMPS simulator] Incompatible state input");
     if (!m_state) {
-      m_state = TensorNetState::createFromMpsTensors(
+      m_state = TensorNetState<ScalarType>::createFromMpsTensors(
           casted->getMpsTensors(), scratchPad, m_cutnHandle, m_randomEngine);
     } else {
       // Expand an existing state: Append MPS tensors
@@ -84,7 +84,7 @@ public:
                                      tensorSizeBytes, cudaMemcpyDefault));
         tensors.emplace_back(MPSTensor(mpsTensor, extents));
       }
-      m_state = TensorNetState::createFromMpsTensors(
+      m_state = TensorNetState<ScalarType>::createFromMpsTensors(
           tensors, scratchPad, m_cutnHandle, m_randomEngine);
     }
   }
@@ -286,7 +286,7 @@ public:
     const std::size_t numObserveTrajectories =
         this->executionContext->numberTrajectories.has_value()
             ? this->executionContext->numberTrajectories.value()
-            : TensorNetState::g_numberTrajectoriesForObserve;
+            : TensorNetState<ScalarType>::g_numberTrajectoriesForObserve;
 
     auto [termStrs, terms] = prepareSpinOpTermData(ham);
     std::vector<std::complex<double>> termExpVals(terms.size(), 0.0);
@@ -329,10 +329,10 @@ public:
     LOG_API_TIME();
     if (!m_state) {
       if (!ptr) {
-        m_state = std::make_unique<TensorNetState>(
+        m_state = std::make_unique<TensorNetState<ScalarType>>(
             numQubits, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
-        auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
+        auto [state, mpsTensors] = MPSSimulationState<ScalarType>::createFromStateVec(
             m_cutnHandle, scratchPad, 1ULL << numQubits,
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
             m_settings.maxBond, m_randomEngine);
@@ -359,11 +359,11 @@ public:
                                        cudaMemcpyHostToDevice));
           tensors.emplace_back(MPSTensor(mpsTensor, extents));
         }
-        m_state = TensorNetState::createFromMpsTensors(
+        m_state = TensorNetState<ScalarType>::createFromMpsTensors(
             tensors, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
         // Non-zero state needs to be factorized and appended.
-        auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
+        auto [state, mpsTensors] = MPSSimulationState<ScalarType>::createFromStateVec(
             m_cutnHandle, scratchPad, 1ULL << numQubits,
             reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
             m_settings.maxBond, m_randomEngine);
@@ -379,7 +379,7 @@ public:
         mpsTensors.front().extents = extents;
         // Combine the list
         tensors.insert(tensors.end(), mpsTensors.begin(), mpsTensors.end());
-        m_state = TensorNetState::createFromMpsTensors(
+        m_state = TensorNetState<ScalarType>::createFromMpsTensors(
             tensors, scratchPad, m_cutnHandle, m_randomEngine);
       }
     }
@@ -389,7 +389,7 @@ public:
     LOG_API_TIME();
 
     if (!m_state || m_state->getNumQubits() == 0)
-      return std::make_unique<MPSSimulationState>(
+      return std::make_unique<MPSSimulationState<ScalarType>>(
           std::move(m_state), std::vector<MPSTensor>{}, scratchPad,
           m_cutnHandle, m_randomEngine);
 
@@ -397,7 +397,7 @@ public:
       std::vector<MPSTensor> tensors =
           m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
                                 m_settings.relCutoff, m_settings.svdAlgo);
-      return std::make_unique<MPSSimulationState>(std::move(m_state), tensors,
+      return std::make_unique<MPSSimulationState<ScalarType>>(std::move(m_state), tensors,
                                                   scratchPad, m_cutnHandle,
                                                   m_randomEngine);
     }
@@ -408,7 +408,7 @@ public:
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = {static_cast<int64_t>(numElements)};
 
-    return std::make_unique<MPSSimulationState>(
+    return std::make_unique<MPSSimulationState<ScalarType>>(
         std::move(m_state), std::vector<MPSTensor>{stateTensor}, scratchPad,
         m_cutnHandle, m_randomEngine);
   }

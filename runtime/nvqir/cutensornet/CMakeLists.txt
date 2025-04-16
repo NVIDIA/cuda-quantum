@@ -64,7 +64,6 @@ message(STATUS "Found cutensornet version: ${CUTENSORNET_VERSION}")
 if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.7")
   set (BASE_TENSOR_BACKEND_SRS  
         tensornet_spin_op.cpp
-        tensornet_state.cpp
         tensornet_utils.cpp)
   get_filename_component(CUTENSORNET_INCLUDE_DIR ${CUTENSORNET_INC} DIRECTORY)
   get_filename_component(CUTENSORNET_LIB_DIR ${CUTENSORNET_LIB} DIRECTORY)
@@ -81,8 +80,8 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.7")
     add_target_config(${LIBRARY_NAME})
   endmacro()
 
-  nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_register.cpp tn_simulation_state.cpp)
-  nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_register.cpp mps_simulation_state.cpp)
+  nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_register.cpp)
+  nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_register.cpp)
   add_library(tensornet-mpi-util OBJECT mpi_support.cpp)
   target_include_directories(tensornet-mpi-util PRIVATE ${CUDAToolkit_INCLUDE_DIRS} ${CUTENSORNET_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/runtime)
   target_link_libraries(tensornet-mpi-util PRIVATE cudaq-common fmt::fmt-header-only)

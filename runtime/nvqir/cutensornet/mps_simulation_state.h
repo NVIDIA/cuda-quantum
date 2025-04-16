@@ -29,10 +29,11 @@ struct MPSSettings {
   MPSSettings();
 };
 
+template <typename ScalarType = double>
 class MPSSimulationState : public cudaq::SimulationState {
 
 public:
-  MPSSimulationState(std::unique_ptr<TensorNetState> inState,
+  MPSSimulationState(std::unique_ptr<TensorNetState<ScalarType>> inState,
                      const std::vector<MPSTensor> &mpsTensors,
                      ScratchDeviceMem &inScratchPad,
                      cutensornetHandle_t cutnHandle,
@@ -75,7 +76,7 @@ public:
   /// Encapsulate data needed to initialize an MPS state.
   struct MpsStateData {
     // Represents the tensor network state
-    std::unique_ptr<TensorNetState> networkState;
+    std::unique_ptr<TensorNetState<ScalarType>> networkState;
     // Individual MPS tensors
     std::vector<MPSTensor> tensors;
   };
@@ -99,7 +100,7 @@ protected:
 
   // The state that this owned.
   cutensornetHandle_t m_cutnHandle;
-  std::unique_ptr<TensorNetState> state;
+  std::unique_ptr<TensorNetState<ScalarType>> state;
   std::vector<MPSTensor> m_mpsTensors;
   ScratchDeviceMem &scratchPad;
   // Max number of qubits whereby the tensor network state should be contracted
@@ -111,3 +112,5 @@ protected:
 };
 
 } // namespace nvqir
+
+#include "mps_simulation_state.inc"

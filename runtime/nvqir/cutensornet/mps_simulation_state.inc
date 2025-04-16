@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -19,11 +19,14 @@ int deviceFromPointer(void *ptr) {
   HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
   return attributes.device;
 }
-std::size_t MPSSimulationState::getNumQubits() const {
+
+template <typename ScalarType>
+std::size_t MPSSimulationState<ScalarType>::getNumQubits() const {
   return state->getNumQubits();
 }
 
-MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
+template <typename ScalarType>
+MPSSimulationState<ScalarType>::MPSSimulationState(std::unique_ptr<TensorNetState<ScalarType>> inState,
                                        const std::vector<MPSTensor> &mpsTensors,
                                        ScratchDeviceMem &inScratchPad,
                                        cutensornetHandle_t cutnHandle,
@@ -32,9 +35,11 @@ MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
       m_mpsTensors(mpsTensors), scratchPad(inScratchPad),
       m_randomEngine(randomEngine) {}
 
-MPSSimulationState::~MPSSimulationState() { deallocate(); }
+template <typename ScalarType>
+MPSSimulationState<ScalarType>::~MPSSimulationState() { deallocate(); }
 
-std::complex<double> MPSSimulationState::computeOverlap(
+template <typename ScalarType>
+std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
     const std::vector<MPSTensor> &m_mpsTensors,
     const std::vector<MPSTensor> &mpsOtherTensors) {
   LOG_API_TIME();
@@ -225,8 +230,9 @@ std::complex<double> MPSSimulationState::computeOverlap(
   return std::abs(overlap);
 }
 
+template <typename ScalarType>
 std::complex<double>
-MPSSimulationState::overlap(const cudaq::SimulationState &other) {
+MPSSimulationState<ScalarType>::overlap(const cudaq::SimulationState &other) {
 
   if (other.getNumTensors() != getNumTensors())
     throw std::runtime_error("[tensornet-state] overlap error - other state "
@@ -238,8 +244,9 @@ MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   return computeOverlap(m_mpsTensors, mpsOtherTensors);
 }
 
+template <typename ScalarType>
 std::complex<double>
-MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
+MPSSimulationState<ScalarType>::getAmplitude(const std::vector<int> &basisState) {
   if (getNumQubits() != basisState.size())
     throw std::runtime_error(
         fmt::format("[tensornet-state] getAmplitude with an invalid number "
@@ -292,8 +299,9 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
   return amplitudes[idx];
 }
 
+template <typename ScalarType>
 cudaq::SimulationState::Tensor
-MPSSimulationState::getTensor(std::size_t tensorIdx) const {
+MPSSimulationState<ScalarType>::getTensor(std::size_t tensorIdx) const {
   if (tensorIdx >= getNumTensors())
     throw std::runtime_error(
         "[tensornet-mps-state] invalid tensor idx requested.");
@@ -306,8 +314,9 @@ MPSSimulationState::getTensor(std::size_t tensorIdx) const {
                                         extents, getPrecision()};
 }
 
+template <typename ScalarType>
 std::vector<cudaq::SimulationState::Tensor>
-MPSSimulationState::getTensors() const {
+MPSSimulationState<ScalarType>::getTensors() const {
   std::vector<cudaq::SimulationState::Tensor> tensors;
   for (auto &tensor : m_mpsTensors) {
     std::vector<std::size_t> extents;
@@ -318,23 +327,27 @@ MPSSimulationState::getTensors() const {
   return tensors;
 }
 
-std::size_t MPSSimulationState::getNumTensors() const {
+template <typename ScalarType>
+std::size_t MPSSimulationState<ScalarType>::getNumTensors() const {
   return m_mpsTensors.size();
 }
 
-void MPSSimulationState::deallocate() {
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::deallocate() {
   for (auto &tensor : m_mpsTensors)
     HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
   m_mpsTensors.clear();
   state.reset();
 }
 
-void MPSSimulationState::destroyState() {
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::destroyState() {
   cudaq::info("mps-state destroying state vector handle.");
   deallocate();
 }
 
-void MPSSimulationState::dump(std::ostream &os) const {
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::dump(std::ostream &os) const {
   const auto printState = [&os](const auto &stateVec) {
     for (auto &t : stateVec)
       os << t << "\n";
@@ -369,13 +382,14 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
   return reshapeMatrix(A);
 }
 
-MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
+template <typename ScalarType>
+MPSSimulationState<ScalarType>::MpsStateData MPSSimulationState<ScalarType>::createFromStateVec(
     cutensornetHandle_t cutnHandle, ScratchDeviceMem &inScratchPad,
     std::size_t size, std::complex<double> *ptr, int bondDim,
     std::mt19937 &randomEngine) {
   const std::size_t numQubits = std::log2(size);
   // Reverse the qubit order to match cutensornet convention
-  auto newStateVec = TensorNetState::reverseQubitOrder(
+  auto newStateVec = TensorNetState<ScalarType>::reverseQubitOrder(
       std::span<std::complex<double>>{ptr, size});
   auto stateVec =
       Eigen::Map<Eigen::VectorXcd>(newStateVec.data(), newStateVec.size());
@@ -389,7 +403,7 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = std::vector<int64_t>{2};
-    auto state = TensorNetState::createFromMpsTensors(
+    auto state = TensorNetState<ScalarType>::createFromMpsTensors(
         {stateTensor}, inScratchPad, cutnHandle, randomEngine);
     return {std::move(state), std::vector<MPSTensor>{stateTensor}};
   }
@@ -462,13 +476,14 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
   stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
-  auto state = TensorNetState::createFromMpsTensors(mpsTensors, inScratchPad,
+  auto state = TensorNetState<ScalarType>::createFromMpsTensors(mpsTensors, inScratchPad,
                                                     cutnHandle, randomEngine);
   return {std::move(state), mpsTensors};
 }
 
+template <typename ScalarType>
 std::unique_ptr<cudaq::SimulationState>
-MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
+MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size, void *ptr,
                                          std::size_t dataType) {
   if (dataType == cudaq::detail::variant_index<cudaq::state_data,
                                                cudaq::TensorStateData>()) {
@@ -489,7 +504,7 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
       MPSTensor stateTensor{d_tensor, mpsExtents};
       mpsTensors.emplace_back(stateTensor);
     }
-    auto state = TensorNetState::createFromMpsTensors(
+    auto state = TensorNetState<ScalarType>::createFromMpsTensors(
         mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
     return std::make_unique<MPSSimulationState>(
         std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
@@ -576,7 +591,8 @@ MPSSettings::MPSSettings() {
   }
 }
 
-void MPSSimulationState::toHost(std::complex<double> *clientAllocatedData,
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::toHost(std::complex<double> *clientAllocatedData,
                                 std::size_t numElements) const {
   auto stateVec = state->getStateVector();
   if (stateVec.size() != numElements)
