@@ -78,7 +78,7 @@ std::string scalar_operator::to_string() const {
 
 // comparison
 
-bool scalar_operator::operator==(scalar_operator other) const {
+bool scalar_operator::operator==(const scalar_operator &other) const {
   if (std::holds_alternative<scalar_callback>(this->value)) {
     return std::holds_alternative<scalar_callback>(other.value) &&
            &std::get<scalar_callback>(this->value) ==

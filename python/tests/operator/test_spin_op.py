@@ -380,6 +380,18 @@ def test_equality():
     assert sum != i(2) * sum
     assert np.allclose(np.kron(identity_matrix(2), sum.to_matrix()), (i(2) * sum).to_matrix())
 
+    assert (x(1) + y(1)) == ((y(1) + x(1)))
+    assert (x(1) * y(1)) != ((y(1) * x(1)))
+    assert (x(0) + y(1)) == ((y(1) + x(0)))
+    assert (x(0) * y(1)) == ((y(1) * x(0)))
+
+    spinzy = lambda i, j: z(i) * y(j)
+    spinxy = lambda i, j: x(i) * y(j)
+    assert (spinxy(0, 0) + spinzy(0, 0)) == (spinzy(0, 0) + spinxy(0, 0))
+    assert (spinxy(0, 0) * spinzy(0, 0)) != (spinzy(0, 0) * spinxy(0, 0))
+    assert (spinxy(1, 1) * spinzy(0, 0)) == (spinzy(0, 0) * spinxy(1, 1))
+    assert (spinxy(1, 2) * spinzy(3, 4)) == (spinzy(3, 4) * spinxy(1, 2))
+
     op1 = 5.907 - 2.1433 * spin.x(0) * spin.x(1) + spin.y(0) * spin.y(1)
     op2 = 3.1433 * spin.y(0) * spin.y(1) - .21829 * spin.z(0) + 6.125 * spin.z(
         1)
@@ -392,6 +404,7 @@ def test_equality():
 def test_arithmetics():
     # basic tests for all arithmetic related bindings - 
     # more complex expressions are tested as part of the C++ tests
+    
     dims = {0: 2, 1: 2}
     id = i(0)
     sum = y(0) + z(1)
@@ -399,6 +412,23 @@ def test_arithmetics():
                  np.kron(identity_matrix(2), pauliy_matrix())
     assert np.allclose(id.to_matrix(dims), identity_matrix(2))
     assert np.allclose(sum.to_matrix(dims), sum_matrix)
+
+    op1 = x(0) * i(1)
+    op2 = i(0) * x(1)
+    assert np.allclose((op1 + op2).to_matrix(),
+                       [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]])
+    assert np.allclose((op2 + op1).to_matrix(),
+                       [[0, 1, 1, 0], [1, 0, 0, 1], [1, 0, 0, 1], [0, 1, 1, 0]])
+    op1 = x(0) * x(1)
+    op2 = z(0) * z(1)
+    assert np.allclose(
+        (op1 + op2).to_matrix(),
+        [[1, 0, 0, 1], [0, -1, 1, 0], [0, 1, -1, 0], [1, 0, 0, 1]])
+    op3 = x(0) + x(1)
+    op4 = z(0) + z(1)
+    assert np.allclose(
+        (op3 * op4).to_matrix(),
+        [[0, 0, 0, 0], [2, 0, 0, -2], [2, 0, 0, -2], [0, 0, 0, 0]])
 
     # unary operators
     assert np.allclose((-id).to_matrix(dims), -1. * identity_matrix(2))

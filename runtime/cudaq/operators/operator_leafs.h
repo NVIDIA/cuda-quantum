@@ -85,7 +85,7 @@ public:
 
   // comparisons
 
-  bool operator==(scalar_operator other) const;
+  bool operator==(const scalar_operator &other) const;
 
   // unary operators
 

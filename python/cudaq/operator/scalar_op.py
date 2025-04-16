@@ -111,6 +111,8 @@ class ScalarOperator(scalar_op_cpp):
         """
         Creates a scalar operator that has a constant value.
         """
+        if not isinstance(constant_value, NumericType):
+            raise ValueError("argument must be a numeric constant")
         return cls(constant_value)
 
     __slots__ = ['_definition']

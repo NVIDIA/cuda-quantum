@@ -265,6 +265,10 @@ def test_arithmetics():
                  np.kron(identity_matrix(2), momentum_matrix(3))
     assert np.allclose(id.to_matrix(dims), identity_matrix(3))
     assert np.allclose(sum.to_matrix(dims), sum_matrix)
+    assert np.allclose(
+        (squeeze(0) + displace(1)).to_matrix({0: 2, 1: 2}, displacement=0.5, squeezing=0.5),
+        [[1.87758256, 0, -0.47942554, 0], [0, 1.87758256, 0, -0.47942554],
+         [0.47942554, 0, 1.87758256, 0], [0, 0.47942554, 0, 1.87758256]])
 
     # unary operators
     assert np.allclose((-id).to_matrix(dims), -1. * identity_matrix(3))
