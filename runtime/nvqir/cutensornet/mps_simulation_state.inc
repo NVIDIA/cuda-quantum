@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "mps_simulation_state.h"
+#pragma once
+
 #include "common/EigenDense.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
@@ -26,17 +27,18 @@ std::size_t MPSSimulationState<ScalarType>::getNumQubits() const {
 }
 
 template <typename ScalarType>
-MPSSimulationState<ScalarType>::MPSSimulationState(std::unique_ptr<TensorNetState<ScalarType>> inState,
-                                       const std::vector<MPSTensor> &mpsTensors,
-                                       ScratchDeviceMem &inScratchPad,
-                                       cutensornetHandle_t cutnHandle,
-                                       std::mt19937 &randomEngine)
+MPSSimulationState<ScalarType>::MPSSimulationState(
+    std::unique_ptr<TensorNetState<ScalarType>> inState,
+    const std::vector<MPSTensor> &mpsTensors, ScratchDeviceMem &inScratchPad,
+    cutensornetHandle_t cutnHandle, std::mt19937 &randomEngine)
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
       m_mpsTensors(mpsTensors), scratchPad(inScratchPad),
       m_randomEngine(randomEngine) {}
 
 template <typename ScalarType>
-MPSSimulationState<ScalarType>::~MPSSimulationState() { deallocate(); }
+MPSSimulationState<ScalarType>::~MPSSimulationState() {
+  deallocate();
+}
 
 template <typename ScalarType>
 std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
@@ -245,8 +247,8 @@ MPSSimulationState<ScalarType>::overlap(const cudaq::SimulationState &other) {
 }
 
 template <typename ScalarType>
-std::complex<double>
-MPSSimulationState<ScalarType>::getAmplitude(const std::vector<int> &basisState) {
+std::complex<double> MPSSimulationState<ScalarType>::getAmplitude(
+    const std::vector<int> &basisState) {
   if (getNumQubits() != basisState.size())
     throw std::runtime_error(
         fmt::format("[tensornet-state] getAmplitude with an invalid number "
@@ -383,7 +385,8 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
 }
 
 template <typename ScalarType>
-MPSSimulationState<ScalarType>::MpsStateData MPSSimulationState<ScalarType>::createFromStateVec(
+MPSSimulationState<ScalarType>::MpsStateData
+MPSSimulationState<ScalarType>::createFromStateVec(
     cutensornetHandle_t cutnHandle, ScratchDeviceMem &inScratchPad,
     std::size_t size, std::complex<double> *ptr, int bondDim,
     std::mt19937 &randomEngine) {
@@ -476,15 +479,16 @@ MPSSimulationState<ScalarType>::MpsStateData MPSSimulationState<ScalarType>::cre
   stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
-  auto state = TensorNetState<ScalarType>::createFromMpsTensors(mpsTensors, inScratchPad,
-                                                    cutnHandle, randomEngine);
+  auto state = TensorNetState<ScalarType>::createFromMpsTensors(
+      mpsTensors, inScratchPad, cutnHandle, randomEngine);
   return {std::move(state), mpsTensors};
 }
 
 template <typename ScalarType>
 std::unique_ptr<cudaq::SimulationState>
-MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size, void *ptr,
-                                         std::size_t dataType) {
+MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size,
+                                                     void *ptr,
+                                                     std::size_t dataType) {
   if (dataType == cudaq::detail::variant_index<cudaq::state_data,
                                                cudaq::TensorStateData>()) {
     std::vector<MPSTensor> mpsTensors;
@@ -592,8 +596,8 @@ MPSSettings::MPSSettings() {
 }
 
 template <typename ScalarType>
-void MPSSimulationState<ScalarType>::toHost(std::complex<double> *clientAllocatedData,
-                                std::size_t numElements) const {
+void MPSSimulationState<ScalarType>::toHost(
+    std::complex<double> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = state->getStateVector();
   if (stateVec.size() != numElements)
     throw std::runtime_error(

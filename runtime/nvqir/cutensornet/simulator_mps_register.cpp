@@ -207,7 +207,8 @@ public:
   /// @brief Sample a subset of qubits
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
-    const bool hasNoise = this->executionContext && this->executionContext->noiseModel;
+    const bool hasNoise =
+        this->executionContext && this->executionContext->noiseModel;
     if (!hasNoise || shots < 1)
       return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots);
 
@@ -277,7 +278,8 @@ public:
   cudaq::observe_result observe(const cudaq::spin_op &ham) override {
     assert(cudaq::spin_op::canonicalize(ham) == ham);
     LOG_API_TIME();
-    const bool hasNoise = this->executionContext && this->executionContext->noiseModel;
+    const bool hasNoise =
+        this->executionContext && this->executionContext->noiseModel;
     // If no noise, just use base class implementation.
     if (!hasNoise)
       return SimulatorTensorNetBase<ScalarType>::observe(ham);
@@ -332,10 +334,12 @@ public:
         m_state = std::make_unique<TensorNetState<ScalarType>>(
             numQubits, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
-        auto [state, mpsTensors] = MPSSimulationState<ScalarType>::createFromStateVec(
-            m_cutnHandle, scratchPad, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
-            m_settings.maxBond, m_randomEngine);
+        auto [state, mpsTensors] =
+            MPSSimulationState<ScalarType>::createFromStateVec(
+                m_cutnHandle, scratchPad, 1ULL << numQubits,
+                reinterpret_cast<std::complex<double> *>(
+                    const_cast<void *>(ptr)),
+                m_settings.maxBond, m_randomEngine);
         m_state = std::move(state);
       }
     } else {
@@ -363,10 +367,12 @@ public:
             tensors, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
         // Non-zero state needs to be factorized and appended.
-        auto [state, mpsTensors] = MPSSimulationState<ScalarType>::createFromStateVec(
-            m_cutnHandle, scratchPad, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
-            m_settings.maxBond, m_randomEngine);
+        auto [state, mpsTensors] =
+            MPSSimulationState<ScalarType>::createFromStateVec(
+                m_cutnHandle, scratchPad, 1ULL << numQubits,
+                reinterpret_cast<std::complex<double> *>(
+                    const_cast<void *>(ptr)),
+                m_settings.maxBond, m_randomEngine);
         auto tensors =
             m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
                                   m_settings.relCutoff, m_settings.svdAlgo);
@@ -397,9 +403,9 @@ public:
       std::vector<MPSTensor> tensors =
           m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
                                 m_settings.relCutoff, m_settings.svdAlgo);
-      return std::make_unique<MPSSimulationState<ScalarType>>(std::move(m_state), tensors,
-                                                  scratchPad, m_cutnHandle,
-                                                  m_randomEngine);
+      return std::make_unique<MPSSimulationState<ScalarType>>(
+          std::move(m_state), tensors, scratchPad, m_cutnHandle,
+          m_randomEngine);
     }
 
     auto [d_tensor, numElements] = m_state->contractStateVectorInternal({});

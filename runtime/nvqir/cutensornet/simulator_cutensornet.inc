@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "simulator_cutensornet.h"
+#pragma once
+
 #include "cudaq.h"
 #include "cutensornet.h"
 #include "tensornet_spin_op.h"
@@ -85,7 +86,8 @@ std::size_t vecComplexHash(const std::vector<std::complex<double>> &vec) {
 }
 
 template <typename ScalarType>
-void SimulatorTensorNetBase<ScalarType>::applyGate(const GateApplicationTask &task) {
+void SimulatorTensorNetBase<ScalarType>::applyGate(
+    const GateApplicationTask &task) {
   const auto &controls = task.controls;
   const auto &targets = task.targets;
   // Cache name lookup key:
@@ -170,7 +172,8 @@ void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
   } else {
     if (!canHandleGeneralNoiseChannel())
       throw std::runtime_error(
-          "General noise channels are not supported on simulator " + this->name());
+          "General noise channels are not supported on simulator " +
+          this->name());
 
     std::vector<void *> channelMats;
     for (const auto &op : krausChannel.get_ops()) {
@@ -220,7 +223,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoise(
       "[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
       cudaq::get_noise_model_type_name(channel.noise_type), qubits);
 
-  flushGateQueue();
+  this->flushGateQueue();
   applyKrausChannel(qubits, channel);
 }
 
@@ -231,11 +234,11 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
     const std::vector<double> &params) {
   LOG_API_TIME();
   // Do nothing if no execution context
-  if (!executionContext)
+  if (!this->executionContext)
     return;
 
   // Do nothing if no noise model
-  if (!executionContext->noiseModel)
+  if (!this->executionContext->noiseModel)
     return;
 
   // Get the name as a string
@@ -244,7 +247,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
   qubits.insert(qubits.end(), targets.begin(), targets.end());
 
   // Get the Kraus channels specified for this gate and qubits
-  auto krausChannels = executionContext->noiseModel->get_channels(
+  auto krausChannels = this->executionContext->noiseModel->get_channels(
       gName, targets, controls, params);
 
   // If none, do nothing
@@ -261,9 +264,10 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
 
 /// @brief Reset the state of a given qubit to zero
 template <typename ScalarType>
-void SimulatorTensorNetBase<ScalarType>::resetQubit(const std::size_t qubitIdx) {
-  flushGateQueue();
-  flushAnySamplingTasks();
+void SimulatorTensorNetBase<ScalarType>::resetQubit(
+    const std::size_t qubitIdx) {
+  this->flushGateQueue();
+  this->flushAnySamplingTasks();
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();
@@ -277,7 +281,7 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(const std::size_t qubitIdx) 
 
   // One state => flip
   if (prob0 < 1e-9) {
-    x(qubitIdx);
+    this->x(qubitIdx);
     return;
   }
 
@@ -311,7 +315,8 @@ void SimulatorTensorNetBase<ScalarType>::synchronize() {
 
 /// @brief Perform a measurement on a given qubit
 template <typename ScalarType>
-bool SimulatorTensorNetBase<ScalarType>::measureQubit(const std::size_t qubitIdx) {
+bool SimulatorTensorNetBase<ScalarType>::measureQubit(
+    const std::size_t qubitIdx) {
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();
@@ -347,9 +352,8 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(const std::size_t qubitIdx
 
 /// @brief Sample a subset of qubits
 template <typename ScalarType>
-cudaq::ExecutionResult
-SimulatorTensorNetBase<ScalarType>::sample(const std::vector<std::size_t> &measuredBits,
-                               const int shots) {
+cudaq::ExecutionResult SimulatorTensorNetBase<ScalarType>::sample(
+    const std::vector<std::size_t> &measuredBits, const int shots) {
   LOG_API_TIME();
   std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
@@ -393,13 +397,13 @@ bool SimulatorTensorNetBase<ScalarType>::canHandleObserve() {
   // i.e., a valid shots count value was set.
   // Note: -1 is also used to denote non-sampling execution. Hence, we need to
   // check for this particular -1 value as being casted to an unsigned type.
-  if (executionContext && executionContext->shots > 0 &&
-      executionContext->shots != ~0ull) {
+  if (this->executionContext && this->executionContext->shots > 0 &&
+      this->executionContext->shots != ~0ull) {
     // This 'shots' mode is very slow for tensor network.
     // However, we need to respect the shots option.
     cudaq::info("[SimulatorTensorNetBase] Shots mode expectation calculation "
                 "is requested with {} shots.",
-                executionContext->shots);
+                this->executionContext->shots);
 
     return false;
   }
@@ -455,10 +459,14 @@ SimulatorTensorNetBase<ScalarType>::observe(const cudaq::spin_op &ham) {
 }
 
 template <typename ScalarType>
-nvqir::CircuitSimulator *SimulatorTensorNetBase<ScalarType>::clone() { return nullptr; }
+nvqir::CircuitSimulator *SimulatorTensorNetBase<ScalarType>::clone() {
+  return nullptr;
+}
 
 template <typename ScalarType>
-void SimulatorTensorNetBase<ScalarType>::addQubitToState() { addQubitsToState(1); }
+void SimulatorTensorNetBase<ScalarType>::addQubitToState() {
+  this->addQubitsToState(1);
+}
 
 /// @brief Destroy the entire qubit register
 template <typename ScalarType>
@@ -478,14 +486,14 @@ void SimulatorTensorNetBase<ScalarType>::setToZeroState() {
   const auto numQubits = m_state->getNumQubits();
   m_state.reset();
   // Re-create a zero state of the same size
-  m_state = std::make_unique<TensorNetState<ScalarType>>(numQubits, scratchPad,
-                                             m_cutnHandle, m_randomEngine);
+  m_state = std::make_unique<TensorNetState<ScalarType>>(
+      numQubits, scratchPad, m_cutnHandle, m_randomEngine);
 }
 
 template <typename ScalarType>
-void SimulatorTensorNetBase<ScalarType>::swap(const std::vector<std::size_t> &ctrlBits,
-                                  const std::size_t srcIdx,
-                                  const std::size_t tgtIdx) {
+void SimulatorTensorNetBase<ScalarType>::swap(
+    const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
+    const std::size_t tgtIdx) {
   if (ctrlBits.empty())
     return nvqir::CircuitSimulatorBase<double>::swap(ctrlBits, srcIdx, tgtIdx);
   // Controlled swap gate: using cnot decomposition of swap gate to perform

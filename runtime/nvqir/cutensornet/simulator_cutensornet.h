@@ -22,10 +22,6 @@ public:
       std::is_same_v<ScalarType, float> ? CUDA_C_32F : CUDA_C_64F;
   using GateApplicationTask =
       typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
-  using nvqir::CircuitSimulatorBase<ScalarType>::executionContext;
-  using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
-  using nvqir::CircuitSimulatorBase<ScalarType>::flushAnySamplingTasks;
-  using nvqir::CircuitSimulatorBase<ScalarType>::addQubitsToState;
   SimulatorTensorNetBase();
   SimulatorTensorNetBase(const SimulatorTensorNetBase &another) = delete;
   SimulatorTensorNetBase &

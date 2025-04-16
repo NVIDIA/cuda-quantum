@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "tn_simulation_state.h"
+#pragma once
+
 #include "cudaq/utils/cudaq_utils.h"
 #include <cuComplex.h>
 
@@ -24,8 +25,9 @@ std::size_t TensorNetSimulationState<ScalarType>::getNumQubits() const {
 
 template <typename ScalarType>
 TensorNetSimulationState<ScalarType>::TensorNetSimulationState(
-    std::unique_ptr<TensorNetState<ScalarType>> inState, ScratchDeviceMem &inScratchPad,
-    cutensornetHandle_t cutnHandle, std::mt19937 &randomEngine)
+    std::unique_ptr<TensorNetState<ScalarType>> inState,
+    ScratchDeviceMem &inScratchPad, cutensornetHandle_t cutnHandle,
+    std::mt19937 &randomEngine)
     : m_state(std::move(inState)), scratchPad(inScratchPad),
       m_cutnHandle(cutnHandle), m_randomEngine(randomEngine) {}
 
@@ -33,8 +35,8 @@ template <typename ScalarType>
 TensorNetSimulationState<ScalarType>::~TensorNetSimulationState() {}
 
 template <typename ScalarType>
-std::complex<double>
-TensorNetSimulationState<ScalarType>::overlap(const cudaq::SimulationState &other) {
+std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
+    const cudaq::SimulationState &other) {
   const cudaq::SimulationState *const otherStatePtr = &other;
   const TensorNetSimulationState *const tnOther =
       dynamic_cast<const TensorNetSimulationState *>(otherStatePtr);
@@ -195,8 +197,8 @@ TensorNetSimulationState<ScalarType>::overlap(const cudaq::SimulationState &othe
 }
 
 template <typename ScalarType>
-std::complex<double>
-TensorNetSimulationState<ScalarType>::getAmplitude(const std::vector<int> &basisState) {
+std::complex<double> TensorNetSimulationState<ScalarType>::getAmplitude(
+    const std::vector<int> &basisState) {
   if (getNumQubits() != basisState.size())
     throw std::runtime_error(
         fmt::format("[tensornet-state] getAmplitude with an invalid number "
@@ -272,8 +274,8 @@ std::size_t TensorNetSimulationState<ScalarType>::getNumTensors() const {
 
 template <typename ScalarType>
 std::unique_ptr<cudaq::SimulationState>
-TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size, void *ptr,
-                                               std::size_t dataType) {
+TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(
+    std::size_t size, void *ptr, std::size_t dataType) {
   if (dataType == cudaq::detail::variant_index<cudaq::state_data,
                                                cudaq::TensorStateData>()) {
     throw std::runtime_error(
@@ -296,8 +298,8 @@ void TensorNetSimulationState<ScalarType>::destroyState() {
 }
 
 template <typename ScalarType>
-void TensorNetSimulationState<ScalarType>::toHost(std::complex<double> *clientAllocatedData,
-                                      std::size_t numElements) const {
+void TensorNetSimulationState<ScalarType>::toHost(
+    std::complex<double> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = m_state->getStateVector();
   if (stateVec.size() != numElements)
     throw std::runtime_error(fmt::format(
