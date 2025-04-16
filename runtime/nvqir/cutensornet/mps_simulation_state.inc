@@ -294,9 +294,9 @@ std::complex<double> MPSSimulationState<ScalarType>::getAmplitude(
   const auto idx = basisState[0];
   // It is just 2 complex numbers, so load them both rather than compute the
   // exact pointer.
-  std::complex<double> amplitudes[2];
+  std::complex<ScalarType> amplitudes[2];
   HANDLE_CUDA_ERROR(cudaMemcpy(amplitudes, m_mpsTensors[0].deviceData,
-                               2 * sizeof(std::complex<double>),
+                               2 * sizeof(std::complex<ScalarType>),
                                cudaMemcpyDeviceToHost));
   return amplitudes[idx];
 }
@@ -361,8 +361,11 @@ void MPSSimulationState<ScalarType>::dump(std::ostream &os) const {
     printState(state->getStateVector());
 }
 
-static Eigen::MatrixXcd reshapeMatrix(const Eigen::MatrixXcd &A) {
-  Eigen::MatrixXcd B, C;
+template <typename ScalarType>
+Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+reshapeMatrix(const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                  Eigen::Dynamic> &A) {
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic> B, C;
   const std::size_t rows = A.rows();
   const std::size_t cols = A.cols();
   B.resize(rows, cols / 2);
@@ -373,13 +376,18 @@ static Eigen::MatrixXcd reshapeMatrix(const Eigen::MatrixXcd &A) {
       C(i, j) = A(i, j + cols / 2);
     }
   }
-  Eigen::MatrixXcd stacked(B.rows() + C.rows(), C.cols());
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+      stacked(B.rows() + C.rows(), C.cols());
   stacked << B, C;
   return stacked;
 }
 
-static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
-  Eigen::MatrixXcd A = stateVec;
+template <typename ScalarType>
+Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+reshapeStateVec(
+    const Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic> &stateVec) {
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic> A =
+      stateVec;
   A.transposeInPlace();
   return reshapeMatrix(A);
 }
@@ -388,20 +396,22 @@ template <typename ScalarType>
 MPSSimulationState<ScalarType>::MpsStateData
 MPSSimulationState<ScalarType>::createFromStateVec(
     cutensornetHandle_t cutnHandle, ScratchDeviceMem &inScratchPad,
-    std::size_t size, std::complex<double> *ptr, int bondDim,
+    std::size_t size, std::complex<ScalarType> *ptr, int bondDim,
     std::mt19937 &randomEngine) {
   const std::size_t numQubits = std::log2(size);
   // Reverse the qubit order to match cutensornet convention
   auto newStateVec = TensorNetState<ScalarType>::reverseQubitOrder(
-      std::span<std::complex<double>>{ptr, size});
-  auto stateVec =
-      Eigen::Map<Eigen::VectorXcd>(newStateVec.data(), newStateVec.size());
+      std::span<std::complex<ScalarType>>{ptr, size});
+  Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic> stateVec =
+      Eigen::Map<Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic>>(
+          newStateVec.data(), newStateVec.size());
 
   if (numQubits == 1) {
     void *d_tensor = nullptr;
-    HANDLE_CUDA_ERROR(cudaMalloc(&d_tensor, 2 * sizeof(std::complex<double>)));
+    HANDLE_CUDA_ERROR(
+        cudaMalloc(&d_tensor, 2 * sizeof(std::complex<ScalarType>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, ptr,
-                                 2 * sizeof(std::complex<double>),
+                                 2 * sizeof(std::complex<ScalarType>),
                                  cudaMemcpyHostToDevice));
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
@@ -418,38 +428,57 @@ MPSSimulationState<ScalarType>::createFromStateVec(
   //  - Continue to do SVD of (Singular Values * Remaining
   // Matrix) till we reach the last qubit.
   // Note: currently, no truncation is implemented (exact).
-  Eigen::MatrixXcd reshapedMat = reshapeStateVec(stateVec);
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+      reshapedMat = reshapeStateVec(stateVec);
   std::vector<MPSTensor> mpsTensors;
   std::vector<int64_t> numSingularValues;
-  const auto enforceBondDim = [bondDim](const Eigen::MatrixXcd &U,
-                                        const Eigen::VectorXd &S,
-                                        const Eigen::MatrixXcd &V)
-      -> std::tuple<Eigen::MatrixXcd, Eigen::VectorXd, Eigen::MatrixXcd> {
+  const auto enforceBondDim =
+      [bondDim](const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                    Eigen::Dynamic> &U,
+                const Eigen::Vector<ScalarType, Eigen::Dynamic> &S,
+                const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                    Eigen::Dynamic> &V)
+      -> std::tuple<Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                  Eigen::Dynamic>,
+                    Eigen::Vector<ScalarType, Eigen::Dynamic>,
+                    Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                  Eigen::Dynamic>> {
     assert(U.cols() == S.size());
     assert(V.cols() == S.size());
     if (S.size() <= bondDim)
       return {U, S, V};
 
     // Truncation
-    Eigen::MatrixXcd newU(U.rows(), bondDim);
+    Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+        newU(U.rows(), bondDim);
     newU = U.leftCols(bondDim);
-    Eigen::MatrixXcd newV(V.rows(), bondDim);
+    Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+        newV(V.rows(), bondDim);
     newV = V.leftCols(bondDim);
-    Eigen::VectorXd newS(bondDim);
+    Eigen::Vector<ScalarType, Eigen::Dynamic> newS(bondDim);
     newS = S.head(bondDim);
     return std::make_tuple(newU, newS, newV);
   };
   for (std::size_t i = 0; i < numQubits - 1; ++i) {
-    Eigen::BDCSVD<Eigen::MatrixXcd, Eigen::ComputeThinU | Eigen::ComputeThinV>
+    Eigen::BDCSVD<
+        Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>,
+        Eigen::ComputeThinU | Eigen::ComputeThinV>
         svd(reshapedMat);
-    const Eigen::MatrixXcd U_orig = svd.matrixU();
-    const Eigen::MatrixXcd V_orig = svd.matrixV();
-    const Eigen::VectorXd S_orig = svd.singularValues();
+    const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                        Eigen::Dynamic>
+        U_orig = svd.matrixU();
+    const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                        Eigen::Dynamic>
+        V_orig = svd.matrixV();
+    const Eigen::Vector<ScalarType, Eigen::Dynamic> S_orig = svd.singularValues();
     const auto [U, S, V] = enforceBondDim(U_orig, S_orig, V_orig);
     numSingularValues.emplace_back(S.size());
-    reshapedMat = (i != (numQubits - 2))
-                      ? reshapeMatrix(S.asDiagonal() * V.adjoint())
-                      : (S.asDiagonal() * V.adjoint());
+    reshapedMat =
+        (i != (numQubits - 2))
+            ? reshapeMatrix(
+                  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                Eigen::Dynamic>(S.asDiagonal() * V.adjoint()))
+            : (S.asDiagonal() * V.adjoint());
     void *d_tensor = nullptr;
     HANDLE_CUDA_ERROR(
         cudaMalloc(&d_tensor, U.size() * sizeof(std::complex<double>)));
@@ -468,11 +497,11 @@ MPSSimulationState<ScalarType>::createFromStateVec(
 
   // Last tensor (right most)
   void *d_tensor = nullptr;
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(&d_tensor, reshapedMat.size() * sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(cudaMalloc(
+      &d_tensor, reshapedMat.size() * sizeof(std::complex<ScalarType>)));
   HANDLE_CUDA_ERROR(
       cudaMemcpy(d_tensor, reshapedMat.data(),
-                 reshapedMat.size() * sizeof(std::complex<double>),
+                 reshapedMat.size() * sizeof(std::complex<ScalarType>),
                  cudaMemcpyHostToDevice));
   MPSTensor stateTensor;
   stateTensor.deviceData = d_tensor;
@@ -498,12 +527,12 @@ MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size,
       const auto numElements =
           std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
       void *d_tensor = nullptr;
-      HANDLE_CUDA_ERROR(
-          cudaMalloc(&d_tensor, numElements * sizeof(std::complex<double>)));
+      HANDLE_CUDA_ERROR(cudaMalloc(
+          &d_tensor, numElements * sizeof(std::complex<ScalarType>)));
       // Note: cudaMemcpyDefault to handle both device/host data
-      HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, dataPtr,
-                                   numElements * sizeof(std::complex<double>),
-                                   cudaMemcpyDefault));
+      HANDLE_CUDA_ERROR(cudaMemcpy(
+          d_tensor, dataPtr, numElements * sizeof(std::complex<ScalarType>),
+          cudaMemcpyDefault));
       std::vector<int64_t> mpsExtents(extents.begin(), extents.end());
       MPSTensor stateTensor{d_tensor, mpsExtents};
       mpsTensors.emplace_back(stateTensor);
@@ -515,7 +544,7 @@ MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size,
   }
   auto [state, mpsTensors] =
       createFromStateVec(m_cutnHandle, scratchPad, size,
-                         reinterpret_cast<std::complex<double> *>(ptr),
+                         reinterpret_cast<std::complex<ScalarType> *>(ptr),
                          MPSSettings().maxBond, m_randomEngine);
   return std::make_unique<MPSSimulationState>(
       std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
@@ -598,6 +627,18 @@ MPSSettings::MPSSettings() {
 template <typename ScalarType>
 void MPSSimulationState<ScalarType>::toHost(
     std::complex<double> *clientAllocatedData, std::size_t numElements) const {
+  auto stateVec = state->getStateVector();
+  if (stateVec.size() != numElements)
+    throw std::runtime_error(
+        fmt::format("[MPSSimulationState] Dimension mismatch: expecting {} "
+                    "elements but providing an array of size {}.",
+                    stateVec.size(), numElements));
+  for (std::size_t i = 0; i < numElements; ++i)
+    clientAllocatedData[i] = stateVec[i];
+}
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::toHost(
+    std::complex<float> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = state->getStateVector();
   if (stateVec.size() != numElements)
     throw std::runtime_error(

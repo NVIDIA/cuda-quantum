@@ -55,7 +55,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
       // reverse the leg connection.
       const auto dim = (1 << op.targetQubitIds.size());
       // FIXME: perform this in device memory.
-      Eigen::MatrixXcd mat(dim, dim);
+      Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic> mat(dim, dim);
       HANDLE_CUDA_ERROR(cudaMemcpy(mat.data(), op.deviceData,
                                    mat.size() * sizeof(std::complex<double>),
                                    cudaMemcpyDeviceToHost));
@@ -281,9 +281,9 @@ TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(
     throw std::runtime_error(
         "Cannot create tensornet backend's simulation state with MPS tensors.");
   }
-  std::vector<std::complex<double>> vec(
-      reinterpret_cast<std::complex<double> *>(ptr),
-      reinterpret_cast<std::complex<double> *>(ptr) + size);
+  std::vector<std::complex<ScalarType>> vec(
+      reinterpret_cast<std::complex<ScalarType> *>(ptr),
+      reinterpret_cast<std::complex<ScalarType> *>(ptr) + size);
   auto tensorNetState = TensorNetState<ScalarType>::createFromStateVector(
       vec, scratchPad, m_cutnHandle, m_randomEngine);
 
@@ -300,6 +300,19 @@ void TensorNetSimulationState<ScalarType>::destroyState() {
 template <typename ScalarType>
 void TensorNetSimulationState<ScalarType>::toHost(
     std::complex<double> *clientAllocatedData, std::size_t numElements) const {
+  auto stateVec = m_state->getStateVector();
+  if (stateVec.size() != numElements)
+    throw std::runtime_error(fmt::format(
+        "[TensorNetSimulationState] Dimension mismatch: expecting {} "
+        "elements but providing an array of size {}.",
+        stateVec.size(), numElements));
+  for (std::size_t i = 0; i < numElements; ++i)
+    clientAllocatedData[i] = stateVec[i];
+}
+
+template <typename ScalarType>
+void TensorNetSimulationState<ScalarType>::toHost(
+    std::complex<float> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = m_state->getStateVector();
   if (stateVec.size() != numElements)
     throw std::runtime_error(fmt::format(

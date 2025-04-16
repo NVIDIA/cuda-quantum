@@ -65,6 +65,8 @@ public:
   void destroyState() override;
   void toHost(std::complex<double> *clientAllocatedData,
               std::size_t numElements) const override;
+  void toHost(std::complex<float> *clientAllocatedData,
+              std::size_t numElements) const override;
   /// @brief Return a reference to all the tensors that have been applied to the
   /// state.
   const std::vector<AppliedTensorOp> &getAppliedTensors() const {
@@ -79,7 +81,7 @@ protected:
   // and cached into a state vector.
   // This speeds up sequential state amplitude accessors for small states.
   static constexpr std::size_t g_maxQubitsForStateContraction = 30;
-  std::vector<std::complex<double>> m_contractedStateVec;
+  std::vector<std::complex<ScalarType>> m_contractedStateVec;
   std::mt19937 &m_randomEngine;
 };
 } // namespace nvqir

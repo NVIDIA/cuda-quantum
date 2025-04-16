@@ -84,9 +84,9 @@ public:
         m_state = std::make_unique<TensorNetState<ScalarType>>(
             numQubits, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
-        auto *casted =
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
-        std::span<std::complex<double>> stateVec(casted, 1ULL << numQubits);
+        auto *casted = reinterpret_cast<std::complex<ScalarType> *>(
+            const_cast<void *>(ptr));
+        std::span<std::complex<ScalarType>> stateVec(casted, 1ULL << numQubits);
         m_state = TensorNetState<ScalarType>::createFromStateVector(
             stateVec, scratchPad, m_cutnHandle, m_randomEngine);
       }
@@ -94,9 +94,9 @@ public:
       if (!ptr) {
         m_state->addQubits(numQubits);
       } else {
-        auto *casted =
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
-        std::span<std::complex<double>> stateVec(casted, 1ULL << numQubits);
+        auto *casted = reinterpret_cast<std::complex<ScalarType> *>(
+            const_cast<void *>(ptr));
+        std::span<std::complex<ScalarType>> stateVec(casted, 1ULL << numQubits);
         m_state->addQubits(stateVec);
       }
     }
@@ -160,13 +160,13 @@ private:
 extern "C" {
 nvqir::CircuitSimulator *getCircuitSimulator_tensornet() {
   thread_local static auto simulator =
-      std::make_unique<nvqir::SimulatorTensorNet<double>>();
+      std::make_unique<nvqir::SimulatorTensorNet<float>>();
   // Handle multiple runtime __nvqir__setCircuitSimulator calls before/after MPI
   // initialization. If the static simulator instance was created before MPI
   // initialization, it needs to be reset to support MPI if needed.
   if (cudaq::mpi::is_initialized() && !simulator->m_cutnMpiInitialized) {
     // Reset the static instance to pick up MPI.
-    simulator.reset(new nvqir::SimulatorTensorNet<double>());
+    simulator.reset(new nvqir::SimulatorTensorNet<float>());
   }
   return simulator.get();
 }

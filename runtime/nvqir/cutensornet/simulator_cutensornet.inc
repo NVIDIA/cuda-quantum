@@ -31,9 +31,10 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
       cudaq::getEnvBool("CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE", false);
 }
 
-static std::vector<std::complex<double>>
+template <typename T>
+std::vector<std::complex<T>>
 generateFullGateTensor(std::size_t num_control_qubits,
-                       const std::vector<std::complex<double>> &target_gate) {
+                       const std::vector<std::complex<T>> &target_gate) {
   const auto mat_size = target_gate.size();
   // Must be square matrix (n x n)
   assert(std::ceil(std::sqrt(mat_size)) == std::floor(std::sqrt(mat_size)) &&
@@ -50,8 +51,7 @@ generateFullGateTensor(std::size_t num_control_qubits,
   // Expand the matrix
   const std::size_t full_dim =
       (1UL << (num_control_qubits + num_target_qubits));
-  std::vector<std::complex<double>> gate_tensor(full_dim * full_dim,
-                                                {0.0, 0.0});
+  std::vector<std::complex<T>> gate_tensor(full_dim * full_dim, {0.0, 0.0});
   std::size_t offset = 0;
   // Set the diagonal elements:
   for (int i = 0; i < static_cast<int>(full_dim - target_gate_dim); ++i) {
@@ -76,11 +76,12 @@ generateFullGateTensor(std::size_t num_control_qubits,
 }
 
 /// @brief Provide a unique hash code for the input vector of complex values.
-std::size_t vecComplexHash(const std::vector<std::complex<double>> &vec) {
+template <typename T>
+std::size_t vecComplexHash(const std::vector<std::complex<T>> &vec) {
   std::size_t seed = vec.size();
   for (auto &i : vec) {
-    seed ^= std::hash<double>{}(i.real()) + std::hash<double>{}(i.imag()) +
-            0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= std::hash<T>{}(i.real()) + std::hash<T>{}(i.imag()) + 0x9e3779b9 +
+            (seed << 6) + (seed >> 2);
   }
   return seed;
 }
@@ -273,7 +274,7 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(
   prepareQubitTensorState();
   const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
-  const double prob0 = rdm[0].real();
+  const ScalarType prob0 = rdm[0].real();
   cudaq::info("Reset qubit {} with prob(|0>) = {}", qubitIdx, prob0);
   // If this is a zero state, no need to do anything.
   if (std::abs(1.0 - prob0) < 1e-9)
@@ -287,8 +288,11 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(
 
   // Otherwise, perform projection
   // Reset == project back to 0
-  const std::vector<std::complex<double>> projected0Mat{
-      {1.0 / std::sqrt(prob0), 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  const std::vector<std::complex<ScalarType>> projected0Mat{
+      {static_cast<ScalarType>(1.0) / std::sqrt(prob0), 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0}};
   const std::string projKey = std::string("Project") + "_" +
                               std::to_string(false) + "_Prob" +
                               std::to_string(prob0);
@@ -296,9 +300,9 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(
   if (iter == m_gateDeviceMemCache.end()) {
     void *d_gateProj{nullptr};
     HANDLE_CUDA_ERROR(
-        cudaMalloc(&d_gateProj, 4 * sizeof(std::complex<double>)));
+        cudaMalloc(&d_gateProj, 4 * sizeof(std::complex<ScalarType>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(d_gateProj, projected0Mat.data(),
-                                 4 * sizeof(std::complex<double>),
+                                 4 * sizeof(std::complex<ScalarType>),
                                  cudaMemcpyHostToDevice));
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
@@ -322,15 +326,21 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
   prepareQubitTensorState();
   const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
-  const double prob0 = rdm[0].real();
-  const double prob1 = rdm[3].real();
+  const ScalarType prob0 = rdm[0].real();
+  const ScalarType prob1 = rdm[3].real();
   assert(std::abs(1.0 - (prob0 + prob1)) < 1e-9);
-  const double rand = randomValues(1, 1.0, m_randomEngine)[0];
+  const ScalarType rand = randomValues(1, 1.0, m_randomEngine)[0];
   const bool resultBool = (rand > prob0);
-  const std::vector<std::complex<double>> projected0Mat{
-      {1.0 / std::sqrt(prob0), 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
-  const std::vector<std::complex<double>> projected1Mat{
-      {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0 / std::sqrt(prob1), 0.0}};
+  const std::vector<std::complex<ScalarType>> projected0Mat{
+      {static_cast<ScalarType>(1.0) / std::sqrt(prob0), 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0}};
+  const std::vector<std::complex<ScalarType>> projected1Mat{
+      {0.0, 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0},
+      {static_cast<ScalarType>(1.0) / std::sqrt(prob1), 0.0}};
 
   const std::string projKey = std::string("Project") + "_" +
                               std::to_string(resultBool) + "_Prob" +
@@ -339,10 +349,10 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
   if (iter == m_gateDeviceMemCache.end()) {
     void *d_gateProj{nullptr};
     HANDLE_CUDA_ERROR(
-        cudaMalloc(&d_gateProj, 4 * sizeof(std::complex<double>)));
+        cudaMalloc(&d_gateProj, 4 * sizeof(std::complex<ScalarType>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(
         d_gateProj, resultBool ? projected1Mat.data() : projected0Mat.data(),
-        4 * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
+        4 * sizeof(std::complex<ScalarType>), cudaMemcpyHostToDevice));
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
@@ -421,8 +431,8 @@ SimulatorTensorNetBase<ScalarType>::observe(const cudaq::spin_op &ham) {
   if (!m_reuseContractionPathObserve) {
     // If contraction path reuse is disabled, convert spin_op to
     // cutensornetNetworkOperator_t and compute the expectation value.
-    TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
-    std::complex<double> expVal =
+    TensorNetworkSpinOp<ScalarType> spinOp(ham, m_cutnHandle);
+    std::complex<ScalarType> expVal =
         m_state->computeExpVal(spinOp.getNetworkOperator(),
                                this->executionContext->numberTrajectories);
     expVal += spinOp.getIdentityTermOffset();
@@ -495,7 +505,8 @@ void SimulatorTensorNetBase<ScalarType>::swap(
     const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
     const std::size_t tgtIdx) {
   if (ctrlBits.empty())
-    return nvqir::CircuitSimulatorBase<double>::swap(ctrlBits, srcIdx, tgtIdx);
+    return nvqir::CircuitSimulatorBase<ScalarType>::swap(ctrlBits, srcIdx,
+                                                         tgtIdx);
   // Controlled swap gate: using cnot decomposition of swap gate to perform
   // decomposition.
   // Note: cutensornetStateApplyControlledTensorOperator can only handle
@@ -505,15 +516,15 @@ void SimulatorTensorNetBase<ScalarType>::swap(
   std::copy(ctrlBits.begin(), ctrlBits.end(), ctls.begin());
   {
     ctls[size] = tgtIdx;
-    nvqir::CircuitSimulatorBase<double>::x(ctls, srcIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx);
   }
   {
     ctls[size] = srcIdx;
-    nvqir::CircuitSimulatorBase<double>::x(ctls, tgtIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, tgtIdx);
   }
   {
     ctls[size] = tgtIdx;
-    nvqir::CircuitSimulatorBase<double>::x(ctls, srcIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx);
   }
 }
 

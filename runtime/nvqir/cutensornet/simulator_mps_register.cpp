@@ -89,28 +89,31 @@ public:
     }
   }
 
-  static std::vector<std::complex<double>> generateXX(double theta) {
-    const auto halfTheta = theta / 2.;
-    const std::complex<double> cos = std::cos(halfTheta);
-    const std::complex<double> isin = {0., std::sin(halfTheta)};
+  template<typename T>
+  std::vector<std::complex<T>> generateXX(double theta) {
+    const T halfTheta = theta / 2.;
+    const std::complex<T> cos = std::cos(halfTheta);
+    const std::complex<T> isin = {0., std::sin(halfTheta)};
     // Row-major
     return {cos, 0.,    0.,  -isin, 0.,    cos, -isin, 0.,
             0.,  -isin, cos, 0.,    -isin, 0.,  0.,    cos};
   };
 
-  static std::vector<std::complex<double>> generateYY(double theta) {
-    const auto halfTheta = theta / 2.;
-    const std::complex<double> cos = std::cos(halfTheta);
-    const std::complex<double> isin = {0., std::sin(halfTheta)};
+  template<typename T>
+  std::vector<std::complex<T>> generateYY(double theta) {
+    const T halfTheta = theta / 2.;
+    const std::complex<T> cos = std::cos(halfTheta);
+    const std::complex<T> isin = {0., std::sin(halfTheta)};
     // Row-major
     return {cos, 0.,    0.,  isin, 0.,   cos, -isin, 0.,
             0.,  -isin, cos, 0.,   isin, 0.,  0.,    cos};
   };
 
-  static std::vector<std::complex<double>> generateZZ(double theta) {
-    const std::complex<double> itheta2 = {0., theta / 2.0};
-    const std::complex<double> exp_itheta2 = std::exp(itheta2);
-    const std::complex<double> exp_minus_itheta2 = std::exp(-1.0 * itheta2);
+  template<typename T>
+  std::vector<std::complex<T>> generateZZ(double theta) {
+    const std::complex<T> itheta2 = {0., static_cast<T>(theta / 2.0)};
+    const std::complex<T> exp_itheta2 = std::exp(itheta2);
+    const std::complex<T> exp_minus_itheta2 = std::exp(static_cast<T>(-1.0) * itheta2);
     // Row-major
     return {exp_minus_itheta2, 0., 0., 0., 0., exp_itheta2,      0., 0., 0., 0.,
             exp_itheta2,       0., 0., 0., 0., exp_minus_itheta2};
@@ -151,14 +154,17 @@ public:
         if (pauli_word == "XX") {
           // Note: use a special name so that the gate matrix caching procedure
           // works properly.
-          return GateApplicationTask("Rxx", generateXX(-2.0 * theta), {},
-                                     qubitIds, {theta});
+          return GateApplicationTask("Rxx",
+                                     generateXX<ScalarType>(-2.0 * theta), {},
+                                     qubitIds, {static_cast<ScalarType>(theta)});
         } else if (pauli_word == "YY") {
-          return GateApplicationTask("Ryy", generateYY(-2.0 * theta), {},
-                                     qubitIds, {theta});
+          return GateApplicationTask("Ryy",
+                                     generateYY<ScalarType>(-2.0 * theta), {},
+                                     qubitIds, {static_cast<ScalarType>(theta)});
         } else if (pauli_word == "ZZ") {
-          return GateApplicationTask("Rzz", generateZZ(-2.0 * theta), {},
-                                     qubitIds, {theta});
+          return GateApplicationTask("Rzz",
+                                     generateZZ<ScalarType>(-2.0 * theta), {},
+                                     qubitIds, {static_cast<ScalarType>(theta)});
         }
         __builtin_unreachable();
       }();
@@ -303,7 +309,7 @@ public:
 
       for (std::size_t idx = 0; idx < terms.size(); ++idx) {
         termExpVals[idx] += (trajTermExpVals[idx] /
-                             static_cast<double>(numObserveTrajectories));
+                             static_cast<ScalarType>(numObserveTrajectories));
       }
     }
     std::complex<double> expVal = 0.0;
@@ -337,7 +343,7 @@ public:
         auto [state, mpsTensors] =
             MPSSimulationState<ScalarType>::createFromStateVec(
                 m_cutnHandle, scratchPad, 1ULL << numQubits,
-                reinterpret_cast<std::complex<double> *>(
+                reinterpret_cast<std::complex<ScalarType> *>(
                     const_cast<void *>(ptr)),
                 m_settings.maxBond, m_randomEngine);
         m_state = std::move(state);
@@ -351,8 +357,8 @@ public:
         // the boundary tensor).
         tensors.back().extents.emplace_back(1);
         // The newly added MPS tensors are in zero state
-        constexpr std::complex<double> tensorBody[2]{1.0, 0.0};
-        constexpr auto tensorSizeBytes = 2 * sizeof(std::complex<double>);
+        constexpr std::complex<ScalarType> tensorBody[2]{1.0, 0.0};
+        constexpr auto tensorSizeBytes = 2 * sizeof(std::complex<ScalarType>);
         for (std::size_t i = 0; i < numQubits; ++i) {
           const std::vector<int64_t> extents =
               (i != numQubits - 1) ? std::vector<int64_t>{1, 2, 1}
@@ -370,7 +376,7 @@ public:
         auto [state, mpsTensors] =
             MPSSimulationState<ScalarType>::createFromStateVec(
                 m_cutnHandle, scratchPad, 1ULL << numQubits,
-                reinterpret_cast<std::complex<double> *>(
+                reinterpret_cast<std::complex<ScalarType> *>(
                     const_cast<void *>(ptr)),
                 m_settings.maxBond, m_randomEngine);
         auto tensors =
@@ -430,4 +436,4 @@ public:
 };
 } // end namespace nvqir
 
-NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS<double>, tensornet_mps)
+NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS<float>, tensornet_mps)

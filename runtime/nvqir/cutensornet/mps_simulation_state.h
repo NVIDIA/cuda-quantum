@@ -72,6 +72,8 @@ public:
   createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override;
   void toHost(std::complex<double> *clientAllocatedData,
               std::size_t numElements) const override;
+  void toHost(std::complex<float> *clientAllocatedData,
+              std::size_t numElements) const override;
 
   /// Encapsulate data needed to initialize an MPS state.
   struct MpsStateData {
@@ -85,7 +87,7 @@ public:
   static MpsStateData createFromStateVec(cutensornetHandle_t cutnHandle,
                                          ScratchDeviceMem &inScratchPad,
                                          std::size_t size,
-                                         std::complex<double> *data,
+                                         std::complex<ScalarType> *data,
                                          int bondDim,
                                          std::mt19937 &randomEngine);
 
@@ -107,7 +109,7 @@ protected:
   // and cached into a state vector.
   // This speeds up sequential state amplitude accessors for small states.
   static constexpr std::size_t g_maxQubitsForStateContraction = 30;
-  std::vector<std::complex<double>> m_contractedStateVec;
+  std::vector<std::complex<ScalarType>> m_contractedStateVec;
   std::mt19937 &m_randomEngine;
 };
 
