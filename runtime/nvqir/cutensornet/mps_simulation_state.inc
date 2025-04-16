@@ -481,9 +481,9 @@ MPSSimulationState<ScalarType>::createFromStateVec(
             : (S.asDiagonal() * V.adjoint());
     void *d_tensor = nullptr;
     HANDLE_CUDA_ERROR(
-        cudaMalloc(&d_tensor, U.size() * sizeof(std::complex<double>)));
+        cudaMalloc(&d_tensor, U.size() * sizeof(std::complex<ScalarType>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, U.data(),
-                                 U.size() * sizeof(std::complex<double>),
+                                 U.size() * sizeof(std::complex<ScalarType>),
                                  cudaMemcpyHostToDevice));
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;

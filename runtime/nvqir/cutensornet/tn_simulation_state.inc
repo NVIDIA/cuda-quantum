@@ -57,11 +57,11 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
       // FIXME: perform this in device memory.
       Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic> mat(dim, dim);
       HANDLE_CUDA_ERROR(cudaMemcpy(mat.data(), op.deviceData,
-                                   mat.size() * sizeof(std::complex<double>),
+                                   mat.size() * sizeof(std::complex<ScalarType>),
                                    cudaMemcpyDeviceToHost));
       mat.transposeInPlace();
       HANDLE_CUDA_ERROR(cudaMemcpy(op.deviceData, mat.data(),
-                                   mat.size() * sizeof(std::complex<double>),
+                                   mat.size() * sizeof(std::complex<ScalarType>),
                                    cudaMemcpyHostToDevice));
     }
   }
@@ -134,7 +134,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   std::iota(projectedModes.begin(), projectedModes.end(), 0);
   std::vector<int64_t> projectedModeValues(nbQubits, 0);
   void *d_overlap;
-  HANDLE_CUDA_ERROR(cudaMalloc(&d_overlap, sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(cudaMalloc(&d_overlap, sizeof(std::complex<ScalarType>)));
   // Create the quantum state amplitudes accessor
   cutensornetStateAccessor_t accessor;
   {
@@ -175,9 +175,9 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   }
 
   // Compute the quantum state amplitudes
-  std::complex<double> stateNorm{0.0, 0.0};
+  std::complex<ScalarType> stateNorm{0.0, 0.0};
   // Result overlap (host data)
-  std::complex<double> h_overlap{0.0, 0.0};
+  std::complex<ScalarType> h_overlap{0.0, 0.0};
   {
     ScopedTraceWithContext("cutensornetAccessorCompute");
     HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
@@ -185,7 +185,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
         static_cast<void *>(&stateNorm), 0));
   }
   HANDLE_CUDA_ERROR(cudaMemcpy(&h_overlap, d_overlap,
-                               sizeof(std::complex<double>),
+                               sizeof(std::complex<ScalarType>),
                                cudaMemcpyDeviceToHost));
   // Free resources
   HANDLE_CUDA_ERROR(cudaFree(d_overlap));

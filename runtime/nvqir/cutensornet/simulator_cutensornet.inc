@@ -143,9 +143,9 @@ void SimulatorTensorNetBase<ScalarType>::applyGate(
 
 // Helper to look up a device memory pointer from a cache.
 // If not found, allocate a new device memory buffer and put it to the cache.
-static void *
-getOrCacheMat(const std::string &key,
-              const std::vector<std::complex<double>> &mat,
+template <typename T>
+void *
+getOrCacheMat(const std::string &key, const std::vector<std::complex<T>> &mat,
               std::unordered_map<std::string, void *> &gateDeviceMemCache) {
   const auto iter = gateDeviceMemCache.find(key);
 
@@ -164,10 +164,12 @@ void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
   LOG_API_TIME();
   if (krausChannel.is_unitary_mixture()) {
     std::vector<void *> channelMats;
-    for (const auto &mat : krausChannel.unitary_ops)
+    for (const auto &mat : krausChannel.unitary_ops) {
+      std::vector<std::complex<ScalarType>> casted(mat.begin(), mat.end());
       channelMats.emplace_back(
           getOrCacheMat("ScaledUnitary_" + std::to_string(vecComplexHash(mat)),
-                        mat, m_gateDeviceMemCache));
+                        casted, m_gateDeviceMemCache));
+    }
     m_state->applyUnitaryChannel(qubits, channelMats,
                                  krausChannel.probabilities);
   } else {
@@ -178,10 +180,12 @@ void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
 
     std::vector<void *> channelMats;
     for (const auto &op : krausChannel.get_ops()) {
+      std::vector<std::complex<ScalarType>> casted(op.data.begin(),
+                                                   op.data.end());
       const std::string cacheKey = fmt::format(
           "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
       channelMats.emplace_back(
-          getOrCacheMat(cacheKey, op.data, m_gateDeviceMemCache));
+          getOrCacheMat(cacheKey, casted, m_gateDeviceMemCache));
     }
     m_state->applyGeneralChannel(qubits, channelMats);
   }

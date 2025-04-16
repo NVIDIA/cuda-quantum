@@ -77,7 +77,8 @@ public:
         }
         const auto numElements =
             std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
-        const auto tensorSizeBytes = sizeof(std::complex<double>) * numElements;
+        const auto tensorSizeBytes =
+            sizeof(std::complex<ScalarType>) * numElements;
         void *mpsTensor{nullptr};
         HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensor, tensorSizeBytes));
         HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensor, tensor.deviceData,
