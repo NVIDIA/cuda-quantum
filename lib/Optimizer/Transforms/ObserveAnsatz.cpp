@@ -257,11 +257,9 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 
       for (auto result : op->getResults())
         if (quake::isLinearType(result.getType()))
-          result.replaceAllUsesWith(op->getOperand(0));
+          rewriter.replaceAllUsesWith(result, op->getOperand(0));
 
-      // Force remove `op`.
-      op->dropAllReferences();
-      op->erase();
+      rewriter.eraseOp(op);
     }
 
     // We want to insert after the last quantum operation. We must perform this
