@@ -17,7 +17,7 @@ def test_construction():
     assert const.is_constant()
     assert const.evaluate() == 5
     assert np.allclose(const.to_matrix(), [5])
-    assert str(const) == '(5+0j)'
+    assert str(const) == '5'
 
     def callback(x): return x * x
     fct = ScalarOperator(callback)
