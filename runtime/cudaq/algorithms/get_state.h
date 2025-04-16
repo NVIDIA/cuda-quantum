@@ -68,8 +68,10 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
     throw std::runtime_error("Cannot use get_state_async on a physical QPU.");
 
   if (qpu_id >= platform.num_qpus())
-    throw std::invalid_argument(
-        "Provided qpu_id is invalid (must be <=to platform.num_qpus()).");
+    throw std::invalid_argument("Provided qpu_id " + std::to_string(qpu_id) +
+                                " is invalid (must be < " +
+                                std::to_string(platform.num_qpus()) +
+                                " i.e. platform.num_qpus())");
 
   std::promise<state> promise;
   auto f = promise.get_future();
@@ -132,7 +134,6 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   if constexpr (has_name<QuantumKernel>::value)
     return state(new QPUState(std::forward<QuantumKernel>(kernel),
                               std::forward<Args>(args)...));
-
   throw std::runtime_error(
       "cudaq::state* argument synthesis is not supported for quantum hardware"
       " for c-like functions in library mode");

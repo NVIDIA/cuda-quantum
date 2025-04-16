@@ -241,7 +241,7 @@ matrix_handler::matrix_handler(const T &other,
       auto targets = other.degrees();
       for (auto i = 0; i < dimensions.size(); ++i)
         dims[targets[i]] = dimensions[i];
-      return other.to_matrix(dims, std::move(_none));
+      return other.to_matrix(dims, _none);
     };
     // the to_matrix method on the spin op will check the dimensions, so we
     // allow arbitrary here
