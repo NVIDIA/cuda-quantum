@@ -23,6 +23,67 @@ def test_definitions():
     assert np.allclose(annihilate(1).to_matrix(), annihilate_matrix(2))
     assert np.allclose(number(1).to_matrix(), number_matrix(2))
 
+def test_commutation_relations():
+
+    ad_mat = create_matrix(2)
+    a_mat = annihilate_matrix(2)
+    anticommutator_mat = np.dot(a_mat, ad_mat) + np.dot(ad_mat, a_mat)
+    assert np.allclose(anticommutator_mat, identity_matrix(2))
+
+    # Expected anti-commutation relations:
+    # {a†(k), a(q)} = δkq
+    # {a†(k), a†(q)} = {a(k), a(q)} = 0
+    def anticommutator(ad, a): 
+        return a * ad + ad * a
+
+    # check {a†(q), a(q)} = 1
+    rel1 = anticommutator(create(0), annihilate(0))
+    rel2 = anticommutator(create(1), annihilate(1))
+    assert np.allclose(rel1.to_matrix(), identity_matrix(2))
+    assert np.allclose(rel2.to_matrix(), identity_matrix(2))
+
+    # check {a†(k), a(q)} = 0 for k != q
+    rel1 = anticommutator(create(0), annihilate(1))
+    rel2 = anticommutator(create(1), annihilate(0))
+    assert np.allclose(rel1.to_matrix(), zero_matrix(4))
+    assert np.allclose(rel2.to_matrix(), zero_matrix(4))
+
+    # check {a†(q), a†(q)} = 0
+    rel1 = anticommutator(create(0), create(0))
+    rel2 = anticommutator(create(1), create(1))
+    assert np.allclose(rel1.to_matrix(), zero_matrix(2))
+    assert np.allclose(rel2.to_matrix(), zero_matrix(2))
+
+    # check {a(q), a(q)} = 0
+    rel1 = anticommutator(annihilate(0), annihilate(0))
+    rel2 = anticommutator(annihilate(1), annihilate(1))
+    assert np.allclose(rel1.to_matrix(), zero_matrix(2))
+    assert np.allclose(rel2.to_matrix(), zero_matrix(2))
+
+    # check {a†(k), a†(q)} = 0 for k != q
+    rel1 = anticommutator(create(0), create(1))
+    rel2 = anticommutator(create(1), create(0))
+    assert np.allclose(rel1.to_matrix(), zero_matrix(4))
+    assert np.allclose(rel2.to_matrix(), zero_matrix(4))
+
+    # check {a(k), a(q)} = 0 for k != q
+    rel1 = anticommutator(annihilate(0), annihilate(1))
+    rel2 = anticommutator(annihilate(1), annihilate(0))
+    assert np.allclose(rel1.to_matrix(), zero_matrix(4))
+    assert np.allclose(rel2.to_matrix(), zero_matrix(4))
+
+    # check that [N(k), a†(q)] = 0 for k != q
+    rel1 = number(0) * create(1) - create(1) * number(0)
+    rel2 = number(1) * create(0) - create(0) * number(1)
+    assert np.allclose(rel1.to_matrix(), zero_matrix(4))
+    assert np.allclose(rel2.to_matrix(), zero_matrix(4))
+
+    # check that [N(k), a(q)] = 0 for k != q
+    rel1 = number(0) * annihilate(1) - annihilate(1) * number(0)
+    rel2 = number(1) * annihilate(0) - annihilate(0) * number(1)
+    assert np.allclose(rel1.to_matrix(), zero_matrix(4))
+    assert np.allclose(rel2.to_matrix(), zero_matrix(4))
+
 
 def test_construction():
     prod = identity()

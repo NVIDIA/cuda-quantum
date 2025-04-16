@@ -26,6 +26,58 @@ def test_definitions():
     assert np.allclose(momentum(1).to_matrix(dims), momentum_matrix(3))
 
 
+def test_commutation_relations():
+
+    dims = {0: 4, 1: 4}
+    ad_mat = create_matrix(5)
+    a_mat = annihilate_matrix(5)
+    padded_commutator = np.dot(a_mat, ad_mat) - np.dot(ad_mat, a_mat)
+    commutator_mat = padded_commutator[:4, :4]
+    assert np.allclose(commutator_mat, identity_matrix(4))
+
+    # Expected commutation relations:
+    # [a(k), a†(q)] = δkq
+    # [a†(k), a†(q)] = [a(k), a(q)] = 0
+    def commutator(ad, a): 
+        return a * ad - ad * a
+
+    # check [a(q), a†(q)] = 1
+    rel1 = commutator(create(0), annihilate(0))
+    rel2 = commutator(create(1), annihilate(1))
+    assert np.allclose(rel1.to_matrix(dims), identity_matrix(4))
+    assert np.allclose(rel2.to_matrix(dims), identity_matrix(4))
+
+    # check [a(k), a†(q)] = 0 for k != q
+    rel1 = commutator(create(0), annihilate(1))
+    rel2 = commutator(create(1), annihilate(0))
+    assert np.allclose(rel1.to_matrix(dims), zero_matrix(16))
+    assert np.allclose(rel2.to_matrix(dims), zero_matrix(16))
+
+    # check [a†(q), a†(q)] = 0
+    rel1 = commutator(create(0), create(0))
+    rel2 = commutator(create(1), create(1))
+    assert np.allclose(rel1.to_matrix(dims), zero_matrix(4))
+    assert np.allclose(rel2.to_matrix(dims), zero_matrix(4))
+
+    # check [a(q), a(q)] = 0
+    rel1 = commutator(annihilate(0), annihilate(0))
+    rel2 = commutator(annihilate(1), annihilate(1))
+    assert np.allclose(rel1.to_matrix(dims), zero_matrix(4))
+    assert np.allclose(rel2.to_matrix(dims), zero_matrix(4))
+
+    # check [a†(k), a†(q)] = 0 for k != q
+    rel1 = commutator(create(0), create(1))
+    rel2 = commutator(create(1), create(0))
+    assert np.allclose(rel1.to_matrix(dims), zero_matrix(16))
+    assert np.allclose(rel2.to_matrix(dims), zero_matrix(16))
+
+    # check [a(k), a(q)] = 0 for k != q
+    rel1 = commutator(annihilate(0), annihilate(1))
+    rel2 = commutator(annihilate(1), annihilate(0))
+    assert np.allclose(rel1.to_matrix(dims), zero_matrix(16))
+    assert np.allclose(rel2.to_matrix(dims), zero_matrix(16))
+
+
 def test_construction():
     prod = identity()
     assert np.allclose(prod.to_matrix(), identity_matrix(1))

@@ -62,6 +62,46 @@ def test_definitions():
     assert (data[0] == [0, 1])
 
 
+def test_commutation_relations():
+
+    assert np.allclose((z(0) * z(0)).to_matrix(), np.eye(2))
+    assert np.allclose((x(1) * x(1)).to_matrix(), np.eye(2))
+    assert np.allclose((y(0) * y(0)).to_matrix({0: 2}), np.eye(2))
+
+    I = i(0)
+    X = x(0)
+    Y = y(0)
+    Z = z(0)
+
+    expected_results = {
+        ("I", "I"): I,
+        ("I", "X"): X,
+        ("I", "Y"): Y,
+        ("I", "Z"): Z,
+        ("X", "I"): X,
+        ("X", "X"): I,
+        ("X", "Y"): 1j * Z,
+        ("X", "Z"): -1j * Y,
+        ("Y", "I"): Y,
+        ("Y", "X"): -1j * Z,
+        ("Y", "Y"): I,
+        ("Y", "Z"): 1j * X,
+        ("Z", "I"): Z,
+        ("Z", "X"): 1j * Y,
+        ("Z", "Y"): -1j * X,
+        ("Z", "Z"): I,
+    }
+
+    for (op1_str, op2_str), expected in expected_results.items():
+        op1 = locals()[op1_str]
+        op2 = locals()[op2_str]
+        product = op1 * op2
+        expected_matrix = expected.to_matrix()
+        product_matrix = product.to_matrix()
+        assert np.allclose(product_matrix,
+                           expected_matrix), f"Failed for {op1} * {op2}"
+
+
 def test_construction():
     prod = identity()
     assert np.allclose(prod.to_matrix(), identity_matrix(1))
