@@ -223,47 +223,12 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
     auto iter = infoMap.find(funcOp);
     if (iter == infoMap.end())
       return funcOp.emitOpError("Errors encountered in pass analysis");
-    auto nQubits = iter->second.nQubits;
 
-    if (nQubits < termBSF.size() / 2)
-      return funcOp.emitOpError("Invalid number of binary-symplectic elements "
-                                "provided: " +
-                                std::to_string(termBSF.size()) +
-                                ". Must provide at most 2 * NQubits = " +
-                                std::to_string(2 * nQubits));
-
-    // Update nQubits so we only measure the requested qubits.
-    nQubits = termBSF.size() / 2;
-
-    // If the mapping pass was not run, we expect no pre-existing measurements.
-    if (!iter->second.mappingPassRan && !iter->second.measurements.empty())
-      return funcOp.emitOpError("Cannot observe kernel with measures in it.");
-
-    // Attempt to remove measurements. Note that the mapping pass may add
-    // measurements to kernels that don't contain any measurements. For observe
-    // kernels, we remove them here since we are adding specific measurements
-    // below. Note: each `op` in the list of measurements must be removed by the
-    // end of this loop, otherwise the end result may be incorrect.
-    for (auto *op : iter->second.measurements) {
-      bool safeToRemove = [&]() {
-        for (auto user : op->getUsers())
-          if (!isa<quake::SinkOp, quake::ReturnWireOp>(user))
-            return false;
-        return true;
-      }();
-      if (!safeToRemove)
-        return funcOp.emitOpError(
-            "Cannot observe kernel with non dangling measurements.");
-
-      for (auto result : op->getResults())
-        if (quake::isLinearType(result.getType()))
-          rewriter.replaceAllUsesWith(result, op->getOperand(0));
-
-      rewriter.eraseOp(op);
-    }
+    // Set nQubits so we only measure the requested qubits.
+    auto nQubits = termBSF.size() / 2;
 
     // We want to insert after the last quantum operation. We must perform this
-    // after erasing the measurements above.
+    // after erasing the measurements.
     OpBuilder builder = OpBuilder::atBlockTerminator(&funcOp.getBody().back());
     auto loc = funcOp.getBody().back().getTerminator()->getLoc();
     Operation *last = &funcOp.getBody().back().front();
@@ -352,6 +317,51 @@ public:
   ObserveAnsatzPass(const std::vector<bool> &bsfData)
       : binarySymplecticForm{bsfData.begin(), bsfData.end()} {}
 
+  LogicalResult performPreprocessing(func::FuncOp funcOp,
+                                     const AnsatzFunctionInfo &infoMap) {
+    // Use an Analysis to count the number of qubits.
+    auto iter = infoMap.find(funcOp);
+    if (iter == infoMap.end())
+      return funcOp.emitOpError("Errors encountered in pass analysis");
+    auto nQubits = iter->second.nQubits;
+
+    if (nQubits < termBSF.size() / 2)
+      return funcOp.emitOpError("Invalid number of binary-symplectic elements "
+                                "provided: " +
+                                std::to_string(termBSF.size()) +
+                                ". Must provide at most 2 * NQubits = " +
+                                std::to_string(2 * nQubits));
+
+    // If the mapping pass was not run, we expect no pre-existing measurements.
+    if (!iter->second.mappingPassRan && !iter->second.measurements.empty())
+      return funcOp.emitOpError("Cannot observe kernel with measures in it.");
+
+    // Attempt to remove measurements. Note that the mapping pass may add
+    // measurements to kernels that don't contain any measurements. For observe
+    // kernels, we remove them here since we are adding specific measurements
+    // below. Note: each `op` in the list of measurements must be removed by the
+    // end of this loop, otherwise the end result may be incorrect.
+    for (auto *op : iter->second.measurements) {
+      bool safeToRemove = [&]() {
+        for (auto user : op->getUsers())
+          if (!isa<quake::SinkOp, quake::ReturnWireOp>(user))
+            return false;
+        return true;
+      }();
+      if (!safeToRemove)
+        return funcOp.emitOpError(
+            "Cannot observe kernel with non dangling measurements.");
+
+      for (auto result : op->getResults())
+        if (quake::isLinearType(result.getType()))
+          result.replaceAllUsesWith(op->getOperand(0));
+
+      op->dropAllReferences();
+      op->erase();
+    }
+    return success();
+  }
+
   void runOnOperation() override {
     auto funcOp = dyn_cast<func::FuncOp>(getOperation());
     if (!funcOp || funcOp.empty())
@@ -369,6 +379,11 @@ public:
     // Compute the analysis info
     const auto &analysis = getAnalysis<AnsatzFunctionAnalysis>();
     const auto &funcAnalysisInfo = analysis.getAnalysisInfo();
+
+    // Perform sanity checks and remove measurements.
+    if (failed(performPreprocessing(funcOp, funcAnalysisInfo)))
+      signalPassFailure();
+
     patterns.insert<AppendMeasurements>(ctx, funcAnalysisInfo,
                                         binarySymplecticForm);
     ConversionTarget target(*ctx);
