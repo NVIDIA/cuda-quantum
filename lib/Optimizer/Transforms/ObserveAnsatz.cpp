@@ -381,8 +381,10 @@ public:
     const auto &funcAnalysisInfo = analysis.getAnalysisInfo();
 
     // Perform sanity checks and remove measurements.
-    if (failed(performPreprocessing(funcOp, funcAnalysisInfo)))
+    if (failed(performPreprocessing(funcOp, funcAnalysisInfo))) {
       signalPassFailure();
+      return;
+    }
 
     patterns.insert<AppendMeasurements>(ctx, funcAnalysisInfo,
                                         binarySymplecticForm);
