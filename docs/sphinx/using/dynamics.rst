@@ -35,8 +35,17 @@ Using CUDA-Q `operator`, the above time-dependent Hamiltonian can be set up as f
         :start-after: [Begin Transmon]
         :end-before: [End Transmon]
 
-In particular, `ScalarOperator` provides an easy way to model arbitrary time-dependent control signals.   
-Details about CUDA-Q `operator`, including builtin operators that it supports can be found :ref:`here <operators>`.
+  In particular, `ScalarOperator` provides an easy way to model arbitrary time-dependent control signals.
+  Details about CUDA-Q `operator`, including builtin operators that it supports can be found :ref:`here <operators>`.
+
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin Transmon]
+        :end-before: [End Transmon]
+
+  Details about CUDA-Q `operator`, including builtin operators that it supports can be found :ref:`here <operators>`.
 
 2. Setup the evolution simulation
 
@@ -47,6 +56,13 @@ with `cudaq.evolve`.
 
   .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
+        :start-after: [Begin Evolve]
+        :end-before: [End Evolve]
+
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
         :start-after: [Begin Evolve]
         :end-before: [End Evolve]
 
@@ -83,8 +99,15 @@ For example, we can plot the Pauli expectation value for the above simulation as
         :start-after: [Begin Plot]
         :end-before: [End Plot]
 
-In particular, for each time step, `evolve` captures an array of expectation values, one for each  
-observable. Hence, we convert them into sequences for plotting purposes.
+  In particular, for each time step, `evolve` captures an array of expectation values, one for each
+  observable. Hence, we convert them into sequences for plotting purposes.
+
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin Print]
+        :end-before: [End Print]
 
 Examples that illustrate how to use the ``dynamics`` target are available 
 in the `CUDA-Q repository <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics>`__. 
@@ -155,6 +178,13 @@ This Hamiltonian can be converted to CUDA-Q `Operator` representation with
         :start-after: [Begin Jaynes-Cummings]
         :end-before: [End Jaynes-Cummings]
 
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin Jaynes-Cummings]
+        :end-before: [End Jaynes-Cummings]
+
 In the above code snippet, we map the cavity light field to degree index 1 and the two-level atom to degree index 0. 
 The description of composite quantum system dynamics is independent from the Hilbert space of the system components.
 The latter is specified by the dimension map that is provided to the `cudaq.evolve` call. 
@@ -172,7 +202,7 @@ CUDA-Q provides multiple ways to construct time-dependent operators.
 
 1. Time-dependent coefficient
 
-CUDA-Q `ScalarOperator` can be used to wrap a Python function that returns the coefficient value at a specific time.
+CUDA-Q `ScalarOperator` can be used to wrap a Python/C++ function that returns the coefficient value at a specific time.
 
 As an example, we will look at a time-dependent Hamiltonian of the form :math:`H = H_0 + f(t)H_1`, 
 where :math:`f(t)` is the time-dependent driving strength given as :math:`cos(\omega t)`.
@@ -183,6 +213,13 @@ The following code sets up the problem
 
   .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
+        :start-after: [Begin Hamiltonian]
+        :end-before: [End Hamiltonian]
+
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
         :start-after: [Begin Hamiltonian]
         :end-before: [End Hamiltonian]
 
@@ -201,6 +238,13 @@ As an example, let's looks at the `displacement operator <https://en.wikipedia.o
         :start-after: [Begin DefineOp]
         :end-before: [End DefineOp]
 
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin DefineOp]
+        :end-before: [End DefineOp]
+
 The defined operator is parameterized by the `displacement` amplitude. To create simulate the evolution of an 
 operator under a time dependent displacement amplitude, we can define how the amplitude changes in time:
 
@@ -208,6 +252,13 @@ operator under a time dependent displacement amplitude, we can define how the am
 
   .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
+        :start-after: [Begin Schedule1]
+        :end-before: [End Schedule1]
+
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
         :start-after: [Begin Schedule1]
         :end-before: [End Schedule1]
 
@@ -222,12 +273,27 @@ the desired value for each parameter:
         :start-after: [Begin Schedule2]
         :end-before: [End Schedule2]
 
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin Schedule2]
+        :end-before: [End Schedule2]
+
+Compile and Run C++ program
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target dynamics dynamics.cpp -o dynamics && ./dynamics
+
 Numerical Integrators
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _integrators:
 
-CUDA-Q provides a set of numerical integrators, to be used with the ``dynamics``
+For Python, CUDA-Q provides a set of numerical integrators, to be used with the ``dynamics``
 backend target.
 
 .. list-table:: Numerical Integrators
@@ -282,6 +348,18 @@ backend target.
     If the output is a '`None`' string, it indicates that your Torch installation does not support CUDA.
     In this case, you need to install a CUDA-enabled Torch package via other mechanisms, e.g., building Torch from source or
     using their Docker images.
+
+For C++, CUDA-Q provides Runge-Kutta integrator, to be used with the ``dynamics``
+backend target.
+
+.. list-table:: Numerical Integrators
+        :widths: 20 50
+        :header-rows: 1
+
+        *   - Name
+            - Description
+        *   - `runge_kutta`
+            - 1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method).
 
 Multi-GPU Multi-Node Execution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
