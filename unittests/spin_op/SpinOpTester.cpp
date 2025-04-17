@@ -264,6 +264,7 @@ TEST(SpinOpTester, checkGetMatrix) {
 
     // Compute H |psi_g>
     auto tmp = matrix * vec;
+    EXPECT_EQ(tmp.size(), vec.size());
 
     // Should have H |psi_g> = E |psi_g> (eigenvalue equation)
     for (std::size_t i = 0; i < 4; i++)

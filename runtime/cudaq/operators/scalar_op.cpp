@@ -29,28 +29,8 @@ scalar_operator::scalar_operator(scalar_callback &&create)
     : value(std::variant<std::complex<double>, scalar_callback>(
           std::move(create))) {}
 
-scalar_operator::scalar_operator(const scalar_operator &other)
-    : value(other.value) {}
-
-scalar_operator::scalar_operator(scalar_operator &&other)
-    : value(std::move(other.value)) {}
-
 bool scalar_operator::is_constant() const {
   return std::holds_alternative<std::complex<double>>(value);
-}
-
-// assignments
-
-scalar_operator &scalar_operator::operator=(const scalar_operator &other) {
-  if (this != &other)
-    this->value = other.value;
-  return *this;
-}
-
-scalar_operator &scalar_operator::operator=(scalar_operator &&other) {
-  if (this != &other)
-    this->value = std::move(other.value);
-  return *this;
 }
 
 // evaluations
