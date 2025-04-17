@@ -29,7 +29,7 @@ enum struct ContainerType { ARRAY, TUPLE };
 class RecordLogDecoder {
 public:
   RecordLogDecoder() = default;
-
+  virtual ~RecordLogDecoder() = default;
   /// Does the heavy-lifting of parsing the output log and converting it to a
   /// binary data structure that is compatible with the C++ host code. The data
   /// structure is created in a generic memory buffer. The buffer's address and
