@@ -24,7 +24,7 @@ __qpu__ void kernel(int N) { cudaq::qvector r(N); }
 
 // [Begin `PassingComplexVector`]
 // Passing complex vectors as parameters
-auto c = {.707 + 0j, 0 - .707j};
+std::vector<std::complex<double>> c = {.707 + 0j, 0 - .707j};
 
 __qpu__ void kernel(std::vector<std::complex<double>> vec) {
   cudaq::qubit q(vec);
@@ -33,20 +33,20 @@ __qpu__ void kernel(std::vector<std::complex<double>> vec) {
 
 // [Begin `CapturingComplexVector`]
 // Capturing complex vectors
-std::vector<std::complex<double>> c = {0.70710678 + 0j, 0., 0., 0.70710678};
+c = {0.70710678 + 0j, 0., 0., 0.70710678};
 
 __qpu__ void kernel() { cudaq::qvector q(c); }
 // [End `CapturingComplexVector`]
 
 // [Begin `PrecisionAgnosticAPI`]
 // Precision-Agnostic API
-auto c = cudaq::complex{0.70710678 + 0j, 0., 0., 0.70710678};
+c = cudaq::complex{0.70710678 + 0j, 0., 0., 0.70710678};
 
-__qpu__ void kernel() { cudaq::qvector q(c); }
+__qpu__ void kernel0() { cudaq::qvector q(c); }
 // [End `PrecisionAgnosticAPI`]
 
 // [Begin `AllQubits`]
-__qpu__ void kernel() {
+__qpu__ void kernel1() {
   cudaq::qvector r(10);
   cudaq::h(r);
 }
@@ -54,7 +54,7 @@ __qpu__ void kernel() {
 
 // [Begin `IndividualQubits`]
 
-__qpu__ void kernel() {
+__qpu__ void kernel2() {
   cudaq::qvector r(10);
   cudaq::h(r[0]); // first qubit
   cudaq::h(r[9]); // last qubit
@@ -62,14 +62,14 @@ __qpu__ void kernel() {
 // [End `IndividualQubits`]
 
 // [Begin `ControlledOperations`]
-__qpu__ void kernel() {
+__qpu__ void kernel3() {
   cudaq::qvector r(10);
   x<cudaq::ctrl>(r[0], r[1]); // CNOT gate applied with qubit 0 as control
 }
 // [End `ControlledOperations`]
 
 // [Begin `MultiControlledOperations`]
-__qpu__ void kernel() {
+__qpu__ void kernel4() {
   cudaq::qvector r(10);
   x<cudaq::ctrl>({r[0], r[1]},
                  r[2]); // CNOT gate applied with qubit 0 and 1 as control
@@ -80,7 +80,7 @@ __qpu__ void kernel() {
 __qpu__ void x_kernel(cudaq::qubit q) { x(q); }
 
 // A kernel that will call `x_kernel` as a controlled operation.
-__qpu__ void kernel() {
+__qpu__ void kernel5() {
   cudaq::qvector control_vector(2);
   cudaq::qubit target;
 
@@ -91,7 +91,7 @@ __qpu__ void kernel() {
 }
 
 // The above is equivalent to:
-__qpu__ void kernel() {
+__qpu__ void kernel6() {
   cudaq::qvector qvector(3);
 
   x(qvector);
@@ -107,7 +107,7 @@ int main() {
 // [End `ControlledKernel`]
 
 // [Begin `AdjointOperations`]
-__qpu__ void kernel() {
+__qpu__ void kernel7() {
   cudaq::qvector r(10);
   cudaq::adjoint(t, r[0]);
 }
@@ -127,12 +127,12 @@ __qpu__ void kernel_B() {
 // [End `BuildingKernelsWithKernels`]
 
 // [Begin `ParameterizedKernels`]
-__qpu__ void kernel(std::vector<double> thetas) {
+__qpu__ void kernel8(std::vector<double> thetas) {
   cudaq::qvector qubits(2);
   rx(thetas[0], qubits[0]);
   ry(thetas[1], qubits[1]);
 }
 
 std::vector<double> thetas = {.024, .543};
-kernel(thetas);
+kernel8(thetas);
 // [End `ParameterizedKernels`]
