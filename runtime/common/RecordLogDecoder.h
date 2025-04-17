@@ -58,6 +58,29 @@ private:
     throw std::runtime_error("Unknown datatype in label");
   }
 
+  std::size_t extractContainerIndex(const std::string &label) {
+    if (('[' == label[0]) && (']' == label[label.size() - 1]))
+      return std::stoi(label.substr(1, label.size() - 1));
+    if ('.' == label[0])
+      return std::stoi(label.substr(1, label.size() - 1));
+    throw std::runtime_error("Index not found in label");
+  }
+
+  /// Parse string like "array<i32 x 4>"
+  std::pair<std::size_t, std::string>
+  extractArrayInfo(const std::string &label) {
+    auto isArray = label.find("array");
+    auto lessThan = label.find('<');
+    auto greaterThan = label.find('>');
+    auto x = label.find('x');
+    if ((isArray == std::string::npos) || (lessThan == std::string::npos) ||
+        (greaterThan == std::string::npos) || (x == std::string::npos))
+      throw std::runtime_error("Array label missing keyword");
+    std::size_t arrSize = std::stoi(label.substr(x + 2, greaterThan - x - 2));
+    std::string arrType = label.substr(lessThan + 1, x - lessThan - 2);
+    return std::make_pair(arrSize, arrType);
+  }
+
   template <typename T>
   void addPrimitiveRecord(T value) {
     /// ASKME: Is this efficient?
@@ -66,8 +89,23 @@ private:
     std::memcpy(buffer.data() + position, &value, sizeof(T));
   }
 
+  template <typename T>
+  void allocateArrayRecord(size_t arrSize) {
+    prevPosition = buffer.size();
+    buffer.resize(prevPosition + (sizeof(T) * arrSize));
+  }
+
+  template <typename T>
+  void addEntryToArray(std::size_t index, T value) {
+    std::memcpy(buffer.data() + prevPosition + (index * sizeof(T)), &value,
+                sizeof(T));
+  }
+
   void processSingleRecord(const std::string &recValue,
                            const std::string &recLabel);
+
+  void processArrayEntry(const std::string &recValue,
+                         const std::string &recLabel);
 
   std::vector<char> buffer;
   SchemaType schema = SchemaType::ORDERED;
@@ -75,5 +113,7 @@ private:
   OutputType currentOutput;
   ContainerType currentContainer;
   std::size_t containerSize;
+  std::size_t prevPosition;
+  std::string arrayType;
 };
 } // namespace cudaq

@@ -71,13 +71,37 @@ void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
       if ("TUPLE" == recType) {
         currentContainer = ContainerType::TUPLE;
         containerSize = std::stoul(recValue);
+        if (!recLabel.empty()) {
+          schema = SchemaType::LABELED;
+        }
         break;
       }
       if ("ARRAY" == recType) {
         currentContainer = ContainerType::ARRAY;
-        /// TODO: Use this value to allocate buffer beforehand if LABELED
-        ///       Also, use this to check the number of values returned
         containerSize = std::stoul(recValue);
+        if (!recLabel.empty()) {
+          schema = SchemaType::LABELED;
+          auto info = extractArrayInfo(recLabel);
+          if (containerSize != info.first)
+            throw std::runtime_error("Array size mismatch in value and label.");
+          arrayType = info.second;
+          if ("i1" == info.second)
+            allocateArrayRecord<char>(info.first);
+          else if ("i8" == info.second)
+            allocateArrayRecord<std::int8_t>(info.first);
+          else if ("i16" == info.second)
+            allocateArrayRecord<std::int16_t>(info.first);
+          else if ("i32" == info.second)
+            allocateArrayRecord<std::int32_t>(info.first);
+          else if ("i64" == info.second)
+            allocateArrayRecord<std::int64_t>(info.first);
+          else if ("f32" == info.second)
+            allocateArrayRecord<float>(info.first);
+          else if ("f64" == info.second)
+            allocateArrayRecord<double>(info.first);
+          else
+            throw std::runtime_error("Unsupported output type");
+        }
         break;
       }
 
@@ -90,7 +114,11 @@ void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
       else
         throw std::runtime_error("Invalid data");
 
-      processSingleRecord(recValue, recLabel);
+      if ((currentContainer == ContainerType::ARRAY) &&
+          (schema == SchemaType::LABELED))
+        processArrayEntry(recValue, recLabel);
+      else
+        processSingleRecord(recValue, recLabel);
     } break;
     }
   } // for line
@@ -135,4 +163,33 @@ void cudaq::RecordLogDecoder::processSingleRecord(const std::string &recValue,
   default:
     throw std::runtime_error("Unsupported output type");
   }
+}
+
+void cudaq::RecordLogDecoder::processArrayEntry(const std::string &recValue,
+                                                const std::string &recLabel) {
+  std::size_t index = extractContainerIndex(recLabel);
+
+  if ("i1" == arrayType) {
+    bool value;
+    if ("true" == recValue)
+      value = true;
+    else if ("false" == recValue)
+      value = false;
+    else
+      throw std::runtime_error("Invalid boolean value");
+    addEntryToArray<char>(index, (char)value);
+  } else if ("i8" == arrayType)
+    addEntryToArray<std::int8_t>(index, std::stoi(recValue));
+  else if ("i16" == arrayType)
+    addEntryToArray<std::int16_t>(index, std::stoi(recValue));
+  else if ("i32" == arrayType)
+    addEntryToArray<std::int32_t>(index, std::stoi(recValue));
+  else if ("i64" == arrayType)
+    addEntryToArray<std::int64_t>(index, std::stoi(recValue));
+  else if ("f32" == arrayType)
+    addEntryToArray<float>(index, std::stod(recValue));
+  else if ("f64" == arrayType)
+    addEntryToArray<double>(index, std::stod(recValue));
+  else
+    throw std::runtime_error("Unsupported output type");
 }
