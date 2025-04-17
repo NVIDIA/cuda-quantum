@@ -40,7 +40,8 @@ __qpu__ void kernel0() { cudaq::qvector q(d); }
 
 // [Begin `PrecisionAgnosticAPI`]
 // Precision-Agnostic API
-auto e = {cudaq::complex{0.70710678, 0}, {0.0, 0.0}, {0.0, 0.0}, {0, 0.70710678}};
+auto e = {
+    cudaq::complex{0.70710678, 0}, {0.0, 0.0}, {0.0, 0.0}, {0, 0.70710678}};
 
 __qpu__ void kernel1() { cudaq::qvector q(e); }
 // [End `PrecisionAgnosticAPI`]
