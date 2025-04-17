@@ -45,7 +45,10 @@ public:
   /// Get the size of the data buffer (in bytes).
   std::size_t getBufferSize() const { return buffer.size(); }
 
-private:
+protected:
+  /// Helper to process an output line.
+  // Subclass can override to handle different output record format.
+  virtual void processOutputField(const std::vector<std::string> &entries);
   OutputType extractPrimitiveType(const std::string &label) {
     if ('i' == label[0]) {
       auto digits = std::stoi(label.substr(1));
@@ -73,5 +76,28 @@ private:
   SchemaType schema = SchemaType::ORDERED;
   RecordType currentRecord;
   OutputType currentOutput;
+  /// Key name for an output record.
+  std::string OutputFieldKey = "OUTPUT";
+  bool hasShotStatus = true;
+};
+
+// Decoder for the legacy/tagged (unspec'ed) output format.
+class TaggedRecordLogDecoder : public RecordLogDecoder {
+public:
+  TaggedRecordLogDecoder(const std::vector<std::string> &measureRegLabels = {})
+      : resultRecordLabels(measureRegLabels) {
+    OutputFieldKey = "RESULT";
+    hasShotStatus = false;
+  }
+  virtual void
+  processOutputField(const std::vector<std::string> &entries) override;
+
+private:
+  // These result record labels are ignored when parsing the output log as they
+  // are not associated with the return value.
+  // Note: any `mz` results shall be converted to bool upon return.
+  // These output labels can be retrieved from the QIR that we send to the
+  // backend. Hence, we use it to filter the returned log.
+  std::vector<std::string> resultRecordLabels;
 };
 } // namespace cudaq

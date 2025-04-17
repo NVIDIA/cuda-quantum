@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "RecordLogDecoder.h"
+#include "Logger.h"
 
 void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
@@ -22,14 +23,14 @@ void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
       currentRecord = RecordType::HEADER;
     else if ("METADATA" == entries[0])
       currentRecord = RecordType::METADATA;
-    else if ("OUTPUT" == entries[0])
+    else if (OutputFieldKey == entries[0])
       currentRecord = RecordType::OUTPUT;
     else if ("START" == entries[0])
       currentRecord = RecordType::START;
     else if ("END" == entries[0])
       currentRecord = RecordType::END;
     else
-      throw std::runtime_error("Invalid data");
+      throw std::runtime_error(fmt::format("Invalid data: {}", entries));
 
     switch (currentRecord) {
     case RecordType::HEADER: {
@@ -51,41 +52,48 @@ void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
       break;
     case RecordType::END: {
       // indicates end of a shot
-      if (entries.size() < 2)
-        throw std::runtime_error("Missing shot status");
-      if ("0" != entries[1])
-        throw std::runtime_error("Cannot handle unsuccessful shot");
+      if (hasShotStatus) {
+        if (entries.size() < 2)
+          throw std::runtime_error("Missing shot status");
+        if ("0" != entries[1])
+          throw std::runtime_error("Cannot handle unsuccessful shot");
+      }
     } break;
     case RecordType::OUTPUT: {
-      if (entries.size() < 3)
-        throw std::runtime_error("Insufficent data in a record");
-      if ((schema == SchemaType::LABELED) && (entries.size() != 4))
-        throw std::runtime_error("Unexpected record size for a labeled record");
-
-      std::string recType = entries[1];
-      std::string recValue = entries[2];
-      std::string recLabel = (entries.size() == 4) ? entries[3] : "";
-
-      if ("RESULT" == recType)
-        throw std::runtime_error("This type is not yet supported");
-      if ("TUPLE" == recType)
-        throw std::runtime_error("This type is not yet supported");
-      if ("ARRAY" == recType)
-        throw std::runtime_error("This type is not yet supported");
-
-      if ("BOOL" == recType)
-        currentOutput = OutputType::BOOL;
-      else if ("INT" == recType)
-        currentOutput = OutputType::INT;
-      else if ("DOUBLE" == recType)
-        currentOutput = OutputType::DOUBLE;
-      else
-        throw std::runtime_error("Invalid data");
-
-      processSingleRecord(recValue, recLabel);
+      processOutputField(entries);
     } break;
     }
   } // for line
+}
+
+void cudaq::RecordLogDecoder::processOutputField(
+    const std::vector<std::string> &entries) {
+  if (entries.size() < 3)
+    throw std::runtime_error("Insufficent data in a record");
+  if ((schema == SchemaType::LABELED) && (entries.size() != 4))
+    throw std::runtime_error("Unexpected record size for a labeled record");
+
+  std::string recType = entries[1];
+  std::string recValue = entries[2];
+  std::string recLabel = (entries.size() == 4) ? entries[3] : "";
+
+  if ("RESULT" == recType)
+    throw std::runtime_error("This type is not yet supported");
+  if ("TUPLE" == recType)
+    throw std::runtime_error("This type is not yet supported");
+  if ("ARRAY" == recType)
+    throw std::runtime_error("This type is not yet supported");
+
+  if ("BOOL" == recType)
+    currentOutput = OutputType::BOOL;
+  else if ("INT" == recType)
+    currentOutput = OutputType::INT;
+  else if ("DOUBLE" == recType)
+    currentOutput = OutputType::DOUBLE;
+  else
+    throw std::runtime_error(fmt::format("Invalid data: {}", entries));
+
+  processSingleRecord(recValue, recLabel);
 }
 
 void cudaq::RecordLogDecoder::processSingleRecord(const std::string &recValue,
@@ -126,5 +134,29 @@ void cudaq::RecordLogDecoder::processSingleRecord(const std::string &recValue,
     break;
   default:
     throw std::runtime_error("Unsupported output type");
+  }
+}
+
+void cudaq::TaggedRecordLogDecoder::processOutputField(
+    const std::vector<std::string> &entries) {
+  if (entries.size() != 3)
+    throw std::runtime_error(fmt::format(
+        "Unexpected number of data field in a record: expected 3, got {} '{}'",
+        entries.size(), entries));
+
+  const auto &recValue = entries[1];
+  auto recLabel = entries[2];
+  recLabel.erase(std::remove(recLabel.begin(), recLabel.end(), '\"'),
+                 recLabel.end());
+
+  if (std::find(resultRecordLabels.begin(), resultRecordLabels.end(),
+                recLabel) == resultRecordLabels.end()) {
+    currentOutput = extractPrimitiveType(recLabel);
+    if (currentOutput == OutputType::BOOL) {
+      // In the tagged format, bool values are represented as 0 and 1.
+      processSingleRecord(recValue == "1" ? "true" : "false", recLabel);
+    } else {
+      processSingleRecord(recValue, recLabel);
+    }
   }
 }

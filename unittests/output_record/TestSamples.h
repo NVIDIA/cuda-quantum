@@ -1,0 +1,217 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+static const char *taggedFormatSample1 =
+    R"(METADATA	OUTPUT_RECORD_FORMAT	tagged
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	0	"r00000"
+RESULT	0	"i1"
+END
+START
+RESULT	1	"r00000"
+RESULT	0	"i1"
+END
+)";
+
+static const char *taggedFormatSample2 =
+    R"(METADATA	OUTPUT_RECORD_FORMAT	tagged
+START
+RESULT	1	"r00000"
+RESULT	0	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	1	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	2	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	3	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	4	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	5	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	6	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	7	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	8	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	9	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	10	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	11	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	12	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	13	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	14	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	15	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	16	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	17	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	18	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	19	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	20	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	21	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	22	"i32"
+END
+START
+RESULT	0	"r00000"
+RESULT	23	"i32"
+END
+START
+RESULT	1	"r00000"
+RESULT	24	"i32"
+END
+)";
