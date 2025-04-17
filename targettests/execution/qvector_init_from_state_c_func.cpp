@@ -27,19 +27,15 @@
 #include <string>
 #include <vector>
 
-struct test_init_state {
-  void operator()(int n) __qpu__ {
-    cudaq::qvector q(n);
-    ry(M_PI / 2.0, q[0]);
-  }
-};
+__qpu__ void test_init_state(int n) {
+  cudaq::qvector q(n);
+  ry(M_PI / 2.0, q[0]);
+}
 
-struct test_state_param {
-  void operator()(cudaq::state *state) __qpu__ {
-    cudaq::qvector q(state);
-    x(q);
-  }
-};
+__qpu__ void test_state_param(cudaq::state *state) {
+  cudaq::qvector q(state);
+  x(q);
+}
 
 void printCounts(cudaq::sample_result &result) {
   std::vector<std::string> values{};
@@ -62,10 +58,10 @@ int main() {
   {
     std::cout << "Passing state created from data as argument (kernel mode)"
               << std::endl;
-    auto counts = cudaq::sample(test_state_param{}, &state);
+    auto counts = cudaq::sample(test_state_param, &state);
     printCounts(counts);
 
-    counts = cudaq::sample(test_state_param{}, &state1);
+    counts = cudaq::sample(test_state_param, &state1);
     printCounts(counts);
   }
   // clang-format off
@@ -80,8 +76,8 @@ int main() {
   {
     std::cout << "Passing state from another kernel as argument (kernel mode)"
               << std::endl;
-    auto state = cudaq::get_state(test_init_state{}, 2);
-    auto counts = cudaq::sample(test_state_param{}, &state);
+    auto state = cudaq::get_state(test_init_state, 2);
+    auto counts = cudaq::sample(test_state_param, &state);
     printCounts(counts);
   }
   // clang-format off
@@ -98,8 +94,8 @@ int main() {
     // architecture
     // TODO: State larger than 8 qubits fails on oqc and anyon
     // Up to 14 bits works with quantinuum an ionq
-    auto largeState = cudaq::get_state(test_init_state{}, 5);
-    auto counts = cudaq::sample(test_state_param{}, &largeState);
+    auto largeState = cudaq::get_state(test_init_state, 5);
+    auto counts = cudaq::sample(test_state_param, &largeState);
     printCounts(counts);
   }
   // clang-format off
@@ -112,12 +108,12 @@ int main() {
     std::cout << "Passing state from another kernel as argument iteratively "
                  "(kernel mode)"
               << std::endl;
-    auto state = cudaq::get_state(test_init_state{}, 2);
+    auto state = cudaq::get_state(test_init_state, 2);
     for (auto i = 0; i < 4; i++) {
-      auto counts = cudaq::sample(test_state_param{}, &state);
+      auto counts = cudaq::sample(test_state_param, &state);
       std::cout << "Iteration: " << i << std::endl;
       printCounts(counts);
-      state = cudaq::get_state(test_state_param{}, &state);
+      state = cudaq::get_state(test_state_param, &state);
     }
   }
   // clang-format off
@@ -138,3 +134,4 @@ int main() {
 
   return 0;
 }
+

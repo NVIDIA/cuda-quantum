@@ -75,4 +75,6 @@ int main() {
   // clang-format on
 
   // TODO: add tests for vectors of pauli words after we can lifts the arrays of pauli words.
+
+  return 0;
 }
