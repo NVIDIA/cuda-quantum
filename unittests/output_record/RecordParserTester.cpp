@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "TestSamples.h"
 #include "common/RecordLogDecoder.h"
 #include <cudaq.h>
 
@@ -49,4 +50,26 @@ CUDAQ_TEST(ParserTester, checkDoubles) {
   std::memcpy(buffer, origBuffer, bufferSize);
   EXPECT_EQ(3.14, buffer[0]);
   EXPECT_EQ(2.717, buffer[1]);
+}
+
+CUDAQ_TEST(ParserTester, checkTaggedFormatBool) {
+  cudaq::TaggedRecordLogDecoder parser({"r00000"});
+  parser.decode(taggedFormatSample1);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  EXPECT_EQ(25, bufferSize / sizeof(bool));
+  bool *buffer = static_cast<bool *>(origBuffer);
+  for (int i = 0; i < 25; ++i)
+    EXPECT_FALSE(buffer[i]);
+}
+
+CUDAQ_TEST(ParserTester, checkTaggedFormatInt) {
+  cudaq::TaggedRecordLogDecoder parser({"r00000"});
+  parser.decode(taggedFormatSample2);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  EXPECT_EQ(25, bufferSize / sizeof(int32_t));
+  int32_t *buffer = static_cast<int32_t *>(origBuffer);
+  for (int32_t i = 0; i < 25; ++i)
+    EXPECT_EQ(buffer[i], i);
 }
