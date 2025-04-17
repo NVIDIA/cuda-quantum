@@ -38,6 +38,8 @@ header:
     - 'docs/sphinx/_templates'
     - 'docs/sphinx/_static/cuda_quantum_icon.svg'
     - 'docker/test/installer/mpi_cuda_check.cpp'
+    - 'include/cudaq/Optimizer/CodeGen/OptUtils.h'
+    - 'lib/Optimizer/CodeGen/OptUtils.cpp'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
 
   comment: on-failure
