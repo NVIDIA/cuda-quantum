@@ -11,14 +11,14 @@
 // [End Docs]
 
 // [Begin Sample1]
-__qpu__ void kernel() {
+__qpu__ void kernel0() {
   cudaq::qvector qubits(2);
-  mz();
+  mz(qubits[0]);
 }
 // [End Sample1]
 
 // [Begin Sample2]
-__qpu__ void kernel() {
+__qpu__ void kernel1() {
   cudaq::qvector qubits_a(2);
   cudaq::qubit qubits_b;
   mz(qubits_a);
@@ -27,7 +27,7 @@ __qpu__ void kernel() {
 // [End Sample2]
 
 // [Begin Sample3]
-__qpu__ void kernel() {
+__qpu__ void kernel2() {
   cudaq::qvector q(2);
   h(q[0]);
   auto b0 = mz(q[0]);
@@ -40,7 +40,7 @@ __qpu__ void kernel() {
 }
 
 int main() {
-  auto result = cudaq::sample(kernel);
+  auto result = cudaq::sample(kernel2);
   result.dump();
   return 0;
 }
