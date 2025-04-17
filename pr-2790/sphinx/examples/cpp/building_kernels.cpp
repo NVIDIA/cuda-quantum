@@ -9,6 +9,9 @@
 // [Begin Definition]
 #include <cudaq.h>
 
+using namespace std::complex_literals;
+using complex = std::complex<cudaq::real>;
+
 __qpu__ void kernel() {
   cudaq::qubit A;
   cudaq::qvector B(3);
@@ -24,26 +27,30 @@ __qpu__ void kernel(int N) { cudaq::qvector r(N); }
 
 // [Begin `PassingComplexVector`]
 // Passing complex vectors as parameters
-std::vector<std::complex<double>> c = {.707 + 0j, 0 - .707j};
-
-__qpu__ void kernel(std::vector<std::complex<double>> vec) {
-  cudaq::qubit q(vec);
-}
+__qpu__ void kernel(const std::vector<complex> &vec) { cudaq::qubit q(vec); }
 // [End `PassingComplexVector`]
 
 // [Begin `CapturingComplexVector`]
 // Capturing complex vectors
-std::vector<std::complex<double>> d = {0.70710678 + 0j, 0., 0., 0.70710678};
+__qpu__ void kernel0(const std::vector<complex> &vec) { cudaq::qvector q(vec); }
 
-__qpu__ void kernel0() { cudaq::qvector q(d); }
+void function0() {
+  std::vector<complex> d = {0.70710678 + 0j, 0., 0., 0.70710678};
+  kernel0(d);
+}
 // [End `CapturingComplexVector`]
 
 // [Begin `PrecisionAgnosticAPI`]
 // Precision-Agnostic API
-auto e = {
-    cudaq::complex{0.70710678, 0}, {0.0, 0.0}, {0.0, 0.0}, {0, 0.70710678}};
+__qpu__ void kernel1(const std::vector<cudaq::complex> &e) {
+  cudaq::qvector q(e);
+}
 
-__qpu__ void kernel1() { cudaq::qvector q(e); }
+void function1() {
+  auto e = {
+      cudaq::complex{0.70710678, 0}, {0.0, 0.0}, {0.0, 0.0}, {0, 0.70710678}};
+  kernel1(e);
+}
 // [End `PrecisionAgnosticAPI`]
 
 // [Begin `AllQubits`]
@@ -72,13 +79,12 @@ __qpu__ void kernel4() {
 // [Begin `MultiControlledOperations`]
 __qpu__ void kernel5() {
   cudaq::qvector r(10);
-  x<cudaq::ctrl>({r[0], r[1]},
-                 r[2]); // CNOT gate applied with qubit 0 and 1 as control
+  x<cudaq::ctrl>(r[0], r[1]); // CNOT gate applied with qubit 0 and 1 as control
 }
 // [End `MultiControlledOperations`]
 
 // [Begin `ControlledKernel`]
-__qpu__ void x_kernel(cudaq::qubit q) { x(q); }
+__qpu__ void x_kernel(cudaq::qubit &q) { x(q); }
 
 // A kernel that will call `x_kernel` as a controlled operation.
 __qpu__ void kernel6() {
@@ -97,25 +103,31 @@ __qpu__ void kernel7() {
 
   x(qvector);
   x(qvector[1]);
-  x<cudaq::ctrl>({qvector[0], qvector[1]}, qvector[2]);
+  x<cudaq::ctrl>(qvector[0], qvector[1]);
   mz(qvector);
 }
 
 int main() {
-  auto results = cudaq::sample(kernel);
+  auto results = cudaq::sample(kernel7);
   results.dump();
 }
 // [End `ControlledKernel`]
 
 // [Begin `AdjointOperations`]
+__qpu__ void kernel_t(cudaq::qvector<> &qubits, double theta) {
+  ry(theta, qubits[0]);
+  h<cudaq::ctrl>(qubits[0], qubits[1]);
+  x(qubits[1]);
+}
+
 __qpu__ void kernel8() {
-  cudaq::qvector r(10);
-  cudaq::adjoint(t, r[0]);
+  cudaq::qvector<> r(10);
+  cudaq::adjoint(kernel_t, r, 0.0);
 }
 // [End `AdjointOperations`]
 
 // [Begin `BuildingKernelsWithKernels`]
-__qpu__ void kernel_A(cudaq::qubit q0, cudaq::qubit q1) {
+__qpu__ void kernel_A(cudaq::qubit &q0, cudaq::qubit &q1) {
   x<cudaq::ctrl>(q0, q1);
 }
 
