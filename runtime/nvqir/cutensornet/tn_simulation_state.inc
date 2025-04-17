@@ -48,6 +48,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   // Compute <bra|ket> by conjugating the entire |bra> tensor network.
   // Reverse them
   std::reverse(tensorOps.begin(), tensorOps.end());
+  std::vector<void*> tempDeviceBuffers;
   for (auto &op : tensorOps) {
     op.isAdjoint = !op.isAdjoint;
     if (!op.isUnitary) {
@@ -60,9 +61,14 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
                                    mat.size() * sizeof(std::complex<ScalarType>),
                                    cudaMemcpyDeviceToHost));
       mat.transposeInPlace();
-      HANDLE_CUDA_ERROR(cudaMemcpy(op.deviceData, mat.data(),
-                                   mat.size() * sizeof(std::complex<ScalarType>),
-                                   cudaMemcpyHostToDevice));
+      void *tempBuffer{nullptr};
+      const auto sizeBytes = mat.size() * sizeof(std::complex<ScalarType>);
+      HANDLE_CUDA_ERROR(cudaMalloc(&tempBuffer, sizeBytes));
+      HANDLE_CUDA_ERROR(cudaMemcpy(
+          tempBuffer, mat.data(), mat.size() * sizeof(std::complex<ScalarType>),
+          cudaMemcpyHostToDevice));
+      op.deviceData = tempBuffer;
+      tempDeviceBuffers.emplace_back(tempBuffer);
     }
   }
   // Append them to ket
@@ -192,6 +198,8 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
   HANDLE_CUTN_ERROR(cutensornetDestroyAccessor(accessor));
   HANDLE_CUTN_ERROR(cutensornetDestroyState(tempQuantumState));
+  for (auto *tempBuffer : tempDeviceBuffers)
+    HANDLE_CUDA_ERROR(cudaFree(tempBuffer));
 
   return std::abs(h_overlap);
 }
