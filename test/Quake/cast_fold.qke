@@ -438,3 +438,27 @@ func.func @p32_u64() -> i32 {
 // CHECK:     %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (i64) -> i32
 // CHECK:     return %[[VAL_2]] : i32
 // CHECK:   }
+
+// Cast and test
+
+func.func @castAndTest () {
+    %c0 = arith.constant -1 : i32
+    %c1 = arith.constant 4294967295 : i64
+    %0 = cc.cast unsigned %c0 : (i32) -> i32
+    %1 = cc.cast unsigned %0 : (i32) -> i64
+    %2 = quake.alloca !quake.ref
+    %3 = arith.cmpi eq, %1, %c1 : i64
+    cc.if(%3) {
+      quake.x %2 : (!quake.ref) -> ()
+    }
+    return
+  }
+
+// CHECK:   func.func @castAndTest() {
+// CHECK:     %true = arith.constant true
+// CHECK:     %0 = quake.alloca !quake.ref
+// CHECK:     cc.if(%true) {
+// CHECK:       quake.x %0 : (!quake.ref) -> ()
+// CHECK:     }
+// CHECK:     return
+// CHECK:   }
