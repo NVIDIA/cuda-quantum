@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,17 +6,30 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#pragma once
 #include "cudaq.h"
 #include "simulator_cutensornet.h"
 #include "tn_simulation_state.h"
 
 // Forward declaration
+#ifdef TENSORNET_FP32
+extern "C" nvqir::CircuitSimulator *getCircuitSimulator_tensornet_fp32();
+#else
 extern "C" nvqir::CircuitSimulator *getCircuitSimulator_tensornet();
+#endif
 
 namespace nvqir {
-class SimulatorTensorNet : public SimulatorTensorNetBase {
+template <typename ScalarType = double>
+class SimulatorTensorNet : public SimulatorTensorNetBase<ScalarType> {
+  using SimulatorTensorNetBase<ScalarType>::m_cutnHandle;
+  using SimulatorTensorNetBase<
+      ScalarType>::m_maxControlledRankForFullTensorExpansion;
+  using SimulatorTensorNetBase<ScalarType>::m_state;
+  using SimulatorTensorNetBase<ScalarType>::scratchPad;
+  using SimulatorTensorNetBase<ScalarType>::m_randomEngine;
+
 public:
-  SimulatorTensorNet() : SimulatorTensorNetBase() {
+  SimulatorTensorNet() : SimulatorTensorNetBase<ScalarType>() {
     // tensornet backend supports distributed tensor network contraction,
     // i.e., distributing tensor network contraction across multiple
     // GPUs/processes.
@@ -49,7 +62,11 @@ public:
 
   // Nothing to do for state preparation
   virtual void prepareQubitTensorState() override {}
+#ifdef TENSORNET_FP32
+  virtual std::string name() const override { return "tensornet-fp32"; }
+#else
   virtual std::string name() const override { return "tensornet"; }
+#endif
   CircuitSimulator *clone() override {
     thread_local static auto simulator = std::make_unique<SimulatorTensorNet>();
     return simulator.get();
@@ -65,7 +82,7 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
-    return std::make_unique<TensorNetSimulationState>(
+    return std::make_unique<TensorNetSimulationState<ScalarType>>(
         std::move(m_state), scratchPad, m_cutnHandle, m_randomEngine);
   }
 
@@ -73,22 +90,22 @@ public:
     LOG_API_TIME();
     if (!m_state) {
       if (!ptr) {
-        m_state = std::make_unique<TensorNetState>(
+        m_state = std::make_unique<TensorNetState<ScalarType>>(
             numQubits, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
-        auto *casted =
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
-        std::span<std::complex<double>> stateVec(casted, 1ULL << numQubits);
-        m_state = TensorNetState::createFromStateVector(
+        auto *casted = reinterpret_cast<std::complex<ScalarType> *>(
+            const_cast<void *>(ptr));
+        std::span<std::complex<ScalarType>> stateVec(casted, 1ULL << numQubits);
+        m_state = TensorNetState<ScalarType>::createFromStateVector(
             stateVec, scratchPad, m_cutnHandle, m_randomEngine);
       }
     } else {
       if (!ptr) {
         m_state->addQubits(numQubits);
       } else {
-        auto *casted =
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
-        std::span<std::complex<double>> stateVec(casted, 1ULL << numQubits);
+        auto *casted = reinterpret_cast<std::complex<ScalarType> *>(
+            const_cast<void *>(ptr));
+        std::span<std::complex<ScalarType>> stateVec(casted, 1ULL << numQubits);
         m_state->addQubits(stateVec);
       }
     }
@@ -97,13 +114,13 @@ public:
   virtual void
   addQubitsToState(const cudaq::SimulationState &in_state) override {
     LOG_API_TIME();
-    const TensorNetSimulationState *const casted =
-        dynamic_cast<const TensorNetSimulationState *>(&in_state);
+    const TensorNetSimulationState<ScalarType> *const casted =
+        dynamic_cast<const TensorNetSimulationState<ScalarType> *>(&in_state);
     if (!casted)
       throw std::invalid_argument(
           "[Tensornet simulator] Incompatible state input");
     if (!m_state) {
-      m_state = TensorNetState::createFromOpTensors(
+      m_state = TensorNetState<ScalarType>::createFromOpTensors(
           in_state.getNumQubits(), casted->getAppliedTensors(), scratchPad,
           m_cutnHandle, m_randomEngine);
     } else {
@@ -142,27 +159,12 @@ public:
   }
 
 private:
+#ifdef TENSORNET_FP32
+  friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet_fp32();
+#else
   friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();
+#endif
   /// @brief Has cuTensorNet MPI been initialized?
   bool m_cutnMpiInitialized = false;
 };
 } // namespace nvqir
-
-/// Register this Simulator class with NVQIR under name "tensornet"
-extern "C" {
-nvqir::CircuitSimulator *getCircuitSimulator_tensornet() {
-  thread_local static auto simulator =
-      std::make_unique<nvqir::SimulatorTensorNet>();
-  // Handle multiple runtime __nvqir__setCircuitSimulator calls before/after MPI
-  // initialization. If the static simulator instance was created before MPI
-  // initialization, it needs to be reset to support MPI if needed.
-  if (cudaq::mpi::is_initialized() && !simulator->m_cutnMpiInitialized) {
-    // Reset the static instance to pick up MPI.
-    simulator.reset(new nvqir::SimulatorTensorNet());
-  }
-  return simulator.get();
-}
-nvqir::CircuitSimulator *getCircuitSimulator() {
-  return getCircuitSimulator_tensornet();
-}
-}

@@ -62,33 +62,34 @@ set(CUTENSORNET_VERSION ${CUTENSORNET_MAJOR}.${CUTENSORNET_MINOR}.${CUTENSORNET_
 message(STATUS "Found cutensornet version: ${CUTENSORNET_VERSION}")
 # We need cutensornet v2.7.0+ (cutensornetStateApplyGeneralChannel)
 if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.7")
-  set (BASE_TENSOR_BACKEND_SRS  
-        simulator_cutensornet.cpp 
-        tensornet_spin_op.cpp
-        tensornet_state.cpp
-        tensornet_utils.cpp)
+  set (BASE_TENSOR_BACKEND_SRS tensornet_utils.cpp)
   get_filename_component(CUTENSORNET_INCLUDE_DIR ${CUTENSORNET_INC} DIRECTORY)
   get_filename_component(CUTENSORNET_LIB_DIR ${CUTENSORNET_LIB} DIRECTORY)
   get_filename_component(CUTENSOR_LIB_DIR ${CUTENSOR_LIB} DIRECTORY)
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUTENSORNET_LIB_DIR}:${CUTENSOR_LIB_DIR}")
 
   # Helper macro to add cutensornet-based backends
-  macro (nvqir_create_cutn_plugin LIBRARY_NAME)
+  macro (nvqir_create_cutn_plugin LIBRARY_NAME CREATE_TARGET_CONFIG)
     # This will create a target named ${LIBRARY_NAME}
     add_library(nvqir-${LIBRARY_NAME} SHARED ${ARGN})
     target_include_directories(nvqir-${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime/common ${CMAKE_SOURCE_DIR}/runtime/nvqir ${CUDAToolkit_INCLUDE_DIRS} ${CUTENSORNET_INCLUDE_DIR})
     target_link_libraries(nvqir-${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq cudaq-common ${CUTENSORNET_LIB} ${CUTENSOR_LIB} CUDA::cudart_static)
     install(TARGETS nvqir-${LIBRARY_NAME} DESTINATION lib)
-    add_target_config(${LIBRARY_NAME})
+    if (${CREATE_TARGET_CONFIG})
+      add_target_config(${LIBRARY_NAME})
+    endif()
   endmacro()
 
-  nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_register.cpp tn_simulation_state.cpp)
-  nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_register.cpp mps_simulation_state.cpp)
+  nvqir_create_cutn_plugin(tensornet TRUE ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_fp64_register.cpp)
+  nvqir_create_cutn_plugin(tensornet-mps TRUE ${BASE_TENSOR_BACKEND_SRS} simulator_mps_fp64_register.cpp)
+  nvqir_create_cutn_plugin(tensornet-fp32 FALSE ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_fp32_register.cpp)
+  nvqir_create_cutn_plugin(tensornet-mps-fp32 FALSE ${BASE_TENSOR_BACKEND_SRS} simulator_mps_fp32_register.cpp)
   add_library(tensornet-mpi-util OBJECT mpi_support.cpp)
   target_include_directories(tensornet-mpi-util PRIVATE ${CUDAToolkit_INCLUDE_DIRS} ${CUTENSORNET_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/runtime)
   target_link_libraries(tensornet-mpi-util PRIVATE cudaq-common fmt::fmt-header-only)
   # Note: only tensornet backend supports MPI at cutensornet level (distributed tensor computation)
   target_link_libraries(nvqir-tensornet PRIVATE tensornet-mpi-util)
+  target_link_libraries(nvqir-tensornet-fp32 PRIVATE tensornet-mpi-util)
 else()
   message(WARNING "Skipped tensornet backend due to incompatible cutensornet version. Please install cutensornet v2.3.0+.")
 endif()

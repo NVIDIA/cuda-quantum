@@ -229,7 +229,8 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
 
 // From issue: https://github.com/NVIDIA/cuda-quantum/issues/1215
 
-#ifdef CUDAQ_BACKEND_CUSTATEVEC_FP32
+#if defined(CUDAQ_BACKEND_CUSTATEVEC_FP32) ||                                  \
+    defined(CUDAQ_SIMULATION_SCALAR_FP32)
 #define EPSILON std::numeric_limits<float>::epsilon()
 #else
 #define EPSILON std::numeric_limits<double>::epsilon()

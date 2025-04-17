@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,14 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "tensornet_state.h"
+#pragma once
+
 #include "common/EigenDense.h"
 #include <algorithm>
 #include <bitset>
 #include <cassert>
 
 namespace nvqir {
-std::int32_t TensorNetState::numHyperSamples = []() {
+template <typename ScalarType>
+std::int32_t TensorNetState<ScalarType>::numHyperSamples = []() {
   constexpr int32_t defaultNumHyperSamples = 8;
   if (auto envVal = std::getenv("CUDAQ_TENSORNET_NUM_HYPER_SAMPLES")) {
     int32_t specifiedNumHyperSamples = 0;
@@ -35,25 +37,27 @@ std::int32_t TensorNetState::numHyperSamples = []() {
   return defaultNumHyperSamples;
 }();
 
-TensorNetState::TensorNetState(std::size_t numQubits,
-                               ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle,
-                               std::mt19937 &randomEngine)
+template <typename ScalarType>
+TensorNetState<ScalarType>::TensorNetState(std::size_t numQubits,
+                                           ScratchDeviceMem &inScratchPad,
+                                           cutensornetHandle_t handle,
+                                           std::mt19937 &randomEngine)
     : m_numQubits(numQubits), m_cutnHandle(handle), scratchPad(inScratchPad),
       m_randomEngine(randomEngine) {
   const std::vector<int64_t> qubitDims(m_numQubits, 2);
   HANDLE_CUTN_ERROR(cutensornetCreateState(
       m_cutnHandle, CUTENSORNET_STATE_PURITY_PURE, m_numQubits,
-      qubitDims.data(), CUDA_C_64F, &m_quantumState));
+      qubitDims.data(), cudaDataType, &m_quantumState));
 }
 
-TensorNetState::TensorNetState(const std::vector<int> &basisState,
-                               ScratchDeviceMem &inScratchPad,
-                               cutensornetHandle_t handle,
-                               std::mt19937 &randomEngine)
+template <typename ScalarType>
+TensorNetState<ScalarType>::TensorNetState(const std::vector<int> &basisState,
+                                           ScratchDeviceMem &inScratchPad,
+                                           cutensornetHandle_t handle,
+                                           std::mt19937 &randomEngine)
     : TensorNetState(basisState.size(), inScratchPad, handle, randomEngine) {
-  constexpr std::complex<double> h_xGate[4] = {0.0, 1.0, 1.0, 0.0};
-  constexpr auto sizeBytes = 4 * sizeof(std::complex<double>);
+  constexpr std::complex<ScalarType> h_xGate[4] = {0.0, 1.0, 1.0, 0.0};
+  constexpr auto sizeBytes = 4 * sizeof(std::complex<ScalarType>);
   void *d_gate{nullptr};
   HANDLE_CUDA_ERROR(cudaMalloc(&d_gate, sizeBytes));
   HANDLE_CUDA_ERROR(
@@ -67,16 +71,20 @@ TensorNetState::TensorNetState(const std::vector<int> &basisState,
   }
 }
 
-std::unique_ptr<TensorNetState> TensorNetState::clone() const {
+template <typename ScalarType>
+std::unique_ptr<TensorNetState<ScalarType>>
+TensorNetState<ScalarType>::clone() const {
   return createFromOpTensors(m_numQubits, m_tensorOps, scratchPad, m_cutnHandle,
                              m_randomEngine);
 }
 
-void TensorNetState::applyGate(const std::vector<int32_t> &controlQubits,
-                               const std::vector<int32_t> &targetQubits,
-                               void *gateDeviceMem, bool adjoint) {
-  ScopedTraceWithContext("TensorNetState::applyGate", controlQubits.size(),
-                         targetQubits.size());
+template <typename ScalarType>
+void TensorNetState<ScalarType>::applyGate(
+    const std::vector<int32_t> &controlQubits,
+    const std::vector<int32_t> &targetQubits, void *gateDeviceMem,
+    bool adjoint) {
+  ScopedTraceWithContext("TensorNetState<ScalarType>::applyGate",
+                         controlQubits.size(), targetQubits.size());
   if (controlQubits.empty()) {
     HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
         m_cutnHandle, m_quantumState, targetQubits.size(), targetQubits.data(),
@@ -96,7 +104,8 @@ void TensorNetState::applyGate(const std::vector<int32_t> &controlQubits,
                                            controlQubits, adjoint, true});
 }
 
-void TensorNetState::applyUnitaryChannel(
+template <typename ScalarType>
+void TensorNetState<ScalarType>::applyUnitaryChannel(
     const std::vector<int32_t> &qubits, const std::vector<void *> &krausOps,
     const std::vector<double> &probabilities) {
   LOG_API_TIME();
@@ -111,8 +120,9 @@ void TensorNetState::applyUnitaryChannel(
   m_hasNoiseChannel = true;
 }
 
-void TensorNetState::applyGeneralChannel(const std::vector<int32_t> &qubits,
-                                         const std::vector<void *> &krausOps) {
+template <typename ScalarType>
+void TensorNetState<ScalarType>::applyGeneralChannel(
+    const std::vector<int32_t> &qubits, const std::vector<void *> &krausOps) {
   LOG_API_TIME();
   HANDLE_CUTN_ERROR(cutensornetStateApplyGeneralChannel(
       m_cutnHandle, m_quantumState, /*numStateModes=*/qubits.size(),
@@ -124,8 +134,9 @@ void TensorNetState::applyGeneralChannel(const std::vector<int32_t> &qubits,
   m_hasNoiseChannel = true;
 }
 
-void TensorNetState::applyQubitProjector(void *proj_d,
-                                         const std::vector<int32_t> &qubitIdx) {
+template <typename ScalarType>
+void TensorNetState<ScalarType>::applyQubitProjector(
+    void *proj_d, const std::vector<int32_t> &qubitIdx) {
   LOG_API_TIME();
   HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
       m_cutnHandle, m_quantumState, qubitIdx.size(), qubitIdx.data(), proj_d,
@@ -135,7 +146,8 @@ void TensorNetState::applyQubitProjector(void *proj_d,
   m_tensorOps.emplace_back(AppliedTensorOp{proj_d, qubitIdx, {}, false, false});
 }
 
-void TensorNetState::addQubits(std::size_t numQubits) {
+template <typename ScalarType>
+void TensorNetState<ScalarType>::addQubits(std::size_t numQubits) {
   LOG_API_TIME();
   // Destroy the current quantum circuit state
   HANDLE_CUTN_ERROR(cutensornetDestroyState(m_quantumState));
@@ -143,7 +155,7 @@ void TensorNetState::addQubits(std::size_t numQubits) {
   const std::vector<int64_t> qubitDims(m_numQubits, 2);
   HANDLE_CUTN_ERROR(cutensornetCreateState(
       m_cutnHandle, CUTENSORNET_STATE_PURITY_PURE, m_numQubits,
-      qubitDims.data(), CUDA_C_64F, &m_quantumState));
+      qubitDims.data(), cudaDataType, &m_quantumState));
   // Append any previously-applied gate tensors.
   // These tensors will only be appending to those existing qubit wires, i.e.,
   // the new wires are all empty (zero state).
@@ -196,23 +208,29 @@ void TensorNetState::addQubits(std::size_t numQubits) {
     }
 }
 
-void TensorNetState::addQubits(std::span<std::complex<double>> stateVec) {
+template <typename ScalarType>
+void TensorNetState<ScalarType>::addQubits(
+    std::span<std::complex<ScalarType>> stateVec) {
   LOG_API_TIME();
   const std::size_t numQubits = std::log2(stateVec.size());
   auto ket =
-      Eigen::Map<const Eigen::VectorXcd>(stateVec.data(), stateVec.size());
-  Eigen::VectorXcd initState = Eigen::VectorXcd::Zero(stateVec.size());
-  initState(0) = std::complex<double>{1.0, 0.0};
-  Eigen::MatrixXcd stateVecProj = ket * initState.transpose();
+      Eigen::Map<const Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic>>(
+          stateVec.data(), stateVec.size());
+  Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic> initState =
+      Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic>::Zero(
+          stateVec.size());
+  initState(0) = std::complex<ScalarType>{1.0, 0.0};
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+      stateVecProj = ket * initState.transpose();
   assert(static_cast<std::size_t>(stateVecProj.size()) ==
          stateVec.size() * stateVec.size());
   stateVecProj.transposeInPlace();
   void *d_proj{nullptr};
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(&d_proj, stateVecProj.size() * sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(cudaMalloc(&d_proj, stateVecProj.size() *
+                                            sizeof(std::complex<ScalarType>)));
   HANDLE_CUDA_ERROR(
       cudaMemcpy(d_proj, stateVecProj.data(),
-                 stateVecProj.size() * sizeof(std::complex<double>),
+                 stateVecProj.size() * sizeof(std::complex<ScalarType>),
                  cudaMemcpyHostToDevice));
 
   std::vector<int32_t> qubitIdx(numQubits);
@@ -225,8 +243,10 @@ void TensorNetState::addQubits(std::span<std::complex<double>> stateVec) {
   m_tempDevicePtrs.emplace_back(d_proj);
 }
 
+template <typename ScalarType>
 std::pair<cutensornetStateSampler_t, cutensornetWorkspaceDescriptor_t>
-TensorNetState::prepareSample(const std::vector<int32_t> &measuredBitIds) {
+TensorNetState<ScalarType>::prepareSample(
+    const std::vector<int32_t> &measuredBitIds) {
   LOG_API_TIME();
   // Create the quantum circuit sampler
   cutensornetStateSampler_t sampler;
@@ -286,11 +306,13 @@ TensorNetState::prepareSample(const std::vector<int32_t> &measuredBitIds) {
   return std::make_pair(sampler, workDesc);
 }
 
+template <typename ScalarType>
 std::unordered_map<std::string, size_t>
-TensorNetState::executeSample(cutensornetStateSampler_t &sampler,
-                              cutensornetWorkspaceDescriptor_t &workDesc,
-                              const std::vector<int32_t> &measuredBitIds,
-                              int32_t shots, bool enableCacheWorkspace) {
+TensorNetState<ScalarType>::executeSample(
+    cutensornetStateSampler_t &sampler,
+    cutensornetWorkspaceDescriptor_t &workDesc,
+    const std::vector<int32_t> &measuredBitIds, int32_t shots,
+    bool enableCacheWorkspace) {
   int64_t reqCacheSize{0};
   void *d_cache{nullptr};
   if (enableCacheWorkspace) {
@@ -352,9 +374,10 @@ TensorNetState::executeSample(cutensornetStateSampler_t &sampler,
   return counts;
 }
 
+template <typename ScalarType>
 std::unordered_map<std::string, size_t>
-TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
-                       int32_t shots, bool enableCacheWorkspace) {
+TensorNetState<ScalarType>::sample(const std::vector<int32_t> &measuredBitIds,
+                                   int32_t shots, bool enableCacheWorkspace) {
   LOG_API_TIME();
   auto [sampler, workDesc] = prepareSample(measuredBitIds);
   std::unordered_map<std::string, size_t> counts = executeSample(
@@ -366,23 +389,28 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
   return counts;
 }
 
-std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
+template <typename ScalarType>
+std::pair<void *, std::size_t>
+TensorNetState<ScalarType>::contractStateVectorInternal(
     const std::vector<int32_t> &projectedModes,
     const std::vector<int64_t> &in_projectedModeValues) {
   // Make sure that we don't overflow the memory size calculation.
   // Note: the actual limitation will depend on the system memory.
   if ((m_numQubits - projectedModes.size()) > 64 ||
       (1ull << (m_numQubits - projectedModes.size())) >
-          std::numeric_limits<uint64_t>::max() / sizeof(std::complex<double>))
+          std::numeric_limits<uint64_t>::max() /
+              sizeof(std::complex<ScalarType>))
     throw std::runtime_error(
         "Too many qubits are requested for full state vector contraction.");
   LOG_API_TIME();
   void *d_sv{nullptr};
   const uint64_t svDim = 1ull << (m_numQubits - projectedModes.size());
   {
-    ScopedTraceWithContext("TensorNetState::contractStateVectorInternal "
-                           "State vector allocation");
-    HANDLE_CUDA_ERROR(cudaMalloc(&d_sv, svDim * sizeof(std::complex<double>)));
+    ScopedTraceWithContext(
+        "TensorNetState<ScalarType>::contractStateVectorInternal "
+        "State vector allocation");
+    HANDLE_CUDA_ERROR(
+        cudaMalloc(&d_sv, svDim * sizeof(std::complex<ScalarType>)));
   }
   // Create the quantum state amplitudes accessor
   cutensornetStateAccessor_t accessor;
@@ -422,7 +450,7 @@ std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
   }
 
   // Compute the quantum state amplitudes
-  std::complex<double> stateNorm{0.0, 0.0};
+  std::complex<ScalarType> stateNorm{0.0, 0.0};
   if (!in_projectedModeValues.empty() &&
       in_projectedModeValues.size() != projectedModes.size())
     throw std::invalid_argument(fmt::format(
@@ -447,10 +475,10 @@ std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
   return std::make_pair(d_sv, svDim);
 }
 
-std::vector<MPSTensor>
-TensorNetState::setupMPSFactorize(int64_t maxExtent, double absCutoff,
-                                  double relCutoff,
-                                  cutensornetTensorSVDAlgo_t algo) {
+template <typename ScalarType>
+std::vector<MPSTensor> TensorNetState<ScalarType>::setupMPSFactorize(
+    int64_t maxExtent, double absCutoff, double relCutoff,
+    cutensornetTensorSVDAlgo_t algo) {
   LOG_API_TIME();
   if (m_numQubits == 0)
     return {};
@@ -459,7 +487,7 @@ TensorNetState::setupMPSFactorize(int64_t maxExtent, double absCutoff,
     MPSTensor tensor;
     tensor.extents = {2};
     HANDLE_CUDA_ERROR(
-        cudaMalloc(&tensor.deviceData, 2 * sizeof(std::complex<double>)));
+        cudaMalloc(&tensor.deviceData, 2 * sizeof(std::complex<ScalarType>)));
 
     return {tensor};
   }
@@ -471,17 +499,17 @@ TensorNetState::setupMPSFactorize(int64_t maxExtent, double absCutoff,
       mpsTensors[i].extents = {2, maxExtent};
       HANDLE_CUDA_ERROR(
           cudaMalloc(&mpsTensors[i].deviceData,
-                     2 * maxExtent * sizeof(std::complex<double>)));
+                     2 * maxExtent * sizeof(std::complex<ScalarType>)));
     } else if (i == m_numQubits - 1) {
       mpsTensors[i].extents = {maxExtent, 2};
       HANDLE_CUDA_ERROR(
           cudaMalloc(&mpsTensors[i].deviceData,
-                     2 * maxExtent * sizeof(std::complex<double>)));
+                     2 * maxExtent * sizeof(std::complex<ScalarType>)));
     } else {
       mpsTensors[i].extents = {maxExtent, 2, maxExtent};
-      HANDLE_CUDA_ERROR(
-          cudaMalloc(&mpsTensors[i].deviceData,
-                     2 * maxExtent * maxExtent * sizeof(std::complex<double>)));
+      HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensors[i].deviceData,
+                                   2 * maxExtent * maxExtent *
+                                       sizeof(std::complex<ScalarType>)));
     }
     extentsPtr[i] = mpsTensors[i].extents.data();
   }
@@ -505,7 +533,9 @@ TensorNetState::setupMPSFactorize(int64_t maxExtent, double absCutoff,
   return mpsTensors;
 }
 
-void TensorNetState::computeMPSFactorize(std::vector<MPSTensor> &mpsTensors) {
+template <typename ScalarType>
+void TensorNetState<ScalarType>::computeMPSFactorize(
+    std::vector<MPSTensor> &mpsTensors) {
   LOG_API_TIME();
   if (mpsTensors.empty())
     return;
@@ -514,12 +544,12 @@ void TensorNetState::computeMPSFactorize(std::vector<MPSTensor> &mpsTensors) {
     // Just contract all the gates to the tensor.
     // Note: if none gates, don't call `getStateVector`, which performs a
     // contraction (`Flop count is zero` error).
-    const std::vector<std::complex<double>> stateVec =
+    const std::vector<std::complex<ScalarType>> stateVec =
         isDirty() ? getStateVector()
-                  : std::vector<std::complex<double>>{1.0, 0.0};
+                  : std::vector<std::complex<ScalarType>>{1.0, 0.0};
     assert(stateVec.size() == 2);
     HANDLE_CUDA_ERROR(cudaMemcpy(tensor.deviceData, stateVec.data(),
-                                 2 * sizeof(std::complex<double>),
+                                 2 * sizeof(std::complex<ScalarType>),
                                  cudaMemcpyHostToDevice));
     return;
   }
@@ -585,14 +615,16 @@ void TensorNetState::computeMPSFactorize(std::vector<MPSTensor> &mpsTensors) {
     free(hostWork);
 }
 
-std::vector<std::complex<double>> TensorNetState::getStateVector(
+template <typename ScalarType>
+std::vector<std::complex<ScalarType>>
+TensorNetState<ScalarType>::getStateVector(
     const std::vector<int32_t> &projectedModes,
     const std::vector<int64_t> &projectedModeValues) {
   auto [d_sv, svDim] =
       contractStateVectorInternal(projectedModes, projectedModeValues);
-  std::vector<std::complex<double>> h_sv(svDim);
+  std::vector<std::complex<ScalarType>> h_sv(svDim);
   HANDLE_CUDA_ERROR(cudaMemcpy(h_sv.data(), d_sv,
-                               svDim * sizeof(std::complex<double>),
+                               svDim * sizeof(std::complex<ScalarType>),
                                cudaMemcpyDeviceToHost));
   // Free resources
   HANDLE_CUDA_ERROR(cudaFree(d_sv));
@@ -600,19 +632,20 @@ std::vector<std::complex<double>> TensorNetState::getStateVector(
   return h_sv;
 }
 
-std::vector<std::complex<double>>
-TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
+template <typename ScalarType>
+std::vector<std::complex<ScalarType>>
+TensorNetState<ScalarType>::computeRDM(const std::vector<int32_t> &qubits) {
   // Make sure that we don't overflow the memory size calculation.
   // Note: the actual limitation will depend on the system memory.
   if (qubits.size() >= 32 ||
-      (1ull << (2 * qubits.size())) >
-          std::numeric_limits<uint64_t>::max() / sizeof(std::complex<double>))
+      (1ull << (2 * qubits.size())) > std::numeric_limits<uint64_t>::max() /
+                                          sizeof(std::complex<ScalarType>))
     throw std::runtime_error("Too many qubits are requested for reduced "
                              "density matrix contraction.");
   LOG_API_TIME();
   void *d_rdm{nullptr};
   const uint64_t rdmSize = 1ull << (2 * qubits.size());
-  const uint64_t rdmSizeBytes = rdmSize * sizeof(std::complex<double>);
+  const uint64_t rdmSizeBytes = rdmSize * sizeof(std::complex<ScalarType>);
   HANDLE_CUDA_ERROR(cudaMalloc(&d_rdm, rdmSizeBytes));
 
   cutensornetStateMarginal_t marginal;
@@ -658,7 +691,7 @@ TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
     HANDLE_CUTN_ERROR(cutensornetMarginalCompute(m_cutnHandle, marginal,
                                                  nullptr, workDesc, d_rdm, 0));
   }
-  std::vector<std::complex<double>> h_rdm(rdmSize);
+  std::vector<std::complex<ScalarType>> h_rdm(rdmSize);
   HANDLE_CUDA_ERROR(
       cudaMemcpy(h_rdm.data(), d_rdm, rdmSizeBytes, cudaMemcpyDeviceToHost));
 
@@ -672,17 +705,20 @@ TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
 
 // Returns MPS tensors (device mems)
 // Note: user needs to clean up these tensors
+template <typename ScalarType>
 std::vector<MPSTensor>
-TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
-                             double relCutoff,
-                             cutensornetTensorSVDAlgo_t algo) {
+TensorNetState<ScalarType>::factorizeMPS(int64_t maxExtent, double absCutoff,
+                                         double relCutoff,
+                                         cutensornetTensorSVDAlgo_t algo) {
   LOG_API_TIME();
   auto mpsTensors = setupMPSFactorize(maxExtent, absCutoff, relCutoff, algo);
   computeMPSFactorize(mpsTensors);
   return mpsTensors;
 }
 
-std::vector<std::complex<double>> TensorNetState::computeExpVals(
+template <typename ScalarType>
+std::vector<std::complex<ScalarType>>
+TensorNetState<ScalarType>::computeExpVals(
     const std::vector<cudaq::spin_op_term> &product_terms,
     const std::optional<std::size_t> &numberTrajectories) {
   LOG_API_TIME();
@@ -709,22 +745,22 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   const std::vector<int64_t> qubitDims(numQubits, 2);
 
   // Initialize device mem for Pauli matrices
-  constexpr std::complex<double> PauliI_h[4] = {
+  constexpr std::complex<ScalarType> PauliI_h[4] = {
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
 
-  constexpr std::complex<double> PauliX_h[4]{
+  constexpr std::complex<ScalarType> PauliX_h[4]{
       {0.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}};
 
-  constexpr std::complex<double> PauliY_h[4]{
+  constexpr std::complex<ScalarType> PauliY_h[4]{
       {0.0, 0.0}, {0.0, -1.0}, {0.0, 1.0}, {0.0, 0.0}};
 
-  constexpr std::complex<double> PauliZ_h[4]{
+  constexpr std::complex<ScalarType> PauliZ_h[4]{
       {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {-1.0, 0.0}};
 
   cutensornetNetworkOperator_t cutnNetworkOperator;
 
   HANDLE_CUTN_ERROR(cutensornetCreateNetworkOperator(
-      m_cutnHandle, numQubits, qubitDims.data(), CUDA_C_64F,
+      m_cutnHandle, numQubits, qubitDims.data(), cudaDataType,
       &cutnNetworkOperator));
 
   const std::vector<int32_t> numModes(pauliTensorData.size(), 1);
@@ -790,7 +826,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
     return g_numberTrajectoriesForObserve;
   }();
 
-  std::vector<std::complex<double>> allExpVals;
+  std::vector<std::complex<ScalarType>> allExpVals;
   allExpVals.reserve(product_terms.size());
 
   // NOTE: The logic in the loop below relies on the following:
@@ -802,7 +838,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   // by querying cudaq::operator_handler::canonical_order, but I kept it
   // at putting an assert in for that one, too.
   assert(cudaq::operator_handler::canonical_order(0, 1));
-  constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
+  constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<ScalarType>);
   for (const auto &prod : product_terms) {
     assert(prod.is_canonicalized());
     bool allIdOps = true;
@@ -810,7 +846,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
     for (const auto &p : prod) {
       // The Pauli matrix data that we want to load to this slot.
       // Default is the Identity matrix.
-      const std::complex<double> *pauliMatrixPtr = PauliI_h;
+      const std::complex<ScalarType> *pauliMatrixPtr = PauliI_h;
       // We need to make sure to populate the identity for all qubits
       // that are not part of this term
       while (offset < p.target()) {
@@ -837,7 +873,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
       std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
     }
     // Populate the remaining identities.
-    const std::complex<double> *pauliMatrixPtr = PauliI_h;
+    const std::complex<ScalarType> *pauliMatrixPtr = PauliI_h;
     while (offset < numQubits) {
       auto *address =
           static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
@@ -849,16 +885,18 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
       HANDLE_CUDA_ERROR(cudaMemcpy(pauliMats_d, pauliMats_h,
                                    placeHolderArraySize,
                                    cudaMemcpyHostToDevice));
-      std::complex<double> expVal = 0.0;
+      std::complex<ScalarType> expVal = 0.0;
       for (std::size_t trajId = 0; trajId < numObserveTrajectories; ++trajId) {
-        std::complex<double> result;
+        std::complex<ScalarType> result;
         ScopedTraceWithContext("cutensornetExpectationCompute");
         HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
             m_cutnHandle, tensorNetworkExpectation, workDesc, &result, nullptr,
             /*cudaStream*/ 0));
-        expVal += (result / static_cast<double>(numObserveTrajectories));
+        expVal += (result / static_cast<ScalarType>(numObserveTrajectories));
       }
-      allExpVals.emplace_back(expVal * prod.evaluate_coefficient());
+      const std::complex<double> coeff = prod.evaluate_coefficient();
+      allExpVals.emplace_back(
+          expVal * std::complex<ScalarType>(coeff.real(), coeff.imag()));
     }
   }
 
@@ -868,7 +906,8 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
   return allExpVals;
 }
 
-std::complex<double> TensorNetState::computeExpVal(
+template <typename ScalarType>
+std::complex<ScalarType> TensorNetState<ScalarType>::computeExpVal(
     cutensornetNetworkOperator_t tensorNetworkOperator,
     const std::optional<std::size_t> &numberTrajectories) {
   LOG_API_TIME();
@@ -922,15 +961,15 @@ std::complex<double> TensorNetState::computeExpVal(
     return g_numberTrajectoriesForObserve;
   }();
 
-  std::complex<double> expVal = 0.0;
+  std::complex<ScalarType> expVal = 0.0;
   for (std::size_t trajId = 0; trajId < numObserveTrajectories; ++trajId) {
-    std::complex<double> result;
+    std::complex<ScalarType> result;
     ScopedTraceWithContext("cutensornetExpectationCompute");
     HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
         m_cutnHandle, tensorNetworkExpectation, workDesc, &result,
         /*stateNorm*/ nullptr,
         /*cudaStream*/ 0));
-    expVal += (result / static_cast<double>(numObserveTrajectories));
+    expVal += (result / static_cast<ScalarType>(numObserveTrajectories));
   }
   // Step 5: clean up
   HANDLE_CUTN_ERROR(cutensornetDestroyExpectation(tensorNetworkExpectation));
@@ -938,7 +977,9 @@ std::complex<double> TensorNetState::computeExpVal(
   return expVal;
 }
 
-std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
+template <typename ScalarType>
+std::unique_ptr<TensorNetState<ScalarType>>
+TensorNetState<ScalarType>::createFromMpsTensors(
     const std::vector<MPSTensor> &in_mpsTensors, ScratchDeviceMem &inScratchPad,
     cutensornetHandle_t handle, std::mt19937 &randomEngine) {
   LOG_API_TIME();
@@ -960,7 +1001,9 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
 
 /// Reconstruct/initialize a tensor network state from a list of tensor
 /// operators.
-std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
+template <typename ScalarType>
+std::unique_ptr<TensorNetState<ScalarType>>
+TensorNetState<ScalarType>::createFromOpTensors(
     std::size_t numQubits, const std::vector<AppliedTensorOp> &opTensors,
     ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle,
     std::mt19937 &randomEngine) {
@@ -977,9 +1020,11 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
   return state;
 }
 
-std::vector<std::complex<double>>
-TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
-  std::vector<std::complex<double>> ket(stateVec.size());
+template <typename ScalarType>
+std::vector<std::complex<ScalarType>>
+TensorNetState<ScalarType>::reverseQubitOrder(
+    std::span<std::complex<ScalarType>> stateVec) {
+  std::vector<std::complex<ScalarType>> ket(stateVec.size());
   const std::size_t numQubits = std::log2(stateVec.size());
   for (std::size_t i = 0; i < stateVec.size(); ++i) {
     std::bitset<64> bs(i);
@@ -991,7 +1036,8 @@ TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
   return ket;
 }
 
-bool TensorNetState::hasGeneralChannelApplied() const {
+template <typename ScalarType>
+bool TensorNetState<ScalarType>::hasGeneralChannelApplied() const {
   for (const auto &op : m_tensorOps)
     if (op.noiseChannel.has_value() && op.noiseChannel->probabilities.empty())
       return true;
@@ -999,7 +1045,8 @@ bool TensorNetState::hasGeneralChannelApplied() const {
   return false;
 }
 
-void TensorNetState::applyCachedOps() {
+template <typename ScalarType>
+void TensorNetState<ScalarType>::applyCachedOps() {
   int64_t tensorId = 0;
   for (auto &op : m_tensorOps)
     if (op.deviceData) {
@@ -1049,7 +1096,8 @@ void TensorNetState::applyCachedOps() {
     }
 }
 
-void TensorNetState::setZeroState() {
+template <typename ScalarType>
+void TensorNetState<ScalarType>::setZeroState() {
   LOG_API_TIME();
   // Destroy the current quantum circuit state
   HANDLE_CUTN_ERROR(cutensornetDestroyState(m_quantumState));
@@ -1057,12 +1105,15 @@ void TensorNetState::setZeroState() {
   // Re-create the state
   HANDLE_CUTN_ERROR(cutensornetCreateState(
       m_cutnHandle, CUTENSORNET_STATE_PURITY_PURE, m_numQubits,
-      qubitDims.data(), CUDA_C_64F, &m_quantumState));
+      qubitDims.data(), cudaDataType, &m_quantumState));
 }
 
-std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
-    std::span<std::complex<double>> stateVec, ScratchDeviceMem &inScratchPad,
-    cutensornetHandle_t handle, std::mt19937 &randomEngine) {
+template <typename ScalarType>
+std::unique_ptr<TensorNetState<ScalarType>>
+TensorNetState<ScalarType>::createFromStateVector(
+    std::span<std::complex<ScalarType>> stateVec,
+    ScratchDeviceMem &inScratchPad, cutensornetHandle_t handle,
+    std::mt19937 &randomEngine) {
   LOG_API_TIME();
   const std::size_t numQubits = std::log2(stateVec.size());
   auto state = std::make_unique<TensorNetState>(numQubits, inScratchPad, handle,
@@ -1078,19 +1129,23 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
   // Reverse the qubit order to match cutensornet convention
   auto newStateVec = reverseQubitOrder(stateVec);
   auto ket =
-      Eigen::Map<Eigen::VectorXcd>(newStateVec.data(), newStateVec.size());
-  Eigen::VectorXcd initState = Eigen::VectorXcd::Zero(stateVec.size());
-  initState(0) = std::complex<double>{1.0, 0.0};
-  Eigen::MatrixXcd stateVecProj = ket * initState.transpose();
+      Eigen::Map<Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic>>(
+          newStateVec.data(), newStateVec.size());
+  Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic> initState =
+      Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic>::Zero(
+          stateVec.size());
+  initState(0) = std::complex<ScalarType>{1.0, 0.0};
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+      stateVecProj = ket * initState.transpose();
   assert(static_cast<std::size_t>(stateVecProj.size()) ==
          stateVec.size() * stateVec.size());
   stateVecProj.transposeInPlace();
   void *d_proj{nullptr};
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(&d_proj, stateVecProj.size() * sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(cudaMalloc(&d_proj, stateVecProj.size() *
+                                            sizeof(std::complex<ScalarType>)));
   HANDLE_CUDA_ERROR(
       cudaMemcpy(d_proj, stateVecProj.data(),
-                 stateVecProj.size() * sizeof(std::complex<double>),
+                 stateVecProj.size() * sizeof(std::complex<ScalarType>),
                  cudaMemcpyHostToDevice));
 
   std::vector<int32_t> qubitIdx(numQubits);
@@ -1101,7 +1156,8 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
   return state;
 }
 
-TensorNetState::~TensorNetState() {
+template <typename ScalarType>
+TensorNetState<ScalarType>::~TensorNetState() {
   // Destroy the quantum circuit state
   HANDLE_CUTN_ERROR(cutensornetDestroyState(m_quantumState));
   for (auto *ptr : m_tempDevicePtrs)

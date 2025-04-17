@@ -106,6 +106,17 @@ CUDAQ_TEST(AsyncTester, checkGetStateAsync) {
     EXPECT_NEAR(cc1State.overlap(expectedState).real(), 1.0, 1e-3);
     EXPECT_NEAR(cc2State.overlap(expectedState).real(), 1.0, 1e-3);
     EXPECT_NEAR(cc3State.overlap(expectedState).real(), 1.0, 1e-3);
+  } else {
+    std::vector<std::complex<double>> expectedVec(1 << 5, 0.0);
+    expectedVec[0] = M_SQRT1_2;
+    expectedVec[expectedVec.size() - 1] = M_SQRT1_2;
+
+    auto expectedState = cudaq::state::from_data(expectedVec);
+
+    EXPECT_NEAR(cc0State.overlap(expectedState).real(), 1.0, 1e-3);
+    EXPECT_NEAR(cc1State.overlap(expectedState).real(), 1.0, 1e-3);
+    EXPECT_NEAR(cc2State.overlap(expectedState).real(), 1.0, 1e-3);
+    EXPECT_NEAR(cc3State.overlap(expectedState).real(), 1.0, 1e-3);
   }
 }
 #endif

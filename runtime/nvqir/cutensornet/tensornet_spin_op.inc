@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,20 +6,22 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "tensornet_spin_op.h"
+#pragma once
+
 #include "tensornet_utils.h"
 #include "timing_utils.h"
 
 namespace nvqir {
 
-TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
-                                         cutensornetHandle_t handle)
+template <typename ScalarType>
+TensorNetworkSpinOp<ScalarType>::TensorNetworkSpinOp(
+    const cudaq::spin_op &spinOp, cutensornetHandle_t handle)
     : m_cutnHandle(handle) {
   LOG_API_TIME();
   auto degrees = spinOp.degrees();
   const std::vector<int64_t> qubitDims(degrees.size(), 2);
   HANDLE_CUTN_ERROR(cutensornetCreateNetworkOperator(
-      m_cutnHandle, degrees.size(), qubitDims.data(), CUDA_C_64F,
+      m_cutnHandle, degrees.size(), qubitDims.data(), cudaDataType,
       &m_cutnNetworkOperator));
   // Heuristic threshold to perform direct observable calculation.
   // If the number of qubits in the spin_op is small, it is more efficient to
@@ -28,18 +30,18 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
   constexpr std::size_t NUM_QUBITS_THRESHOLD_DIRECT_OBS = 10;
   if (degrees.size() < NUM_QUBITS_THRESHOLD_DIRECT_OBS) {
     const auto spinMat = spinOp.to_matrix();
-    std::vector<std::complex<double>> opMat;
+    std::vector<std::complex<ScalarType>> opMat;
     opMat.reserve(spinMat.rows() * spinMat.cols());
     for (size_t i = 0; i < spinMat.rows(); ++i) {
       for (size_t j = 0; j < spinMat.cols(); ++j)
-        opMat.push_back(spinMat[{i, j}]); // row major
+        opMat.push_back(std::complex<ScalarType>(spinMat[{i, j}])); // row major
     }
     void *opMat_d{nullptr};
     HANDLE_CUDA_ERROR(
-        cudaMalloc(&opMat_d, opMat.size() * sizeof(std::complex<double>)));
-    HANDLE_CUDA_ERROR(cudaMemcpy(opMat_d, opMat.data(),
-                                 opMat.size() * sizeof(std::complex<double>),
-                                 cudaMemcpyHostToDevice));
+        cudaMalloc(&opMat_d, opMat.size() * sizeof(std::complex<ScalarType>)));
+    HANDLE_CUDA_ERROR(cudaMemcpy(
+        opMat_d, opMat.data(), opMat.size() * sizeof(std::complex<ScalarType>),
+        cudaMemcpyHostToDevice));
     m_mat_d.emplace_back(opMat_d);
     const std::vector<int32_t> numModes = {
         static_cast<int32_t>(degrees.size())};
@@ -54,16 +56,16 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
         /*componentId*/ nullptr));
   } else {
     // Initialize device mem for Pauli matrices
-    constexpr std::complex<double> PauliI_h[4] = {
+    constexpr std::complex<ScalarType> PauliI_h[4] = {
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
 
-    constexpr std::complex<double> PauliX_h[4]{
+    constexpr std::complex<ScalarType> PauliX_h[4]{
         {0.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}};
 
-    constexpr std::complex<double> PauliY_h[4]{
+    constexpr std::complex<ScalarType> PauliY_h[4]{
         {0.0, 0.0}, {0.0, -1.0}, {0.0, 1.0}, {0.0, 0.0}};
 
-    constexpr std::complex<double> PauliZ_h[4]{
+    constexpr std::complex<ScalarType> PauliZ_h[4]{
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {-1.0, 0.0}};
 
     for (const auto &pauli :
@@ -82,8 +84,10 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
         }
         __builtin_unreachable();
       }();
-      HANDLE_CUDA_ERROR(cudaMalloc(&d_mat, 4 * sizeof(std::complex<double>)));
-      HANDLE_CUDA_ERROR(cudaMemcpy(d_mat, mat, 4 * sizeof(std::complex<double>),
+      HANDLE_CUDA_ERROR(
+          cudaMalloc(&d_mat, 4 * sizeof(std::complex<ScalarType>)));
+      HANDLE_CUDA_ERROR(cudaMemcpy(d_mat, mat,
+                                   4 * sizeof(std::complex<ScalarType>),
                                    cudaMemcpyHostToDevice));
       m_pauli_d[pauli] = d_mat;
     }
@@ -126,7 +130,8 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
   }
 }
 
-TensorNetworkSpinOp::~TensorNetworkSpinOp() {
+template <typename ScalarType>
+TensorNetworkSpinOp<ScalarType>::~TensorNetworkSpinOp() {
   HANDLE_CUTN_ERROR(cutensornetDestroyNetworkOperator(m_cutnNetworkOperator));
   for (const auto &[pauli, dMem] : m_pauli_d)
     HANDLE_CUDA_ERROR(cudaFree(dMem));

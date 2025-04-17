@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,19 +6,29 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#pragma once
+
 #include "mps_simulation_state.h"
 #include "simulator_cutensornet.h"
 #include <charconv>
 #include <errno.h>
 
 namespace nvqir {
-
-class SimulatorMPS : public SimulatorTensorNetBase {
+template <typename ScalarType = double>
+class SimulatorMPS : public SimulatorTensorNetBase<ScalarType> {
   MPSSettings m_settings;
   std::vector<MPSTensor> m_mpsTensors_d;
 
 public:
-  SimulatorMPS() : SimulatorTensorNetBase() {}
+  using GateApplicationTask =
+      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
+  using SimulatorTensorNetBase<ScalarType>::m_cutnHandle;
+  using SimulatorTensorNetBase<
+      ScalarType>::m_maxControlledRankForFullTensorExpansion;
+  using SimulatorTensorNetBase<ScalarType>::m_state;
+  using SimulatorTensorNetBase<ScalarType>::scratchPad;
+  using SimulatorTensorNetBase<ScalarType>::m_randomEngine;
+  SimulatorMPS() : SimulatorTensorNetBase<ScalarType>() {}
 
   virtual void prepareQubitTensorState() override {
     LOG_API_TIME();
@@ -41,13 +51,13 @@ public:
   virtual void
   addQubitsToState(const cudaq::SimulationState &in_state) override {
     LOG_API_TIME();
-    const MPSSimulationState *const casted =
-        dynamic_cast<const MPSSimulationState *>(&in_state);
+    const MPSSimulationState<ScalarType> *const casted =
+        dynamic_cast<const MPSSimulationState<ScalarType> *>(&in_state);
     if (!casted)
       throw std::invalid_argument(
           "[SimulatorMPS simulator] Incompatible state input");
     if (!m_state) {
-      m_state = TensorNetState::createFromMpsTensors(
+      m_state = TensorNetState<ScalarType>::createFromMpsTensors(
           casted->getMpsTensors(), scratchPad, m_cutnHandle, m_randomEngine);
     } else {
       // Expand an existing state: Append MPS tensors
@@ -69,40 +79,45 @@ public:
         }
         const auto numElements =
             std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
-        const auto tensorSizeBytes = sizeof(std::complex<double>) * numElements;
+        const auto tensorSizeBytes =
+            sizeof(std::complex<ScalarType>) * numElements;
         void *mpsTensor{nullptr};
         HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensor, tensorSizeBytes));
         HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensor, tensor.deviceData,
                                      tensorSizeBytes, cudaMemcpyDefault));
         tensors.emplace_back(MPSTensor(mpsTensor, extents));
       }
-      m_state = TensorNetState::createFromMpsTensors(
+      m_state = TensorNetState<ScalarType>::createFromMpsTensors(
           tensors, scratchPad, m_cutnHandle, m_randomEngine);
     }
   }
 
-  static std::vector<std::complex<double>> generateXX(double theta) {
-    const auto halfTheta = theta / 2.;
-    const std::complex<double> cos = std::cos(halfTheta);
-    const std::complex<double> isin = {0., std::sin(halfTheta)};
+  template <typename T>
+  std::vector<std::complex<T>> generateXX(double theta) {
+    const T halfTheta = theta / 2.;
+    const std::complex<T> cos = std::cos(halfTheta);
+    const std::complex<T> isin = {0., std::sin(halfTheta)};
     // Row-major
     return {cos, 0.,    0.,  -isin, 0.,    cos, -isin, 0.,
             0.,  -isin, cos, 0.,    -isin, 0.,  0.,    cos};
   };
 
-  static std::vector<std::complex<double>> generateYY(double theta) {
-    const auto halfTheta = theta / 2.;
-    const std::complex<double> cos = std::cos(halfTheta);
-    const std::complex<double> isin = {0., std::sin(halfTheta)};
+  template <typename T>
+  std::vector<std::complex<T>> generateYY(double theta) {
+    const T halfTheta = theta / 2.;
+    const std::complex<T> cos = std::cos(halfTheta);
+    const std::complex<T> isin = {0., std::sin(halfTheta)};
     // Row-major
     return {cos, 0.,    0.,  isin, 0.,   cos, -isin, 0.,
             0.,  -isin, cos, 0.,   isin, 0.,  0.,    cos};
   };
 
-  static std::vector<std::complex<double>> generateZZ(double theta) {
-    const std::complex<double> itheta2 = {0., theta / 2.0};
-    const std::complex<double> exp_itheta2 = std::exp(itheta2);
-    const std::complex<double> exp_minus_itheta2 = std::exp(-1.0 * itheta2);
+  template <typename T>
+  std::vector<std::complex<T>> generateZZ(double theta) {
+    const std::complex<T> itheta2 = {0., static_cast<T>(theta / 2.0)};
+    const std::complex<T> exp_itheta2 = std::exp(itheta2);
+    const std::complex<T> exp_minus_itheta2 =
+        std::exp(static_cast<T>(-1.0) * itheta2);
     // Row-major
     return {exp_minus_itheta2, 0., 0., 0., 0., exp_itheta2,      0., 0., 0., 0.,
             exp_itheta2,       0., 0., 0., 0., exp_minus_itheta2};
@@ -134,7 +149,7 @@ public:
     auto pauli_word = op.get_pauli_word();
     if (controls.empty() && qubitIds.size() == 2 &&
         shouldHandlePauliOp(pauli_word)) {
-      flushGateQueue();
+      this->flushGateQueue();
       cudaq::info("[SimulatorMPS] (apply) exp(i*{}*{}) ({}, {}).", theta,
                   op.to_string(), qubitIds[0], qubitIds[1]);
       const GateApplicationTask task = [&]() {
@@ -143,22 +158,26 @@ public:
         if (pauli_word == "XX") {
           // Note: use a special name so that the gate matrix caching procedure
           // works properly.
-          return GateApplicationTask("Rxx", generateXX(-2.0 * theta), {},
-                                     qubitIds, {theta});
+          return GateApplicationTask(
+              "Rxx", generateXX<ScalarType>(-2.0 * theta), {}, qubitIds,
+              {static_cast<ScalarType>(theta)});
         } else if (pauli_word == "YY") {
-          return GateApplicationTask("Ryy", generateYY(-2.0 * theta), {},
-                                     qubitIds, {theta});
+          return GateApplicationTask(
+              "Ryy", generateYY<ScalarType>(-2.0 * theta), {}, qubitIds,
+              {static_cast<ScalarType>(theta)});
         } else if (pauli_word == "ZZ") {
-          return GateApplicationTask("Rzz", generateZZ(-2.0 * theta), {},
-                                     qubitIds, {theta});
+          return GateApplicationTask(
+              "Rzz", generateZZ<ScalarType>(-2.0 * theta), {}, qubitIds,
+              {static_cast<ScalarType>(theta)});
         }
         __builtin_unreachable();
       }();
-      applyGate(task);
+      this->applyGate(task);
       return;
     }
     // Let the base class to handle this Pauli rotation
-    SimulatorTensorNetBase::applyExpPauli(theta, controls, qubitIds, op);
+    SimulatorTensorNetBase<ScalarType>::applyExpPauli(theta, controls, qubitIds,
+                                                      op);
   }
 
   // Helper to compute expectation value from a bit string distribution
@@ -198,9 +217,10 @@ public:
   /// @brief Sample a subset of qubits
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
-    const bool hasNoise = executionContext && executionContext->noiseModel;
+    const bool hasNoise =
+        this->executionContext && this->executionContext->noiseModel;
     if (!hasNoise || shots < 1)
-      return SimulatorTensorNetBase::sample(measuredBits, shots);
+      return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots);
 
     LOG_API_TIME();
     cudaq::ExecutionResult counts;
@@ -268,16 +288,17 @@ public:
   cudaq::observe_result observe(const cudaq::spin_op &ham) override {
     assert(cudaq::spin_op::canonicalize(ham) == ham);
     LOG_API_TIME();
-    const bool hasNoise = executionContext && executionContext->noiseModel;
+    const bool hasNoise =
+        this->executionContext && this->executionContext->noiseModel;
     // If no noise, just use base class implementation.
     if (!hasNoise)
-      return SimulatorTensorNetBase::observe(ham);
+      return SimulatorTensorNetBase<ScalarType>::observe(ham);
 
     setUpFactorizeForTrajectoryRuns();
     const std::size_t numObserveTrajectories =
         this->executionContext->numberTrajectories.has_value()
             ? this->executionContext->numberTrajectories.value()
-            : TensorNetState::g_numberTrajectoriesForObserve;
+            : TensorNetState<ScalarType>::g_numberTrajectoriesForObserve;
 
     auto [termStrs, terms] = prepareSpinOpTermData(ham);
     std::vector<std::complex<double>> termExpVals(terms.size(), 0.0);
@@ -292,7 +313,7 @@ public:
 
       for (std::size_t idx = 0; idx < terms.size(); ++idx) {
         termExpVals[idx] += (trajTermExpVals[idx] /
-                             static_cast<double>(numObserveTrajectories));
+                             static_cast<ScalarType>(numObserveTrajectories));
       }
     }
     std::complex<double> expVal = 0.0;
@@ -309,8 +330,11 @@ public:
     return cudaq::observe_result(expVal.real(), ham, perTermData);
   }
 
+#ifdef TENSORNET_FP32
+  virtual std::string name() const override { return "tensornet-mps-fp32"; }
+#else
   virtual std::string name() const override { return "tensornet-mps"; }
-
+#endif
   CircuitSimulator *clone() override {
     thread_local static auto simulator = std::make_unique<SimulatorMPS>();
     return simulator.get();
@@ -320,13 +344,15 @@ public:
     LOG_API_TIME();
     if (!m_state) {
       if (!ptr) {
-        m_state = std::make_unique<TensorNetState>(
+        m_state = std::make_unique<TensorNetState<ScalarType>>(
             numQubits, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
-        auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
-            m_cutnHandle, scratchPad, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
-            m_settings.maxBond, m_randomEngine);
+        auto [state, mpsTensors] =
+            MPSSimulationState<ScalarType>::createFromStateVec(
+                m_cutnHandle, scratchPad, 1ULL << numQubits,
+                reinterpret_cast<std::complex<ScalarType> *>(
+                    const_cast<void *>(ptr)),
+                m_settings.maxBond, m_randomEngine);
         m_state = std::move(state);
       }
     } else {
@@ -338,8 +364,8 @@ public:
         // the boundary tensor).
         tensors.back().extents.emplace_back(1);
         // The newly added MPS tensors are in zero state
-        constexpr std::complex<double> tensorBody[2]{1.0, 0.0};
-        constexpr auto tensorSizeBytes = 2 * sizeof(std::complex<double>);
+        constexpr std::complex<ScalarType> tensorBody[2]{1.0, 0.0};
+        constexpr auto tensorSizeBytes = 2 * sizeof(std::complex<ScalarType>);
         for (std::size_t i = 0; i < numQubits; ++i) {
           const std::vector<int64_t> extents =
               (i != numQubits - 1) ? std::vector<int64_t>{1, 2, 1}
@@ -350,14 +376,16 @@ public:
                                        cudaMemcpyHostToDevice));
           tensors.emplace_back(MPSTensor(mpsTensor, extents));
         }
-        m_state = TensorNetState::createFromMpsTensors(
+        m_state = TensorNetState<ScalarType>::createFromMpsTensors(
             tensors, scratchPad, m_cutnHandle, m_randomEngine);
       } else {
         // Non-zero state needs to be factorized and appended.
-        auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
-            m_cutnHandle, scratchPad, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
-            m_settings.maxBond, m_randomEngine);
+        auto [state, mpsTensors] =
+            MPSSimulationState<ScalarType>::createFromStateVec(
+                m_cutnHandle, scratchPad, 1ULL << numQubits,
+                reinterpret_cast<std::complex<ScalarType> *>(
+                    const_cast<void *>(ptr)),
+                m_settings.maxBond, m_randomEngine);
         auto tensors =
             m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
                                   m_settings.relCutoff, m_settings.svdAlgo);
@@ -370,7 +398,7 @@ public:
         mpsTensors.front().extents = extents;
         // Combine the list
         tensors.insert(tensors.end(), mpsTensors.begin(), mpsTensors.end());
-        m_state = TensorNetState::createFromMpsTensors(
+        m_state = TensorNetState<ScalarType>::createFromMpsTensors(
             tensors, scratchPad, m_cutnHandle, m_randomEngine);
       }
     }
@@ -380,7 +408,7 @@ public:
     LOG_API_TIME();
 
     if (!m_state || m_state->getNumQubits() == 0)
-      return std::make_unique<MPSSimulationState>(
+      return std::make_unique<MPSSimulationState<ScalarType>>(
           std::move(m_state), std::vector<MPSTensor>{}, scratchPad,
           m_cutnHandle, m_randomEngine);
 
@@ -388,9 +416,9 @@ public:
       std::vector<MPSTensor> tensors =
           m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff,
                                 m_settings.relCutoff, m_settings.svdAlgo);
-      return std::make_unique<MPSSimulationState>(std::move(m_state), tensors,
-                                                  scratchPad, m_cutnHandle,
-                                                  m_randomEngine);
+      return std::make_unique<MPSSimulationState<ScalarType>>(
+          std::move(m_state), tensors, scratchPad, m_cutnHandle,
+          m_randomEngine);
     }
 
     auto [d_tensor, numElements] = m_state->contractStateVectorInternal({});
@@ -399,7 +427,7 @@ public:
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = {static_cast<int64_t>(numElements)};
 
-    return std::make_unique<MPSSimulationState>(
+    return std::make_unique<MPSSimulationState<ScalarType>>(
         std::move(m_state), std::vector<MPSTensor>{stateTensor}, scratchPad,
         m_cutnHandle, m_randomEngine);
   }
@@ -414,5 +442,3 @@ public:
   }
 };
 } // end namespace nvqir
-
-NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS, tensornet_mps)

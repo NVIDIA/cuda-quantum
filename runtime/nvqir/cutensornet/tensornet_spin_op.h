@@ -14,11 +14,15 @@ namespace nvqir {
 
 /// @brief Utility class converting `cudaq::spin_op` to
 /// cutensornetNetworkOperator_t
+template <typename ScalarType>
 class TensorNetworkSpinOp {
+  static constexpr cudaDataType_t cudaDataType =
+      std::is_same_v<ScalarType, float> ? CUDA_C_32F : CUDA_C_64F;
+
   cutensornetHandle_t m_cutnHandle;
   cutensornetNetworkOperator_t m_cutnNetworkOperator;
   std::unordered_map<cudaq::pauli, void *> m_pauli_d;
-  std::complex<double> m_identityCoeff = 0.0;
+  std::complex<ScalarType> m_identityCoeff = 0.0;
   std::vector<void *> m_mat_d;
 
 public:
@@ -34,9 +38,13 @@ public:
   /// Note: the cutensornetNetworkOperator_t representation doesn't include the
   /// identity term since its expectation value can be trivially computed (equal
   /// the coefficient)
-  std::complex<double> getIdentityTermOffset() const { return m_identityCoeff; }
+  std::complex<ScalarType> getIdentityTermOffset() const {
+    return m_identityCoeff;
+  }
 
   /// @brief Destructor
   ~TensorNetworkSpinOp();
 };
 } // namespace nvqir
+
+#include "tensornet_spin_op.inc"
