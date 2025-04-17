@@ -470,7 +470,8 @@ MPSSimulationState<ScalarType>::createFromStateVec(
     const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
                         Eigen::Dynamic>
         V_orig = svd.matrixV();
-    const Eigen::Vector<ScalarType, Eigen::Dynamic> S_orig = svd.singularValues();
+    const Eigen::Vector<ScalarType, Eigen::Dynamic> S_orig =
+        svd.singularValues();
     const auto [U, S, V] = enforceBondDim(U_orig, S_orig, V_orig);
     numSingularValues.emplace_back(S.size());
     reshapedMat =

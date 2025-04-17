@@ -48,7 +48,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   // Compute <bra|ket> by conjugating the entire |bra> tensor network.
   // Reverse them
   std::reverse(tensorOps.begin(), tensorOps.end());
-  std::vector<void*> tempDeviceBuffers;
+  std::vector<void *> tempDeviceBuffers;
   for (auto &op : tensorOps) {
     op.isAdjoint = !op.isAdjoint;
     if (!op.isUnitary) {
@@ -56,10 +56,12 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
       // reverse the leg connection.
       const auto dim = (1 << op.targetQubitIds.size());
       // FIXME: perform this in device memory.
-      Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic> mat(dim, dim);
-      HANDLE_CUDA_ERROR(cudaMemcpy(mat.data(), op.deviceData,
-                                   mat.size() * sizeof(std::complex<ScalarType>),
-                                   cudaMemcpyDeviceToHost));
+      Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+          mat(dim, dim);
+      HANDLE_CUDA_ERROR(
+          cudaMemcpy(mat.data(), op.deviceData,
+                     mat.size() * sizeof(std::complex<ScalarType>),
+                     cudaMemcpyDeviceToHost));
       mat.transposeInPlace();
       void *tempBuffer{nullptr};
       const auto sizeBytes = mat.size() * sizeof(std::complex<ScalarType>);

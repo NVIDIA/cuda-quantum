@@ -92,7 +92,7 @@ public:
     }
   }
 
-  template<typename T>
+  template <typename T>
   std::vector<std::complex<T>> generateXX(double theta) {
     const T halfTheta = theta / 2.;
     const std::complex<T> cos = std::cos(halfTheta);
@@ -102,7 +102,7 @@ public:
             0.,  -isin, cos, 0.,    -isin, 0.,  0.,    cos};
   };
 
-  template<typename T>
+  template <typename T>
   std::vector<std::complex<T>> generateYY(double theta) {
     const T halfTheta = theta / 2.;
     const std::complex<T> cos = std::cos(halfTheta);
@@ -112,11 +112,12 @@ public:
             0.,  -isin, cos, 0.,   isin, 0.,  0.,    cos};
   };
 
-  template<typename T>
+  template <typename T>
   std::vector<std::complex<T>> generateZZ(double theta) {
     const std::complex<T> itheta2 = {0., static_cast<T>(theta / 2.0)};
     const std::complex<T> exp_itheta2 = std::exp(itheta2);
-    const std::complex<T> exp_minus_itheta2 = std::exp(static_cast<T>(-1.0) * itheta2);
+    const std::complex<T> exp_minus_itheta2 =
+        std::exp(static_cast<T>(-1.0) * itheta2);
     // Row-major
     return {exp_minus_itheta2, 0., 0., 0., 0., exp_itheta2,      0., 0., 0., 0.,
             exp_itheta2,       0., 0., 0., 0., exp_minus_itheta2};
@@ -157,17 +158,17 @@ public:
         if (pauli_word == "XX") {
           // Note: use a special name so that the gate matrix caching procedure
           // works properly.
-          return GateApplicationTask("Rxx",
-                                     generateXX<ScalarType>(-2.0 * theta), {},
-                                     qubitIds, {static_cast<ScalarType>(theta)});
+          return GateApplicationTask(
+              "Rxx", generateXX<ScalarType>(-2.0 * theta), {}, qubitIds,
+              {static_cast<ScalarType>(theta)});
         } else if (pauli_word == "YY") {
-          return GateApplicationTask("Ryy",
-                                     generateYY<ScalarType>(-2.0 * theta), {},
-                                     qubitIds, {static_cast<ScalarType>(theta)});
+          return GateApplicationTask(
+              "Ryy", generateYY<ScalarType>(-2.0 * theta), {}, qubitIds,
+              {static_cast<ScalarType>(theta)});
         } else if (pauli_word == "ZZ") {
-          return GateApplicationTask("Rzz",
-                                     generateZZ<ScalarType>(-2.0 * theta), {},
-                                     qubitIds, {static_cast<ScalarType>(theta)});
+          return GateApplicationTask(
+              "Rzz", generateZZ<ScalarType>(-2.0 * theta), {}, qubitIds,
+              {static_cast<ScalarType>(theta)});
         }
         __builtin_unreachable();
       }();
