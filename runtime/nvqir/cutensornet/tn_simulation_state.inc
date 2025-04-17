@@ -73,7 +73,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   auto &cutnHandle = m_state->m_cutnHandle;
   HANDLE_CUTN_ERROR(cutensornetCreateState(
       cutnHandle, CUTENSORNET_STATE_PURITY_PURE, nbQubits, qubitDims.data(),
-      CUDA_C_64F, &tempQuantumState));
+      cudaDataType, &tempQuantumState));
 
   int64_t tensorId = 0;
   // Append ket-side gate tensors + conjugated (reverse + adjoint) bra-side

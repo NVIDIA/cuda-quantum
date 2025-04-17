@@ -53,7 +53,9 @@ public:
   std::size_t getNumQubits() const override;
   void dump(std::ostream &) const override;
   cudaq::SimulationState::precision getPrecision() const override {
-    return cudaq::SimulationState::precision::fp64;
+    return std::is_same_v<ScalarType, float>
+               ? cudaq::SimulationState::precision::fp32
+               : cudaq::SimulationState::precision::fp64;
   }
 
   Tensor getTensor(std::size_t tensorIdx = 0) const override;

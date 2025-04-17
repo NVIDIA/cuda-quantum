@@ -1,10 +1,12 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
+#pragma once
 
 #include "mps_simulation_state.h"
 #include "simulator_cutensornet.h"
@@ -327,8 +329,11 @@ public:
     return cudaq::observe_result(expVal.real(), ham, perTermData);
   }
 
+#ifdef TENSORNET_FP32
+  virtual std::string name() const override { return "tensornet-mps-fp32"; }
+#else
   virtual std::string name() const override { return "tensornet-mps"; }
-
+#endif
   CircuitSimulator *clone() override {
     thread_local static auto simulator = std::make_unique<SimulatorMPS>();
     return simulator.get();
@@ -436,5 +441,3 @@ public:
   }
 };
 } // end namespace nvqir
-
-NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS<float>, tensornet_mps)

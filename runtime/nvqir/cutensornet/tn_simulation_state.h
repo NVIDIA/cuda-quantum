@@ -20,6 +20,8 @@ namespace nvqir {
 
 template <typename ScalarType = double>
 class TensorNetSimulationState : public cudaq::SimulationState {
+  static constexpr cudaDataType_t cudaDataType =
+      std::is_same_v<ScalarType, float> ? CUDA_C_32F : CUDA_C_64F;
 
 public:
   TensorNetSimulationState(std::unique_ptr<TensorNetState<ScalarType>> inState,
@@ -43,7 +45,9 @@ public:
   std::size_t getNumQubits() const override;
   void dump(std::ostream &) const override;
   cudaq::SimulationState::precision getPrecision() const override {
-    return cudaq::SimulationState::precision::fp64;
+    return std::is_same_v<ScalarType, float>
+               ? cudaq::SimulationState::precision::fp32
+               : cudaq::SimulationState::precision::fp64;
   }
 
   bool isDeviceData() const override { return true; }

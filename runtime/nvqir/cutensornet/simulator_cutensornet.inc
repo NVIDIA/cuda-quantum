@@ -332,7 +332,7 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
   assert(rdm.size() == 4);
   const ScalarType prob0 = rdm[0].real();
   const ScalarType prob1 = rdm[3].real();
-  assert(std::abs(1.0 - (prob0 + prob1)) < 1e-9);
+  assert(std::abs(1.0 - (prob0 + prob1)) < 1e-6);
   const ScalarType rand = randomValues(1, 1.0, m_randomEngine)[0];
   const bool resultBool = (rand > prob0);
   const std::vector<std::complex<ScalarType>> projected0Mat{
