@@ -252,21 +252,21 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
 
   // get bitVec size
   Value bitVecSize = builder.create<cudaq::cc::StdvecSizeOp>(
-      loc, builder.getI32Type(), bitVec);
+      loc, builder.getI64Type(), bitVec);
 
   // Useful types and values
-  auto i32Ty = builder.getI32Type();
-  Value one = builder.create<arith::ConstantIntOp>(loc, 1, i32Ty);
-  Value negOne = builder.create<arith::ConstantIntOp>(loc, -1, i32Ty);
+  auto i64Ty = builder.getI64Type();
+  Value one = builder.create<arith::ConstantIntOp>(loc, 1, i64Ty);
+  Value negOne = builder.create<arith::ConstantIntOp>(loc, -1, i64Ty);
 
   // Create int i = 0;
-  Value stackSlot = builder.create<cudaq::cc::AllocaOp>(loc, i32Ty);
-  Value zeroInt = builder.create<arith::ConstantIntOp>(loc, 0, i32Ty);
+  Value stackSlot = builder.create<cudaq::cc::AllocaOp>(loc, i64Ty);
+  Value zeroInt = builder.create<arith::ConstantIntOp>(loc, 0, i64Ty);
   builder.create<cudaq::cc::StoreOp>(loc, zeroInt, stackSlot);
 
   // Create the for loop
   Value rank = builder.create<cudaq::cc::CastOp>(
-      loc, builder.getI32Type(), bitVecSize, cudaq::cc::CastOpMode::Unsigned);
+      loc, builder.getI64Type(), bitVecSize, cudaq::cc::CastOpMode::Unsigned);
   cudaq::opt::factory::createInvariantLoop(
       builder, loc, rank,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
@@ -295,7 +295,7 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
 
         // -bits[k]
         bitElement = builder.create<cudaq::cc::CastOp>(
-            loc, builder.getI32Type(), bitElement,
+            loc, builder.getI64Type(), bitElement,
             cudaq::cc::CastOpMode::Unsigned);
         bitElement = builder.create<arith::MulIOp>(loc, negOne, bitElement);
 

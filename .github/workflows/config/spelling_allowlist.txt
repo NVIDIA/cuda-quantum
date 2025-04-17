@@ -351,6 +351,7 @@ variadic
 variational
 vazirani
 vdots
+vectorization
 verifier
 vertices
 vqe

@@ -20,6 +20,7 @@ add_cudaq_library(OptCodeGen
   ConvertToQIRProfile.cpp
   ConvertToQIR.cpp
   ConvertToQIRAPI.cpp
+  OptUtils.cpp
   Passes.cpp
   Pipelines.cpp
   QuakeToCodegen.cpp

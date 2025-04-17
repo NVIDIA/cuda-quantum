@@ -82,7 +82,8 @@ T getValueOrThrow(llvm::Expected<T> valOrErr,
 // pointers into the code objects inside the JIT.
 void clearRegOpsAndDestroyJIT(std::unique_ptr<llvm::orc::LLJIT> &jit) {
   cudaq::getExecutionManager()->clearRegisteredOperations();
-  jit.release();
+  // Destroys the LLJIT object
+  jit.reset();
 }
 
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {

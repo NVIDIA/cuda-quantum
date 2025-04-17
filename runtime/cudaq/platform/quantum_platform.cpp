@@ -69,7 +69,7 @@ quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
   std::promise<sample_result> promise;
   auto f = promise.get_future();
   QuantumTask wrapped = detail::make_copyable_function(
-      [p = std::move(promise), t = std::move(task)]() mutable {
+      [p = std::move(promise), t = task]() mutable {
         auto counts = t();
         p.set_value(counts);
       });
