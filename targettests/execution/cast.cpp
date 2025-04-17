@@ -302,6 +302,35 @@ void printCounts(cudaq::sample_result &result) {
   }
 }
 
+struct testConsecutiveCasts {
+  auto operator()() __qpu__ {
+    cudaq::qubit qi32;
+    std::int64_t i32 = (std::int32_t)(std::int64_t)((std::int16_t)-1);
+    if (i32 == -1) {
+      x(qi32);
+    }
+
+    cudaq::qubit qu32;
+    std::int64_t u32 = (std::int32_t)(std::uint64_t)((std::int16_t)-1);
+    if (u32 == -1) {
+      x(qu32);
+    }
+
+    cudaq::qubit qi64;
+    std::int64_t i64 = (std::int64_t)(std::int16_t)((std::int32_t)-1);
+    if (i64 == -1) {
+      x(qi64);
+    }
+
+    cudaq::qubit qu64;
+    std::int64_t u64 = (std::int64_t)(std::uint16_t)((std::int32_t)-1);
+    if (u64 == 65535) {
+      x(qu64);
+    }
+  }
+};
+
+
 int main() {
   {
     std::string expected = "";
@@ -438,6 +467,21 @@ int main() {
     printCounts(counts);
   }
 
+  {
+    std::string expected = "";
+    expected += cast_and_compare<std::int64_t, std::int32_t>((std::int16_t)-1, -1);
+    expected += cast_and_compare<std::uint64_t, std::int32_t>((std::int16_t)-1, -1);
+
+    expected += cast_and_compare<std::int16_t, std::int64_t>((std::int32_t)-1, -1);
+    expected += cast_and_compare<std::uint16_t, std::int64_t>((std::int32_t)-1, std::numeric_limits<std::uint16_t>::max());
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testConsecutiveCasts{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
   return 0;
 }
 
@@ -451,3 +495,6 @@ int main() {
 // CHECK: Actual:   111111111
 // CHECK: Expected: 111111111
 // CHECK: Actual:   111111111
+// CHECK: Expected: 1111
+// CHECK: Actual:   1111
+

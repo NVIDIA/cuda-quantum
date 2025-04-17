@@ -200,6 +200,46 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
 //===----------------------------------------------------------------------===//
 
 OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
+  // Replace unnecessary casts.
+  if (getType() == getValue().getType()) {
+    auto val = getValue();
+    auto ty = getType();
+
+    // Cast is a nop, just forward the argument to the uses.
+    if (!isa<IntegerType>(ty))
+      return val;
+
+    // Cast that does not change the type or the sign.
+    if (!getZint() && !getSint())
+      return val;
+
+    // Cast of a boolean to a boolean.
+    if (ty.getIntOrFloatBitWidth() == 1)
+      return val;
+
+    // Cast of a known unsigned value to an unsigned value.
+    if (val.getDefiningOp<cc::StdvecSizeOp>() ||
+        val.getDefiningOp<quake::VeqSizeOp>())
+      if (getZint())
+        return val;
+
+    // Fold consecutive casts when possible.
+    if (auto cast = val.getDefiningOp<cc::CastOp>()) {
+      // A repeated cast.
+      if ((getZint() == cast.getZint()) && (getSint() == cast.getSint()))
+        return val;
+
+      // Second cast changes the sign.
+      // Replace both casts by a cast to the current type and sign.
+      OpBuilder builder(*this);
+      auto loc = getLoc();
+      return builder
+          .create<cc::CastOp>(loc, ty, cast.getValue(), getSintAttr(),
+                              getZintAttr())
+          .getResult();
+    }
+  }
+
   if (auto optConst = adaptor.getValue()) {
     // Replace a constant + cast with a new constant of an updated type.
     auto ty = getType();
