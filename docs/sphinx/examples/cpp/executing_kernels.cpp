@@ -27,7 +27,6 @@ __qpu__ void kernel(int qubit_count) {
 int main() {
   int qubit_count = 2;
   auto produced_str = cudaq::draw(kernel, qubit_count);
-  std::cout << produced_str << std::endl;
   auto result = cudaq::sample(kernel, qubit_count);
   result.dump();
   return 0;
@@ -51,8 +50,6 @@ auto hamiltonian = cudaq::spin::z(0) + cudaq::spin::y(1) +
 int qubit_count = 2;
 // Compute the expectation value given the state prepared by the kernel.
 auto result = cudaq::observe(kernel, hamiltonian, qubit_count).expectation();
-
-std::cout << "<H> =" << result.dump() << std::endl;
 // [End Observe]
 /* [Begin `ObserveOutput`]
 <H> = 0.0
@@ -60,9 +57,7 @@ std::cout << "<H> =" << result.dump() << std::endl;
 
 // [Begin `GetState`]
 // Compute the statevector of the kernel
-cudaq::state result = cudaq::get_state(kernel, qubit_count);
-
-result.dump();
+cudaq::state t = cudaq::get_state(kernel, qubit_count);
 // [End `GetState`]
 /* [Begin `GetStateOutput`]
 [0.70710678+0.j 0.        +0.j 0.        +0.j 0.70710678+0.j]
@@ -77,9 +72,6 @@ auto hamiltonian_1 = cudaq::spin::x(0) + cudaq::spin::y(1) +
 auto future = cudaq::observe_async(0, kernel, hamiltonian_1, qubit_count);
 
 auto result_1 = future.get();
-
-// Retrieve results
-printf(result_1.expectation());
 // [End `ObserveAsync`]
 /* [Begin `ObserveAsyncOutput`]
 2.220446049250313e-16
