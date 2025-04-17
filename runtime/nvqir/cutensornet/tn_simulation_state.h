@@ -71,6 +71,10 @@ public:
               std::size_t numElements) const override;
   void toHost(std::complex<float> *clientAllocatedData,
               std::size_t numElements) const override;
+
+  template <typename T>
+  void toHostImpl(std::complex<T> *clientAllocatedData,
+                  std::size_t numElements) const;
   /// @brief Return a reference to all the tensors that have been applied to the
   /// state.
   const std::vector<AppliedTensorOp> &getAppliedTensors() const {

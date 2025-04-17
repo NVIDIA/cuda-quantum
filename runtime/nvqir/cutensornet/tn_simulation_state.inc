@@ -306,29 +306,34 @@ void TensorNetSimulationState<ScalarType>::destroyState() {
 }
 
 template <typename ScalarType>
-void TensorNetSimulationState<ScalarType>::toHost(
-    std::complex<double> *clientAllocatedData, std::size_t numElements) const {
+template <typename T>
+void TensorNetSimulationState<ScalarType>::toHostImpl(
+    std::complex<T> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = m_state->getStateVector();
   if (stateVec.size() != numElements)
     throw std::runtime_error(fmt::format(
         "[TensorNetSimulationState] Dimension mismatch: expecting {} "
         "elements but providing an array of size {}.",
         stateVec.size(), numElements));
-  for (std::size_t i = 0; i < numElements; ++i)
-    clientAllocatedData[i] = stateVec[i];
+  if (std::is_same_v<ScalarType, T>) {
+    std::memcpy(clientAllocatedData, stateVec.data(),
+                numElements * sizeof(ScalarType));
+  } else {
+    for (std::size_t i = 0; i < numElements; ++i)
+      clientAllocatedData[i] = stateVec[i];
+  }
+}
+
+template <typename ScalarType>
+void TensorNetSimulationState<ScalarType>::toHost(
+    std::complex<double> *clientAllocatedData, std::size_t numElements) const {
+  toHostImpl(clientAllocatedData, numElements);
 }
 
 template <typename ScalarType>
 void TensorNetSimulationState<ScalarType>::toHost(
     std::complex<float> *clientAllocatedData, std::size_t numElements) const {
-  auto stateVec = m_state->getStateVector();
-  if (stateVec.size() != numElements)
-    throw std::runtime_error(fmt::format(
-        "[TensorNetSimulationState] Dimension mismatch: expecting {} "
-        "elements but providing an array of size {}.",
-        stateVec.size(), numElements));
-  for (std::size_t i = 0; i < numElements; ++i)
-    clientAllocatedData[i] = stateVec[i];
+  toHostImpl(clientAllocatedData, numElements);
 }
 
 template <typename ScalarType>

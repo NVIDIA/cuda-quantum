@@ -76,7 +76,9 @@ public:
               std::size_t numElements) const override;
   void toHost(std::complex<float> *clientAllocatedData,
               std::size_t numElements) const override;
-
+  template <typename T>
+  void toHostImpl(std::complex<T> *clientAllocatedData,
+                  std::size_t numElements) const;
   /// Encapsulate data needed to initialize an MPS state.
   struct MpsStateData {
     // Represents the tensor network state
