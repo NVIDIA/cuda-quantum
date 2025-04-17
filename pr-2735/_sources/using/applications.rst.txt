@@ -106,7 +106,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
-        <a href="../applications/python/deutsch_jozsa.html" class="notebook-title">Deutsch's Algorithm</a>
+        <a href="../applications/python/deutsch_algorithm.html" class="notebook-title">Deutsch's Algorithm</a>
         <div class="notebook-content">
             Learn how quantum computers can provide an exponential speedup for identifying if a Boolean function is constant or balanced.
         </div>
@@ -122,7 +122,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
-        <a href="../applications/python/hybrid_hybrid_quantum_neural_networks.html" class="notebook-title">Hybrid Quantum Neural Networks</a>
+        <a href="../applications/python/hybrid_quantum_neural_networks.html" class="notebook-title">Hybrid Quantum Neural Networks</a>
         <div class="notebook-content">
             Learn how to implement Neural Network composed of a traditional PyTorch layer and a quantum layer added with CUDA-Q
         </div>
@@ -130,7 +130,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,mqpu">
-        <a href="../applications/python/Hadamard_test.html" class="notebook-title">The Hadamard Test</a>
+        <a href="../applications/python/hadamard_test.html" class="notebook-title">The Hadamard Test</a>
         <div class="notebook-content">
             Learn about the Hadamard test and how it can be used to estimate expectation values. This notebook also explores how the Hadamard test can be used for Krylov subspace method and accelerated with the <code>mqpu</code> backend to evaluate execution on multiple simulated QPUs in parallel.
         </div>
@@ -210,7 +210,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,noiseless,gpu,collab">
-        <a href="../applications/python/afmqc.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
+        <a href="../applications/python/afqmc.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
         <div class="notebook-content">
             Quantum Enhanced Auxiliary Field Quantum Monte Carlo is an advanced variational technique for simulating molecular energies. Learn how NVIDIA and BASF collaborated to implement this technique.
         </div>
@@ -226,7 +226,7 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,noiseless,gpu">
-        <a href="/applications/python/adapt-vqe.html" class="notebook-title">ADAPT VQE</a>
+        <a href="../applications/python/adapt_vqe.html" class="notebook-title">ADAPT VQE</a>
         <div class="notebook-content">
             Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter (ADAPT) to predict molecular ground state energies. The method iteratively builds an ansatz to more efficiently converge compared to traditional VQE.
         </div>
@@ -235,7 +235,7 @@ CUDA-Q Applications
 
 
     <div class="notebook-entry" data-tags="qforai,noiseless,gpu">
-        <a href="/applications/python/edge-detection.html" class="notebook-title">Quantum Edge Detection</a>
+        <a href="../applications/python/edge_detection.html" class="notebook-title">Quantum Edge Detection</a>
         <div class="notebook-content">
             Learn how to encode image data with a quantum circuit and use a quantum algorithm to identify object boundaries in an image.
         </div>
