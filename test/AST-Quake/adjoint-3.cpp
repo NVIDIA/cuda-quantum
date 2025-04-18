@@ -95,7 +95,7 @@ struct run_circuit {
 // ADJOINT-DAG:       %[[VAL_6:.*]] = arith.constant 0 : i64
 // ADJOINT-DAG:       %[[VAL_7:.*]] = arith.constant 1 : i32
 // ADJOINT:           %[[VAL_8:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
-// ADJOINT:           %[[VAL_9:.*]] = cc.cast %[[VAL_8]] : (i64) -> i32
+// ADJOINT:           %[[VAL_9:.*]] = cc.cast unsigned %[[VAL_8]] : (i64) -> i32
 // ADJOINT:           %[[VAL_10:.*]] = arith.subi %[[VAL_9]], %[[VAL_7]] : i32
 // ADJOINT:           %[[VAL_11:.*]] = cc.cast signed %[[VAL_10]] : (i32) -> i64
 // ADJOINT:           %[[VAL_12:.*]] = arith.subi %[[VAL_11]], %[[VAL_5]] : i64

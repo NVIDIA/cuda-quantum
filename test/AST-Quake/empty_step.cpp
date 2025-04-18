@@ -25,7 +25,7 @@ __qpu__ void test(cudaq::qview<> a, cudaq::qview<> b) {
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i32
 // CHECK:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (i64) -> i32
+// CHECK:           %[[VAL_5:.*]] = cc.cast unsigned %[[VAL_4]] : (i64) -> i32
 // CHECK:           %[[VAL_6:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_5]], %[[VAL_6]] : !cc.ptr<i32>
 // CHECK:           cc.loop while {

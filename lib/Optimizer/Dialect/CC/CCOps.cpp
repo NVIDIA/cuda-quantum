@@ -200,9 +200,46 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
 //===----------------------------------------------------------------------===//
 
 OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
-  // If cast is a nop, just forward the argument to the uses.
-  if (getType() == getValue().getType())
-    return getValue();
+  // Replace unnecessary casts.
+  if (getType() == getValue().getType()) {
+    auto val = getValue();
+    auto ty = getType();
+
+    // Cast is a nop, just forward the argument to the uses.
+    if (!isa<IntegerType>(ty))
+      return val;
+
+    // Cast that does not change the type or the sign.
+    if (!getZint() && !getSint())
+      return val;
+
+    // Cast of a boolean to a boolean.
+    if (ty.getIntOrFloatBitWidth() == 1)
+      return val;
+
+    // Cast of a known unsigned value to an unsigned value.
+    if (val.getDefiningOp<cc::StdvecSizeOp>() ||
+        val.getDefiningOp<quake::VeqSizeOp>())
+      if (getZint())
+        return val;
+
+    // Fold consecutive casts when possible.
+    if (auto cast = val.getDefiningOp<cc::CastOp>()) {
+      // A repeated cast.
+      if ((getZint() == cast.getZint()) && (getSint() == cast.getSint()))
+        return val;
+
+      // Second cast changes the sign.
+      // Replace both casts by a cast to the current type and sign.
+      OpBuilder builder(*this);
+      auto loc = getLoc();
+      return builder
+          .create<cc::CastOp>(loc, ty, cast.getValue(), getSintAttr(),
+                              getZintAttr())
+          .getResult();
+    }
+  }
+
   if (auto optConst = adaptor.getValue()) {
     // Replace a constant + cast with a new constant of an updated type.
     auto ty = getType();
@@ -214,8 +251,50 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
       auto val = attr.getInt();
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
-        return builder.create<arith::ConstantIntOp>(loc, val, width)
-            .getResult();
+        auto srcTy = getValue().getType();
+        auto srcWidth = srcTy.getIntOrFloatBitWidth();
+
+        // Cast the integer value of the cast op to the original type
+        // to get correct const value.
+        auto createConst = [&]<typename S>(S val) -> mlir::Value {
+          std::int64_t v = static_cast<std::int64_t>(val);
+          return builder.create<arith::ConstantIntOp>(loc, v, width)
+              .getResult();
+        };
+
+        auto castAndCreateConst = [&](std::int64_t val) -> mlir::Value {
+          if (getZint()) {
+            switch (srcWidth) {
+            case 1:
+              return createConst.template operator()<bool>(val);
+            case 8:
+              return createConst.template operator()<std::uint8_t>(val);
+            case 16:
+              return createConst.template operator()<std::uint16_t>(val);
+            case 32:
+              return createConst.template operator()<std::uint32_t>(val);
+            case 64:
+              return createConst.template operator()<std::uint64_t>(val);
+            default:
+              return nullptr;
+            }
+          }
+          switch (srcWidth) {
+          case 1:
+            return createConst.template operator()<bool>(val);
+          case 8:
+            return createConst.template operator()<std::int8_t>(val);
+          case 16:
+            return createConst.template operator()<std::int16_t>(val);
+          case 32:
+            return createConst.template operator()<std::int32_t>(val);
+          case 64:
+            return createConst.template operator()<std::int64_t>(val);
+          default:
+            return nullptr;
+          }
+        };
+        return castAndCreateConst(val);
       } else if (ty == fltTy) {
         if (getZint()) {
           APFloat fval(static_cast<float>(static_cast<std::uint64_t>(val)));
