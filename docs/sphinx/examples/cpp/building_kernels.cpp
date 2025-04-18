@@ -35,7 +35,8 @@ __qpu__ void kernel(const std::vector<complex> &vec) { cudaq::qubit q(vec); }
 __qpu__ void kernel0(const std::vector<complex> &vec) { cudaq::qvector q(vec); }
 
 void function0() {
-  std::vector<complex> d = {0.70710678 + 0j, 0., 0., 0.70710678};
+  std::vector<complex> d = {
+      {0.70710678, 0}, {0.0, 0.0}, {0.0, 0.0}, {0.70710678, 0.0}};
   kernel0(d);
 }
 // [End `CapturingComplexVector`]
