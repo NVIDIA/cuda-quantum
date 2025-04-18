@@ -27,7 +27,7 @@ __qpu__ void kernel(int N) { cudaq::qvector r(N); }
 
 // [Begin `PassingComplexVector`]
 // Passing complex vectors as parameters
-__qpu__ void kernel(const std::vector<complex> &vec) { cudaq::qubit q(vec); }
+__qpu__ void kernel(const std::vector<complex> &vec) { cudaq::qubit q; }
 // [End `PassingComplexVector`]
 
 // [Begin `CapturingComplexVector`]
