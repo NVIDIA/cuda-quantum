@@ -67,8 +67,8 @@ std::vector<double> term_coefficients(const cudaq::spin_op &op) {
 }
 
 std::vector<cudaq::pauli_word> term_words(const cudaq::spin_op &op) {
-  // Our kernel uses these words to apply exp_pauli to the entire state.
-  // we hence ensure that each pauli word covers the entire space.
+  // Our kernel uses these words to apply `exp_pauli` to the entire state.
+  // we hence ensure that each `pauli` word covers the entire space.
   auto n_spins = op.num_qubits();
   std::vector<cudaq::pauli_word> result;
   for (const auto &term : op)
