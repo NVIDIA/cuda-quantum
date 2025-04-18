@@ -1948,6 +1948,8 @@ struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
     auto cond = ifOp.getCondition();
+    if (!ifOp.getResults().empty())
+      return failure();
     auto con = cond.getDefiningOp<arith::ConstantIntOp>();
     if (!con)
       return failure();
