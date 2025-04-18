@@ -21,8 +21,6 @@ CPUs
 CUDA
 Cartesian
 CentOS
-CoCalc
-Colab
 Conda
 CuPy
 DCO
@@ -291,7 +289,6 @@ preprocessor
 probability
 programmatically
 pybind
-qBraid
 qaoa
 qed
 quantize

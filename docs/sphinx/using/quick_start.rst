@@ -148,7 +148,7 @@ CUDA-Q Academic
 
    Example of the interactive material within CUDA-Q Academic.
 
-The courses can be run using a local installation of CUDA-Q or via the cloud using qBraid, CoCalc, or Google Colab. 
+The courses can be run using a local installation of CUDA-Q or via the cloud using `qBraid`, `CoCalc`, or `Google Colab`. 
 
 Users just learning quantum computing are encouraged to begin with the `Quick Start to Quantum <https://github.com/NVIDIA/cuda-q-academic/blob/main/quick-start-to-quantum/READ_ME.md>`_ course which provides an introduction to the basics of quantum computing and helps you implement your first algorithm. 
 
