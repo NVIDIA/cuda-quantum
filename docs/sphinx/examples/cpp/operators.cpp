@@ -9,19 +9,21 @@
 // [Begin Spin]
 #include <cudaq.h>
 
-auto operator= 2 * cudaq::spin::x(0) * cudaq::spin::y(1) * cudaq::spin::x(2) -
+auto hamiltonian =
+    2 * cudaq::spin::x(0) * cudaq::spin::y(1) * cudaq::spin::x(2) -
     3 * cudaq::spin::z(0) * cudaq::spin::z(1) * cudaq::spin::y(2);
 // [End Spin]
 
 // [Begin Pauli]
-auto words = {"XYZ", "IXX"};
-auto coefficients = {0.432, 0.324};
-
-__qpu__ void kernel(std::vector<std::string> words,
-                    std::vector<double> coefficients) {
+__qpu__ void kernel() {
   cudaq::qvector qvector(3);
-  for (int i = 0; i < coefficients.size(); i++) {
-    exp_pauli(coefficients[i], qvector, words[i]);
-  }
+  exp_pauli(0.432, qvector, "XYZ");
+  exp_pauli(0.324, qvector, "IXX");
+}
+
+int main() {
+  auto result = cudaq::sample(kernel);
+  result.dump();
+  return 0;
 }
 // [End Pauli]
