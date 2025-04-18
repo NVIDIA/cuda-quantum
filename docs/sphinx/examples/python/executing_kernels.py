@@ -45,8 +45,17 @@ from cudaq import spin
 # Define a Hamiltonian in terms of Pauli Spin operators.
 hamiltonian = spin.z(0) + spin.y(1) + spin.x(0) * spin.z(0)
 
+
+@cudaq.kernel
+def kernel1(n_qubits: int):
+    qubits = cudaq.qvector(n_qubits)
+    h(qubits[0])
+    for i in range(1, n_qubits):
+        x.ctrl(qubits[0], qubits[i])
+
+
 # Compute the expectation value given the state prepared by the kernel.
-result = cudaq.observe(kernel, hamiltonian, qubit_count).expectation()
+result = cudaq.observe(kernel1, hamiltonian, qubit_count).expectation()
 
 print('<H> =', result)
 # [End Observe]
