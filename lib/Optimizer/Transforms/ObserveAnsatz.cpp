@@ -203,9 +203,6 @@ private:
 /// function.
 class ObserveAnsatzPass
     : public cudaq::opt::impl::ObserveAnsatzBase<ObserveAnsatzPass> {
-protected:
-  SmallVector<bool> binarySymplecticForm;
-
 public:
   using ObserveAnsatzBase::ObserveAnsatzBase;
 
@@ -344,8 +341,8 @@ public:
   }
 
   void runOnOperation() override {
-    auto funcOp = dyn_cast<func::FuncOp>(getOperation());
-    if (!funcOp || funcOp.empty())
+    auto funcOp = getOperation();
+    if (funcOp.empty())
       return;
 
     // We can get the pauli term info from the MLIR command line parser, or from
@@ -368,6 +365,9 @@ public:
     if (failed(appendMeasurements(funcOp, funcAnalysisInfo)))
       signalPassFailure();
   }
+
+protected:
+  SmallVector<bool> binarySymplecticForm;
 };
 
 } // namespace
