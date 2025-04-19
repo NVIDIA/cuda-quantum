@@ -304,9 +304,13 @@ LogicalResult cudaq::cc::CastOp::verify() {
   if (getSint() || getZint()) {
     if (getSint() && getZint())
       return emitOpError("cannot be both signed and unsigned.");
-    if ((isa<IntegerType>(inTy) && isa<IntegerType>(outTy)) ||
-        (isa<FloatType>(inTy) && isa<IntegerType>(outTy)) ||
-        (isa<IntegerType>(inTy) && isa<FloatType>(outTy))) {
+    if (isa<IntegerType>(inTy) && isa<IntegerType>(outTy)) {
+      if (cast<IntegerType>(inTy).getWidth() >
+          cast<IntegerType>(outTy).getWidth())
+        return emitOpError("signed (unsigned) may only be applied to integer "
+                           "to integer extension, not truncation.");
+    } else if ((isa<FloatType>(inTy) && isa<IntegerType>(outTy)) ||
+               (isa<IntegerType>(inTy) && isa<FloatType>(outTy))) {
       // ok, do nothing.
     } else {
       return emitOpError("signed (unsigned) may only be applied to integer to "
