@@ -394,6 +394,7 @@ def cc_IfOp : CCOp<"if",
 
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let extraClassDeclaration = [{
     using RegionBuilderFn = llvm::function_ref<void(mlir::OpBuilder &,
