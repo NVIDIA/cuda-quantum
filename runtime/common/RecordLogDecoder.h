@@ -9,12 +9,9 @@
 #pragma once
 
 #include "cudaq/utils/cudaq_utils.h"
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <string>
-#include <vector>
 
 namespace cudaq {
 
@@ -46,40 +43,48 @@ public:
   std::size_t getBufferSize() const { return buffer.size(); }
 
 private:
-  OutputType extractPrimitiveType(const std::string &label) {
-    if ('i' == label[0]) {
-      auto digits = std::stoi(label.substr(1));
-      if (1 == digits)
-        return OutputType::BOOL;
-      return OutputType::INT;
-    } else if ('f' == label[0]) {
-      return OutputType::DOUBLE;
-    }
-    throw std::runtime_error("Unknown datatype in label");
-  }
+  /// A helper structure that provides handlers for various operations depending
+  /// on the data types.
+  struct TypeHandler {
+    std::function<void(std::string)> addRecord;
+    std::function<void(std::size_t)> allocateArray;
+    std::function<void(std::size_t, std::string)> insertIntoArray;
+    std::function<void()> allocateTuple;
+    std::function<void(std::size_t, std::string)> insertIntoTuple;
+  };
 
-  std::size_t extractContainerIndex(const std::string &label) {
-    if (('[' == label[0]) && (']' == label[label.size() - 1]))
-      return std::stoi(label.substr(1, label.size() - 1));
-    if ('.' == label[0])
-      return std::stoi(label.substr(1, label.size() - 1));
-    throw std::runtime_error("Index not found in label");
-  }
+  /// A helper structure to hold the current state of the container being
+  /// processed.
+  /// TODO: Handle nested containers.
+  struct ContainerHandler {
+    ContainerType m_type = ContainerType::ARRAY;
+    std::size_t m_size = 0;
+    std::size_t processedElements = 0;
+    std::size_t offset;
+    std::string arrayType;
+    std::vector<std::string> tupleTypes;
+    std::vector<std::size_t> tupleOffsets;
 
-  /// Parse string like "array<i32 x 4>"
-  std::pair<std::size_t, std::string>
-  extractArrayInfo(const std::string &label) {
-    auto isArray = label.find("array");
-    auto lessThan = label.find('<');
-    auto greaterThan = label.find('>');
-    auto x = label.find('x');
-    if ((isArray == std::string::npos) || (lessThan == std::string::npos) ||
-        (greaterThan == std::string::npos) || (x == std::string::npos))
-      throw std::runtime_error("Array label missing keyword");
-    std::size_t arrSize = std::stoi(label.substr(x + 2, greaterThan - x - 2));
-    std::string arrType = label.substr(lessThan + 1, x - lessThan - 2);
-    return std::make_pair(arrSize, arrType);
-  }
+    void reset();
+    /// Parse string like "array<i32 x 4>"
+    void extractArrayInfo(const std::string &);
+    /// Parse string like "tuple<i32, f64>"
+    void extractTupleInfo(const std::string &);
+    /// Parse string like "[0]" for array index, and ".0" for tuple index
+    std::size_t extractIndex(const std::string &);
+  };
+
+  void handleHeader(const std::vector<std::string> &);
+  void handleMetadata(const std::vector<std::string> &);
+  void handleStart(const std::vector<std::string> &);
+  void handleEnd(const std::vector<std::string> &);
+  void handleOutput(const std::vector<std::string> &);
+  void preallocateArray();
+  void preallocateTuple();
+  bool convertToBool(const std::string &);
+  void processSingleRecord(const std::string &, const std::string &);
+  void processArrayEntry(const std::string &, const std::string &);
+  void processTupleEntry(const std::string &, const std::string &);
 
   template <typename T>
   void addPrimitiveRecord(T value) {
@@ -91,29 +96,25 @@ private:
 
   template <typename T>
   void allocateArrayRecord(size_t arrSize) {
-    prevPosition = buffer.size();
-    buffer.resize(prevPosition + (sizeof(T) * arrSize));
+    handler.offset = buffer.size();
+    buffer.resize(handler.offset + (sizeof(T) * arrSize));
   }
 
   template <typename T>
-  void addEntryToArray(std::size_t index, T value) {
-    std::memcpy(buffer.data() + prevPosition + (index * sizeof(T)), &value,
+  void insertIntoArray(std::size_t index, T value) {
+    std::memcpy(buffer.data() + handler.offset + (index * sizeof(T)), &value,
                 sizeof(T));
   }
 
-  void processSingleRecord(const std::string &recValue,
-                           const std::string &recLabel);
-
-  void processArrayEntry(const std::string &recValue,
-                         const std::string &recLabel);
+  template <typename T>
+  void insertIntoTuple(std::size_t index, T value) {
+    std::memcpy(buffer.data() + handler.tupleOffsets[index], &value, sizeof(T));
+  }
 
   std::vector<char> buffer;
   SchemaType schema = SchemaType::ORDERED;
-  RecordType currentRecord;
   OutputType currentOutput;
-  ContainerType currentContainer;
-  std::size_t containerSize;
-  std::size_t prevPosition;
-  std::string arrayType;
+  std::unordered_map<std::string, TypeHandler> dataTypeMap;
+  ContainerHandler handler;
 };
 } // namespace cudaq
