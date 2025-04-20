@@ -46,11 +46,11 @@ private:
   /// A helper structure that provides handlers for various operations depending
   /// on the data types.
   struct TypeHandler {
-    std::function<void(std::string)> addRecord;
-    std::function<void(std::size_t)> allocateArray;
-    std::function<void(std::size_t, std::string)> insertIntoArray;
+    std::function<void(const std::string &)> addRecord;
+    std::function<void()> allocateArray;
+    std::function<void(std::size_t, const std::string &)> insertIntoArray;
     std::function<void()> allocateTuple;
-    std::function<void(std::size_t, std::string)> insertIntoTuple;
+    std::function<void(std::size_t, const std::string &)> insertIntoTuple;
   };
 
   /// A helper structure to hold the current state of the container being
@@ -64,7 +64,6 @@ private:
     std::string arrayType;
     std::vector<std::string> tupleTypes;
     std::vector<std::size_t> tupleOffsets;
-
     void reset();
     /// Parse string like "array<i32 x 4>"
     void extractArrayInfo(const std::string &);
