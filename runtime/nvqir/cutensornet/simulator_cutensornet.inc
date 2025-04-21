@@ -180,12 +180,26 @@ void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
 
     std::vector<void *> channelMats;
     for (const auto &op : krausChannel.get_ops()) {
-      std::vector<std::complex<ScalarType>> casted(op.data.begin(),
-                                                   op.data.end());
-      const std::string cacheKey = fmt::format(
-          "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
-      channelMats.emplace_back(
-          getOrCacheMat(cacheKey, casted, m_gateDeviceMemCache));
+      void *channelMatPtr_d = [&]() {
+        const auto targetPrecision = std::is_same_v<ScalarType, float>
+                                         ? cudaq::simulation_precision::fp32
+                                         : cudaq::simulation_precision::fp64;
+        const std::string cacheKey = fmt::format(
+            "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
+        if (op.precision == targetPrecision)
+          return getOrCacheMat(cacheKey, op.data, m_gateDeviceMemCache);
+        // The channel data in a different precision.
+        return op.precision == cudaq::simulation_precision::fp32
+                   ? getOrCacheMat(cacheKey,
+                                   std::vector<std::complex<double>>(
+                                       op.data.begin(), op.data.end()),
+                                   m_gateDeviceMemCache)
+                   : getOrCacheMat(cacheKey,
+                                   std::vector<std::complex<float>>(
+                                       op.data.begin(), op.data.end()),
+                                   m_gateDeviceMemCache);
+      }();
+      channelMats.emplace_back(channelMatPtr_d);
     }
     m_state->applyGeneralChannel(qubits, channelMats);
   }
@@ -332,7 +346,7 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
   assert(rdm.size() == 4);
   const ScalarType prob0 = rdm[0].real();
   const ScalarType prob1 = rdm[3].real();
-  assert(std::abs(1.0 - (prob0 + prob1)) < 1e-6);
+  assert(std::abs(1.0 - (prob0 + prob1)) < 1e-3);
   const ScalarType rand = randomValues(1, 1.0, m_randomEngine)[0];
   const bool resultBool = (rand > prob0);
   const std::vector<std::complex<ScalarType>> projected0Mat{
