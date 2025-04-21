@@ -6,10 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.kernel.kernel_builder import PyKernel
+from cudaq.kernel.kernel_decorator import PyKernelDecorator
+from cudaq.kernel.utils import nvqppPrefix
 from .utils import __isBroadcast, __createArgumentSet
-from ..kernel.kernel_builder import PyKernel
-from ..kernel.kernel_decorator import PyKernelDecorator
-from ..kernel.utils import nvqppPrefix
 
 
 def __broadcastSample(kernel,
