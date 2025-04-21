@@ -605,10 +605,14 @@ Value QuakeBridgeVisitor::integerCoercion(Location loc,
                                           Type dstTy, Value srcVal) {
   auto fromTy = getResultType(srcVal.getType());
   assert(fromTy.isa<IntegerType>() && dstTy.isa<IntegerType>());
-  auto mode = (clangTy->isUnsignedIntegerOrEnumerationType())
-                  ? cudaq::cc::CastOpMode::Unsigned
-                  : cudaq::cc::CastOpMode::Signed;
-  return builder.create<cudaq::cc::CastOp>(loc, dstTy, srcVal, mode);
+  if (fromTy.getIntOrFloatBitWidth() <= dstTy.getIntOrFloatBitWidth()) {
+    auto mode = (clangTy->isUnsignedIntegerOrEnumerationType())
+                    ? cudaq::cc::CastOpMode::Unsigned
+                    : cudaq::cc::CastOpMode::Signed;
+    return builder.create<cudaq::cc::CastOp>(loc, dstTy, srcVal, mode);
+  }
+  assert(fromTy.getIntOrFloatBitWidth() > dstTy.getIntOrFloatBitWidth());
+  return builder.create<cudaq::cc::CastOp>(loc, dstTy, srcVal);
 }
 
 bool QuakeBridgeVisitor::TraverseCastExpr(clang::CastExpr *x,
