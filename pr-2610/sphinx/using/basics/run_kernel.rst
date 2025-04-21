@@ -134,8 +134,8 @@ The observe function allows us to calculate expectation values for a defined qua
 
   The `cudaq::observe` method takes a kernel and its arguments as inputs, along with a `cudaq::spin_op`.
 
-  Within the `cudaq::spin` namespace, operators may be defined as a linear combination of Pauli strings. Functions, such
-  as `cudaq::spin::i`, `cudaq::spin::x`, `cudaq::spin::y`, `cudaq::spin::z` may be used to construct more
+  Operators may be defined as a linear combination of Pauli strings. Functions, such
+  as `cudaq::spin_op::i`, `cudaq::spin_op::x`, `cudaq::spin_op::y`, `cudaq::spin_op::z` may be used to construct more
   complex spin Hamiltonians on multiple qubits.
 
 Below is an example of a spin operator object consisting of a `Z(0)` operator, or a Pauli Z-operator on the qubit zero. 
