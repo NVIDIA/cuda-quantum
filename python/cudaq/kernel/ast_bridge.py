@@ -409,9 +409,9 @@ class PyASTBridge(ast.NodeVisitor):
         if IntegerType.isinstance(ty):
             if IntegerType.isinstance(operand.type):
                 if IntegerType(ty).width < IntegerType(operand.type).width:
-                   operand = arith.TruncIOp(ty, operand).result
+                    operand = arith.TruncIOp(ty, operand).result
                 else:
-                   operand = arith.ExtSIOp(ty, operand).result
+                    operand = arith.ExtSIOp(ty, operand).result
 
         return operand
 
