@@ -304,9 +304,13 @@ LogicalResult cudaq::cc::CastOp::verify() {
   if (getSint() || getZint()) {
     if (getSint() && getZint())
       return emitOpError("cannot be both signed and unsigned.");
-    if ((isa<IntegerType>(inTy) && isa<IntegerType>(outTy)) ||
-        (isa<FloatType>(inTy) && isa<IntegerType>(outTy)) ||
-        (isa<IntegerType>(inTy) && isa<FloatType>(outTy))) {
+    if (isa<IntegerType>(inTy) && isa<IntegerType>(outTy)) {
+      if (cast<IntegerType>(inTy).getWidth() >
+          cast<IntegerType>(outTy).getWidth())
+        return emitOpError("signed (unsigned) may only be applied to integer "
+                           "to integer extension, not truncation.");
+    } else if ((isa<FloatType>(inTy) && isa<IntegerType>(outTy)) ||
+               (isa<IntegerType>(inTy) && isa<FloatType>(outTy))) {
       // ok, do nothing.
     } else {
       return emitOpError("signed (unsigned) may only be applied to integer to "
@@ -1935,6 +1939,58 @@ LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
     }
 
   return success();
+}
+
+namespace {
+struct KillRegionIfConstant : public OpRewritePattern<cudaq::cc::IfOp> {
+  using Base = OpRewritePattern<cudaq::cc::IfOp>;
+  using Base::Base;
+
+  // This rewrite will determine if the condition is constant. If it is, then it
+  // will elide the true or false region completely, depending on the constant's
+  // value.
+  LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
+                                PatternRewriter &rewriter) const override {
+    auto cond = ifOp.getCondition();
+    if (!ifOp.getResults().empty())
+      return failure();
+    auto con = cond.getDefiningOp<arith::ConstantIntOp>();
+    if (!con)
+      return failure();
+    auto val = con.value();
+    auto loc = ifOp.getLoc();
+    auto truth = rewriter.create<arith::ConstantIntOp>(loc, 1, 1);
+    Region *newRegion = nullptr;
+    if (val) {
+      // The else block, if any, is dead.
+      if (ifOp.getElseRegion().empty())
+        return failure();
+      newRegion = &ifOp.getThenRegion();
+    } else {
+      // The then block is dead.
+      newRegion = &ifOp.getElseRegion();
+      if (newRegion->empty()) {
+        // If there was no else, then build an empty dummy Region.
+        OpBuilder::InsertionGuard guard(rewriter);
+        Block *block = new Block();
+        rewriter.setInsertionPointToEnd(block);
+        rewriter.create<cudaq::cc::ContinueOp>(loc);
+        newRegion->push_back(block);
+      }
+    }
+    rewriter.replaceOpWithNewOp<cudaq::cc::IfOp>(
+        ifOp, ifOp.getResultTypes(), truth,
+        [&](OpBuilder &, Location, Region &region) {
+          region.takeBody(*newRegion);
+        });
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::IfOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                  MLIRContext *context) {
+  patterns.add<KillRegionIfConstant>(context);
 }
 
 //===----------------------------------------------------------------------===//
