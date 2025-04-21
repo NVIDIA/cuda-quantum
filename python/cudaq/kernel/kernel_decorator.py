@@ -11,7 +11,7 @@ import inspect
 import json
 import numpy as np
 
-from cudaq.handlers import PhotonicsHandler
+from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
@@ -171,13 +171,8 @@ class PyKernelDecorator(object):
         if the kernel is already compiled. 
         """
 
-        # TODO: Refactor this check
-        try:
-            target_name = cudaq_runtime.get_target().name
-        except RuntimeError:
-            target_name = None
-
-        if 'orca-photonics' == target_name:
+        handler = get_target_handler()
+        if handler.skip_compilation() is True:
             return
 
         # Before we can execute, we need to make sure
@@ -400,28 +395,8 @@ class PyKernelDecorator(object):
         requires custom handling.
         """
 
-        # Check if target is set
-        try:
-            target_name = cudaq_runtime.get_target().name
-        except RuntimeError:
-            target_name = None
-
-        if 'orca-photonics' == target_name:
-            if self.kernelFunction is None:
-                raise RuntimeError(
-                    "The 'orca-photonics' target must be used with a valid function."
-                )
-            # NOTE: Since this handler does not support MLIR mode (yet), just
-            # invoke the kernel. If calling from a bound function, need to
-            # unpack the arguments, for example, see `pyGetStateLibraryMode`
-            try:
-                context_name = cudaq_runtime.getExecutionContextName()
-            except RuntimeError:
-                context_name = None
-            callable_args = args
-            if "extract-state" == context_name and len(args) == 1:
-                callable_args = args[0]
-            PhotonicsHandler(self.kernelFunction)(*callable_args)
+        handler = get_target_handler()
+        if handler.call_processed(self.kernelFunction, args) is True:
             return
 
         # Compile, no-op if the module is not None
