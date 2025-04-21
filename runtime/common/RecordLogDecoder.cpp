@@ -7,8 +7,6 @@
  ******************************************************************************/
 
 #include "RecordLogDecoder.h"
-#include <functional>
-#include <unordered_map>
 
 void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');

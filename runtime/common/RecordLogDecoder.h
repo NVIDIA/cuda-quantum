@@ -12,6 +12,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <functional>
+#include <unordered_map>
 
 namespace cudaq {
 
