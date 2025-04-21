@@ -6,13 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy, scipy  # type: ignore
+import numpy
+import scipy
 from numpy.typing import NDArray
 from typing import Sequence
 
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .helpers import NumericType
-from .expressions import OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator, RydbergHamiltonian
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from .expressions import (OperatorSum, ProductOperator, ElementaryOperator,
+                          ScalarOperator)
 
 
 # Operators as defined here (watch out of differences in convention):
@@ -193,6 +195,14 @@ class SpinOperator(OperatorSum):
     def __init__(self):
         # This should never be called. We have `__new__` method instead.
         raise ValueError("Not supported")
+
+    @staticmethod
+    def empty() -> OperatorSum:
+        return OperatorSum()
+
+    @staticmethod
+    def identity() -> OperatorSum:
+        return ProductOperator(ScalarOperator.const(1.))
 
     # Convert from a Pauli word to an Operator
     @staticmethod

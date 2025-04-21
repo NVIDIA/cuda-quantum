@@ -70,7 +70,8 @@ std::tuple<bool, std::string> isValidObserveKernel(py::object &kernel) {
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
-async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
+async_observe_result pyObserveAsync(py::object &kernel,
+                                    const spin_op &spin_operator,
                                     py::args &args, std::size_t qpu_id,
                                     int shots) {
   if (py::hasattr(kernel, "compile"))
@@ -142,7 +143,7 @@ observe_result pyObservePar(const PyParType &type, py::object &kernel,
           "[cudaq::observe warning] distributed observe requested but only 1 "
           "QPU available. no speedup expected.\n");
     return details::distributeComputations(
-        [&](std::size_t i, spin_op &op) {
+        [&](std::size_t i, const spin_op &op) {
           return pyObserveAsync(kernel, op, args, i, shots);
         },
         spin_operator, nQpus);
@@ -165,7 +166,7 @@ observe_result pyObservePar(const PyParType &type, py::object &kernel,
 
   // Distribute locally, i.e. to the local nodes QPUs
   auto localRankResult = details::distributeComputations(
-      [&](std::size_t i, spin_op &op) {
+      [&](std::size_t i, const spin_op &op) {
         return pyObserveAsync(kernel, op, args, i, shots);
       },
       localH, nQpus);

@@ -43,8 +43,9 @@ RemoteSimulationState::~RemoteSimulationState() {
     platformExecutionLog.clear();
   }
 
-  for (std::size_t counter = 0; auto &ptr : args)
-    deleters[counter++](ptr);
+  if (!deleters.empty())
+    for (std::size_t counter = 0; auto &ptr : args)
+      deleters[counter++](ptr);
 
   args.clear();
   deleters.clear();
@@ -128,7 +129,7 @@ void RemoteSimulationState::toHost(std::complex<float> *clientAllocatedData,
   }
 }
 
-std::pair<std::string, std::vector<void *>>
+std::optional<std::pair<std::string, std::vector<void *>>>
 RemoteSimulationState::getKernelInfo() const {
   return std::make_pair(kernelName, args);
 }

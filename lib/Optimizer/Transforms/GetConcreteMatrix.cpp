@@ -7,13 +7,9 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
-#include "mlir/Dialect/LLVMIR/LLVMTypes.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -68,7 +64,6 @@ public:
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix);
 
     if (ccGlobalOp) {
-
       rewriter.replaceOpWithNewOp<quake::CustomUnitarySymbolOp>(
           customOp,
           FlatSymbolRefAttr::get(parentModule.getContext(), concreteMatrix),
@@ -86,12 +81,11 @@ public:
   using GetConcreteMatrixBase::GetConcreteMatrixBase;
 
   void runOnOperation() override {
-    func::FuncOp func = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<CustomUnitaryPattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                            std::move(patterns))))
+    if (failed(
+            applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
   }
 };

@@ -168,8 +168,8 @@ matrix:
       - open: '([A-Za-z_\\\/]+\.)+'
         close: '($|(?=[^a-z]))'
         content: '\S+?'
-      # Ignore the doxygen \param command and the code artifact after it.
-      - open: '[\\@]param(\s+\[\w+\])?(?:\s+\S)?'
+      # Ignore the doxygen @param (or @tparam) command and the code artifact after it.
+      - open: '[\\@](?:tparam|param)(\s+\[\w+\])?(?:\s+\S)?'
         close: '(\s|$)'
       # Ignore the first word after \command or @command, which is a code artifact
       - open: '[\\@]([acep])(?:\s+\S)?'
@@ -236,6 +236,10 @@ matrix:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
+      # Ignore apostrophy-s endings of words (e.g. NVIDIA's)
+      - open: '(?=\S)'
+        close: '($|(?=[^a-z]))'
+        content: '\u0027s'
 
 - name: python
   sources:

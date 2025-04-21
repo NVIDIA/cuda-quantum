@@ -252,21 +252,21 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
 
   // get bitVec size
   Value bitVecSize = builder.create<cudaq::cc::StdvecSizeOp>(
-      loc, builder.getI32Type(), bitVec);
+      loc, builder.getI64Type(), bitVec);
 
   // Useful types and values
-  auto i32Ty = builder.getI32Type();
-  Value one = builder.create<arith::ConstantIntOp>(loc, 1, i32Ty);
-  Value negOne = builder.create<arith::ConstantIntOp>(loc, -1, i32Ty);
+  auto i64Ty = builder.getI64Type();
+  Value one = builder.create<arith::ConstantIntOp>(loc, 1, i64Ty);
+  Value negOne = builder.create<arith::ConstantIntOp>(loc, -1, i64Ty);
 
   // Create int i = 0;
-  Value stackSlot = builder.create<cudaq::cc::AllocaOp>(loc, i32Ty);
-  Value zeroInt = builder.create<arith::ConstantIntOp>(loc, 0, i32Ty);
+  Value stackSlot = builder.create<cudaq::cc::AllocaOp>(loc, i64Ty);
+  Value zeroInt = builder.create<arith::ConstantIntOp>(loc, 0, i64Ty);
   builder.create<cudaq::cc::StoreOp>(loc, zeroInt, stackSlot);
 
   // Create the for loop
   Value rank = builder.create<cudaq::cc::CastOp>(
-      loc, builder.getI32Type(), bitVecSize, cudaq::cc::CastOpMode::Unsigned);
+      loc, builder.getI64Type(), bitVecSize, cudaq::cc::CastOpMode::Unsigned);
   cudaq::opt::factory::createInvariantLoop(
       builder, loc, rank,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
@@ -295,7 +295,7 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
 
         // -bits[k]
         bitElement = builder.create<cudaq::cc::CastOp>(
-            loc, builder.getI32Type(), bitElement,
+            loc, builder.getI64Type(), bitElement,
             cudaq::cc::CastOpMode::Unsigned);
         bitElement = builder.create<arith::MulIOp>(loc, negOne, bitElement);
 
@@ -1196,6 +1196,29 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return pushValue(builder.create<math::FPowIOp>(loc, base, power));
     }
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
+  }
+
+  // Handle std::complex member functions
+  if (isInClassInNamespace(func, "complex", "std")) {
+    auto value = popValue();
+    if (isa<cc::PointerType>(value.getType()))
+      value = builder.create<cc::LoadOp>(loc, value);
+    if (funcName.equals("real")) {
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          return pushValue(builder.create<complex::ReOp>(loc, value));
+        }
+    }
+    if (funcName.equals("imag")) {
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          return pushValue(builder.create<complex::ImOp>(loc, value));
+        }
+    }
   }
 
   // Dealing with our std::vector as a view data structures. If we have some θ
@@ -2722,7 +2745,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       // lambda determines: is `t` a cudaq::state* ?
       auto isStateType = [&](Type t) {
         if (auto ptrTy = dyn_cast<cc::PointerType>(t))
-          return isa<cc::StateType>(ptrTy.getElementType());
+          return isa<quake::StateType>(ptrTy.getElementType());
         return false;
       };
 
@@ -2756,7 +2779,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           return pushValue(builder.create<quake::AllocaOp>(
               loc, quake::VeqType::getUnsized(ctx), initials));
         }
-        if (isa<cc::StateType>(initials.getType())) {
+        if (isa<quake::StateType>(initials.getType())) {
           if (auto load = initials.getDefiningOp<cudaq::cc::LoadOp>())
             initials = load.getPtrvalue();
         }

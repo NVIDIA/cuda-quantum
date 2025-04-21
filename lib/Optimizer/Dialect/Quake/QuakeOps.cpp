@@ -565,7 +565,7 @@ LogicalResult quake::InitializeStateOp::verify() {
     }
     if (!isa<FloatType, ComplexType>(arrTy.getElementType()))
       return emitOpError("invalid data pointer type");
-  } else if (!isa<FloatType, ComplexType, cudaq::cc::StateType>(ty)) {
+  } else if (!isa<FloatType, ComplexType, quake::StateType>(ty)) {
     return emitOpError("invalid data pointer type");
   }
   return success();

@@ -8,6 +8,7 @@
 
 #include "tensornet_state.h"
 #include "common/EigenDense.h"
+#include <algorithm>
 #include <bitset>
 #include <cassert>
 
@@ -110,6 +111,19 @@ void TensorNetState::applyUnitaryChannel(
   m_hasNoiseChannel = true;
 }
 
+void TensorNetState::applyGeneralChannel(const std::vector<int32_t> &qubits,
+                                         const std::vector<void *> &krausOps) {
+  LOG_API_TIME();
+  HANDLE_CUTN_ERROR(cutensornetStateApplyGeneralChannel(
+      m_cutnHandle, m_quantumState, /*numStateModes=*/qubits.size(),
+      /*stateModes=*/qubits.data(),
+      /*numTensors=*/krausOps.size(),
+      /*tensorData=*/const_cast<void **>(krausOps.data()),
+      /*tensorModeStrides=*/nullptr, &m_tensorId));
+  m_tensorOps.emplace_back(AppliedTensorOp{qubits, krausOps, {}});
+  m_hasNoiseChannel = true;
+}
+
 void TensorNetState::applyQubitProjector(void *proj_d,
                                          const std::vector<int32_t> &qubitIdx) {
   LOG_API_TIME();
@@ -155,16 +169,28 @@ void TensorNetState::addQubits(std::size_t numQubits) {
             /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
             /*unitary*/ static_cast<int32_t>(op.isUnitary), &m_tensorId));
       }
-    } else if (op.unitaryChannel.has_value()) {
-      HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
-          m_cutnHandle, m_quantumState,
-          /*numStateModes=*/op.targetQubitIds.size(),
-          /*stateModes=*/op.targetQubitIds.data(),
-          /*numTensors=*/op.unitaryChannel->tensorData.size(),
-          /*tensorData=*/op.unitaryChannel->tensorData.data(),
-          /*tensorModeStrides=*/nullptr,
-          /*probabilities=*/op.unitaryChannel->probabilities.data(),
-          &m_tensorId));
+    } else if (op.noiseChannel.has_value()) {
+      const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                    op.noiseChannel->probabilities.size();
+      if (isGeneralChannel) {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyGeneralChannel(
+            m_cutnHandle, m_quantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr, &m_tensorId));
+      } else {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
+            m_cutnHandle, m_quantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr,
+            /*probabilities=*/op.noiseChannel->probabilities.data(),
+            &m_tensorId));
+      }
     } else {
       throw std::runtime_error("Invalid AppliedTensorOp encountered.");
     }
@@ -657,16 +683,13 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
 }
 
 std::vector<std::complex<double>> TensorNetState::computeExpVals(
-    const std::vector<std::vector<bool>> &symplecticRepr,
+    const std::vector<cudaq::spin_op_term> &product_terms,
     const std::optional<std::size_t> &numberTrajectories) {
   LOG_API_TIME();
-  if (symplecticRepr.empty())
+  if (product_terms.empty())
     return {};
 
   const std::size_t numQubits = getNumQubits();
-  const auto numSpinOps = symplecticRepr[0].size() / 2;
-  std::vector<std::complex<double>> allExpVals;
-  allExpVals.reserve(symplecticRepr.size());
 
   constexpr int ALIGNMENT_BYTES = 256;
   const int placeHolderArraySize = ALIGNMENT_BYTES * numQubits;
@@ -766,36 +789,62 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
       return numberTrajectories.value();
     return g_numberTrajectoriesForObserve;
   }();
-  for (const auto &term : symplecticRepr) {
+
+  std::vector<std::complex<double>> allExpVals;
+  allExpVals.reserve(product_terms.size());
+
+  // NOTE: The logic in the loop below relies on the following:
+  // Spin operator terms are canonically ordered. Specifically, we can
+  // assume that every operator does not act on the same target more than
+  // once. That assumption is only checked via an assertion.
+  // Additionally, the loops that inject identities rely on the ordering
+  // starting with the smallest index/degree. We could write it agnostic
+  // by querying cudaq::operator_handler::canonical_order, but I kept it
+  // at putting an assert in for that one, too.
+  assert(cudaq::operator_handler::canonical_order(0, 1));
+  constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
+  for (const auto &prod : product_terms) {
+    assert(prod.is_canonicalized());
     bool allIdOps = true;
-    for (std::size_t i = 0; i < numQubits; ++i) {
-      // Memory address of this Pauli term in the placeholder array.
-      auto *address = static_cast<char *>(pauliMats_h) + i * ALIGNMENT_BYTES;
-      constexpr int PAULI_ARRAY_SIZE_BYTES = 4 * sizeof(std::complex<double>);
+    auto offset = 0;
+    for (const auto &p : prod) {
       // The Pauli matrix data that we want to load to this slot.
       // Default is the Identity matrix.
       const std::complex<double> *pauliMatrixPtr = PauliI_h;
-      if (i < numSpinOps) {
-        if (term[i] && term[i + numSpinOps]) {
-          // Y
-          allIdOps = false;
-          pauliMatrixPtr = PauliY_h;
-        } else if (term[i]) {
-          // X
-          allIdOps = false;
-          pauliMatrixPtr = PauliX_h;
-        } else if (term[i + numSpinOps]) {
-          // Z
-          allIdOps = false;
-          pauliMatrixPtr = PauliZ_h;
-        }
+      // We need to make sure to populate the identity for all qubits
+      // that are not part of this term
+      while (offset < p.target()) {
+        auto *address =
+            static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
+        std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
+      }
+      // Memory address of this Pauli term in the placeholder array.
+      auto *address =
+          static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
+      auto pauli = p.as_pauli();
+      if (pauli == cudaq::pauli::Y) {
+        allIdOps = false;
+        pauliMatrixPtr = PauliY_h;
+      } else if (pauli == cudaq::pauli::X) {
+        allIdOps = false;
+        pauliMatrixPtr = PauliX_h;
+      } else if (pauli == cudaq::pauli::Z) {
+        allIdOps = false;
+        pauliMatrixPtr = PauliZ_h;
       }
       // Copy the Pauli matrix data to the placeholder array at the appropriate
       // slot.
       std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
     }
+    // Populate the remaining identities.
+    const std::complex<double> *pauliMatrixPtr = PauliI_h;
+    while (offset < numQubits) {
+      auto *address =
+          static_cast<char *>(pauliMats_h) + offset++ * ALIGNMENT_BYTES;
+      std::memcpy(address, pauliMatrixPtr, PAULI_ARRAY_SIZE_BYTES);
+    }
     if (allIdOps) {
-      allExpVals.emplace_back(1.0);
+      allExpVals.emplace_back(prod.evaluate_coefficient());
     } else {
       HANDLE_CUDA_ERROR(cudaMemcpy(pauliMats_d, pauliMats_h,
                                    placeHolderArraySize,
@@ -809,7 +858,7 @@ std::vector<std::complex<double>> TensorNetState::computeExpVals(
             /*cudaStream*/ 0));
         expVal += (result / static_cast<double>(numObserveTrajectories));
       }
-      allExpVals.emplace_back(expVal);
+      allExpVals.emplace_back(expVal * prod.evaluate_coefficient());
     }
   }
 
@@ -942,6 +991,14 @@ TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
   return ket;
 }
 
+bool TensorNetState::hasGeneralChannelApplied() const {
+  for (const auto &op : m_tensorOps)
+    if (op.noiseChannel.has_value() && op.noiseChannel->probabilities.empty())
+      return true;
+
+  return false;
+}
+
 void TensorNetState::applyCachedOps() {
   int64_t tensorId = 0;
   for (auto &op : m_tensorOps)
@@ -965,16 +1022,28 @@ void TensorNetState::applyCachedOps() {
             /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
             /*unitary*/ static_cast<int32_t>(op.isUnitary), &m_tensorId));
       }
-    } else if (op.unitaryChannel.has_value()) {
-      HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
-          m_cutnHandle, m_quantumState,
-          /*numStateModes=*/op.targetQubitIds.size(),
-          /*stateModes=*/op.targetQubitIds.data(),
-          /*numTensors=*/op.unitaryChannel->tensorData.size(),
-          /*tensorData=*/op.unitaryChannel->tensorData.data(),
-          /*tensorModeStrides=*/nullptr,
-          /*probabilities=*/op.unitaryChannel->probabilities.data(),
-          &m_tensorId));
+    } else if (op.noiseChannel.has_value()) {
+      const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                    op.noiseChannel->probabilities.size();
+      if (isGeneralChannel) {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyGeneralChannel(
+            m_cutnHandle, m_quantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr, &m_tensorId));
+      } else {
+        HANDLE_CUTN_ERROR(cutensornetStateApplyUnitaryChannel(
+            m_cutnHandle, m_quantumState,
+            /*numStateModes=*/op.targetQubitIds.size(),
+            /*stateModes=*/op.targetQubitIds.data(),
+            /*numTensors=*/op.noiseChannel->tensorData.size(),
+            /*tensorData=*/op.noiseChannel->tensorData.data(),
+            /*tensorModeStrides=*/nullptr,
+            /*probabilities=*/op.noiseChannel->probabilities.data(),
+            &m_tensorId));
+      }
     } else {
       throw std::runtime_error("Invalid AppliedTensorOp encountered.");
     }

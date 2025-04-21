@@ -109,9 +109,7 @@ public:
         auto buffer = origStore.getPtrvalue();
         const std::int32_t numConstants = carr.getConstantValues().size();
         auto constantValues = carr.getConstantValues();
-        const bool isComplex = isa<ComplexType>(eleTy);
-        for (std::int32_t idx = 0; idx < numConstants;
-             idx += isComplex ? 2 : 1) {
+        for (std::int32_t idx = 0; idx < numConstants; idx++) {
           auto v = [&]() -> Value {
             auto val = constantValues[idx];
             if (auto fTy = dyn_cast<FloatType>(eleTy))
@@ -121,14 +119,11 @@ public:
               return builder.create<arith::ConstantIntOp>(
                   loc, cast<IntegerAttr>(val).getInt(), iTy);
             auto cTy = cast<ComplexType>(eleTy);
-            auto complexVal = builder.getArrayAttr(
-                {cast<FloatAttr>(val),
-                 cast<FloatAttr>(constantValues[idx + 1])});
-            return builder.create<complex::ConstantOp>(loc, cTy, complexVal);
+            return builder.create<complex::ConstantOp>(loc, cTy,
+                                                       cast<ArrayAttr>(val));
           }();
-          std::int32_t vidx = isComplex ? (idx / 2) : idx;
           Value arrWithOffset = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{vidx});
+              loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
           builder.create<cudaq::cc::StoreOp>(loc, v, arrWithOffset);
         }
         cleanUps.push_back(user);

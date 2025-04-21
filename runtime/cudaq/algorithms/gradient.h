@@ -9,7 +9,7 @@
 #pragma once
 #include "observe.h"
 #include <cudaq/builder.h>
-#include <cudaq/spin_op.h>
+#include <cudaq/operators.h>
 #include <functional>
 
 namespace cudaq {

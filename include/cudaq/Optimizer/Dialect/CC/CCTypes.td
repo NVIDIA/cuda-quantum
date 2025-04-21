@@ -83,6 +83,7 @@ def cc_StructType : CCType<"Struct", "struct",
   );
 
   let hasCustomAssemblyFormat = 1;
+  let genVerifyDecl = 1;
 
   let builders = [
     TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
@@ -154,6 +155,7 @@ def cc_ArrayType : CCType<"Array", "array"> {
   );
 
   let hasCustomAssemblyFormat = 1;
+  let genVerifyDecl = 1;
 
   let extraClassDeclaration = [{
     using SizeType = std::int64_t;
@@ -249,6 +251,8 @@ def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
 
   let assemblyFormat = "`<` qualified($elementType) `>`";
 
+  let genVerifyDecl = 1;
+
   let builders = [
     TypeBuilderWithInferredContext<(ins "mlir::Type":$elementType), [{
       return Base::get(elementType.getContext(), elementType);
@@ -286,28 +290,6 @@ def cc_CharSpanType
 
 def IsSpanLikePred : CPred<"$_self.isa<cudaq::cc::SpanLikeType>()">;
 def SpanningType : Type<IsSpanLikePred, "dynamic length type">;
-
-//===----------------------------------------------------------------------===//
-// StateType
-//===----------------------------------------------------------------------===//
-
-def cc_StateType : CCType<"State", "state"> {
-  let summary = "Proxy for the cudaq::state class.";
-  let description = [{
-    The cudaq::state class is an abstraction for any data that may be used to
-    describe the initial state of a set of qubits. It would typically be used
-    in a simulation environment.
-
-    The CUDA-Q runtime will implement an ABI of intrinsic functions for the
-    compiler generated code to interface with this information in a generic
-    manner.
-
-    There are no legal operations in Quake/CC on a value of type `!cc.state`.
-    Only pointers to such values should exist in the IR for the purposes of
-    passing references to state objects to runtime functions at codegen.
-  }];
-  let genStorageClass = 0;
-}
 
 def AnyStateInitLike : TypeConstraint<cc_PointerType.predicate,
                          "state initializer types">;

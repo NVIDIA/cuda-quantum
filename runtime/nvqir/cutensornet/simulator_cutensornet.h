@@ -104,6 +104,10 @@ protected:
   /// intermediate tensors)
   virtual bool requireCacheWorkspace() const = 0;
 
+  /// @brief Return true if this simulator handle general noise channel
+  /// (non-unitary).
+  virtual bool canHandleGeneralNoiseChannel() const = 0;
+
 private:
   // Helper to apply a Kraus channel
   void applyKrausChannel(const std::vector<int32_t> &qubits,

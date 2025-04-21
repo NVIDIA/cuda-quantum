@@ -394,6 +394,7 @@ def cc_IfOp : CCOp<"if",
 
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let extraClassDeclaration = [{
     using RegionBuilderFn = llvm::function_ref<void(mlir::OpBuilder &,
@@ -1009,7 +1010,7 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
     Example:
 
     ```mlir
-      %s = cc.insert_value %i16, %r[1, 0] :
+      %s = cc.insert_value %r[1, 0], %i16 :
            (!cc.struct<{i32, !cc.struct<{i16, f32}>}>, i16) ->
            !cc.struct<{i32, !cc.struct<{i16, f32}>}>
     ```
@@ -1036,6 +1037,10 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
                    mlir::ArrayRef<std::int64_t>{index});
     }]>
   ];
+
+  let extraClassDeclaration = [{
+    std::size_t getNumIndices() { return getPosition().size(); }
+  }];
 }
 
 def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
@@ -1088,6 +1093,8 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
     bool llvmNormalForm();
 
     std::optional<std::int32_t> getConstantIndex(std::size_t arg);
+
+    std::size_t getNumIndices() { return getRawConstantIndices().size(); }
   }];
 }
 

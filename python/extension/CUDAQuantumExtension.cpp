@@ -32,16 +32,13 @@
 #include "runtime/cudaq/spin/py_spin_op.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
+#include "runtime/interop/PythonCppInterop.h"
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
-
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
-
-#include "runtime/interop/PythonCppInterop.h"
-
 #include <pybind11/complex.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
@@ -236,7 +233,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
           targetInfo.emplace_back(t[0], t[1]);
         }
         cudaq::getExecutionManager()->apply(name, params, {}, targetInfo, false,
-                                            cudaq::spin_op());
+                                            cudaq::spin_op::identity());
       },
       "Apply the input photonics operation on the target qudits.",
       py::arg("name"), py::arg("params"), py::arg("targets"));

@@ -15,6 +15,8 @@ config:
   gen-target-backend: true
   # Add the quera-qpu library to the link list
   link-libs: ["-lcudaq-quera-qpu"]
+  # Allow evolve API in C++
+  preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET"]
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 

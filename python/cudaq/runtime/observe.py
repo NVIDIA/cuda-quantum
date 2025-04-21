@@ -5,10 +5,8 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from ..kernel.kernel_builder import PyKernel
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .utils import __isBroadcast, __createArgumentSet
-from ..mlir.dialects import quake, cc
 
 
 def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):
@@ -86,7 +84,10 @@ Returns:
     spin_operator = to_spin_op(spin_operator)
     if isinstance(spin_operator, list):
         for idx, op in enumerate(spin_operator):
-            spin_operator[idx] = to_spin_op(op)
+            spin_operator[idx] = to_spin_op(op).canonicalize()
+    else:
+        spin_operator.canonicalize()
+
     # Handle parallel execution use cases
     if execution != None:
         return cudaq_runtime.observe_parallel(kernel,
@@ -100,12 +101,12 @@ Returns:
         cudaq_runtime.set_noise(noise_model)
 
     # Process spin_operator if its a list
-    localOp = spin_operator
-    localOp = cudaq_runtime.SpinOperator()
-    if isinstance(spin_operator, list):
+    if isinstance(spin_operator, cudaq_runtime.SpinOperatorTerm):
+        localOp = cudaq_runtime.SpinOperator(spin_operator)
+    elif isinstance(spin_operator, list):
+        localOp = cudaq_runtime.SpinOperator.empty()
         for o in spin_operator:
             localOp += o
-        localOp -= cudaq_runtime.SpinOperator()
     else:
         localOp = spin_operator
 
@@ -145,9 +146,10 @@ Returns:
                     sum += term.get_coefficient().real
                 else:
                     sum += res.expectation(
-                        term.to_string(False)) * term.get_coefficient().real
+                        term.get_term_id()) * term.get_coefficient().real
 
-            localOp.for_each_term(computeExpVal)
+            for term in localOp:
+                computeExpVal(term)
             expVal = sum
 
         observeResult = cudaq_runtime.ObserveResult(expVal, localOp, res)

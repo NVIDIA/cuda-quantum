@@ -8,7 +8,6 @@
 #include <cudaq/algorithm.h>
 #include <cudaq/gradients.h>
 #include <cudaq/optimizers.h>
-#include <cudaq/spin_op.h>
 
 // Here we build up a CUDA-Q kernel for QAOA with p layers, with each
 // layer containing the alternating set of unitaries corresponding to the
@@ -51,13 +50,13 @@ struct ansatz {
 
 int main() {
 
-  using namespace cudaq::spin;
-
   cudaq::set_random_seed(13); // set for repeatability
 
   // Problem Hamiltonian
-  const cudaq::spin_op Hp = 0.5 * z(0) * z(1) + 0.5 * z(1) * z(2) +
-                            0.5 * z(0) * z(3) + 0.5 * z(2) * z(3);
+  const cudaq::spin_op Hp = 0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) +
+                            0.5 * cudaq::spin_op::z(1) * cudaq::spin_op::z(2) +
+                            0.5 * cudaq::spin_op::z(0) * cudaq::spin_op::z(3) +
+                            0.5 * cudaq::spin_op::z(2) * cudaq::spin_op::z(3);
 
   // Problem parameters
   const int n_qubits = 4;

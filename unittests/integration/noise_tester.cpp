@@ -20,6 +20,13 @@ struct xOp {
   }
 };
 
+struct xOp2 {
+  void operator()() __qpu__ {
+    cudaq::qvector q(2);
+    x(q);
+  }
+};
+
 struct bell {
   void operator()() __qpu__ {
     cudaq::qubit q, r;
@@ -253,6 +260,27 @@ CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
 }
 
 #endif
+
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET_MPS)
+CUDAQ_TEST(NoiseTest, checkAmplitudeDamping2) {
+  cudaq::set_random_seed(13);
+  cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
+                                        {0., 0.5, 0.0, 0.}};
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel<cudaq::types::x>(amplitudeDamping);
+  cudaq::set_noise(noise);
+
+  auto counts = cudaq::sample(xOp2{});
+  counts.dump();
+
+  EXPECT_NEAR(counts.probability("00"), 0.0625, .1);
+  EXPECT_NEAR(counts.probability("10"), 0.1875, .1);
+  EXPECT_NEAR(counts.probability("01"), 0.1875, .1);
+  EXPECT_NEAR(counts.probability("11"), 0.5625, .1);
+  cudaq::unset_noise(); // clear for subsequent tests
+}
+#endif
+
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
 // Stim does not support arbitrary cudaq::kraus_op specification.
 
@@ -966,9 +994,11 @@ CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
 
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
 CUDAQ_TEST(NoiseTest, checkObserveHamiltonianWithNoise) {
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
+
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
   cudaq::set_random_seed(13);
   cudaq::depolarization_channel depol(0.1);
   cudaq::noise_model noise;

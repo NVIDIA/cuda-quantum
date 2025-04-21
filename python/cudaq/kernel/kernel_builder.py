@@ -6,28 +6,49 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from functools import partialmethod
-import hashlib
-import uuid
+import numpy as np
 import random
 import re
 import string
-import sys
-import numpy as np
+from functools import partialmethod
 from typing import get_origin
-from .quake_value import QuakeValue
-from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, emitWarning, mlirTypeToPyType, emitErrorIfInvalidPauli, globalRegisteredOperations
-from .common.givens import givens_builder
-from .common.fermionic_swap import fermionic_swap_builder
-from .captured_data import CapturedDataStorage
 
-from ..mlir.ir import *
-from ..mlir.passmanager import *
-from ..mlir.execution_engine import *
-from ..mlir.dialects import quake, cc
-from ..mlir.dialects import builtin, func, arith, math, complex as complexDialect
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects, gen_vector_of_complex_constant
+from cudaq.mlir.ir import (
+    BoolAttr,
+    Block,
+    ComplexType,
+    Context,
+    DenseI32ArrayAttr,
+    DictAttr,
+    F32Type,
+    F64Type,
+    FlatSymbolRefAttr,
+    FloatAttr,
+    InsertionPoint,
+    IntegerAttr,
+    IntegerType,
+    Location,
+    Module,
+    StringAttr,
+    SymbolTable,
+    TypeAttr,
+    UnitAttr,
+)
+from cudaq.mlir.passmanager import PassManager
+from cudaq.mlir.execution_engine import ExecutionEngine
+from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
+                                 func, math)
+from cudaq.mlir._mlir_libs._quakeDialects import (
+    cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic,
+    register_all_dialects)
+from .captured_data import CapturedDataStorage
+from .common.fermionic_swap import fermionic_swap_builder
+from .common.givens import givens_builder
+from .kernel_decorator import PyKernelDecorator
+from .quake_value import QuakeValue
+from .utils import (emitErrorIfInvalidPauli, emitFatalError, emitWarning,
+                    globalRegisteredOperations, mlirTypeFromPyType,
+                    mlirTypeToPyType, nvqppPrefix)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -852,13 +873,17 @@ class PyKernel(object):
             qubitsList = []
             pauliWordVal = None
             for arg in args:
-                if isinstance(arg, cudaq_runtime.SpinOperator) or hasattr(
-                        arg, "_to_spinop"):
+                if isinstance(arg, cudaq_runtime.SpinOperatorTerm):
+                    arg = arg.get_pauli_word()
+                elif hasattr(arg, "_to_spinop"):
+                    arg = arg._to_spinop()
+                if isinstance(arg, cudaq_runtime.SpinOperator):
                     if arg.get_term_count() > 1:
                         emitFatalError(
                             'exp_pauli operation requires a SpinOperator composed of a single term.'
                         )
-                    arg = arg.to_string(False)
+                    arg, *_ = arg
+                    arg = arg.get_pauli_word()
 
                 if isinstance(arg, str):
                     retTy = cc.PointerType.get(

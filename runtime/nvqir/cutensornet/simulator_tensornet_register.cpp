@@ -135,6 +135,11 @@ public:
     }
   }
   bool requireCacheWorkspace() const override { return true; }
+  bool canHandleGeneralNoiseChannel() const override {
+    // Full tensornet simulator doesn't support general noise channels (only
+    // unitary mixture channels)
+    return false;
+  }
 
 private:
   friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();

@@ -50,7 +50,7 @@ static bool isCodegenArgumentGather(std::size_t kind) {
 
 static bool isStateType(Type ty) {
   if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty))
-    return isa<cudaq::cc::StateType>(ptrTy.getElementType());
+    return isa<quake::StateType>(ptrTy.getElementType());
   return false;
 }
 

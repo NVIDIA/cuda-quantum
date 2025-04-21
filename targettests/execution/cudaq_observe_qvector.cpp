@@ -33,8 +33,7 @@ struct ansatz {
 int main() {
 
   // Build up your spin op algebraically
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.0 - 1.0 * x(0);
+  cudaq::spin_op h = 5.0 - 1.0 * cudaq::spin_op::x(0);
 
   // Make repeatable for shots-based emulation
   cudaq::set_random_seed(13);
