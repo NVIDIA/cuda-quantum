@@ -373,6 +373,9 @@ class PyASTBridge(ast.NodeVisitor):
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
 
     def promoteOperandType(self, ty, operand):
+        if ty == operand.type:
+            return operand
+
         if ComplexType.isinstance(ty):
             complexType = ComplexType(ty)
             floatType = complexType.element_type
@@ -390,6 +393,7 @@ class PyASTBridge(ast.NodeVisitor):
                 imag = self.getConstantFloatWithType(0.0, floatType)
                 operand = complex.CreateOp(complexType, real, imag).result
 
+        #FIXME: use cc.cast for all below
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
                 operand = arith.ExtFOp(ty, operand).result
@@ -401,6 +405,13 @@ class PyASTBridge(ast.NodeVisitor):
                 operand = arith.TruncFOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
                 operand = arith.SIToFPOp(ty, operand).result
+
+        if IntegerType.isinstance(ty):
+            if IntegerType.isinstance(operand.type):
+                if IntegerType(ty).width < IntegerType(operand.type).width:
+                   operand = arith.TruncIOp(ty, operand).result
+                else:
+                   operand = arith.ExtSIOp(ty, operand).result
 
         return operand
 
