@@ -73,7 +73,7 @@ void cudaq::RecordLogDecoder::processOutputField(
   if ((schema == SchemaType::LABELED) && (entries.size() != 4))
     throw std::runtime_error("Unexpected record size for a labeled record");
 
-  std::string recType = entries[1];
+  std::string &recType = entries[1];
   std::string recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
 
