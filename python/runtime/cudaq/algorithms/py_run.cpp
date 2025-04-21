@@ -74,7 +74,7 @@ std::vector<py::object> readRunResults(mlir::Type ty,
                     eTy.dump();
                     throw std::runtime_error(
                         "Invalid float element type for return "
-                        "complex type for pyAltLaunchKernel.");
+                        "complex type for cudaq.run.");
                   });
             })
             .Case([&](Float64Type ty) -> py::object {
@@ -85,8 +85,7 @@ std::vector<py::object> readRunResults(mlir::Type ty,
             })
             .Default([](Type ty) -> py::object {
               ty.dump();
-              throw std::runtime_error(
-                  "Invalid return type for pyAltLaunchKernel.");
+              throw std::runtime_error("Invalid return type for cudaq.run.");
             });
     ret.push_back(obj);
   }
