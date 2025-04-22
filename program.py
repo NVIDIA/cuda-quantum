@@ -28,13 +28,13 @@ def test_return_list():
     
     print(cudaq.run(simple_list_int, shots_count=2))
 
-    # @cudaq.kernel
-    # def simple_list_int32() -> list[np.int32]:
-    #     qubits = cudaq.qvector(2)
-    #     result = [1, 0]
-    #     return result
+    @cudaq.kernel
+    def simple_list_int32() -> list[np.int32]:
+        qubits = cudaq.qvector(2)
+        result = [1, 0]
+        return result
     
-    # print(cudaq.run(simple_list_int32, shots_count=2))
+    print(cudaq.run(simple_list_int32, shots_count=2))
 
     @cudaq.kernel
     def simple_list_int64() -> list[np.int64]:

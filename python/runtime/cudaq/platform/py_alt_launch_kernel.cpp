@@ -482,7 +482,11 @@ py::object readPyObject(mlir::Type ty, char *arg) {
   return py_ext::convert<T>(concrete);
 }
 
+<<<<<<< HEAD
 py::object convertResult(mlir::Type ty, char *data, std::size_t size) {
+=======
+py::object convertResult(mlir::Type ty, char *data) {
+>>>>>>> f6cec784a60235cd21175eaeafb88ab482a639c9
   return llvm::TypeSwitch<mlir::Type, py::object>(ty)
       .Case([&](IntegerType ty) -> py::object {
         if (ty.getIntOrFloatBitWidth() == 1)
@@ -537,7 +541,11 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   auto rawReturn = ((char *)rawArgs) + returnOffset;
 
   // Extract the return value from the rawReturn pointer.
+<<<<<<< HEAD
   auto returnValue = convertResult(unwrapped, rawReturn, size - returnOffset);
+=======
+  auto returnValue = convertResult(unwrapped, rawReturn);
+>>>>>>> f6cec784a60235cd21175eaeafb88ab482a639c9
 
   std::free(rawArgs);
   return returnValue;
