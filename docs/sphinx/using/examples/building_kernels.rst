@@ -215,7 +215,7 @@ The adjoint of a gate can be applied by appending the gate with the `adj` design
 Custom Operations
 -----------------
 
-Custom gate operations can be specified using `cudaq.register_operation`. A one-dimensional Numpy array specifies the unitary matrix to be applied. The entries of the array read from top to bottom through the rows.
+Custom gate operations can be specified using `cudaq.register_operation`. A one-dimensional `Numpy` array specifies the unitary matrix to be applied. The entries of the array read from top to bottom through the rows.
 
 .. tab:: Python
 
