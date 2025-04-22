@@ -76,8 +76,8 @@ Returns:
             for operation in kernel.module.body.operations:
                 if not hasattr(operation, 'name'):
                     continue
-                if nvqppPrefix + kernel.name == operation.name.value and 'qubitMeasurementFeedback' in operation.attributes:
-                    has_conditionals_on_measure_result = True
+                if nvqppPrefix + kernel.name == operation.name.value:
+                    has_conditionals_on_measure_result = 'qubitMeasurementFeedback' in operation.attributes
                     break
     elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
         has_conditionals_on_measure_result = True
