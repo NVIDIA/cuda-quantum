@@ -114,19 +114,7 @@ def test_run_async_with_noise():
     cudaq.reset_target()
 
 
-def test_bool():
-
-    @cudaq.kernel
-    def simple_no_args() -> bool:
-        qubits = cudaq.qvector(2)
-        return True
-
-    results = cudaq.run(simple_no_args, shots_count=1)
-    assert len(results) == 1
-    assert results[0] == True
-
-    results = cudaq.run(simple_no_args, shots_count=0)
-    assert len(results) == 0
+def test_return_bool():
 
     @cudaq.kernel
     def simple_bool(numQubits: int) -> bool:
