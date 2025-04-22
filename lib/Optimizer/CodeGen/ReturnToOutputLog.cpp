@@ -175,11 +175,12 @@ public:
                                             ArrayRef<Value>{size, label});
               std::string preStr = prefix ? prefix->str() : std::string{};
               auto rawBuffer = vecInit.getBuffer();
-              auto buffTy = cast<cudaq::cc::PointerType>(rawBuffer.getType());
-              Type ptrArrTy = buffTy;
-              if (!isa<cudaq::cc::ArrayType>(buffTy.getElementType()))
-                ptrArrTy = cudaq::cc::PointerType::get(
-                    cudaq::cc::ArrayType::get(buffTy.getElementType()));
+              auto eleTy = vecTy.getElementType();
+              if (eleTy == rewriter.getI1Type())
+                eleTy = rewriter.getI8Type();
+              auto buffTy = cudaq::cc::PointerType::get(eleTy);
+              auto ptrArrTy =
+                  cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
               Value buffer =
                   rewriter.create<cudaq::cc::CastOp>(loc, ptrArrTy, rawBuffer);
               for (std::int32_t i = 0; i < sz; ++i) {

@@ -222,3 +222,19 @@ struct CliffHanger {
 // CHECK:           call @__quantum__rt__int_record_output(%[[VAL_15]], %[[VAL_14]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
+
+__qpu__ std::vector<float> unary_test_list(int count) {
+ cudaq::qvector v(count);
+ std::vector<float> vec {0, 1};
+ return vec;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unary_test_list._Z15unary_test_listi(
+// CHECK:           %[[VAL_14:.*]] = cc.string_literal "array<f32 x 2>" : !cc.ptr<!cc.array<i8 x 15>>
+// CHECK:           call @__quantum__rt__array_record_output(%{{.*}}, %{{.*}}) : (i64, !cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_19:.*]] = cc.string_literal "[0]" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK:           call @__quantum__rt__double_record_output(%{{.*}}, %{{.*}}) : (f64, !cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_24:.*]] = cc.string_literal "[1]" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK:           call @__quantum__rt__double_record_output(%{{.*}}, %{{.*}}) : (f64, !cc.ptr<i8>) -> ()
+// CHECK:           return
+// CHECK:         }
