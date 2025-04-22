@@ -140,6 +140,10 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 return F64Type.get()
             if annotation.attr == 'float32':
                 return F32Type.get()
+            if annotation.attr == 'int64':
+                return IntegerType.get_signless(64)
+            if annotation.attr == 'int32':
+                return IntegerType.get_signless(32)
 
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
@@ -253,8 +257,10 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
-    if argType == int:
+    if argType in [int, np.int64]:
         return IntegerType.get_signless(64, ctx)
+    if argType == np.int32:
+        return IntegerType.get_signless(32, ctx)
     if argType in [float, np.float64]:
         return F64Type.get(ctx)
     if argType == np.float32:
@@ -311,8 +317,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
         if isinstance(argInstance[0], bool):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
-        if isinstance(argInstance[0], int):
+        if isinstance(argInstance[0], (int, np.int64)):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
+        if isinstance(argInstance[0], np.int32):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int32, ctx))
+
         if isinstance(argInstance[0], (float, np.float64)):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
         if isinstance(argInstance[0], np.float32):
@@ -390,6 +399,8 @@ def mlirTypeToPyType(argType):
     if IntegerType.isinstance(argType):
         if IntegerType(argType).width == 1:
             return bool
+        if IntegerType(argType).width == 32:
+            return np.int32
         return int
 
     if F64Type.isinstance(argType):

@@ -172,6 +172,11 @@ inline pybind11::object convert(bool value) {
 }
 
 template <>
+inline pybind11::object convert(int value) {
+  return pybind11::int_(value);
+}
+
+template <>
 inline pybind11::object convert(long value) {
   return pybind11::int_(value);
 }

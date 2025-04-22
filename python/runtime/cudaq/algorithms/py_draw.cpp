@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "cudaq/algorithms/draw.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
-
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
 #include <string>
@@ -16,9 +16,6 @@
 #include <vector>
 
 namespace cudaq {
-
-void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
-                       const std::vector<std::string> &);
 
 namespace {
 std::tuple<std::string, MlirModule, OpaqueArguments *>
