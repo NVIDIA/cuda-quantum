@@ -254,8 +254,8 @@ void cudaq::RecordLogDecoder::handleOutput(
     throw std::runtime_error("Insufficient data in a record");
   if ((schema == SchemaType::LABELED) && (entries.size() != 4))
     throw std::runtime_error("Unexpected record size for a labeled record");
-  std::string recType = entries[1];
-  std::string recValue = entries[2];
+  const std::string& recType = entries[1];
+  const std::string& recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
   if (recType == "RESULT")
     throw std::runtime_error("This type is not yet supported");
