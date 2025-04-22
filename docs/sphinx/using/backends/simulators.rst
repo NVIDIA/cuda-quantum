@@ -7,7 +7,7 @@ following sections follow the structure of the figure and provide additional
 technical details and code examples for using each circuit simulator.
 
 .. figure:: circuitsimulators.png
-   :width: 600
+   :width: 900
    :align: center
 
 .. list-table:: Simulators In CUDA-Q
@@ -26,47 +26,53 @@ technical details and code examples for using each circuit simulator.
      - CPU
      - double
      - < 28
-   * - `nvidia`
+   * - `nvidia` *
      - State Vector
      - General purpose (default); Trajectory simulation for noisy circuits
      - Single GPU
-     - single / double
+     - single (default) / double
      - < 33 / 32 (64 GB)
-   * - `nvidia, option=mgpu`
+   * - `nvidia, option=mgpu` *
      - State Vector
      - Large-scale simulation
      - multi-GPU multi-node
-     - single / double
+     - single (default) / double
      - 33+
-   * - `tensornet`
+   * - `tensornet` *
      - Tensor Network
-     - Shallow-depth (low-entanglement) and high width circuits
+     - Shallow-depth (low-entanglement) and high width circuits (exact)
      - multi-GPU multi-node
-     - single / double
+     - double
      - Thousands 
-   * - `tensornet-mps`
+   * - `tensornet-mps` *
      - Matrix Product State
-     - Square-shaped circuits
+     - Square-shaped circuits (approximate)
      - Single GPU
-     - single / double
+     - double
      - Hundreds
    * - `fermioniq`
-     - Various
-     - Various
+     - Matrix Product State
+     - Square-shaped circuits (approximate)
      - Single GPU
-     - Various
-     - Various
-   * - `nvidia, option=mqpu`
+     - double
+     - Hundreds
+   * - `nvidia, option=mqpu` *
      - State Vector 
      - Asynchronous distribution across multiple simulated QPUs to speedup applications
      - multi-GPU multi-node
-     - single / double
+     - single (default) / double
      - < 33 / 32 (64 GB)
-   * - `remote-mqpu`
+   * - `remote-mqpu` *
      - State Vector / Tensor Network
      - Combine `mqpu` with other backend like `tensornet` and `mgpu`
      - varies
      - varies
+     - varies
+   * - Trajectory Noisy Simulation
+     - works with all simulators marked *
+     - Noisy trajectory simulations
+     - multi-GPU multi-node
+     - double
      - varies
    * - `density-matrix-cpu`
      - Density Matrix

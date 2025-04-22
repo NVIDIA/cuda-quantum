@@ -130,8 +130,17 @@ fi
 
 # Determine linker and linker flags
 if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
-  echo "Configuring nvq++ to use the lld linker by default."
+  echo "Configuring nvq++ and local build to use the lld linker by default."
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
+  LINKER_TO_USE="lld"
+  LINKER_FLAGS="-fuse-ld=lld -B$LLVM_INSTALL_PREFIX/bin"
+  LINKER_FLAG_LIST="\
+    -DCMAKE_LINKER='"$LINKER_TO_USE"' \
+    -DCMAKE_EXE_LINKER_FLAGS='"$LINKER_FLAGS"' \
+    -DLLVM_USE_LINKER='"$LINKER_TO_USE"'"
+else
+  echo "No lld linker detected. Using the system linker."
+  LINKER_FLAG_LIST=""
 fi
 
 # Determine CUDA flags
@@ -163,6 +172,7 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
   -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
   -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
+  ${LINKER_FLAG_LIST} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_C_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_CXX_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \
