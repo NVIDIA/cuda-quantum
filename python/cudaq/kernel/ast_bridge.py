@@ -4248,8 +4248,8 @@ class PyASTBridge(ast.NodeVisitor):
             node)
 
 
-def compile_to_mlir(astModule, metadata,
-                    capturedDataStorage: CapturedDataStorage, **kwargs):
+def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
+                    **kwargs):
     """
     Compile the given Python AST Module for the CUDA-Q 
     kernel FunctionDef to an MLIR `ModuleOp`. 
@@ -4332,9 +4332,10 @@ def compile_to_mlir(astModule, metadata,
     if verbose:
         print(bridge.module)
 
-    # Canonicalize the code
-    pm = PassManager.parse("builtin.module(canonicalize,cse)",
-                           context=bridge.ctx)
+    # Canonicalize the code, check for measurement(s) readout
+    pm = PassManager.parse(
+        "builtin.module(canonicalize,cse,func.func(quake-add-metadata))",
+        context=bridge.ctx)
 
     try:
         pm.run(bridge.module)
@@ -4342,12 +4343,6 @@ def compile_to_mlir(astModule, metadata,
         raise RuntimeError("could not compile code for '{}'.".format(
             bridge.name))
 
-    if metadata['conditionalOnMeasure']:
-        SymbolTable(
-            bridge.module.operation)[nvqppPrefix +
-                                     bridge.name].attributes.__setitem__(
-                                         'qubitMeasurementFeedback',
-                                         BoolAttr.get(True, context=bridge.ctx))
     extraMetaData = {}
     if len(bridge.dependentCaptureVars):
         extraMetaData['dependent_captures'] = bridge.dependentCaptureVars
