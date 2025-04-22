@@ -186,7 +186,6 @@ coupler
 couplers
 cuQuantum
 cuTensor
-cuda
 cudaq
 dataflow
 ddots
@@ -257,7 +256,6 @@ integrators
 interferometer
 interoperational
 intrinsics
-io
 iterable
 iteratively
 kets
@@ -279,7 +277,6 @@ namespaces
 natively
 normalization
 nullary
-nvidia
 observables
 optimizer
 optimizers
