@@ -106,6 +106,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">   Quick Start</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#validate-your-installation">Validate your Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cuda-q-academic">CUDA-Q Academic</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="basics/basics.html">   Basics</a><ul>
@@ -203,6 +204,22 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/dynamics_examples.html">   Dynamics Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#cavity-qed">Cavity QED</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#pulse">Pulse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#qubit-dynamics">Qubit Dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#silicon-spin-qubit">Silicon Spin Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#tensor-callback">Tensor Callback</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#transmon-resonator">Transmon Resonator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#initial-state-multi-gpu-multi-node">Initial State (Multi-GPU Multi-Node)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
 </ul>
 </li>
 </ul>
@@ -382,6 +399,16 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/shors.html">Factoring Integers With Shor’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/shors.html#Shor's-algorithm">Shor’s algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/shors.html#Solving-the-order-finding-problem-classically">Solving the order-finding problem classically</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/shors.html#Solving-the-order-finding-problem-with-a-quantum-algorithm">Solving the order-finding problem with a quantum algorithm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/shors.html#Determining-the-order-from-the-measurement-results-of-the-phase-kernel">Determining the order from the measurement results of the phase kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/shors.html#Postscript">Postscript</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="backends/backends.html">   Backends</a><ul>
@@ -465,6 +492,7 @@
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#numerical-integrators">Numerical Integrators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamics.html#examples">Examples</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cudaqx/cudaqx.html">   CUDA-QX</a><ul>
@@ -948,6 +976,19 @@ For further information on available targets, see <a class="reference internal" 
 <p>You are now all set to start developing quantum applications using CUDA-Q!
 Please proceed to <a class="reference internal" href="basics/basics.html"><span class="doc">Basics</span></a> for an introduction
 to the fundamental features of CUDA-Q.</p>
+</section>
+<section id="cuda-q-academic">
+<h2>CUDA-Q Academic<a class="headerlink" href="#cuda-q-academic" title="Permalink to this heading">¶</a></h2>
+<p><a class="reference external" href="https://github.com/NVIDIA/cuda-q-academic">CUDA-Q Academic</a>  is a collection of courses designed for academic use based on the CUDA-Q platform.  Courses range in complexity from the basics of quantum computing up to implementations of algorithms from the research literature.  Users will learn quantum computing, CUDA-Q, and how to run hybrid algorithms that make the most of QPUs and AI supercomputers through coding exercises and interactive lessons.</p>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="../_images/widget-recording.gif"><img alt="../_images/widget-recording.gif" src="../_images/widget-recording.gif" style="width: 500px;" /></a>
+<figcaption>
+<p><span class="caption-text">Example of the interactive material within CUDA-Q Academic.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The courses can be run using a local installation of CUDA-Q or via the cloud using <code class="code docutils literal notranslate"><span class="pre">qBraid</span></code>, <code class="code docutils literal notranslate"><span class="pre">CoCalc</span></code>, or <code class="code docutils literal notranslate"><span class="pre">Google</span> <span class="pre">Colab</span></code>.</p>
+<p>Users just learning quantum computing are encouraged to begin with the <a class="reference external" href="https://github.com/NVIDIA/cuda-q-academic/blob/main/quick-start-to-quantum/READ_ME.md">Quick Start to Quantum</a> course which provides an introduction to the basics of quantum computing and helps you implement your first algorithm.</p>
+<p>Advanced users can choose from a number of learning paths spanning topics ranging from QEC to hybrid algorithms <a class="reference external" href="https://github.com/NVIDIA/cuda-q-academic">here</a> .</p>
 </section>
 </section>
 

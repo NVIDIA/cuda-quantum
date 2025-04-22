@@ -106,6 +106,7 @@
 <li class="toctree-l1"><a class="reference internal" href="quick_start.html">   Quick Start</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quick_start.html#validate-your-installation">Validate your Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quick_start.html#cuda-q-academic">CUDA-Q Academic</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="basics/basics.html">   Basics</a><ul>
@@ -203,6 +204,22 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/dynamics_examples.html">   Dynamics Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#cavity-qed">Cavity QED</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#pulse">Pulse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#qubit-dynamics">Qubit Dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#silicon-spin-qubit">Silicon Spin Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#tensor-callback">Tensor Callback</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#transmon-resonator">Transmon Resonator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#initial-state-multi-gpu-multi-node">Initial State (Multi-GPU Multi-Node)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
 </ul>
 </li>
 </ul>
@@ -382,6 +399,16 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/shors.html">Factoring Integers With Shor’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/shors.html#Shor's-algorithm">Shor’s algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/shors.html#Solving-the-order-finding-problem-classically">Solving the order-finding problem classically</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/shors.html#Solving-the-order-finding-problem-with-a-quantum-algorithm">Solving the order-finding problem with a quantum algorithm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/shors.html#Determining-the-order-from-the-measurement-results-of-the-phase-kernel">Determining the order from the measurement results of the phase kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/shors.html#Postscript">Postscript</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="backends/backends.html">   Backends</a><ul>
@@ -465,6 +492,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#numerical-integrators">Numerical Integrators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cudaqx/cudaqx.html">   CUDA-QX</a><ul>
@@ -1227,6 +1255,10 @@ but the selected integrator does not support distributed state.</p>
 <li><p>Some combinations of quantum states and quantum many-body operators are not supported. Errors will be raised in those cases.</p></li>
 </ul>
 </div>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading">¶</a></h2>
+<p>The <a class="reference internal" href="examples/dynamics_examples.html#dynamics-examples"><span class="std std-ref">Dynamics Examples</span></a> section of the docs contains a number of excellent dynamics examples demonstrating how to simulate basic physics models, specific qubit modalities, and utilize multi-GPU multi-Node capabilities.</p>
 </section>
 </section>
 

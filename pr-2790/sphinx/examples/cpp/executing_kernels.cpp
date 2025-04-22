@@ -68,7 +68,7 @@ cudaq::state t = cudaq::get_state(kernel, qubit_count);
 auto hamiltonian_1 = cudaq::spin::x(0) + cudaq::spin::y(1) +
                      cudaq::spin::z(0) * cudaq::spin::y(1);
 
-// Asynchronous execution on multiple `qpus` via nvidia gpus.
+// Asynchronous execution on multiple `qpus` via `nvidia` `gpus`.
 auto future = cudaq::observe_async(0, kernel, hamiltonian_1, qubit_count);
 
 auto result_1 = future.get();

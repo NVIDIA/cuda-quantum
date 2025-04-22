@@ -1,6 +1,11 @@
 CUDA-Q Applications
 ====================
 
+.. when adding applications
+.. 1. Add notebook to the hidden TOC list directly below
+.. 2. Add an html block along with any tags
+.. 3. Add a preview image in the _static folder
+
 .. toctree::
    :maxdepth: 1
    :hidden:
@@ -28,6 +33,7 @@ CUDA-Q Applications
    /applications/python/adapt_qaoa
    /applications/python/adapt_vqe
    /applications/python/edge_detection
+   /applications/python/shors
 
 
 
@@ -241,6 +247,14 @@ CUDA-Q Applications
         </div>
         <img src="../_static/app_title_images/edgedetection_preview.png" alt="Edge Detection Preview" class="notebook-image">
     </div>
+
+    <div class="notebook-entry" data-tags="fundamental,noiseless,gpu,cpu">
+        <a href="../applications/python/shors.html" class="notebook-title">Shor's Algorithm</a>
+        <div class="notebook-content">
+            Learn how to code the famous Shor's algorithm to factor a product of primes using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/shors_preview.png" alt="Shors Algorithm" class="notebook-image">
+    </div>    
 
     <script>
     document.addEventListener("DOMContentLoaded", function() {
