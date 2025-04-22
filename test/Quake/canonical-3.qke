@@ -80,3 +80,72 @@ func.func @__nvqpp__mlirgen__super() attributes {"cudaq-entrypoint", "cudaq-kern
 // CHECK:           return
 // CHECK:         }
 
+func.func private @if_test_call()
+
+func.func @if_test_1() {
+  %0 = arith.constant true
+  cc.if (%0) {
+    func.call @if_test_call() : () -> ()
+    cc.continue
+  }
+  return
+}
+
+func.func @if_test_2() {
+  %0 = arith.constant true
+  cc.if (%0) {
+    func.call @if_test_call() : () -> ()
+    cc.continue
+  } else {
+    cc.continue
+  }
+  return
+}
+
+func.func @if_test_3() {
+  %0 = arith.constant false
+  cc.if (%0) {
+    cc.continue
+  } else {
+    func.call @if_test_call() : () -> ()
+    cc.continue
+  }
+  return
+}
+
+func.func @if_test_4() {
+  %0 = arith.constant false
+  cc.if (%0) {
+    func.call @if_test_call() : () -> ()
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @if_test_1() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           cc.if(%[[VAL_0]]) {
+// CHECK:             func.call @if_test_call() : () -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @if_test_2() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           cc.if(%[[VAL_0]]) {
+// CHECK:             func.call @if_test_call() : () -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @if_test_3() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           cc.if(%[[VAL_0]]) {
+// CHECK:             func.call @if_test_call() : () -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @if_test_4() {
+// CHECK:           return
+// CHECK:         }
