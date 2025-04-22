@@ -1,0 +1,99 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "cudaq/algorithms/run.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include <pybind11/complex.h>
+#include <pybind11/stl.h>
+#include <string>
+#include <tuple>
+#include <vector>
+
+namespace cudaq {
+namespace details {
+
+std::vector<py::object> readRunResults(mlir::Type ty, RunResultSpan &results) {
+  std::vector<py::object> ret;
+  for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize(ty)) {
+    py::object obj = convertResult(ty, results.data + i);
+    ret.push_back(obj);
+  }
+  return ret;
+}
+
+static std::tuple<std::string, MlirModule, OpaqueArguments *,
+                  mlir::ArrayRef<mlir::Type>>
+getKernelLaunchParameters(py::object &kernel, py::args args) {
+  if (py::len(kernel.attr("arguments")) != args.size())
+    throw std::runtime_error("Invalid number of arguments passed to run:" +
+                             std::to_string(args.size()) + " expected " +
+                             std::to_string(py::len(kernel.attr("arguments"))));
+
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  args = simplifiedValidateInputArguments(args);
+  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+
+  auto returnTypes = getKernelFuncOp(kernelMod, kernelName).getResultTypes();
+  return {kernelName, kernelMod, argData, returnTypes};
+}
+} // namespace details
+
+/// @brief Run `cudaq::run` on the provided kernel.
+std::vector<py::object> pyRun(py::object &kernel, py::args args,
+                              std::size_t shots_count,
+                              std::optional<noise_model> noise_model) {
+  auto [kernelName, kernelMod, argData, returnTypes] =
+      details::getKernelLaunchParameters(kernel, args);
+
+  if (returnTypes.empty() || returnTypes.size() > 1)
+    throw std::runtime_error(
+        "cudaq.run only supports kernels that return a value.");
+
+  auto returnTy = returnTypes[0];
+  auto mod = unwrap(kernelMod);
+  mod->setAttr(runtime::enableCudaqRun, mlir::UnitAttr::get(mod->getContext()));
+
+  auto &platform = get_platform();
+  if (noise_model.has_value()) {
+    if (platform.is_remote())
+      throw std::runtime_error(
+          "Noise model is not supported on remote platforms.");
+  }
+
+  if (shots_count == 0)
+    return {};
+
+  // Launch the kernel in the appropriate context.
+  if (noise_model.has_value())
+    platform.set_noise(&noise_model.value());
+
+  auto results = details::runTheKernel(
+      [&]() mutable { pyAltLaunchKernel(kernelName, kernelMod, *argData, {}); },
+      platform, kernelName, shots_count);
+  delete argData;
+
+  if (noise_model.has_value())
+    platform.reset_noise();
+
+  mod->removeAttr(runtime::enableCudaqRun);
+  return details::readRunResults(returnTy, results);
+}
+
+/// @brief Bind the run cudaq function
+void bindPyRun(py::module &mod) {
+  mod.def("run", &pyRun, py::arg("kernel"), py::kw_only(),
+          py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
+          R"#()#");
+}
+} // namespace cudaq
