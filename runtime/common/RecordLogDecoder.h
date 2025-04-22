@@ -48,11 +48,13 @@ private:
   /// A helper structure that provides handlers for various operations depending
   /// on the data types.
   struct TypeHandler {
-    std::function<void(const std::string &)> addRecord;
-    std::function<void()> allocateArray;
-    std::function<void(std::size_t, const std::string &)> insertIntoArray;
-    std::function<void()> allocateTuple;
-    std::function<void(std::size_t, const std::string &)> insertIntoTuple;
+    std::function<void(RecordLogDecoder *, const std::string &)> addRecord;
+    std::function<void(RecordLogDecoder *)> allocateArray;
+    std::function<void(RecordLogDecoder *, std::size_t, const std::string &)>
+        insertIntoArray;
+    std::function<void(RecordLogDecoder *)> allocateTuple;
+    std::function<void(RecordLogDecoder *, std::size_t, const std::string &)>
+        insertIntoTuple;
   };
 
   /// A helper structure to hold the current state of the container being
@@ -74,6 +76,13 @@ private:
     /// Parse string like "[0]" for array index, and ".0" for tuple index
     std::size_t extractIndex(const std::string &);
   };
+
+  static const std::unordered_map<
+      std::string,
+      std::function<void(RecordLogDecoder *, const std::vector<std::string> &)>>
+      recordHandlers;
+
+  static const std::unordered_map<std::string, TypeHandler> dataTypeMap;
 
   void handleHeader(const std::vector<std::string> &);
   void handleMetadata(const std::vector<std::string> &);
@@ -115,7 +124,6 @@ private:
   std::vector<char> buffer;
   SchemaType schema = SchemaType::ORDERED;
   OutputType currentOutput;
-  std::unordered_map<std::string, TypeHandler> dataTypeMap;
   ContainerHandler handler;
 };
 } // namespace cudaq

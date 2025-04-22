@@ -8,157 +8,188 @@
 
 #include "RecordLogDecoder.h"
 
+const std::unordered_map<std::string,
+                         std::function<void(cudaq::RecordLogDecoder *,
+                                            const std::vector<std::string> &)>>
+    cudaq::RecordLogDecoder::recordHandlers = {
+        {"HEADER",
+         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
+           self->handleHeader(entries);
+         }},
+        {"METADATA",
+         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
+           self->handleMetadata(entries);
+         }},
+        {"OUTPUT",
+         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
+           self->handleOutput(entries);
+         }},
+        {"START",
+         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
+           self->handleStart(entries);
+         }},
+        {"END",
+         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
+           self->handleEnd(entries);
+         }}};
+
+const std::unordered_map<std::string, cudaq::RecordLogDecoder::TypeHandler>
+    cudaq::RecordLogDecoder::dataTypeMap = {
+        {"i1",
+         {[](RecordLogDecoder *self, const std::string &value) {
+            self->addPrimitiveRecord<char>(
+                static_cast<char>(self->convertToBool(value)));
+          },
+          [](RecordLogDecoder *self) {
+            self->allocateArrayRecord<char>(self->handler.m_size);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoArray<char>(
+                index, static_cast<char>(self->convertToBool(value)));
+          },
+          [](RecordLogDecoder *self) {
+            self->buffer.resize(self->handler.offset + sizeof(char));
+            self->handler.tupleOffsets.push_back(self->handler.offset);
+            self->handler.offset += sizeof(char);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoTuple<char>(
+                index, static_cast<char>(self->convertToBool(value)));
+          }}},
+        {"i8",
+         {[](RecordLogDecoder *self, const std::string &value) {
+            self->addPrimitiveRecord<std::int8_t>(std::stoi(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->allocateArrayRecord<std::int8_t>(self->handler.m_size);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoArray<std::int8_t>(index, std::stoi(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->buffer.resize(self->handler.offset + sizeof(std::int8_t));
+            self->handler.tupleOffsets.push_back(self->handler.offset);
+            self->handler.offset += sizeof(std::int8_t);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoTuple<std::int8_t>(index, std::stoi(value));
+          }}},
+        {"i16",
+         {[](RecordLogDecoder *self, const std::string &value) {
+            self->addPrimitiveRecord<std::int16_t>(std::stoi(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->allocateArrayRecord<std::int16_t>(self->handler.m_size);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoArray<std::int16_t>(index, std::stoi(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->buffer.resize(self->handler.offset + sizeof(std::int16_t));
+            self->handler.tupleOffsets.push_back(self->handler.offset);
+            self->handler.offset += sizeof(std::int16_t);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoTuple<std::int16_t>(index, std::stoi(value));
+          }}},
+        {"i32",
+         {[](RecordLogDecoder *self, const std::string &value) {
+            self->addPrimitiveRecord<std::int32_t>(std::stoi(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->allocateArrayRecord<std::int32_t>(self->handler.m_size);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoArray<std::int32_t>(index, std::stoi(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->buffer.resize(self->handler.offset + sizeof(std::int32_t));
+            self->handler.tupleOffsets.push_back(self->handler.offset);
+            self->handler.offset += sizeof(std::int32_t);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoTuple<std::int32_t>(index, std::stoi(value));
+          }}},
+        {"i64",
+         {[](RecordLogDecoder *self, const std::string &value) {
+            self->addPrimitiveRecord<std::int64_t>(std::stoll(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->allocateArrayRecord<std::int64_t>(self->handler.m_size);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoArray<std::int64_t>(index, std::stoll(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->buffer.resize(self->handler.offset + sizeof(std::int64_t));
+            self->handler.tupleOffsets.push_back(self->handler.offset);
+            self->handler.offset += sizeof(std::int64_t);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoTuple<std::int64_t>(index, std::stoll(value));
+          }}},
+        {"f32",
+         {[](RecordLogDecoder *self, const std::string &value) {
+            self->addPrimitiveRecord<float>(std::stof(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->allocateArrayRecord<float>(self->handler.m_size);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoArray<float>(index, std::stof(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->buffer.resize(self->handler.offset + sizeof(float));
+            self->handler.tupleOffsets.push_back(self->handler.offset);
+            self->handler.offset += sizeof(float);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoTuple<float>(index, std::stof(value));
+          }}},
+        {"f64",
+         {[](RecordLogDecoder *self, const std::string &value) {
+            self->addPrimitiveRecord<double>(std::stod(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->allocateArrayRecord<double>(self->handler.m_size);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoArray<double>(index, std::stod(value));
+          },
+          [](RecordLogDecoder *self) {
+            self->buffer.resize(self->handler.offset + sizeof(double));
+            self->handler.tupleOffsets.push_back(self->handler.offset);
+            self->handler.offset += sizeof(double);
+          },
+          [](RecordLogDecoder *self, std::size_t index,
+             const std::string &value) {
+            self->insertIntoTuple<double>(index, std::stod(value));
+          }}}};
+
 void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;
-
-  std::unordered_map<std::string,
-                     std::function<void(const std::vector<std::string> &)>>
-      recordHandlers = {
-          {"HEADER",
-           [this](const std::vector<std::string> &entries) {
-             handleHeader(entries);
-           }},
-          {"METADATA",
-           [this](const std::vector<std::string> &entries) {
-             handleMetadata(entries);
-           }},
-          {"OUTPUT",
-           [this](const std::vector<std::string> &entries) {
-             handleOutput(entries);
-           }},
-          {"START",
-           [this](const std::vector<std::string> &entries) {
-             handleStart(entries);
-           }},
-          {"END",
-           [this](const std::vector<std::string> &entries) {
-             handleEnd(entries);
-           }},
-      };
-
-  dataTypeMap = {
-      {"i1",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<char>(static_cast<char>(convertToBool(value)));
-        },
-        [this]() { allocateArrayRecord<char>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<char>(index, static_cast<char>(convertToBool(value)));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(char));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(char);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<char>(index, static_cast<char>(convertToBool(value)));
-        }}},
-      {"i8",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<std::int8_t>(std::stoi(value));
-        },
-        [this]() { allocateArrayRecord<std::int8_t>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<std::int8_t>(index, std::stoi(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(std::int8_t));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(std::int8_t);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<std::int8_t>(index, std::stoi(value));
-        }}},
-      {"i16",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<std::int16_t>(std::stoi(value));
-        },
-        [this]() { allocateArrayRecord<std::int16_t>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<std::int16_t>(index, std::stoi(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(std::int16_t));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(std::int16_t);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<std::int16_t>(index, std::stoi(value));
-        }}},
-      {"i32",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<std::int32_t>(std::stoi(value));
-        },
-        [this]() { allocateArrayRecord<std::int32_t>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<std::int32_t>(index, std::stoi(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(std::int32_t));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(std::int32_t);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<std::int32_t>(index, std::stoi(value));
-        }}},
-      {"i64",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<std::int64_t>(std::stoll(value));
-        },
-        [this]() { allocateArrayRecord<std::int64_t>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<std::int64_t>(index, std::stoll(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(std::int64_t));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(std::int64_t);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<std::int64_t>(index, std::stoll(value));
-        }}},
-      {"f32",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<float>(std::stof(value));
-        },
-        [this]() { allocateArrayRecord<float>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<float>(index, std::stof(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(float));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(float);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<float>(index, std::stof(value));
-        }}},
-      {"f64",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<double>(std::stod(value));
-        },
-        [this]() { allocateArrayRecord<double>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<double>(index, std::stod(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(double));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(double);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<double>(index, std::stod(value));
-        }}}};
-
   for (const auto &line : lines) {
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
     auto it = recordHandlers.find(entries[0]);
     if (it != recordHandlers.end()) {
-      it->second(entries);
+      it->second(this, entries);
     } else {
       throw std::runtime_error("Invalid record type: " + entries[0]);
     }
@@ -209,7 +240,7 @@ void cudaq::RecordLogDecoder::ContainerHandler::extractTupleInfo(
 std::size_t cudaq::RecordLogDecoder::ContainerHandler::extractIndex(
     const std::string &label) {
   if ((label[0] == '[') && (label[label.size() - 1] == ']'))
-    return std::stoi(label.substr(1, label.size() - 1));
+    return std::stoi(label.substr(1, label.size() - 2));
   if (label[0] == '.')
     return std::stoi(label.substr(1, label.size() - 1));
   throw std::runtime_error("Index not found in label");
@@ -303,7 +334,7 @@ void cudaq::RecordLogDecoder::handleOutput(
 void cudaq::RecordLogDecoder::preallocateArray() {
   auto it = dataTypeMap.find(handler.arrayType);
   if (it != dataTypeMap.end())
-    it->second.allocateArray();
+    it->second.allocateArray(this);
   else
     throw std::runtime_error("Unsupported array type");
 }
@@ -313,7 +344,7 @@ void cudaq::RecordLogDecoder::preallocateTuple() {
   for (auto ty : handler.tupleTypes) {
     auto it = dataTypeMap.find(ty);
     if (it != dataTypeMap.end())
-      it->second.allocateTuple();
+      it->second.allocateTuple(this);
     else
       throw std::runtime_error("Unsupported array type");
   }
@@ -341,7 +372,7 @@ void cudaq::RecordLogDecoder::processSingleRecord(const std::string &recValue,
   }
   auto it = dataTypeMap.find(label);
   if (it != dataTypeMap.end())
-    it->second.addRecord(recValue);
+    it->second.addRecord(this, recValue);
   else
     throw std::runtime_error("Unsupported output type");
 }
@@ -351,7 +382,7 @@ void cudaq::RecordLogDecoder::processArrayEntry(const std::string &recValue,
   std::size_t index = handler.extractIndex(recLabel);
   auto it = dataTypeMap.find(handler.arrayType);
   if (it != dataTypeMap.end())
-    it->second.insertIntoArray(index, recValue);
+    it->second.insertIntoArray(this, index, recValue);
   else
     throw std::runtime_error("Unsupported output type");
 }
@@ -361,7 +392,7 @@ void cudaq::RecordLogDecoder::processTupleEntry(const std::string &recValue,
   std::size_t index = handler.extractIndex(recLabel);
   auto it = dataTypeMap.find(handler.tupleTypes[index]);
   if (it != dataTypeMap.end())
-    it->second.insertIntoTuple(index, recValue);
+    it->second.insertIntoTuple(this, index, recValue);
   else
     throw std::runtime_error("Unsupported tuple type");
 }
