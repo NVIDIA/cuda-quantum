@@ -254,8 +254,8 @@ void cudaq::RecordLogDecoder::handleOutput(
     throw std::runtime_error("Insufficient data in a record");
   if ((schema == SchemaType::LABELED) && (entries.size() != 4))
     throw std::runtime_error("Unexpected record size for a labeled record");
-  const std::string& recType = entries[1];
-  const std::string& recValue = entries[2];
+  const std::string &recType = entries[1];
+  const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
   if (recType == "RESULT")
     throw std::runtime_error("This type is not yet supported");
@@ -279,11 +279,11 @@ void cudaq::RecordLogDecoder::handleOutput(
     }
     return;
   }
-  if ("BOOL" == recType)
+  if (recType == "BOOL")
     currentOutput = OutputType::BOOL;
-  else if ("INT" == recType)
+  else if (recType == "INT")
     currentOutput = OutputType::INT;
-  else if ("DOUBLE" == recType)
+  else if (recType == "DOUBLE")
     currentOutput = OutputType::DOUBLE;
   else
     throw std::runtime_error("Invalid data");
@@ -320,9 +320,9 @@ void cudaq::RecordLogDecoder::preallocateTuple() {
 }
 
 bool cudaq::RecordLogDecoder::convertToBool(const std::string &value) {
-  if (value == "true")
+  if ((value == "true") || (value == "1"))
     return true;
-  else if (value == "false")
+  else if ((value == "false") || (value == "0"))
     return false;
   else
     throw std::runtime_error("Invalid boolean value");

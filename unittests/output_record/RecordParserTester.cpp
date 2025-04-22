@@ -21,6 +21,23 @@ CUDAQ_TEST(ParserTester, checkSingleBoolean) {
   origBuffer = nullptr;
 }
 
+CUDAQ_TEST(ParserTester, checkMoreBoolean) {
+  const std::string log = "OUTPUT\tBOOL\t1\ti1\n"
+                          "OUTPUT\tBOOL\t0\ti1\n";
+  cudaq::RecordLogDecoder parser;
+  parser.decode(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  EXPECT_EQ(2, bufferSize / sizeof(char));
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  EXPECT_EQ(true, buffer[0]);
+  EXPECT_EQ(false, buffer[1]);
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
 CUDAQ_TEST(ParserTester, checkIntegers) {
   const std::string log = "OUTPUT\tINT\t0\ti32\n"
                           "OUTPUT\tINT\t1\ti32\n"
