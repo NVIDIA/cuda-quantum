@@ -19,10 +19,12 @@
 namespace cudaq {
 namespace details {
 
-std::vector<py::object> readRunResults(mlir::Type ty, RunResultSpan &results) {
+std::vector<py::object> readRunResults(mlir::Type ty, RunResultSpan &results,
+                                       std::size_t count) {
   std::vector<py::object> ret;
-  for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize(ty)) {
-    py::object obj = convertResult(ty, results.data + i);
+  std::size_t byteSize = results.lengthInBytes / count;
+  for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize) {
+    py::object obj = convertResult(ty, results.data + i, byteSize);
     ret.push_back(obj);
   }
   return ret;
@@ -87,7 +89,7 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
     platform.reset_noise();
 
   mod->removeAttr(runtime::enableCudaqRun);
-  return details::readRunResults(returnTy, results);
+  return details::readRunResults(returnTy, results, shots_count);
 }
 
 /// @brief Bind the run cudaq function

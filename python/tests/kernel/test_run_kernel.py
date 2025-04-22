@@ -202,6 +202,18 @@ def test_return_floating():
     assert results[1] == 3.0
 
 
+def test_return_list():
+
+    @cudaq.kernel
+    def simple_list_int() -> list[int]:
+        qubits = cudaq.qvector(2)
+        result = [0, 0]
+        return result
+
+    results = cudaq.run(simple_list_int, shots_count=2)
+    assert len(results) == 2
+
+
 def test_run_errors():
 
     @cudaq.kernel

@@ -1,0 +1,297 @@
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:211] Init infrastructure for pythonic builder.
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target anyon with config file anyon.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: anyon -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target braket with config file braket.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: braket -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target density-matrix-cpu with config file density-matrix-cpu.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:141] Use dm simulator for target density-matrix-cpu
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: density-matrix-cpu -> (sim=dm, platform=default)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target dynamics with config file dynamics.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:141] Use dynamics simulator for target dynamics
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: dynamics -> (sim=dynamics, platform=mqpu)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target fermioniq with config file fermioniq.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: fermioniq -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target infleqtion with config file infleqtion.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: infleqtion -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target ionq with config file ionq.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: ionq -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target iqm with config file iqm.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: iqm -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target nvidia-fp64 with config file nvidia-fp64.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:146] Skip cusvsim-fp64 simulator for target nvidia-fp64 since it is not available
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:141] Use custatevec-fp64 simulator for target nvidia-fp64
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: nvidia-fp64 -> (sim=custatevec_fp64, platform=default)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target nvidia-mqpu-fp64 with config file nvidia-mqpu-fp64.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:146] Skip cusvsim-fp64 simulator for target nvidia-mqpu-fp64 since it is not available
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:141] Use custatevec-fp64 simulator for target nvidia-mqpu-fp64
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: nvidia-mqpu-fp64 -> (sim=custatevec_fp64, platform=mqpu)
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:191] Found Target nvidia-mqpu-mps with config file nvidia-mqpu-mps.yml
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:141] Use tensornet-mps simulator for target nvidia-mqpu-mps
+[2025-04-21 22:59:45.568] [info] [LinkedLibraryHolder.cpp:201] Found Target: nvidia-mqpu-mps -> (sim=tensornet_mps, platform=mqpu)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target nvidia-mqpu with config file nvidia-mqpu.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:146] Skip cusvsim-fp32 simulator for target nvidia-mqpu since it is not available
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:141] Use custatevec-fp32 simulator for target nvidia-mqpu
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: nvidia-mqpu -> (sim=custatevec_fp32, platform=mqpu)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target nvidia with config file nvidia.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:146] Skip cusvsim-fp32 simulator for target nvidia since it is not available
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:141] Use custatevec-fp32 simulator for target nvidia
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: nvidia -> (sim=custatevec_fp32, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target nvqc with config file nvqc.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: nvqc -> (sim=qpp, platform=mqpu)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target opt-test with config file opt-test.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:146] Skip cusvsim-fp32 simulator for target opt-test since it is not available
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:141] Use custatevec-fp32 simulator for target opt-test
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: opt-test -> (sim=custatevec_fp32, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target oqc with config file oqc.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: oqc -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target orca-photonics with config file orca-photonics.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: orca-photonics -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target orca with config file orca.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: orca -> (sim=qpp, platform=mqpu)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target pasqal with config file pasqal.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: pasqal -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target qpp-cpu with config file qpp-cpu.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:141] Use qpp simulator for target qpp-cpu
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: qpp-cpu -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target quantinuum with config file quantinuum.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: quantinuum -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target quera with config file quera.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: quera -> (sim=qpp, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target remote-mqpu with config file remote-mqpu.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: remote-mqpu -> (sim=qpp, platform=mqpu)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target stim with config file stim.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:141] Use stim simulator for target stim
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: stim -> (sim=stim, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target tensornet-mps with config file tensornet-mps.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:141] Use tensornet-mps simulator for target tensornet-mps
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: tensornet-mps -> (sim=tensornet_mps, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:191] Found Target tensornet with config file tensornet.yml
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:141] Use tensornet simulator for target tensornet
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:201] Found Target: tensornet -> (sim=tensornet, platform=default)
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:236] Init: Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.569] [info] [LinkedLibraryHolder.cpp:328] Found platform plugin default.
+[2025-04-21 22:59:45.570] [info] [LinkedLibraryHolder.cpp:328] Found platform plugin mqpu.
+[2025-04-21 22:59:45.587] [info] [LinkedLibraryHolder.cpp:307] Found simulator plugin custatevec_fp32.
+[2025-04-21 22:59:45.587] [info] [LinkedLibraryHolder.cpp:307] Found simulator plugin custatevec_fp64.
+[2025-04-21 22:59:45.588] [info] [LinkedLibraryHolder.cpp:307] Found simulator plugin custatevec_kernels.
+[2025-04-21 22:59:45.588] [info] [LinkedLibraryHolder.cpp:307] Found simulator plugin dm.
+[2025-04-21 22:59:45.590] [info] [LinkedLibraryHolder.cpp:307] Found simulator plugin dynamics.
+[2025-04-21 22:59:45.590] [info] [LinkedLibraryHolder.cpp:307] Found simulator plugin qpp.
+[2025-04-21 22:59:45.590] [info] [LinkedLibraryHolder.cpp:307] Found simulator plugin stim.
+[2025-04-21 22:59:45.592] [info] [LinkedLibraryHolder.cpp:307] Found simulator plugin tensornet_mps.
+[2025-04-21 22:59:45.593] [info] [LinkedLibraryHolder.cpp:307] Found simulator plugin tensornet.
+[2025-04-21 22:59:45.669] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.669] [info] [LinkedLibraryHolder.cpp:146] Skip cusvsim-fp32 simulator for target nvidia since it is not available
+[2025-04-21 22:59:45.669] [info] [LinkedLibraryHolder.cpp:135] CUDA-Q Library Path is /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../lib.
+[2025-04-21 22:59:45.669] [info] [LinkedLibraryHolder.cpp:141] Use custatevec-fp32 simulator for target nvidia
+[2025-04-21 22:59:45.669] [info] [LinkedLibraryHolder.cpp:461] Setting target=nvidia (sim=custatevec_fp32, platform=default)
+[2025-04-21 22:59:45.669] [info] [PluginUtils.h:24] Requesting N5nvqir16CircuitSimulatorE plugin via symbol name getCircuitSimulator_custatevec_fp32.
+[2025-04-21 22:59:45.669] [info] [PluginUtils.h:36] Successfully loaded the plugin.
+[2025-04-21 22:59:45.830] [info] [NVQIR.cpp:71] [runtime] Setting the circuit simulator to custatevec-fp32.
+[2025-04-21 22:59:45.830] [info] [PluginUtils.h:24] Requesting N5cudaq16quantum_platformE plugin via symbol name getQuantumPlatform_default.
+[2025-04-21 22:59:45.830] [info] [PluginUtils.h:36] Successfully loaded the plugin.
+[2025-04-21 22:59:45.830] [info] [DefaultQuantumPlatform.cpp:88] Backend string is nvidia
+[2025-04-21 22:59:45.830] [info] [DefaultQuantumPlatform.cpp:105] Config file path = /usr/local/cudaq/cudaq/mlir/_mlir_libs/../../../targets/nvidia.yml
+[2025-04-21 22:59:45.830] [info] [quantum_platform.cpp:37] external caller setting the platform.
+[2025-04-21 22:59:45.831] [info] [execution_manager.cpp:21] external caller clearing the execution manager.
+[2025-04-21 22:59:46.783] [info] [CUDAQuantumExtension.cpp:69] Calling initialize_cudaq.
+[2025-04-21 22:59:46.789] [info] [DefaultExecutionManager.cpp:267] [DefaultExecutionManager] Creating the custatevec-fp32 backend.
+[2025-04-21 22:59:46.789] [info] [CircuitSimulator.h:1216] Setting current circuit name to 
+[2025-04-21 22:59:46.817] [info] [CircuitSimulator.h:990] Allocating 2 new qubits.
+[2025-04-21 22:59:46.817] [info] [CuStateVecCircuitSimulator.cpp:170] GPU 0 Allocating new qubit array of size 2.
+[2025-04-21 22:59:46.827] [info] [CircuitSimulator.h:1057] Deferring qubit 0 deallocation
+[2025-04-21 22:59:46.828] [info] [CircuitSimulator.h:1057] Deferring qubit 1 deallocation
+[2025-04-21 22:59:46.828] [info] [CircuitSimulator.h:1201] Deallocated all qubits, reseting state vector.
+[2025-04-21 22:59:46.828] [info] [CircuitSimulator.h:1216] Setting current circuit name to 
+[2025-04-21 22:59:46.828] [info] [cudaq.cpp:230] Replacing code for kernel simple_list_bool
+[2025-04-21 22:59:46.828] [info] [CircuitSimulator.h:990] Allocating 2 new qubits.
+[2025-04-21 22:59:46.828] [info] [CuStateVecCircuitSimulator.cpp:170] GPU 0 Allocating new qubit array of size 2.
+[2025-04-21 22:59:46.829] [info] [CircuitSimulator.h:1057] Deferring qubit 0 deallocation
+[2025-04-21 22:59:46.829] [info] [CircuitSimulator.h:1057] Deferring qubit 1 deallocation
+[2025-04-21 22:59:46.829] [info] [CircuitSimulator.h:1201] Deallocated all qubits, reseting state vector.
+OUTPUT
+OUTPUT	ARRAY	2	array<i1 x 2>
+OUTPUT	INT	1	[0]
+OUTPUT	INT	0	[1]
+OUTPUT	ARRAY	2	array<i1 x 2>
+OUTPUT	INT	1	[0]
+OUTPUT	INT	0	[1]
+
+END OUTPUT
+Boolean value: 1
+Boolean value: 0
+Boolean value: 1
+Boolean value: 0
+reading results
+  total bytes4
+  element bytes2
+Converting list elements: 2
+  bytes: 1
+  total bytes: 2
+  bytes: 1
+  total bytes: 2
+Converting list elements: 2
+  bytes: 1
+  total bytes: 2
+  bytes: 1
+  total bytes: 2
+[2025-04-21 22:59:46.833] [info] [CircuitSimulator.h:1216] Setting current circuit name to 
+[2025-04-21 22:59:46.861] [info] [CircuitSimulator.h:990] Allocating 2 new qubits.
+[2025-04-21 22:59:46.861] [info] [CuStateVecCircuitSimulator.cpp:170] GPU 0 Allocating new qubit array of size 2.
+[2025-04-21 22:59:46.862] [info] [CircuitSimulator.h:1057] Deferring qubit 0 deallocation
+[2025-04-21 22:59:46.862] [info] [CircuitSimulator.h:1057] Deferring qubit 1 deallocation
+[2025-04-21 22:59:46.862] [info] [CircuitSimulator.h:1201] Deallocated all qubits, reseting state vector.
+[2025-04-21 22:59:46.863] [info] [CircuitSimulator.h:1216] Setting current circuit name to 
+[2025-04-21 22:59:46.863] [info] [cudaq.cpp:230] Replacing code for kernel simple_list_int
+[2025-04-21 22:59:46.863] [info] [CircuitSimulator.h:990] Allocating 2 new qubits.
+[2025-04-21 22:59:46.863] [info] [CuStateVecCircuitSimulator.cpp:170] GPU 0 Allocating new qubit array of size 2.
+[2025-04-21 22:59:46.864] [info] [CircuitSimulator.h:1057] Deferring qubit 0 deallocation
+[2025-04-21 22:59:46.864] [info] [CircuitSimulator.h:1057] Deferring qubit 1 deallocation
+[2025-04-21 22:59:46.864] [info] [CircuitSimulator.h:1201] Deallocated all qubits, reseting state vector.
+OUTPUT
+OUTPUT	ARRAY	2	array<i64 x 2>
+OUTPUT	INT	2	[0]
+OUTPUT	INT	0	[1]
+OUTPUT	ARRAY	2	array<i64 x 2>
+OUTPUT	INT	2	[0]
+OUTPUT	INT	0	[1]
+
+END OUTPUT
+reading results
+  total bytes32
+  element bytes16
+Converting list elements: 16
+  bytes: 8
+  total bytes: 16
+  bytes: 8
+  total bytes: 16
+Converting list elements: 16
+  bytes: 8
+  total bytes: 16
+  bytes: 8
+  total bytes: 16
+[2025-04-21 22:59:46.870] [info] [CircuitSimulator.h:1216] Setting current circuit name to 
+[2025-04-21 22:59:46.899] [info] [CircuitSimulator.h:990] Allocating 2 new qubits.
+[2025-04-21 22:59:46.899] [info] [CuStateVecCircuitSimulator.cpp:170] GPU 0 Allocating new qubit array of size 2.
+[2025-04-21 22:59:46.900] [info] [CircuitSimulator.h:1057] Deferring qubit 0 deallocation
+[2025-04-21 22:59:46.900] [info] [CircuitSimulator.h:1057] Deferring qubit 1 deallocation
+[2025-04-21 22:59:46.900] [info] [CircuitSimulator.h:1201] Deallocated all qubits, reseting state vector.
+[2025-04-21 22:59:46.902] [info] [CircuitSimulator.h:1216] Setting current circuit name to 
+[2025-04-21 22:59:46.902] [info] [cudaq.cpp:230] Replacing code for kernel simple_list_int64
+[2025-04-21 22:59:46.902] [info] [CircuitSimulator.h:990] Allocating 2 new qubits.
+[2025-04-21 22:59:46.902] [info] [CuStateVecCircuitSimulator.cpp:170] GPU 0 Allocating new qubit array of size 2.
+[2025-04-21 22:59:46.903] [info] [CircuitSimulator.h:1057] Deferring qubit 0 deallocation
+[2025-04-21 22:59:46.903] [info] [CircuitSimulator.h:1057] Deferring qubit 1 deallocation
+[2025-04-21 22:59:46.903] [info] [CircuitSimulator.h:1201] Deallocated all qubits, reseting state vector.
+OUTPUT
+OUTPUT	ARRAY	2	array<i64 x 2>
+OUTPUT	INT	3	[0]
+OUTPUT	INT	0	[1]
+OUTPUT	ARRAY	2	array<i64 x 2>
+OUTPUT	INT	3	[0]
+OUTPUT	INT	0	[1]
+
+END OUTPUT
+reading results
+  total bytes32
+  element bytes16
+Converting list elements: 16
+  bytes: 8
+  total bytes: 16
+  bytes: 8
+  total bytes: 16
+Converting list elements: 16
+  bytes: 8
+  total bytes: 16
+  bytes: 8
+  total bytes: 16
+[2025-04-21 22:59:46.908] [info] [CircuitSimulator.h:1216] Setting current circuit name to 
+[2025-04-21 22:59:46.939] [info] [CircuitSimulator.h:990] Allocating 2 new qubits.
+[2025-04-21 22:59:46.939] [info] [CuStateVecCircuitSimulator.cpp:170] GPU 0 Allocating new qubit array of size 2.
+[2025-04-21 22:59:46.940] [info] [CircuitSimulator.h:1057] Deferring qubit 0 deallocation
+[2025-04-21 22:59:46.940] [info] [CircuitSimulator.h:1057] Deferring qubit 1 deallocation
+[2025-04-21 22:59:46.940] [info] [CircuitSimulator.h:1201] Deallocated all qubits, reseting state vector.
+[2025-04-21 22:59:46.941] [info] [CircuitSimulator.h:1216] Setting current circuit name to 
+[2025-04-21 22:59:46.941] [info] [cudaq.cpp:230] Replacing code for kernel simple_list_float
+[2025-04-21 22:59:46.941] [info] [CircuitSimulator.h:990] Allocating 2 new qubits.
+[2025-04-21 22:59:46.941] [info] [CuStateVecCircuitSimulator.cpp:170] GPU 0 Allocating new qubit array of size 2.
+[2025-04-21 22:59:46.942] [info] [CircuitSimulator.h:1057] Deferring qubit 0 deallocation
+[2025-04-21 22:59:46.942] [info] [CircuitSimulator.h:1057] Deferring qubit 1 deallocation
+[2025-04-21 22:59:46.942] [info] [CircuitSimulator.h:1201] Deallocated all qubits, reseting state vector.
+OUTPUT
+OUTPUT	ARRAY	2	array<f64 x 2>
+OUTPUT	INT	0	[0]
+OUTPUT	INT	0	[1]
+OUTPUT	ARRAY	2	array<f64 x 2>
+OUTPUT	INT	0	[0]
+OUTPUT	INT	0	[1]
+
+END OUTPUT
+Array: double value: 0
+Array: double value: 0
+Array: double value: 0
+Array: double value: 0
+reading results
+  total bytes32
+  element bytes16
+Converting list elements: 16
+  bytes: 8
+  total bytes: 16
+  bytes: 8
+  total bytes: 16
+Converting list elements: 16
+  bytes: 8
+  total bytes: 16
+  bytes: 8
+  total bytes: 16
+error: type of return operand 0 ('!cc.stdvec<f64>') doesn't match function result type ('!cc.stdvec<f32>') in function @__nvqpp__mlirgen__simple_list_float32
+True
+False
+[True, False]
+True
+False
+[True, False]
+[[True, False], [True, False]]
+2
+0
+[2, 0]
+2
+0
+[2, 0]
+[[2, 0], [2, 0]]
+3
+0
+[3, 0]
+3
+0
+[3, 0]
+[[3, 0], [3, 0]]
+0.0
+0.0
+[0.0, 0.0]
+0.0
+0.0
+[0.0, 0.0]
+[[0.0, 0.0], [0.0, 0.0]]
+RuntimeError: Failure while executing pass pipeline.
+
+During handling of the above exception, another exception occurred:
+
+RuntimeError: could not compile code for 'simple_list_float32'.

@@ -482,7 +482,7 @@ py::object readPyObject(mlir::Type ty, char *arg) {
   return py_ext::convert<T>(concrete);
 }
 
-py::object convertResult(mlir::Type ty, char *data) {
+py::object convertResult(mlir::Type ty, char *data, std::size_t size) {
   return llvm::TypeSwitch<mlir::Type, py::object>(ty)
       .Case([&](IntegerType ty) -> py::object {
         if (ty.getIntOrFloatBitWidth() == 1)
@@ -512,6 +512,14 @@ py::object convertResult(mlir::Type ty, char *data) {
       .Case([&](Float32Type ty) -> py::object {
         return readPyObject<float>(ty, data);
       })
+      .Case([&](cudaq::cc::StdvecType ty) -> py::object {
+        py::list list;
+        auto eleTy = ty.getElementType();
+        auto eleByteSize = byteSize(eleTy);
+        for (std::size_t i = 0; i < size; i += eleByteSize)
+          list.append(convertResult(eleTy, data + i, eleByteSize));
+        return list;
+      })
       .Default([](Type ty) -> py::object {
         ty.dump();
         throw std::runtime_error("Unsupported return type.");
@@ -529,7 +537,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   auto rawReturn = ((char *)rawArgs) + returnOffset;
 
   // Extract the return value from the rawReturn pointer.
-  auto returnValue = convertResult(unwrapped, rawReturn);
+  auto returnValue = convertResult(unwrapped, rawReturn, size - returnOffset);
 
   std::free(rawArgs);
   return returnValue;

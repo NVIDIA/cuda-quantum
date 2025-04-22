@@ -9,12 +9,11 @@
 #pragma once
 
 #include "cudaq/utils/cudaq_utils.h"
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <string>
-#include <vector>
+#include <functional>
+#include <unordered_map>
 
 namespace cudaq {
 
@@ -46,17 +45,47 @@ public:
   std::size_t getBufferSize() const { return buffer.size(); }
 
 private:
-  OutputType extractPrimitiveType(const std::string &label) {
-    if ('i' == label[0]) {
-      auto digits = std::stoi(label.substr(1));
-      if (1 == digits)
-        return OutputType::BOOL;
-      return OutputType::INT;
-    } else if ('f' == label[0]) {
-      return OutputType::DOUBLE;
-    }
-    throw std::runtime_error("Unknown datatype in label");
-  }
+  /// A helper structure that provides handlers for various operations depending
+  /// on the data types.
+  struct TypeHandler {
+    std::function<void(const std::string &)> addRecord;
+    std::function<void()> allocateArray;
+    std::function<void(std::size_t, const std::string &)> insertIntoArray;
+    std::function<void()> allocateTuple;
+    std::function<void(std::size_t, const std::string &)> insertIntoTuple;
+  };
+
+  /// A helper structure to hold the current state of the container being
+  /// processed.
+  /// TODO: Handle nested containers.
+  struct ContainerHandler {
+    ContainerType m_type = ContainerType::ARRAY;
+    std::size_t m_size = 0;
+    std::size_t processedElements = 0;
+    std::size_t offset;
+    std::string arrayType;
+    std::vector<std::string> tupleTypes;
+    std::vector<std::size_t> tupleOffsets;
+    void reset();
+    /// Parse string like "array<i32 x 4>"
+    void extractArrayInfo(const std::string &);
+    /// Parse string like "tuple<i32, f64>"
+    void extractTupleInfo(const std::string &);
+    /// Parse string like "[0]" for array index, and ".0" for tuple index
+    std::size_t extractIndex(const std::string &);
+  };
+
+  void handleHeader(const std::vector<std::string> &);
+  void handleMetadata(const std::vector<std::string> &);
+  void handleStart(const std::vector<std::string> &);
+  void handleEnd(const std::vector<std::string> &);
+  void handleOutput(const std::vector<std::string> &);
+  void preallocateArray();
+  void preallocateTuple();
+  bool convertToBool(const std::string &);
+  void processSingleRecord(const std::string &, const std::string &);
+  void processArrayEntry(const std::string &, const std::string &);
+  void processTupleEntry(const std::string &, const std::string &);
 
   template <typename T>
   void addPrimitiveRecord(T value) {
@@ -66,12 +95,27 @@ private:
     std::memcpy(buffer.data() + position, &value, sizeof(T));
   }
 
-  void processSingleRecord(const std::string &recValue,
-                           const std::string &recLabel);
+  template <typename T>
+  void allocateArrayRecord(size_t arrSize) {
+    handler.offset = buffer.size();
+    buffer.resize(handler.offset + (sizeof(T) * arrSize));
+  }
+
+  template <typename T>
+  void insertIntoArray(std::size_t index, T value) {
+    std::memcpy(buffer.data() + handler.offset + (index * sizeof(T)), &value,
+                sizeof(T));
+  }
+
+  template <typename T>
+  void insertIntoTuple(std::size_t index, T value) {
+    std::memcpy(buffer.data() + handler.tupleOffsets[index], &value, sizeof(T));
+  }
 
   std::vector<char> buffer;
   SchemaType schema = SchemaType::ORDERED;
-  RecordType currentRecord;
   OutputType currentOutput;
+  std::unordered_map<std::string, TypeHandler> dataTypeMap;
+  ContainerHandler handler;
 };
 } // namespace cudaq
