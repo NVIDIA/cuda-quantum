@@ -29,7 +29,7 @@ std::vector<py::object> readRunResults(mlir::Type ty, RunResultSpan &results) {
 }
 
 static std::tuple<std::string, MlirModule, OpaqueArguments *,
-           mlir::ArrayRef<mlir::Type>>
+                  mlir::ArrayRef<mlir::Type>>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::len(kernel.attr("arguments")) != args.size())
     throw std::runtime_error("Invalid number of arguments passed to run:" +
