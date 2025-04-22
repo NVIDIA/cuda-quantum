@@ -28,7 +28,7 @@ std::vector<py::object> readRunResults(mlir::Type ty, RunResultSpan &results) {
   return ret;
 }
 
-std::tuple<std::string, MlirModule, OpaqueArguments *,
+static std::tuple<std::string, MlirModule, OpaqueArguments *,
            mlir::ArrayRef<mlir::Type>>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::len(kernel.attr("arguments")) != args.size())
