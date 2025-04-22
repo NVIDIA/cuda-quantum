@@ -139,7 +139,7 @@ func.func @b_i8() -> i8 {
 }
 
 // CHECK:   func.func @b_i8() -> i8 {
-// CHECK:     %[[VAL_0:.*]] = arith.constant 1 : i8
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i8
 // CHECK:     return %[[VAL_0]] : i8
 // CHECK:   }
 
@@ -162,7 +162,7 @@ func.func @b_i16() -> i16 {
 }
 
 // CHECK:   func.func @b_i16() -> i16 {
-// CHECK:     %[[VAL_0:.*]] = arith.constant 1 : i16
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i16
 // CHECK:     return %[[VAL_0]] : i16
 // CHECK:   }
 
@@ -185,7 +185,7 @@ func.func @b_i32() -> i32 {
 }
 
 // CHECK:   func.func @b_i32() -> i32 {
-// CHECK:     %[[VAL_0:.*]] = arith.constant 1 : i32
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i32
 // CHECK:     return %[[VAL_0]] : i32
 // CHECK:   }
 
@@ -207,7 +207,7 @@ func.func @b_i64() -> i64 {
 }
 
 // CHECK:   func.func @b_i64() -> i64 {
-// CHECK:     %[[VAL_0:.*]] = arith.constant 1 : i64
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i64
 // CHECK:     return %[[VAL_0]] : i64
 // CHECK:   }
 

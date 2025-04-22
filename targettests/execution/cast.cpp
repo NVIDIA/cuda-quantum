@@ -22,6 +22,18 @@ std::string cast_and_compare(S val, D expected) {
 
 struct testBool {
   auto operator()() __qpu__ {
+    cudaq::qubit qb4;
+    bool b4 = (std::int32_t)(bool)(4);
+    if (b4 == 1) {
+      x(qb4);
+    }
+
+    cudaq::qubit qb_4;
+    bool b_4 = (std::int32_t)(bool)(-2);
+    if (b_4 == 1) {
+      x(qb_4);
+    }
+
     cudaq::qubit qb;
     bool b = (bool)(true);
     if (b == true) {
@@ -334,6 +346,9 @@ struct testConsecutiveCasts {
 int main() {
   {
     std::string expected = "";
+    expected += cast_and_compare<std::int64_t, bool>(4, 4);
+    expected += cast_and_compare<std::int64_t, bool>(-4, -4);
+
     expected += cast_and_compare<bool, bool>(true, 1);
 
     expected += cast_and_compare<bool, std::uint8_t>(true, 1);
@@ -485,8 +500,8 @@ int main() {
   return 0;
 }
 
-// CHECK: Expected: 111111111
-// CHECK: Actual:   111111111
+// CHECK: Expected: 11111111111
+// CHECK: Actual:   11111111111
 // CHECK: Expected: 111111111
 // CHECK: Actual:   111111111
 // CHECK: Expected: 111111111

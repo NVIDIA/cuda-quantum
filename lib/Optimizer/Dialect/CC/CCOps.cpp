@@ -254,47 +254,17 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
         auto srcTy = getValue().getType();
         auto srcWidth = srcTy.getIntOrFloatBitWidth();
 
-        // Cast the integer value of the cast op to the original type
-        // to get correct const value.
-        auto createConst = [&]<typename S>(S val) -> mlir::Value {
-          std::int64_t v = static_cast<std::int64_t>(val);
-          return builder.create<arith::ConstantIntOp>(loc, v, width)
-              .getResult();
-        };
+        if (getZint()) {
+          // Zero-extend to get the original integer value.
+          if (srcWidth < 64)
+            val &= ((((std::uint64_t)1) << srcWidth) - 1);
 
-        auto castAndCreateConst = [&](std::int64_t val) -> mlir::Value {
-          if (getZint()) {
-            switch (srcWidth) {
-            case 1:
-              return createConst.template operator()<bool>(val);
-            case 8:
-              return createConst.template operator()<std::uint8_t>(val);
-            case 16:
-              return createConst.template operator()<std::uint16_t>(val);
-            case 32:
-              return createConst.template operator()<std::uint32_t>(val);
-            case 64:
-              return createConst.template operator()<std::uint64_t>(val);
-            default:
-              return nullptr;
-            }
-          }
-          switch (srcWidth) {
-          case 1:
-            return createConst.template operator()<bool>(val);
-          case 8:
-            return createConst.template operator()<std::int8_t>(val);
-          case 16:
-            return createConst.template operator()<std::int16_t>(val);
-          case 32:
-            return createConst.template operator()<std::int32_t>(val);
-          case 64:
-            return createConst.template operator()<std::int64_t>(val);
-          default:
-            return nullptr;
-          }
-        };
-        return castAndCreateConst(val);
+          // Zero-extend to get new integer value.
+          if (width < 64)
+            val &= ((((std::uint64_t)1) << width) - 1);
+        }
+        return builder.create<arith::ConstantIntOp>(loc, val, width)
+            .getResult();
       } else if (ty == fltTy) {
         if (getZint()) {
           APFloat fval(static_cast<float>(static_cast<std::uint64_t>(val)));
