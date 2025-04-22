@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 // These patterns are used by the lower-to-cfg pass and cc-loop-unroll pass.
 
 // This file must be included after a `using namespace mlir;` as it uses bare
@@ -13,12 +14,10 @@
 namespace {
 class RewriteIf : public OpRewritePattern<cudaq::cc::IfOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
-
   explicit RewriteIf(MLIRContext *ctx)
       : OpRewritePattern(ctx), rewriteOnlyIfConst(false) {}
 
-  RewriteIf(MLIRContext *ctx, bool rewriteOnlyIfConst)
+  explicit RewriteIf(MLIRContext *ctx, bool rewriteOnlyIfConst)
       : OpRewritePattern(ctx), rewriteOnlyIfConst(rewriteOnlyIfConst) {}
 
   /// Rewrites an if construct like
@@ -46,11 +45,11 @@ public:
   /// ```
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
-    // Bail out on non-constant conditions if we just need to
-    // const-prop if($const).
+    // Bail out on non-constant conditions if we just need to rewrite if the
+    // condition value is constant.
     if (rewriteOnlyIfConst) {
-      auto cond = ifOp.getCondition();
-      if (!isa_and_present<arith::ConstantOp>(cond.getDefiningOp()))
+      auto cond = ifOp.getCondition().getDefiningOp<arith::ConstantIntOp>();
+      if (!cond)
         return failure();
     }
 
