@@ -114,6 +114,115 @@ def test_run_async_with_noise():
     cudaq.reset_target()
 
 
+def test_return_bool():
+
+    @cudaq.kernel
+    def simple_bool(numQubits: int) -> bool:
+        qubits = cudaq.qvector(numQubits)
+        return True
+
+    results = cudaq.run(simple_bool, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == True
+    assert results[1] == True
+
+
+def test_return_integral():
+
+    @cudaq.kernel
+    def simple_int(numQubits: int) -> int:
+        qubits = cudaq.qvector(numQubits)
+        return numQubits + 1
+
+    results = cudaq.run(simple_int, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 3
+    assert results[1] == 3
+
+    @cudaq.kernel
+    def simple_int32(numQubits: int) -> np.int32:
+        qubits = cudaq.qvector(numQubits)
+        return numQubits + 1
+
+    results = cudaq.run(simple_int32, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 3
+    assert results[1] == 3
+
+    @cudaq.kernel
+    def simple_int64(numQubits: int) -> np.int64:
+        qubits = cudaq.qvector(numQubits)
+        return numQubits + 1
+
+    results = cudaq.run(simple_int64, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 3
+    assert results[1] == 3
+
+
+def test_return_floating():
+
+    @cudaq.kernel()
+    def simple_float(numQubits: int) -> float:
+        return numQubits + 1
+
+    results = cudaq.run(simple_float, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 3.0
+    assert results[1] == 3.0
+
+    @cudaq.kernel
+    def simple_float32(numQubits: int) -> np.float32:
+        return numQubits + 1
+
+    results = cudaq.run(simple_float32, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 3.0
+    assert results[1] == 3.0
+
+    @cudaq.kernel
+    def simple_float64(numQubits: int) -> np.float64:
+        return numQubits + 1
+
+    results = cudaq.run(simple_float64, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 3.0
+    assert results[1] == 3.0
+
+
+def test_run_errors():
+
+    @cudaq.kernel
+    def simple_no_return(numQubits: int):
+        qubits = cudaq.qvector(numQubits)
+
+    @cudaq.kernel
+    def simple_no_args() -> int:
+        qubits = cudaq.qvector(2)
+        return 1
+
+    @cudaq.kernel
+    def simple(numQubits: int) -> int:
+        qubits = cudaq.qvector(numQubits)
+        return 1
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_no_return, 2)
+    assert 'cudaq.run only supports kernels that return a value.' in repr(e)
+
+    with pytest.raises(TypeError) as e:
+        cudaq.run(simple, 2, shots_count=-1)
+    assert 'incompatible function arguments.' in repr(e)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple, shots_count=100)
+    assert 'Invalid number of arguments passed to run:0 expected 1' in repr(e)
+
+    with pytest.raises(RuntimeError) as e:
+        print(cudaq.run(simple_no_args, 2, shots_count=100))
+    assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

@@ -17,15 +17,13 @@
 #include "cudaq/algorithms/optimizer.h"
 #include "py_utils.h"
 #include "py_vqe.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 
 namespace cudaq {
-
-void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
-                       const std::vector<std::string> &);
 
 void *pyGetKernelArgs(const std::string &name, MlirModule module,
                       cudaq::OpaqueArguments &runtimeArgs,

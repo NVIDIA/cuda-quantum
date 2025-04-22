@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "py_alt_launch_kernel.h"
 #include "JITExecutionCache.h"
 #include "common/AnalogHamiltonian.h"
 #include "common/ArgumentConversion.h"
@@ -466,14 +467,6 @@ void *pyGetKernelArgs(const std::string &name, MlirModule module,
   return rawArgs;
 }
 
-inline unsigned int byteSize(mlir::Type ty) {
-  if (isa<ComplexType>(ty)) {
-    auto eleTy = cast<ComplexType>(ty).getElementType();
-    return 2 * cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
-  }
-  return cudaq::opt::convertBitsToBytes(ty.getIntOrFloatBitWidth());
-}
-
 template <typename T>
 py::object readPyObject(mlir::Type ty, char *arg) {
   unsigned int bytes = byteSize(ty);
@@ -489,6 +482,42 @@ py::object readPyObject(mlir::Type ty, char *arg) {
   return py_ext::convert<T>(concrete);
 }
 
+py::object convertResult(mlir::Type ty, char *data) {
+  return llvm::TypeSwitch<mlir::Type, py::object>(ty)
+      .Case([&](IntegerType ty) -> py::object {
+        if (ty.getIntOrFloatBitWidth() == 1)
+          return readPyObject<bool>(ty, data);
+        if (ty.getIntOrFloatBitWidth() == 32)
+          return readPyObject<std::int32_t>(ty, data);
+        return readPyObject<std::int64_t>(ty, data);
+      })
+      .Case([&](mlir::ComplexType ty) -> py::object {
+        auto eleTy = ty.getElementType();
+        return llvm::TypeSwitch<mlir::Type, py::object>(eleTy)
+            .Case([&](mlir::Float64Type eTy) -> py::object {
+              return readPyObject<std::complex<double>>(ty, data);
+            })
+            .Case([&](mlir::Float32Type eTy) -> py::object {
+              return readPyObject<std::complex<float>>(ty, data);
+            })
+            .Default([](mlir::Type eTy) -> py::object {
+              eTy.dump();
+              throw std::runtime_error(
+                  "Unsupported float element type for complex type return.");
+            });
+      })
+      .Case([&](Float64Type ty) -> py::object {
+        return readPyObject<double>(ty, data);
+      })
+      .Case([&](Float32Type ty) -> py::object {
+        return readPyObject<float>(ty, data);
+      })
+      .Default([](Type ty) -> py::object {
+        ty.dump();
+        throw std::runtime_error("Unsupported return type.");
+      });
+}
+
 py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
@@ -500,41 +529,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   auto rawReturn = ((char *)rawArgs) + returnOffset;
 
   // Extract the return value from the rawReturn pointer.
-  py::object returnValue =
-      llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
-          .Case([&](IntegerType ty) -> py::object {
-            if (ty.getIntOrFloatBitWidth() == 1) {
-              return readPyObject<bool>(ty, rawReturn);
-            }
-            return readPyObject<long>(ty, rawReturn);
-          })
-          .Case([&](ComplexType ty) -> py::object {
-            auto eleTy = ty.getElementType();
-            return llvm::TypeSwitch<mlir::Type, py::object>(eleTy)
-                .Case([&](Float64Type eTy) -> py::object {
-                  return readPyObject<std::complex<double>>(ty, rawReturn);
-                })
-                .Case([&](Float32Type eTy) -> py::object {
-                  return readPyObject<std::complex<float>>(ty, rawReturn);
-                })
-                .Default([](Type eTy) -> py::object {
-                  eTy.dump();
-                  throw std::runtime_error(
-                      "Invalid float element type for return "
-                      "complex type for pyAltLaunchKernel.");
-                });
-          })
-          .Case([&](Float64Type ty) -> py::object {
-            return readPyObject<double>(ty, rawReturn);
-          })
-          .Case([&](Float32Type ty) -> py::object {
-            return readPyObject<float>(ty, rawReturn);
-          })
-          .Default([](Type ty) -> py::object {
-            ty.dump();
-            throw std::runtime_error(
-                "Invalid return type for pyAltLaunchKernel.");
-          });
+  auto returnValue = convertResult(unwrapped, rawReturn);
 
   std::free(rawArgs);
   return returnValue;
