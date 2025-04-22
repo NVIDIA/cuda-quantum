@@ -176,8 +176,6 @@ public:
               std::string preStr = prefix ? prefix->str() : std::string{};
               auto rawBuffer = vecInit.getBuffer();
               auto eleTy = vecTy.getElementType();
-              if (eleTy == rewriter.getI1Type())
-                eleTy = rewriter.getI8Type();
               auto buffTy = cudaq::cc::PointerType::get(eleTy);
               auto ptrArrTy =
                   cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));

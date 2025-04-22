@@ -104,36 +104,32 @@ struct CliffHanger {
 // CHECK:           %[[VAL_45:.*]] = cc.string_literal "array<i1 x 5>" : !cc.ptr<!cc.array<i8 x 14>>
 // CHECK:           %[[VAL_46:.*]] = cc.cast %[[VAL_45]] : (!cc.ptr<!cc.array<i8 x 14>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__array_record_output(%[[VAL_5]], %[[VAL_46]]) : (i64, !cc.ptr<i8>) -> ()
-// CHECK:           %[[VAL_47:.*]] = cc.cast %[[VAL_44]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
-// CHECK:           %[[VAL_48:.*]] = cc.load %[[VAL_44]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_47:.*]] = cc.cast %[[VAL_44]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CHECK:           %[[VAL_72:.*]] = cc.cast %[[VAL_44]] : (!cc.ptr<i8>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_48:.*]] = cc.load %[[VAL_72]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_49:.*]] = cc.string_literal "[0]" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_50:.*]] = cc.cast %[[VAL_49]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_51:.*]] = cc.cast signed %[[VAL_48]] : (i8) -> i64
-// CHECK:           call @__quantum__rt__int_record_output(%[[VAL_51]], %[[VAL_50]]) : (i64, !cc.ptr<i8>) -> ()
-// CHECK:           %[[VAL_52:.*]] = cc.compute_ptr %[[VAL_47]][1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_53:.*]] = cc.load %[[VAL_52]] : !cc.ptr<i8>
+// CHECK:           call @__quantum__rt__bool_record_output(%[[VAL_48]], %[[VAL_50]]) : (i1, !cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_52:.*]] = cc.compute_ptr %[[VAL_47]][1] : (!cc.ptr<!cc.array<i1 x ?>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_53:.*]] = cc.load %[[VAL_52]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_54:.*]] = cc.string_literal "[1]" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_55:.*]] = cc.cast %[[VAL_54]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_56:.*]] = cc.cast signed %[[VAL_53]] : (i8) -> i64
-// CHECK:           call @__quantum__rt__int_record_output(%[[VAL_56]], %[[VAL_55]]) : (i64, !cc.ptr<i8>) -> ()
-// CHECK:           %[[VAL_57:.*]] = cc.compute_ptr %[[VAL_47]][2] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_58:.*]] = cc.load %[[VAL_57]] : !cc.ptr<i8>
+// CHECK:           call @__quantum__rt__bool_record_output(%[[VAL_53]], %[[VAL_55]]) : (i1, !cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_57:.*]] = cc.compute_ptr %[[VAL_47]][2] : (!cc.ptr<!cc.array<i1 x ?>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_58:.*]] = cc.load %[[VAL_57]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_59:.*]] = cc.string_literal "[2]" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_60:.*]] = cc.cast %[[VAL_59]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_61:.*]] = cc.cast signed %[[VAL_58]] : (i8) -> i64
-// CHECK:           call @__quantum__rt__int_record_output(%[[VAL_61]], %[[VAL_60]]) : (i64, !cc.ptr<i8>) -> ()
-// CHECK:           %[[VAL_62:.*]] = cc.compute_ptr %[[VAL_47]][3] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_63:.*]] = cc.load %[[VAL_62]] : !cc.ptr<i8>
+// CHECK:           call @__quantum__rt__bool_record_output(%[[VAL_58]], %[[VAL_60]]) : (i1, !cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_62:.*]] = cc.compute_ptr %[[VAL_47]][3] : (!cc.ptr<!cc.array<i1 x ?>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_63:.*]] = cc.load %[[VAL_62]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_64:.*]] = cc.string_literal "[3]" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_65:.*]] = cc.cast %[[VAL_64]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_66:.*]] = cc.cast signed %[[VAL_63]] : (i8) -> i64
-// CHECK:           call @__quantum__rt__int_record_output(%[[VAL_66]], %[[VAL_65]]) : (i64, !cc.ptr<i8>) -> ()
-// CHECK:           %[[VAL_67:.*]] = cc.compute_ptr %[[VAL_47]][4] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_68:.*]] = cc.load %[[VAL_67]] : !cc.ptr<i8>
+// CHECK:           call @__quantum__rt__bool_record_output(%[[VAL_63]], %[[VAL_65]]) : (i1, !cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_67:.*]] = cc.compute_ptr %[[VAL_47]][4] : (!cc.ptr<!cc.array<i1 x ?>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_68:.*]] = cc.load %[[VAL_67]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_69:.*]] = cc.string_literal "[4]" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_70:.*]] = cc.cast %[[VAL_69]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_71:.*]] = cc.cast signed %[[VAL_68]] : (i8) -> i64
-// CHECK:           call @__quantum__rt__int_record_output(%[[VAL_71]], %[[VAL_70]]) : (i64, !cc.ptr<i8>) -> ()
+// CHECK:           call @__quantum__rt__bool_record_output(%[[VAL_68]], %[[VAL_70]]) : (i1, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -236,5 +232,17 @@ __qpu__ std::vector<float> unary_test_list(int count) {
 // CHECK:           call @__quantum__rt__double_record_output(%{{.*}}, %{{.*}}) : (f64, !cc.ptr<i8>) -> ()
 // CHECK:           %[[VAL_24:.*]] = cc.string_literal "[1]" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           call @__quantum__rt__double_record_output(%{{.*}}, %{{.*}}) : (f64, !cc.ptr<i8>) -> ()
-// CHECK:           return
-// CHECK:         }
+
+__qpu__ std::vector<bool> unary_test_list2(int count) {
+ cudaq::qvector v(count);
+ std::vector<bool> vec {false, true};
+ return vec;
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unary_test_list2._Z16unary_test_list2i(
+// CHECK:           %[[VAL_14:.*]] = cc.string_literal "array<i1 x 2>" : !cc.ptr<!cc.array<i8 x 14>>
+// CHECK:           call @__quantum__rt__array_record_output(%{{.*}}, %{{.*}}) : (i64, !cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_19:.*]] = cc.string_literal "[0]" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK:           call @__quantum__rt__bool_record_output(%{{.*}}, %{{.*}}) : (i1, !cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_23:.*]] = cc.string_literal "[1]" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK:           call @__quantum__rt__bool_record_output(%{{.*}}, %{{.*}}) : (i1, !cc.ptr<i8>) -> ()
