@@ -34,7 +34,7 @@ CUDA-Q Applications
    /applications/python/adapt_vqe
    /applications/python/edge_detection
    /applications/python/shors
-   /application/generate_fermionic_ham.ipynb 
+   /application/generate_fermionic_ham
 
 
 
