@@ -1,7 +1,7 @@
 import cudaq
 
 
-cudaq.set_target("quantum_machines")
+cudaq.set_target("quantum_machines", url="http://host.docker.internal:8080", action="execute")
 
 qubit_count = 3
 
