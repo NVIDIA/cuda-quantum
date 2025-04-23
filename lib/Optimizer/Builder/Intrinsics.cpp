@@ -388,6 +388,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},
 
+    {cudaq::llvmMemSetIntrinsic, // llvm.memset.p0i8.i64
+     {},
+     R"#(
+  func.func private @llvm.memset.p0i8.i64(!cc.ptr<i8>, i8, i64, i1) -> ())#"},
+
     {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
 
     // Declarations of QIR functions used by codegen that are common to all
