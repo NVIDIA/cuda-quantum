@@ -174,7 +174,23 @@ public:
                                             cudaq::opt::QIRArrayRecordOutput,
                                             ArrayRef<Value>{size, label});
               std::string preStr = prefix ? prefix->str() : std::string{};
-              auto rawBuffer = vecInit.getBuffer();
+              Value rawBuffer = vecInit.getBuffer();
+              if (auto callCopy = rawBuffer.getDefiningOp<func::CallOp>()) {
+                // We expect a call to __nvqpp_vectorCopyCtor here or, if that
+                // was inlined already, to memcpy.
+                auto calleeName = callCopy.getCallee();
+                if (calleeName == "__nvqpp_vectorCopyCtor") {
+                  rawBuffer = callCopy.getOperand(1);
+                  rewriter.eraseOp(callCopy);
+                } else if (calleeName == cudaq::llvmMemCopyIntrinsic) {
+                  rawBuffer = callCopy.getOperand(1);
+                  rewriter.eraseOp(callCopy);
+                  if (auto maybeMalloc =
+                          callCopy.getOperand(0).getDefiningOp<func::CallOp>())
+                    if (maybeMalloc.getCallee() == "malloc")
+                      rewriter.eraseOp(maybeMalloc);
+                }
+              }
               auto eleTy = vecTy.getElementType();
               auto buffTy = cudaq::cc::PointerType::get(eleTy);
               auto ptrArrTy =
