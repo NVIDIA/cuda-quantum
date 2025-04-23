@@ -7,7 +7,7 @@ import cudaq
 @cudaq.kernel
 def kernel():
     qubits = cudaq.qvector(2)
-    mz()
+    mz(qubits)
 
 
 # [End Sample1]

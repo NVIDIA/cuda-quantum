@@ -15,7 +15,7 @@ Measuring Kernels
         :start-after: [Begin Docs]
         :end-before: [End Docs]
 
-Kernel measurement can be specified in the Z, X, or Y basis using `mz`, `mx`, and `my`. If a measurement is specified with no argument, the entire kernel is measured in that basis. Measurement occurs in the Z basis by default.
+Kernel measurement can be specified in the Z, X, or Y basis using `mz`, `mx`, and `my`. Measurement occurs in the Z basis by default.
 
 .. tab:: Python
 
