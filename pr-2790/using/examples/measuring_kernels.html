@@ -816,13 +816,13 @@
 </div>
 </div>
 </div>
-<p>Kernel measurement can be specified in the Z, X, or Y basis using <code class="code docutils literal notranslate"><span class="pre">mz</span></code>, <code class="code docutils literal notranslate"><span class="pre">mx</span></code>, and <code class="code docutils literal notranslate"><span class="pre">my</span></code>. If a measurement is specified with no argument, the entire kernel is measured in that basis. Measurement occurs in the Z basis by default.</p>
+<p>Kernel measurement can be specified in the Z, X, or Y basis using <code class="code docutils literal notranslate"><span class="pre">mz</span></code>, <code class="code docutils literal notranslate"><span class="pre">mx</span></code>, and <code class="code docutils literal notranslate"><span class="pre">my</span></code>. Measurement occurs in the Z basis by default.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">mz</span><span class="p">()</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
 
 
 </pre></div>
@@ -864,7 +864,7 @@
 </div>
 <section id="mid-circuit-measurement-and-conditional-logic">
 <h2>Mid-circuit Measurement and Conditional Logic<a class="headerlink" href="#mid-circuit-measurement-and-conditional-logic" title="Permalink to this heading">¶</a></h2>
-<p>In certain cases, it it is helpful for some operations in a quantum kernel to depend on measurement results following previous operations. This is accomplished in the following example by performing a Hadamard on qubit 0, then measuring qubit 0 and saving the result as <code class="code docutils literal notranslate"><span class="pre">b0</span></code>. Then, qubit 0 can be reset and used later in the computation. In this case it is flipped to a 1. Finally, an if statement performs a Hadamard on qubit 1 if <code class="code docutils literal notranslate"><span class="pre">b0</span></code> is 1.</p>
+<p>In certain cases, it is helpful for some operations in a quantum kernel to depend on measurement results following previous operations. This is accomplished in the following example by performing a Hadamard on qubit 0, then measuring qubit 0 and saving the result as <code class="code docutils literal notranslate"><span class="pre">b0</span></code>. Then, qubit 0 can be reset and used later in the computation. In this case it is flipped to a 1. Finally, an if statement performs a Hadamard on qubit 1 if <code class="code docutils literal notranslate"><span class="pre">b0</span></code> is 1.</p>
 <p>The results show qubit 0 is one, indicating the reset worked, and qubit 1 has a 75/25 distribution, demonstrating the mid-circuit measurement worked as expected.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
