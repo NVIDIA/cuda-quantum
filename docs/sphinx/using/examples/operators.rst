@@ -8,7 +8,7 @@ Constructing Spin Operators
 
 The `spin_op` type provides an abstraction for a general tensor product of Pauli spin operators, and their sums.
 
-Spin operators are constructed using the `spin.z()`, `spin.y()`, `spin.x()`, and `spin.i()` functions, corresponding to the :math:`Z`, :math:`Y`, :math:`X`, and :math:`I` Pauli operators. For example, `spin.z(0)` corresponds to a Pauli 
+Spin operators are constructed using the `spin.z()`, `spin.y()`, `spin.x()`, and `spin.i()` functions, corresponding to the :math:`Z`, :math:`Y`, :math:`X`, and :math:`I` Pauli operators. For example, `spin.z(0)` corresponds to a Pauli Z 
 operation acting on qubit 0. The example below demonstrates how to construct the following operator
 2 :math:`XYX` - 3 :math:`ZZY`.
 
