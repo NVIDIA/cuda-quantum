@@ -55,8 +55,9 @@ async def login(token: Union[str, None] = Header(alias="Authorization",
 # with entry_point tag
 @app.post("/qm-runner/v1.0.0/oq2/compile")
 async def post_compile_job(job: Job,
-                  token: Union[str, None] = Header(alias="Authorization",
-                                                   default=None)):
+                           token: Union[str,
+                                        None] = Header(alias="Authorization",
+                                                       default=None)):
     # TODO: Implement job submission
     #if token == None:
     #    raise HTTPException(status_code=401, detail="Credentials not provided")
@@ -76,23 +77,18 @@ with qua.program() as prog:
 
 @app.post("/qm-runner/v1.0.0/oq2/execute")
 async def post_execute_job(job: Job,
-                           token: Union[str, None] = Header(alias="Authorization",
-                                                          default=None)):
+                           token: Union[str,
+                                        None] = Header(alias="Authorization",
+                                                       default=None)):
     return {"job_ids": ["mock-job-id"]}
+
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
 @app.get("/qm-runner/v1.0.0/job/{id}")
 async def get_job(id: str):
     # TODO: Implement job retrieval
-    return {
-        "status": "Done",
-        "id": id,
-        "samples": {
-            "00": 50,
-            "11": 50
-        }
-    }
+    return {"status": "Done", "id": id, "samples": {"00": 50, "11": 50}}
 
 
 def start_server(port):
