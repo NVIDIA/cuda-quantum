@@ -186,9 +186,10 @@ def _evaluation(operator: CppOperator | CppOperatorTerm,
         # FIXME: CONVERT TO SUM?
     else:
         raise RuntimeError("the given value is not an operator")
+
     if isinstance(evaluated, CppOperator) or isinstance(evaluated, CppOperatorTerm):
         return evaluated
-    elif isinstance(evaluated, CppOperator):
+    elif isinstance(operator, CppOperator):
         evaluated_sum = operator.__class__.empty()
         if evaluated != 0: evaluated_sum += evaluated
         return evaluated_sum
