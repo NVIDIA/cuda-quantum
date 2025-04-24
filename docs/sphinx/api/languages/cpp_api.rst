@@ -18,7 +18,7 @@ Operators
 
 .. doxygenclass:: cudaq::fermion_handler
 
-.. doxygenclass:: cudaq::spin_handler
+.. doxygenclass:: cudaq::spin_op
 
 .. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
 
@@ -29,10 +29,6 @@ Operators
     - ``std::vector<std::complex<double>>``: Complex values.
     - ``std::vector<std::size_t>``: Indices.
     - ``std::vector<std::size_t>``: Sizes.
-
-.. cpp:type:: int64_t = std::int64_t
-
-    64-bit signed integer type from ``<cstdint>``.
 
 .. doxygenclass:: cudaq::operator_handler
 

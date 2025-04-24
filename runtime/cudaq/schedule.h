@@ -63,9 +63,6 @@ public:
   /// well as an additional value ("step") of std::complex<double> type as
   /// argument and returns the complex value for that parameter at the given
   /// step.
-  /// @details current_idx: Intializes the current index (_current_idx) to -1 to
-  /// indicate that iteration has not yet begun. Once iteration starts,
-  /// _current_idx will be used to track the position in the sequence of steps.
   schedule(
       const std::vector<std::complex<double>> &steps,
       const std::vector<std::string> &parameters,

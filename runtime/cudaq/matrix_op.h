@@ -56,7 +56,7 @@ private:
   static std::string type_prefix();
 
   virtual std::string op_code_to_string(
-      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
+      std::unordered_map<std::size_t, std::int64_t> &dimensions) const override;
 
 protected:
   std::string op_code;
@@ -108,7 +108,7 @@ public:
   ///      the operator acts on, and an unordered map from string to complex
   ///      double that contains additional parameters the operator may use.
   static void define(std::string operator_id,
-                     std::vector<int64_t> expected_dimensions,
+                     std::vector<std::int64_t> expected_dimensions,
                      matrix_callback &&create);
 
   /// @brief Instantiates a custom operator.
@@ -210,7 +210,7 @@ public:
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 
@@ -228,41 +228,35 @@ public:
 
   // predefined operators
 
-  /// @brief Constructs a product operator representing a number operator for
+  /// @brief Constructs a operator representing a number operator for
   /// the given degree.
-  /// @param degree : The degree or power to which the number operator is
-  /// constructed.
+  /// @param degree : The degree of freedom that the parity operator acts on.
   /// @return A matrix_handler instance that encapsulates the
   /// constructed number operator matrix.
   static matrix_handler number(std::size_t degree);
-  /// @brief Creates a parity operator using a product operator with
+  /// @brief Creates a parity operator with
   /// matrix_handler.
-  /// @param degree : The degree of the parity transformation, which may
-  /// correspond to the number of qubits or the order of the operation.
-  /// @return A product operator that encapsulates the parity transformation.
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix_handler that encapsulates the parity transformation.
   static matrix_handler parity(std::size_t degree);
-  /// @brief Constructs a product operator representing the position operator.
-  /// @param degree : Specifies the operator's degree, which may determine the
-  /// approximation order or related numerical properties.
-  /// @return A product operator constructed with a matrix handler that embodies
+  /// @brief Constructs a position operator representing the position operator.
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix_handler that embodies
   /// the position operator.
   static matrix_handler position(std::size_t degree);
   /// @brief Constructs a momentum operator based on the specified degree.
-  /// @param degree : The degree of the momentum operator, influencing its
-  /// construction.
-  /// @return A product_op object containing a matrix_handler that represents
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix_handler that represents
   /// the momentum operator.
   static matrix_handler momentum(std::size_t degree);
-  /// Operators that accept parameters at runtime.
   /// @brief Creates a squeeze operator with a specific degree.
-  /// @param degree : The degree indicating the intensity of the squeeze
-  /// transformation.
-  /// @return matrix_handler An operator representing the squeeze
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix_handler representing the squeeze
   /// transformation.
   static matrix_handler squeeze(std::size_t degree);
   /// @brief Creates a displacement operator based on a specified degree.
-  /// @param degree : The magnitude or extent of the displacement.
-  /// @return A product operator (with a matrix handler) representing the
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix handler representing the
   /// displacement.
   static matrix_handler displace(std::size_t degree);
 };

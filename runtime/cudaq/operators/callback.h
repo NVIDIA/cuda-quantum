@@ -73,7 +73,7 @@ private:
   // dimension for each degree of freedom it acts on, and a map of complex
   // parameters.
   std::function<complex_matrix(
-      const std::vector<int64_t> &,
+      const std::vector<std::int64_t> &,
       const std::unordered_map<std::string, std::complex<double>> &)>
       callback_func;
 
@@ -82,7 +82,7 @@ public:
       typename Callable,
       std::enable_if_t<
           std::is_invocable_r_v<
-              complex_matrix, Callable, const std::vector<int64_t> &,
+              complex_matrix, Callable, const std::vector<std::int64_t> &,
               const std::unordered_map<std::string, std::complex<double>> &>,
           bool> = true>
   matrix_callback(Callable &&callable) {
@@ -96,7 +96,7 @@ public:
   matrix_callback &operator=(matrix_callback &&other) = default;
 
   complex_matrix
-  operator()(const std::vector<int64_t> &relevant_dimensions,
+  operator()(const std::vector<std::int64_t> &relevant_dimensions,
              const std::unordered_map<std::string, std::complex<double>>
                  &parameters) const;
 };
@@ -106,20 +106,21 @@ class Definition {
 private:
   std::string id;
   matrix_callback generator;
-  std::vector<int64_t> required_dimensions;
+  std::vector<std::int64_t> required_dimensions;
 
 public:
-  const std::vector<int64_t> &expected_dimensions = this->required_dimensions;
+  const std::vector<std::int64_t> &expected_dimensions =
+      this->required_dimensions;
 
   Definition(std::string operator_id,
-             const std::vector<int64_t> &expected_dimensions,
+             const std::vector<std::int64_t> &expected_dimensions,
              matrix_callback &&create);
   Definition(Definition &&def);
   ~Definition();
 
   // To call the generator function
   complex_matrix
-  generate_matrix(const std::vector<int64_t> &relevant_dimensions,
+  generate_matrix(const std::vector<std::int64_t> &relevant_dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
                       &parameters) const;
 };

@@ -30,7 +30,7 @@ int main() {
   double omega_d = 0.5;
 
   // Qubit Hamiltonian
-  auto hamiltonian = sum_op<product_op>(0.5 * omega_z * spin_handler::z(0));
+  auto hamiltonian = sum_op<product_op>(0.5 * omega_z * spin_op::z(0));
 
   // Time dependent modulation
   auto mod_func =
@@ -68,8 +68,8 @@ int main() {
   cudaq::integrators::runge_kutta integrator(4, 0.01);
 
   // Observables to track
-  auto observables = {cudaq::spin_handler::x(0), cudaq::spin_handler::y(0),
-                      cudaq::spin_handler::z(0)};
+  auto observables = {cudaq::spin_op::x(0), cudaq::spin_op::y(0),
+                      cudaq::spin_op::z(0)};
 
   // Run simulation
   // We evolve the system under the defined Hamiltonian. No collapsed operators
@@ -99,16 +99,16 @@ int main() {
   // Jaynes-Cummings Hamiltonian
   auto jc_hamiltonian =
       omega_c * boson_op::create(1) * boson_op::annihilate(1) +
-      (omega_a / 2.0) * spin_handler::z(0) +
-      (Omega / 2.0) * (boson_op::annihilate(1) * spin_handler::plus(0) +
-                       boson_op::create(1) * spin_handler::minus(0));
+      (omega_a / 2.0) * spin_op::z(0) +
+      (Omega / 2.0) * (boson_op::annihilate(1) * spin_op::plus(0) +
+                       boson_op::create(1) * spin_op::minus(0));
   // [End Jaynes-Cummings]
 
   // [Begin Hamiltonian]
   // Hamiltonian with driving frequency
   double omega = M_PI;
-  auto H0 = spin_handler::z(0);
-  auto H1 = spin_handler::x(0);
+  auto H0 = spin_op::z(0);
+  auto H1 = spin_op::x(0);
   auto func = [omega](double t) { return std::cos(omega * t); };
   auto mod_func = [omega](double t) -> double { return std::cos(omega * t); };
   auto driven_hamiltonian = H0 + mod_func * H1;
@@ -210,15 +210,15 @@ int main() {
   for (int i = 0; i < N; i++)
     dimensions[i] = 2;
 
-  auto H_multi = cudaq::sum_op<cudaq::spin_handler>::empty();
+  auto H_multi = cudaq::sum_op<cudaq::spin_op>::empty();
   for (int i = 0; i < N; i++) {
-    H_multi += 2.0 * M_PI * spin_handler::x(i);
-    H_multi += 2.0 * M_PI * spin_handler::y(i);
+    H_multi += 2.0 * M_PI * spin_op::x(i);
+    H_multi += 2.0 * M_PI * spin_op::y(i);
   }
 
   for (int i = 0; i < N - 1; i++) {
-    H_multi += 2.0 * M_PI * g * spin_handler::x(i) * spin_handler::x(i + 1);
-    H_multi += 2.0 * M_PI * g * spin_handler::y(i) * spin_handler::z(i + 1);
+    H_multi += 2.0 * M_PI * g * spin_op::x(i) * spin_op::x(i + 1);
+    H_multi += 2.0 * M_PI * g * spin_op::y(i) * spin_op::z(i + 1);
   }
 
   std::vector<double> multi_steps(200);

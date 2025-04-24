@@ -78,16 +78,6 @@ protected:
   sum_op(sum_op<HandlerTy> &&other, bool is_default, std::size_t size);
 
 public:
-  /// @brief Constant iterator for traversing product operations within a
-  /// sum_op.
-  ///
-  /// This const_iterator class provides read-only access to individual
-  /// product_op elements constructed from the components stored in a sum_op
-  /// object. Each product_op is created by combining the corresponding
-  /// coefficient and term found via an index mapping in an unordered_map. The
-  /// iterator encapsulates the internal state needed for sequential access,
-  /// including a pointer to the associated sum_op, an iterator over the term
-  /// mapping, and the current product_op value.
   struct const_iterator {
   private:
     /// @brief A pointer to the sum_op instance whose terms are being iterated
@@ -114,8 +104,7 @@ public:
                                             sum->terms[current_idx]);
     }
 
-    /// @brief Equality operator which compares iterators based on the
-    /// underlying sum_op pointer and the current position in term_map.
+    /// @brief Equality operator which compares iterators
     bool operator==(const const_iterator &other) const {
       return sum == other.sum && current_idx == other.current_idx;
     }
@@ -291,7 +280,7 @@ public:
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, std::int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {},
             bool invert_order = false) const;
@@ -321,7 +310,7 @@ public:
   /// @return A new instance of sum_op<HandlerTy> representing the unary plus
   /// operation.
   sum_op<HandlerTy> operator+() const &;
-  /// @brief Applies the unary plus operator to a temporary instance.
+  /// @brief Applies the unary plus operator to a rvalue instance.
   sum_op<HandlerTy> operator+() &&;
 
   // right-hand arithmetics
@@ -331,10 +320,10 @@ public:
   /// @return A new sum_op instance encapsulating the result of the
   /// multiplication.
   sum_op<HandlerTy> operator*(const scalar_operator &other) const &;
-  /// @brief Overloads the multiplication operator to combine a temporary sum
+  /// @brief Overloads the multiplication operator to combine a rvalue sum
   /// operator with a scalar operator.
   /// @param other A constant reference to a scalar_operator that will be
-  /// multiplied with the current temporary sum operator.
+  /// multiplied with the current rvalue sum operator.
   /// @return A new sum_op<HandlerTy> representing the resulting operator after
   /// applying the multiplication.
   sum_op<HandlerTy> operator*(const scalar_operator &other) &&;
@@ -342,7 +331,7 @@ public:
   /// @param other The scalar operator serving as the divisor.
   /// @return A new sum operator resulting from the division operation.
   sum_op<HandlerTy> operator/(const scalar_operator &other) const &;
-  /// @brief Overloaded division operator for a temporary instance of the
+  /// @brief Overloaded division operator for a rvalue instance of the
   /// operator.
   /// @param other The scalar_operator divisor used in the division.
   /// @return A sum_op representing the result of the division operation.
@@ -368,7 +357,7 @@ public:
   /// @return A new sum_op<HandlerTy> representing the sum of the current
   /// operator and the provided scalar operator.
   sum_op<HandlerTy> operator+(const scalar_operator &other) &&;
-  /// @brief Subtracts a temporary scalar operator from the current operator
+  /// @brief Subtracts a scalar operator from the current operator
   /// instance.
   /// @param other An rvalue reference to a scalar_operator that will be
   /// subtracted from the current instance.
@@ -451,7 +440,7 @@ public:
   /// @param other An rvalue reference to another sum_op object to be added.
   /// @return A new sum_op instance representing the sum of the two operands.
   sum_op<HandlerTy> operator+(sum_op<HandlerTy> &&other) const &;
-  /// @brief Overloads the addition operator for a temporary sum_op object.
+  /// @brief Overloads the addition operator for a sum_op object.
   /// @param other An rvalue reference to a sum_op object that is to be combined
   /// with the current object.
   /// @return A new sum_op object representing the result of the summation.
@@ -464,13 +453,13 @@ public:
   /// @param other A constant reference to another sum_op instance to subtract.
   /// @return A new sum_op instance resulting from the subtraction of other.
   sum_op<HandlerTy> operator-(const sum_op<HandlerTy> &other) &&;
-  /// @brief Subtracts the provided temporary sum_op from this sum_op instance.
+  /// @brief Subtracts the provided sum_op from this sum_op instance.
   /// @param other An rvalue reference to a sum_op object that will be
   /// subtracted from this instance.
   /// @return A new sum_op representing the result of the subtraction.
   sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) const &;
-  /// @brief Subtracts another temporary sum_op from this instance.
-  /// @param other A temporary (rvalue) sum_op instance to subtract.
+  /// @brief Subtracts another sum_op from this instance.
+  /// @param other A rvalue sum_op instance to subtract.
   /// @return A new sum_op instance containing the difference.
   sum_op<HandlerTy> operator-(sum_op<HandlerTy> &&other) &&;
 
@@ -814,11 +803,11 @@ public:
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  csr_spmatrix
-  to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
-                   const std::unordered_map<std::string, std::complex<double>>
-                       &parameters = {},
-                   bool invert_order = false) const;
+  csr_spmatrix to_sparse_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<double> get_data_representation() const;
@@ -1054,6 +1043,8 @@ public:
   /// @brief Default constructor for the product_op class.
   constexpr product_op() {}
 
+  /// @brief Constructor instantiates a product that applies an identity
+  /// operator to all targets in the open range [first_degree, last_degree).
   constexpr product_op(std::size_t first_degree, std::size_t last_degree) {
     static_assert(std::is_constructible_v<HandlerTy, std::size_t>,
                   "operator handlers must have a constructor that take a "
@@ -1114,14 +1105,15 @@ public:
   /// @brief Constructs a new product_op by copying an existing product_op
   /// instance.
   /// @param other The product_op instance to be copied.
-  /// @param size An optional parameter to specify how many operator elements to reserve space for.
+  /// @param size An optional parameter to specify how many operator elements to
+  /// reserve space for.
   product_op(const product_op<HandlerTy> &other, std::size_t size = 0);
 
   /// @brief Constructs a product_op by moving the resources from an existing
   /// product_op instance.
   /// @param other An rvalue reference to the product_op to move from.
-  /// @param size An optional size parameter indicating how many operator elements to reserve space for.
-  /// to adjust or specify internal dimensions.
+  /// @param size An optional size parameter indicating how many operator
+  /// elements to reserve space for. to adjust or specify internal dimensions.
   product_op(product_op<HandlerTy> &&other, std::size_t size = 0);
 
   /// @brief Default destructor for product_op.
@@ -1172,7 +1164,7 @@ public:
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
+  to_matrix(std::unordered_map<std::size_t, std::int64_t> dimensions = {},
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {},
             bool invert_order = false) const;
@@ -1651,11 +1643,11 @@ public:
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
-  csr_spmatrix
-  to_sparse_matrix(std::unordered_map<std::size_t, int64_t> dimensions = {},
-                   const std::unordered_map<std::string, std::complex<double>>
-                       &parameters = {},
-                   bool invert_order = false) const;
+  csr_spmatrix to_sparse_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
 
   // utility functions for backward compatibility
   /// @cond
@@ -1721,8 +1713,9 @@ private:
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
 /// @brief Typedef for a map of dimensions.
 /// This typedef defines `dimension_map` as a map of integers to 64-bit
-/// integers, which defines the number of levels (i.e., the dimension) for each degree of freedom an operator targets.
-typedef std::unordered_map<std::size_t, int64_t> dimension_map;
+/// integers, which defines the number of levels (i.e., the dimension) for each
+/// degree of freedom an operator targets.
+typedef std::unordered_map<std::size_t, std::int64_t> dimension_map;
 /// @brief Typedef for a sum operation using a matrix handler.
 /// This typedef defines `matrix_op` as a sum operation that utilizes
 /// the `matrix_handler` for its operations.
