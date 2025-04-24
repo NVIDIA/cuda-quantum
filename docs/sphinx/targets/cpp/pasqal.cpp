@@ -4,7 +4,7 @@
 // ./out.x
 // ```
 // Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)
-// have been set. To set PASQAL_`AUTH`_TOKEN from Pasqal Cloud username and
+// have been set. To set `PASQAL_AUTH_TOKEN` from Pasqal Cloud username and
 // password, use `pasqal`_`auth`.`py` in this folder.
 
 #include "cudaq/algorithms/evolve.h"
