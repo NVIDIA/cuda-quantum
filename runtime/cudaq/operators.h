@@ -1721,7 +1721,7 @@ private:
 typedef std::unordered_map<std::string, std::complex<double>> parameter_map;
 /// @brief Typedef for a map of dimensions.
 /// This typedef defines `dimension_map` as a map of integers to 64-bit
-/// integers, which is used to store the dimensions of the operators.
+/// integers, which defines the number of levels (i.e., the dimension) for each degree of freedom an operator targets.
 typedef std::unordered_map<std::size_t, int64_t> dimension_map;
 /// @brief Typedef for a sum operation using a matrix handler.
 /// This typedef defines `matrix_op` as a sum operation that utilizes
