@@ -856,7 +856,7 @@ Details about CUDA-Q <code class="code docutils literal notranslate"><span class
 <span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;Cannot find the time parameter.&quot;</span><span class="p">);</span>
 <span class="w">  </span><span class="p">};</span>
 
-<span class="w">  </span><span class="n">hamiltonian</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">mod_func</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">spin_handler</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">omega_x</span><span class="p">;</span>
+<span class="w">  </span><span class="n">hamiltonian</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">mod_func</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">spin_op</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">omega_x</span><span class="p">;</span>
 </pre></div>
 </div>
 <p>Details about CUDA-Q <code class="code docutils literal notranslate"><span class="pre">operator</span></code>, including builtin operators that it supports can be found <a class="reference internal" href="#operators"><span class="std std-ref">here</span></a>.</p>
