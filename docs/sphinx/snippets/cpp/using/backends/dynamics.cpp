@@ -44,7 +44,7 @@ int main() {
     throw std::runtime_error("Cannot find the time parameter.");
   };
 
-  hamiltonian += mod_func * spin_handler::x(0) * omega_x;
+  hamiltonian += mod_func * spin_op::x(0) * omega_x;
   // [End Transmon]
   // [Begin Evolve]
   double t_final = 1.0;
