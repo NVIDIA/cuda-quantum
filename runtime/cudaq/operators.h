@@ -1120,7 +1120,7 @@ public:
   /// @brief Constructs a product_op by moving the resources from an existing
   /// product_op instance.
   /// @param other An rvalue reference to the product_op to move from.
-  /// @param size An optional size parameter, defaulting to 0, that may be used
+  /// @param size An optional size parameter indicating how many operator elements to reserve space for.
   /// to adjust or specify internal dimensions.
   product_op(product_op<HandlerTy> &&other, std::size_t size = 0);
 
