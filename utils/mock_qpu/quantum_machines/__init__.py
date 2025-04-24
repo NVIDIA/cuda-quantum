@@ -6,12 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import cudaq
 from fastapi import FastAPI, HTTPException, Header
 from typing import Union
 import uvicorn, uuid
 from pydantic import BaseModel
-
-from python import cudaq
 
 # Define the REST Server App
 app = FastAPI()
