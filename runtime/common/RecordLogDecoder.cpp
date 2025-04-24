@@ -49,9 +49,9 @@ const std::unordered_map<std::string, cudaq::RecordLogDecoder::TypeHandler>
                 index, static_cast<char>(self->convertToBool(value)));
           },
           [](RecordLogDecoder *self) {
-            self->buffer.resize(self->handler.offset + sizeof(char));
-            self->handler.tupleOffsets.push_back(self->handler.offset);
-            self->handler.offset += sizeof(char);
+            self->buffer.resize(self->handler.dataOffset + sizeof(char));
+            self->handler.tupleOffsets.push_back(self->handler.dataOffset);
+            self->handler.dataOffset += sizeof(char);
           },
           [](RecordLogDecoder *self, std::size_t index,
              const std::string &value) {
@@ -70,9 +70,9 @@ const std::unordered_map<std::string, cudaq::RecordLogDecoder::TypeHandler>
             self->insertIntoArray<std::int8_t>(index, std::stoi(value));
           },
           [](RecordLogDecoder *self) {
-            self->buffer.resize(self->handler.offset + sizeof(std::int8_t));
-            self->handler.tupleOffsets.push_back(self->handler.offset);
-            self->handler.offset += sizeof(std::int8_t);
+            self->buffer.resize(self->handler.dataOffset + sizeof(std::int8_t));
+            self->handler.tupleOffsets.push_back(self->handler.dataOffset);
+            self->handler.dataOffset += sizeof(std::int8_t);
           },
           [](RecordLogDecoder *self, std::size_t index,
              const std::string &value) {
@@ -90,9 +90,10 @@ const std::unordered_map<std::string, cudaq::RecordLogDecoder::TypeHandler>
             self->insertIntoArray<std::int16_t>(index, std::stoi(value));
           },
           [](RecordLogDecoder *self) {
-            self->buffer.resize(self->handler.offset + sizeof(std::int16_t));
-            self->handler.tupleOffsets.push_back(self->handler.offset);
-            self->handler.offset += sizeof(std::int16_t);
+            self->buffer.resize(self->handler.dataOffset +
+                                sizeof(std::int16_t));
+            self->handler.tupleOffsets.push_back(self->handler.dataOffset);
+            self->handler.dataOffset += sizeof(std::int16_t);
           },
           [](RecordLogDecoder *self, std::size_t index,
              const std::string &value) {
@@ -110,9 +111,10 @@ const std::unordered_map<std::string, cudaq::RecordLogDecoder::TypeHandler>
             self->insertIntoArray<std::int32_t>(index, std::stoi(value));
           },
           [](RecordLogDecoder *self) {
-            self->buffer.resize(self->handler.offset + sizeof(std::int32_t));
-            self->handler.tupleOffsets.push_back(self->handler.offset);
-            self->handler.offset += sizeof(std::int32_t);
+            self->buffer.resize(self->handler.dataOffset +
+                                sizeof(std::int32_t));
+            self->handler.tupleOffsets.push_back(self->handler.dataOffset);
+            self->handler.dataOffset += sizeof(std::int32_t);
           },
           [](RecordLogDecoder *self, std::size_t index,
              const std::string &value) {
@@ -130,9 +132,10 @@ const std::unordered_map<std::string, cudaq::RecordLogDecoder::TypeHandler>
             self->insertIntoArray<std::int64_t>(index, std::stoll(value));
           },
           [](RecordLogDecoder *self) {
-            self->buffer.resize(self->handler.offset + sizeof(std::int64_t));
-            self->handler.tupleOffsets.push_back(self->handler.offset);
-            self->handler.offset += sizeof(std::int64_t);
+            self->buffer.resize(self->handler.dataOffset +
+                                sizeof(std::int64_t));
+            self->handler.tupleOffsets.push_back(self->handler.dataOffset);
+            self->handler.dataOffset += sizeof(std::int64_t);
           },
           [](RecordLogDecoder *self, std::size_t index,
              const std::string &value) {
@@ -150,9 +153,9 @@ const std::unordered_map<std::string, cudaq::RecordLogDecoder::TypeHandler>
             self->insertIntoArray<float>(index, std::stof(value));
           },
           [](RecordLogDecoder *self) {
-            self->buffer.resize(self->handler.offset + sizeof(float));
-            self->handler.tupleOffsets.push_back(self->handler.offset);
-            self->handler.offset += sizeof(float);
+            self->buffer.resize(self->handler.dataOffset + sizeof(float));
+            self->handler.tupleOffsets.push_back(self->handler.dataOffset);
+            self->handler.dataOffset += sizeof(float);
           },
           [](RecordLogDecoder *self, std::size_t index,
              const std::string &value) {
@@ -170,9 +173,9 @@ const std::unordered_map<std::string, cudaq::RecordLogDecoder::TypeHandler>
             self->insertIntoArray<double>(index, std::stod(value));
           },
           [](RecordLogDecoder *self) {
-            self->buffer.resize(self->handler.offset + sizeof(double));
-            self->handler.tupleOffsets.push_back(self->handler.offset);
-            self->handler.offset += sizeof(double);
+            self->buffer.resize(self->handler.dataOffset + sizeof(double));
+            self->handler.tupleOffsets.push_back(self->handler.dataOffset);
+            self->handler.dataOffset += sizeof(double);
           },
           [](RecordLogDecoder *self, std::size_t index,
              const std::string &value) {
@@ -200,7 +203,8 @@ void cudaq::RecordLogDecoder::ContainerHandler::reset() {
   m_type = ContainerType::ARRAY;
   m_size = 0;
   processedElements = 0;
-  offset = 0;
+  dataOffset = 0;
+  innerVecOffset = 0;
   arrayType.clear();
   tupleTypes.clear();
   tupleOffsets.clear();
@@ -340,7 +344,7 @@ void cudaq::RecordLogDecoder::preallocateArray() {
 }
 
 void cudaq::RecordLogDecoder::preallocateTuple() {
-  handler.offset = buffer.size();
+  handler.dataOffset = buffer.size();
   for (auto ty : handler.tupleTypes) {
     auto it = dataTypeMap.find(ty);
     if (it != dataTypeMap.end())
@@ -380,6 +384,8 @@ void cudaq::RecordLogDecoder::processSingleRecord(const std::string &recValue,
 void cudaq::RecordLogDecoder::processArrayEntry(const std::string &recValue,
                                                 const std::string &recLabel) {
   std::size_t index = handler.extractIndex(recLabel);
+  if (index >= handler.m_size)
+    throw std::runtime_error("Array index out of bounds");
   auto it = dataTypeMap.find(handler.arrayType);
   if (it != dataTypeMap.end())
     it->second.insertIntoArray(this, index, recValue);

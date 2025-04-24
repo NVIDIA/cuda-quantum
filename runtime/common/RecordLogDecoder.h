@@ -64,7 +64,8 @@ private:
     ContainerType m_type = ContainerType::ARRAY;
     std::size_t m_size = 0;
     std::size_t processedElements = 0;
-    std::size_t offset;
+    std::size_t dataOffset = 0;
+    std::size_t innerVecOffset = 0;
     std::string arrayType;
     std::vector<std::string> tupleTypes;
     std::vector<std::size_t> tupleOffsets;
@@ -106,14 +107,27 @@ private:
 
   template <typename T>
   void allocateArrayRecord(size_t arrSize) {
-    handler.offset = buffer.size();
-    buffer.resize(handler.offset + (sizeof(T) * arrSize));
+    handler.innerVecOffset = buffer.size();
+    /// Allocate space for the three pointers of inner vector
+    std::size_t threePtrSize = 3 * sizeof(T *);
+    buffer.resize(handler.innerVecOffset + threePtrSize);
+    handler.dataOffset = buffer.size();
+    buffer.resize(handler.dataOffset + (sizeof(T) * arrSize));
+    /// Initialize the three pointers of the vector
+    T *startPtr, *end0Ptr, *end1Ptr;
+    startPtr = reinterpret_cast<T *>(buffer.data() + handler.dataOffset + 1);
+    end0Ptr = end1Ptr = reinterpret_cast<T *>(startPtr + (arrSize * sizeof(T)));
+    /// Store into the buffer
+    T **ptrLoc = reinterpret_cast<T **>(buffer.data() + handler.innerVecOffset);
+    ptrLoc[0] = startPtr;
+    ptrLoc[1] = end0Ptr;
+    ptrLoc[2] = end1Ptr;
   }
 
   template <typename T>
   void insertIntoArray(std::size_t index, T value) {
-    std::memcpy(buffer.data() + handler.offset + (index * sizeof(T)), &value,
-                sizeof(T));
+    T *startPtr = reinterpret_cast<T *>(buffer.data() + handler.dataOffset);
+    std::memcpy((startPtr + index), &value, sizeof(T));
   }
 
   template <typename T>

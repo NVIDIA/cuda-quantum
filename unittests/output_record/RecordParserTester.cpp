@@ -102,12 +102,17 @@ CUDAQ_TEST(ParserTester, checkArrayLabeled) {
   parser.decode(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
-  EXPECT_EQ(3, bufferSize / sizeof(int));
-  int *buffer = static_cast<int *>(malloc(bufferSize));
+  char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  EXPECT_EQ(5, buffer[0]);
-  EXPECT_EQ(6, buffer[1]);
-  EXPECT_EQ(7, buffer[2]);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  std::vector<std::vector<int>> results = {
+      reinterpret_cast<std::vector<int> *>(span.data),
+      reinterpret_cast<std::vector<int> *>(span.data + span.lengthInBytes)};
+  EXPECT_EQ(1, results.size());
+  EXPECT_EQ(3, results[0].size());
+  EXPECT_EQ(5, results[0][0]);
+  EXPECT_EQ(6, results[0][1]);
+  EXPECT_EQ(7, results[0][2]);
   free(buffer);
   buffer = nullptr;
   origBuffer = nullptr;
