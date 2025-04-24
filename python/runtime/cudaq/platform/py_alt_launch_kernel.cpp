@@ -482,11 +482,8 @@ py::object readPyObject(mlir::Type ty, char *arg) {
   return py_ext::convert<T>(concrete);
 }
 
-<<<<<<< HEAD
-py::object convertResult(mlir::Type ty, char *data, std::size_t size) {
-=======
-py::object convertResult(mlir::Type ty, char *data) {
->>>>>>> f6cec784a60235cd21175eaeafb88ab482a639c9
+py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
+                         char *data, std::size_t size) {
   return llvm::TypeSwitch<mlir::Type, py::object>(ty)
       .Case([&](IntegerType ty) -> py::object {
         if (ty.getIntOrFloatBitWidth() == 1)
@@ -517,12 +514,55 @@ py::object convertResult(mlir::Type ty, char *data) {
         return readPyObject<float>(ty, data);
       })
       .Case([&](cudaq::cc::StdvecType ty) -> py::object {
-        py::list list;
         auto eleTy = ty.getElementType();
         auto eleByteSize = byteSize(eleTy);
+        py::list list;
         for (std::size_t i = 0; i < size; i += eleByteSize)
-          list.append(convertResult(eleTy, data + i, eleByteSize));
+          list.append(
+              convertResult(kernelFuncOp, eleTy, data + i, eleByteSize));
         return list;
+      })
+      .Case([&](cudaq::cc::StructType ty) -> py::object {
+        // auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+        //     auto memberTys = ty.getMembers();
+        //     auto allocatedArg = std::malloc(size);
+        //     auto elements = arg.cast<py::tuple>();
+        //     for (std::size_t i = 0; i < offsets.size(); i++)
+        //       handleStructMemberVariable(allocatedArg, offsets[i],
+        //       memberTys[i],
+        //         elements[i]);
+
+        //     argData.emplace_back(allocatedArg,
+        //                          [](void *ptr) { std::free(ptr); });
+
+        auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+        auto memberTys = ty.getMembers();
+        py::list list;
+        for (std::size_t i = 0; i < offsets.size(); i++) {
+          auto eleTy = memberTys[i];
+          if (!eleTy.isIntOrFloat()) {
+            eleTy.dump();
+            throw std::runtime_error(
+                "Unsupported element type in struct type.");
+          }
+          auto eleByteSize = byteSize(eleTy);
+          list.append(convertResult(kernelFuncOp, eleTy, data + offsets[i],
+                                    eleByteSize));
+        }
+        // for (auto &eleTy : ty.getMembers()) {
+        //   auto eleByteSize = byteSize(eleTy);
+        //   list.append(convertResult(eleTy, data + i, eleByteSize));
+        //   i += eleByteSize;
+        // }
+        if (ty.getName() == "tuple")
+          return py::tuple(list);
+
+        // TODO: create a "field name" -> value dictionary here and return it?
+        // Add a function to create a new object to global dataclass registry
+        // expose the registry to c++ (call some c++ function from py_run to
+        // store the dictionary in a c++ global?)
+        ty.dump();
+        throw std::runtime_error("Unsupported return type.");
       })
       .Default([](Type ty) -> py::object {
         ty.dump();
@@ -541,12 +581,10 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   auto rawReturn = ((char *)rawArgs) + returnOffset;
 
   // Extract the return value from the rawReturn pointer.
-<<<<<<< HEAD
-  auto returnValue = convertResult(unwrapped, rawReturn, size - returnOffset);
-=======
-  auto returnValue = convertResult(unwrapped, rawReturn);
->>>>>>> f6cec784a60235cd21175eaeafb88ab482a639c9
-
+  // FIXME: pass the funcOp to support returning aggregate types in direct
+  // calls.
+  auto returnValue =
+      convertResult(nullptr, unwrapped, rawReturn, size - returnOffset);
   std::free(rawArgs);
   return returnValue;
 }

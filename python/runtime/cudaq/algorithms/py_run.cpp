@@ -19,19 +19,21 @@
 namespace cudaq {
 namespace details {
 
-std::vector<py::object> readRunResults(mlir::Type ty, RunResultSpan &results,
+std::vector<py::object> readRunResults(mlir::func::FuncOp kernelFuncOp,
+                                       mlir::Type ty, RunResultSpan &results,
                                        std::size_t count) {
   std::vector<py::object> ret;
   std::size_t byteSize = results.lengthInBytes / count;
   for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize) {
-    py::object obj = convertResult(ty, results.data + i, byteSize);
+    py::object obj =
+        convertResult(kernelFuncOp, ty, results.data + i, byteSize);
     ret.push_back(obj);
   }
   return ret;
 }
 
 static std::tuple<std::string, MlirModule, OpaqueArguments *,
-                  mlir::ArrayRef<mlir::Type>>
+                  mlir::func::FuncOp>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::len(kernel.attr("arguments")) != args.size())
     throw std::runtime_error("Invalid number of arguments passed to run:" +
@@ -46,8 +48,8 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
   args = simplifiedValidateInputArguments(args);
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
 
-  auto returnTypes = getKernelFuncOp(kernelMod, kernelName).getResultTypes();
-  return {kernelName, kernelMod, argData, returnTypes};
+  auto funcOp = getKernelFuncOp(kernelMod, kernelName);
+  return {kernelName, kernelMod, argData, funcOp};
 }
 } // namespace details
 
@@ -55,9 +57,10 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 std::vector<py::object> pyRun(py::object &kernel, py::args args,
                               std::size_t shots_count,
                               std::optional<noise_model> noise_model) {
-  auto [kernelName, kernelMod, argData, returnTypes] =
+  auto [kernelName, kernelMod, argData, kernelFuncOp] =
       details::getKernelLaunchParameters(kernel, args);
 
+  auto returnTypes = kernelFuncOp.getResultTypes();
   if (returnTypes.empty() || returnTypes.size() > 1)
     throw std::runtime_error(
         "cudaq.run only supports kernels that return a value.");
@@ -89,7 +92,7 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
     platform.reset_noise();
 
   mod->removeAttr(runtime::enableCudaqRun);
-  return details::readRunResults(returnTy, results, shots_count);
+  return details::readRunResults(kernelFuncOp, returnTy, results, shots_count);
 }
 
 /// @brief Bind the run cudaq function
