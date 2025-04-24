@@ -8,7 +8,8 @@
 import os, uuid
 import cudaq
 from cudaq.operator import *
-from cudaq.operator.integrators import *
+from cudaq.dynamics import *
+from cudaq.dynamics.integrators import *
 import numpy as np
 import cupy as cp
 
@@ -32,7 +33,7 @@ class TestCavityModel(TestSystem):
         psi0_[-1] = 1.0
         psi0 = cudaq.State.from_data(psi0_)
         decay_rate = 0.1
-        evolution_result = evolve(
+        evolution_result = cudaq.evolve(
             hamiltonian,
             dimensions,
             schedule,
@@ -62,7 +63,7 @@ class TestCavityModelTimeDependentHam(TestSystem):
         psi0_[-1] = 1.0
         psi0 = cudaq.State.from_data(psi0_)
         decay_rate = 0.1
-        evolution_result = evolve(
+        evolution_result = cudaq.evolve(
             hamiltonian,
             dimensions,
             schedule,
@@ -94,7 +95,7 @@ class TestCavityModelTimeDependentCollapseOp(TestSystem):
         decay_rate = 0.1
         decay_op = ScalarOperator(lambda t: np.sqrt(decay_rate * np.exp(-t))
                                  ) * operators.annihilate(0)
-        evolution_result = evolve(hamiltonian,
+        evolution_result = cudaq.evolve(hamiltonian,
                                   dimensions,
                                   schedule,
                                   psi0,
@@ -209,7 +210,7 @@ class TestCompositeSystems(TestSystem):
         test composite system
         """
         schedule = Schedule(self.steps, ["t"])
-        evolution_result = evolve(
+        evolution_result = cudaq.evolve(
             self.hamiltonian,
             self.dimensions,
             schedule,
@@ -271,7 +272,7 @@ class TestCrossResonance(TestSystem):
 
         # Run the simulation.
         # Control bit = 0
-        evolution_result_00 = evolve(hamiltonian,
+        evolution_result_00 = cudaq.evolve(hamiltonian,
                                      dimensions,
                                      schedule,
                                      psi_00,
@@ -288,7 +289,7 @@ class TestCrossResonance(TestSystem):
                                      integrator=integrator())
 
         # Control bit = 1
-        evolution_result_10 = evolve(hamiltonian,
+        evolution_result_10 = cudaq.evolve(hamiltonian,
                                      dimensions,
                                      schedule,
                                      psi_10,
@@ -378,7 +379,7 @@ class TestCallbackTensor(TestSystem):
 
         # Run the simulation.
         # First, we run the simulation without any collapse operators (no decoherence).
-        evolution_result = evolve(hamiltonian,
+        evolution_result = cudaq.evolve(hamiltonian,
                                   dimensions,
                                   schedule,
                                   rho0,

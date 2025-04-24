@@ -7,16 +7,16 @@
 # ============================================================================ #
 
 from __future__ import annotations
-import numpy, scipy, sys, uuid
+import numpy, uuid
 from numpy.typing import NDArray
 from typing import Callable, Iterable, Mapping, Optional, Sequence
-import json
 import random
 import string
 import warnings
 
-from .expressions import Operator, RydbergHamiltonian
-from .helpers import NumericType, InitialState, InitialStateArgT
+from ..operator.expressions import Operator, RydbergHamiltonian
+from ..operator.helpers import NumericType
+from .helpers import InitialState, InitialStateArgT
 from .integrator import BaseIntegrator
 from .schedule import Schedule
 from ..kernel.register_op import register_operation

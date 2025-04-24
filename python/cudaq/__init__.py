@@ -93,9 +93,9 @@ from .operator import operators as operators
 from .operator import Operator, ElementaryOperator, ScalarOperator
 
 # Time evolution API
-from .operator.schedule import Schedule
-from .operator.evolution import evolve, evolve_async
-from .operator.integrators import *
+from .dynamics.schedule import Schedule
+from .dynamics.evolution import evolve, evolve_async
+from .dynamics.integrators import *
 
 # Optimizers + Gradients
 optimizers = cudaq_runtime.optimizers

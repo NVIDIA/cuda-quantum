@@ -10,6 +10,7 @@ import os
 import pytest
 import cudaq
 from cudaq.operator import *
+from cudaq.dynamics import *
 import numpy as np
 
 
@@ -195,7 +196,7 @@ def test_evolve(init_state):
 
     # Run the simulation.
     # First, we run the simulation without any collapse operators (ideal).
-    evolution_result = evolve(hamiltonian,
+    evolution_result = cudaq.evolve(hamiltonian,
                               dimensions,
                               schedule,
                               rho0,
@@ -205,7 +206,7 @@ def test_evolve(init_state):
 
     schedule.reset()
     # Now, run the simulation with qubit decaying due to the presence of a collapse operator.
-    evolution_result_decay = evolve(
+    evolution_result_decay = cudaq.evolve(
         hamiltonian,
         dimensions,
         schedule,
@@ -230,7 +231,7 @@ def test_evolve(init_state):
 
     # Test for `shots_count`
     schedule.reset()
-    evolution_result_shots = evolve(hamiltonian,
+    evolution_result_shots = cudaq.evolve(hamiltonian,
                                     dimensions,
                                     schedule,
                                     rho0,
@@ -268,7 +269,7 @@ def test_evolve_async():
 
     # Run the simulation.
     # First, we run the simulation without any collapse operators (ideal).
-    evolution_result = evolve_async(hamiltonian,
+    evolution_result = cudaq.evolve_async(hamiltonian,
                                     dimensions,
                                     schedule,
                                     rho0,
@@ -288,7 +289,7 @@ def test_evolve_async():
 
     schedule.reset()
     # Now, run the simulation with qubit decaying due to the presence of a collapse operator.
-    evolution_result_decay = evolve_async(
+    evolution_result_decay = cudaq.evolve_async(
         hamiltonian,
         dimensions,
         schedule,
@@ -305,7 +306,7 @@ def test_evolve_async():
 
     # Test for `shots_count`
     schedule.reset()
-    evolution_result_shots = evolve_async(hamiltonian,
+    evolution_result_shots = cudaq.evolve_async(hamiltonian,
                                           dimensions,
                                           schedule,
                                           rho0,

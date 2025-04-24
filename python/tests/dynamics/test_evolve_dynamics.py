@@ -51,7 +51,7 @@ def test_euler_integrator():
     psi0_[-1] = 1.0
     psi0 = cudaq.State.from_data(psi0_)
     decay_rate = 0.1
-    evolution_result = evolve(
+    evolution_result = cudaq.evolve(
         hamiltonian,
         dimensions,
         schedule,
