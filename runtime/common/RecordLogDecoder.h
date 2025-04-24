@@ -29,6 +29,12 @@ class RecordLogDecoder {
 public:
   RecordLogDecoder() = default;
 
+  ~RecordLogDecoder() {
+    for (void *ptr : handler.innerVectors) {
+      delete[] static_cast<char *>(ptr);
+    }
+  }
+
   /// Does the heavy-lifting of parsing the output log and converting it to a
   /// binary data structure that is compatible with the C++ host code. The data
   /// structure is created in a generic memory buffer. The buffer's address and
@@ -69,6 +75,7 @@ private:
     std::string arrayType;
     std::vector<std::string> tupleTypes;
     std::vector<std::size_t> tupleOffsets;
+    std::vector<void *> innerVectors;
     void reset();
     /// Parse string like "array<i32 x 4>"
     void extractArrayInfo(const std::string &);
@@ -108,16 +115,17 @@ private:
   template <typename T>
   void allocateArrayRecord(size_t arrSize) {
     handler.innerVecOffset = buffer.size();
-    /// Allocate space for the three pointers of inner vector
+    /// Allocate space for the three pointers of the inner vector
     std::size_t threePtrSize = 3 * sizeof(T *);
     buffer.resize(handler.innerVecOffset + threePtrSize);
-    handler.dataOffset = buffer.size();
-    buffer.resize(handler.dataOffset + (sizeof(T) * arrSize));
-    /// Initialize the three pointers of the vector
-    T *startPtr, *end0Ptr, *end1Ptr;
-    startPtr = reinterpret_cast<T *>(buffer.data() + handler.dataOffset + 1);
-    end0Ptr = end1Ptr = reinterpret_cast<T *>(startPtr + (arrSize * sizeof(T)));
-    /// Store into the buffer
+    /// Allocate new buffer for inner vector
+    T *innerBuffer = new T[arrSize];
+    handler.innerVectors.push_back(static_cast<void *>(innerBuffer));
+    /// Initialize the three pointers of the inner vector
+    T *startPtr = innerBuffer;
+    T *end0Ptr = innerBuffer + arrSize;
+    T *end1Ptr = end0Ptr;
+    /// Store the pointers into the outer vector (buffer)
     T **ptrLoc = reinterpret_cast<T **>(buffer.data() + handler.innerVecOffset);
     ptrLoc[0] = startPtr;
     ptrLoc[1] = end0Ptr;
@@ -126,8 +134,8 @@ private:
 
   template <typename T>
   void insertIntoArray(std::size_t index, T value) {
-    T *startPtr = reinterpret_cast<T *>(buffer.data() + handler.dataOffset);
-    std::memcpy((startPtr + index), &value, sizeof(T));
+    T **ptrLoc = reinterpret_cast<T **>(buffer.data() + handler.innerVecOffset);
+    ptrLoc[0][index] = value;
   }
 
   template <typename T>
