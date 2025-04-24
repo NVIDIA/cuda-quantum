@@ -388,7 +388,7 @@ def jordan_wigner_two_body(p, q, r, s, coef):
 
 
 ##########################################################
-def jordan_wigner_fermion(h_pq, h_pqrs, ecore, tolerance):
+def jordan_wigner_fermion(h_pq, h_pqrs, ecore, tolerance=1e-12):
 
     # Compute the qubit `hamiltonian` using `jordan` `wigner`
     # one-body and two-body integrals could be real or complex.
