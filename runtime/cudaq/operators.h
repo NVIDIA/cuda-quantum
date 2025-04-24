@@ -1114,7 +1114,7 @@ public:
   /// @brief Constructs a new product_op by copying an existing product_op
   /// instance.
   /// @param other The product_op instance to be copied.
-  /// @param size An optional parameter to specify the size; defaults to 0.
+  /// @param size An optional parameter to specify how many operator elements to reserve space for.
   product_op(const product_op<HandlerTy> &other, std::size_t size = 0);
 
   /// @brief Constructs a product_op by moving the resources from an existing
