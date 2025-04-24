@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 import numpy as np, operator, pytest
-from cudaq import boson, fermion, ops, spin_op # FIXME
+from cudaq import boson, fermion, ops, spin
 from cudaq.operator.scalar_op import ScalarOperator
 from op_utils import * # test helpers
 
@@ -17,7 +17,7 @@ def test_product_conversions():
     dims = {0: 2, 1: 2}
     matrix_product = ops.squeeze(0) * ops.displace(1)
     matrix_product_expected = np.kron(displace_matrix(2, 0.25), squeeze_matrix(2, 0.5))
-    spin_product = spin_op.y(1) * spin_op.x(0)
+    spin_product = spin.y(1) * spin.x(0)
     spin_product_expected = np.kron(pauliy_matrix(), paulix_matrix())
     boson_product = boson.annihilate(1) * boson.number(0)
     boson_product_expected = np.kron(annihilate_matrix(2), number_matrix(2))
@@ -33,7 +33,7 @@ def test_product_conversions():
                    (boson_product, boson_product_expected),
                    (fermion_product, fermion_product_expected)]
     sum_type = dict([(ops.MatrixOperatorTerm, ops.MatrixOperator), 
-                     (spin_op.SpinOperatorTerm, spin_op.SpinOperator), 
+                     (spin.SpinOperatorTerm, spin.SpinOperator), 
                      (boson.BosonOperatorTerm, boson.BosonOperator), 
                      (fermion.FermionOperatorTerm, fermion.FermionOperator)])
 
@@ -76,7 +76,7 @@ def test_sum_conversions():
     dims = {0: 2, 1: 2}
     matrix_product = ops.squeeze(0) * ops.displace(1)
     matrix_product_expected = np.kron(displace_matrix(2, 0.25), squeeze_matrix(2, 0.5))
-    spin_product = spin_op.y(1) * spin_op.x(0)
+    spin_product = spin.y(1) * spin.x(0)
     spin_product_expected = np.kron(pauliy_matrix(), paulix_matrix())
     boson_product = boson.annihilate(1) * boson.number(0)
     boson_product_expected = np.kron(annihilate_matrix(2), number_matrix(2))
@@ -95,7 +95,7 @@ def test_sum_conversions():
     matrix_sum = ops.squeeze(0) + ops.displace(1)
     matrix_sum_expected = np.kron(displace_matrix(2, 0.25), identity_matrix(2)) +\
                           np.kron(identity_matrix(2), squeeze_matrix(2, 0.5))
-    spin_sum = spin_op.y(1) + spin_op.x(0)
+    spin_sum = spin.y(1) + spin.x(0)
     spin_sum_expected = np.kron(pauliy_matrix(), identity_matrix(2)) +\
                         np.kron(identity_matrix(2), paulix_matrix())
     boson_sum = boson.annihilate(1) + boson.number(0)
@@ -111,7 +111,7 @@ def test_sum_conversions():
                (fermion_sum, fermion_sum_expected)]
 
     sum_type = dict([(ops.MatrixOperatorTerm, ops.MatrixOperator), 
-                     (spin_op.SpinOperatorTerm, spin_op.SpinOperator), 
+                     (spin.SpinOperatorTerm, spin.SpinOperator), 
                      (boson.BosonOperatorTerm, boson.BosonOperator), 
                      (fermion.FermionOperatorTerm, fermion.FermionOperator)])
 
@@ -202,7 +202,7 @@ def test_sum_conversions():
 def test_scalar_arithmetics():
     dims = {0: 2, 1: 2}
     scop = ScalarOperator.const(2)
-    for elop in (ops.identity(1), boson.identity(1), fermion.identity(1), spin_op.i(1)):
+    for elop in (ops.identity(1), boson.identity(1), fermion.identity(1), spin.i(1)):
         assert np.allclose((scop + elop).to_matrix(dims),
                         (elop + scop).to_matrix(dims))
         assert np.allclose((scop - elop).to_matrix(dims),
@@ -418,7 +418,7 @@ def test_scalar_arithmetics():
         custom_create(0) + custom_annihilate(0),
         boson.create(0) + boson.annihilate(0),
         fermion.create(0) + fermion.annihilate(0),
-        spin_op.minus(0) + spin_op.plus(0),
+        spin.minus(0) + spin.plus(0),
     ):
         assert np.allclose(operator.add(opsum, 2).to_matrix(dims), [[2, 1], [1, 2]])
         assert np.allclose(
@@ -467,8 +467,8 @@ def test_equality():
     boson_prod = boson.create(0) * boson.annihilate(1)
     fermion_sum = fermion.annihilate(0) + fermion.create(1)
     fermion_prod = fermion.annihilate(0) * fermion.create(1)
-    spin_sum = spin_op.x(0) + spin_op.z(1)
-    spin_prod = spin_op.x(0) * spin_op.z(1)
+    spin_sum = spin.x(0) + spin.z(1)
+    spin_prod = spin.x(0) * spin.z(1)
     operators = [
         op_sum, op_prod,
         boson_sum, boson_prod,
@@ -476,7 +476,7 @@ def test_equality():
         spin_sum, spin_prod,
     ]
     for op in operators:
-        for other in (spin_op.y, boson.create, fermion.number):
+        for other in (spin.y, boson.create, fermion.number):
             assert (op * other(2)) == (other(2) * op)
             assert (op * other(2)) != (other(3) * op)
             assert (op + other(0)) == (other(0) + op)

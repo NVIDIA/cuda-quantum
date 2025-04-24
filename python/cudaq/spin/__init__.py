@@ -6,5 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from cudaq import Pauli
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.spin import *
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import SpinOperator, SpinOperatorTerm

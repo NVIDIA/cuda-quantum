@@ -7,9 +7,7 @@
 # ============================================================================ #
 
 import numpy as np, os, pytest, random
-from cudaq import Pauli
-from cudaq.spin_op import *
-from cudaq import spin # FIXME: REMOVE
+from cudaq.spin import *
 from op_utils import * # test helpers
 
 has_scipy = True
@@ -36,10 +34,10 @@ def test_definitions():
     # legacy test cases
 
     qubit = 0
-    i_ = spin.i(target=qubit)
-    x_ = spin.x(target=qubit)
-    y_ = spin.y(qubit)
-    z_ = spin.z(qubit)
+    i_ = i(target=qubit)
+    x_ = x(target=qubit)
+    y_ = y(qubit)
+    z_ = z(qubit)
 
     data, _ = i_.get_raw_data()
     assert (len(data) == 1)
@@ -172,10 +170,9 @@ def test_iteration():
     assert sum_terms == 2
     assert prod_terms == 4
 
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) - 6.125 * z(1)
     count = 0
-    for term in hamiltonian:
+    for _ in hamiltonian:
         count += 1
     assert count == 5
 
@@ -225,9 +222,9 @@ def test_properties():
 
 
 def test_matrix_construction():
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) - 6.125 * z(1)
+
     # dense matrix
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
     mat = hamiltonian.to_matrix()
     assert abs(-1.74 - np.min(np.linalg.eigvals(mat))) < 1e-2
     print(mat)
@@ -237,8 +234,6 @@ def test_matrix_construction():
     assert np.allclose(want_matrix, got_matrix, rtol=1e-3)
 
     # sparse matrix
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
     numQubits = hamiltonian.get_qubit_count()
     mat = hamiltonian.to_matrix()
     data, rows, cols = hamiltonian.to_sparse_matrix()
@@ -392,12 +387,10 @@ def test_equality():
     assert (spinxy(1, 1) * spinzy(0, 0)) == (spinzy(0, 0) * spinxy(1, 1))
     assert (spinxy(1, 2) * spinzy(3, 4)) == (spinzy(3, 4) * spinxy(1, 2))
 
-    op1 = 5.907 - 2.1433 * spin.x(0) * spin.x(1) + spin.y(0) * spin.y(1)
-    op2 = 3.1433 * spin.y(0) * spin.y(1) - .21829 * spin.z(0) + 6.125 * spin.z(
-        1)
+    op1 = 5.907 - 2.1433 * x(0) * x(1) + y(0) * y(1)
+    op2 = 3.1433 * y(1) * y(0) + 6.125 * z(1) - .21829 * z(0)
     op = op1 - op2
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) - 6.125 * z(1)
     assert hamiltonian == op
 
 
@@ -716,15 +709,15 @@ def test_serialization():
             assert (h1 == h3)
 
 
-def test_spin_op_vqe():
+def test_vqe():
     """
     Test the `cudaq.SpinOperator` class on a simple VQE Hamiltonian.
     """
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(
+        0) * y(1) + .21829 * z(0) - 6.125 * z(1)
     print(hamiltonian)
     # Checking equality operators.
-    assert spin.x(2) != hamiltonian
+    assert x(2) != hamiltonian
     assert hamiltonian == hamiltonian
     assert hamiltonian.get_term_count() == 5
 
@@ -740,8 +733,8 @@ def test_spin_op_vqe():
 
 # deprecated functionality - replaced by iteration
 def test_legacy_foreach():
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(
+        0) * y(1) + .21829 * z(0) - 6.125 * z(1)
     print(hamiltonian)
 
     counter = 0

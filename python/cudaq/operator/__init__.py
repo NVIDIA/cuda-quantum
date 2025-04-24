@@ -15,5 +15,5 @@ from .scalar_op import ScalarOperator
 from .custom_op import ElementaryOperator
 from ..boson import *
 from ..fermion import *
-from ..spin_op import *
+from ..spin import *
 from ..ops import *

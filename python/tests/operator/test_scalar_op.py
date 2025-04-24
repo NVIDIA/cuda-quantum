@@ -317,7 +317,7 @@ def test_scalar_generator_update():
     assert 'p' in so1.parameters
 
     dims = {0: 2}
-    op = so1 * spin_op.x(0)
+    op = so1 * spin.x(0)
     assert np.allclose(op.to_matrix(dims, p=2.0), [[0, 0.5], [0.5, 0]])
 
     # Update to new generator function

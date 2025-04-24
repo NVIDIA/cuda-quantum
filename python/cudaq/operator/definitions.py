@@ -7,12 +7,12 @@
 # ============================================================================ #
 
 from typing import Sequence
-from cudaq import boson, fermion, spin_op as spin, ops
+from cudaq import boson, fermion, spin, ops
 
 from .helpers import NumericType
 from .expressions import RydbergHamiltonian
 
-from ..spin_op import SpinOperator, SpinOperatorTerm
+from ..spin import SpinOperator, SpinOperatorTerm
 from ..fermion import FermionOperator, FermionOperatorTerm
 from ..boson import BosonOperator, BosonOperatorTerm
 from ..ops import MatrixOperator, MatrixOperatorTerm
