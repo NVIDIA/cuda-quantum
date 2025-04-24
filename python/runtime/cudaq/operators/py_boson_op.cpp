@@ -253,6 +253,9 @@ void bindBosonOperator(py::module &mod) {
   .def("__rmul__", [](const boson_op &other, std::complex<double> self) { return self * other; }, py::is_operator())
   .def("__radd__", [](const boson_op &other, std::complex<double> self) { return self + other; }, py::is_operator())
   .def("__rsub__", [](const boson_op &other, std::complex<double> self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const boson_op &other, const scalar_operator &self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const boson_op &other, const scalar_operator &self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const boson_op &other, const scalar_operator &self) { return self - other; }, py::is_operator())
 
   // common operators
 

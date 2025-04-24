@@ -326,6 +326,9 @@ void bindSpinOperator(py::module &mod) {
   .def("__rmul__", [](const spin_op &other, std::complex<double> self) { return self * other; }, py::is_operator())
   .def("__radd__", [](const spin_op &other, std::complex<double> self) { return self + other; }, py::is_operator())
   .def("__rsub__", [](const spin_op &other, std::complex<double> self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const spin_op &other, const scalar_operator &self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const spin_op &other, const scalar_operator &self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const spin_op &other, const scalar_operator &self) { return self - other; }, py::is_operator())
 
   // common operators
 

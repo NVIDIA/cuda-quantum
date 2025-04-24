@@ -247,6 +247,9 @@ void bindFermionOperator(py::module &mod) {
   .def("__rmul__", [](const fermion_op &other, std::complex<double> self) { return self * other; }, py::is_operator())
   .def("__radd__", [](const fermion_op &other, std::complex<double> self) { return self + other; }, py::is_operator())
   .def("__rsub__", [](const fermion_op &other, std::complex<double> self) { return self - other; }, py::is_operator())
+  .def("__rmul__", [](const fermion_op &other, const scalar_operator &self) { return self * other; }, py::is_operator())
+  .def("__radd__", [](const fermion_op &other, const scalar_operator &self) { return self + other; }, py::is_operator())
+  .def("__rsub__", [](const fermion_op &other, const scalar_operator &self) { return self - other; }, py::is_operator())
 
   // common operators
 
