@@ -8,32 +8,20 @@
 
 #pragma once
 
-#include "cudaq/utils/cudaq_utils.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <functional>
+#include "RecordLogDataUtils.h"
+#include <memory>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace cudaq {
-
-/// QIR output schema
-enum struct SchemaType { LABELED, ORDERED };
-enum struct RecordType { HEADER, METADATA, OUTPUT, START, END };
-enum struct OutputType { RESULT, BOOL, INT, DOUBLE };
-enum struct ContainerType { ARRAY, TUPLE };
 
 /// Simple decoder for translating QIR recorded results to a C++ binary data
 /// structure.
 class RecordLogDecoder {
 public:
   RecordLogDecoder() = default;
-
-  ~RecordLogDecoder() {
-    for (void *ptr : handler.innerVectors) {
-      delete[] static_cast<char *>(ptr);
-    }
-  }
+  ~RecordLogDecoder() = default;
 
   /// Does the heavy-lifting of parsing the output log and converting it to a
   /// binary data structure that is compatible with the C++ host code. The data
@@ -43,109 +31,54 @@ public:
 
   /// Get a pointer to the data buffer. Note that the data buffer will be
   /// deallocated as soon as the RecordLogDecoder object is deconstructed.
-  void *getBufferPtr() const {
-    return reinterpret_cast<void *>(const_cast<char *>(buffer.data()));
-  }
+  void *getBufferPtr() const { return bufferHandler.getBufferPtr(); }
 
   /// Get the size of the data buffer (in bytes).
-  std::size_t getBufferSize() const { return buffer.size(); }
+  std::size_t getBufferSize() const { return bufferHandler.getBufferSize(); }
 
 private:
-  /// A helper structure that provides handlers for various operations depending
-  /// on the data types.
-  struct TypeHandler {
-    std::function<void(RecordLogDecoder *, const std::string &)> addRecord;
-    std::function<void(RecordLogDecoder *)> allocateArray;
-    std::function<void(RecordLogDecoder *, std::size_t, const std::string &)>
-        insertIntoArray;
-    std::function<void(RecordLogDecoder *)> allocateTuple;
-    std::function<void(RecordLogDecoder *, std::size_t, const std::string &)>
-        insertIntoTuple;
-  };
-
-  /// A helper structure to hold the current state of the container being
-  /// processed.
-  /// TODO: Handle nested containers.
-  struct ContainerHandler {
-    ContainerType m_type = ContainerType::ARRAY;
-    std::size_t m_size = 0;
-    std::size_t processedElements = 0;
-    std::size_t dataOffset = 0;
-    std::size_t innerVecOffset = 0;
-    std::string arrayType;
-    std::vector<std::string> tupleTypes;
-    std::vector<std::size_t> tupleOffsets;
-    std::vector<void *> innerVectors;
-    void reset();
-    /// Parse string like "array<i32 x 4>"
-    void extractArrayInfo(const std::string &);
-    /// Parse string like "tuple<i32, f64>"
-    void extractTupleInfo(const std::string &);
-    /// Parse string like "[0]" for array index, and ".0" for tuple index
-    std::size_t extractIndex(const std::string &);
-  };
-
-  static const std::unordered_map<
-      std::string,
-      std::function<void(RecordLogDecoder *, const std::vector<std::string> &)>>
-      recordHandlers;
-
-  static const std::unordered_map<std::string, TypeHandler> dataTypeMap;
-
+  /// Process different types of records
   void handleHeader(const std::vector<std::string> &);
   void handleMetadata(const std::vector<std::string> &);
   void handleStart(const std::vector<std::string> &);
   void handleEnd(const std::vector<std::string> &);
+  /// Central dispatcher that handles different output types including scalar
+  /// values, arrays, and tuples.
   void handleOutput(const std::vector<std::string> &);
+  /// Allocate inner buffer for array records - one per shot
   void preallocateArray();
+  /// Allocate contiguous memory for tuple records - one per shot
   void preallocateTuple();
-  bool convertToBool(const std::string &);
+  /// Process scalar values and non-labeled array/tuple entries
   void processSingleRecord(const std::string &, const std::string &);
+  /// Extract index from label (out-of-order allowed), convert value to
+  /// appropriate type and store in the preallocated buffer
   void processArrayEntry(const std::string &, const std::string &);
   void processTupleEntry(const std::string &, const std::string &);
 
-  template <typename T>
-  void addPrimitiveRecord(T value) {
-    /// ASKME: Is this efficient?
-    std::size_t position = buffer.size();
-    buffer.resize(position + sizeof(T));
-    std::memcpy(buffer.data() + position, &value, sizeof(T));
-  }
-
-  template <typename T>
-  void allocateArrayRecord(size_t arrSize) {
-    handler.innerVecOffset = buffer.size();
-    /// Allocate space for the three pointers of the inner vector
-    std::size_t threePtrSize = 3 * sizeof(T *);
-    buffer.resize(handler.innerVecOffset + threePtrSize);
-    /// Allocate new buffer for inner vector
-    T *innerBuffer = new T[arrSize];
-    handler.innerVectors.push_back(static_cast<void *>(innerBuffer));
-    /// Initialize the three pointers of the inner vector
-    T *startPtr = innerBuffer;
-    T *end0Ptr = innerBuffer + arrSize;
-    T *end1Ptr = end0Ptr;
-    /// Store the pointers into the outer vector (buffer)
-    T **ptrLoc = reinterpret_cast<T **>(buffer.data() + handler.innerVecOffset);
-    ptrLoc[0] = startPtr;
-    ptrLoc[1] = end0Ptr;
-    ptrLoc[2] = end1Ptr;
-  }
-
-  template <typename T>
-  void insertIntoArray(std::size_t index, T value) {
-    T **ptrLoc = reinterpret_cast<T **>(buffer.data() + handler.innerVecOffset);
-    ptrLoc[0][index] = value;
-  }
-
-  template <typename T>
-  void insertIntoTuple(std::size_t index, T value) {
-    std::memcpy(buffer.data() + handler.tupleOffsets[index], &value, sizeof(T));
-  }
-
-  std::vector<char> buffer;
   SchemaType schema = SchemaType::ORDERED;
   OutputType currentOutput;
-  ContainerHandler handler;
+  static const std::unordered_map<
+      std::string,
+      std::function<void(RecordLogDecoder *, const std::vector<std::string> &)>>
+      recordHandlers;
+  /// Manages the underlying buffer storage
+  cudaq::details::BufferHandler bufferHandler;
+  /// Tracks container metadata during decoding
+  cudaq::details::ContainerHandler containerHandler;
+  /// Cache of data handlers for different types
+  std::unordered_map<std::string,
+                     std::unique_ptr<cudaq::details::DataHandlerBase>>
+      dataHandlerCache;
+  cudaq::details::DataHandlerBase &getDataHandler(const std::string &dataType) {
+    auto it = dataHandlerCache.find(dataType);
+    if (it == dataHandlerCache.end()) {
+      auto [newIt, _] = dataHandlerCache.emplace(
+          dataType,
+          cudaq::details::DataHandlerFactory::createDataHandler(dataType));
+      return *newIt->second;
+    }
+    return *it->second;
+  }
 };
 } // namespace cudaq
