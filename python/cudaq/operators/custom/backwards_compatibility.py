@@ -11,8 +11,6 @@ from typing import Sequence
 
 from ..helpers import NumericType
 from . import MatrixOperatorTerm
-#from .custom_op import _defineCustomOperator
-#from ..definitions import ElementaryOperator
 from ..scalar import ScalarOperator
 import cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.operators as ops
 

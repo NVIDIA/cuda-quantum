@@ -12,7 +12,7 @@ from typing import Sequence, Mapping, List, Optional
 from .cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from ..runtime.observe import observe
 from .schedule import Schedule
-from ..operators.expressions import Operator
+from ..operators import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .cudm_helpers import cudm, CudmStateType
 from .cudm_state import CuDensityMatState, as_cudm_state

@@ -9,8 +9,7 @@
 import numpy
 from typing import Any, Mapping, List, Sequence, Union
 from numbers import Number
-from ..operators.expressions import ElementaryOperator, ScalarOperator
-from ..operators.manipulation import OperatorArithmetics
+from ..operators import ElementaryOperator, OperatorArithmetics, ScalarOperator
 import logging
 from .schedule import Schedule
 import warnings

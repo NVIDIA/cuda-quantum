@@ -9,7 +9,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Sequence, Mapping, Tuple
-from ..operators.expressions import Operator
+from ..operators import Operator
 from .schedule import Schedule
 
 TState = TypeVar('TState')

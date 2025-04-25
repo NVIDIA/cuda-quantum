@@ -88,6 +88,9 @@ from .operators import boson
 from .operators import fermion
 from .operators import spin
 from .operators import custom as operators
+from .operators.definitions import *
+from .operators.manipulation import OperatorArithmetics
+import cudaq.operators.expressions # needs to be imported, since otherwise e.g. evaluate is not defined
 
 # Time evolution API
 from .dynamics.schedule import Schedule

@@ -6,9 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy as np, operator, pytest
+import cudaq, numpy as np, operator, pytest
 from cudaq import boson, fermion, operators, spin
-from cudaq.operators import ScalarOperator
 from op_utils import * # test helpers
 
 
@@ -202,7 +201,7 @@ def test_sum_conversions():
 def test_scalar_arithmetics():
     dims = {0: 2, 1: 2}
     scop = operators.const(2)
-    assert type(scop) == ScalarOperator
+    assert type(scop) == cudaq.ScalarOperator
     for elop in (operators.identity(1), boson.identity(1), fermion.identity(1), spin.i(1)):
         assert np.allclose((scop + elop).to_matrix(dims),
                         (elop + scop).to_matrix(dims))
