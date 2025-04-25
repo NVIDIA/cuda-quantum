@@ -10,6 +10,7 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/Logger.h"
+#include "common/Observer.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
 #endif
@@ -25,10 +26,6 @@
 #include <signal.h>
 #include <string>
 #include <vector>
-namespace nvqir {
-void tearDownBeforeMPIFinalize();
-void setRandomSeed(std::size_t);
-} // namespace nvqir
 
 namespace cudaq::mpi {
 cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
@@ -188,7 +185,7 @@ void finalize() {
 
   // Inform the simulator that we are
   // about to run MPI Finalize
-  nvqir::tearDownBeforeMPIFinalize();
+  cudaq::notifyAll({{GlobalStateObserver::KnownDataKeys::TearDownMPI, true}});
   auto *commPlugin = getMpiPlugin();
   if (!commPlugin->is_finalized())
     commPlugin->finalize();
@@ -425,7 +422,7 @@ thread_local static std::size_t cudaq_random_seed = 0;
 /// will not be repeatable for those operations.
 void set_random_seed(std::size_t seed) {
   cudaq_random_seed = seed;
-  nvqir::setRandomSeed(seed);
+  cudaq::notifyAll({{GlobalStateObserver::KnownDataKeys::RandomSeed, seed}});
   auto &platform = cudaq::get_platform();
   // Notify the platform that a new random seed value is set.
   platform.onRandomSeedSet(seed);
