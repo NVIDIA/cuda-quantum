@@ -6,9 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from . import spin
 from . import boson
 from . import fermion
+from . import spin
 
 from .custom import *
 from .definitions import *

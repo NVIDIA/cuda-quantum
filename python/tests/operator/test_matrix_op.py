@@ -563,6 +563,32 @@ def test_parameter_docs():
     assert combined6.parameters['angle'] == "different docs for angle..."
 
 
+def test_backwards_compatibility(): 
+    scalar = const(3)
+    assert type(scalar) == ScalarOperator
+    assert scalar.evaluate() == 3
+    with pytest.raises(ValueError): const(lambda: 5)
+    with pytest.raises(ValueError): const('c')
+
+    def check_composite(op_create, matrix_create, coeff_val):
+        op1 = op_create(5)
+        assert type(op1) == MatrixOperatorTerm
+        assert op1.degrees == [5]
+        assert np.allclose(op1.to_matrix({5: 3}), matrix_create(3))
+        op3 = op_create([1, 3, 5])
+        assert op3.degrees == [1, 3, 5]
+        assert op3.coefficient.evaluate() == coeff_val
+        assert np.allclose(op3.to_matrix({1: 2, 3: 2, 5: 2}), matrix_create(8))
+        for element in op3:
+            assert len(element.degrees) == 1
+            assert np.allclose(element.to_matrix({element.degrees[0]: 3}), matrix_create(3))
+
+    check_composite(zero, zero_matrix, 0)
+    check_composite(identity, identity_matrix, 1)
+    with pytest.warns(DeprecationWarning): create(5)
+    with pytest.warns(DeprecationWarning): annihilate(5)
+
+
 # Run with: pytest -rP
 if __name__ == "__main__":
     pytest.main(["-rP"])

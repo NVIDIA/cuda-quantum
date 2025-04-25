@@ -6,16 +6,22 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, warnings
+import cudaq, numpy, warnings
 from typing import Sequence
 
 from ..helpers import NumericType
-from . import MatrixOperatorTerm
+from . import MatrixOperatorTerm, MatrixOperatorElement
 from ..scalar import ScalarOperator
 import cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.operators as ops
 
 # Additional operators that are not defined in C++ but have been available 
 # in cudaq.operators in the past. Hence, we add them here.
+
+def _zero(cls, degree: int):
+    return cls("op_zero", [degree])
+
+MatrixOperatorElement.define("op_zero", [0], lambda dim: numpy.diag(numpy.zeros(dim, dtype=numpy.complex128)))
+MatrixOperatorElement.zero = classmethod(_zero)
 
 def const(constant_value: NumericType) -> ScalarOperator:
     return ScalarOperator.const(constant_value)
@@ -26,10 +32,10 @@ def zero(degrees: Sequence[int] | int = []
         return ScalarOperator.const(0)
     zero_op = MatrixOperatorTerm(0.)
     if isinstance(degrees, int):
-        zero_op *= ops.identity(degrees)
+        zero_op *= MatrixOperatorTerm(MatrixOperatorElement.zero(degrees))
     else:
         for degree in degrees:
-            zero_op *= ops.identity(degree)
+            zero_op *= MatrixOperatorTerm(MatrixOperatorElement.zero(degree))
     return zero_op
 
 def identity(degrees: Sequence[int] | int = []
@@ -52,8 +58,3 @@ def annihilate(degree: int) -> MatrixOperatorTerm:
     warnings.warn("deprecated - use cudaq.boson.annihilate or cudaq.fermion.annihilate instead, or define your own matrix operator", DeprecationWarning)
     return MatrixOperatorTerm(cudaq.boson.annihilate(degree))
 
-
-# FIXME: 
-#ElementaryOperator.define = classmethod(_defineCustomOperator)
-#MatrixOperatorElement.define("op_zero", [0], lambda dim: numpy.diag(numpy.zeros(dim, dtype=numpy.complex128)))
-#MatrixOperatorElement.zero = classmethod(lambda target: MatrixOperatorElement("op_zero", [target]))
