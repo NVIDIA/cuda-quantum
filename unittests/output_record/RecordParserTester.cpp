@@ -118,6 +118,75 @@ CUDAQ_TEST(ParserTester, checkArrayLabeled) {
   origBuffer = nullptr;
 }
 
+CUDAQ_TEST(ParserTester, checkArrayIntMultiShot) {
+  const std::string log = "OUTPUT\tARRAY\t2\tarray<i32 x 2>\n"
+                          "OUTPUT\tINT\t42\t[0]\n"
+                          "OUTPUT\tINT\t-13\t[1]\n"
+                          "OUTPUT\tARRAY\t2\tarray<i32 x 2>\n"
+                          "OUTPUT\tINT\t42\t[0]\n"
+                          "OUTPUT\tINT\t-13\t[1]\n"
+                          "OUTPUT\tARRAY\t2\tarray<i32 x 2>\n"
+                          "OUTPUT\tINT\t42\t[0]\n"
+                          "OUTPUT\tINT\t-13\t[1]\n";
+  cudaq::RecordLogDecoder parser;
+  parser.decode(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  std::vector<std::vector<int>> results = {
+      reinterpret_cast<std::vector<int> *>(span.data),
+      reinterpret_cast<std::vector<int> *>(span.data + span.lengthInBytes)};
+  EXPECT_EQ(3, results.size());
+  EXPECT_EQ(2, results[0].size());
+  EXPECT_EQ(2, results[1].size());
+  EXPECT_EQ(2, results[2].size());
+  EXPECT_EQ(42, results[0][0]);
+  EXPECT_EQ(-13, results[0][1]);
+  EXPECT_EQ(42, results[1][0]);
+  EXPECT_EQ(-13, results[1][1]);
+  EXPECT_EQ(42, results[2][0]);
+  EXPECT_EQ(-13, results[2][1]);
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
+CUDAQ_TEST(ParserTester, checkArrayDoubleMultiShot) {
+  const std::string log = "OUTPUT\tARRAY\t3\tarray<f64 x 3>\n"
+                          "OUTPUT\tDOUBLE\t3.14159\t[0]\n"
+                          "OUTPUT\tDOUBLE\t2.71828\t[1]\n"
+                          "OUTPUT\tDOUBLE\t6.62607\t[2]\n"
+                          "OUTPUT\tARRAY\t3\tarray<f64 x 3>\n"
+                          "OUTPUT\tDOUBLE\t3.14159\t[0]\n"
+                          "OUTPUT\tDOUBLE\t2.71828\t[1]\n"
+                          "OUTPUT\tDOUBLE\t6.62607\t[2]\n";
+  cudaq::RecordLogDecoder parser;
+  parser.decode(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  std::vector<std::vector<double>> results = {
+      reinterpret_cast<std::vector<double> *>(span.data),
+      reinterpret_cast<std::vector<double> *>(span.data + span.lengthInBytes)};
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ(3, results[0].size());
+  EXPECT_EQ(3, results[1].size());
+  double tol = 1e-3;
+  EXPECT_NEAR(3.14159, results[0][0], tol);
+  EXPECT_NEAR(2.71828, results[0][1], tol);
+  EXPECT_NEAR(6.62607, results[0][2], tol);
+  EXPECT_NEAR(3.14159, results[1][0], tol);
+  EXPECT_NEAR(2.71828, results[1][1], tol);
+  EXPECT_NEAR(6.62607, results[1][2], tol);
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
 CUDAQ_TEST(ParserTester, checkTupleOrdered) {
   const std::string log = "OUTPUT\tTUPLE\t2\n"
                           "OUTPUT\tINT\t561\ti32\n"
