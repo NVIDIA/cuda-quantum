@@ -9,10 +9,7 @@
 #pragma once
 
 #include "RecordLogDataUtils.h"
-#include <memory>
-#include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace cudaq {
 
