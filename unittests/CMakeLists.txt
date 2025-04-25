@@ -292,8 +292,7 @@ endif()
 target_link_libraries(test_operators
   PRIVATE
   cudaq-operator
-  cudaq 
-  nvqir
+  cudaq-common
   gtest_main)
 gtest_discover_tests(test_operators)
 

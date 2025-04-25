@@ -36,11 +36,7 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE .)
 
-set (OPERATOR_DEPENDENCIES "")
-list(APPEND OPERATOR_DEPENDENCIES fmt::fmt-header-only)
-add_openmp_configurations(${LIBRARY_NAME} OPERATOR_DEPENDENCIES)
-
-target_link_libraries(${LIBRARY_NAME} PRIVATE ${OPERATOR_DEPENDENCIES})
+target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-operator-targets DESTINATION lib)
 

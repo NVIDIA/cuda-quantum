@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/utils/matrix.h"
+#include "ComplexMatrix.h"
 #include <cmath>
 #include <iostream>
 #include <sstream>
@@ -299,7 +299,7 @@ cudaq::complex_matrix cudaq::complex_matrix::power(int powers) {
   auto result = cudaq::complex_matrix::identity(rows());
 
   // Calculate the matrix power iteratively.
-  for (std::size_t i = 0; i < powers; i++)
+  for (int i = 0; i < powers; i++)
     result = result * *this;
   return result;
 }
