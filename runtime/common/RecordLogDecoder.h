@@ -49,7 +49,7 @@ private:
   /// Process scalar values and non-labeled array/tuple entries
   void processSingleRecord(const std::string &, const std::string &);
   /// Extract index from label (out-of-order allowed), convert value to
-  /// appropriate type and store in the preallocated buffer
+  /// appropriate type and store in the pre-allocated buffer
   void processArrayEntry(const std::string &, const std::string &);
   void processTupleEntry(const std::string &, const std::string &);
 
