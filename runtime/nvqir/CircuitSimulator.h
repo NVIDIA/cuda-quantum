@@ -107,8 +107,10 @@ public:
   virtual ~CircuitSimulator() = default;
 
   void oneWayNotify(const cudaq::observer_data &data) override {
-    if (auto iter = data.find(KnownDataKeys::RandomSeed); iter != data.end())
+    if (auto iter = data.find(KnownDataKeys::RandomSeed); iter != data.end()) {
       setRandomSeed(std::any_cast<std::size_t>(iter->second));
+      return;
+    }
 
     if (auto iter = data.find(KnownDataKeys::TearDownMPI);
         iter != data.end() && std::any_cast<bool>(iter->second))

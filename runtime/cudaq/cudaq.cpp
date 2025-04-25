@@ -311,10 +311,6 @@ bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
 
 //===----------------------------------------------------------------------===//
 
-namespace nvqir {
-void setRandomSeed(std::size_t);
-}
-
 namespace cudaq {
 
 void set_target_backend(const char *backend) {
