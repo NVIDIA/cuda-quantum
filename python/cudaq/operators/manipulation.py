@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from typing import Generator, Generic, Iterable, Mapping, TypeVar
 
 from .helpers import NumericType, CppOperator, CppOperatorTerm, CppOperatorElement
-from .scalar_op import ScalarOperator
+from .scalar import ScalarOperator
 
 TEval = TypeVar('TEval')
 

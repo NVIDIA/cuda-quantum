@@ -7,7 +7,8 @@
 # ============================================================================ #
 
 import numpy as np, pytest, random
-from cudaq.boson import *
+from cudaq import boson
+from cudaq.operators.boson import *
 from op_utils import * # test helpers
 
 
@@ -19,6 +20,13 @@ def setup():
 
 def test_definitions():
     dims = {0: 2, 1: 3}
+
+    assert np.allclose(boson.create(1).to_matrix(dims), create_matrix(3))
+    assert np.allclose(boson.annihilate(1).to_matrix(dims), annihilate_matrix(3))
+    assert np.allclose(boson.number(1).to_matrix(dims), number_matrix(3))
+    assert np.allclose(boson.position(1).to_matrix(dims), position_matrix(3))
+    assert np.allclose(boson.momentum(1).to_matrix(dims), momentum_matrix(3))
+
     assert np.allclose(create(1).to_matrix(dims), create_matrix(3))
     assert np.allclose(annihilate(1).to_matrix(dims), annihilate_matrix(3))
     assert np.allclose(number(1).to_matrix(dims), number_matrix(3))

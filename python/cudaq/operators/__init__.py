@@ -6,12 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .definitions import operators, spin, boson, fermion, RydbergHamiltonian
-from .expressions import Operator
-from .helpers import NumericType
-from .scalar_op import ScalarOperator
-from .custom_op import ElementaryOperator
-from ..boson import *
-from ..fermion import *
-from ..spin import *
-from ..ops import *
+from . import spin
+from . import boson
+from . import fermion
+
+from .custom import *
+from .definitions import *

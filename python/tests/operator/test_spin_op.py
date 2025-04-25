@@ -7,7 +7,8 @@
 # ============================================================================ #
 
 import numpy as np, os, pytest, random
-from cudaq.spin import *
+from cudaq import spin
+from cudaq.operators.spin import *
 from op_utils import * # test helpers
 
 has_scipy = True
@@ -24,6 +25,14 @@ def setup():
 
 
 def test_definitions():
+
+    assert np.allclose(spin.i(1).to_matrix(), identity_matrix(2))
+    assert np.allclose(spin.x(1).to_matrix(), paulix_matrix())
+    assert np.allclose(spin.y(1).to_matrix(), pauliy_matrix())
+    assert np.allclose(spin.z(1).to_matrix(), pauliz_matrix())
+    assert np.allclose(spin.plus(1).to_matrix(), 0.5 * paulix_matrix() + 0.5j * pauliy_matrix())
+    assert np.allclose(spin.minus(1).to_matrix(), 0.5 * paulix_matrix() - 0.5j * pauliy_matrix())
+
     assert np.allclose(i(1).to_matrix(), identity_matrix(2))
     assert np.allclose(x(1).to_matrix(), paulix_matrix())
     assert np.allclose(y(1).to_matrix(), pauliy_matrix())

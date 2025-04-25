@@ -7,7 +7,8 @@
 # ============================================================================ #
 
 import cmath, numpy as np, pytest, random
-from cudaq.ops import * # FIXME: module name
+from cudaq import operators
+from cudaq.operators import *
 from op_utils import * # test helpers
 
 
@@ -19,6 +20,18 @@ def setup():
 
 def test_definitions():
     dims = {0: 2, 1: 3}
+    assert np.allclose(operators.number(1).to_matrix(dims), number_matrix(3))
+    assert np.allclose(operators.parity(1).to_matrix(dims), parity_matrix(3))
+    assert np.allclose(operators.position(1).to_matrix(dims), position_matrix(3))
+    assert np.allclose(operators.momentum(1).to_matrix(dims), momentum_matrix(3))
+    assert np.allclose(operators.squeeze(1).to_matrix(dims, squeezing = 0.5 + 1.2j, displacement = 0.5 + 1.2j), squeeze_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(operators.displace(1).to_matrix(dims, squeezing = 0.5 + 1.2j, displacement = 0.5 + 1.2j), displace_matrix(3, 0.5 + 1.2j))
+    params = {"squeezing": 0.5 + 1.2j, "displacement": 0.5 + 1.2j}
+    assert np.allclose(operators.squeeze(1).to_matrix(dims, params), squeeze_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(operators.displace(1).to_matrix(dims, params), displace_matrix(3, 0.5 + 1.2j))
+    with pytest.raises(Exception): operators.squeeze(1).to_matrix(dims, displacement = 0.5 + 1.2j)
+    with pytest.raises(Exception): operators.displace(1).to_matrix(dims, squeeze = 0.5 + 1.2j)
+
     assert np.allclose(number(1).to_matrix(dims), number_matrix(3))
     assert np.allclose(parity(1).to_matrix(dims), parity_matrix(3))
     assert np.allclose(position(1).to_matrix(dims), position_matrix(3))

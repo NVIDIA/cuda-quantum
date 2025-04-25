@@ -6,6 +6,4 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.operators import *
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, MatrixOperatorTerm
-from cudaq.operator.custom_op import *
+from .scalar_op import ScalarOperator

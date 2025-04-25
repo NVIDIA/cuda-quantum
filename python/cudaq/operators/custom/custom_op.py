@@ -11,7 +11,7 @@ import inspect, numpy  # type: ignore
 from typing import Callable, Sequence
 from numpy.typing import NDArray
 
-from .helpers import _OperatorHelpers, NumericType
+from ..helpers import _OperatorHelpers, NumericType
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import ElementaryOperator, ComplexMatrix
 
 
@@ -72,11 +72,6 @@ def _defineCustomOperator(cls, id: str,
         return ComplexMatrix(np_matrix)
     cls._define(id, expected_dimensions, generator_wrapper, override, **parameters)
 
-
 ElementaryOperator.define = classmethod(_defineCustomOperator)
-ElementaryOperator.define("op_zero", [0], lambda dim: numpy.diag(numpy.zeros(dim, dtype=numpy.complex128)))
-ElementaryOperator.define("op_identity", [0], lambda dim: numpy.diag(numpy.ones(dim, dtype=numpy.complex128)))
-ElementaryOperator.zero = classmethod(lambda target: ElementaryOperator("op_zero", [target]))
-ElementaryOperator.zero = classmethod(lambda target: ElementaryOperator("op_identity", [target]))
 
 

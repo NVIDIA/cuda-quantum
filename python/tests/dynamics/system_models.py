@@ -5,9 +5,9 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import os, uuid
+import uuid
 import cudaq
-from cudaq.operator import *
+from cudaq.operators import *
 from cudaq.dynamics import *
 from cudaq.dynamics.integrators import *
 import numpy as np
@@ -26,7 +26,7 @@ class TestCavityModel(TestSystem):
         N = 10
         steps = np.linspace(0, 10, 101)
         schedule = Schedule(steps, ["t"])
-        hamiltonian = operators.number(0)
+        hamiltonian = number(0)
         dimensions = {0: N}
         # initial state
         psi0_ = cp.zeros(N, dtype=cp.complex128)
@@ -39,7 +39,7 @@ class TestCavityModel(TestSystem):
             schedule,
             psi0,
             observables=[hamiltonian],
-            collapse_operators=[np.sqrt(decay_rate) * operators.annihilate(0)],
+            collapse_operators=[np.sqrt(decay_rate) * annihilate(0)],
             store_intermediate_results=True,
             integrator=integrator())
         expt = []
@@ -52,11 +52,11 @@ class TestCavityModel(TestSystem):
 class TestCavityModelTimeDependentHam(TestSystem):
 
     def run_tests(self, integrator):
-        hamiltonian = ScalarOperator(lambda t: 1.0) * operators.number(0)
+        hamiltonian = ScalarOperator(lambda t: 1.0) * number(0)
         N = 10
         steps = np.linspace(0, 10, 101)
         schedule = Schedule(steps, ["t"])
-        hamiltonian = operators.number(0)
+        hamiltonian = number(0)
         dimensions = {0: N}
         # initial state
         psi0_ = cp.zeros(N, dtype=cp.complex128)
@@ -69,7 +69,7 @@ class TestCavityModelTimeDependentHam(TestSystem):
             schedule,
             psi0,
             observables=[hamiltonian],
-            collapse_operators=[np.sqrt(decay_rate) * operators.annihilate(0)],
+            collapse_operators=[np.sqrt(decay_rate) * annihilate(0)],
             store_intermediate_results=True,
             integrator=integrator())
         expt = []
@@ -82,11 +82,11 @@ class TestCavityModelTimeDependentHam(TestSystem):
 class TestCavityModelTimeDependentCollapseOp(TestSystem):
 
     def run_tests(self, integrator):
-        hamiltonian = ScalarOperator(lambda t: 1.0) * operators.number(0)
+        hamiltonian = ScalarOperator(lambda t: 1.0) * number(0)
         N = 10
         steps = np.linspace(0, 10, 101)
         schedule = Schedule(steps, ["t"])
-        hamiltonian = operators.number(0)
+        hamiltonian = number(0)
         dimensions = {0: N}
         # initial state
         psi0_ = cp.zeros(N, dtype=cp.complex128)
@@ -94,7 +94,7 @@ class TestCavityModelTimeDependentCollapseOp(TestSystem):
         psi0 = cudaq.State.from_data(psi0_)
         decay_rate = 0.1
         decay_op = ScalarOperator(lambda t: np.sqrt(decay_rate * np.exp(-t))
-                                 ) * operators.annihilate(0)
+                                 ) * annihilate(0)
         evolution_result = cudaq.evolve(hamiltonian,
                                   dimensions,
                                   schedule,
@@ -114,12 +114,12 @@ class TestCavityModelTimeDependentCollapseOp(TestSystem):
 
 class TestCompositeSystems(TestSystem):
     dimensions = {0: 2, 1: 10}
-    a = operators.annihilate(1)
-    a_dag = operators.create(1)
-    sm = operators.annihilate(0)
-    sm_dag = operators.create(0)
-    hamiltonian = 2 * np.pi * operators.number(
-        1) + 2 * np.pi * operators.number(0) + 2 * np.pi * 0.25 * (sm * a_dag +
+    a = annihilate(1)
+    a_dag = create(1)
+    sm = annihilate(0)
+    sm_dag = create(0)
+    hamiltonian = 2 * np.pi * number(
+        1) + 2 * np.pi * number(0) + 2 * np.pi * 0.25 * (sm * a_dag +
                                                                    sm_dag * a)
     qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
     cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
@@ -215,8 +215,8 @@ class TestCompositeSystems(TestSystem):
             self.dimensions,
             schedule,
             input_state,
-            observables=[operators.number(1),
-                         operators.number(0)],
+            observables=[number(1),
+                         number(0)],
             collapse_operators=[np.sqrt(0.1) * self.a],
             store_intermediate_results=True,
             integrator=integrator())

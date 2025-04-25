@@ -7,6 +7,7 @@
 # ============================================================================ #
 import pytest
 import cudaq
+from cudaq import operators
 
 if cudaq.num_available_gpus() == 0:
     pytest.skip("Skipping GPU tests", allow_module_level=True)

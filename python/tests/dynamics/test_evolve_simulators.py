@@ -9,7 +9,7 @@ import os
 
 import pytest
 import cudaq
-from cudaq.operator import *
+from cudaq.operators import *
 from cudaq.dynamics import *
 import numpy as np
 

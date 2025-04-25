@@ -84,13 +84,10 @@ SimulationPrecision = cudaq_runtime.SimulationPrecision
 qreg = cudaq_runtime.qvector
 
 # Operator API
-from .operator.definitions import spin, SpinOperator
-# Re-export non-spin-op operators under the `operators` namespace
-# e.g. `cudaq.operators.annihilate`
-from .operator import operators as operators
-# Operator types (in addition to `spin` types)
-# e.g., allows users to use `cudaq.ScalarOperator(lambda...)`
-from .operator import Operator, ElementaryOperator, ScalarOperator
+from .operators import boson
+from .operators import fermion
+from .operators import spin
+from .operators import custom as operators
 
 # Time evolution API
 from .dynamics.schedule import Schedule

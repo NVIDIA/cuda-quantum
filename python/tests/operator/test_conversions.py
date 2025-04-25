@@ -7,15 +7,15 @@
 # ============================================================================ #
 
 import numpy as np, operator, pytest
-from cudaq import boson, fermion, ops, spin
-from cudaq.operator.scalar_op import ScalarOperator
+from cudaq import boson, fermion, operators, spin
+from cudaq.operators import ScalarOperator
 from op_utils import * # test helpers
 
 
 def test_product_conversions():
     params = {"squeezing": 0.5, "displacement": 0.25}
     dims = {0: 2, 1: 2}
-    matrix_product = ops.squeeze(0) * ops.displace(1)
+    matrix_product = operators.squeeze(0) * operators.displace(1)
     matrix_product_expected = np.kron(displace_matrix(2, 0.25), squeeze_matrix(2, 0.5))
     spin_product = spin.y(1) * spin.x(0)
     spin_product_expected = np.kron(pauliy_matrix(), paulix_matrix())
@@ -32,7 +32,7 @@ def test_product_conversions():
                    (spin_product, spin_product_expected), 
                    (boson_product, boson_product_expected),
                    (fermion_product, fermion_product_expected)]
-    sum_type = dict([(ops.MatrixOperatorTerm, ops.MatrixOperator), 
+    sum_type = dict([(operators.MatrixOperatorTerm, operators.MatrixOperator), 
                      (spin.SpinOperatorTerm, spin.SpinOperator), 
                      (boson.BosonOperatorTerm, boson.BosonOperator), 
                      (fermion.FermionOperatorTerm, fermion.FermionOperator)])
@@ -46,7 +46,7 @@ def test_product_conversions():
             print("check arithmetics for {t1} with {t2}".format(t1=type(op1), t2=type(op2)))
             base_type = type(op1)
             if type(op1) != type(op2):
-                base_type = ops.MatrixOperatorTerm
+                base_type = operators.MatrixOperatorTerm
             check_equals(op1 + op2, expected1 + expected2, sum_type[base_type])
             check_equals(op1 - op2, expected1 - expected2, sum_type[base_type])
             if isinstance(op1, fermion.FermionOperatorTerm) != isinstance(op2, fermion.FermionOperatorTerm):
@@ -65,8 +65,8 @@ def test_product_conversions():
             with pytest.raises(Exception): prod *= op
         else:
             prod *= op
-            assert type(prod) == ops.MatrixOperatorTerm
-            check_equals(prod, np.dot(matrix_product_expected, expected), ops.MatrixOperatorTerm)
+            assert type(prod) == operators.MatrixOperatorTerm
+            check_equals(prod, np.dot(matrix_product_expected, expected), operators.MatrixOperatorTerm)
     
     # FIXME: option to remap degrees of operator and test fermions without exception
 
@@ -74,7 +74,7 @@ def test_product_conversions():
 def test_sum_conversions():
     params = {"squeezing": 0.5, "displacement": 0.25}
     dims = {0: 2, 1: 2}
-    matrix_product = ops.squeeze(0) * ops.displace(1)
+    matrix_product = operators.squeeze(0) * operators.displace(1)
     matrix_product_expected = np.kron(displace_matrix(2, 0.25), squeeze_matrix(2, 0.5))
     spin_product = spin.y(1) * spin.x(0)
     spin_product_expected = np.kron(pauliy_matrix(), paulix_matrix())
@@ -92,7 +92,7 @@ def test_sum_conversions():
                    (boson_product, boson_product_expected),
                    (fermion_product, fermion_product_expected)]
 
-    matrix_sum = ops.squeeze(0) + ops.displace(1)
+    matrix_sum = operators.squeeze(0) + operators.displace(1)
     matrix_sum_expected = np.kron(displace_matrix(2, 0.25), identity_matrix(2)) +\
                           np.kron(identity_matrix(2), squeeze_matrix(2, 0.5))
     spin_sum = spin.y(1) + spin.x(0)
@@ -110,7 +110,7 @@ def test_sum_conversions():
                (boson_sum, boson_sum_expected),
                (fermion_sum, fermion_sum_expected)]
 
-    sum_type = dict([(ops.MatrixOperatorTerm, ops.MatrixOperator), 
+    sum_type = dict([(operators.MatrixOperatorTerm, operators.MatrixOperator), 
                      (spin.SpinOperatorTerm, spin.SpinOperator), 
                      (boson.BosonOperatorTerm, boson.BosonOperator), 
                      (fermion.FermionOperatorTerm, fermion.FermionOperator)])
@@ -124,7 +124,7 @@ def test_sum_conversions():
             print("check arithmetics for {t1} with {t2}".format(t1=type(sum1), t2=type(sum2)))
             expected_type = type(sum1)
             if type(sum1) != type(sum2):
-                expected_type = ops.MatrixOperator
+                expected_type = operators.MatrixOperator
             check_equals(sum1 + sum2, expected1 + expected2, expected_type)
             check_equals(sum1 - sum2, expected1 - expected2, expected_type)
             if isinstance(sum1, fermion.FermionOperator) != isinstance(sum2, fermion.FermionOperator):
@@ -138,7 +138,7 @@ def test_sum_conversions():
     for (sum, sum_expected) in sum_ops:
         for (prod, prod_expected) in product_ops:
             print("check arithmetics for {t1} with {t2} and vice versa".format(t1=type(sum), t2=type(prod)))
-            expected_type = ops.MatrixOperator
+            expected_type = operators.MatrixOperator
             if sum_type[type(prod)] == type(sum):
                 expected_type = type(sum)
             check_equals(sum + prod, sum_expected + prod_expected, expected_type)
@@ -171,38 +171,39 @@ def test_sum_conversions():
         print("check in-place arithmetics for matrix sum with {t}".format(t=type(op)))
         sum = matrix_sum.copy()
         sum += op
-        check_equals(sum, matrix_sum_expected + expected, ops.MatrixOperator)
+        check_equals(sum, matrix_sum_expected + expected, operators.MatrixOperator)
         sum = matrix_sum.copy()
         sum -= op
-        check_equals(sum, matrix_sum_expected - expected, ops.MatrixOperator)
+        check_equals(sum, matrix_sum_expected - expected, operators.MatrixOperator)
         sum = matrix_sum.copy()
         if isinstance(op, fermion.FermionOperator):
             with pytest.raises(Exception): sum *= op
         else:
             sum *= op
-            check_equals(sum, np.dot(matrix_sum_expected, expected), ops.MatrixOperator)
+            check_equals(sum, np.dot(matrix_sum_expected, expected), operators.MatrixOperator)
     for (op, expected) in product_ops[1:]:
         print("check in-place arithmetics for matrix sum with {t}".format(t=type(op)))
         sum = matrix_sum.copy()
         sum += op
-        check_equals(sum, matrix_sum_expected + expected, ops.MatrixOperator)
+        check_equals(sum, matrix_sum_expected + expected, operators.MatrixOperator)
         sum = matrix_sum.copy()
         sum -= op
-        check_equals(sum, matrix_sum_expected - expected, ops.MatrixOperator)
+        check_equals(sum, matrix_sum_expected - expected, operators.MatrixOperator)
         sum = matrix_sum.copy()
         if isinstance(op, fermion.FermionOperatorTerm):
             with pytest.raises(Exception): sum *= op
         else:
             sum *= op
-            check_equals(sum, np.dot(matrix_sum_expected, expected), ops.MatrixOperator)
+            check_equals(sum, np.dot(matrix_sum_expected, expected), operators.MatrixOperator)
 
     # FIXME: option to remap degrees of operator and test fermions without exception
 
 
 def test_scalar_arithmetics():
     dims = {0: 2, 1: 2}
-    scop = ScalarOperator.const(2)
-    for elop in (ops.identity(1), boson.identity(1), fermion.identity(1), spin.i(1)):
+    scop = operators.const(2)
+    assert type(scop) == ScalarOperator
+    for elop in (operators.identity(1), boson.identity(1), fermion.identity(1), spin.i(1)):
         assert np.allclose((scop + elop).to_matrix(dims),
                         (elop + scop).to_matrix(dims))
         assert np.allclose((scop - elop).to_matrix(dims),
@@ -361,10 +362,10 @@ def test_scalar_arithmetics():
         assert np.allclose((elop / 2j).to_matrix(dims),
                         [[-0.5j, 0], [0, -0.5j]])
 
-    ops.ElementaryOperator.define("ops_create", [0], lambda dim: create_matrix(dim))
-    ops.ElementaryOperator.define("ops_annihilate", [0], lambda dim: annihilate_matrix(dim))
-    custom_create = lambda target: ops.MatrixOperatorTerm(ops.ElementaryOperator("ops_create", [target]))
-    custom_annihilate = lambda target: ops.MatrixOperatorTerm(ops.ElementaryOperator("ops_annihilate", [target]))
+    operators.ElementaryOperator.define("ops_create", [0], lambda dim: create_matrix(dim))
+    operators.ElementaryOperator.define("ops_annihilate", [0], lambda dim: annihilate_matrix(dim))
+    custom_create = lambda target: operators.MatrixOperatorTerm(operators.ElementaryOperator("ops_create", [target]))
+    custom_annihilate = lambda target: operators.MatrixOperatorTerm(operators.ElementaryOperator("ops_annihilate", [target]))
 
     for opprod in (
         custom_create(0) * custom_annihilate(0),
@@ -461,21 +462,21 @@ def test_scalar_arithmetics():
 
 
 def test_equality():
-    op_sum = ops.squeeze(0) + ops.displace(1)
-    op_prod = ops.squeeze(0) * ops.displace(1)
+    op_sum = operators.squeeze(0) + operators.displace(1)
+    op_prod = operators.squeeze(0) * operators.displace(1)
     boson_sum = boson.create(0) + boson.annihilate(1)
     boson_prod = boson.create(0) * boson.annihilate(1)
     fermion_sum = fermion.annihilate(0) + fermion.create(1)
     fermion_prod = fermion.annihilate(0) * fermion.create(1)
     spin_sum = spin.x(0) + spin.z(1)
     spin_prod = spin.x(0) * spin.z(1)
-    operators = [
+    ops = [
         op_sum, op_prod,
         boson_sum, boson_prod,
         fermion_sum, fermion_prod,
         spin_sum, spin_prod,
     ]
-    for op in operators:
+    for op in ops:
         for other in (spin.y, boson.create, fermion.number):
             assert (op * other(2)) == (other(2) * op)
             assert (op * other(2)) != (other(3) * op)

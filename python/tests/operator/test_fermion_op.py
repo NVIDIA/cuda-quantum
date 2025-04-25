@@ -7,7 +7,8 @@
 # ============================================================================ #
 
 import numpy as np, pytest, random
-from cudaq.fermion import *
+from cudaq import fermion
+from cudaq.operators.fermion import *
 from op_utils import * # test helpers
 
 
@@ -19,6 +20,11 @@ def setup():
 
 def test_definitions():
     # FIXME: PARITY ACROSS A NUMBER OF TARGETS?
+
+    assert np.allclose(fermion.create(1).to_matrix(), create_matrix(2))
+    assert np.allclose(fermion.annihilate(1).to_matrix(), annihilate_matrix(2))
+    assert np.allclose(fermion.number(1).to_matrix(), number_matrix(2))
+
     assert np.allclose(create(1).to_matrix(), create_matrix(2))
     assert np.allclose(annihilate(1).to_matrix(), annihilate_matrix(2))
     assert np.allclose(number(1).to_matrix(), number_matrix(2))

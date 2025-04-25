@@ -12,7 +12,7 @@ import inspect, numpy  # type: ignore
 from typing import Any, Callable, Mapping, Optional
 from numpy.typing import NDArray
 
-from .helpers import _OperatorHelpers, NumericType
+from ..helpers import _OperatorHelpers, NumericType
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import ScalarOperator
 
 def _const_init(cls, constant_value: NumericType) -> ScalarOperator:

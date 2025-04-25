@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 import numpy as np, operator, pytest
-from cudaq.operator.scalar_op import ScalarOperator
+from cudaq.operators import ScalarOperator # FIXME: should be defined under cudaq as well?
 from cudaq import spin
 
 
