@@ -15,8 +15,10 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/platform/qpu_state.h"
+#include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
+#include "cudaq/utils/registry.h"
 #include <complex>
 #include <vector>
 
@@ -68,8 +70,10 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
     throw std::runtime_error("Cannot use get_state_async on a physical QPU.");
 
   if (qpu_id >= platform.num_qpus())
-    throw std::invalid_argument(
-        "Provided qpu_id is invalid (must be <=to platform.num_qpus()).");
+    throw std::invalid_argument("Provided qpu_id " + std::to_string(qpu_id) +
+                                " is invalid (must be < " +
+                                std::to_string(platform.num_qpus()) +
+                                " i.e. platform.num_qpus())");
 
   std::promise<state> promise;
   auto f = promise.get_future();
@@ -91,6 +95,55 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
   return f;
+}
+
+#ifdef CUDAQ_LIBRARY_MODE
+template <typename QuantumKernel>
+QuantumKernel createQKernel(QuantumKernel &&kernel) {
+  return kernel;
+}
+#else
+
+#if CUDAQ_USE_STD20
+template <typename T>
+using remove_cvref_t = typename std::remove_cvref_t<T>;
+#else
+template <typename T>
+using remove_cvref_t = typename std::remove_cv_t<std::remove_reference_t<T>>;
+#endif
+
+template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
+          typename Operator = typename cudaq::qkernel_deduction_guide_helper<
+              decltype(&QuantumKernel::operator())>::type,
+          std::enable_if_t<std::is_class_v<Q>, bool> = true>
+cudaq::qkernel<Operator> createQKernel(QuantumKernel &&kernel) {
+  return {kernel};
+}
+
+template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
+          std::enable_if_t<!std::is_class_v<Q>, bool> = true>
+cudaq::qkernel<Q> createQKernel(QuantumKernel &&kernel) {
+  return {kernel};
+}
+#endif
+
+template <typename QuantumKernel>
+std::string getKernelName(QuantumKernel &&kernel) {
+  if constexpr (has_name<QuantumKernel>::value) {
+    // kernel_builder kernel: need to JIT code to get it registered.
+    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    return kernel.name();
+  } else {
+    // R (S::operator())(Args..) or R(*)(Args...) kernels are registered
+    // and made linkable in GenDeviceCodeLoader pass.
+    auto qKernel =
+        cudaq::details::createQKernel(std::forward<QuantumKernel>(kernel));
+    auto key = cudaq::registry::__cudaq_getLinkableKernelKey(&qKernel);
+    auto name = cudaq::registry::getLinkableKernelNameOrNull(key);
+    if (!name)
+      throw std::runtime_error("Cannot determine kernel name in get_state");
+    return name;
+  }
 }
 } // namespace details
 
@@ -121,21 +174,19 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   }
 #elif defined(CUDAQ_QUANTUM_DEVICE) && !defined(CUDAQ_LIBRARY_MODE)
   // Store kernel name and arguments for quantum states.
-  if (!cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
-    return state(new QPUState(std::forward<QuantumKernel>(kernel),
-                              std::forward<Args>(args)...));
-  throw std::runtime_error(
-      "cudaq::state* argument synthesis is not supported for quantum hardware"
-      " for c-like functions, use class kernels instead");
+  return state(
+      new QPUState(details::getKernelName(std::forward<QuantumKernel>(kernel)),
+                   std::forward<Args>(args)...));
+
 #elif defined(CUDAQ_QUANTUM_DEVICE)
   // Kernel builder is MLIR-based kernel.
   if constexpr (has_name<QuantumKernel>::value)
-    return state(new QPUState(std::forward<QuantumKernel>(kernel),
-                              std::forward<Args>(args)...));
+    return state(new QPUState(
+        details::getKernelName(std::forward<QuantumKernel>(kernel)),
+        std::forward<Args>(args)...));
 
   throw std::runtime_error(
-      "cudaq::state* argument synthesis is not supported for quantum hardware"
-      " for c-like functions in library mode");
+      "could not create state in library mode for quantum devices");
 #endif
   return details::extractState([&]() mutable {
     cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),

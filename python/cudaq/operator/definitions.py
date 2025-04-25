@@ -6,13 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy, scipy  # type: ignore
+import numpy
+import scipy
 from numpy.typing import NDArray
 from typing import Sequence
 
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .helpers import NumericType
-from .expressions import OperatorSum, ProductOperator, ElementaryOperator, ScalarOperator, RydbergHamiltonian
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from .expressions import (OperatorSum, ProductOperator, ElementaryOperator,
+                          ScalarOperator)
 
 
 # Operators as defined here (watch out of differences in convention):

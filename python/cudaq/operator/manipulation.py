@@ -7,14 +7,15 @@
 # ============================================================================ #
 
 from __future__ import annotations
-import numpy, re, sys  # type: ignore
+import numpy
+import re
 from abc import ABC, abstractmethod
-from typing import Generic, Iterable, TypeVar, Tuple
-from numpy.typing import NDArray
 from functools import lru_cache
+from numpy.typing import NDArray
+from typing import Generic, Iterable, TypeVar, Tuple
 
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .helpers import _OperatorHelpers, NumericType
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 TEval = TypeVar('TEval')
 

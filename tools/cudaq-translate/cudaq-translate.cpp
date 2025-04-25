@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OptUtils.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -24,7 +25,6 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
-#include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
@@ -207,8 +207,9 @@ int main(int argc, char **argv) {
   ExecutionEngine::setupTargetTriple(llvmModule.get());
 
   // Optionally run an optimization pipeline over the llvm module.
-  auto optPipeline = makeOptimizingTransformer(optLevel, sizeLevel,
-                                               /*targetMachine=*/nullptr);
+  auto optPipeline =
+      cudaq::makeOptimizingTransformer(optLevel, sizeLevel,
+                                       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(llvmModule.get())) {
     llvm::errs() << "Failed to optimize LLVM IR " << err << '\n';
     std::exit(1);
