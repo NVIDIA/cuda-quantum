@@ -157,8 +157,6 @@ void fermion_handler::create_matrix(
     return;
 
   auto map_state = [](char encoding, bool state) {
-    if (encoding == '9')
-      return std::pair<double, bool>{1., state};
     if (state) {
       if (encoding == '4' || encoding == '1') // zeros the state
         return std::pair<double, bool>{0., state};
@@ -166,7 +164,10 @@ void fermion_handler::create_matrix(
         return std::pair<double, bool>{1., state};
       if (encoding == '2')
         return std::pair<double, bool>{1., !state};
-      assert(false); // should never reach
+      else {
+        assert(encoding == '9');
+        return std::pair<double, bool>{1., state};
+      }
     } else {
       if (encoding == '2' || encoding == '8') // zeros the state
         return std::pair<double, bool>{0., state};
@@ -174,7 +175,10 @@ void fermion_handler::create_matrix(
         return std::pair<double, bool>{1., state};
       if (encoding == '4')
         return std::pair<double, bool>{1., !state};
-      assert(false); // should never reach
+      else {
+        assert(encoding == '9');
+        return std::pair<double, bool>{1., state};
+      }
     }
   };
 
