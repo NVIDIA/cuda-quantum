@@ -15,6 +15,7 @@ set(COMMON_RUNTIME_SRC
   Environment.cpp
   Executor.cpp
   Future.cpp
+  Observer.cpp
   Logger.cpp 
   MeasureCounts.cpp 
   NoiseModel.cpp 
@@ -108,7 +109,6 @@ target_include_directories(cudaq-mlir-runtime
 
 target_link_libraries(cudaq-mlir-runtime 
   PUBLIC
-    nvqir
     CCDialect
     QuakeDialect
     OptCodeGen

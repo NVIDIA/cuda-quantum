@@ -14,6 +14,7 @@
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
+#include "common/Observer.h"
 #include "common/Timing.h"
 #include "cudaq/host_config.h"
 #include <cstdarg>
@@ -84,7 +85,7 @@ struct SummaryData {
 /// virtual methods that subtypes must implement. Subtypes should be responsible
 /// for evolution of the concrete wave function representation (e.g.,
 /// state vector), sampling, and measurements.
-class CircuitSimulator {
+class CircuitSimulator : public cudaq::GlobalStateObserver {
 protected:
   /// @brief Flush the current queue of gates, i.e.
   /// apply them to the state. Internal and meant for
@@ -104,6 +105,37 @@ public:
   CircuitSimulator() = default;
   /// @brief The destructor
   virtual ~CircuitSimulator() = default;
+
+  void oneWayNotify(const cudaq::observer_data &data) override {
+    if (auto iter = data.find(KnownDataKeys::RandomSeed); iter != data.end())
+      setRandomSeed(std::any_cast<std::size_t>(iter->second));
+
+    if (auto iter = data.find(KnownDataKeys::TearDownMPI);
+        iter != data.end() && std::any_cast<bool>(iter->second))
+      tearDownBeforeMPIFinalize();
+  }
+
+  std::tuple<bool, cudaq::observer_data>
+  notifyWithResponse(const cudaq::observer_data &input) override {
+    if (auto iter = input.find(KnownDataKeys::SimulationState);
+        iter != input.end()) {
+      auto stateData = std::any_cast<const cudaq::state_data &>(iter->second);
+      return std::make_tuple(
+          true,
+          cudaq::observer_data{{KnownDataKeys::SimulationState,
+                                createStateFromData(stateData).release()}});
+    }
+
+    if (auto iter = input.find(KnownDataKeys::IsSinglePrecision);
+        iter != input.end()) {
+      if (isSinglePrecision())
+        return std::make_tuple(
+            true,
+            cudaq::observer_data{{KnownDataKeys::IsSinglePrecision, true}});
+    }
+
+    return std::make_tuple(false, cudaq::observer_data{});
+  }
 
   /// @brief Flush the current queue of gates, i.e.
   /// apply them to the state.
@@ -1491,11 +1523,13 @@ public:
   nvqir::CircuitSimulator *getCircuitSimulator() {                             \
     thread_local static std::unique_ptr<nvqir::CircuitSimulator> simulator =   \
         std::make_unique<CLASSNAME>();                                         \
+    cudaq::registerObserver(simulator.get());                                  \
     return simulator.get();                                                    \
   }                                                                            \
   nvqir::CircuitSimulator *CONCAT(getCircuitSimulator_, PRINTED_NAME)() {      \
     thread_local static std::unique_ptr<nvqir::CircuitSimulator> simulator =   \
         std::make_unique<CLASSNAME>();                                         \
+    cudaq::registerObserver(simulator.get());                                  \
     return simulator.get();                                                    \
   }                                                                            \
   }
@@ -1504,5 +1538,6 @@ public:
   nvqir::CircuitSimulator *clone() override {                                  \
     thread_local static std::unique_ptr<nvqir::CircuitSimulator> simulator =   \
         std::make_unique<CLASSNAME>();                                         \
+    cudaq::registerObserver(simulator.get());                                  \
     return simulator.get();                                                    \
   }

@@ -19,7 +19,6 @@ target_link_libraries(cudaq-builder
   PRIVATE
     cudaq
     fmt::fmt-header-only
-    nvqir
     cudaq-mlir-runtime
 )
 
