@@ -138,11 +138,7 @@ public:
 class BufferHandler {
 public:
   BufferHandler() = default;
-  ~BufferHandler() {
-    for (void *ptr : innerVectors) {
-      delete[] static_cast<char *>(ptr);
-    }
-  }
+  ~BufferHandler() = default;
   /// Copying and assignment not permitted
   BufferHandler(BufferHandler &other) = delete;
   BufferHandler &operator=(BufferHandler &other) = delete;
@@ -168,8 +164,12 @@ public:
   size_t allocateArrayRecord(size_t arrSize) {
     size_t vectorOffset = buffer.size();
     buffer.resize(vectorOffset + 3 * sizeof(T *));
-    T *innerBuffer = new T[arrSize];
-    innerVectors.push_back(static_cast<void *>(innerBuffer));
+    size_t byteLength = arrSize * sizeof(T);
+    /// ASKME: How to properly free this memory?
+    T *innerBuffer = static_cast<T *>(malloc(byteLength));
+    if (!innerBuffer)
+      throw std::runtime_error("Memory allocation failed");
+    std::memset(innerBuffer, 0, byteLength);
     /// Initialize the three pointers of the inner vector
     T *startPtr = innerBuffer;
     T *end0Ptr = innerBuffer + arrSize;
@@ -203,7 +203,6 @@ public:
 
 private:
   std::vector<char> buffer;
-  std::vector<void *> innerVectors;
 };
 
 /// Abstract base class for type-specific data handling.
