@@ -9,7 +9,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Iterable, Iterator, Optional
 
-from ..operators.helpers import NumericType
+from ..operators import NumericType
 
 
 class Schedule(Iterator):

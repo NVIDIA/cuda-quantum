@@ -8,4 +8,4 @@
 
 from cudaq import Pauli
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.spin import *
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import SpinOperator, SpinOperatorTerm
+from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import SpinOperator, SpinOperatorTerm, SpinOperatorElement

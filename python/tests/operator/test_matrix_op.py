@@ -371,34 +371,34 @@ def define_ops():
     def op_definition(dim):
         return np.diag([(-1. + 0j)**i for i in range(dim)])
 
-    ElementaryOperator.define(
+    define(
         "custom_parity1", [0],
         lambda dim: np.diag([(-1. + 0j)**i for i in range(dim)]))
-    ElementaryOperator.define(
+    operators.define(
         "custom_parity2", [0],
         op_definition)
 
 def test_custom_operators():
 
-    ElementaryOperator.define("custom", [0], lambda dim: np.diag(np.zeros(dim, dtype=np.complex128)))
+    define("custom", [0], lambda dim: np.diag(np.zeros(dim, dtype=np.complex128)))
     with pytest.raises(Exception): 
         # redefinition of an operator with the same name should raise and exception by default
-        ElementaryOperator.define("custom", [0], lambda dim: np.diag(np.zeros(dim, dtype=np.complex128)))
-    ElementaryOperator.define("custom", [0], lambda dim: np.diag(np.ones(dim, dtype=np.complex128)), override=True)
-    custom1 = ElementaryOperator("custom", [2])
+        define("custom", [0], lambda dim: np.diag(np.zeros(dim, dtype=np.complex128)))
+    define("custom", [0], lambda dim: np.diag(np.ones(dim, dtype=np.complex128)), override=True)
+    custom1 = instantiate("custom", 2)
     assert np.allclose(custom1.to_matrix({2: 3}), identity_matrix(3))
 
     define_ops()
-    custom2 = ElementaryOperator("custom_parity1", [1])
+    custom2 = instantiate("custom_parity1", 1)
     assert np.allclose(custom2.to_matrix({1: 5}), parity_matrix(5))
-    custom3 = ElementaryOperator("custom_parity2", [1])
+    custom3 = instantiate("custom_parity2", [1])
     assert np.allclose(custom3.to_matrix({1: 5}), parity_matrix(5))
 
     def phase(angle: float):
         return np.array([[1, 0], [0, cmath.exp(1j * angle)]], dtype=np.complex128)
 
-    ElementaryOperator.define("custom_phase", [2], phase)
-    custom_op = ElementaryOperator("custom_phase", [1])
+    define("custom_phase", [2], phase)
+    custom_op = instantiate("custom_phase", [1])
     with pytest.raises(Exception): custom_op.to_matrix() # missing parameter
     assert np.allclose(custom_op.to_matrix(angle = np.pi), np.array([[1, 0], [0, -1]]))
 
@@ -408,14 +408,14 @@ def test_custom_operators():
         return np.kron(momentum_matrix(dims[1]), position_matrix(dims[0]))
     def func1(dims):
         return np.kron(momentum_matrix(dims[1]), number_matrix(dims[0]))
-    ElementaryOperator.define("custom_op0", [-1, -1], func0)
-    ElementaryOperator.define("custom_op1", [-1, -1], func1)
+    define("custom_op0", [-1, -1], func0)
+    define("custom_op1", [-1, -1], func1)
     dims = {0: 3, 1: 4, 2: 2, 3: 5}
 
-    op0 = ElementaryOperator("custom_op0", [0, 1])
-    op1 = ElementaryOperator("custom_op1", [1, 2])
-    prod1 = MatrixOperatorTerm(op0) * MatrixOperatorTerm(op1) # FIXME: ...
-    prod2 = MatrixOperatorTerm(op1) * MatrixOperatorTerm(op0)
+    op0 = instantiate("custom_op0", [0, 1])
+    op1 = instantiate("custom_op1", [1, 2])
+    prod1 = op0 * op1
+    prod2 = op1 * op0
 
     expected1 = np.dot(momentum_matrix(4), number_matrix(4))
     expected1 = np.kron(momentum_matrix(2), expected1)
@@ -428,10 +428,10 @@ def test_custom_operators():
     assert np.allclose(prod1.to_matrix(dims), expected1)
     assert np.allclose(prod2.to_matrix(dims), expected2)
 
-    op0 = ElementaryOperator("custom_op0", [2, 3])
-    op1 = ElementaryOperator("custom_op1", [0, 2])
-    prod1 = MatrixOperatorTerm(op0) * MatrixOperatorTerm(op1) # FIXME: ...
-    prod2 = MatrixOperatorTerm(op1) * MatrixOperatorTerm(op0)
+    op0 = instantiate("custom_op0", [2, 3])
+    op1 = instantiate("custom_op1", [0, 2])
+    prod1 = op0 * op1
+    prod2 = op1 * op0
 
     expected1 = np.dot(position_matrix(2), momentum_matrix(2))
     expected1 = np.kron(momentum_matrix(5), expected1)
@@ -448,33 +448,33 @@ def test_custom_operators():
         return np.kron(momentum_matrix(dims[1]), position_matrix(dims[0]))
     def func1(dims):
         return np.kron(parity_matrix(dims[1]), number_matrix(dims[0]))
-    ElementaryOperator.define("custom_op0", [-1, -1], func0, override=True)
-    ElementaryOperator.define("custom_op1", [-1, -1], func1, override=True)
+    operators.define("custom_op0", [-1, -1], func0, override=True)
+    operators.define("custom_op1", [-1, -1], func1, override=True)
 
-    op0 = ElementaryOperator("custom_op0", [0, 1])
-    op1 = ElementaryOperator("custom_op1", [1, 2])
+    op0 = instantiate("custom_op0", [0, 1])
+    op1 = instantiate("custom_op1", [1, 2])
     matrix0 = np.kron(np.kron(identity_matrix(2), momentum_matrix(4)), position_matrix(3))
     matrix1 = np.kron(np.kron(parity_matrix(2), number_matrix(4)), identity_matrix(3))
 
-    sum1 = MatrixOperatorTerm(op0) + MatrixOperatorTerm(op1)
-    sum2 = MatrixOperatorTerm(op1) + MatrixOperatorTerm(op0)
-    diff1 = MatrixOperatorTerm(op0) - MatrixOperatorTerm(op1)
-    diff2 = MatrixOperatorTerm(op1) - MatrixOperatorTerm(op0)
+    sum1 = op0 + op1
+    sum2 = op1 + op0
+    diff1 = op0 - op1
+    diff2 = op1 - op0
 
     assert np.allclose(sum1.to_matrix(dims), matrix0 + matrix1)
     assert np.allclose(sum2.to_matrix(dims), matrix0 + matrix1)
     assert np.allclose(diff1.to_matrix(dims), matrix0 - matrix1)
     assert np.allclose(diff2.to_matrix(dims), matrix1 - matrix0)
 
-    op0 = ElementaryOperator("custom_op0", [2, 3])
-    op1 = ElementaryOperator("custom_op1", [0, 2])
+    op0 = instantiate("custom_op0", [2, 3])
+    op1 = instantiate("custom_op1", [0, 2])
     matrix0 = np.kron(np.kron(momentum_matrix(5), position_matrix(2)), identity_matrix(3))
     matrix1 = np.kron(np.kron(identity_matrix(5), parity_matrix(2)), number_matrix(3))
 
-    sum1 = MatrixOperatorTerm(op0) + MatrixOperatorTerm(op1)
-    sum2 = MatrixOperatorTerm(op1) + MatrixOperatorTerm(op0)
-    diff1 = MatrixOperatorTerm(op0) - MatrixOperatorTerm(op1)
-    diff2 = MatrixOperatorTerm(op1) - MatrixOperatorTerm(op0)
+    sum1 = op0 + op1
+    sum2 = op1 + op0
+    diff1 = op0 - op1
+    diff2 = op1 - op0
 
     assert np.allclose(sum1.to_matrix(dims), matrix0 + matrix1)
     assert np.allclose(sum2.to_matrix(dims), matrix0 + matrix1)
@@ -509,8 +509,8 @@ def test_parameter_docs():
         """
         return np.array([[cmath.exp(-0.5j * angle), 0], [0, cmath.exp(0.5j * angle)]], dtype=np.complex128)
 
-    ElementaryOperator.define("rz", [2], rz)
-    rz_op = ElementaryOperator("rz", [0])
+    define("rz", [2], rz)
+    rz_op = instantiate("rz", 0)
     assert 'angle' in rz_op.parameters
     assert rz_op.parameters['angle'] == '' # no parameter docs
 
@@ -523,8 +523,8 @@ def test_parameter_docs():
         """
         return np.array([[1, 0], [0, cmath.exp(1j * angle)]], dtype=np.complex128)
 
-    ElementaryOperator.define("phase", [2], phase)
-    phase_op = ElementaryOperator("phase", [1])
+    define("phase", [2], phase)
+    phase_op = instantiate("phase", [1])
     assert 'angle' in phase_op.parameters
     assert phase_op.parameters['angle'] == "exponent of the applied phase"
 
@@ -547,8 +547,8 @@ def test_parameter_docs():
         """
         return np.array([[1, 0], [0, cmath.exp(0.5j * angle)]], dtype=np.complex128)
 
-    ElementaryOperator.define("phase2", [2], phase2)
-    phase_op2 = ElementaryOperator("phase2", [1])
+    operators.define("phase2", [2], phase2)
+    phase_op2 = instantiate("phase2", 1)
     assert 'angle' in phase_op2.parameters
     assert phase_op2.parameters['angle'] == "different docs for angle..."
 

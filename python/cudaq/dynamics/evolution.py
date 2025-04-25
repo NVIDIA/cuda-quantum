@@ -14,8 +14,7 @@ import random
 import string
 import warnings
 
-from ..operators.expressions import Operator, RydbergHamiltonian
-from ..operators.helpers import NumericType
+from ..operators import NumericType, Operator, RydbergHamiltonian
 from .helpers import InitialState, InitialStateArgT
 from .integrator import BaseIntegrator
 from .schedule import Schedule

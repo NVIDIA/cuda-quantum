@@ -15,10 +15,10 @@ from .manipulation import OperatorArithmetics, _sum_evaluation, _product_evaluat
 # FIXME: rename cppoperator to operatorsum etc
 
 # FIXME: deprecate _evaluate or make public?
-for op_type in typing.get_args(CppOperator):
+for op_type in typing.get_args(OperatorSum):
     op_type._evaluate = _sum_evaluation
-for op_type in typing.get_args(CppOperatorTerm):
+for op_type in typing.get_args(ProductOperator):
     op_type._evaluate = _product_evaluation
-for op_type in typing.get_args(CppOperatorTerm):
+for op_type in typing.get_args(ProductOperator):
     op_type.evaluate = _evaluation
 

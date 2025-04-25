@@ -12,7 +12,7 @@ import inspect, numpy  # type: ignore
 from typing import Any, Callable, Mapping, Optional
 from numpy.typing import NDArray
 
-from ..helpers import _OperatorHelpers, NumericType
+from ..helpers import NumericType, _aggregate_parameters, _args_from_kwargs, _parameter_docs
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import ScalarOperator
 
 def _const_init(cls, constant_value: NumericType) -> ScalarOperator:
@@ -67,7 +67,7 @@ def _compose(
                 fct(self.evaluate(), other.evaluate()))
         generator = lambda **kwargs: fct(self.evaluate(**kwargs),
                                             other.evaluate(**kwargs))
-        parameter_info = _OperatorHelpers.aggregate_parameters([
+        parameter_info = _aggregate_parameters([
             self.parameters,
             other.parameters
         ])
@@ -111,10 +111,10 @@ def _instantiate(cls,
         if parameter_info is None:
             parameter_info = {}
             for arg_name in arg_spec.args + arg_spec.kwonlyargs:
-                parameter_info[arg_name] = _OperatorHelpers.parameter_docs(
+                parameter_info[arg_name] = _parameter_docs(
                     arg_name, generator.__doc__)
         def generator_wrapper(kwargs : dict[str, NumericType]):
-            generator_args, remaining_kwargs = _OperatorHelpers.args_from_kwargs(generator, **kwargs)
+            generator_args, remaining_kwargs = _args_from_kwargs(generator, **kwargs)
             return generator(*generator_args, **remaining_kwargs)
         instance.__init__(generator_wrapper, **parameter_info)
     return instance

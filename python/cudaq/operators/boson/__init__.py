@@ -7,4 +7,4 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.boson import *
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import BosonOperator, BosonOperatorTerm
+from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import BosonOperator, BosonOperatorTerm, BosonOperatorElement

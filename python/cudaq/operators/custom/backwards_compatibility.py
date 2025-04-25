@@ -11,6 +11,8 @@ from typing import Sequence
 
 from ..helpers import NumericType
 from . import MatrixOperatorTerm
+#from .custom_op import _defineCustomOperator
+#from ..definitions import ElementaryOperator
 from ..scalar import ScalarOperator
 import cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.operators as ops
 
@@ -52,6 +54,8 @@ def annihilate(degree: int) -> MatrixOperatorTerm:
     warnings.warn("deprecated - use cudaq.boson.annihilate or cudaq.fermion.annihilate instead, or define your own matrix operator", DeprecationWarning)
     return MatrixOperatorTerm(cudaq.boson.annihilate(degree))
 
+
 # FIXME: 
-#ElementaryOperator.define("op_zero", [0], lambda dim: numpy.diag(numpy.zeros(dim, dtype=numpy.complex128)))
-#ElementaryOperator.zero = classmethod(lambda target: ElementaryOperator("op_zero", [target]))
+#ElementaryOperator.define = classmethod(_defineCustomOperator)
+#MatrixOperatorElement.define("op_zero", [0], lambda dim: numpy.diag(numpy.zeros(dim, dtype=numpy.complex128)))
+#MatrixOperatorElement.zero = classmethod(lambda target: MatrixOperatorElement("op_zero", [target]))

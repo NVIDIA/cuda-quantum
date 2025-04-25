@@ -10,7 +10,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Generator, Generic, Iterable, Mapping, TypeVar
 
-from .helpers import NumericType, CppOperator, CppOperatorTerm, CppOperatorElement
+from .definitions import NumericType, OperatorSum, ProductOperator, ElementaryOperator
 from .scalar import ScalarOperator
 
 TEval = TypeVar('TEval')
@@ -24,7 +24,7 @@ class OperatorArithmetics(ABC, Generic[TEval]):
 
     @abstractmethod
     def evaluate(self: OperatorArithmetics[TEval],
-                 op: CppOperatorElement | ScalarOperator) -> TEval:
+                 op: ElementaryOperator | ScalarOperator) -> TEval:
         """
         Accesses the relevant data to evaluate an operator expression in the leaf 
         nodes, that is in elementary and scalar operators.
@@ -58,30 +58,30 @@ class OperatorArithmetics(ABC, Generic[TEval]):
 
 
 # FIXME: add a general evaluation logic in C++ to all operators?
-class OperatorEvaluation(OperatorArithmetics[CppOperator | CppOperatorTerm | NumericType]):
+class OperatorEvaluation(OperatorArithmetics[OperatorSum | ProductOperator | NumericType]):
 
     def tensor(
-        self: OperatorEvaluation, op1: CppOperator | CppOperatorTerm | NumericType,
-        op2: CppOperator | CppOperatorTerm | NumericType
-    ) -> CppOperator | CppOperatorTerm | NumericType:
+        self: OperatorEvaluation, op1: OperatorSum | ProductOperator | NumericType,
+        op2: OperatorSum | ProductOperator | NumericType
+    ) -> OperatorSum | ProductOperator | NumericType:
         return op1 * op2
 
     def mul(
-        self: OperatorEvaluation, op1: CppOperator | CppOperatorTerm | NumericType,
-        op2: CppOperator | CppOperatorTerm | NumericType
-    ) -> CppOperator | CppOperatorTerm | NumericType:
+        self: OperatorEvaluation, op1: OperatorSum | ProductOperator | NumericType,
+        op2: OperatorSum | ProductOperator | NumericType
+    ) -> OperatorSum | ProductOperator | NumericType:
         return op1 * op2
 
     def add(
-        self: OperatorEvaluation, op1: CppOperator | CppOperatorTerm | NumericType,
-        op2: CppOperator | CppOperatorTerm | NumericType
-    ) -> CppOperator | CppOperatorTerm | NumericType:
+        self: OperatorEvaluation, op1: OperatorSum | ProductOperator | NumericType,
+        op2: OperatorSum | ProductOperator | NumericType
+    ) -> OperatorSum | ProductOperator | NumericType:
         return op1 + op2
 
     def evaluate(
-        self: OperatorEvaluation, op: CppOperatorElement | ScalarOperator
-    ) -> CppOperatorTerm | NumericType:
-        if isinstance(op, CppOperatorElement):
+        self: OperatorEvaluation, op: ElementaryOperator | ScalarOperator
+    ) -> ProductOperator | NumericType:
+        if isinstance(op, ElementaryOperator):
             return self._term_type(op)
         if isinstance(op, ScalarOperator):
             return op.evaluate(**self._kwargs)
@@ -103,7 +103,7 @@ class OperatorEvaluation(OperatorArithmetics[CppOperator | CppOperatorTerm | Num
         self._term_type = term_type
 
 
-def _product_evaluation(term : CppOperatorTerm, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
+def _product_evaluation(term : ProductOperator, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
     """
     Helper function used for evaluating operator expressions and computing arbitrary values
     during evaluation. The value to be computed is defined by the OperatorArithmetics.
@@ -112,7 +112,7 @@ def _product_evaluation(term : CppOperatorTerm, arithmetics: OperatorArithmetics
     will only be computed if they act on different degrees of freedom. 
     """
 
-    def padded_op(op: CppOperatorElement | ScalarOperator,
+    def padded_op(op: ElementaryOperator | ScalarOperator,
                     degrees: Iterable[int]):
         # Creating the tensor product with op being last is most efficient.
         def accumulate_ops() -> Generator[TEval]:
@@ -142,7 +142,7 @@ def _product_evaluation(term : CppOperatorTerm, arithmetics: OperatorArithmetics
     return evaluated
 
 
-def _sum_evaluation(operator : CppOperator, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
+def _sum_evaluation(operator : OperatorSum, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
     """
     Helper function used for evaluating operator expressions and computing arbitrary values
     during evaluation. The value to be computed is defined by the OperatorArithmetics.
@@ -151,7 +151,7 @@ def _sum_evaluation(operator : CppOperator, arithmetics: OperatorArithmetics[TEv
     will only be computed if they act on different degrees of freedom. 
     """
 
-    def padded_term(term: CppOperatorTerm, degrees: Iterable[int]) -> CppOperatorTerm:
+    def padded_term(term: ProductOperator, degrees: Iterable[int]) -> ProductOperator:
         term_degrees = term.degrees
         padded_term = term.copy()
         for degree in degrees:
@@ -171,25 +171,25 @@ def _sum_evaluation(operator : CppOperator, arithmetics: OperatorArithmetics[TEv
             evaluated = arithmetics.add(evaluated, evaluated_term)
     return evaluated
 
-def _evaluation(operator: CppOperator | CppOperatorTerm,
+def _evaluation(operator: OperatorSum | ProductOperator,
                    dimensions: Mapping[int, int] = {}, # FIXME: SHOULD WE HAVE THE DIMENSIONS (AND USE THEM!) OR NOT?
-                   **kwargs: NumericType) -> CppOperator | CppOperatorTerm:
+                   **kwargs: NumericType) -> OperatorSum | ProductOperator:
     term_type = type(operator)
-    if isinstance(operator, CppOperator) and operator.term_count > 0:
+    if isinstance(operator, OperatorSum) and operator.term_count > 0:
         term, *_ = operator
         term_type = type(term)
     arithmetics = OperatorEvaluation(term_type, **kwargs)
-    if isinstance(operator, CppOperator):
+    if isinstance(operator, OperatorSum):
         evaluated = _sum_evaluation(operator, arithmetics, False)
-    elif isinstance(operator, CppOperatorTerm):
+    elif isinstance(operator, ProductOperator):
         evaluated = _product_evaluation(operator, arithmetics, False)
         # FIXME: CONVERT TO SUM?
     else:
         raise RuntimeError("the given value is not an operator")
 
-    if isinstance(evaluated, CppOperator) or isinstance(evaluated, CppOperatorTerm):
+    if isinstance(evaluated, OperatorSum) or isinstance(evaluated, ProductOperator):
         return evaluated
-    elif isinstance(operator, CppOperator):
+    elif isinstance(operator, OperatorSum):
         evaluated_sum = operator.__class__.empty()
         if evaluated != 0: evaluated_sum += evaluated
         return evaluated_sum

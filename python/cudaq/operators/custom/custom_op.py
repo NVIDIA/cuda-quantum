@@ -11,8 +11,8 @@ import inspect, numpy  # type: ignore
 from typing import Callable, Sequence
 from numpy.typing import NDArray
 
-from ..helpers import _OperatorHelpers, NumericType
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import ElementaryOperator, ComplexMatrix
+from ..helpers import NumericType, _args_from_kwargs, _parameter_docs
+from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperatorElement, ComplexMatrix
 
 
 def _defineCustomOperator(cls, id: str,
@@ -50,7 +50,7 @@ def _defineCustomOperator(cls, id: str,
                 kwargs[forwarded] = kwargs.get(
                     forwarded,
                     dimensions[0])  # add if it does not exist
-        creation_args, remaining_kwargs = _OperatorHelpers.args_from_kwargs(
+        creation_args, remaining_kwargs = _args_from_kwargs(
             creation, **kwargs)
         evaluated = creation(*creation_args, **remaining_kwargs)
         if not isinstance(evaluated, numpy.ndarray):
@@ -64,7 +64,7 @@ def _defineCustomOperator(cls, id: str,
     arg_spec = inspect.getfullargspec(create)
     for pname in arg_spec.args + arg_spec.kwonlyargs:
         if not pname in forwarded:
-            parameters[pname] = _OperatorHelpers.parameter_docs(
+            parameters[pname] = _parameter_docs(
                 pname, create.__doc__)
 
     def generator_wrapper(dimensions: Sequence[int], kwargs: dict[str, NumericType]):
@@ -72,6 +72,6 @@ def _defineCustomOperator(cls, id: str,
         return ComplexMatrix(np_matrix)
     cls._define(id, expected_dimensions, generator_wrapper, override, **parameters)
 
-ElementaryOperator.define = classmethod(_defineCustomOperator)
+MatrixOperatorElement.define = classmethod(_defineCustomOperator)
 
 

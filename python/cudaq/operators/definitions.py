@@ -8,19 +8,22 @@
 
 import typing
 
-from .helpers import NumericType, CppOperator, CppOperatorTerm, CppOperatorElement
-
-from .spin import SpinOperator, SpinOperatorTerm
-from .fermion import FermionOperator, FermionOperatorTerm
-from .boson import BosonOperator, BosonOperatorTerm
-from .custom import MatrixOperator, MatrixOperatorTerm, ElementaryOperator
+from .helpers import NumericType
+from .spin import SpinOperator, SpinOperatorTerm, SpinOperatorElement
+from .fermion import FermionOperator, FermionOperatorTerm, FermionOperatorElement
+from .boson import BosonOperator, BosonOperatorTerm, BosonOperatorElement
+from .custom import MatrixOperator, MatrixOperatorTerm, MatrixOperatorElement
 from .scalar import ScalarOperator
+
+OperatorSum = MatrixOperator | SpinOperator | BosonOperator | FermionOperator
+ProductOperator = MatrixOperatorTerm | SpinOperatorTerm | BosonOperatorTerm | FermionOperatorTerm
+ElementaryOperator = SpinOperatorElement | BosonOperatorElement | FermionOperatorElement | MatrixOperatorElement
 
 
 # Doc strings for type alias are not supported in Python.
 # The string below hence merely serves to document it here;
 # within the Python AST it is not associated with the type alias.
-Operator = CppOperator | CppOperatorTerm | ScalarOperator
+Operator = OperatorSum | ProductOperator | ScalarOperator
 """
 Type of an arbitrary operator expression. 
 Operator expressions cannot be used within quantum kernels, but 

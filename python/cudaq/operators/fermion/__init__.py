@@ -7,4 +7,4 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.fermion import *
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import FermionOperator, FermionOperatorTerm
+from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import FermionOperator, FermionOperatorTerm, FermionOperatorElement

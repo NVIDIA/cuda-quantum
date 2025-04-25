@@ -356,12 +356,12 @@ class TestCallbackTensor(TestSystem):
 
         # Let's define the control term as a callback tensor
         op_name = "control_term_" + str(uuid.uuid4())
-        ElementaryOperator.define(op_name, [2], callback_tensor)
+        define(op_name, [2], callback_tensor)
 
         # Qubit Hamiltonian
         hamiltonian = 0.5 * 2 * np.pi * nu_z * spin.z(0)
         # Add modulated driving term to the Hamiltonian
-        hamiltonian += 2 * np.pi * nu_x * MatrixOperatorTerm(ElementaryOperator(op_name, [0])) # FIXME: ARITHMETIC OPS FOR BACKWARDS COMPATIBILTY...
+        hamiltonian += 2 * np.pi * nu_x * instantiate(op_name, 0)
 
         # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
         dimensions = {0: 2}

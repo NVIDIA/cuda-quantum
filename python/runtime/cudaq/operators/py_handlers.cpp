@@ -61,7 +61,7 @@ void bindOperatorHandlers(py::module &mod) {
     return param_desc;
   };
 
-  py::class_<matrix_handler>(mod, "ElementaryOperator")
+  py::class_<matrix_handler>(mod, "MatrixOperatorElement")
   .def_property_readonly("id", [](const matrix_handler &self) { return self.to_string(false); }, 
     "Returns the id used to define and instantiate the operator.")
   .def_property_readonly("degrees", &matrix_handler::degrees,
@@ -121,7 +121,7 @@ void bindOperatorHandlers(py::module &mod) {
     "matrix representation can be obtained by invoking the given callback function.")
   ;
 
-  py::class_<boson_handler>(mod, "ElementaryBoson")
+  py::class_<boson_handler>(mod, "BosonOperatorElement")
   .def_property_readonly("target", &boson_handler::target,
     "Returns the degree of freedom that the operator targets.")
   .def_property_readonly("degrees", &boson_handler::degrees,
@@ -149,7 +149,7 @@ void bindOperatorHandlers(py::module &mod) {
     "Returns the matrix representation of the operator.")
   ;
 
-  py::class_<fermion_handler>(mod, "ElementaryFermion")
+  py::class_<fermion_handler>(mod, "FermionOperatorElement")
   .def_property_readonly("target", &fermion_handler::target,
     "Returns the degree of freedom that the operator targets.")
   .def_property_readonly("degrees", &fermion_handler::degrees,
@@ -177,7 +177,7 @@ void bindOperatorHandlers(py::module &mod) {
     "Returns the matrix representation of the operator.")
   ;
 
-  py::class_<spin_handler>(mod, "ElementarySpin")
+  py::class_<spin_handler>(mod, "SpinOperatorElement")
   .def_property_readonly("target", &spin_handler::target,
     "Returns the degree of freedom that the operator targets.")
   .def_property_readonly("degrees", &spin_handler::degrees,

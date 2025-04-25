@@ -362,10 +362,10 @@ def test_scalar_arithmetics():
         assert np.allclose((elop / 2j).to_matrix(dims),
                         [[-0.5j, 0], [0, -0.5j]])
 
-    operators.ElementaryOperator.define("ops_create", [0], lambda dim: create_matrix(dim))
-    operators.ElementaryOperator.define("ops_annihilate", [0], lambda dim: annihilate_matrix(dim))
-    custom_create = lambda target: operators.MatrixOperatorTerm(operators.ElementaryOperator("ops_create", [target]))
-    custom_annihilate = lambda target: operators.MatrixOperatorTerm(operators.ElementaryOperator("ops_annihilate", [target]))
+    operators.define("ops_create", [0], lambda dim: create_matrix(dim))
+    operators.define("ops_annihilate", [0], lambda dim: annihilate_matrix(dim))
+    custom_create = lambda target: operators.instantiate("ops_create", target)
+    custom_annihilate = lambda target: operators.instantiate("ops_annihilate", [target])
 
     for opprod in (
         custom_create(0) * custom_annihilate(0),
