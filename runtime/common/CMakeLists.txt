@@ -18,6 +18,7 @@ set(COMMON_RUNTIME_SRC
   Observer.cpp
   Logger.cpp 
   MeasureCounts.cpp 
+  ComplexMatrix.cpp
   NoiseModel.cpp 
   Resources.cpp
   ServerHelper.cpp 
