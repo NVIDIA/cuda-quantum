@@ -31,8 +31,6 @@ they provide methods to convert them to data types that can.
 """
 
 
-# FIXME: cpp version does not inherit from anything and does not define bindings
-# -> move to cpp bindings?
 class RydbergHamiltonian:
     """
     Representation for the time-dependent Hamiltonian which is simulated by

@@ -66,8 +66,6 @@ def test_product_conversions():
             prod *= op
             assert type(prod) == operators.MatrixOperatorTerm
             check_equals(prod, np.dot(matrix_product_expected, expected), operators.MatrixOperatorTerm)
-    
-    # FIXME: option to remap degrees of operator and test fermions without exception
 
 
 def test_sum_conversions():
@@ -194,8 +192,6 @@ def test_sum_conversions():
         else:
             sum *= op
             check_equals(sum, np.dot(matrix_sum_expected, expected), operators.MatrixOperator)
-
-    # FIXME: option to remap degrees of operator and test fermions without exception
 
 
 def test_scalar_arithmetics():

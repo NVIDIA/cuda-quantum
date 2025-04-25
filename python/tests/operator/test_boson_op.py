@@ -392,7 +392,6 @@ def test_term_distribution():
         sum += batch
     assert sum == op
 
-# FIXME: add to_sparse_matrix to test once corresponding PR is merged
 
 # Run with: pytest -rP
 if __name__ == "__main__":

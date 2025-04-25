@@ -57,7 +57,6 @@ class OperatorArithmetics(ABC, Generic[TEval]):
         pass
 
 
-# FIXME: add a general evaluation logic in C++ to all operators?
 class OperatorEvaluation(OperatorArithmetics[OperatorSum | ProductOperator | NumericType]):
 
     def tensor(
@@ -183,7 +182,6 @@ def _evaluation(operator: OperatorSum | ProductOperator,
         evaluated = _sum_evaluation(operator, arithmetics, False)
     elif isinstance(operator, ProductOperator):
         evaluated = _product_evaluation(operator, arithmetics, False)
-        # FIXME: CONVERT TO SUM?
     else:
         raise RuntimeError("the given value is not an operator")
 
