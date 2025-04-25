@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 import numpy as np, operator, pytest
-from cudaq.operators import ScalarOperator # Breaking change - operator types are now defined under cudaq.operators
+from cudaq.operators import ScalarOperator
 from cudaq import spin
 
 
@@ -198,7 +198,6 @@ def test_equality():
     assert ScalarOperator(lambda: 5) != ScalarOperator.const(5)
     assert ScalarOperator(lambda: 5) != ScalarOperator(lambda: 5)
 
-    # BREAKING CHANGE
     # Note that while it would be preferable if we could identity
     # when the same generator is used, the bindings construct a new
     # function such that this is not currently recognized.
