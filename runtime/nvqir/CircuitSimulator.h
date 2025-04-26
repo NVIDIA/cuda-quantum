@@ -106,6 +106,9 @@ public:
   /// @brief The destructor
   virtual ~CircuitSimulator() = default;
 
+  /// @brief Implement the GlobalStateObserver::oneWayNotify to handle
+  /// any notifications for changing the random seed or tearing down
+  /// MPI.
   void oneWayNotify(const cudaq::observer_data &data) override {
     if (auto iter = data.find(KnownDataKeys::RandomSeed); iter != data.end()) {
       setRandomSeed(std::any_cast<std::size_t>(iter->second));
@@ -117,6 +120,9 @@ public:
       tearDownBeforeMPIFinalize();
   }
 
+  /// @brief Implement the GlobalStateObserver::notifyWithResponse to handle
+  /// any notifications requesting simulation state data or checking
+  /// if this simulator is single precision (otherwise double).
   std::tuple<bool, cudaq::observer_data>
   notifyWithResponse(const cudaq::observer_data &input) override {
     if (auto iter = input.find(KnownDataKeys::SimulationState);
