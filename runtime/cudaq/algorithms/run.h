@@ -111,8 +111,6 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   std::string kernelName{cudaq::getKernelName(kernel)};
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable {
-        // auto kernelNoReturn = reinterpret_cast<void (*)(ARGS...)>(&kernel);
-        // kernelNoReturn(std::forward<ARGS>(args)...);
         cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                             std::forward<ARGS>(args)...);
       },

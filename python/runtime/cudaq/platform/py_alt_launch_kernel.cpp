@@ -523,18 +523,6 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
         return list;
       })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
-        // auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
-        //     auto memberTys = ty.getMembers();
-        //     auto allocatedArg = std::malloc(size);
-        //     auto elements = arg.cast<py::tuple>();
-        //     for (std::size_t i = 0; i < offsets.size(); i++)
-        //       handleStructMemberVariable(allocatedArg, offsets[i],
-        //       memberTys[i],
-        //         elements[i]);
-
-        //     argData.emplace_back(allocatedArg,
-        //                          [](void *ptr) { std::free(ptr); });
-
         auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
         auto memberTys = ty.getMembers();
         py::list list;
@@ -549,18 +537,16 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
           list.append(convertResult(kernelFuncOp, eleTy, data + offsets[i],
                                     eleByteSize));
         }
-        // for (auto &eleTy : ty.getMembers()) {
-        //   auto eleByteSize = byteSize(eleTy);
-        //   list.append(convertResult(eleTy, data + i, eleByteSize));
-        //   i += eleByteSize;
-        // }
         if (ty.getName() == "tuple")
           return py::tuple(list);
 
-        // TODO: create a "field name" -> value dictionary here and return it?
-        // Add a function to create a new object to global dataclass registry
-        // expose the registry to c++ (call some c++ function from py_run to
-        // store the dictionary in a c++ global?)
+        // TODO: handle data class types:
+        // Idea:
+        // - add a function to create a new object to global dataclass registry
+        // - expose the registry to c++ (add  c++ function from py_run to store
+        //   the dictionary in a c++ global?)
+        // - create a python cudaq.wrapper for current cudaq.run that sets the
+        //    global and calls the current cudaq.run
         ty.dump();
         throw std::runtime_error("Unsupported return type.");
       })

@@ -482,13 +482,11 @@ class PyKernelDecorator(object):
                 processedArgs.append(arg)
 
         if self.returnType == None:
-            print('pyAltLaunchKernel')
             cudaq_runtime.pyAltLaunchKernel(self.name,
                                             self.module,
                                             *processedArgs,
                                             callable_names=callableNames)
         else:
-            print('pyAltLaunchKernelR')
             result = cudaq_runtime.pyAltLaunchKernelR(
                 self.name,
                 self.module,

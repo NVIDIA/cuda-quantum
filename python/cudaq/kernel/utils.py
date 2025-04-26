@@ -177,7 +177,6 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
         return cc.StdvecType.get(ctx, listEleTy)
 
-
     if isinstance(annotation,
                   ast.Subscript) and (annotation.value.id == 'tuple' or
                                       annotation.value.id == 'Tuple'):
@@ -186,10 +185,16 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 f"tuple subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
 
-        eleTypesNode = annotation.slice
-        print(f'slice: {eleTypesNode}, {type(eleTypesNode)}')
-        # expected that slice is an ast.Tuple of type annotations
-        eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in eleTypesNode.elts]
+        # slice is an `ast.Tuple` of type annotations
+        elements = None
+        if hasattr(annotation.slice, 'elts'):
+            elements = annotation.slice.elts
+        else:
+            localEmitFatalError(
+                f"Unable to get tuple elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+            )
+
+        eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in elements]
         return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
     if hasattr(annotation, 'id'):
@@ -232,8 +237,6 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         id = annotation.attr
 
     # One final check to see if this is a custom data type.
-    print(globalRegisteredTypes)
-    print(id)
     if id in globalRegisteredTypes:
         pyType, memberTys = globalRegisteredTypes[id]
         structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
@@ -268,10 +271,10 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
         return cc.StructType.getNamed(ctx, id, structTys)
 
-    print(type(annotation))
     localEmitFatalError(
         f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
     )
+
 
 def pyInstanceFromName(name: str):
     if name == 'bool':
@@ -287,13 +290,14 @@ def pyInstanceFromName(name: str):
     if name == 'float':
         return float(0.0)
     if name == 'complex':
-        return  0j
+        return 0j
     if name == 'pauli_word':
         return pauli_word('')
     if name in ['numpy.complex128', 'np.complex128']:
         return np.complex128(0.0)
     if name in ['numpy.complex64', 'np.complex64']:
         return np.complex64(0.0)
+
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType in [int, np.int64]:
@@ -387,9 +391,6 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             pyInstance = pyInstanceFromName(eleTyName)
             if pyInstance == None:
                 emitFatalError(f'Invalid tuple element type ({eleTyName})')
-            print(f'element type name: {eleTyName}')
-            print(f'element type instance: {pyInstance}')
-            print(f'element type: {type(pyInstance)}')
             eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
         return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
@@ -490,12 +491,15 @@ def mlirTypeToPyType(argType):
         valueTy = cc.PointerType.getElementType(argType)
         if cc.StateType.isinstance(valueTy):
             return State
-        
+
     if cc.StructType.isinstance(argType):
         if (cc.StructType.getName(argType) == "tuple"):
-            elements = [ mlirTypeToPyType(v)() for v in cc.StructType.getTypes(argType)]
+            elements = [
+                mlirTypeToPyType(v)() for v in cc.StructType.getTypes(argType)
+            ]
             return type(tuple(elements))
-        pyType, memberTypes = globalRegisteredTypes[cc.StructType.getName(argType)]
+        pyType, memberTypes = globalRegisteredTypes[cc.StructType.getName(
+            argType)]
         return pyType
 
     emitFatalError(
