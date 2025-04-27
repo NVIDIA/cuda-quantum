@@ -342,9 +342,105 @@ struct testConsecutiveCasts {
   }
 };
 
+struct testUnsignedTruncation {
+  auto operator()() __qpu__ {
+    cudaq::qubit qi32;
+    std::uint8_t i32 = (std::uint8_t)(std::uint32_t)(-1);
+    if (i32 == 255) {
+      x(qi32);
+    }
+
+    cudaq::qubit qi64;
+    std::uint32_t i64 = (std::uint32_t)(std::uint64_t)(-1);
+    if (i64 == 4294967295) {
+      x(qi64);
+    }
+  }
+};
+
+struct testUnsignedExtension {
+  auto operator()() __qpu__ {
+    cudaq::qubit qi8;
+    std::uint32_t i8 = (std::uint32_t)(std::uint8_t)(-1);
+    if (i8 == 255) {
+      x(qi8);
+    }
+
+    cudaq::qubit qi32;
+    std::uint64_t i32 = (std::uint64_t)(std::uint32_t)(-1);
+    if (i32 == 4294967295) {
+      x(qi32);
+    }
+  }
+};
+
+struct testSignedToUnsignedTruncation {
+  auto operator()() __qpu__ {
+    cudaq::qubit qi32;
+    std::uint8_t i32 = (std::uint8_t)(std::int32_t)(-1);
+    if (i32 == 255) {
+      x(qi32);
+    }
+
+    cudaq::qubit qi64;
+    std::uint32_t i64 = (std::uint32_t)(std::int64_t)(-1);
+    if (i64 == 4294967295) {
+      x(qi64);
+    }
+  }
+};
+
+struct testSignedToUnsignedExtension {
+  auto operator()() __qpu__ {
+    cudaq::qubit qi8;
+    std::uint32_t i8 = (std::uint32_t)(std::int8_t)(-1);
+    if (i8 == 4294967295) {
+      x(qi8);
+    }
+
+    cudaq::qubit qi32;
+    std::uint64_t i32 = (std::uint64_t)(std::int32_t)(-1);
+    if (i32 == 18446744073709551615UL) {
+      x(qi32);
+    }
+  }
+};
+
+struct testUnsignedToSignedTruncation {
+  auto operator()() __qpu__ {
+    cudaq::qubit qi32;
+    std::int8_t i32 = (std::int8_t)(std::uint32_t)(-1);
+    if (i32 == (std::int8_t)(-1)) {
+      x(qi32);
+    }
+
+    cudaq::qubit qi64;
+    std::int32_t i64 = (std::int32_t)(std::uint64_t)(-1);
+    if (i64 == std::int32_t(-1)) {
+      x(qi64);
+    }
+  }
+};
+
+struct testUnsignedToSignedExtension {
+  auto operator()() __qpu__ {
+    cudaq::qubit qi8;
+    std::int32_t i8 = (std::int32_t)(std::uint8_t)(-1);
+    if (i8 == 255) {
+      x(qi8);
+    }
+
+    cudaq::qubit qi32;
+    std::int64_t i32 = (std::int64_t)(std::uint32_t)(-1);
+    if (i32 == 4294967295) {
+      x(qi32);
+    }
+  }
+};
 
 int main() {
   {
+    printf("*** Test casts from bool ***");
     std::string expected = "";
     expected += cast_and_compare<std::int64_t, bool>(4, 4);
     expected += cast_and_compare<std::int64_t, bool>(-4, -4);
@@ -371,6 +467,7 @@ int main() {
   }
 
   {
+    printf("*** Test casts from int8 ***");
     std::string expected = "";
     expected += cast_and_compare<std::int8_t, bool>(
         -1, std::numeric_limits<bool>::max());
@@ -399,6 +496,7 @@ int main() {
   }
 
   {
+    printf("*** Test casts from int16 ***");
     std::string expected = "";
     expected += cast_and_compare<std::int16_t, bool>(
         -1, std::numeric_limits<bool>::max());
@@ -427,6 +525,7 @@ int main() {
   }
 
   {
+    printf("*** Test casts from int32 ***");
     std::string expected = "";
     expected += cast_and_compare<std::int32_t, bool>(
         -1, std::numeric_limits<bool>::max());
@@ -455,6 +554,7 @@ int main() {
   }
 
   {
+    printf("*** Test casts from int64 ***\n");
     std::string expected = "";
     expected += cast_and_compare<std::int64_t, bool>(
         -1, std::numeric_limits<bool>::max());
@@ -483,12 +583,17 @@ int main() {
   }
 
   {
+    printf("*** Test consecutive casts ***\n");
     std::string expected = "";
-    expected += cast_and_compare<std::int64_t, std::int32_t>((std::int16_t)-1, -1);
-    expected += cast_and_compare<std::uint64_t, std::int32_t>((std::int16_t)-1, -1);
+    expected +=
+        cast_and_compare<std::int64_t, std::int32_t>((std::int16_t)-1, -1);
+    expected +=
+        cast_and_compare<std::uint64_t, std::int32_t>((std::int16_t)-1, -1);
 
-    expected += cast_and_compare<std::int16_t, std::int64_t>((std::int32_t)-1, -1);
-    expected += cast_and_compare<std::uint16_t, std::int64_t>((std::int32_t)-1, std::numeric_limits<std::uint16_t>::max());
+    expected +=
+        cast_and_compare<std::int16_t, std::int64_t>((std::int32_t)-1, -1);
+    expected += cast_and_compare<std::uint16_t, std::int64_t>(
+        (std::int32_t)-1, std::numeric_limits<std::uint16_t>::max());
 
     printf("Expected: %s\n", expected.c_str());
 
@@ -497,19 +602,131 @@ int main() {
     printCounts(counts);
   }
 
+  {
+    printf("*** Test unsigned truncation ***\n");
+    std::string expected = "";
+    expected += cast_and_compare<std::uint32_t, std::uint8_t>(-1, 255);
+    expected += cast_and_compare<std::uint64_t, std::uint32_t>(-1, 4294967295);
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testUnsignedTruncation{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
+  {
+    printf("*** Test unsigned extension ***\n");
+    std::string expected = "";
+    expected += cast_and_compare<std::uint8_t, std::uint32_t>(-1, 255);
+    expected += cast_and_compare<std::uint32_t, std::uint64_t>(-1, 4294967295);
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testUnsignedExtension{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
+  {
+    printf("*** Test signed to unsigned truncation ***\n");
+    std::string expected = "";
+    expected += cast_and_compare<std::int32_t, std::uint8_t>(-1, 255);
+    expected += cast_and_compare<std::int64_t, std::uint32_t>(-1, 4294967295);
+
+    printf("Expected: %s\n", expected.c_str());
+    auto counts = cudaq::sample(testSignedToUnsignedTruncation{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
+  {
+    printf("*** Test signed to unsigned extension ***\n");
+    std::string expected = "";
+    expected += cast_and_compare<std::int8_t, std::uint32_t>(-1, 4294967295);
+    expected += cast_and_compare<std::int32_t, std::uint64_t>(
+        -1, 18446744073709551615UL);
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testSignedToUnsignedExtension{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
+  {
+    printf("*** Test unsigned to signed truncation ***\n");
+    std::string expected = "";
+    expected += cast_and_compare<std::int32_t, std::uint8_t>(-1, 255);
+    expected += cast_and_compare<std::int64_t, std::uint32_t>(-1, 4294967295);
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testSignedToUnsignedTruncation{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
+  {
+    printf("*** Test unsigned to signed extension ***\n");
+    std::string expected = "";
+    expected += cast_and_compare<std::uint8_t, std::int32_t>(-1, 255);
+    expected += cast_and_compare<std::uint32_t, std::int64_t>(-1, 4294967295);
+
+    printf("Expected: %s\n", expected.c_str());
+
+    auto counts = cudaq::sample(testUnsignedToSignedExtension{});
+    printf("Actual:   ");
+    printCounts(counts);
+  }
+
   return 0;
 }
 
+// CHECK: *** Test casts from bool ***
 // CHECK: Expected: 11111111111
 // CHECK: Actual:   11111111111
+
+// CHECK: *** Test casts from int8 ***
 // CHECK: Expected: 111111111
 // CHECK: Actual:   111111111
+
+// CHECK: *** Test casts from int16 ***
 // CHECK: Expected: 111111111
 // CHECK: Actual:   111111111
+
+// CHECK: *** Test casts from int32 ***
 // CHECK: Expected: 111111111
 // CHECK: Actual:   111111111
+
+// CHECK: *** Test casts from int64 ***
 // CHECK: Expected: 111111111
 // CHECK: Actual:   111111111
+
+// CHECK: *** Test consecutive casts ***
 // CHECK: Expected: 1111
 // CHECK: Actual:   1111
 
+// CHECK: *** Test unsigned truncation ***
+// CHECK: Expected: 1
+// CHECK: Actual:   1
+
+// CHECK: *** Test unsigned extension ***
+// CHECK: Expected: 1
+// CHECK: Actual:   1
+
+// CHECK: *** Test signed to unsigned truncation ***
+// CHECK: Expected: 1
+// CHECK: Actual:   1
+
+// CHECK: *** Test signed to unsigned extension ***
+// CHECK: Expected: 1
+// CHECK: Actual:   1
+
+// CHECK: *** Test unsigned to signed truncation ***
+// CHECK: Expected: 1
+// CHECK: Actual:   1
+
+// CHECK: *** Test unsigned to signed  extension ***
+// CHECK: Expected: 1
+// CHECK: Actual:   1

@@ -110,7 +110,7 @@ int main() {
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i32
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_6:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
-// CHECK:           %[[VAL_7:.*]] = cc.cast unsigned %[[VAL_6]] : (i64) -> i32
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (i64) -> i32
 // CHECK:           %[[VAL_8:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_7]], %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:           cc.scope {
