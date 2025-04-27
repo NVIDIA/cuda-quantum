@@ -440,7 +440,7 @@ struct testUnsignedToSignedExtension {
 
 int main() {
   {
-    printf("*** Test casts from bool ***");
+    printf("*** Test casts from bool ***\n");
     std::string expected = "";
     expected += cast_and_compare<std::int64_t, bool>(4, 4);
     expected += cast_and_compare<std::int64_t, bool>(-4, -4);
@@ -467,7 +467,7 @@ int main() {
   }
 
   {
-    printf("*** Test casts from int8 ***");
+    printf("*** Test casts from int8 ***\n");
     std::string expected = "";
     expected += cast_and_compare<std::int8_t, bool>(
         -1, std::numeric_limits<bool>::max());
@@ -496,7 +496,7 @@ int main() {
   }
 
   {
-    printf("*** Test casts from int16 ***");
+    printf("*** Test casts from int16 ***\n");
     std::string expected = "";
     expected += cast_and_compare<std::int16_t, bool>(
         -1, std::numeric_limits<bool>::max());
@@ -525,7 +525,7 @@ int main() {
   }
 
   {
-    printf("*** Test casts from int32 ***");
+    printf("*** Test casts from int32 ***\n");
     std::string expected = "";
     expected += cast_and_compare<std::int32_t, bool>(
         -1, std::numeric_limits<bool>::max());

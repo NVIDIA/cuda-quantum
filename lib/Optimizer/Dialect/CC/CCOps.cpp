@@ -257,11 +257,7 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
         if (getZint()) {
           // Zero-extend to get the original integer value.
           if (srcWidth < 64)
-            val &= ((((std::uint64_t)1) << srcWidth) - 1);
-
-          // Zero-extend to get new integer value.
-          if (width < 64)
-            val &= ((((std::uint64_t)1) << width) - 1);
+            val &= ((1UL << srcWidth) - 1);
         }
         return builder.create<arith::ConstantIntOp>(loc, val, width)
             .getResult();
