@@ -656,68 +656,49 @@ public:
         // is, then we will need to convert it to a std::vector here. The vector
         // is constructed in-place on the sret memory block.
         Value arg0 = hostFuncEntryBlock->getArguments().front();
-        if (module->hasAttr(cudaq::runtime::enableCudaqRun)) {
-          // In this case, the quantum kernel will never actually return
-          // anything. To make the C++ invocation behave correctly, we want to
-          // return an empty vector.
-          auto arg0PtrTy = cast<cudaq::cc::PointerType>(arg0.getType());
-          auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
-          auto castedArg0 =
-              builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, arg0);
-          auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 8);
-          auto numBytes = builder.create<cudaq::cc::SizeOfOp>(
-              loc, builder.getI64Type(), arg0PtrTy.getElementType());
-          auto falseVal = builder.create<arith::ConstantIntOp>(loc, 0, 1);
-          builder.create<func::CallOp>(
-              loc, std::nullopt, cudaq::llvmMemSetIntrinsic,
-              ValueRange{castedArg0, zero, numBytes, falseVal});
-        } else {
-          if (auto spanTy =
-                  dyn_cast<cudaq::cc::SpanLikeType>(devFuncTy.getResult(0))) {
-            auto eleTy = spanTy.getElementType();
-            auto ptrTy = cudaq::cc::PointerType::get(eleTy);
-            auto gep0 = builder.create<cudaq::cc::ComputePtrOp>(
-                loc, cudaq::cc::PointerType::get(ptrTy), launchResult,
-                SmallVector<cudaq::cc::ComputePtrArg>{0});
-            auto dataPtr = builder.create<cudaq::cc::LoadOp>(loc, gep0);
-            auto lenPtrTy = cudaq::cc::PointerType::get(i64Ty);
-            auto gep1 = builder.create<cudaq::cc::ComputePtrOp>(
-                loc, lenPtrTy, launchResult,
-                SmallVector<cudaq::cc::ComputePtrArg>{1});
-            auto vecLen = builder.create<cudaq::cc::LoadOp>(loc, gep1);
-            if (spanTy.getElementType() == builder.getI1Type()) {
-              cudaq::opt::marshal::genStdvecBoolFromInitList(loc, builder, arg0,
-                                                             dataPtr, vecLen);
-            } else {
-              Value tSize =
-                  builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, eleTy);
-              cudaq::opt::marshal::genStdvecTFromInitList(
-                  loc, builder, arg0, dataPtr, tSize, vecLen);
-            }
-            // free(nullptr) is defined to be a nop in the standard.
-            builder.create<func::CallOp>(loc, std::nullopt, "free",
-                                         ArrayRef<Value>{launchResultToFree});
+        if (auto spanTy =
+                dyn_cast<cudaq::cc::SpanLikeType>(devFuncTy.getResult(0))) {
+          auto eleTy = spanTy.getElementType();
+          auto ptrTy = cudaq::cc::PointerType::get(eleTy);
+          auto gep0 = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, cudaq::cc::PointerType::get(ptrTy), launchResult,
+              SmallVector<cudaq::cc::ComputePtrArg>{0});
+          auto dataPtr = builder.create<cudaq::cc::LoadOp>(loc, gep0);
+          auto lenPtrTy = cudaq::cc::PointerType::get(i64Ty);
+          auto gep1 = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, lenPtrTy, launchResult,
+              SmallVector<cudaq::cc::ComputePtrArg>{1});
+          auto vecLen = builder.create<cudaq::cc::LoadOp>(loc, gep1);
+          if (spanTy.getElementType() == builder.getI1Type()) {
+            cudaq::opt::marshal::genStdvecBoolFromInitList(loc, builder, arg0,
+                                                           dataPtr, vecLen);
           } else {
-            // Otherwise, we can just copy the aggregate into the sret memory
-            // block. Uses the size of the host function's sret pointer element
-            // type for the memcpy, so the device should return an (aggregate)
-            // value of suitable size.
-            auto resPtr = builder.create<cudaq::cc::ComputePtrOp>(
-                loc, ptrResTy, msgBufferPrefix,
-                ArrayRef<cudaq::cc::ComputePtrArg>{offset});
-            auto castMsgBuff =
-                builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, resPtr);
-            Type eleTy =
-                cast<cudaq::cc::PointerType>(arg0.getType()).getElementType();
-            Value bytes =
+            Value tSize =
                 builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, eleTy);
-            auto notVolatile = builder.create<arith::ConstantIntOp>(loc, 0, 1);
-            auto castArg0 =
-                builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, arg0);
-            builder.create<func::CallOp>(
-                loc, std::nullopt, cudaq::llvmMemCopyIntrinsic,
-                ValueRange{castArg0, castMsgBuff, bytes, notVolatile});
+            cudaq::opt::marshal::genStdvecTFromInitList(loc, builder, arg0,
+                                                        dataPtr, tSize, vecLen);
           }
+          // free(nullptr) is defined to be a nop in the standard.
+          builder.create<func::CallOp>(loc, std::nullopt, "free",
+                                       ArrayRef<Value>{launchResultToFree});
+        } else {
+          // Otherwise, we can just copy the aggregate into the sret memory
+          // block. Uses the size of the host function's sret pointer element
+          // type for the memcpy, so the device should return an (aggregate)
+          // value of suitable size.
+          auto resPtr = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, ptrResTy, msgBufferPrefix,
+              ArrayRef<cudaq::cc::ComputePtrArg>{offset});
+          auto castMsgBuff =
+              builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, resPtr);
+          Type eleTy =
+              cast<cudaq::cc::PointerType>(arg0.getType()).getElementType();
+          Value bytes = builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, eleTy);
+          auto notVolatile = builder.create<arith::ConstantIntOp>(loc, 0, 1);
+          auto castArg0 = builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, arg0);
+          builder.create<func::CallOp>(
+              loc, std::nullopt, cudaq::llvmMemCopyIntrinsic,
+              ValueRange{castArg0, castMsgBuff, bytes, notVolatile});
         }
       }
     }
