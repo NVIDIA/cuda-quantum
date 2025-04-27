@@ -34,6 +34,7 @@ CUDA-Q Applications
    /applications/python/adapt_vqe
    /applications/python/edge_detection
    /applications/python/shors
+   /applications/python/generate_fermionic_ham
 
 
 
@@ -255,6 +256,15 @@ CUDA-Q Applications
         </div>
         <img src="../_static/app_title_images/shors_preview.png" alt="Shors Algorithm" class="notebook-image">
     </div>    
+
+    <div class="notebook-entry" data-tags="chemistry,noisless">
+        <a href="../applications/python/generate_fermionic_ham.html" class="notebook-title">Generating the Electronic Hamiltonian</a>
+        <div class="notebook-content">
+            Learn how to generate the electronic hamiltonian and convert it to qubit hamiltonian using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/electronic-ham.png" alt="Electronic Hamiltonian" class="notebook-image">
+    </div> 
+
 
     <script>
     document.addEventListener("DOMContentLoaded", function() {
