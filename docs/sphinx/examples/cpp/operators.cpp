@@ -8,10 +8,6 @@
 
 // [Begin Spin]
 #include <cudaq.h>
-
-auto hamiltonian =
-    2 * cudaq::spin::x(0) * cudaq::spin::y(1) * cudaq::spin::x(2) -
-    3 * cudaq::spin::z(0) * cudaq::spin::z(1) * cudaq::spin::y(2);
 // [End Spin]
 
 // [Begin Pauli]
