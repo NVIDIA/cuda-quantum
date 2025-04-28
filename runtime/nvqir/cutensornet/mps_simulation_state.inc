@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "mps_simulation_state.h"
+#pragma once
+
 #include "common/EigenDense.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
@@ -19,22 +20,28 @@ int deviceFromPointer(void *ptr) {
   HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
   return attributes.device;
 }
-std::size_t MPSSimulationState::getNumQubits() const {
+
+template <typename ScalarType>
+std::size_t MPSSimulationState<ScalarType>::getNumQubits() const {
   return state->getNumQubits();
 }
 
-MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
-                                       const std::vector<MPSTensor> &mpsTensors,
-                                       ScratchDeviceMem &inScratchPad,
-                                       cutensornetHandle_t cutnHandle,
-                                       std::mt19937 &randomEngine)
+template <typename ScalarType>
+MPSSimulationState<ScalarType>::MPSSimulationState(
+    std::unique_ptr<TensorNetState<ScalarType>> inState,
+    const std::vector<MPSTensor> &mpsTensors, ScratchDeviceMem &inScratchPad,
+    cutensornetHandle_t cutnHandle, std::mt19937 &randomEngine)
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
       m_mpsTensors(mpsTensors), scratchPad(inScratchPad),
       m_randomEngine(randomEngine) {}
 
-MPSSimulationState::~MPSSimulationState() { deallocate(); }
+template <typename ScalarType>
+MPSSimulationState<ScalarType>::~MPSSimulationState() {
+  deallocate();
+}
 
-std::complex<double> MPSSimulationState::computeOverlap(
+template <typename ScalarType>
+std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
     const std::vector<MPSTensor> &m_mpsTensors,
     const std::vector<MPSTensor> &mpsOtherTensors) {
   LOG_API_TIME();
@@ -225,8 +232,9 @@ std::complex<double> MPSSimulationState::computeOverlap(
   return std::abs(overlap);
 }
 
+template <typename ScalarType>
 std::complex<double>
-MPSSimulationState::overlap(const cudaq::SimulationState &other) {
+MPSSimulationState<ScalarType>::overlap(const cudaq::SimulationState &other) {
 
   if (other.getNumTensors() != getNumTensors())
     throw std::runtime_error("[tensornet-state] overlap error - other state "
@@ -238,8 +246,9 @@ MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   return computeOverlap(m_mpsTensors, mpsOtherTensors);
 }
 
-std::complex<double>
-MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
+template <typename ScalarType>
+std::complex<double> MPSSimulationState<ScalarType>::getAmplitude(
+    const std::vector<int> &basisState) {
   if (getNumQubits() != basisState.size())
     throw std::runtime_error(
         fmt::format("[tensornet-state] getAmplitude with an invalid number "
@@ -285,15 +294,16 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
   const auto idx = basisState[0];
   // It is just 2 complex numbers, so load them both rather than compute the
   // exact pointer.
-  std::complex<double> amplitudes[2];
+  std::complex<ScalarType> amplitudes[2];
   HANDLE_CUDA_ERROR(cudaMemcpy(amplitudes, m_mpsTensors[0].deviceData,
-                               2 * sizeof(std::complex<double>),
+                               2 * sizeof(std::complex<ScalarType>),
                                cudaMemcpyDeviceToHost));
   return amplitudes[idx];
 }
 
+template <typename ScalarType>
 cudaq::SimulationState::Tensor
-MPSSimulationState::getTensor(std::size_t tensorIdx) const {
+MPSSimulationState<ScalarType>::getTensor(std::size_t tensorIdx) const {
   if (tensorIdx >= getNumTensors())
     throw std::runtime_error(
         "[tensornet-mps-state] invalid tensor idx requested.");
@@ -306,8 +316,9 @@ MPSSimulationState::getTensor(std::size_t tensorIdx) const {
                                         extents, getPrecision()};
 }
 
+template <typename ScalarType>
 std::vector<cudaq::SimulationState::Tensor>
-MPSSimulationState::getTensors() const {
+MPSSimulationState<ScalarType>::getTensors() const {
   std::vector<cudaq::SimulationState::Tensor> tensors;
   for (auto &tensor : m_mpsTensors) {
     std::vector<std::size_t> extents;
@@ -318,23 +329,27 @@ MPSSimulationState::getTensors() const {
   return tensors;
 }
 
-std::size_t MPSSimulationState::getNumTensors() const {
+template <typename ScalarType>
+std::size_t MPSSimulationState<ScalarType>::getNumTensors() const {
   return m_mpsTensors.size();
 }
 
-void MPSSimulationState::deallocate() {
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::deallocate() {
   for (auto &tensor : m_mpsTensors)
     HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
   m_mpsTensors.clear();
   state.reset();
 }
 
-void MPSSimulationState::destroyState() {
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::destroyState() {
   cudaq::info("mps-state destroying state vector handle.");
   deallocate();
 }
 
-void MPSSimulationState::dump(std::ostream &os) const {
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::dump(std::ostream &os) const {
   const auto printState = [&os](const auto &stateVec) {
     for (auto &t : stateVec)
       os << t << "\n";
@@ -346,8 +361,11 @@ void MPSSimulationState::dump(std::ostream &os) const {
     printState(state->getStateVector());
 }
 
-static Eigen::MatrixXcd reshapeMatrix(const Eigen::MatrixXcd &A) {
-  Eigen::MatrixXcd B, C;
+template <typename ScalarType>
+Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+reshapeMatrix(const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                  Eigen::Dynamic> &A) {
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic> B, C;
   const std::size_t rows = A.rows();
   const std::size_t cols = A.cols();
   B.resize(rows, cols / 2);
@@ -358,38 +376,47 @@ static Eigen::MatrixXcd reshapeMatrix(const Eigen::MatrixXcd &A) {
       C(i, j) = A(i, j + cols / 2);
     }
   }
-  Eigen::MatrixXcd stacked(B.rows() + C.rows(), C.cols());
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+      stacked(B.rows() + C.rows(), C.cols());
   stacked << B, C;
   return stacked;
 }
 
-static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
-  Eigen::MatrixXcd A = stateVec;
+template <typename ScalarType>
+Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+reshapeStateVec(
+    const Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic> &stateVec) {
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic> A =
+      stateVec;
   A.transposeInPlace();
   return reshapeMatrix(A);
 }
 
-MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
+template <typename ScalarType>
+MPSSimulationState<ScalarType>::MpsStateData
+MPSSimulationState<ScalarType>::createFromStateVec(
     cutensornetHandle_t cutnHandle, ScratchDeviceMem &inScratchPad,
-    std::size_t size, std::complex<double> *ptr, int bondDim,
+    std::size_t size, std::complex<ScalarType> *ptr, int bondDim,
     std::mt19937 &randomEngine) {
   const std::size_t numQubits = std::log2(size);
   // Reverse the qubit order to match cutensornet convention
-  auto newStateVec = TensorNetState::reverseQubitOrder(
-      std::span<std::complex<double>>{ptr, size});
-  auto stateVec =
-      Eigen::Map<Eigen::VectorXcd>(newStateVec.data(), newStateVec.size());
+  auto newStateVec = TensorNetState<ScalarType>::reverseQubitOrder(
+      std::span<std::complex<ScalarType>>{ptr, size});
+  Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic> stateVec =
+      Eigen::Map<Eigen::Vector<std::complex<ScalarType>, Eigen::Dynamic>>(
+          newStateVec.data(), newStateVec.size());
 
   if (numQubits == 1) {
     void *d_tensor = nullptr;
-    HANDLE_CUDA_ERROR(cudaMalloc(&d_tensor, 2 * sizeof(std::complex<double>)));
+    HANDLE_CUDA_ERROR(
+        cudaMalloc(&d_tensor, 2 * sizeof(std::complex<ScalarType>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, ptr,
-                                 2 * sizeof(std::complex<double>),
+                                 2 * sizeof(std::complex<ScalarType>),
                                  cudaMemcpyHostToDevice));
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = std::vector<int64_t>{2};
-    auto state = TensorNetState::createFromMpsTensors(
+    auto state = TensorNetState<ScalarType>::createFromMpsTensors(
         {stateTensor}, inScratchPad, cutnHandle, randomEngine);
     return {std::move(state), std::vector<MPSTensor>{stateTensor}};
   }
@@ -401,43 +428,63 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
   //  - Continue to do SVD of (Singular Values * Remaining
   // Matrix) till we reach the last qubit.
   // Note: currently, no truncation is implemented (exact).
-  Eigen::MatrixXcd reshapedMat = reshapeStateVec(stateVec);
+  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+      reshapedMat = reshapeStateVec(stateVec);
   std::vector<MPSTensor> mpsTensors;
   std::vector<int64_t> numSingularValues;
-  const auto enforceBondDim = [bondDim](const Eigen::MatrixXcd &U,
-                                        const Eigen::VectorXd &S,
-                                        const Eigen::MatrixXcd &V)
-      -> std::tuple<Eigen::MatrixXcd, Eigen::VectorXd, Eigen::MatrixXcd> {
+  const auto enforceBondDim =
+      [bondDim](const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                    Eigen::Dynamic> &U,
+                const Eigen::Vector<ScalarType, Eigen::Dynamic> &S,
+                const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                    Eigen::Dynamic> &V)
+      -> std::tuple<Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                  Eigen::Dynamic>,
+                    Eigen::Vector<ScalarType, Eigen::Dynamic>,
+                    Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                  Eigen::Dynamic>> {
     assert(U.cols() == S.size());
     assert(V.cols() == S.size());
     if (S.size() <= bondDim)
       return {U, S, V};
 
     // Truncation
-    Eigen::MatrixXcd newU(U.rows(), bondDim);
+    Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+        newU(U.rows(), bondDim);
     newU = U.leftCols(bondDim);
-    Eigen::MatrixXcd newV(V.rows(), bondDim);
+    Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+        newV(V.rows(), bondDim);
     newV = V.leftCols(bondDim);
-    Eigen::VectorXd newS(bondDim);
+    Eigen::Vector<ScalarType, Eigen::Dynamic> newS(bondDim);
     newS = S.head(bondDim);
     return std::make_tuple(newU, newS, newV);
   };
   for (std::size_t i = 0; i < numQubits - 1; ++i) {
-    Eigen::BDCSVD<Eigen::MatrixXcd, Eigen::ComputeThinU | Eigen::ComputeThinV>
+    Eigen::BDCSVD<
+        Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>,
+        Eigen::ComputeThinU | Eigen::ComputeThinV>
         svd(reshapedMat);
-    const Eigen::MatrixXcd U_orig = svd.matrixU();
-    const Eigen::MatrixXcd V_orig = svd.matrixV();
-    const Eigen::VectorXd S_orig = svd.singularValues();
+    const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                        Eigen::Dynamic>
+        U_orig = svd.matrixU();
+    const Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                        Eigen::Dynamic>
+        V_orig = svd.matrixV();
+    const Eigen::Vector<ScalarType, Eigen::Dynamic> S_orig =
+        svd.singularValues();
     const auto [U, S, V] = enforceBondDim(U_orig, S_orig, V_orig);
     numSingularValues.emplace_back(S.size());
-    reshapedMat = (i != (numQubits - 2))
-                      ? reshapeMatrix(S.asDiagonal() * V.adjoint())
-                      : (S.asDiagonal() * V.adjoint());
+    reshapedMat =
+        (i != (numQubits - 2))
+            ? reshapeMatrix(
+                  Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic,
+                                Eigen::Dynamic>(S.asDiagonal() * V.adjoint()))
+            : (S.asDiagonal() * V.adjoint());
     void *d_tensor = nullptr;
     HANDLE_CUDA_ERROR(
-        cudaMalloc(&d_tensor, U.size() * sizeof(std::complex<double>)));
+        cudaMalloc(&d_tensor, U.size() * sizeof(std::complex<ScalarType>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, U.data(),
-                                 U.size() * sizeof(std::complex<double>),
+                                 U.size() * sizeof(std::complex<ScalarType>),
                                  cudaMemcpyHostToDevice));
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
@@ -451,25 +498,27 @@ MPSSimulationState::MpsStateData MPSSimulationState::createFromStateVec(
 
   // Last tensor (right most)
   void *d_tensor = nullptr;
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(&d_tensor, reshapedMat.size() * sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(cudaMalloc(
+      &d_tensor, reshapedMat.size() * sizeof(std::complex<ScalarType>)));
   HANDLE_CUDA_ERROR(
       cudaMemcpy(d_tensor, reshapedMat.data(),
-                 reshapedMat.size() * sizeof(std::complex<double>),
+                 reshapedMat.size() * sizeof(std::complex<ScalarType>),
                  cudaMemcpyHostToDevice));
   MPSTensor stateTensor;
   stateTensor.deviceData = d_tensor;
   stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
-  auto state = TensorNetState::createFromMpsTensors(mpsTensors, inScratchPad,
-                                                    cutnHandle, randomEngine);
+  auto state = TensorNetState<ScalarType>::createFromMpsTensors(
+      mpsTensors, inScratchPad, cutnHandle, randomEngine);
   return {std::move(state), mpsTensors};
 }
 
+template <typename ScalarType>
 std::unique_ptr<cudaq::SimulationState>
-MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
-                                         std::size_t dataType) {
+MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size,
+                                                     void *ptr,
+                                                     std::size_t dataType) {
   if (dataType == cudaq::detail::variant_index<cudaq::state_data,
                                                cudaq::TensorStateData>()) {
     std::vector<MPSTensor> mpsTensors;
@@ -479,24 +528,24 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
       const auto numElements =
           std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
       void *d_tensor = nullptr;
-      HANDLE_CUDA_ERROR(
-          cudaMalloc(&d_tensor, numElements * sizeof(std::complex<double>)));
+      HANDLE_CUDA_ERROR(cudaMalloc(
+          &d_tensor, numElements * sizeof(std::complex<ScalarType>)));
       // Note: cudaMemcpyDefault to handle both device/host data
-      HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, dataPtr,
-                                   numElements * sizeof(std::complex<double>),
-                                   cudaMemcpyDefault));
+      HANDLE_CUDA_ERROR(cudaMemcpy(
+          d_tensor, dataPtr, numElements * sizeof(std::complex<ScalarType>),
+          cudaMemcpyDefault));
       std::vector<int64_t> mpsExtents(extents.begin(), extents.end());
       MPSTensor stateTensor{d_tensor, mpsExtents};
       mpsTensors.emplace_back(stateTensor);
     }
-    auto state = TensorNetState::createFromMpsTensors(
+    auto state = TensorNetState<ScalarType>::createFromMpsTensors(
         mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
     return std::make_unique<MPSSimulationState>(
         std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
   }
   auto [state, mpsTensors] =
       createFromStateVec(m_cutnHandle, scratchPad, size,
-                         reinterpret_cast<std::complex<double> *>(ptr),
+                         reinterpret_cast<std::complex<ScalarType> *>(ptr),
                          MPSSettings().maxBond, m_randomEngine);
   return std::make_unique<MPSSimulationState>(
       std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
@@ -576,15 +625,33 @@ MPSSettings::MPSSettings() {
   }
 }
 
-void MPSSimulationState::toHost(std::complex<double> *clientAllocatedData,
-                                std::size_t numElements) const {
+template <typename ScalarType>
+template <typename T>
+void MPSSimulationState<ScalarType>::toHostImpl(
+    std::complex<T> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = state->getStateVector();
   if (stateVec.size() != numElements)
     throw std::runtime_error(
         fmt::format("[MPSSimulationState] Dimension mismatch: expecting {} "
                     "elements but providing an array of size {}.",
                     stateVec.size(), numElements));
-  for (std::size_t i = 0; i < numElements; ++i)
-    clientAllocatedData[i] = stateVec[i];
+  if (std::is_same_v<ScalarType, T>) {
+    std::memcpy(clientAllocatedData, stateVec.data(),
+                numElements * sizeof(ScalarType));
+  } else {
+    for (std::size_t i = 0; i < numElements; ++i)
+      clientAllocatedData[i] = stateVec[i];
+  }
+}
+
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::toHost(
+    std::complex<double> *clientAllocatedData, std::size_t numElements) const {
+  toHostImpl(clientAllocatedData, numElements);
+}
+template <typename ScalarType>
+void MPSSimulationState<ScalarType>::toHost(
+    std::complex<float> *clientAllocatedData, std::size_t numElements) const {
+  toHostImpl(clientAllocatedData, numElements);
 }
 } // namespace nvqir
