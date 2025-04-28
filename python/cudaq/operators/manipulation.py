@@ -81,7 +81,10 @@ class OperatorEvaluation(OperatorArithmetics[OperatorSum | ProductOperator | Num
         self: OperatorEvaluation, op: ElementaryOperator | ScalarOperator
     ) -> ProductOperator | NumericType:
         if isinstance(op, ElementaryOperator):
-            return self._term_type(op)
+            if hasattr(op, "evaluate"):
+                return self._term_type(op.evaluate(**self._kwargs))
+            else: 
+                return self._term_type(op)
         if isinstance(op, ScalarOperator):
             return op.evaluate(**self._kwargs)
         else:
@@ -102,7 +105,7 @@ class OperatorEvaluation(OperatorArithmetics[OperatorSum | ProductOperator | Num
         self._term_type = term_type
 
 
-def _product_evaluation(term : ProductOperator, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
+def _product_transformation(term : ProductOperator, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
     """
     Helper function used for evaluating operator expressions and computing arbitrary values
     during evaluation. The value to be computed is defined by the OperatorArithmetics.
@@ -141,7 +144,7 @@ def _product_evaluation(term : ProductOperator, arithmetics: OperatorArithmetics
     return evaluated
 
 
-def _sum_evaluation(operator : OperatorSum, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
+def _sum_transformation(operator : OperatorSum, arithmetics: OperatorArithmetics[TEval], pad_terms: bool = True):
     """
     Helper function used for evaluating operator expressions and computing arbitrary values
     during evaluation. The value to be computed is defined by the OperatorArithmetics.
@@ -162,26 +165,25 @@ def _sum_evaluation(operator : OperatorSum, arithmetics: OperatorArithmetics[TEv
     if pad_terms:
         degrees = operator.degrees
         for term in operator:
-            evaluated_term = _product_evaluation(padded_term(term, degrees), arithmetics, pad_terms)
+            evaluated_term = _product_transformation(padded_term(term, degrees), arithmetics, pad_terms)
             evaluated = arithmetics.add(evaluated, evaluated_term)
     else:
         for term in operator:
-            evaluated_term = _product_evaluation(term, arithmetics, pad_terms)
+            evaluated_term = _product_transformation(term, arithmetics, pad_terms)
             evaluated = arithmetics.add(evaluated, evaluated_term)
     return evaluated
 
-def _evaluation(operator: OperatorSum | ProductOperator,
-                   dimensions: Mapping[int, int] = {}, # FIXME: SHOULD WE HAVE THE DIMENSIONS (AND USE THEM!) OR NOT?
-                   **kwargs: NumericType) -> OperatorSum | ProductOperator:
+def _evaluate(operator: OperatorSum | ProductOperator,
+                **kwargs: NumericType) -> OperatorSum | ProductOperator:
     term_type = type(operator)
     if isinstance(operator, OperatorSum) and operator.term_count > 0:
         term, *_ = operator
         term_type = type(term)
     arithmetics = OperatorEvaluation(term_type, **kwargs)
     if isinstance(operator, OperatorSum):
-        evaluated = _sum_evaluation(operator, arithmetics, False)
+        evaluated = _sum_transformation(operator, arithmetics, False)
     elif isinstance(operator, ProductOperator):
-        evaluated = _product_evaluation(operator, arithmetics, False)
+        evaluated = _product_transformation(operator, arithmetics, False)
     else:
         raise RuntimeError("the given value is not an operator")
 

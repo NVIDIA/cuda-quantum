@@ -9,18 +9,15 @@
 import typing  # type: ignore
 
 from .definitions import * # for backwards compatibility
-from .manipulation import OperatorArithmetics, _sum_evaluation, _product_evaluation, _evaluation
+from .manipulation import OperatorArithmetics, _sum_transformation, _product_transformation, _evaluate
 
-# FIXME: make these public or not?
 for op_type in typing.get_args(OperatorSum):
-    op_type._evaluate = _sum_evaluation
+    op_type._transform = _sum_transformation
 for op_type in typing.get_args(ProductOperator):
-    op_type._evaluate = _product_evaluation
+    op_type._transform = _product_transformation
 
-# FIXME: this currently only replaces the scalar coefficients
-# with their evaluated value, not other parameters...
 for op_type in typing.get_args(OperatorSum):
-    op_type.evaluate = _evaluation
+    op_type.evaluate = _evaluate
 for op_type in typing.get_args(ProductOperator):
-    op_type.evaluate = _evaluation
+    op_type.evaluate = _evaluate
 

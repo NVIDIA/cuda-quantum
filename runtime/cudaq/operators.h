@@ -62,7 +62,7 @@ private:
   void aggregate_terms(product_op<HandlerTy> &&head, Args &&...args);
 
   template <typename EvalTy>
-  EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
+  EvalTy transform(operator_arithmetics<EvalTy> arithmetics) const;
 
 protected:
   std::unordered_map<std::string, std::size_t>
@@ -590,7 +590,7 @@ private:
   void aggregate_terms(HandlerTy &&head, Args &&...args);
 
   template <typename EvalTy>
-  EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
+  EvalTy transform(operator_arithmetics<EvalTy> arithmetics) const;
 
 protected:
   std::vector<HandlerTy> operators;

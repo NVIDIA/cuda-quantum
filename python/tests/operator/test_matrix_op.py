@@ -351,6 +351,57 @@ def test_arithmetics():
     assert np.allclose((2.j - sum).to_matrix(dims), 2.j * identity_matrix(2 * 3) - sum_matrix)
 
 
+def test_evaluation():
+    displace_op = displace(1)
+    squeeze_op = squeeze(3)
+    coeff = ScalarOperator(lambda lam: 1. / lam)
+
+    def evaluate(composite_op, **kwargs):
+        return composite_op.evaluate(**kwargs)
+
+    # test trivial evaluation
+    get_op = lambda: create(0) + annihilate(1)
+    assert numpy.allclose(get_op().to_matrix({0: 2, 1: 3}), get_op().evaluate().to_matrix({0: 2, 1: 3}))
+    assert numpy.allclose(get_op().to_matrix({0: 2, 1: 3}), evaluate(get_op()).to_matrix({0: 2, 1: 3}))
+
+    # test non-trivial evaluation
+    def check_evaluation(composite_op): 
+        params1 = {"displacement": 0.05000126, "squeezing": 10.006008j, "lam": -0.51237 + 98.72035j}
+        params2 = {"squeezing": 10.006008j, "displacement": 0.05000126, "lam": -0.51237 + 98.72035j}
+        assert params1 == params2
+        assert [e for e in params1] != [e for e in params2]
+
+        # check that order of parameters does not matter
+        eval1 = composite_op.evaluate(**params1)
+        eval2 = composite_op.evaluate(**params2)
+        assert eval1 == eval2
+        assert eval1 != composite_op.evaluate(squeezing = 0.05000126, displacement = 10.006008j, lam = -0.51237 + 98.72035j)
+        assert eval1 == evaluate(composite_op, **params1)
+
+        dims = {1: 3, 3: 4}
+        assert numpy.allclose(eval1.to_matrix(dims), eval2.to_matrix(dims))
+        params3 = {"displacement": 1.05000126, "squeezing": 10.006008j, "lam": -0.51237 + 98.72035j}
+        eval3 = composite_op.evaluate(**params3)
+        assert numpy.allclose(eval1.to_matrix(dims), eval2.to_matrix(dims))
+        assert not numpy.allclose(eval1.to_matrix(dims), eval3.to_matrix(dims))
+
+        # testing that we have a reasonable precision
+        params4 = {"displacement": 1.05000126000000006, "squeezing": 10.006008j, "lam": -0.51237 + 98.72035j}
+        assert params3 != params4
+        eval4 = composite_op.evaluate(**params4)
+        assert eval3 != eval4
+        if type(composite_op) == MatrixOperatorTerm:
+            for op1, op2 in zip(eval3, eval4):
+                assert op1.id.startswith("displace") or op1.id.startswith("squeeze")
+                if op1.id.startswith("squeeze"):
+                    assert op1.id == op2.id
+                else: 
+                    assert op1.id != op2.id
+
+    check_evaluation(coeff * displace_op * squeeze_op)
+    check_evaluation(coeff * displace_op + squeeze_op)
+
+
 def test_term_distribution():
     op = empty()
     for target in range(7):

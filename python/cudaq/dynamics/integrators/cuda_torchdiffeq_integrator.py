@@ -95,12 +95,12 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
 
             hilbert_space_dims = tuple(
                 self.dimensions[d] for d in range(len(self.dimensions)))
-            ham_term = self.hamiltonian._evaluate(
+            ham_term = self.hamiltonian._transform(
                 CuDensityMatOpConversion(self.dimensions, self.schedule))
             linblad_terms = []
             for c_op in self.collapse_operators:
                 linblad_terms.append(
-                    c_op._evaluate(
+                    c_op._transform(
                         CuDensityMatOpConversion(self.dimensions,
                                                  self.schedule)))
             is_master_equation = True if type(

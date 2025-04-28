@@ -79,14 +79,14 @@ def evolve_dynamics(
         # Always solve the master equation if the input is a density matrix
         me_solve = True
 
-    with ScopeTimer("evolve.hamiltonian._evaluate") as timer:
-        ham_term = hamiltonian._evaluate(
+    with ScopeTimer("evolve.hamiltonian._transform") as timer:
+        ham_term = hamiltonian._transform(
             CuDensityMatOpConversion(dimensions, schedule))
     linblad_terms = []
     for c_op in collapse_operators:
-        with ScopeTimer("evolve.collapse_operators._evaluate") as timer:
+        with ScopeTimer("evolve.collapse_operators._transform") as timer:
             linblad_terms.append(
-                c_op._evaluate(CuDensityMatOpConversion(dimensions, schedule)))
+                c_op._transform(CuDensityMatOpConversion(dimensions, schedule)))
 
     with ScopeTimer("evolve.constructLiouvillian") as timer:
         liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
@@ -103,7 +103,7 @@ def evolve_dynamics(
     expectation_op = [
         cudm.Operator(
             hilbert_space_dims,
-            (observable._evaluate(CuDensityMatOpConversion(dimensions)), 1.0))
+            (observable._transform(CuDensityMatOpConversion(dimensions)), 1.0))
         for observable in observables
     ]
     integrator.set_state(initial_state, schedule._steps[0])

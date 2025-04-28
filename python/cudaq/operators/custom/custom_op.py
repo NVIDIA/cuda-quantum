@@ -72,6 +72,31 @@ def _defineCustomOperator(cls, id: str,
         return ComplexMatrix(np_matrix)
     cls._define(id, expected_dimensions, generator_wrapper, override, **parameters)
 
-MatrixOperatorElement.define = classmethod(_defineCustomOperator)
+def _evaluate(self: MatrixOperatorElement, **kwargs: NumericType):
+    if len(self.parameters) == 0:
+        return self
+    
+    parameters = sorted(self.parameters.keys()) # need to sort to ensure consistent key/id definition
+    parameter_repr = lambda name: kwargs[name].__repr__() # should roundtrip ok
+    for param in parameters:
+        if not param in kwargs:
+            raise ValueError("missing value for parameter " + param)
+    id = self.id + "[" + parameter_repr(parameters[0])
+    for param in parameters[1:]:
+        id += "," + parameter_repr(param)
+    id += "]"
+        
+    # we need to create a copy here to ensure that we have access to
+    # the necessary properties and methods to compute the matrix regardless
+    # of the lifetime of the original object
+    unevaluated_op = self.__class__(self)
+    def get_matrix(dimensions: Sequence[int]):
+        dimensions_map = dict(zip(unevaluated_op.degrees, dimensions))
+        return unevaluated_op.to_matrix(dimensions_map, kwargs)
 
+    self.__class__.define(id, unevaluated_op.expected_dimensions, get_matrix, True) # should be fine to overwrite
+    return self.__class__(id, unevaluated_op.degrees)
+
+MatrixOperatorElement.define = classmethod(_defineCustomOperator)
+MatrixOperatorElement.evaluate = _evaluate
 

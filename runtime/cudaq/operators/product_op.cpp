@@ -220,14 +220,11 @@ std::vector<std::size_t> product_op<matrix_handler>::degrees() const {
 
 template <typename HandlerTy>
 template <typename EvalTy>
-EvalTy product_op<HandlerTy>::evaluate(
+EvalTy product_op<HandlerTy>::transform(
     operator_arithmetics<EvalTy> arithmetics) const {
-
   assert(!HandlerTy::can_be_canonicalized || this->is_canonicalized());
-  auto degrees = this->degrees();
 
-  auto padded_op = [&arithmetics,
-                    &degrees = std::as_const(degrees)](const HandlerTy &op) {
+  auto padded_op = [&arithmetics](const HandlerTy &op, const std::vector<std::size_t> &degrees) {
     std::vector<EvalTy> evaluated;
     auto op_degrees = op.degrees();
     bool op_evaluated = false;
@@ -260,15 +257,16 @@ EvalTy product_op<HandlerTy>::evaluate(
   };
 
   if (arithmetics.pad_product_terms) {
+    auto degrees = this->degrees();
     if (degrees.size() == 0)
       return arithmetics.evaluate(this->coefficient);
-    EvalTy prod = padded_op(this->operators[0]);
+    EvalTy prod = padded_op(this->operators[0], degrees);
     for (auto op_idx = 1; op_idx < this->operators.size(); ++op_idx) {
       auto op_degrees = this->operators[op_idx].degrees();
       if (op_degrees.size() != 1 ||
           this->operators[op_idx] != HandlerTy(op_degrees[0]))
         prod = arithmetics.mul(std::move(prod),
-                               padded_op(this->operators[op_idx]));
+                               padded_op(this->operators[op_idx], degrees));
     }
     return arithmetics.mul(this->coefficient, std::move(prod));
   } else {
@@ -316,7 +314,7 @@ INSTANTIATE_PRODUCT_PRIVATE_FRIEND_METHODS(fermion_handler);
 
 #define INSTANTIATE_PRODUCT_EVALUATE_METHODS(HandlerTy, EvalTy)                \
                                                                                \
-  template EvalTy product_op<HandlerTy>::evaluate(                             \
+  template EvalTy product_op<HandlerTy>::transform(                            \
       operator_arithmetics<EvalTy> arithmetics) const;
 
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_handler,
@@ -654,7 +652,7 @@ complex_matrix product_op<HandlerTy>::to_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto evaluated =
-      this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(
+      this->transform(operator_arithmetics<operator_handler::matrix_evaluation>(
           dimensions, parameters));
   if (invert_order) {
     auto reverse_degrees = evaluated.degrees;
@@ -672,7 +670,7 @@ complex_matrix product_op<spin_handler>::to_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto terms = std::move(
-      this->evaluate(
+      this->transform(
               operator_arithmetics<operator_handler::canonical_evaluation>(
                   dimensions, parameters))
           .terms);
@@ -1404,7 +1402,7 @@ std::string
 product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) const {
   std::unordered_map<std::size_t, int64_t> dims;
   auto terms = std::move(
-      this->evaluate(
+      this->transform(
               operator_arithmetics<operator_handler::canonical_evaluation>(dims,
                                                                            {}))
           .terms);
@@ -1438,7 +1436,7 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
 
   std::unordered_map<std::size_t, int64_t> dims;
   auto degrees = this->degrees();
-  auto evaluated = this->evaluate(
+  auto evaluated = this->transform(
       operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
 
   std::size_t max_degree =
@@ -1473,7 +1471,7 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto terms = std::move(
-      this->evaluate(
+      this->transform(
               operator_arithmetics<operator_handler::canonical_evaluation>(
                   dimensions, parameters))
           .terms);
