@@ -29,10 +29,11 @@ struct MPSSettings {
   MPSSettings();
 };
 
+template <typename ScalarType = double>
 class MPSSimulationState : public cudaq::SimulationState {
 
 public:
-  MPSSimulationState(std::unique_ptr<TensorNetState> inState,
+  MPSSimulationState(std::unique_ptr<TensorNetState<ScalarType>> inState,
                      const std::vector<MPSTensor> &mpsTensors,
                      ScratchDeviceMem &inScratchPad,
                      cutensornetHandle_t cutnHandle,
@@ -52,7 +53,9 @@ public:
   std::size_t getNumQubits() const override;
   void dump(std::ostream &) const override;
   cudaq::SimulationState::precision getPrecision() const override {
-    return cudaq::SimulationState::precision::fp64;
+    return std::is_same_v<ScalarType, float>
+               ? cudaq::SimulationState::precision::fp32
+               : cudaq::SimulationState::precision::fp64;
   }
 
   Tensor getTensor(std::size_t tensorIdx = 0) const override;
@@ -71,11 +74,15 @@ public:
   createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override;
   void toHost(std::complex<double> *clientAllocatedData,
               std::size_t numElements) const override;
-
+  void toHost(std::complex<float> *clientAllocatedData,
+              std::size_t numElements) const override;
+  template <typename T>
+  void toHostImpl(std::complex<T> *clientAllocatedData,
+                  std::size_t numElements) const;
   /// Encapsulate data needed to initialize an MPS state.
   struct MpsStateData {
     // Represents the tensor network state
-    std::unique_ptr<TensorNetState> networkState;
+    std::unique_ptr<TensorNetState<ScalarType>> networkState;
     // Individual MPS tensors
     std::vector<MPSTensor> tensors;
   };
@@ -84,7 +91,7 @@ public:
   static MpsStateData createFromStateVec(cutensornetHandle_t cutnHandle,
                                          ScratchDeviceMem &inScratchPad,
                                          std::size_t size,
-                                         std::complex<double> *data,
+                                         std::complex<ScalarType> *data,
                                          int bondDim,
                                          std::mt19937 &randomEngine);
 
@@ -99,15 +106,17 @@ protected:
 
   // The state that this owned.
   cutensornetHandle_t m_cutnHandle;
-  std::unique_ptr<TensorNetState> state;
+  std::unique_ptr<TensorNetState<ScalarType>> state;
   std::vector<MPSTensor> m_mpsTensors;
   ScratchDeviceMem &scratchPad;
   // Max number of qubits whereby the tensor network state should be contracted
   // and cached into a state vector.
   // This speeds up sequential state amplitude accessors for small states.
   static constexpr std::size_t g_maxQubitsForStateContraction = 30;
-  std::vector<std::complex<double>> m_contractedStateVec;
+  std::vector<std::complex<ScalarType>> m_contractedStateVec;
   std::mt19937 &m_randomEngine;
 };
 
 } // namespace nvqir
+
+#include "mps_simulation_state.inc"
