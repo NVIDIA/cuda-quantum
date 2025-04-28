@@ -26,8 +26,8 @@ class scalar_operator {
 private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
-  std::variant<std::complex<double>, scalar_callback> value;
-  std::unordered_map<std::string, std::string> param_desc;
+  std::variant<std::complex<double>, scalar_callback> value = 1.;
+  std::unordered_map<std::string, std::string> param_desc = {};
 
 public:
   // read-only properties
@@ -37,7 +37,7 @@ public:
 
   // constructors and destructors
 
-  scalar_operator() : value(1.) {}
+  constexpr scalar_operator() = default;
 
   scalar_operator(double value);
 
@@ -53,10 +53,10 @@ public:
                   std::unordered_map<std::string, std::string> &&parameter_descriptions = {});
   
   // copy constructor
-  scalar_operator(const scalar_operator &other);
+  scalar_operator(const scalar_operator &other) = default;
 
   // move constructor
-  scalar_operator(scalar_operator &&other);
+  scalar_operator(scalar_operator &&other) = default;
 
   ~scalar_operator() = default;
 

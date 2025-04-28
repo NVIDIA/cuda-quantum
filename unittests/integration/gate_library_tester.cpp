@@ -47,10 +47,11 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotation) {
     const double s = std::sin(angle);
     auto ss_01 = cudaq::get_state(test_01, angle);
     auto ss_10 = cudaq::get_state(test_10, angle);
-    EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, 1e-6);
-    EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, 1e-6);
-    EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, 1e-6);
-    EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, 1e-6);
+    const double tol = std::is_same_v<cudaq::real, float> ? 1e-3 : 1e-6;
+    EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, tol);
+    EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, tol);
+    EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, tol);
+    EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, tol);
   }
 }
 
@@ -64,6 +65,7 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
     // where c = cos(theta); s = sin(theta)
     const double c = std::cos(angle);
     const double s = std::sin(angle);
+    const double tol = std::is_same_v<cudaq::real, float> ? 1e-3 : 1e-6;
     {
       auto [test_01, theta] = cudaq::make_kernel<double>();
       // Allocate some qubits
@@ -71,8 +73,8 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
       test_01.x(q[0]);
       cudaq::builder::givens_rotation(test_01, theta, q[0], q[1]);
       auto ss_01 = cudaq::get_state(test_01, angle);
-      EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, 1e-6);
-      EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, 1e-6);
+      EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, tol);
+      EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, tol);
     }
     {
       auto [test_10, theta] = cudaq::make_kernel<double>();
@@ -81,8 +83,8 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
       test_10.x(q[1]);
       cudaq::builder::givens_rotation(test_10, theta, q[0], q[1]);
       auto ss_10 = cudaq::get_state(test_10, angle);
-      EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, 1e-6);
-      EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, 1e-6);
+      EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, tol);
+      EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, tol);
     }
   }
 }
@@ -107,11 +109,12 @@ CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
 
     const double c = std::cos(angle);
     const double s = std::sin(angle);
+    const double tol = std::is_same_v<cudaq::real, float> ? 1e-3 : 1e-6;
     auto ss_01_on = cudaq::get_state(test_01_on, angle);
-    EXPECT_NEAR(std::abs(ss_01_on[13] + s), 0.0, 1e-6);
-    EXPECT_NEAR(std::abs(ss_01_on[14] - c), 0.0, 1e-6);
+    EXPECT_NEAR(std::abs(ss_01_on[13] + s), 0.0, tol);
+    EXPECT_NEAR(std::abs(ss_01_on[14] - c), 0.0, tol);
     auto ss_01_off = cudaq::get_state(test_01_off, angle);
-    EXPECT_NEAR(std::abs(ss_01_off[0]), 1.0, 1e-6);
+    EXPECT_NEAR(std::abs(ss_01_off[0]), 1.0, tol);
   }
 }
 

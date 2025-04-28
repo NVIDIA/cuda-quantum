@@ -6,12 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
-#include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_OBSERVEANSATZ
@@ -202,23 +198,20 @@ private:
   AnsatzFunctionInfo infoMap;
 };
 
-/// This OpRewritePattern will use the quake ansatz analysis info to append
-/// measurement basis change operations.
-struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
-  explicit AppendMeasurements(MLIRContext *ctx, const AnsatzFunctionInfo &info,
-                              ArrayRef<bool> bsf)
-      : OpRewritePattern(ctx), infoMap(info), termBSF(bsf) {}
+/// This pass will compute ansatz analysis meta data and use that in a custom
+/// rewrite pattern to append basis changes + mz operations to the ansatz quake
+/// function.
+class ObserveAnsatzPass
+    : public cudaq::opt::impl::ObserveAnsatzBase<ObserveAnsatzPass> {
+public:
+  using ObserveAnsatzBase::ObserveAnsatzBase;
 
-  /// The pre-computed analysis information
-  AnsatzFunctionInfo infoMap;
+  ObserveAnsatzPass(const std::vector<bool> &bsfData)
+      : binarySymplecticForm{bsfData.begin(), bsfData.end()} {}
 
-  /// The Pauli term representation
-  ArrayRef<bool> termBSF;
-
-  LogicalResult matchAndRewrite(func::FuncOp funcOp,
-                                PatternRewriter &rewriter) const override {
-    rewriter.startRootUpdate(funcOp);
-
+  /// Perform sanity checks and remove existing measurements.
+  LogicalResult performPreprocessing(func::FuncOp funcOp,
+                                     const AnsatzFunctionInfo &infoMap) {
     // Use an Analysis to count the number of qubits.
     auto iter = infoMap.find(funcOp);
     if (iter == infoMap.end())
@@ -231,9 +224,6 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
                                 std::to_string(termBSF.size()) +
                                 ". Must provide at most 2 * NQubits = " +
                                 std::to_string(2 * nQubits));
-
-    // Update nQubits so we only measure the requested qubits.
-    nQubits = termBSF.size() / 2;
 
     // If the mapping pass was not run, we expect no pre-existing measurements.
     if (!iter->second.mappingPassRan && !iter->second.measurements.empty())
@@ -259,13 +249,25 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
         if (quake::isLinearType(result.getType()))
           result.replaceAllUsesWith(op->getOperand(0));
 
-      // Force remove `op`.
       op->dropAllReferences();
       op->erase();
     }
+    return success();
+  }
+
+  /// Append measurements in the correct basis.
+  LogicalResult appendMeasurements(func::FuncOp funcOp,
+                                   const AnsatzFunctionInfo &infoMap) {
+    // Use an Analysis to count the number of qubits.
+    auto iter = infoMap.find(funcOp);
+    if (iter == infoMap.end())
+      return funcOp.emitOpError("Errors encountered in pass analysis");
+
+    // Set nQubits so we only measure the requested qubits.
+    auto nQubits = binarySymplecticForm.size() / 2;
 
     // We want to insert after the last quantum operation. We must perform this
-    // after erasing the measurements above.
+    // after erasing the measurements.
     OpBuilder builder = OpBuilder::atBlockTerminator(&funcOp.getBody().back());
     auto loc = funcOp.getBody().back().getTerminator()->getLoc();
     Operation *last = &funcOp.getBody().back().front();
@@ -279,9 +281,9 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
     // Loop over the binary-symplectic form provided and append
     // measurements as necessary.
     SmallVector<Value> qubitsToMeasure;
-    for (std::size_t i = 0; i < termBSF.size() / 2; i++) {
-      bool xElement = termBSF[i];
-      bool zElement = termBSF[i + nQubits];
+    for (std::size_t i = 0; i < binarySymplecticForm.size() / 2; i++) {
+      bool xElement = binarySymplecticForm[i];
+      bool zElement = binarySymplecticForm[i + nQubits];
       MeasureBasis basis = MeasureBasis::I;
       if (xElement && zElement)
         basis = MeasureBasis::Y;
@@ -335,28 +337,12 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       }
     }
 
-    rewriter.finalizeRootUpdate(funcOp);
     return success();
   }
-};
-
-/// This pass will compute ansatz analysis meta data and use that in a custom
-/// rewrite pattern to append basis changes + mz operations to the ansatz quake
-/// function.
-class ObserveAnsatzPass
-    : public cudaq::opt::impl::ObserveAnsatzBase<ObserveAnsatzPass> {
-protected:
-  SmallVector<bool> binarySymplecticForm;
-
-public:
-  using ObserveAnsatzBase::ObserveAnsatzBase;
-
-  ObserveAnsatzPass(const std::vector<bool> &bsfData)
-      : binarySymplecticForm{bsfData.begin(), bsfData.end()} {}
 
   void runOnOperation() override {
-    auto funcOp = dyn_cast<func::FuncOp>(getOperation());
-    if (!funcOp || funcOp.empty())
+    auto funcOp = getOperation();
+    if (funcOp.empty())
       return;
 
     // We can get the pauli term info from the MLIR command line parser, or from
@@ -365,21 +351,23 @@ public:
       for (auto &b : termBSF)
         binarySymplecticForm.push_back(b);
 
-    auto *ctx = funcOp.getContext();
-    RewritePatternSet patterns(ctx);
-
     // Compute the analysis info
     const auto &analysis = getAnalysis<AnsatzFunctionAnalysis>();
     const auto &funcAnalysisInfo = analysis.getAnalysisInfo();
-    patterns.insert<AppendMeasurements>(ctx, funcAnalysisInfo,
-                                        binarySymplecticForm);
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<quake::QuakeDialect>();
 
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns))))
+    // Perform sanity checks and remove measurements.
+    if (failed(performPreprocessing(funcOp, funcAnalysisInfo))) {
+      signalPassFailure();
+      return;
+    }
+
+    // Now append the measurements.
+    if (failed(appendMeasurements(funcOp, funcAnalysisInfo)))
       signalPassFailure();
   }
+
+protected:
+  SmallVector<bool> binarySymplecticForm;
 };
 
 } // namespace

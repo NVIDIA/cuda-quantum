@@ -6,109 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import ast, inspect, importlib, textwrap
+import ast
+import inspect
+import importlib
+import textwrap
+
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import cc
 from .utils import globalAstRegistry, globalKernelRegistry, mlirTypeFromAnnotation
-from ..mlir.dialects import cc
-from ..mlir.ir import *
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-
-
-class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
-    """
-    The `MidCircuitMeasurementAnalyzer` is a utility class searches for 
-    common measurement - conditional patterns to indicate to the runtime 
-    that we have a circuit with mid-circuit measurement and subsequent conditional 
-    quantum operation application.
-    """
-
-    def __init__(self):
-        self.measureResultsVars = []
-        self.hasMidCircuitMeasures = False
-
-    def isMeasureCallOp(self, node):
-        return isinstance(
-            node, ast.Call) and node.__dict__['func'].id in ['mx', 'my', 'mz']
-
-    def visit_Assign(self, node):
-        target = node.targets[0]
-        # Check if a variable is assigned from result(s) of measurement
-        if hasattr(node, 'value') and hasattr(
-                node.value, 'id') and node.value.id in self.measureResultsVars:
-            self.measureResultsVars.append(target.id)
-            return
-        # Check if the new variable is assigned from a measurement result
-        if hasattr(node, 'value') and isinstance(
-                node.value,
-                ast.Name) and node.value.id in self.measureResultsVars:
-            self.measureResultsVars.append(target.id)
-            return
-        # Check if the new variable uses measurement results
-        if hasattr(node, 'value') and isinstance(
-                node.value, ast.BoolOp) and 'values' in node.value.__dict__:
-            for value in node.value.__dict__['values']:
-                if hasattr(value, 'id') and value.id in self.measureResultsVars:
-                    self.measureResultsVars.append(target.id)
-                    return
-        if not 'func' in node.value.__dict__:
-            return
-        creatorFunc = node.value.func
-        if 'id' in creatorFunc.__dict__ and creatorFunc.id in [
-                'mx', 'my', 'mz'
-        ]:
-            self.measureResultsVars.append(target.id)
-
-    # Get the variable name from a variable node.
-    # Returns an empty string if not something we know how to get a variable name from.
-    def getVariableName(self, node):
-        if isinstance(node, ast.Name):
-            return node.id
-        if isinstance(node, ast.Subscript):
-            return self.getVariableName(node.value)
-        return ''
-
-    def checkForMeasureResult(self, value):
-        if self.isMeasureCallOp(value):
-            return True
-        if self.getVariableName(value) in self.measureResultsVars:
-            return True
-        if isinstance(value, ast.BoolOp) and 'values' in value.__dict__:
-            for val in value.__dict__['values']:
-                if self.getVariableName(val) in self.measureResultsVars:
-                    return True
-
-    def visit_If(self, node):
-        condition = node.test
-
-        # Catch `if mz(q)`, `if val`, where `val = mz(q)` or `if var[k]`, where `var = mz(qvec)`
-        if self.checkForMeasureResult(condition):
-            self.hasMidCircuitMeasures = True
-            return
-
-        # Compare: look at left expression.
-        # Catch `if var == True/False` and `if var[k] == True/False:` or `if mz(q) == True/False`
-        if isinstance(condition, ast.Compare) and self.checkForMeasureResult(
-                condition.left):
-            self.hasMidCircuitMeasures = True
-            return
-
-        # Catch `if UnaryOp mz(q)` or `if UnaryOp var` (`var = mz(q)`)
-        if isinstance(condition, ast.UnaryOp) and self.checkForMeasureResult(
-                condition.operand):
-            self.hasMidCircuitMeasures = True
-            return
-
-        # Catch `if something BoolOp mz(q)` or `something BoolOp var` (`var = mz(q)`)
-        if isinstance(condition, ast.BoolOp) and 'values' in condition.__dict__:
-
-            for value in condition.__dict__['values']:
-                if self.checkForMeasureResult(value):
-                    self.hasMidCircuitMeasures = True
-                    return
-                if isinstance(value,
-                              ast.Compare) and self.checkForMeasureResult(
-                                  value.left):
-                    self.hasMidCircuitMeasures = True
-                    return
 
 
 class FindDepKernelsVisitor(ast.NodeVisitor):

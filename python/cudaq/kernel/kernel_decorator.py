@@ -5,22 +5,23 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import ast, sys, traceback
+import ast
 import importlib
 import inspect
 import json
-from typing import Callable
-from ..mlir.ir import *
-from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc, func
-from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli, globalRegisteredTypes
-from .analysis import MidCircuitMeasurementAnalyzer, HasReturnNodeVisitor
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from .captured_data import CapturedDataStorage
-from ..handlers import PhotonicsHandler
-
 import numpy as np
+
+from cudaq.handlers import get_target_handler
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import cc, func
+from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
+                           SymbolTable)
+from .analysis import HasReturnNodeVisitor
+from .ast_bridge import compile_to_mlir, PyASTBridge
+from .captured_data import CapturedDataStorage
+from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
+                    globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
+                    nvqppPrefix)
 
 # This file implements the decorator mechanism needed to
 # JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
@@ -159,11 +160,6 @@ class PyKernelDecorator(object):
                 'CUDA-Q kernel has return statement but no return type annotation.'
             )
 
-        # Run analyzers and attach metadata (only have 1 right now)
-        analyzer = MidCircuitMeasurementAnalyzer()
-        analyzer.visit(self.astModule)
-        self.metadata = {'conditionalOnMeasure': analyzer.hasMidCircuitMeasures}
-
         # Store the AST for this kernel, it is needed for
         # building up call graphs. We also must retain
         # the source code location for error diagnostics
@@ -174,6 +170,10 @@ class PyKernelDecorator(object):
         Compile the Python function AST to MLIR. This is a no-op 
         if the kernel is already compiled. 
         """
+
+        handler = get_target_handler()
+        if handler.skip_compilation() is True:
+            return
 
         # Before we can execute, we need to make sure
         # variables from the parent frame that we captured
@@ -204,12 +204,15 @@ class PyKernelDecorator(object):
                 break
             s = s.f_back
 
-        if self.module != None:
+        if self.module is not None:
             return
 
+        # Cleanup up the captured data if the module needs recompilation.
+        self.capturedDataStorage = self.createStorage()
+
+        # Caches the module and stores captured data into `self.capturedDataStorage`.
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
-            self.metadata,
             self.capturedDataStorage,
             verbose=self.verbose,
             returnType=self.returnType,
@@ -392,32 +395,9 @@ class PyKernelDecorator(object):
         requires custom handling.
         """
 
-        # Check if target is set
-        try:
-            target_name = cudaq_runtime.get_target().name
-        except RuntimeError:
-            target_name = None
-
-        if 'orca-photonics' == target_name:
-            if self.kernelFunction is None:
-                raise RuntimeError(
-                    "The 'orca-photonics' target must be used with a valid function."
-                )
-            # NOTE: Since this handler does not support MLIR mode (yet), just
-            # invoke the kernel. If calling from a bound function, need to
-            # unpack the arguments, for example, see `pyGetStateLibraryMode`
-            try:
-                context_name = cudaq_runtime.getExecutionContextName()
-            except RuntimeError:
-                context_name = None
-            callable_args = args
-            if "extract-state" == context_name and len(args) == 1:
-                callable_args = args[0]
-            PhotonicsHandler(self.kernelFunction)(*callable_args)
+        handler = get_target_handler()
+        if handler.call_processed(self.kernelFunction, args) is True:
             return
-
-        # Prepare captured state storage for the run
-        self.capturedDataStorage = self.createStorage()
 
         # Compile, no-op if the module is not None
         self.compile()
@@ -498,8 +478,6 @@ class PyKernelDecorator(object):
                                             self.module,
                                             *processedArgs,
                                             callable_names=callableNames)
-            self.capturedDataStorage.__del__()
-            self.capturedDataStorage = None
         else:
             result = cudaq_runtime.pyAltLaunchKernelR(
                 self.name,
@@ -507,9 +485,6 @@ class PyKernelDecorator(object):
                 mlirTypeFromPyType(self.returnType, self.module.context),
                 *processedArgs,
                 callable_names=callableNames)
-
-            self.capturedDataStorage.__del__()
-            self.capturedDataStorage = None
             return result
 
 

@@ -43,12 +43,6 @@ scalar_operator::scalar_operator(scalar_callback &&create,
     : value(std::variant<std::complex<double>, scalar_callback>(
           std::move(create))), param_desc(std::move(paramater_descriptions)) {}
 
-scalar_operator::scalar_operator(const scalar_operator &other)
-    : value(other.value), param_desc(other.param_desc) {}
-
-scalar_operator::scalar_operator(scalar_operator &&other)
-    : value(std::move(other.value)), param_desc(std::move(other.param_desc)) {}
-
 // evaluations
 
 std::complex<double> scalar_operator::evaluate(

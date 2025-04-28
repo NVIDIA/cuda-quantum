@@ -6,11 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy
-from typing import Any, Mapping, List, Sequence, Union
-from numbers import Number
-from ..operators import ElementaryOperator, OperatorArithmetics, ScalarOperator
 import logging
+import numpy
+from numbers import Number
+from typing import Any, Mapping, List, Union
+from ..operators import ElementaryOperator, OperatorArithmetics, ScalarOperator
 from .schedule import Schedule
 import warnings
 

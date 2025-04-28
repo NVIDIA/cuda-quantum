@@ -5,7 +5,10 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.kernel.kernel_builder import PyKernel
+from cudaq.kernel.kernel_decorator import PyKernelDecorator
+from cudaq.kernel.utils import nvqppPrefix
 from .utils import __isBroadcast, __createArgumentSet
 
 
@@ -66,8 +69,17 @@ Returns:
   or a list of such results in the case of `sample` function broadcasting."""
 
     has_conditionals_on_measure_result = False
-    if hasattr(kernel, 'metadata') and kernel.metadata.get(
-            'conditionalOnMeasure', False):
+
+    if isinstance(kernel, PyKernelDecorator):
+        kernel.compile()
+        if kernel.module is not None:
+            for operation in kernel.module.body.operations:
+                if not hasattr(operation, 'name'):
+                    continue
+                if nvqppPrefix + kernel.name == operation.name.value:
+                    has_conditionals_on_measure_result = 'qubitMeasurementFeedback' in operation.attributes
+                    break
+    elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
         has_conditionals_on_measure_result = True
 
     if explicit_measurements:
