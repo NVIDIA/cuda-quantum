@@ -256,6 +256,7 @@ def test_equality():
     assert prod1 != prod2
     assert prod3 == prod4
     assert sum == prod1
+    assert prod1 == sum
     sum += prod3
     assert sum != prod1
     assert sum == (prod3 + prod1)

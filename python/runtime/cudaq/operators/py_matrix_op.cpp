@@ -167,6 +167,10 @@ void bindMatrixOperator(py::module &mod) {
     "into account that addition is commutative and so is multiplication on operators "
     "that act on different degrees of freedom. Operators acting on different degrees of "
     "freedom are never equivalent, even if they only differ by an identity operator.")
+  .def("__eq__",
+    [](const matrix_op &self, const matrix_op_term &other) {
+      return self.num_terms() == 1 && *self.begin() == other;
+    }, py::is_operator(), "Return true if the two operators are equivalent.")
 
   // unary operators
 
@@ -356,6 +360,10 @@ void bindMatrixOperator(py::module &mod) {
     "into account that multiplication of operators that act on different degrees of "
     "is commutative. Operators acting on different degrees of freedom are never "
     "equivalent, even if they only differ by an identity operator.")
+  .def("__eq__",
+     [](const matrix_op_term &self, const matrix_op &other) {
+      return other.num_terms() == 1 && *other.begin() == self;
+     }, py::is_operator(), "Return true if the two operators are equivalent.")
 
   // unary operators
 

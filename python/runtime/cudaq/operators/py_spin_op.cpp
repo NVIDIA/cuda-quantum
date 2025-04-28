@@ -132,7 +132,6 @@ void bindSpinOperator(py::module &mod) {
 
   .def_property_readonly("parameters", &spin_op::get_parameter_descriptions,
     "Returns a dictionary that maps each parameter name to its description.")
-  // todo: add a targets property?      
   .def_property_readonly("degrees", &spin_op::degrees,
     "Returns a vector that lists all degrees of freedom that the operator targets. "
     "The order of degrees is from smallest to largest and reflects the ordering of "
@@ -152,15 +151,15 @@ void bindSpinOperator(py::module &mod) {
 
   // constructors
 
-  // NOTE: breaking change in behavior for this constructor
   .def(py::init<>(), "Creates a default instantiated sum. A default instantiated "
     "sum has no value; it will take a value the first time an arithmetic operation "
     "is applied to it. In that sense, it acts as both the additive and multiplicative "
     "identity. To construct a `0` value in the mathematical sense (neutral element "
     "for addition), use `empty()` instead.")
-  // NOTE: breaking change in behavior for this constructor
-  .def(py::init<std::size_t>(), "Creates a sum operator with no terms, reserving "
-    "space for the given number of terms.")
+  .def(py::init<std::size_t>(), 
+    py::arg("size"),
+    "Creates a sum operator with no terms, reserving "
+    "space for the given number of terms (size).")
   // NOTE: only supported on spin ops so far
   .def(py::init<std::vector<double> &>(), py::arg("data"),
      "Creates an operator based on a serialized data representation.")
@@ -175,7 +174,6 @@ void bindSpinOperator(py::module &mod) {
   .def(py::init<const spin_op &>(),
     "Copy constructor.")
   // NOTE: only supported on spin ops
-  // FIXME: SHOULDN'T WE CREATE AN OPEN FERMION OPERATOR TO A FERMION OP?
   .def(py::init([](py::object obj) { return fromOpenFermionQubitOperator(obj); }),
     "Convert an OpenFermion operator to a CUDA-Q spin operator.")
   .def("copy", [](const spin_op &self) { return spin_op(self); },
@@ -261,14 +259,10 @@ void bindSpinOperator(py::module &mod) {
     "Return true if the two operators are equivalent. The equivalence check takes "
     "commutation relations into account. Operators acting on different degrees of "
     "freedom are never equivalent, even if they only differ by an identity operator.")
-  // FIXME: not sure if we should consider a sum_op and a product_op equal if the
-  // content matches...
   .def("__eq__",
     [](const spin_op &self, const spin_op_term &other) {
-      return self == spin_op(other);
+      return self.num_terms() == 1 && *self.begin() == other;
     }, py::is_operator(), "Return true if the two operators are equivalent.")
-  // FIXME: ADD OTHER OVERLOADS TO COMPATE OPERATORS OF DIFFERENT CLASSES
-  // FIXME: UPDATE __eq__ overloads for other ops classes
 
   // unary operators
 
@@ -332,7 +326,6 @@ void bindSpinOperator(py::module &mod) {
 
   // common operators
 
-  // NOTE: obvious breaking change in meaning
   .def_static("empty", &spin_op::empty,
     "Creates a sum operator with no terms. And empty sum is the neutral element for addition; "
     "multiplying an empty sum with anything will still result in an empty sum.")
@@ -443,6 +436,7 @@ void bindSpinOperator(py::module &mod) {
         1);       
      return reader.read(fileName, legacy);
    }),
+   py::arg("filename"), py::arg("legacy"),
    "Constructor available for loading deprecated data representations from file - will be removed in future releases.")
   .def_static("empty_op", [](){
      PyErr_WarnEx(PyExc_DeprecationWarning, 
@@ -605,14 +599,10 @@ void bindSpinOperator(py::module &mod) {
     "Return true if the two operators are equivalent. The equivalence check takes "
     "commutation relations into account. Operators acting on different degrees of "
     "freedom are never equivalent, even if they only differ by an identity operator.")
-  // FIXME: not sure if we should consider a sum_op and a product_op equal if the
-  // content matches...
   .def("__eq__",
      [](const spin_op_term &self, const spin_op &other) {
-       return spin_op(self) == other;
+      return other.num_terms() == 1 && *other.begin() == self;
      }, py::is_operator(), "Return true if the two operators are equivalent.")
-   // FIXME: ADD OTHER OVERLOADS TO COMPATE OPERATORS OF DIFFERENT CLASSES
-   // FIXME: UPDATE __eq__ overloads for other ops classes
 
   // unary operators
 
@@ -674,20 +664,6 @@ void bindSpinOperator(py::module &mod) {
     "Returns the string representation of the operator.")
   .def("dump", &spin_op_term::dump,
     "Prints the string representation of the operator to the standard output.")
-  /* FIXME: not supported on product_op in C++ - not sure if we should have that here
-  .def("serialize", [](const spin_op_term &self) {
-      return spin_op(self).get_data_representation();
-    },
-    "Returns the serialized data representation of the operator. ")
-  */
-  /* FIXME: not supported on product_op in C++ - not sure if we should have that here
-  .def("to_json", [](const spin_op_term &self) {
-      py::object json = py::module_::import("json");
-      auto data = spin_op(self).get_data_representation();
-      return json.attr("dumps")(data);
-    },
-    "Convert spin_op to JSON string: '[d1, d2, d3, ...]'") 
-  */
   // only exists for spin operators
   .def("get_pauli_word", [](spin_op_term &op, std::size_t pad_identities) {
        return op.get_pauli_word(pad_identities);
@@ -716,11 +692,6 @@ void bindSpinOperator(py::module &mod) {
   #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   #endif
   spin_op_term_class
-  /* FIXME: I HOPE WE CAN DROP THIS WITHOUT DEPRECATION?
-  .def(
-    "get_term_count", [](spin_op_term &op) { return 1; },
-    "Return the number of terms (always 1).")
-  */
   .def("get_coefficient", [](const spin_op_term &op) {
        PyErr_WarnEx(PyExc_DeprecationWarning, 
           "use `evaluate_coefficient` instead", 

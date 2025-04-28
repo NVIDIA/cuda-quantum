@@ -19,7 +19,6 @@ def setup():
 
 
 def test_definitions():
-    # FIXME: PARITY ACROSS A NUMBER OF TARGETS?
 
     assert np.allclose(fermion.create(1).to_matrix(), create_matrix(2))
     assert np.allclose(fermion.annihilate(1).to_matrix(), annihilate_matrix(2))
@@ -287,6 +286,7 @@ def test_equality():
     assert prod3 != prod4
     assert prod3 == -prod4
     assert sum == prod1
+    assert prod1 == sum
     sum += prod3
     assert sum != prod1
     assert sum == (prod3 + prod1)

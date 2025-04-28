@@ -190,6 +190,10 @@ void bindFermionOperator(py::module &mod) {
     "Return true if the two operators are equivalent. The equivalence check takes "
     "commutation relations into account. Operators acting on different degrees of "
     "freedom are never equivalent, even if they only differ by an identity operator.")
+  .def("__eq__",
+    [](const fermion_op &self, const fermion_op_term &other) {
+      return self.num_terms() == 1 && *self.begin() == other;
+    }, py::is_operator(), "Return true if the two operators are equivalent.")
 
   // unary operators
 
@@ -413,6 +417,10 @@ void bindFermionOperator(py::module &mod) {
     "Return true if the two operators are equivalent. The equivalence check takes "
     "commutation relations into account. Operators acting on different degrees of "
     "freedom are never equivalent, even if they only differ by an identity operator.")
+  .def("__eq__",
+     [](const fermion_op_term &self, const fermion_op &other) {
+      return other.num_terms() == 1 && *other.begin() == self;
+     }, py::is_operator(), "Return true if the two operators are equivalent.")
 
   // unary operators
 
