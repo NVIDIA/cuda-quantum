@@ -142,7 +142,8 @@ public:
 
   // constructors and destructors
 
-  /// @brief Constructs a matrix_handler that applies an identity operator to the given target.
+  /// @brief Constructs a matrix_handler that applies an identity operator to
+  /// the given target.
   /// @param target A std::size_t representing the target index relevant for the
   /// operator.
   matrix_handler(std::size_t target);

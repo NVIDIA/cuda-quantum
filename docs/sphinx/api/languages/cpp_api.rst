@@ -1,7 +1,7 @@
 CUDA-Q C++ API
 ******************************
 
-Operators 
+Operators
 =============
 
 .. doxygenclass:: cudaq::scalar_callback
@@ -31,6 +31,9 @@ Operators
 .. doxygenclass:: cudaq::matrix_handler
     :members:
 
+.. doxygenclass:: cudaq::spin_handler
+    :members:
+
 .. doxygenclass:: cudaq::product_op
     :members:
 
@@ -39,7 +42,21 @@ Operators
 
 .. doxygenclass:: cudaq::fermion_handler
 
-.. doxygenclass:: cudaq::spin_op
+.. cpp:type:: cudaq::spin_op
+
+.. cpp:type:: cudaq::spin_op_term
+
+.. cpp:type:: cudaq::boson_op
+
+.. cpp:type:: cudaq::boson_op_term
+
+.. cpp:type:: cudaq::fermion_op
+
+.. cpp:type:: cudaq::fermion_op_term
+
+.. cpp:type:: cudaq::matrix_op
+
+.. cpp:type:: cudaq::matrix_op_term
 
 Quantum
 =========
