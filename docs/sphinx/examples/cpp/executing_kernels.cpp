@@ -17,7 +17,7 @@ __qpu__ void kernel(int qubit_count) {
   // 2-qubit GHZ state.
   h(qvector[0]);
   for (auto qubit : cudaq::range(qubit_count - 1)) {
-    x<cudaq::ctrl>(qvector[0], qvector[qubit + 1]);
+    x<cudaq::ctrl>(qvector[qubit], qvector[qubit + 1]);
   }
   // If we do not specify measurements, all qubits are measured in
   // the Z-basis by default or we can manually specify it also
