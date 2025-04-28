@@ -33,7 +33,8 @@ public:
   // read-only properties
 
   bool is_constant() const;
-  const std::unordered_map<std::string, std::string>& get_parameter_descriptions() const;
+  const std::unordered_map<std::string, std::string> &
+  get_parameter_descriptions() const;
 
   // constructors and destructors
 
@@ -44,14 +45,16 @@ public:
   /// @brief Constructor that just takes and returns a complex double value.
   scalar_operator(std::complex<double> value);
 
-  scalar_operator(const scalar_callback &create, 
-                  std::unordered_map<std::string, std::string> &&parameter_descriptions = {});
+  scalar_operator(const scalar_callback &create,
+                  std::unordered_map<std::string, std::string>
+                      &&parameter_descriptions = {});
 
   /// @brief Constructor that just takes a callback function with no
   /// arguments.
   scalar_operator(scalar_callback &&create,
-                  std::unordered_map<std::string, std::string> &&parameter_descriptions = {});
-  
+                  std::unordered_map<std::string, std::string>
+                      &&parameter_descriptions = {});
+
   // copy constructor
   scalar_operator(const scalar_operator &other) = default;
 

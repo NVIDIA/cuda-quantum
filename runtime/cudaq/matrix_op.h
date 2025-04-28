@@ -88,9 +88,10 @@ public:
   ///      the operator acts on, and an unordered map from string to complex
   ///      double that contains additional parameters the operator may use.
   static void define(std::string operator_id,
-    std::vector<int64_t> expected_dimensions,
-    matrix_callback &&create, 
-    const std::unordered_map<std::string, std::string> &parameter_descriptions = {});
+                     std::vector<int64_t> expected_dimensions,
+                     matrix_callback &&create,
+                     const std::unordered_map<std::string, std::string>
+                         &parameter_descriptions = {});
 
   /// @brief Adds the definition of an elementary operator with the given id to
   /// the class. After definition, an the defined elementary operator can be
@@ -118,10 +119,10 @@ public:
   ///      "number of levels" (the dimension) for each degree of freedom that
   ///      the operator acts on, and an unordered map from string to complex
   ///      double that contains additional parameters the operator may use.
-  static void define(std::string operator_id,
-                     std::vector<int64_t> expected_dimensions,
-                     matrix_callback &&create, 
-                     std::unordered_map<std::string, std::string> &&parameter_descriptions);
+  static void
+  define(std::string operator_id, std::vector<int64_t> expected_dimensions,
+         matrix_callback &&create,
+         std::unordered_map<std::string, std::string> &&parameter_descriptions);
 
   /// Removes any definition for an operator with the given id.
   /// Returns true if the definition was removed, returns false
@@ -147,12 +148,13 @@ public:
 
   /// @brief Returns a map with parameter names and their description
   /// if such a map was provided when the operator was defined.
-  const std::unordered_map<std::string, std::string>& get_parameter_descriptions() const;
+  const std::unordered_map<std::string, std::string> &
+  get_parameter_descriptions() const;
 
   /// @brief Returns a vector of integers representing the expected dimension
   /// for each degree of freedom. A negative value indicates that the operator
   /// is defined for any dimension of that degree.
-  const std::vector<int64_t>& get_expected_dimensions() const;
+  const std::vector<int64_t> &get_expected_dimensions() const;
 
   // read-only properties
 

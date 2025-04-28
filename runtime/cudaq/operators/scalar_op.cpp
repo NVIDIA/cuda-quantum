@@ -19,7 +19,7 @@ bool scalar_operator::is_constant() const {
   return std::holds_alternative<std::complex<double>>(value);
 }
 
-const std::unordered_map<std::string, std::string>&
+const std::unordered_map<std::string, std::string> &
 scalar_operator::get_parameter_descriptions() const {
   return this->param_desc;
 }
@@ -33,15 +33,18 @@ scalar_operator::scalar_operator(double value)
 scalar_operator::scalar_operator(std::complex<double> value)
     : value(std::variant<std::complex<double>, scalar_callback>(value)) {}
 
-scalar_operator::scalar_operator(const scalar_callback &create,
-                                 std::unordered_map<std::string, std::string> &&paramater_descriptions)
+scalar_operator::scalar_operator(
+    const scalar_callback &create,
+    std::unordered_map<std::string, std::string> &&paramater_descriptions)
     : value(std::variant<std::complex<double>, scalar_callback>(create)),
       param_desc(std::move(paramater_descriptions)) {}
 
-scalar_operator::scalar_operator(scalar_callback &&create,
-                                 std::unordered_map<std::string, std::string> &&paramater_descriptions)
+scalar_operator::scalar_operator(
+    scalar_callback &&create,
+    std::unordered_map<std::string, std::string> &&paramater_descriptions)
     : value(std::variant<std::complex<double>, scalar_callback>(
-          std::move(create))), param_desc(std::move(paramater_descriptions)) {}
+          std::move(create))),
+      param_desc(std::move(paramater_descriptions)) {}
 
 // evaluations
 
@@ -65,7 +68,8 @@ std::string scalar_operator::to_string() const {
   std::stringstream sstr;
   if (std::holds_alternative<std::complex<double>>(this->value)) {
     auto value = std::get<std::complex<double>>(this->value);
-    sstr << "(" << value.real() << (value.imag() < 0 ? "-" : "+") << std::abs(value.imag()) << "i)";
+    sstr << "(" << value.real() << (value.imag() < 0 ? "-" : "+")
+         << std::abs(value.imag()) << "i)";
     return sstr.str();
   }
   if (this->param_desc.size() == 0)

@@ -6,13 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
- #include <pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
- namespace py = pybind11;
- 
- namespace cudaq {
- /// @brief Wrapper function for exposing the bindings of matrix
- /// operators to python.
- void bindOperatorsWrapper(py::module &mod);
- } // namespace cudaq
- 
+namespace py = pybind11;
+
+namespace cudaq {
+/// @brief Wrapper function for exposing the bindings of matrix
+/// operators to python.
+void bindOperatorsWrapper(py::module &mod);
+} // namespace cudaq

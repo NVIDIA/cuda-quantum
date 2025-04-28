@@ -74,12 +74,13 @@ void bindComplexMatrix(py::module &mod) {
           "Return the matrix element at i, j.")
       .def("minimal_eigenvalue", &complex_matrix::minimal_eigenvalue,
            "Return the lowest eigenvalue for this :class:`ComplexMatrix`.")
-      .def("dump", [](const complex_matrix &self) { self.dump(); }, 
-          "Prints the matrix to the standard output.")
-      .def("__eq__", [](const complex_matrix &lhs, const complex_matrix &rhs) { return lhs == rhs; })
       .def(
-          "__str__", &complex_matrix::to_string,
-          "Returns the string representation of the matrix.")
+          "dump", [](const complex_matrix &self) { self.dump(); },
+          "Prints the matrix to the standard output.")
+      .def("__eq__", [](const complex_matrix &lhs,
+                        const complex_matrix &rhs) { return lhs == rhs; })
+      .def("__str__", &complex_matrix::to_string,
+           "Returns the string representation of the matrix.")
       .def(
           "to_numpy",
           [](const complex_matrix &m) {

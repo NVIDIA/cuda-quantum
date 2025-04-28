@@ -15,4 +15,3 @@ namespace cudaq {
 /// and `cudaq::spin_op` to python.
 void bindScalarWrapper(py::module &mod);
 } // namespace cudaq
- 

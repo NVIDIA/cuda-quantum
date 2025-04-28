@@ -81,8 +81,8 @@ sum_op<HandlerTy>::transform(operator_arithmetics<EvalTy> arithmetics) const {
   auto end = this->end();
   if (arithmetics.pad_sum_terms) {
     // Canonicalizing a term adds a tensor product with the identity for degrees
-    // that an operator doesn't act on. Needed e.g. to make sure all matrices are
-    // of the same size before summing them up.
+    // that an operator doesn't act on. Needed e.g. to make sure all matrices
+    // are of the same size before summing them up.
     std::set<std::size_t> degrees;
     for (const auto &term : this->terms)
       for (const auto &op : term) {
@@ -204,14 +204,15 @@ template <>
 std::unordered_map<std::string, std::string>
 sum_op<matrix_handler>::get_parameter_descriptions() const {
   std::unordered_map<std::string, std::string> descriptions;
-  auto update_descriptions = [&descriptions](const std::pair<std::string, std::string> &entry) {
-      // don't overwrite an existing entry with an empty description,
-      // but generally just overwrite descriptions otherwise
-      if (!entry.second.empty())
-        descriptions.insert_or_assign(entry.first, entry.second);
-      else if (descriptions.find(entry.first) == descriptions.end())
-        descriptions.insert(descriptions.end(), entry);
-  };
+  auto update_descriptions =
+      [&descriptions](const std::pair<std::string, std::string> &entry) {
+        // don't overwrite an existing entry with an empty description,
+        // but generally just overwrite descriptions otherwise
+        if (!entry.second.empty())
+          descriptions.insert_or_assign(entry.first, entry.second);
+        else if (descriptions.find(entry.first) == descriptions.end())
+          descriptions.insert(descriptions.end(), entry);
+      };
   for (const auto &coeff : this->coefficients)
     for (const auto &entry : coeff.get_parameter_descriptions())
       update_descriptions(entry);

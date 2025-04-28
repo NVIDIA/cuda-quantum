@@ -224,7 +224,8 @@ EvalTy product_op<HandlerTy>::transform(
     operator_arithmetics<EvalTy> arithmetics) const {
   assert(!HandlerTy::can_be_canonicalized || this->is_canonicalized());
 
-  auto padded_op = [&arithmetics](const HandlerTy &op, const std::vector<std::size_t> &degrees) {
+  auto padded_op = [&arithmetics](const HandlerTy &op,
+                                  const std::vector<std::size_t> &degrees) {
     std::vector<EvalTy> evaluated;
     auto op_degrees = op.degrees();
     bool op_evaluated = false;
@@ -393,16 +394,17 @@ product_op<HandlerTy>::get_parameter_descriptions() const {
 template <>
 std::unordered_map<std::string, std::string>
 product_op<matrix_handler>::get_parameter_descriptions() const {
-  std::unordered_map<std::string, std::string> descriptions = 
+  std::unordered_map<std::string, std::string> descriptions =
       this->coefficient.get_parameter_descriptions();
-  auto update_descriptions = [&descriptions](const std::pair<std::string, std::string> &entry) {
-      // don't overwrite an existing entry with an empty description,
-      // but generally just overwrite descriptions otherwise
-      if (!entry.second.empty())
-        descriptions.insert_or_assign(entry.first, entry.second);
-      else if (descriptions.find(entry.first) == descriptions.end())
-        descriptions.insert(descriptions.end(), entry);
-  };
+  auto update_descriptions =
+      [&descriptions](const std::pair<std::string, std::string> &entry) {
+        // don't overwrite an existing entry with an empty description,
+        // but generally just overwrite descriptions otherwise
+        if (!entry.second.empty())
+          descriptions.insert_or_assign(entry.first, entry.second);
+        else if (descriptions.find(entry.first) == descriptions.end())
+          descriptions.insert(descriptions.end(), entry);
+      };
   for (const auto &op : this->operators)
     for (const auto &entry : op.get_parameter_descriptions())
       update_descriptions(entry);

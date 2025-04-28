@@ -77,7 +77,7 @@ def _evaluate(self: MatrixOperatorElement, **kwargs: NumericType):
         return self
     
     parameters = sorted(self.parameters.keys()) # need to sort to ensure consistent key/id definition
-    parameter_repr = lambda name: kwargs[name].__repr__() # should roundtrip ok
+    parameter_repr = lambda name: kwargs[name].__repr__() # should round-trip fine
     for param in parameters:
         if not param in kwargs:
             raise ValueError("missing value for parameter " + param)

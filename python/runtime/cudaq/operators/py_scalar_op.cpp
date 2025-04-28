@@ -21,66 +21,78 @@
 #include "py_scalar_op.h"
 
 namespace cudaq {
-    
-void bindScalarOperator(py::module &mod) {
-  using scalar_callback = std::function<std::complex<double>(const parameter_map &)>;
 
-  auto kwargs_to_param_map = [](const py::kwargs& kwargs) {
+void bindScalarOperator(py::module &mod) {
+  using scalar_callback =
+      std::function<std::complex<double>(const parameter_map &)>;
+
+  auto kwargs_to_param_map = [](const py::kwargs &kwargs) {
     parameter_map params;
     for (auto &[keyPy, valuePy] : kwargs) {
       std::string key = py::str(keyPy);
       std::complex<double> value = valuePy.cast<std::complex<double>>();
-      params.insert(params.end(), std::pair<std::string, std::complex<double>>(key, value));
+      params.insert(params.end(),
+                    std::pair<std::string, std::complex<double>>(key, value));
     }
     return params;
   };
 
-  auto kwargs_to_param_description = [](const py::kwargs& kwargs) {
+  auto kwargs_to_param_description = [](const py::kwargs &kwargs) {
     std::unordered_map<std::string, std::string> param_desc;
     for (auto &[keyPy, valuePy] : kwargs) {
       std::string key = py::str(keyPy);
       std::string value = py::str(valuePy);
-      param_desc.insert(param_desc.end(), std::pair<std::string, std::string>(key, value));
+      param_desc.insert(param_desc.end(),
+                        std::pair<std::string, std::string>(key, value));
     }
     return param_desc;
   };
 
   py::class_<scalar_operator>(mod, "ScalarOperator")
 
-  // properties
+      // properties
 
-  .def_property_readonly("parameters", &scalar_operator::get_parameter_descriptions,
-    "Returns a dictionary that maps each parameter name to its description.")
+      .def_property_readonly("parameters",
+                             &scalar_operator::get_parameter_descriptions,
+                             "Returns a dictionary that maps each parameter "
+                             "name to its description.")
 
-  // constructors
+      // constructors
 
-  .def(py::init<>(), "Creates a scalar operator with constant value 1.")
-  .def(py::init<double>(), "Creates a scalar operator with the given constant value.")
-  .def(py::init<std::complex<double>>(), "Creates a scalar operator with the given constant value.")
-  .def(py::init([&kwargs_to_param_description](const scalar_callback &func, const py::kwargs &kwargs) {
-      return scalar_operator(func, kwargs_to_param_description(kwargs));
-    }), py::arg("callback"),
-    "Creates a scalar operator where the given callback function is invoked during evaluation.")
-  .def(py::init<const scalar_operator &>(), "Copy constructor.")
+      .def(py::init<>(), "Creates a scalar operator with constant value 1.")
+      .def(py::init<double>(),
+           "Creates a scalar operator with the given constant value.")
+      .def(py::init<std::complex<double>>(),
+           "Creates a scalar operator with the given constant value.")
+      .def(py::init([&kwargs_to_param_description](const scalar_callback &func,
+                                                   const py::kwargs &kwargs) {
+             return scalar_operator(func, kwargs_to_param_description(kwargs));
+           }),
+           py::arg("callback"),
+           "Creates a scalar operator where the given callback function is "
+           "invoked during evaluation.")
+      .def(py::init<const scalar_operator &>(), "Copy constructor.")
 
-  // evaluations
+      // evaluations
 
-  .def("evaluate", [&kwargs_to_param_map](const scalar_operator &self,
-                                     const py::kwargs &kwargs) {
-      return self.evaluate(kwargs_to_param_map(kwargs));
-    }, "Evaluated value of the operator.")
+      .def(
+          "evaluate",
+          [&kwargs_to_param_map](const scalar_operator &self,
+                                 const py::kwargs &kwargs) {
+            return self.evaluate(kwargs_to_param_map(kwargs));
+          },
+          "Evaluated value of the operator.")
 
-  // comparisons
+      // comparisons
 
-  .def("__eq__", &scalar_operator::operator==)
+      .def("__eq__", &scalar_operator::operator==)
 
-  // general utility functions
+      // general utility functions
 
-  .def("is_constant", &scalar_operator::is_constant,
-    "Returns true if the scalar is a constant value.")
-  .def("__str__", &scalar_operator::to_string,
-    "Returns the string representation of the operator.")
-  ;
+      .def("is_constant", &scalar_operator::is_constant,
+           "Returns true if the scalar is a constant value.")
+      .def("__str__", &scalar_operator::to_string,
+           "Returns the string representation of the operator.");
 }
 
 void bindScalarWrapper(py::module &mod) {
