@@ -1,7 +1,7 @@
 CUDA-Q C++ API
 ******************************
 
-Operators 
+Operators
 =============
 
 .. doxygenclass:: cudaq::scalar_callback
@@ -16,10 +16,6 @@ Operators
 
 .. doxygenclass:: cudaq::boson_handler
 
-.. doxygenclass:: cudaq::fermion_handler
-
-.. doxygenclass:: cudaq::spin_handler
-
 .. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
 
     Alias for a tuple containing vectors for complex values, indices, and sizes.
@@ -30,13 +26,12 @@ Operators
     - ``std::vector<std::size_t>``: Indices.
     - ``std::vector<std::size_t>``: Sizes.
 
-.. cpp:type:: int64_t = std::int64_t
-
-    64-bit signed integer type from ``<cstdint>``.
-
 .. doxygenclass:: cudaq::operator_handler
 
 .. doxygenclass:: cudaq::matrix_handler
+    :members:
+
+.. doxygenclass:: cudaq::spin_handler
     :members:
 
 .. doxygenclass:: cudaq::product_op
@@ -44,6 +39,24 @@ Operators
 
 .. doxygenclass:: cudaq::sum_op
     :members:
+
+.. doxygenclass:: cudaq::fermion_handler
+
+.. cpp:type:: cudaq::spin_op
+
+.. cpp:type:: cudaq::spin_op_term
+
+.. cpp:type:: cudaq::boson_op
+
+.. cpp:type:: cudaq::boson_op_term
+
+.. cpp:type:: cudaq::fermion_op
+
+.. cpp:type:: cudaq::fermion_op_term
+
+.. cpp:type:: cudaq::matrix_op
+
+.. cpp:type:: cudaq::matrix_op_term
 
 Quantum
 =========
