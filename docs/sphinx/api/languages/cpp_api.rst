@@ -16,10 +16,6 @@ Operators
 
 .. doxygenclass:: cudaq::boson_handler
 
-.. doxygenclass:: cudaq::fermion_handler
-
-.. doxygenclass:: cudaq::spin_op
-
 .. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
 
     Alias for a tuple containing vectors for complex values, indices, and sizes.
@@ -40,6 +36,10 @@ Operators
 
 .. doxygenclass:: cudaq::sum_op
     :members:
+
+.. doxygenclass:: cudaq::fermion_handler
+
+.. doxygenclass:: cudaq::spin_op
 
 Quantum
 =========
