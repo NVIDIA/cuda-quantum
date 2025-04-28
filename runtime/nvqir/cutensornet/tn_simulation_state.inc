@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "tn_simulation_state.h"
+#pragma once
+
 #include "cudaq/utils/cudaq_utils.h"
 #include <cuComplex.h>
 
@@ -16,20 +17,26 @@ int deviceFromPointer(void *ptr) {
   HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
   return attributes.device;
 }
-std::size_t TensorNetSimulationState::getNumQubits() const {
+
+template <typename ScalarType>
+std::size_t TensorNetSimulationState<ScalarType>::getNumQubits() const {
   return m_state->getNumQubits();
 }
 
-TensorNetSimulationState::TensorNetSimulationState(
-    std::unique_ptr<TensorNetState> inState, ScratchDeviceMem &inScratchPad,
-    cutensornetHandle_t cutnHandle, std::mt19937 &randomEngine)
+template <typename ScalarType>
+TensorNetSimulationState<ScalarType>::TensorNetSimulationState(
+    std::unique_ptr<TensorNetState<ScalarType>> inState,
+    ScratchDeviceMem &inScratchPad, cutensornetHandle_t cutnHandle,
+    std::mt19937 &randomEngine)
     : m_state(std::move(inState)), scratchPad(inScratchPad),
       m_cutnHandle(cutnHandle), m_randomEngine(randomEngine) {}
 
-TensorNetSimulationState::~TensorNetSimulationState() {}
+template <typename ScalarType>
+TensorNetSimulationState<ScalarType>::~TensorNetSimulationState() {}
 
-std::complex<double>
-TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
+template <typename ScalarType>
+std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
+    const cudaq::SimulationState &other) {
   const cudaq::SimulationState *const otherStatePtr = &other;
   const TensorNetSimulationState *const tnOther =
       dynamic_cast<const TensorNetSimulationState *>(otherStatePtr);
@@ -41,6 +48,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   // Compute <bra|ket> by conjugating the entire |bra> tensor network.
   // Reverse them
   std::reverse(tensorOps.begin(), tensorOps.end());
+  std::vector<void *> tempDeviceBuffers;
   for (auto &op : tensorOps) {
     op.isAdjoint = !op.isAdjoint;
     if (!op.isUnitary) {
@@ -48,14 +56,21 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
       // reverse the leg connection.
       const auto dim = (1 << op.targetQubitIds.size());
       // FIXME: perform this in device memory.
-      Eigen::MatrixXcd mat(dim, dim);
-      HANDLE_CUDA_ERROR(cudaMemcpy(mat.data(), op.deviceData,
-                                   mat.size() * sizeof(std::complex<double>),
-                                   cudaMemcpyDeviceToHost));
+      Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
+          mat(dim, dim);
+      HANDLE_CUDA_ERROR(
+          cudaMemcpy(mat.data(), op.deviceData,
+                     mat.size() * sizeof(std::complex<ScalarType>),
+                     cudaMemcpyDeviceToHost));
       mat.transposeInPlace();
-      HANDLE_CUDA_ERROR(cudaMemcpy(op.deviceData, mat.data(),
-                                   mat.size() * sizeof(std::complex<double>),
-                                   cudaMemcpyHostToDevice));
+      void *tempBuffer{nullptr};
+      const auto sizeBytes = mat.size() * sizeof(std::complex<ScalarType>);
+      HANDLE_CUDA_ERROR(cudaMalloc(&tempBuffer, sizeBytes));
+      HANDLE_CUDA_ERROR(cudaMemcpy(
+          tempBuffer, mat.data(), mat.size() * sizeof(std::complex<ScalarType>),
+          cudaMemcpyHostToDevice));
+      op.deviceData = tempBuffer;
+      tempDeviceBuffers.emplace_back(tempBuffer);
     }
   }
   // Append them to ket
@@ -66,7 +81,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   auto &cutnHandle = m_state->m_cutnHandle;
   HANDLE_CUTN_ERROR(cutensornetCreateState(
       cutnHandle, CUTENSORNET_STATE_PURITY_PURE, nbQubits, qubitDims.data(),
-      CUDA_C_64F, &tempQuantumState));
+      cudaDataType, &tempQuantumState));
 
   int64_t tensorId = 0;
   // Append ket-side gate tensors + conjugated (reverse + adjoint) bra-side
@@ -127,7 +142,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   std::iota(projectedModes.begin(), projectedModes.end(), 0);
   std::vector<int64_t> projectedModeValues(nbQubits, 0);
   void *d_overlap;
-  HANDLE_CUDA_ERROR(cudaMalloc(&d_overlap, sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(cudaMalloc(&d_overlap, sizeof(std::complex<ScalarType>)));
   // Create the quantum state amplitudes accessor
   cutensornetStateAccessor_t accessor;
   {
@@ -137,7 +152,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
         projectedModes.data(), nullptr, &accessor));
   }
 
-  const int32_t numHyperSamples = TensorNetState::numHyperSamples;
+  const int32_t numHyperSamples = TensorNetState<ScalarType>::numHyperSamples;
   {
     ScopedTraceWithContext("cutensornetAccessorConfigure");
     HANDLE_CUTN_ERROR(cutensornetAccessorConfigure(
@@ -168,9 +183,9 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   }
 
   // Compute the quantum state amplitudes
-  std::complex<double> stateNorm{0.0, 0.0};
+  std::complex<ScalarType> stateNorm{0.0, 0.0};
   // Result overlap (host data)
-  std::complex<double> h_overlap{0.0, 0.0};
+  std::complex<ScalarType> h_overlap{0.0, 0.0};
   {
     ScopedTraceWithContext("cutensornetAccessorCompute");
     HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
@@ -178,19 +193,22 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
         static_cast<void *>(&stateNorm), 0));
   }
   HANDLE_CUDA_ERROR(cudaMemcpy(&h_overlap, d_overlap,
-                               sizeof(std::complex<double>),
+                               sizeof(std::complex<ScalarType>),
                                cudaMemcpyDeviceToHost));
   // Free resources
   HANDLE_CUDA_ERROR(cudaFree(d_overlap));
   HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
   HANDLE_CUTN_ERROR(cutensornetDestroyAccessor(accessor));
   HANDLE_CUTN_ERROR(cutensornetDestroyState(tempQuantumState));
+  for (auto *tempBuffer : tempDeviceBuffers)
+    HANDLE_CUDA_ERROR(cudaFree(tempBuffer));
 
   return std::abs(h_overlap);
 }
 
-std::complex<double>
-TensorNetSimulationState::getAmplitude(const std::vector<int> &basisState) {
+template <typename ScalarType>
+std::complex<double> TensorNetSimulationState<ScalarType>::getAmplitude(
+    const std::vector<int> &basisState) {
   if (getNumQubits() != basisState.size())
     throw std::runtime_error(
         fmt::format("[tensornet-state] getAmplitude with an invalid number "
@@ -228,8 +246,9 @@ TensorNetSimulationState::getAmplitude(const std::vector<int> &basisState) {
   return subStateVec[0];
 }
 
+template <typename ScalarType>
 cudaq::SimulationState::Tensor
-TensorNetSimulationState::getTensor(std::size_t tensorIdx) const {
+TensorNetSimulationState<ScalarType>::getTensor(std::size_t tensorIdx) const {
   if (tensorIdx >= getNumTensors())
     throw std::out_of_range("Invalid tensor index");
   cudaq::SimulationState::Tensor tensor;
@@ -241,8 +260,9 @@ TensorNetSimulationState::getTensor(std::size_t tensorIdx) const {
   return tensor;
 }
 
+template <typename ScalarType>
 std::vector<cudaq::SimulationState::Tensor>
-TensorNetSimulationState::getTensors() const {
+TensorNetSimulationState<ScalarType>::getTensors() const {
   std::vector<cudaq::SimulationState::Tensor> tensors;
   tensors.reserve(m_state->m_tensorOps.size());
 
@@ -257,46 +277,69 @@ TensorNetSimulationState::getTensors() const {
   return tensors;
 }
 
-std::size_t TensorNetSimulationState::getNumTensors() const {
+template <typename ScalarType>
+std::size_t TensorNetSimulationState<ScalarType>::getNumTensors() const {
   return m_state->m_tensorOps.size();
 }
 
+template <typename ScalarType>
 std::unique_ptr<cudaq::SimulationState>
-TensorNetSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
-                                               std::size_t dataType) {
+TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(
+    std::size_t size, void *ptr, std::size_t dataType) {
   if (dataType == cudaq::detail::variant_index<cudaq::state_data,
                                                cudaq::TensorStateData>()) {
     throw std::runtime_error(
         "Cannot create tensornet backend's simulation state with MPS tensors.");
   }
-  std::vector<std::complex<double>> vec(
-      reinterpret_cast<std::complex<double> *>(ptr),
-      reinterpret_cast<std::complex<double> *>(ptr) + size);
-  auto tensorNetState = TensorNetState::createFromStateVector(
+  std::vector<std::complex<ScalarType>> vec(
+      reinterpret_cast<std::complex<ScalarType> *>(ptr),
+      reinterpret_cast<std::complex<ScalarType> *>(ptr) + size);
+  auto tensorNetState = TensorNetState<ScalarType>::createFromStateVector(
       vec, scratchPad, m_cutnHandle, m_randomEngine);
 
-  return std::make_unique<TensorNetSimulationState>(
+  return std::make_unique<TensorNetSimulationState<ScalarType>>(
       std::move(tensorNetState), scratchPad, m_cutnHandle, m_randomEngine);
 }
 
-void TensorNetSimulationState::destroyState() {
+template <typename ScalarType>
+void TensorNetSimulationState<ScalarType>::destroyState() {
   cudaq::info("mps-state destroying state vector handle.");
   m_state.reset();
 }
 
-void TensorNetSimulationState::toHost(std::complex<double> *clientAllocatedData,
-                                      std::size_t numElements) const {
+template <typename ScalarType>
+template <typename T>
+void TensorNetSimulationState<ScalarType>::toHostImpl(
+    std::complex<T> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = m_state->getStateVector();
   if (stateVec.size() != numElements)
     throw std::runtime_error(fmt::format(
         "[TensorNetSimulationState] Dimension mismatch: expecting {} "
         "elements but providing an array of size {}.",
         stateVec.size(), numElements));
-  for (std::size_t i = 0; i < numElements; ++i)
-    clientAllocatedData[i] = stateVec[i];
+  if (std::is_same_v<ScalarType, T>) {
+    std::memcpy(clientAllocatedData, stateVec.data(),
+                numElements * sizeof(ScalarType));
+  } else {
+    for (std::size_t i = 0; i < numElements; ++i)
+      clientAllocatedData[i] = stateVec[i];
+  }
 }
 
-void TensorNetSimulationState::dump(std::ostream &os) const {
+template <typename ScalarType>
+void TensorNetSimulationState<ScalarType>::toHost(
+    std::complex<double> *clientAllocatedData, std::size_t numElements) const {
+  toHostImpl(clientAllocatedData, numElements);
+}
+
+template <typename ScalarType>
+void TensorNetSimulationState<ScalarType>::toHost(
+    std::complex<float> *clientAllocatedData, std::size_t numElements) const {
+  toHostImpl(clientAllocatedData, numElements);
+}
+
+template <typename ScalarType>
+void TensorNetSimulationState<ScalarType>::dump(std::ostream &os) const {
   const auto printState = [&os](const auto &stateVec) {
     for (auto &t : stateVec)
       os << t << "\n";
