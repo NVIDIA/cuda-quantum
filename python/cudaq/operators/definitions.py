@@ -19,7 +19,6 @@ OperatorSum = MatrixOperator | SpinOperator | BosonOperator | FermionOperator
 ProductOperator = MatrixOperatorTerm | SpinOperatorTerm | BosonOperatorTerm | FermionOperatorTerm
 ElementaryOperator = SpinOperatorElement | BosonOperatorElement | FermionOperatorElement | MatrixOperatorElement
 
-
 # Doc strings for type alias are not supported in Python.
 # The string below hence merely serves to document it here;
 # within the Python AST it is not associated with the type alias.
@@ -38,14 +37,15 @@ class RydbergHamiltonian:
     Ref: https://docs.aws.amazon.com/braket/latest/developerguide/braket-quera-submitting-analog-program-aquila.html#braket-quera-ahs-program-schema
     """
 
-    def __init__(self,
-                 atom_sites: typing.Iterable[tuple[float, float]],
-                 amplitude: ScalarOperator,
-                 phase: ScalarOperator,
-                 delta_global: ScalarOperator,
-                 atom_filling: typing.Optional[typing.Iterable[int]] = [],
-                 delta_local: typing.Optional[tuple[ScalarOperator,
-                                             typing.Iterable[float]]] = None):
+    def __init__(
+        self,
+        atom_sites: typing.Iterable[tuple[float, float]],
+        amplitude: ScalarOperator,
+        phase: ScalarOperator,
+        delta_global: ScalarOperator,
+        atom_filling: typing.Optional[typing.Iterable[int]] = [],
+        delta_local: typing.Optional[tuple[ScalarOperator,
+                                           typing.Iterable[float]]] = None):
         """
         Instantiate an operator consumable by `evolve` API using the supplied 
         parameters.

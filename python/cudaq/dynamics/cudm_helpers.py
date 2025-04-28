@@ -198,7 +198,8 @@ class CuDensityMatOpConversion(
         if not hasattr(op, "degrees"):
             if not op.is_constant():
                 return CPUCallback(
-                    self._wrap_callback(lambda **kwargs: op.evaluate(**kwargs), op.parameters))
+                    self._wrap_callback(lambda **kwargs: op.evaluate(**kwargs),
+                                        op.parameters))
             else:
                 return op.evaluate()
         else:

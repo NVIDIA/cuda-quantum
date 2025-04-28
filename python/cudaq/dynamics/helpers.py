@@ -10,6 +10,7 @@ from enum import Enum
 
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
+
 class InitialState(Enum):
     """
     Enum to specify the initial quantum state.

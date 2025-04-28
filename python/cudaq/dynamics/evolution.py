@@ -237,8 +237,8 @@ def evolve_single(
     schedule.reset()
     tlist = [schedule.current_step for _ in schedule]
     observable_spinops = [
-        lambda step_parameters, op=op: op.evaluate(
-            **step_parameters) for op in observables
+        lambda step_parameters, op=op: op.evaluate(**step_parameters)
+        for op in observables
     ]
     compute_step_matrix = lambda step_parameters, dt: _compute_step_matrix(
         hamiltonian, dimensions, step_parameters, dt)
@@ -458,8 +458,8 @@ def evolve_single_async(
     schedule.reset()
     tlist = [schedule.current_step for _ in schedule]
     observable_spinops = [
-        lambda step_parameters, op=op: op.evaluate(
-            **step_parameters) for op in observables
+        lambda step_parameters, op=op: op.evaluate(**step_parameters)
+        for op in observables
     ]
     compute_step_matrix = lambda step_parameters, dt: _compute_step_matrix(
         hamiltonian, dimensions, step_parameters, dt)

@@ -9,7 +9,6 @@
 import inspect, numpy, os, re, sys, typing  # type: ignore
 from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Tuple
 
-
 if (3, 11) <= sys.version_info:
     NumericType = typing.SupportsComplex
 elif (3, 10) <= sys.version_info:
@@ -20,8 +19,7 @@ else:
 
 
 def _aggregate_parameters(
-        parameter_mappings: Iterable[Mapping[str,
-                                                str]]) -> Mapping[str, str]:
+        parameter_mappings: Iterable[Mapping[str, str]]) -> Mapping[str, str]:
     """
     Helper function used by all operator classes to return a mapping with the
     used parameters and their respective description as defined in a doc comment.
@@ -36,6 +34,7 @@ def _aggregate_parameters(
             else:
                 param_descriptions[key] = new_desc or existing_desc
     return param_descriptions
+
 
 def _parameter_docs(param_name: str, docs: Optional[str]) -> str:
     """
@@ -61,15 +60,14 @@ def _parameter_docs(param_name: str, docs: Optional[str]) -> str:
     param_docs = ""
     try:  # Make sure failing to retrieve docs never cases an error.
         split = re.split(keyword_pattern("Arguments|Args"),
-                            docs,
-                            flags=re.MULTILINE)
+                         docs,
+                         flags=re.MULTILINE)
         if len(split) == 2:
-            match = re.search(param_pattern(param_name), split[1],
-                                re.MULTILINE)
+            match = re.search(param_pattern(param_name), split[1], re.MULTILINE)
             if match is not None:
                 param_docs = match.group(2) + split[1][match.end(2):]
                 match = re.search(param_pattern("\\S*?"), param_docs,
-                                    re.MULTILINE)
+                                  re.MULTILINE)
                 if match is not None:
                     param_docs = param_docs[:match.start(0)]
                 param_docs = re.sub(r'\s+', ' ', param_docs)
@@ -77,9 +75,9 @@ def _parameter_docs(param_name: str, docs: Optional[str]) -> str:
     except Exception:
         return ""
 
-def _args_from_kwargs(
-        fct: Callable,
-        **kwargs: Any) -> Tuple[Sequence[Any], Mapping[str, Any]]:
+
+def _args_from_kwargs(fct: Callable,
+                      **kwargs: Any) -> Tuple[Sequence[Any], Mapping[str, Any]]:
     """
     Extracts the positional argument and keyword only arguments 
     for the given function from the passed `kwargs`. 
@@ -103,9 +101,7 @@ def _args_from_kwargs(
                 raise ValueError(f'missing keyword argument: {arg_name}')
         return arg_value
 
-    extracted_args = [
-        find_in_kwargs(arg_name) for arg_name in arg_spec.args
-    ]
+    extracted_args = [find_in_kwargs(arg_name) for arg_name in arg_spec.args]
     if consumes_kwargs:
         return extracted_args, kwargs
     elif len(arg_spec.kwonlyargs) > 0:
@@ -117,4 +113,3 @@ def _args_from_kwargs(
         }
         return extracted_args, kwonlyargs
     return extracted_args, {}
-

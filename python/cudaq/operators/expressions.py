@@ -8,7 +8,7 @@
 
 import typing  # type: ignore
 
-from .definitions import * # for backwards compatibility
+from .definitions import *  # for backwards compatibility
 from .manipulation import OperatorArithmetics, _sum_transformation, _product_transformation, _evaluate
 
 for op_type in typing.get_args(OperatorSum):
@@ -20,4 +20,3 @@ for op_type in typing.get_args(OperatorSum):
     op_type.evaluate = _evaluate
 for op_type in typing.get_args(ProductOperator):
     op_type.evaluate = _evaluate
-

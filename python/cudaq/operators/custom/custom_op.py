@@ -15,25 +15,24 @@ from ..helpers import NumericType, _args_from_kwargs, _parameter_docs
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperatorElement, ComplexMatrix
 
 
-def _defineCustomOperator(cls, id: str,
-                expected_dimensions: Sequence[int],
-                create: Callable[..., NDArray[numpy.complexfloating]],
-                override: bool = False) -> None:
+def _defineCustomOperator(cls,
+                          id: str,
+                          expected_dimensions: Sequence[int],
+                          create: Callable[..., NDArray[numpy.complexfloating]],
+                          override: bool = False) -> None:
     """
     Creates the definition of an elementary operator with the given id.
     """
     if len(expected_dimensions) == 0:
         raise ValueError(
-            f"custom operators needs to act on at least one degree "
-            +
-            "of freedom - use a ScalarOperator to define operators that "
-            + "do not act on any degrees of freedom")
+            f"custom operators needs to act on at least one degree " +
+            "of freedom - use a ScalarOperator to define operators that " +
+            "do not act on any degrees of freedom")
 
     forwarded_as_kwarg = [["dimensions", "dims"], ["dimension", "dim"]]
 
-    def with_dimension_check(
-            creation: Callable, dimensions: Sequence[int],
-            **kwargs) -> NDArray[numpy.complexfloating]:
+    def with_dimension_check(creation: Callable, dimensions: Sequence[int],
+                             **kwargs) -> NDArray[numpy.complexfloating]:
         if any([
                 expected > 0 and dimensions[i] != expected
                 for i, expected in enumerate(expected_dimensions)
@@ -48,10 +47,8 @@ def _defineCustomOperator(cls, id: str,
         if len(dimensions) == 1:
             for forwarded in forwarded_as_kwarg[1]:
                 kwargs[forwarded] = kwargs.get(
-                    forwarded,
-                    dimensions[0])  # add if it does not exist
-        creation_args, remaining_kwargs = _args_from_kwargs(
-            creation, **kwargs)
+                    forwarded, dimensions[0])  # add if it does not exist
+        creation_args, remaining_kwargs = _args_from_kwargs(creation, **kwargs)
         evaluated = creation(*creation_args, **remaining_kwargs)
         if not isinstance(evaluated, numpy.ndarray):
             raise TypeError(
@@ -64,20 +61,25 @@ def _defineCustomOperator(cls, id: str,
     arg_spec = inspect.getfullargspec(create)
     for pname in arg_spec.args + arg_spec.kwonlyargs:
         if not pname in forwarded:
-            parameters[pname] = _parameter_docs(
-                pname, create.__doc__)
+            parameters[pname] = _parameter_docs(pname, create.__doc__)
 
-    def generator_wrapper(dimensions: Sequence[int], kwargs: dict[str, NumericType]):
+    def generator_wrapper(dimensions: Sequence[int], kwargs: dict[str,
+                                                                  NumericType]):
         np_matrix = with_dimension_check(create, dimensions, **kwargs)
         return ComplexMatrix(np_matrix)
-    cls._define(id, expected_dimensions, generator_wrapper, override, **parameters)
+
+    cls._define(id, expected_dimensions, generator_wrapper, override,
+                **parameters)
+
 
 def _evaluate(self: MatrixOperatorElement, **kwargs: NumericType):
     if len(self.parameters) == 0:
         return self
-    
-    parameters = sorted(self.parameters.keys()) # need to sort to ensure consistent key/id definition
-    parameter_repr = lambda name: kwargs[name].__repr__() # should round-trip fine
+
+    parameters = sorted(self.parameters.keys()
+                       )  # need to sort to ensure consistent key/id definition
+    parameter_repr = lambda name: kwargs[name].__repr__(
+    )  # should round-trip fine
     for param in parameters:
         if not param in kwargs:
             raise ValueError("missing value for parameter " + param)
@@ -85,18 +87,20 @@ def _evaluate(self: MatrixOperatorElement, **kwargs: NumericType):
     for param in parameters[1:]:
         id += "," + parameter_repr(param)
     id += "]"
-        
+
     # we need to create a copy here to ensure that we have access to
     # the necessary properties and methods to compute the matrix regardless
     # of the lifetime of the original object
     unevaluated_op = self.__class__(self)
+
     def get_matrix(dimensions: Sequence[int]):
         dimensions_map = dict(zip(unevaluated_op.degrees, dimensions))
         return unevaluated_op.to_matrix(dimensions_map, kwargs)
 
-    self.__class__.define(id, unevaluated_op.expected_dimensions, get_matrix, True) # should be fine to overwrite
+    self.__class__.define(id, unevaluated_op.expected_dimensions, get_matrix,
+                          True)  # should be fine to overwrite
     return self.__class__(id, unevaluated_op.degrees)
+
 
 MatrixOperatorElement.define = classmethod(_defineCustomOperator)
 MatrixOperatorElement.evaluate = _evaluate
-

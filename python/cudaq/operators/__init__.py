@@ -13,4 +13,4 @@ from . import spin
 from .custom import *
 from .definitions import *
 from .manipulation import OperatorArithmetics
-import cudaq.operators.expressions # needs to be imported, since otherwise e.g. evaluate is not defined
+import cudaq.operators.expressions  # needs to be imported, since otherwise e.g. evaluate is not defined

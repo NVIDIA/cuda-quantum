@@ -13,8 +13,10 @@ from .custom_op import MatrixOperatorElement
 from .backwards_compatibility import *
 
 define = MatrixOperatorElement.define
+
+
 def instantiate(op_id: str, degrees: int | typing.Iterable[int]):
-    if isinstance(degrees, int): degrees = [degrees]
+    if isinstance(degrees, int):
+        degrees = [degrees]
     element = MatrixOperatorElement(op_id, degrees)
     return MatrixOperatorTerm(element)
-
