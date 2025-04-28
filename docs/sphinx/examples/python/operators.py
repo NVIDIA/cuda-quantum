@@ -1,9 +1,6 @@
 # [Begin Spin]
 import cudaq
 from cudaq import spin
-
-operator = 2 * spin.x(0) * spin.y(1) * spin.x(2) - 3 * spin.z(0) * spin.z(
-    1) * spin.y(2)
 # [End Spin]
 
 # [Begin Pauli]
