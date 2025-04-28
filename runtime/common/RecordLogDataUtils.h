@@ -165,7 +165,6 @@ public:
     size_t vectorOffset = buffer.size();
     buffer.resize(vectorOffset + 3 * sizeof(T *));
     size_t byteLength = arrSize * sizeof(T);
-    /// ASKME: How to properly free this memory?
     T *innerBuffer = static_cast<T *>(malloc(byteLength));
     if (!innerBuffer)
       throw std::runtime_error("Memory allocation failed");
