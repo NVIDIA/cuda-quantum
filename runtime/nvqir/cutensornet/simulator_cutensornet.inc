@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,14 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "simulator_cutensornet.h"
+#pragma once
+
 #include "cudaq.h"
 #include "cutensornet.h"
 #include "tensornet_spin_op.h"
 
 namespace nvqir {
-
-SimulatorTensorNetBase::SimulatorTensorNetBase()
+template <typename ScalarType>
+SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
     : m_randomEngine(std::random_device()()) {
   int numDevices{0};
   HANDLE_CUDA_ERROR(cudaGetDeviceCount(&numDevices));
@@ -30,9 +31,10 @@ SimulatorTensorNetBase::SimulatorTensorNetBase()
       cudaq::getEnvBool("CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE", false);
 }
 
-static std::vector<std::complex<double>>
+template <typename T>
+std::vector<std::complex<T>>
 generateFullGateTensor(std::size_t num_control_qubits,
-                       const std::vector<std::complex<double>> &target_gate) {
+                       const std::vector<std::complex<T>> &target_gate) {
   const auto mat_size = target_gate.size();
   // Must be square matrix (n x n)
   assert(std::ceil(std::sqrt(mat_size)) == std::floor(std::sqrt(mat_size)) &&
@@ -49,8 +51,7 @@ generateFullGateTensor(std::size_t num_control_qubits,
   // Expand the matrix
   const std::size_t full_dim =
       (1UL << (num_control_qubits + num_target_qubits));
-  std::vector<std::complex<double>> gate_tensor(full_dim * full_dim,
-                                                {0.0, 0.0});
+  std::vector<std::complex<T>> gate_tensor(full_dim * full_dim, {0.0, 0.0});
   std::size_t offset = 0;
   // Set the diagonal elements:
   for (int i = 0; i < static_cast<int>(full_dim - target_gate_dim); ++i) {
@@ -75,16 +76,19 @@ generateFullGateTensor(std::size_t num_control_qubits,
 }
 
 /// @brief Provide a unique hash code for the input vector of complex values.
-std::size_t vecComplexHash(const std::vector<std::complex<double>> &vec) {
+template <typename T>
+std::size_t vecComplexHash(const std::vector<std::complex<T>> &vec) {
   std::size_t seed = vec.size();
   for (auto &i : vec) {
-    seed ^= std::hash<double>{}(i.real()) + std::hash<double>{}(i.imag()) +
-            0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= std::hash<T>{}(i.real()) + std::hash<T>{}(i.imag()) + 0x9e3779b9 +
+            (seed << 6) + (seed >> 2);
   }
   return seed;
 }
 
-void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::applyGate(
+    const GateApplicationTask &task) {
   const auto &controls = task.controls;
   const auto &targets = task.targets;
   // Cache name lookup key:
@@ -139,9 +143,9 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
 
 // Helper to look up a device memory pointer from a cache.
 // If not found, allocate a new device memory buffer and put it to the cache.
-static void *
-getOrCacheMat(const std::string &key,
-              const std::vector<std::complex<double>> &mat,
+template <typename T>
+void *
+getOrCacheMat(const std::string &key, const std::vector<std::complex<T>> &mat,
               std::unordered_map<std::string, void *> &gateDeviceMemCache) {
   const auto iter = gateDeviceMemCache.find(key);
 
@@ -153,35 +157,56 @@ getOrCacheMat(const std::string &key,
   return iter->second;
 };
 
-void SimulatorTensorNetBase::applyKrausChannel(
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
     const std::vector<int32_t> &qubits,
     const cudaq::kraus_channel &krausChannel) {
   LOG_API_TIME();
   if (krausChannel.is_unitary_mixture()) {
     std::vector<void *> channelMats;
-    for (const auto &mat : krausChannel.unitary_ops)
+    for (const auto &mat : krausChannel.unitary_ops) {
+      std::vector<std::complex<ScalarType>> casted(mat.begin(), mat.end());
       channelMats.emplace_back(
           getOrCacheMat("ScaledUnitary_" + std::to_string(vecComplexHash(mat)),
-                        mat, m_gateDeviceMemCache));
+                        casted, m_gateDeviceMemCache));
+    }
     m_state->applyUnitaryChannel(qubits, channelMats,
                                  krausChannel.probabilities);
   } else {
     if (!canHandleGeneralNoiseChannel())
       throw std::runtime_error(
-          "General noise channels are not supported on simulator " + name());
+          "General noise channels are not supported on simulator " +
+          this->name());
 
     std::vector<void *> channelMats;
     for (const auto &op : krausChannel.get_ops()) {
-      const std::string cacheKey = fmt::format(
-          "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
-      channelMats.emplace_back(
-          getOrCacheMat(cacheKey, op.data, m_gateDeviceMemCache));
+      void *channelMatPtr_d = [&]() {
+        const auto targetPrecision = std::is_same_v<ScalarType, float>
+                                         ? cudaq::simulation_precision::fp32
+                                         : cudaq::simulation_precision::fp64;
+        const std::string cacheKey = fmt::format(
+            "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
+        if (op.precision == targetPrecision)
+          return getOrCacheMat(cacheKey, op.data, m_gateDeviceMemCache);
+        // The channel data in a different precision.
+        return op.precision == cudaq::simulation_precision::fp32
+                   ? getOrCacheMat(cacheKey,
+                                   std::vector<std::complex<double>>(
+                                       op.data.begin(), op.data.end()),
+                                   m_gateDeviceMemCache)
+                   : getOrCacheMat(cacheKey,
+                                   std::vector<std::complex<float>>(
+                                       op.data.begin(), op.data.end()),
+                                   m_gateDeviceMemCache);
+      }();
+      channelMats.emplace_back(channelMatPtr_d);
     }
     m_state->applyGeneralChannel(qubits, channelMats);
   }
 }
 
-bool SimulatorTensorNetBase::isValidNoiseChannel(
+template <typename ScalarType>
+bool SimulatorTensorNetBase<ScalarType>::isValidNoiseChannel(
     const cudaq::noise_model_type &type) const {
   switch (type) {
   case cudaq::noise_model_type::depolarization_channel:
@@ -205,7 +230,8 @@ bool SimulatorTensorNetBase::isValidNoiseChannel(
   }
 }
 
-void SimulatorTensorNetBase::applyNoise(
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::applyNoise(
     const cudaq::kraus_channel &channel,
     const std::vector<std::size_t> &targets) {
   LOG_API_TIME();
@@ -216,21 +242,22 @@ void SimulatorTensorNetBase::applyNoise(
       "[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
       cudaq::get_noise_model_type_name(channel.noise_type), qubits);
 
-  flushGateQueue();
+  this->flushGateQueue();
   applyKrausChannel(qubits, channel);
 }
 
-void SimulatorTensorNetBase::applyNoiseChannel(
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
     const std::string_view gateName, const std::vector<std::size_t> &controls,
     const std::vector<std::size_t> &targets,
     const std::vector<double> &params) {
   LOG_API_TIME();
   // Do nothing if no execution context
-  if (!executionContext)
+  if (!this->executionContext)
     return;
 
   // Do nothing if no noise model
-  if (!executionContext->noiseModel)
+  if (!this->executionContext->noiseModel)
     return;
 
   // Get the name as a string
@@ -239,7 +266,7 @@ void SimulatorTensorNetBase::applyNoiseChannel(
   qubits.insert(qubits.end(), targets.begin(), targets.end());
 
   // Get the Kraus channels specified for this gate and qubits
-  auto krausChannels = executionContext->noiseModel->get_channels(
+  auto krausChannels = this->executionContext->noiseModel->get_channels(
       gName, targets, controls, params);
 
   // If none, do nothing
@@ -255,15 +282,17 @@ void SimulatorTensorNetBase::applyNoiseChannel(
 }
 
 /// @brief Reset the state of a given qubit to zero
-void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
-  flushGateQueue();
-  flushAnySamplingTasks();
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::resetQubit(
+    const std::size_t qubitIdx) {
+  this->flushGateQueue();
+  this->flushAnySamplingTasks();
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();
   const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
-  const double prob0 = rdm[0].real();
+  const ScalarType prob0 = rdm[0].real();
   cudaq::info("Reset qubit {} with prob(|0>) = {}", qubitIdx, prob0);
   // If this is a zero state, no need to do anything.
   if (std::abs(1.0 - prob0) < 1e-9)
@@ -271,14 +300,17 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
 
   // One state => flip
   if (prob0 < 1e-9) {
-    x(qubitIdx);
+    this->x(qubitIdx);
     return;
   }
 
   // Otherwise, perform projection
   // Reset == project back to 0
-  const std::vector<std::complex<double>> projected0Mat{
-      {1.0 / std::sqrt(prob0), 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+  const std::vector<std::complex<ScalarType>> projected0Mat{
+      {static_cast<ScalarType>(1.0) / std::sqrt(prob0), 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0}};
   const std::string projKey = std::string("Project") + "_" +
                               std::to_string(false) + "_Prob" +
                               std::to_string(prob0);
@@ -286,9 +318,9 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
   if (iter == m_gateDeviceMemCache.end()) {
     void *d_gateProj{nullptr};
     HANDLE_CUDA_ERROR(
-        cudaMalloc(&d_gateProj, 4 * sizeof(std::complex<double>)));
+        cudaMalloc(&d_gateProj, 4 * sizeof(std::complex<ScalarType>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(d_gateProj, projected0Mat.data(),
-                                 4 * sizeof(std::complex<double>),
+                                 4 * sizeof(std::complex<ScalarType>),
                                  cudaMemcpyHostToDevice));
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
@@ -298,26 +330,35 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
 }
 
 /// @brief Device synchronization
-void SimulatorTensorNetBase::synchronize() {
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::synchronize() {
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
 }
 
 /// @brief Perform a measurement on a given qubit
-bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
+template <typename ScalarType>
+bool SimulatorTensorNetBase<ScalarType>::measureQubit(
+    const std::size_t qubitIdx) {
   LOG_API_TIME();
   // Prepare the state before RDM calculation
   prepareQubitTensorState();
   const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
-  const double prob0 = rdm[0].real();
-  const double prob1 = rdm[3].real();
-  assert(std::abs(1.0 - (prob0 + prob1)) < 1e-9);
-  const double rand = randomValues(1, 1.0, m_randomEngine)[0];
+  const ScalarType prob0 = rdm[0].real();
+  const ScalarType prob1 = rdm[3].real();
+  assert(std::abs(1.0 - (prob0 + prob1)) < 1e-3);
+  const ScalarType rand = randomValues(1, 1.0, m_randomEngine)[0];
   const bool resultBool = (rand > prob0);
-  const std::vector<std::complex<double>> projected0Mat{
-      {1.0 / std::sqrt(prob0), 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
-  const std::vector<std::complex<double>> projected1Mat{
-      {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0 / std::sqrt(prob1), 0.0}};
+  const std::vector<std::complex<ScalarType>> projected0Mat{
+      {static_cast<ScalarType>(1.0) / std::sqrt(prob0), 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0}};
+  const std::vector<std::complex<ScalarType>> projected1Mat{
+      {0.0, 0.0},
+      {0.0, 0.0},
+      {0.0, 0.0},
+      {static_cast<ScalarType>(1.0) / std::sqrt(prob1), 0.0}};
 
   const std::string projKey = std::string("Project") + "_" +
                               std::to_string(resultBool) + "_Prob" +
@@ -326,10 +367,10 @@ bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
   if (iter == m_gateDeviceMemCache.end()) {
     void *d_gateProj{nullptr};
     HANDLE_CUDA_ERROR(
-        cudaMalloc(&d_gateProj, 4 * sizeof(std::complex<double>)));
+        cudaMalloc(&d_gateProj, 4 * sizeof(std::complex<ScalarType>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(
         d_gateProj, resultBool ? projected1Mat.data() : projected0Mat.data(),
-        4 * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
+        4 * sizeof(std::complex<ScalarType>), cudaMemcpyHostToDevice));
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
@@ -338,9 +379,9 @@ bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
 }
 
 /// @brief Sample a subset of qubits
-cudaq::ExecutionResult
-SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
-                               const int shots) {
+template <typename ScalarType>
+cudaq::ExecutionResult SimulatorTensorNetBase<ScalarType>::sample(
+    const std::vector<std::size_t> &measuredBits, const int shots) {
   LOG_API_TIME();
   std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
@@ -378,18 +419,19 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
   return counts;
 }
 
-bool SimulatorTensorNetBase::canHandleObserve() {
+template <typename ScalarType>
+bool SimulatorTensorNetBase<ScalarType>::canHandleObserve() {
   // Do not compute <H> from matrix if shots based sampling requested
   // i.e., a valid shots count value was set.
   // Note: -1 is also used to denote non-sampling execution. Hence, we need to
   // check for this particular -1 value as being casted to an unsigned type.
-  if (executionContext && executionContext->shots > 0 &&
-      executionContext->shots != ~0ull) {
+  if (this->executionContext && this->executionContext->shots > 0 &&
+      this->executionContext->shots != ~0ull) {
     // This 'shots' mode is very slow for tensor network.
     // However, we need to respect the shots option.
     cudaq::info("[SimulatorTensorNetBase] Shots mode expectation calculation "
                 "is requested with {} shots.",
-                executionContext->shots);
+                this->executionContext->shots);
 
     return false;
   }
@@ -398,16 +440,17 @@ bool SimulatorTensorNetBase::canHandleObserve() {
 }
 
 /// @brief Evaluate the expectation value of a given observable
+template <typename ScalarType>
 cudaq::observe_result
-SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
+SimulatorTensorNetBase<ScalarType>::observe(const cudaq::spin_op &ham) {
   assert(cudaq::spin_op::canonicalize(ham) == ham);
   LOG_API_TIME();
   prepareQubitTensorState();
   if (!m_reuseContractionPathObserve) {
     // If contraction path reuse is disabled, convert spin_op to
     // cutensornetNetworkOperator_t and compute the expectation value.
-    TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
-    std::complex<double> expVal =
+    TensorNetworkSpinOp<ScalarType> spinOp(ham, m_cutnHandle);
+    std::complex<ScalarType> expVal =
         m_state->computeExpVal(spinOp.getNetworkOperator(),
                                this->executionContext->numberTrajectories);
     expVal += spinOp.getIdentityTermOffset();
@@ -443,12 +486,19 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   return cudaq::observe_result(expVal.real(), ham, perTermData);
 }
 
-nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
+template <typename ScalarType>
+nvqir::CircuitSimulator *SimulatorTensorNetBase<ScalarType>::clone() {
+  return nullptr;
+}
 
-void SimulatorTensorNetBase::addQubitToState() { addQubitsToState(1); }
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::addQubitToState() {
+  this->addQubitsToState(1);
+}
 
 /// @brief Destroy the entire qubit register
-void SimulatorTensorNetBase::deallocateStateImpl() {
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::deallocateStateImpl() {
   if (m_state) {
     m_state.reset();
     // Reset cuTensorNet library
@@ -458,20 +508,23 @@ void SimulatorTensorNetBase::deallocateStateImpl() {
 }
 
 /// @brief Reset all qubits to zero
-void SimulatorTensorNetBase::setToZeroState() {
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::setToZeroState() {
   LOG_API_TIME();
   const auto numQubits = m_state->getNumQubits();
   m_state.reset();
   // Re-create a zero state of the same size
-  m_state = std::make_unique<TensorNetState>(numQubits, scratchPad,
-                                             m_cutnHandle, m_randomEngine);
+  m_state = std::make_unique<TensorNetState<ScalarType>>(
+      numQubits, scratchPad, m_cutnHandle, m_randomEngine);
 }
 
-void SimulatorTensorNetBase::swap(const std::vector<std::size_t> &ctrlBits,
-                                  const std::size_t srcIdx,
-                                  const std::size_t tgtIdx) {
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::swap(
+    const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
+    const std::size_t tgtIdx) {
   if (ctrlBits.empty())
-    return nvqir::CircuitSimulatorBase<double>::swap(ctrlBits, srcIdx, tgtIdx);
+    return nvqir::CircuitSimulatorBase<ScalarType>::swap(ctrlBits, srcIdx,
+                                                         tgtIdx);
   // Controlled swap gate: using cnot decomposition of swap gate to perform
   // decomposition.
   // Note: cutensornetStateApplyControlledTensorOperator can only handle
@@ -481,23 +534,25 @@ void SimulatorTensorNetBase::swap(const std::vector<std::size_t> &ctrlBits,
   std::copy(ctrlBits.begin(), ctrlBits.end(), ctls.begin());
   {
     ctls[size] = tgtIdx;
-    nvqir::CircuitSimulatorBase<double>::x(ctls, srcIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx);
   }
   {
     ctls[size] = srcIdx;
-    nvqir::CircuitSimulatorBase<double>::x(ctls, tgtIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, tgtIdx);
   }
   {
     ctls[size] = tgtIdx;
-    nvqir::CircuitSimulatorBase<double>::x(ctls, srcIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx);
   }
 }
 
-void SimulatorTensorNetBase::setRandomSeed(std::size_t randomSeed) {
+template <typename ScalarType>
+void SimulatorTensorNetBase<ScalarType>::setRandomSeed(std::size_t randomSeed) {
   m_randomEngine = std::mt19937(randomSeed);
 }
 
-SimulatorTensorNetBase::~SimulatorTensorNetBase() {
+template <typename ScalarType>
+SimulatorTensorNetBase<ScalarType>::~SimulatorTensorNetBase() {
   m_state.reset();
   for (const auto &[key, dMem] : m_gateDeviceMemCache)
     HANDLE_CUDA_ERROR(cudaFree(dMem));
