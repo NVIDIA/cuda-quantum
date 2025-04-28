@@ -374,6 +374,7 @@ def test_evaluation():
         # check that order of parameters does not matter
         eval1 = composite_op.evaluate(**params1)
         eval2 = composite_op.evaluate(**params2)
+        assert len(eval1.parameters) == 0
         assert eval1 == eval2
         assert eval1 != composite_op.evaluate(squeezing = 0.05000126, displacement = 10.006008j, lam = -0.51237 + 98.72035j)
         assert eval1 == evaluate(composite_op, **params1)
