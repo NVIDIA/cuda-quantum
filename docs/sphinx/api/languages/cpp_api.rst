@@ -14,8 +14,6 @@ Operators
 
 .. doxygenclass:: cudaq::matrix_callback
 
-.. doxygenclass:: cudaq::boson_handler
-
 .. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
 
     Alias for a tuple containing vectors for complex values, indices, and sizes.
@@ -28,10 +26,14 @@ Operators
 
 .. doxygenclass:: cudaq::operator_handler
 
-.. doxygenclass:: cudaq::matrix_handler
+.. doxygenclass:: cudaq::spin_handler
     :members:
 
-.. doxygenclass:: cudaq::spin_handler
+.. doxygenclass:: cudaq::fermion_handler
+
+.. doxygenclass:: cudaq::boson_handler
+
+.. doxygenclass:: cudaq::matrix_handler
     :members:
 
 .. doxygenclass:: cudaq::product_op
@@ -40,19 +42,17 @@ Operators
 .. doxygenclass:: cudaq::sum_op
     :members:
 
-.. doxygenclass:: cudaq::fermion_handler
-
 .. cpp:type:: cudaq::spin_op
 
 .. cpp:type:: cudaq::spin_op_term
 
-.. cpp:type:: cudaq::boson_op
-
-.. cpp:type:: cudaq::boson_op_term
-
 .. cpp:type:: cudaq::fermion_op
 
 .. cpp:type:: cudaq::fermion_op_term
+
+.. cpp:type:: cudaq::boson_op
+
+.. cpp:type:: cudaq::boson_op_term
 
 .. cpp:type:: cudaq::matrix_op
 
