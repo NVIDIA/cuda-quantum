@@ -1,5 +1,5 @@
 import cudaq
-from cudaq import operators, Schedule, ScalarOperator, ScipyZvodeIntegrator
+from cudaq import boson, Schedule, ScalarOperator, ScipyZvodeIntegrator
 import numpy as np
 import cupy as cp
 import os
@@ -55,16 +55,16 @@ def cost_function(amps):
     amplitude = 100 * amps[0]
     drag_amp = 100 * amps[1]
     # Qubit Hamiltonian
-    hamiltonian = detuning * operators.number(0) + (
-        anharmonicity / 2) * operators.create(0) * operators.create(
-            0) * operators.annihilate(0) * operators.annihilate(0)
+    hamiltonian = detuning * boson.number(0) + (
+        anharmonicity / 2) * boson.create(0) * boson.create(
+            0) * boson.annihilate(0) * boson.annihilate(0)
     # Drive term
     hamiltonian += amplitude * ScalarOperator(gaussian) * (
-        operators.create(0) + operators.annihilate(0))
+        boson.create(0) + boson.annihilate(0))
 
     # Drag term (leakage reduction)
     hamiltonian += 1j * drag_amp * ScalarOperator(dgaussian) * (
-        operators.annihilate(0) - operators.create(0))
+        boson.annihilate(0) - boson.create(0))
 
     # We optimize for a X(pi/2) rotation
     evolution_result = cudaq.evolve(hamiltonian,
