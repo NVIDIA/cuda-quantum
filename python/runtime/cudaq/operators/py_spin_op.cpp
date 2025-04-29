@@ -14,8 +14,8 @@
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/serialization.h"
-#include "py_spin_op.h"
 #include "py_helpers.h"
+#include "py_spin_op.h"
 
 namespace cudaq {
 
@@ -217,7 +217,7 @@ void bindSpinOperator(py::module &mod) {
       .def(
           "to_matrix",
           [](const spin_op &self, dimension_map &dimensions,
-                           const parameter_map &params, bool invert_order) {
+             const parameter_map &params, bool invert_order) {
             auto cmat = self.to_matrix(dimensions, params, invert_order);
             return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
@@ -232,8 +232,8 @@ void bindSpinOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const spin_op &self, dimension_map &dimensions,
-                                 bool invert_order, const py::kwargs &kwargs) {
+          [](const spin_op &self, dimension_map &dimensions, bool invert_order,
+             const py::kwargs &kwargs) {
             auto cmat = self.to_matrix(
                 dimensions, details::kwargs_to_param_map(kwargs), invert_order);
             return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
@@ -267,8 +267,8 @@ void bindSpinOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [](const spin_op &self, dimension_map &dimensions,
-                                 bool invert_order, const py::kwargs &kwargs) {
+          [](const spin_op &self, dimension_map &dimensions, bool invert_order,
+             const py::kwargs &kwargs) {
             return self.to_sparse_matrix(
                 dimensions, details::kwargs_to_param_map(kwargs), invert_order);
           },
@@ -603,8 +603,7 @@ void bindSpinOperator(py::module &mod) {
            "the given tolerance.")
       .def(
           "trim",
-          [](spin_op &self, double tol,
-                                 const py::kwargs &kwargs) {
+          [](spin_op &self, double tol, const py::kwargs &kwargs) {
             return self.trim(tol, details::kwargs_to_param_map(kwargs));
           },
           py::arg("tol") = 0.0,
@@ -861,7 +860,7 @@ void bindSpinOperator(py::module &mod) {
       .def(
           "to_matrix",
           [](const spin_op_term &self, dimension_map &dimensions,
-                           const parameter_map &params, bool invert_order) {
+             const parameter_map &params, bool invert_order) {
             auto cmat = self.to_matrix(dimensions, params, invert_order);
             return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
@@ -876,9 +875,8 @@ void bindSpinOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](
-              const spin_op_term &self, dimension_map &dimensions,
-              bool invert_order, const py::kwargs &kwargs) {
+          [](const spin_op_term &self, dimension_map &dimensions,
+             bool invert_order, const py::kwargs &kwargs) {
             auto cmat = self.to_matrix(
                 dimensions, details::kwargs_to_param_map(kwargs), invert_order);
             return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
@@ -911,9 +909,9 @@ void bindSpinOperator(py::module &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
       .def(
-          "to_sparse_matrix", [](
-              const spin_op_term &self, dimension_map &dimensions,
-              bool invert_order, const py::kwargs &kwargs) {
+          "to_sparse_matrix",
+          [](const spin_op_term &self, dimension_map &dimensions,
+             bool invert_order, const py::kwargs &kwargs) {
             return self.to_sparse_matrix(
                 dimensions, details::kwargs_to_param_map(kwargs), invert_order);
           },
