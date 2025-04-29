@@ -25,11 +25,11 @@ def _defineCustomOperator(cls,
     """
     if len(expected_dimensions) == 0:
         raise ValueError(
-            f"custom operators needs to act on at least one degree " +
+            f"custom operators need to act on at least one degree " +
             "of freedom - use a ScalarOperator to define operators that " +
             "do not act on any degrees of freedom")
 
-    forwarded_as_kwarg = [["dimensions", "dims"], ["dimension", "dim"]]
+    forwarded_as_kwarg = (("dimensions", "dims"), ("dimension", "dim"))
 
     def with_dimension_check(creation: Callable, dimensions: Sequence[int],
                              **kwargs) -> NDArray[numpy.complexfloating]:

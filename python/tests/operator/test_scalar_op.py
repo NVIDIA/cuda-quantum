@@ -308,62 +308,6 @@ def test_arithmetics():
     assert np.allclose(op4.to_matrix(dims, t=2.0), [[2, 1], [1, 2]])
 
 
-# BREAKING CHANGE: setting the generator after construction is no longer supported
-'''
-def test_scalar_generator_update():
-    so1 = ScalarOperator(lambda t: t)
-    so1.generator = lambda p: 1 / p
-    assert 'p' in so1.parameters
-
-    dims = {0: 2}
-    op = so1 * spin.x(0)
-    assert np.allclose(op.to_matrix(dims, p=2.0), [[0, 0.5], [0.5, 0]])
-
-    # Update to new generator function
-    so1.generator = lambda q: q + 1
-    assert 'q' in so1.parameters
-'''
-
-'''
-def test_parameter_update_in_composite_operator():
-    so1 = ScalarOperator(lambda t: t)
-    so2 = ScalarOperator(lambda p: 2 * p)
-    composite_op = so1 * so2
-
-    so1.generator = lambda q: 1 / q
-    assert 'q' in composite_op.parameters
-    assert 'p' in composite_op.parameters
-'''
-
-'''
-def test_update_parameter_doc_in_composite_operator():
-    # Define initial generators with a docstring
-    def generator1(t):
-        ""Initial time parameter"" # FIXME: QUOTES
-        return t
-
-    def generator2(p):
-        ""Amplitude parameter"" # FIXME: QUOTES
-        return p * 2
-
-    so1 = ScalarOperator(generator1)
-    so2 = ScalarOperator(generator2)
-
-    composite_op = so1 * so2
-    assert 't' in composite_op.parameters
-    assert 'p' in composite_op.parameters
-
-    def new_generator(q):
-        ""New frequency parameter"" # FIXME: QUOTES
-        return 1 / q
-
-    so1.generator = new_generator
-
-    assert 'q' in composite_op.parameters
-    assert 'p' in composite_op.parameters
-'''
-
-
 # for debugging
 if __name__ == "__main__":
     test_parameter_docs()

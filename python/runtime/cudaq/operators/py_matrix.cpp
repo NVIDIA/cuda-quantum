@@ -78,7 +78,7 @@ void bindComplexMatrix(py::module &mod) {
           "dump", [](const complex_matrix &self) { self.dump(); },
           "Prints the matrix to the standard output.")
       .def("__eq__", [](const complex_matrix &lhs,
-                        const complex_matrix &rhs) { return lhs == rhs; })
+                        const complex_matrix &rhs) { return lhs == rhs; }, py::is_operator())
       .def("__str__", &complex_matrix::to_string,
            "Returns the string representation of the matrix.")
       .def(

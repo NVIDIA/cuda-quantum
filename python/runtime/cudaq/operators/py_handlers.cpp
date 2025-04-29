@@ -99,7 +99,7 @@ void bindOperatorHandlers(py::module &mod) {
            "freedom. Throws a runtime exception if no operator with that id "
            "has been defined.")
       .def(py::init<const matrix_handler &>(), "Copy constructor.")
-      .def("__eq__", &matrix_handler::operator==)
+      .def("__eq__", &matrix_handler::operator==, py::is_operator())
       .def("to_string", &matrix_handler::to_string, py::arg("include_degrees"),
            "Returns the string representation of the operator.")
       .def(
@@ -159,7 +159,7 @@ void bindOperatorHandlers(py::module &mod) {
       .def(py::init<std::size_t>(),
            "Creates an identity operator on the given target.")
       .def(py::init<const boson_handler &>(), "Copy constructor.")
-      .def("__eq__", &boson_handler::operator==)
+      .def("__eq__", &boson_handler::operator==, py::is_operator())
       .def("to_string", &boson_handler::to_string, py::arg("include_degrees"),
            "Returns the string representation of the operator.")
       .def(
@@ -192,7 +192,7 @@ void bindOperatorHandlers(py::module &mod) {
       .def(py::init<std::size_t>(),
            "Creates an identity operator on the given target.")
       .def(py::init<const fermion_handler &>(), "Copy constructor.")
-      .def("__eq__", &fermion_handler::operator==)
+      .def("__eq__", &fermion_handler::operator==, py::is_operator())
       .def("to_string", &fermion_handler::to_string, py::arg("include_degrees"),
            "Returns the string representation of the operator.")
       .def(
@@ -226,7 +226,7 @@ void bindOperatorHandlers(py::module &mod) {
       .def(py::init<std::size_t>(),
            "Creates an identity operator on the given target.")
       .def(py::init<const spin_handler &>(), "Copy constructor.")
-      .def("__eq__", &spin_handler::operator==)
+      .def("__eq__", &spin_handler::operator==, py::is_operator())
       .def("as_pauli", &spin_handler::as_pauli)
       .def("to_string", &spin_handler::to_string, py::arg("include_degrees"),
            "Returns the string representation of the operator.")

@@ -151,7 +151,7 @@ def test_properties():
     assert sum.max_degree == 3
 
     dims = {0: 2, 1: 3, 2: 2, 3: 4}
-    assert sum.term_count == 5 # position an momentum are a sum of two terms each
+    assert sum.term_count == 5 # position and momentum are a sum of two terms each
     assert prod2.ops_count == 2
     sum += prod1
     assert sum.term_count == 5

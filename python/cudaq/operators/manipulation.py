@@ -162,13 +162,14 @@ def _sum_transformation(operator: OperatorSum,
     will only be computed if they act on different degrees of freedom. 
     """
 
+    identity = operator.__class__.identity
     def padded_term(term: ProductOperator,
                     degrees: Iterable[int]) -> ProductOperator:
         term_degrees = term.degrees
         padded_term = term.copy()
         for degree in degrees:
-            if not degree in term_degrees:
-                padded_term *= operator.__class__.identity(degree)
+            if degree not in term_degrees:
+                padded_term *= identity(degree)
         return padded_term
 
     evaluated = arithmetics.evaluate(ScalarOperator.const(0))

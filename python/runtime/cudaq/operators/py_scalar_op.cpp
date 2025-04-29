@@ -85,7 +85,7 @@ void bindScalarOperator(py::module &mod) {
 
       // comparisons
 
-      .def("__eq__", &scalar_operator::operator==)
+      .def("__eq__", &scalar_operator::operator==, py::is_operator())
 
       // general utility functions
 

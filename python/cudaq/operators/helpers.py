@@ -14,9 +14,6 @@ if (3, 11) <= sys.version_info:
 elif (3, 10) <= sys.version_info:
     # type | type syntax is only supported in 3.10 or later
     NumericType = numpy.complexfloating | complex | float | int
-else:
-    NumericType = typing.Union[numpy.complexfloating, complex, float, int]
-
 
 def _aggregate_parameters(
         parameter_mappings: Iterable[Mapping[str, str]]) -> Mapping[str, str]:
