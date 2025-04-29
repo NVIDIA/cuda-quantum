@@ -57,7 +57,7 @@ std::string fermion_handler::op_code_to_string() const {
 }
 
 std::string fermion_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int64_t> &dimensions) const {
+    std::unordered_map<std::size_t, std::int64_t> &dimensions) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     dimensions[this->degree] = 2;
@@ -140,7 +140,7 @@ fermion_handler &fermion_handler::operator=(const fermion_handler &other) {
 // evaluations
 
 complex_matrix fermion_handler::to_matrix(
-    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   auto it = dimensions.find(this->degree);

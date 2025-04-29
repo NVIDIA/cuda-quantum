@@ -51,7 +51,7 @@ std::string boson_handler::op_code_to_string() const {
 }
 
 std::string boson_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int64_t> &dimensions) const {
+    std::unordered_map<std::size_t, std::int64_t> &dimensions) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " +
@@ -152,7 +152,7 @@ boson_handler::boson_handler(std::size_t target, int op_id)
 // evaluations
 
 complex_matrix boson_handler::to_matrix(
-    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
   auto it = dimensions.find(this->degree);
