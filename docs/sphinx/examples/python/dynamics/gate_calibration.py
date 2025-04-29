@@ -59,8 +59,8 @@ def cost_function(amps):
         anharmonicity / 2) * boson.create(0) * boson.create(
             0) * boson.annihilate(0) * boson.annihilate(0)
     # Drive term
-    hamiltonian += amplitude * ScalarOperator(gaussian) * (
-        boson.create(0) + boson.annihilate(0))
+    hamiltonian += amplitude * ScalarOperator(gaussian) * (boson.create(0) +
+                                                           boson.annihilate(0))
 
     # Drag term (leakage reduction)
     hamiltonian += 1j * drag_amp * ScalarOperator(dgaussian) * (
