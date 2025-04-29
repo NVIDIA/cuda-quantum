@@ -123,64 +123,38 @@ void cudaq::RecordLogDecoder::handleOutput(
     processSingleRecord(recValue, recLabel);
 }
 
-cudaq::details::DataHandlerBase &cudaq::RecordLogDecoder::getBoolHandler() {
-  static auto handler =
-      cudaq::details::DataHandlerFactory::createDataHandler("i1");
-  return *handler;
-}
-
-cudaq::details::DataHandlerBase &cudaq::RecordLogDecoder::getI8Handler() {
-  static auto handler =
-      cudaq::details::DataHandlerFactory::createDataHandler("i8");
-  return *handler;
-}
-
-cudaq::details::DataHandlerBase &cudaq::RecordLogDecoder::getI16Handler() {
-  static auto handler =
-      cudaq::details::DataHandlerFactory::createDataHandler("i16");
-  return *handler;
-}
-
-cudaq::details::DataHandlerBase &cudaq::RecordLogDecoder::getI32Handler() {
-  static auto handler =
-      cudaq::details::DataHandlerFactory::createDataHandler("i32");
-  return *handler;
-}
-
-cudaq::details::DataHandlerBase &cudaq::RecordLogDecoder::getI64Handler() {
-  static auto handler =
-      cudaq::details::DataHandlerFactory::createDataHandler("i64");
-  return *handler;
-}
-
-cudaq::details::DataHandlerBase &cudaq::RecordLogDecoder::getF32Handler() {
-  static auto handler =
-      cudaq::details::DataHandlerFactory::createDataHandler("f32");
-  return *handler;
-}
-
-cudaq::details::DataHandlerBase &cudaq::RecordLogDecoder::getF64Handler() {
-  static auto handler =
-      cudaq::details::DataHandlerFactory::createDataHandler("f64");
-  return *handler;
-}
-
 cudaq::details::DataHandlerBase &
 cudaq::RecordLogDecoder::getDataHandler(const std::string &dataType) {
+  // Static handlers for different data types
+  static details::DataHandler<char> boolHandler(
+      std::make_unique<details::BooleanConverter>());
+  static details::DataHandler<std::int8_t> i8Handler(
+      std::make_unique<details::IntegerConverter<std::int8_t>>());
+  static details::DataHandler<std::int16_t> i16Handler(
+      std::make_unique<details::IntegerConverter<std::int16_t>>());
+  static details::DataHandler<std::int32_t> i32Handler(
+      std::make_unique<details::IntegerConverter<std::int32_t>>());
+  static details::DataHandler<std::int64_t> i64Handler(
+      std::make_unique<details::IntegerConverter<std::int64_t>>());
+  static details::DataHandler<float> f32Handler(
+      std::make_unique<details::FloatConverter<float>>());
+  static details::DataHandler<double> f64Handler(
+      std::make_unique<details::FloatConverter<double>>());
+  // Map data type to the corresponding handler
   if (dataType == "i1")
-    return getBoolHandler();
+    return boolHandler;
   else if (dataType == "i8")
-    return getI8Handler();
+    return i8Handler;
   else if (dataType == "i16")
-    return getI16Handler();
+    return i16Handler;
   else if (dataType == "i32")
-    return getI32Handler();
+    return i32Handler;
   else if (dataType == "i64")
-    return getI64Handler();
+    return i64Handler;
   else if (dataType == "f32")
-    return getF32Handler();
+    return f32Handler;
   else if (dataType == "f64")
-    return getF64Handler();
+    return f64Handler;
   throw std::runtime_error("Unsupported data type: " + dataType);
 }
 

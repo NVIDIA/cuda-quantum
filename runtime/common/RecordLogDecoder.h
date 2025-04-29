@@ -73,6 +73,7 @@ public:
 //===----------------------------------------------------------------------===//
 // Buffer management for storing decoded data
 //===----------------------------------------------------------------------===//
+
 /// A helper class to manage the underlying memory buffer used by
 /// 'RecordLogDecoder'. For container types, i.e. composite records, the buffer
 /// acts as outer vector with pointers to inner buffers.
@@ -148,6 +149,7 @@ private:
 //===----------------------------------------------------------------------===//
 // Container metadata tracking for composite / aggregate types
 //===----------------------------------------------------------------------===//
+
 /// A helper structure to hold the current state of the container being
 /// processed.
 /// TODO: Handle nested containers.
@@ -258,42 +260,10 @@ public:
   }
 };
 
-/// Maps QIR type strings (e.g., "i32", "f64") to the appropriate data handling
-/// instance.
-class DataHandlerFactory {
-public:
-  static std::unique_ptr<DataHandlerBase>
-  createDataHandler(const std::string &type) {
-    if (type == "i1")
-      return std::make_unique<DataHandler<char>>(
-          std::make_unique<details::BooleanConverter>());
-    if (type == "i8")
-      return std::make_unique<DataHandler<std::int8_t>>(
-          std::make_unique<details::IntegerConverter<std::int8_t>>());
-    if (type == "i16")
-      return std::make_unique<DataHandler<std::int16_t>>(
-          std::make_unique<details::IntegerConverter<std::int16_t>>());
-    if (type == "i32")
-      return std::make_unique<DataHandler<std::int32_t>>(
-          std::make_unique<details::IntegerConverter<std::int32_t>>());
-    if (type == "i64")
-      return std::make_unique<DataHandler<std::int64_t>>(
-          std::make_unique<details::IntegerConverter<std::int64_t>>());
-    if (type == "f32")
-      return std::make_unique<DataHandler<float>>(
-          std::make_unique<details::FloatConverter<float>>());
-    if (type == "f64")
-      return std::make_unique<DataHandler<double>>(
-          std::make_unique<details::FloatConverter<double>>());
-
-    throw std::runtime_error("Unsupported data type");
-  }
-};
-
 } // namespace details
 
 //===----------------------------------------------------------------------===//
-// Main parser and decoder class
+// Main record log parser and decoder class
 //===----------------------------------------------------------------------===//
 
 /// Simple decoder for translating QIR recorded results to a C++ binary data
@@ -338,14 +308,6 @@ private:
   void processTupleEntry(const std::string &, const std::string &);
   /// Get data handler for the specified type
   details::DataHandlerBase &getDataHandler(const std::string &dataType);
-  /// Static handler accessors for common types
-  static details::DataHandlerBase &getBoolHandler();
-  static details::DataHandlerBase &getI8Handler();
-  static details::DataHandlerBase &getI16Handler();
-  static details::DataHandlerBase &getI32Handler();
-  static details::DataHandlerBase &getI64Handler();
-  static details::DataHandlerBase &getF32Handler();
-  static details::DataHandlerBase &getF64Handler();
 
   RecordSchemaType schema = RecordSchemaType::ORDERED;
   OutputType currentOutput;
