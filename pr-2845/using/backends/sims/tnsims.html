@@ -839,7 +839,7 @@ This backend supports multi-GPU, multi-node distribution of tensor operations re
 </pre></div>
 </div>
 <p>for the default double-precision setting, or</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;tensornet&#39;</span><span class="p">,</span> <span class="n">option</span> <span class="o">=</span> <span class="s1">&#39;fp32&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;tensornet&#39;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;fp32&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>for the single-precision setting.</p>
@@ -907,7 +907,7 @@ See the section <a class="reference internal" href="../../install/local_installa
 <h2>Matrix product state<a class="headerlink" href="#matrix-product-state" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable.
 The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend only supports single-GPU simulation. Its approximate nature allows the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.</p>
-<p>The code:<code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> target supports both single and double floating point precision.</p>
+<p>The code:<code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> target supports both single and double floating point precision.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> target, use the following commands:</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
@@ -924,7 +924,7 @@ The <code class="code docutils literal notranslate"><span class="pre">tensornet-
 </pre></div>
 </div>
 <p>for the default double-precision setting, or</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;tensornet-mps&#39;</span><span class="p">,</span> <span class="n">option</span> <span class="o">=</span> <span class="s1">&#39;fp32&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;tensornet-mps&#39;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;fp32&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>for the single-precision setting.</p>
