@@ -145,7 +145,7 @@ To execute a program on the :code:`tensornet-mps` target, use the following comm
     
     .. code:: python 
 
-        cudaq.set_target('tensornet-mps', option = 'fp32')
+        cudaq.set_target('tensornet-mps', option='fp32')
 
     for the single-precision setting.   
 
