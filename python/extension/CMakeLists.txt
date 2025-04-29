@@ -64,6 +64,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
     ../runtime/cudaq/qis/py_qubit_qis.cpp
+    ../runtime/cudaq/operators/py_helpers.cpp  
     ../runtime/cudaq/operators/py_matrix.cpp
     ../runtime/cudaq/operators/py_scalar_op.cpp
     ../runtime/cudaq/operators/py_spin_op.cpp

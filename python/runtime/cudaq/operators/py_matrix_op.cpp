@@ -15,6 +15,7 @@
 #include "cudaq/operators.h"
 #include "cudaq/operators/serialization.h"
 #include "py_matrix_op.h"
+#include "py_helpers.h"
 
 namespace cudaq {
 
@@ -94,27 +95,6 @@ void bindOperatorsModule(py::module &mod) {
 }
 
 void bindMatrixOperator(py::module &mod) {
-  auto cmat_to_numpy = [](const complex_matrix &m) {
-    std::vector<ssize_t> shape = {static_cast<ssize_t>(m.rows()),
-                                  static_cast<ssize_t>(m.cols())};
-    std::vector<ssize_t> strides = {
-        static_cast<ssize_t>(sizeof(std::complex<double>) * m.cols()),
-        static_cast<ssize_t>(sizeof(std::complex<double>))};
-
-    // Return a numpy array without copying data
-    return py::array_t<std::complex<double>>(shape, strides, m.data);
-  };
-
-  auto kwargs_to_param_map = [](const py::kwargs &kwargs) {
-    parameter_map params;
-    for (auto &[keyPy, valuePy] : kwargs) {
-      std::string key = py::str(keyPy);
-      std::complex<double> value = valuePy.cast<std::complex<double>>();
-      params.insert(params.end(),
-                    std::pair<std::string, std::complex<double>>(key, value));
-    }
-    return params;
-  };
 
   py::class_<matrix_op>(mod, "MatrixOperator")
       .def(
@@ -170,10 +150,10 @@ void bindMatrixOperator(py::module &mod) {
 
       .def(
           "to_matrix",
-          [&cmat_to_numpy](const matrix_op &self, dimension_map &dimensions,
+          [](const matrix_op &self, dimension_map &dimensions,
                            const parameter_map &params, bool invert_order) {
-            return cmat_to_numpy(
-                self.to_matrix(dimensions, params, invert_order));
+            auto cmat = self.to_matrix(dimensions, params, invert_order);
+            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -187,11 +167,12 @@ void bindMatrixOperator(py::module &mod) {
 
       .def(
           "to_matrix",
-          [&cmat_to_numpy, &kwargs_to_param_map](
+          [](
               const matrix_op &self, dimension_map &dimensions,
               bool invert_order, const py::kwargs &kwargs) {
-            return cmat_to_numpy(self.to_matrix(
-                dimensions, kwargs_to_param_map(kwargs), invert_order));
+            auto cmat = self.to_matrix(
+                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("invert_order") = false,
@@ -474,9 +455,9 @@ void bindMatrixOperator(py::module &mod) {
            "the given tolerance.")
       .def(
           "trim",
-          [&kwargs_to_param_map](matrix_op &self, double tol,
+          [](matrix_op &self, double tol,
                                  const py::kwargs &kwargs) {
-            return self.trim(tol, kwargs_to_param_map(kwargs));
+            return self.trim(tol, details::kwargs_to_param_map(kwargs));
           },
           py::arg("tol") = 0.0,
           "Removes all terms from the sum for which the absolute value of the "
@@ -588,11 +569,11 @@ void bindMatrixOperator(py::module &mod) {
            "Returns the evaluated coefficient of the product operator.")
       .def(
           "to_matrix",
-          [&cmat_to_numpy](const matrix_op_term &self,
+          [](const matrix_op_term &self,
                            dimension_map &dimensions,
                            const parameter_map &params, bool invert_order) {
-            return cmat_to_numpy(
-                self.to_matrix(dimensions, params, invert_order));
+            auto cmat = self.to_matrix(dimensions, params, invert_order);
+            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -605,11 +586,12 @@ void bindMatrixOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [&cmat_to_numpy, &kwargs_to_param_map](
+          [](
               const matrix_op_term &self, dimension_map &dimensions,
               bool invert_order, const py::kwargs &kwargs) {
-            return cmat_to_numpy(self.to_matrix(
-                dimensions, kwargs_to_param_map(kwargs), invert_order));
+            auto cmat = self.to_matrix(
+                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("invert_order") = false,
