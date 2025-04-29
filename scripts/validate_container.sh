@@ -248,6 +248,33 @@ do
                 fi 
                 rm a.out /tmp/cudaq_validation.out &> /dev/null
             done
+        elif [[ "$t" == "tensornet" || "$t" == "tensornet-mps" ]]; then
+            # For the unified tensor network targets, we validate both single and double precision
+            declare -a optionArray=("fp32" "fp64")
+            arraylength=${#optionArray[@]}
+            for (( i=0; i<${arraylength}; i++ ));
+            do
+                echo "  Testing $t target option: ${optionArray[$i]}"
+                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${optionArray[$i]}"
+                if [ ! $? -eq 0 ]; then
+                    let "failed+=1"
+                    echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                    continue
+                fi
+
+                ./a.out &> /tmp/cudaq_validation.out
+                status=$?
+                echo "  Exited with code $status"
+                if [ "$status" -eq "0" ]; then 
+                    let "passed+=1"
+                    echo "  :white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                else
+                    cat /tmp/cudaq_validation.out
+                    let "failed+=1"
+                    echo "  :x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+                fi 
+                rm a.out /tmp/cudaq_validation.out &> /dev/null
+            done
         else
             nvq++ $nvqpp_extra_options $ex $target_flag
             if [ ! $? -eq 0 ]; then
