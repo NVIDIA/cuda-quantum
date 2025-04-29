@@ -186,9 +186,10 @@ public:
   /// Returns MPS tensors in GPU device memory.
   /// Note: the caller assumes the ownership of these pointers, thus needs to
   /// clean them up properly (with cudaFree).
-  std::vector<MPSTensor> factorizeMPS(int64_t maxExtent, double absCutoff,
-                                      double relCutoff,
-                                      cutensornetTensorSVDAlgo_t algo);
+  std::vector<MPSTensor>
+  factorizeMPS(int64_t maxExtent, double absCutoff, double relCutoff,
+               cutensornetTensorSVDAlgo_t algo,
+               const std::optional<cutensornetStateMPSGaugeOption_t> &gauge);
 
   /// @brief Compute the expectation value of an observable
   /// @param product_terms the terms of the observable (operator sum)
@@ -240,9 +241,10 @@ private:
   // Note: `factorizeMPS` is an end-to-end API for factorization.
   // This factorization can be split into `cutensornetStateFinalizeMPS` and
   // `cutensornetStateCompute` to facilitate reuse.
-  std::vector<MPSTensor> setupMPSFactorize(int64_t maxExtent, double absCutoff,
-                                           double relCutoff,
-                                           cutensornetTensorSVDAlgo_t algo);
+  std::vector<MPSTensor> setupMPSFactorize(
+      int64_t maxExtent, double absCutoff, double relCutoff,
+      cutensornetTensorSVDAlgo_t algo,
+      const std::optional<cutensornetStateMPSGaugeOption_t> &gauge);
   void computeMPSFactorize(std::vector<MPSTensor> &mpsTensors);
 
   /// Internal methods for sampling
