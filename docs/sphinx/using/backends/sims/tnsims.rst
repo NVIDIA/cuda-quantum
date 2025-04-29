@@ -45,7 +45,7 @@ To execute a program on the :code:`tensornet` target using a *single GPU*, use t
     
     .. code:: python 
 
-        cudaq.set_target('tensornet', option = 'fp32')
+        cudaq.set_target('tensornet', option='fp32')
 
     for the single-precision setting.   
 
