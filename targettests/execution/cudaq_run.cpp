@@ -34,6 +34,21 @@ __qpu__ int unary_test(int count) {
   return result;
 }
 
+__qpu__ std::vector<int> vector_int_test(){
+  std::vector<int> result(2);
+  result[0] = 42;
+  result[1] = -13;
+  return result;
+}
+
+__qpu__ std::vector<float> vector_float_test(){
+  std::vector<float> result(3);
+  result[0] = 3.141592653589;
+  result[1] = 2.718281828459;
+  result[2] = 6.62607015;
+  return result;
+}
+
 int main() {
   int c = 0;
   {
@@ -81,6 +96,33 @@ int main() {
     } else {
       for (auto i : results)
         printf("%d: %d\n", c++, i);
+      printf("success!\n");
+    }
+  }
+
+  {
+    const std::vector<std::vector<int>> results = cudaq::run(3, vector_int_test);
+    c = 0;
+    if (results.size() != 3) {
+      printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
+    } else {
+      for (auto i : results) {
+        printf("%d: {%d , %d}\n", c++, i[0], i[1]);
+        assert(i[0] == 42);
+        assert(i[1] == -13);
+      }
+      printf("success!\n");
+    }
+  }
+
+  {
+    const std::vector<std::vector<float>> results = cudaq::run(2, vector_float_test);
+    c = 0;
+    if (results.size() != 2) {
+      printf("FAILED! Expected 2 shots. Got %lu\n", results.size());
+    } else {
+      for (auto i : results) 
+        printf("%d: {%f , %f , %f}\n", c++, i[0], i[1], i[2]);       
       printf("success!\n");
     }
   }
