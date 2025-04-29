@@ -34,15 +34,19 @@ __qpu__ int unary_test(int count) {
   return result;
 }
 
-__qpu__ std::vector<float> unary_test_list_int(int count) {
-  cudaq::qvector v(1);
-  std::vector<float> vec {0, 1};
-  return vec;
+__qpu__ std::vector<int> vector_int_test() {
+  std::vector<int> result(2);
+  result[0] = 42;
+  result[1] = -13;
+  return result;
 }
 
-__qpu__ std::tuple<int, bool> unary_test_tuple(std::tuple<int, bool> tup) {
-  cudaq::qvector v(2);
-  return tup;
+__qpu__ std::vector<float> vector_float_test() {
+  std::vector<float> result(3);
+  result[0] = 3.141592653589;
+  result[1] = 2.718281828459;
+  result[2] = 6.62607015;
+  return result;
 }
 
 int main() {
@@ -70,27 +74,6 @@ int main() {
     }
   }
 
-  // TODO: this currently fails due to the vector destructor
-  // trying to delete garbage.
-  // Needs: https://github.com/NVIDIA/cuda-quantum/pull/2839
-  // {
-  //   const auto results = cudaq::run(1, unary_test_list_int, 4);
-  //   printf("Got %lu\n", results.size());
-  //   int c = 0;
-  //   if (results.size() != 10) {
-  //     printf("unary_test_list FAILED! Expected 50 shots. Got %lu\n", results.size());
-  //   } else {
-  //     printf("Got %lu\n", results.size());
-  //     for (auto i : results) {
-  //       printf("%d: [", c++);
-  //       for (auto j : i)
-  //         printf("%f,", j);
-  //       printf("]\n");
-  //     }
-  //     printf("success!\n");
-  //   }
-  // }
-
   // TODO: this currently fails due to a missing support for tuple copy
   // constructor in ConvertExpr.cpp
   // {
@@ -98,7 +81,8 @@ int main() {
   //   const auto results = cudaq::run(50, unary_test_tuple, t);
   //   int c = 0;
   //   if (results.size() != 50) {
-  //     printf("unary_test_list FAILED! Expected 50 shots. Got %lu\n", results.size());
+  //     printf("unary_test_list FAILED! Expected 50 shots. Got %lu\n",
+  //     results.size());
   //   } else {
   //     printf("Got %lu\n", results.size());
   //     for (auto i : results) {
@@ -133,6 +117,35 @@ int main() {
     } else {
       for (auto i : results)
         printf("%d: %d\n", c++, i);
+      printf("success!\n");
+    }
+  }
+
+  {
+    const std::vector<std::vector<int>> results =
+        cudaq::run(3, vector_int_test);
+    c = 0;
+    if (results.size() != 3) {
+      printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
+    } else {
+      for (auto i : results) {
+        printf("%d: {%d , %d}\n", c++, i[0], i[1]);
+        assert(i[0] == 42);
+        assert(i[1] == -13);
+      }
+      printf("success!\n");
+    }
+  }
+
+  {
+    const std::vector<std::vector<float>> results =
+        cudaq::run(2, vector_float_test);
+    c = 0;
+    if (results.size() != 2) {
+      printf("FAILED! Expected 2 shots. Got %lu\n", results.size());
+    } else {
+      for (auto i : results)
+        printf("%d: {%f , %f , %f}\n", c++, i[0], i[1], i[2]);
       printf("success!\n");
     }
   }

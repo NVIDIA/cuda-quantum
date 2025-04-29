@@ -12,207 +12,29 @@ void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;
-
-  std::unordered_map<std::string,
-                     std::function<void(const std::vector<std::string> &)>>
-      recordHandlers = {
-          {"HEADER",
-           [this](const std::vector<std::string> &entries) {
-             handleHeader(entries);
-           }},
-          {"METADATA",
-           [this](const std::vector<std::string> &entries) {
-             handleMetadata(entries);
-           }},
-          {"OUTPUT",
-           [this](const std::vector<std::string> &entries) {
-             handleOutput(entries);
-           }},
-          {"START",
-           [this](const std::vector<std::string> &entries) {
-             handleStart(entries);
-           }},
-          {"END",
-           [this](const std::vector<std::string> &entries) {
-             handleEnd(entries);
-           }},
-      };
-
-  dataTypeMap = {
-      {"i1",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<char>(static_cast<char>(convertToBool(value)));
-        },
-        [this]() { allocateArrayRecord<char>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<char>(index, static_cast<char>(convertToBool(value)));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(char));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(char);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<char>(index, static_cast<char>(convertToBool(value)));
-        }}},
-      {"i8",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<std::int8_t>(std::stoi(value));
-        },
-        [this]() { allocateArrayRecord<std::int8_t>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<std::int8_t>(index, std::stoi(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(std::int8_t));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(std::int8_t);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<std::int8_t>(index, std::stoi(value));
-        }}},
-      {"i16",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<std::int16_t>(std::stoi(value));
-        },
-        [this]() { allocateArrayRecord<std::int16_t>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<std::int16_t>(index, std::stoi(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(std::int16_t));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(std::int16_t);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<std::int16_t>(index, std::stoi(value));
-        }}},
-      {"i32",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<std::int32_t>(std::stoi(value));
-        },
-        [this]() { allocateArrayRecord<std::int32_t>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<std::int32_t>(index, std::stoi(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(std::int32_t));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(std::int32_t);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<std::int32_t>(index, std::stoi(value));
-        }}},
-      {"i64",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<std::int64_t>(std::stoll(value));
-        },
-        [this]() { allocateArrayRecord<std::int64_t>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<std::int64_t>(index, std::stoll(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(std::int64_t));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(std::int64_t);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<std::int64_t>(index, std::stoll(value));
-        }}},
-      {"f32",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<float>(std::stof(value));
-        },
-        [this]() { allocateArrayRecord<float>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<float>(index, std::stof(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(float));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(float);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<float>(index, std::stof(value));
-        }}},
-      {"f64",
-       {[this](const std::string &value) {
-          addPrimitiveRecord<double>(std::stod(value));
-        },
-        [this]() { allocateArrayRecord<double>(handler.m_size); },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoArray<double>(index, std::stod(value));
-        },
-        [this]() {
-          buffer.resize(handler.offset + sizeof(double));
-          handler.tupleOffsets.push_back(handler.offset);
-          handler.offset += sizeof(double);
-        },
-        [this](std::size_t index, const std::string &value) {
-          insertIntoTuple<double>(index, std::stod(value));
-        }}}};
-
   for (const auto &line : lines) {
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
-    auto it = recordHandlers.find(entries[0]);
-    if (it != recordHandlers.end()) {
-      it->second(entries);
-    } else {
-      throw std::runtime_error("Invalid record type: " + entries[0]);
-    }
+    handleRecord(entries);
   }
 }
 
-void cudaq::RecordLogDecoder::ContainerHandler::reset() {
-  m_type = ContainerType::ARRAY;
-  m_size = 0;
-  processedElements = 0;
-  offset = 0;
-  arrayType.clear();
-  tupleTypes.clear();
-  tupleOffsets.clear();
-}
-
-void cudaq::RecordLogDecoder::ContainerHandler::extractArrayInfo(
-    const std::string &label) {
-  auto isArray = label.find("array");
-  auto lessThan = label.find('<');
-  auto greaterThan = label.find('>');
-  auto x = label.find('x');
-  if ((isArray == std::string::npos) || (lessThan == std::string::npos) ||
-      (greaterThan == std::string::npos) || (x == std::string::npos))
-    throw std::runtime_error("Array label missing keyword");
-  if (m_size !=
-      static_cast<size_t>(std::stoi(label.substr(x + 2, greaterThan - x - 2))))
-    throw std::runtime_error("Array size mismatch in value and label.");
-  arrayType = label.substr(lessThan + 1, x - lessThan - 2);
-}
-
-void cudaq::RecordLogDecoder::ContainerHandler::extractTupleInfo(
-    const std::string &label) {
-  auto isTuple = label.find("tuple");
-  auto lessThan = label.find('<');
-  auto greaterThan = label.find('>');
-  if ((isTuple == std::string::npos) || (lessThan == std::string::npos) ||
-      (greaterThan == std::string::npos))
-    throw std::runtime_error("Invalid tuple label");
-  std::string types = label.substr(lessThan + 1, greaterThan - lessThan - 1);
-  tupleTypes = cudaq::split(types, ',');
-  if (m_size != tupleTypes.size())
-    throw std::runtime_error("Tuple size mismatch in value and label.");
-  for (auto &ty : tupleTypes)
-    ty.erase(std::remove(ty.begin(), ty.end(), ' '), ty.end());
-}
-
-std::size_t cudaq::RecordLogDecoder::ContainerHandler::extractIndex(
-    const std::string &label) {
-  if ((label[0] == '[') && (label[label.size() - 1] == ']'))
-    return std::stoi(label.substr(1, label.size() - 1));
-  if (label[0] == '.')
-    return std::stoi(label.substr(1, label.size() - 1));
-  throw std::runtime_error("Index not found in label");
+void cudaq::RecordLogDecoder::handleRecord(
+    const std::vector<std::string> &entries) {
+  const std::string &recordType = entries[0];
+  if (recordType == "HEADER")
+    handleHeader(entries);
+  else if (recordType == "METADATA")
+    handleMetadata(entries);
+  else if (recordType == "START")
+    handleStart(entries);
+  else if (recordType == "OUTPUT")
+    handleOutput(entries);
+  else if (recordType == "END")
+    handleEnd(entries);
+  else
+    throw std::runtime_error("Invalid record type: " + recordType);
 }
 
 void cudaq::RecordLogDecoder::handleHeader(
@@ -221,9 +43,9 @@ void cudaq::RecordLogDecoder::handleHeader(
     throw std::runtime_error("Invalid HEADER record");
   if (entries[1] == "schema_name") {
     if (entries[2] == "labeled")
-      schema = SchemaType::LABELED;
+      schema = RecordSchemaType::LABELED;
     else if (entries[2] == "ordered")
-      schema = SchemaType::ORDERED;
+      schema = RecordSchemaType::ORDERED;
     else
       throw std::runtime_error("Unknown schema type");
   }
@@ -252,80 +74,102 @@ void cudaq::RecordLogDecoder::handleOutput(
     const std::vector<std::string> &entries) {
   if (entries.size() < 3)
     throw std::runtime_error("Insufficient data in a record");
-  if ((schema == SchemaType::LABELED) && (entries.size() != 4))
+  if ((schema == RecordSchemaType::LABELED) && (entries.size() != 4))
     throw std::runtime_error("Unexpected record size for a labeled record");
-  std::string recType = entries[1];
-  std::string recValue = entries[2];
+  const std::string &recType = entries[1];
+  const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
   if (recType == "RESULT")
     throw std::runtime_error("This type is not yet supported");
   if (recType == "ARRAY") {
-    handler.m_type = ContainerType::ARRAY;
-    handler.m_size = std::stoul(recValue);
+    containerMeta.m_type = ContainerType::ARRAY;
+    containerMeta.elementCount = std::stoul(recValue);
     if (!recLabel.empty()) {
-      schema = SchemaType::LABELED;
-      handler.extractArrayInfo(recLabel);
+      schema = RecordSchemaType::LABELED;
+      containerMeta.extractArrayInfo(recLabel);
       preallocateArray();
     }
     return;
   }
   if (recType == "TUPLE") {
-    handler.m_type = ContainerType::TUPLE;
-    handler.m_size = std::stoul(recValue);
+    containerMeta.m_type = ContainerType::TUPLE;
+    containerMeta.elementCount = std::stoul(recValue);
     if (!recLabel.empty()) {
-      schema = SchemaType::LABELED;
-      handler.extractTupleInfo(recLabel);
+      schema = RecordSchemaType::LABELED;
+      containerMeta.extractTupleInfo(recLabel);
       preallocateTuple();
     }
     return;
   }
-  if ("BOOL" == recType)
+  if (recType == "BOOL")
     currentOutput = OutputType::BOOL;
-  else if ("INT" == recType)
+  else if (recType == "INT")
     currentOutput = OutputType::INT;
-  else if ("DOUBLE" == recType)
+  else if (recType == "DOUBLE")
     currentOutput = OutputType::DOUBLE;
   else
     throw std::runtime_error("Invalid data");
-  if ((handler.m_size > 0) && (schema == SchemaType::LABELED)) {
-    if (handler.m_type == ContainerType::ARRAY)
+  if ((containerMeta.elementCount > 0) &&
+      (schema == RecordSchemaType::LABELED)) {
+    if (containerMeta.m_type == ContainerType::ARRAY)
       processArrayEntry(recValue, recLabel);
-    else if (handler.m_type == ContainerType::TUPLE)
+    else if (containerMeta.m_type == ContainerType::TUPLE)
       processTupleEntry(recValue, recLabel);
-    handler.processedElements++;
-    if (handler.processedElements == handler.m_size) {
-      handler.reset();
+    containerMeta.processedElements++;
+    if (containerMeta.processedElements == containerMeta.elementCount) {
+      containerMeta.reset();
     }
   } else
     processSingleRecord(recValue, recLabel);
 }
 
+cudaq::details::DataHandlerBase &
+cudaq::RecordLogDecoder::getDataHandler(const std::string &dataType) {
+  // Static handlers for different data types
+  static details::DataHandler<char> boolHandler(
+      std::make_unique<details::BooleanConverter>());
+  static details::DataHandler<std::int8_t> i8Handler(
+      std::make_unique<details::IntegerConverter<std::int8_t>>());
+  static details::DataHandler<std::int16_t> i16Handler(
+      std::make_unique<details::IntegerConverter<std::int16_t>>());
+  static details::DataHandler<std::int32_t> i32Handler(
+      std::make_unique<details::IntegerConverter<std::int32_t>>());
+  static details::DataHandler<std::int64_t> i64Handler(
+      std::make_unique<details::IntegerConverter<std::int64_t>>());
+  static details::DataHandler<float> f32Handler(
+      std::make_unique<details::FloatConverter<float>>());
+  static details::DataHandler<double> f64Handler(
+      std::make_unique<details::FloatConverter<double>>());
+  // Map data type to the corresponding handler
+  if (dataType == "i1")
+    return boolHandler;
+  else if (dataType == "i8")
+    return i8Handler;
+  else if (dataType == "i16")
+    return i16Handler;
+  else if (dataType == "i32")
+    return i32Handler;
+  else if (dataType == "i64")
+    return i64Handler;
+  else if (dataType == "f32")
+    return f32Handler;
+  else if (dataType == "f64")
+    return f64Handler;
+  throw std::runtime_error("Unsupported data type: " + dataType);
+}
+
 void cudaq::RecordLogDecoder::preallocateArray() {
-  auto it = dataTypeMap.find(handler.arrayType);
-  if (it != dataTypeMap.end())
-    it->second.allocateArray();
-  else
-    throw std::runtime_error("Unsupported array type");
+  cudaq::details::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
+  containerMeta.dataOffset =
+      dh.allocateArray(bufferHandler, containerMeta.elementCount);
 }
 
 void cudaq::RecordLogDecoder::preallocateTuple() {
-  handler.offset = buffer.size();
-  for (auto ty : handler.tupleTypes) {
-    auto it = dataTypeMap.find(ty);
-    if (it != dataTypeMap.end())
-      it->second.allocateTuple();
-    else
-      throw std::runtime_error("Unsupported array type");
+  containerMeta.dataOffset = bufferHandler.getBufferSize();
+  for (auto ty : containerMeta.tupleTypes) {
+    cudaq::details::DataHandlerBase &dh = getDataHandler(ty);
+    containerMeta.tupleOffsets.push_back(dh.allocateTuple(bufferHandler));
   }
-}
-
-bool cudaq::RecordLogDecoder::convertToBool(const std::string &value) {
-  if (value == "true" || value == "1")
-    return true;
-  else if (value == "false" || value == "0")
-    return false;
-  else
-    throw std::runtime_error("Invalid boolean value");
 }
 
 void cudaq::RecordLogDecoder::processSingleRecord(const std::string &recValue,
@@ -339,29 +183,26 @@ void cudaq::RecordLogDecoder::processSingleRecord(const std::string &recValue,
     else if (currentOutput == OutputType::DOUBLE)
       label = "f64";
   }
-  auto it = dataTypeMap.find(label);
-  if (it != dataTypeMap.end())
-    it->second.addRecord(recValue);
-  else
-    throw std::runtime_error("Unsupported output type");
+  cudaq::details::DataHandlerBase &dh = getDataHandler(label);
+  dh.addRecord(bufferHandler, recValue);
 }
 
 void cudaq::RecordLogDecoder::processArrayEntry(const std::string &recValue,
                                                 const std::string &recLabel) {
-  std::size_t index = handler.extractIndex(recLabel);
-  auto it = dataTypeMap.find(handler.arrayType);
-  if (it != dataTypeMap.end())
-    it->second.insertIntoArray(index, recValue);
-  else
-    throw std::runtime_error("Unsupported output type");
+  std::size_t index = containerMeta.extractIndex(recLabel);
+  if (index >= containerMeta.elementCount)
+    throw std::runtime_error("Array index out of bounds");
+  cudaq::details::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
+  dh.insertIntoArray(bufferHandler, containerMeta.dataOffset, index, recValue);
 }
 
 void cudaq::RecordLogDecoder::processTupleEntry(const std::string &recValue,
                                                 const std::string &recLabel) {
-  std::size_t index = handler.extractIndex(recLabel);
-  auto it = dataTypeMap.find(handler.tupleTypes[index]);
-  if (it != dataTypeMap.end())
-    it->second.insertIntoTuple(index, recValue);
-  else
-    throw std::runtime_error("Unsupported tuple type");
+  std::size_t index = containerMeta.extractIndex(recLabel);
+  if (index >= containerMeta.elementCount)
+    throw std::runtime_error("Tuple index out of bounds");
+  cudaq::details::DataHandlerBase &dh =
+      getDataHandler(containerMeta.tupleTypes[index]);
+  dh.insertIntoTuple(bufferHandler, containerMeta.tupleOffsets[index],
+                     recValue);
 }
