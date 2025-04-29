@@ -35,6 +35,7 @@ public:
 
 private:
   /// Process different types of records
+  void handleRecord(const std::vector<std::string> &);
   void handleHeader(const std::vector<std::string> &);
   void handleMetadata(const std::vector<std::string> &);
   void handleStart(const std::vector<std::string> &);
@@ -55,10 +56,6 @@ private:
 
   SchemaType schema = SchemaType::ORDERED;
   OutputType currentOutput;
-  static const std::unordered_map<
-      std::string,
-      std::function<void(RecordLogDecoder *, const std::vector<std::string> &)>>
-      recordHandlers;
   /// Manages the underlying buffer storage
   cudaq::details::BufferHandler bufferHandler;
   /// Tracks container metadata during decoding

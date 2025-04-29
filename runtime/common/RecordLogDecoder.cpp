@@ -8,31 +8,6 @@
 
 #include "RecordLogDecoder.h"
 
-const std::unordered_map<std::string,
-                         std::function<void(cudaq::RecordLogDecoder *,
-                                            const std::vector<std::string> &)>>
-    cudaq::RecordLogDecoder::recordHandlers = {
-        {"HEADER",
-         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
-           self->handleHeader(entries);
-         }},
-        {"METADATA",
-         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
-           self->handleMetadata(entries);
-         }},
-        {"OUTPUT",
-         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
-           self->handleOutput(entries);
-         }},
-        {"START",
-         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
-           self->handleStart(entries);
-         }},
-        {"END",
-         [](RecordLogDecoder *self, const std::vector<std::string> &entries) {
-           self->handleEnd(entries);
-         }}};
-
 void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
@@ -41,13 +16,25 @@ void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
-    auto it = recordHandlers.find(entries[0]);
-    if (it != recordHandlers.end()) {
-      it->second(this, entries);
-    } else {
-      throw std::runtime_error("Invalid record type: " + entries[0]);
-    }
+    handleRecord(entries);
   }
+}
+
+void cudaq::RecordLogDecoder::handleRecord(
+    const std::vector<std::string> &entries) {
+  const std::string &recordType = entries[0];
+  if (recordType == "HEADER")
+    handleHeader(entries);
+  else if (recordType == "METADATA")
+    handleMetadata(entries);
+  else if (recordType == "START")
+    handleStart(entries);
+  else if (recordType == "OUTPUT")
+    handleOutput(entries);
+  else if (recordType == "END")
+    handleEnd(entries);
+  else
+    throw std::runtime_error("Invalid record type: " + recordType);
 }
 
 void cudaq::RecordLogDecoder::handleHeader(
