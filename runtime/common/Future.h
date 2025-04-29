@@ -120,6 +120,10 @@ public:
     }
   }
 
+  virtual ~async_result() = default;
+  async_result(async_result &&) = default;
+  async_result &operator=(async_result &&other) = default;
+
   /// @brief Return the asynchronously computed data, will
   /// wait until the data is ready.
   T get() {

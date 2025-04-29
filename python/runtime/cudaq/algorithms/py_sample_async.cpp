@@ -37,21 +37,17 @@ void bindSampleAsync(py::module &mod) {
   // where `kernel_factory()` returns a kernel object. The `async_handle` would
   // then track a reference (ref count) to the context of the temporary (rval)
   // kernel.
-  struct py_async_sample_result {
-    // The underlying result
-    async_sample_result result;
-    // Python MLIR context (optional)
-    py::object ctx;
+  class py_async_sample_result : public async_sample_result {
+  public:
     // Ctors
-    py_async_sample_result(async_sample_result &&res)
-        : result(std::move(res)){};
     py_async_sample_result(async_sample_result &&res, py::object &&mlirCtx)
-        : result(std::move(res)), ctx(std::move(mlirCtx)){};
-    // Async. get method
-    cudaq::sample_result get() { return result.get(); }
+        : async_sample_result(std::move(res)), ctx(std::move(mlirCtx)){};
+
+  private:
+    py::object ctx;
   };
 
-  py::class_<py_async_sample_result>(
+  py::class_<async_sample_result, py_async_sample_result>(
       mod, "AsyncSampleResult",
       R"#(A data-type containing the results of a call to :func:`sample_async`. 
 The `AsyncSampleResult` models a future-like type, whose 
@@ -63,15 +59,15 @@ for more information on this programming pattern.)#")
         async_sample_result f;
         std::istringstream is(inJson);
         is >> f;
-        return py_async_sample_result(std::move(f));
+        return f;
       }))
-      .def("get", &py_async_sample_result::get,
+      .def("get", &async_sample_result::get,
            py::call_guard<py::gil_scoped_release>(),
            "Return the :class:`SampleResult` from the asynchronous sample "
            "execution.\n")
-      .def("__str__", [](py_async_sample_result &res) {
+      .def("__str__", [](async_sample_result &res) {
         std::stringstream ss;
-        ss << res.result;
+        ss << res;
         return ss.str();
       });
 
