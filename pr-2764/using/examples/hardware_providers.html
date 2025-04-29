@@ -636,6 +636,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/api.html">   API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../api/languages/cpp_api.html">C++ API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#operators">Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#quantum">Quantum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#common">Common</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
@@ -1692,7 +1693,8 @@ parameters of the time bin interferometer.</p>
 <span class="c1">// ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)</span>
-<span class="c1">// have been set.</span>
+<span class="c1">// have been set. To set `PASQAL_AUTH_TOKEN` from Pasqal Cloud username and</span>
+<span class="c1">// password, use `pasqal_auth.py` in this folder.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
@@ -1702,8 +1704,8 @@ parameters of the time bin interferometer.</p>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
 
-<span class="c1">// This example illustrates how to use Pasqal&#39;s EMU_MPS emulator over Pasqal&#39;s</span>
-<span class="c1">// cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through</span>
+<span class="c1">// This example illustrates how to use `Pasqal&#39;s` EMU_MPS emulator over</span>
+<span class="c1">// `Pasqal&#39;s` cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through</span>
 <span class="c1">// https://community.pasqal.com for assistance.</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
