@@ -165,7 +165,8 @@ spin_handler::to_sparse_matrix(const std::string &pauli,
                                std::complex<double> coeff, bool invert_order) {
   // private method, so we only assert dimensions
   assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
-                      [](std::int64_t d) { return d != 2; }) == dimensions.cend());
+                      [](std::int64_t d) { return d != 2; }) ==
+         dimensions.cend());
   return to_sparse_matrix(pauli, coeff, invert_order);
 }
 
@@ -182,13 +183,14 @@ complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
       });
 }
 
-complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
-                                       const std::vector<std::int64_t> &dimensions,
-                                       std::complex<double> coeff,
-                                       bool invert_order) {
+complex_matrix
+spin_handler::to_matrix(const std::string &pauli_word,
+                        const std::vector<std::int64_t> &dimensions,
+                        std::complex<double> coeff, bool invert_order) {
   // private method, so we only assert dimensions
   assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
-                      [](std::int64_t d) { return d != 2; }) == dimensions.cend());
+                      [](std::int64_t d) { return d != 2; }) ==
+         dimensions.cend());
   return to_matrix(pauli_word, coeff, invert_order);
 }
 

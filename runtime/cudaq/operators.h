@@ -811,11 +811,11 @@ public:
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
-  csr_spmatrix
-  to_sparse_matrix(std::unordered_map<std::size_t, std::int64_t> dimensions = {},
-                   const std::unordered_map<std::string, std::complex<double>>
-                       &parameters = {},
-                   bool invert_order = false) const;
+  csr_spmatrix to_sparse_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<double> get_data_representation() const;
@@ -1645,11 +1645,11 @@ public:
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
-  csr_spmatrix
-  to_sparse_matrix(std::unordered_map<std::size_t, std::int64_t> dimensions = {},
-                   const std::unordered_map<std::string, std::complex<double>>
-                       &parameters = {},
-                   bool invert_order = false) const;
+  csr_spmatrix to_sparse_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
 
   // utility functions for backward compatibility
   /// @cond

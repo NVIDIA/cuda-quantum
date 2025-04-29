@@ -259,10 +259,10 @@ boson_handler::to_sparse_matrix(const std::string &boson_word,
       });
 }
 
-complex_matrix boson_handler::to_matrix(const std::string &boson_word,
-                                        const std::vector<std::int64_t> &dimensions,
-                                        std::complex<double> coeff,
-                                        bool invert_order) {
+complex_matrix
+boson_handler::to_matrix(const std::string &boson_word,
+                         const std::vector<std::int64_t> &dimensions,
+                         std::complex<double> coeff, bool invert_order) {
   auto dim = 1;
   for (auto d : dimensions)
     dim *= d;

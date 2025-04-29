@@ -204,7 +204,8 @@ cudaq::detail::EigenSparseMatrix fermion_handler::to_sparse_matrix(
     std::complex<double> coeff, bool invert_order) {
   // private method, so we only assert dimensions
   assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
-                      [](std::int64_t d) { return d != 2; }) == dimensions.cend());
+                      [](std::int64_t d) { return d != 2; }) ==
+         dimensions.cend());
   auto dim = 1 << fermi_word.size();
   return cudaq::detail::create_sparse_matrix(
       dim, coeff,
@@ -221,7 +222,8 @@ fermion_handler::to_matrix(const std::string &fermi_word,
                            std::complex<double> coeff, bool invert_order) {
   // private method, so we only assert dimensions
   assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
-                      [](std::int64_t d) { return d != 2; }) == dimensions.cend());
+                      [](std::int64_t d) { return d != 2; }) ==
+         dimensions.cend());
   auto dim = 1 << fermi_word.size();
   return cudaq::detail::create_matrix(
       dim, coeff,

@@ -40,9 +40,9 @@ generate_all_states(const std::vector<std::int64_t> &dimensions);
 
 /// Generates all possible states for the given dimensions ordered according
 /// to the sequence of degrees (ordering is relevant if dimensions differ).
-std::vector<std::vector<std::int64_t>>
-generate_all_states(const std::vector<std::size_t> &degrees,
-                    const std::unordered_map<std::size_t, std::int64_t> &dimensions);
+std::vector<std::vector<std::int64_t>> generate_all_states(
+    const std::vector<std::size_t> &degrees,
+    const std::unordered_map<std::size_t, std::int64_t> &dimensions);
 
 /// Computes a vector describing the permutation to reorder a matrix that is
 /// ordered according to `op_degrees` to apply to `canon_degrees` instead.

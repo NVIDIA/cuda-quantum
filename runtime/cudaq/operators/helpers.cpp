@@ -72,10 +72,10 @@ std::vector<std::vector<std::int64_t>> generate_all_states(
   return generate_all_states(relevant_dimensions);
 }
 
-std::vector<std::size_t>
-compute_permutation(const std::vector<std::size_t> &op_degrees,
-                    const std::vector<std::size_t> &canon_degrees,
-                    const std::unordered_map<std::size_t, std::int64_t> dimensions) {
+std::vector<std::size_t> compute_permutation(
+    const std::vector<std::size_t> &op_degrees,
+    const std::vector<std::size_t> &canon_degrees,
+    const std::unordered_map<std::size_t, std::int64_t> dimensions) {
   // canon_degrees and op_degrees should be the same up to permutation
   assert(op_degrees.size() == canon_degrees.size());
   assert(std::set<std::size_t>(op_degrees.cbegin(), op_degrees.cend()).size() ==
