@@ -97,7 +97,17 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
                 hamiltonian.delta_global
         ]):
             if op is not None:
-                ts.append((op.evaluate(t), t))
+                param_names = op.parameters.keys()
+                if len(param_names) == 0:
+                    evaluated = op.evaluate()
+                elif len(param_names) == 1:
+                    param_map = {next(iter(param_names)): t}
+                    evaluated = op.evaluate(**param_map)
+                else:
+                    raise ValueError("generator for tunable parameter must not take more than one argument")
+                if abs(evaluated.imag) != 0:
+                    raise ValueError("tunable parameter must be real") 
+                ts.append((evaluated.real, t))
 
     atoms = cudaq_runtime.ahs.AtomArrangement()
     atoms.sites = hamiltonian.atom_sites

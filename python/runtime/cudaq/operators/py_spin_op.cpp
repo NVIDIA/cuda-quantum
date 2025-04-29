@@ -287,8 +287,7 @@ void bindSpinOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [&cmat_to_numpy,
-           &kwargs_to_param_map](const spin_op &self, dimension_map &dimensions,
+          [&kwargs_to_param_map](const spin_op &self, dimension_map &dimensions,
                                  bool invert_order, const py::kwargs &kwargs) {
             return self.to_sparse_matrix(
                 dimensions, kwargs_to_param_map(kwargs), invert_order);
@@ -932,7 +931,7 @@ void bindSpinOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [&cmat_to_numpy, &kwargs_to_param_map](
+          [&kwargs_to_param_map](
               const spin_op_term &self, dimension_map &dimensions,
               bool invert_order, const py::kwargs &kwargs) {
             return self.to_sparse_matrix(
