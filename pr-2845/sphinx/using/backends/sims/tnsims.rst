@@ -17,7 +17,7 @@ The :code:`tensornet` backend represents quantum states and circuits as tensor n
 Measurement samples and expectation values are computed via tensor network contractions. 
 This backend supports multi-GPU, multi-node distribution of tensor operations required to evaluate and simulate the circuit.
 
-The code:`tensornet` target supports both floating point precisions.
+The code:`tensornet` target supports both single and double floating point precision.
 
 To execute a program on the :code:`tensornet` target using a *single GPU*, use the following commands:
 
@@ -117,7 +117,7 @@ Matrix product state
 The :code:`tensornet-mps` backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable. 
 The :code:`tensornet-mps` backend only supports single-GPU simulation. Its approximate nature allows the :code:`tensornet-mps` backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.
 
-The code:`tensornet` target supports both floating point precisions.
+The code:`tensornet` target supports both single and double floating point precision.
 
 To execute a program on the :code:`tensornet-mps` target, use the following commands:
 
