@@ -59,7 +59,7 @@ void bindOperatorHandlers(py::module &mod) {
              return matrix_handler(
                  std::move(operator_id),
                  std::move(
-                     degrees)); // FIXME: BIND AND SUPPORT COMMUTATION BEHAVIOR
+                     degrees));
            }),
            py::arg("id"), py::arg("degrees"),
            "Creates the matrix operator with the given id acting on the given "
