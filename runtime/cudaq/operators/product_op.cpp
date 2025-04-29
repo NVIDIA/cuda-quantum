@@ -622,7 +622,7 @@ std::complex<double> product_op<HandlerTy>::evaluate_coefficient(
 
 template <typename HandlerTy>
 complex_matrix product_op<HandlerTy>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto evaluated =
@@ -640,7 +640,7 @@ complex_matrix product_op<HandlerTy>::to_matrix(
 
 template <>
 complex_matrix product_op<spin_handler>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto terms = std::move(
@@ -661,7 +661,7 @@ complex_matrix product_op<spin_handler>::to_matrix(
       const;                                                                   \
                                                                                \
   template complex_matrix product_op<HandlerTy>::to_matrix(                    \
-      std::unordered_map<std::size_t, int64_t> dimensions,                     \
+      std::unordered_map<std::size_t, std::int64_t> dimensions,                \
       const std::unordered_map<std::string, std::complex<double>> &parameters, \
       bool invert_order) const;
 
@@ -1374,7 +1374,7 @@ std::size_t product_op<HandlerTy>::num_qubits() const {
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::string
 product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) const {
-  std::unordered_map<std::size_t, int64_t> dims;
+  std::unordered_map<std::size_t, std::int64_t> dims;
   auto terms = std::move(
       this->evaluate(
               operator_arithmetics<operator_handler::canonical_evaluation>(dims,
@@ -1408,7 +1408,7 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
   if (this->operators.size() == 0)
     return {};
 
-  std::unordered_map<std::size_t, int64_t> dims;
+  std::unordered_map<std::size_t, std::int64_t> dims;
   auto degrees = this->degrees();
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
@@ -1441,7 +1441,7 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto terms = std::move(
@@ -1461,7 +1461,7 @@ product_op<spin_handler>::get_pauli_word(std::size_t pad_identities) const;
 template std::vector<bool>
 product_op<spin_handler>::get_binary_symplectic_form() const;
 template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 

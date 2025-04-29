@@ -35,7 +35,7 @@ private:
 
   std::string op_code_to_string() const;
   virtual std::string op_code_to_string(
-      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
+      std::unordered_map<std::size_t, std::int64_t> &dimensions) const override;
 
   std::complex<double> inplace_mult(const spin_handler &other);
 
@@ -87,7 +87,7 @@ public:
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 
