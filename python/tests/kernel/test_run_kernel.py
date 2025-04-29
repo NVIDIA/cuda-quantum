@@ -200,9 +200,8 @@ def test_return_list():
 
     results = cudaq.run(simple_list_bool, 2, shots_count=2)
     assert len(results) == 2
-    # TODO: gives incorrect output
-    # assert results[0] == [True, False]
-    # assert results[1] == [True, False]
+    assert results[0] == [True, False]
+    assert results[1] == [True, False]
 
     @cudaq.kernel
     def simple_list_int(n: int) -> list[int]:

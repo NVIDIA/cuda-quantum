@@ -184,3 +184,5 @@ int main() {
 // CHECK: success!
 // CHECK: success!
 // CHECK: success!
+// CHECK: success!
+// CHECK: success!

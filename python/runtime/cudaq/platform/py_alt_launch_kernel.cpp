@@ -516,10 +516,20 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
       .Case([&](cudaq::cc::StdvecType ty) -> py::object {
         auto eleTy = ty.getElementType();
         auto eleByteSize = byteSize(eleTy);
+
+        // Vector is a triple of pointers: `{ begin, end, end }`.
+        // Read `begin` and `end` pointers from the buffer.
+        struct vec {
+          char *begin;
+          char *end;
+          char *end2;
+        };
+        auto v = reinterpret_cast<vec *>(data);
+
+        // Read vector elements.
         py::list list;
-        for (std::size_t i = 0; i < size; i += eleByteSize)
-          list.append(
-              convertResult(kernelFuncOp, eleTy, data + i, eleByteSize));
+        for (char *i = v->begin; i < v->end; i += eleByteSize)
+          list.append(convertResult(kernelFuncOp, eleTy, i, eleByteSize));
         return list;
       })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
