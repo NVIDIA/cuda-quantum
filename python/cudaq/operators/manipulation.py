@@ -163,6 +163,7 @@ def _sum_transformation(operator: OperatorSum,
     """
 
     identity = operator.__class__.identity
+
     def padded_term(term: ProductOperator,
                     degrees: Iterable[int]) -> ProductOperator:
         term_degrees = term.degrees
