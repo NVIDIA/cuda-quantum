@@ -56,10 +56,7 @@ void bindOperatorHandlers(py::module &mod) {
            "Creates an identity operator on the given target.")
       .def(py::init([](std::string operator_id,
                        std::vector<std::size_t> degrees) {
-             return matrix_handler(
-                 std::move(operator_id),
-                 std::move(
-                     degrees));
+             return matrix_handler(std::move(operator_id), std::move(degrees));
            }),
            py::arg("id"), py::arg("degrees"),
            "Creates the matrix operator with the given id acting on the given "

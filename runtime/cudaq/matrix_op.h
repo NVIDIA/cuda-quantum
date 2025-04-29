@@ -118,14 +118,16 @@ public:
   /// arguments. Note: The dimensions passed during operator evaluation are
   /// automatically validated against the expected dimensions specified during
   /// definition - the `create` function does not need to do this.
-  /// @param operator_id : A string that uniquely identifies the defined operator.
+  /// @param operator_id : A string that uniquely identifies the defined
+  /// operator.
   /// @param expected_dimensions : Defines the number of levels, that is the
   /// dimension,
   ///      for each degree of freedom in canonical (that is sorted) order. A
   ///      negative or zero value for one (or more) of the expected dimensions
   ///      indicates that the operator is defined for any dimension of the
   ///      corresponding degree of freedom.
-  /// @param create : Takes any number of complex-valued arguments and returns the
+  /// @param create : Takes any number of complex-valued arguments and returns
+  /// the
   ///      matrix representing the operator. The matrix must be ordered such
   ///      that the value returned by `op.degrees()` matches the order of the
   ///      matrix, where `op` is the instantiated the operator defined here. The
@@ -193,7 +195,8 @@ public:
 
   /// @brief Instantiates a matrix_handler.
   /// @param operator_id A string identifying the operator definition.
-  /// @param degrees A vector defining the degrees of freedom that the operator acts on.
+  /// @param degrees A vector defining the degrees of freedom that the operator
+  /// acts on.
   /// @param behavior An optional argument to define the commutation behavior.
   matrix_handler(std::string operator_id,
                  const std::vector<std::size_t> &degrees,
@@ -201,7 +204,8 @@ public:
 
   /// @brief Instantiates a matrix_handler.
   /// @param operator_id A string identifying the operator definition.
-  /// @param degrees A vector defining the degrees of freedom that the operator acts on.
+  /// @param degrees A vector defining the degrees of freedom that the operator
+  /// acts on.
   /// @param behavior An optional argument to define the commutation behavior.
   matrix_handler(std::string operator_id, std::vector<std::size_t> &&degrees,
                  const commutation_behavior &behavior = commutation_behavior());

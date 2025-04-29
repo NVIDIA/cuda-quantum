@@ -36,7 +36,7 @@ public:
   /// @return True if the operator is constant, false otherwise.
   bool is_constant() const;
 
-  /// @brief A map that contains the documentation the parameters of 
+  /// @brief A map that contains the documentation the parameters of
   /// the operator, if available. The operator may use parameters that
   /// are not represented in this dictionary.
   const std::unordered_map<std::string, std::string> &

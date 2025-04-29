@@ -109,7 +109,8 @@ private:
   std::vector<std::int64_t> required_dimensions;
 
 public:
-  const std::vector<std::int64_t> &expected_dimensions = this->required_dimensions;
+  const std::vector<std::int64_t> &expected_dimensions =
+      this->required_dimensions;
   const std::unordered_map<std::string, std::string> parameter_descriptions;
 
   Definition(
