@@ -63,8 +63,8 @@ std::string boson_handler::op_code_to_string() const {
 // used internally for canonical evaluation -
 // use a encoding that makes it convenient to reconstruct the operator
 std::string boson_handler::canonical_form(
-    std::unordered_map<std::size_t, int64_t> &dimensions,
-    std::vector<int64_t> &relevant_dims) const {
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
+    std::vector<std::int64_t> &relevant_dims) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " +
@@ -170,7 +170,7 @@ boson_handler::boson_handler(std::size_t target, int op_id)
 // evaluations
 
 void boson_handler::create_matrix(
-    const std::string &boson_word, const std::vector<int64_t> &dimensions,
+    const std::string &boson_word, const std::vector<std::int64_t> &dimensions,
     const std::function<void(std::size_t, std::size_t, std::complex<double>)>
         &process_element,
     bool invert_order) {
@@ -185,17 +185,17 @@ void boson_handler::create_matrix(
     return tokens;
   };
 
-  auto map_state = [&tokenize](std::string encoding, int64_t old_state) {
+  auto map_state = [&tokenize](std::string encoding, std::int64_t old_state) {
     if (encoding == "I")
-      return std::pair<double, int64_t>{1., old_state};
+      return std::pair<double, std::int64_t>{1., old_state};
     auto ops = tokenize(encoding, '.');
     assert(ops.size() > 0);
 
     auto it = ops.cbegin();
     int additional_terms = std::stol(*it);
-    int64_t new_state = old_state + additional_terms;
+    std::int64_t new_state = old_state + additional_terms;
     if (new_state < 0)
-      return std::pair<double, int64_t>{0., old_state};
+      return std::pair<double, std::int64_t>{0., old_state};
 
     double value = 1.;
     if (additional_terms > 0)
@@ -206,7 +206,7 @@ void boson_handler::create_matrix(
         value *= std::sqrt(new_state + offset);
     while (++it != ops.cend())
       value *= (new_state + std::stol(*it));
-    return std::pair<double, int64_t>{value, new_state};
+    return std::pair<double, std::int64_t>{value, new_state};
   };
 
   auto states = cudaq::detail::generate_all_states(dimensions);
@@ -215,7 +215,7 @@ void boson_handler::create_matrix(
   std::vector<std::string> boson_terms = tokenize(boson_word, '_');
   std::size_t old_state_idx = 0;
   for (const auto &old_state : states) {
-    std::vector<int64_t> new_state(old_state.size(), 0);
+    std::vector<std::int64_t> new_state(old_state.size(), 0);
     std::complex<double> entry = 1.;
     for (std::size_t degree = 0; degree < old_state.size(); ++degree) {
       auto state = old_state[degree];
@@ -245,7 +245,7 @@ void boson_handler::create_matrix(
 
 cudaq::detail::EigenSparseMatrix
 boson_handler::to_sparse_matrix(const std::string &boson_word,
-                                const std::vector<int64_t> &dimensions,
+                                const std::vector<std::int64_t> &dimensions,
                                 std::complex<double> coeff, bool invert_order) {
   auto dim = 1;
   for (auto d : dimensions)
@@ -260,7 +260,7 @@ boson_handler::to_sparse_matrix(const std::string &boson_word,
 }
 
 complex_matrix boson_handler::to_matrix(const std::string &boson_word,
-                                        const std::vector<int64_t> &dimensions,
+                                        const std::vector<std::int64_t> &dimensions,
                                         std::complex<double> coeff,
                                         bool invert_order) {
   auto dim = 1;
@@ -276,10 +276,10 @@ complex_matrix boson_handler::to_matrix(const std::string &boson_word,
 }
 
 complex_matrix boson_handler::to_matrix(
-    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  std::vector<int64_t> relevant_dims;
+  std::vector<std::int64_t> relevant_dims;
   auto boson_word = this->canonical_form(dimensions, relevant_dims);
   return boson_handler::to_matrix(boson_word, relevant_dims);
 }

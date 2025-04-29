@@ -39,8 +39,8 @@ private:
   std::string op_code_to_string() const;
   // internal only string encoding
   virtual std::string
-  canonical_form(std::unordered_map<std::size_t, int64_t> &dimensions,
-                 std::vector<int64_t> &relevant_dims) const override;
+  canonical_form(std::unordered_map<std::size_t, std::int64_t> &dimensions,
+                 std::vector<std::int64_t> &relevant_dims) const override;
 
   std::complex<double> inplace_mult(const spin_handler &other);
 
@@ -55,13 +55,13 @@ private:
   // that support in-place multiplication
   static cudaq::detail::EigenSparseMatrix
   to_sparse_matrix(const std::string &pauli,
-                   const std::vector<int64_t> &dimensions,
+                   const std::vector<std::int64_t> &dimensions,
                    std::complex<double> coeff = 1., bool invert_order = false);
 
   // overload for consistency with other operator classes
   // that support in-place multiplication
   static complex_matrix to_matrix(const std::string &pauli,
-                                  const std::vector<int64_t> &dimensions,
+                                  const std::vector<std::int64_t> &dimensions,
                                   std::complex<double> coeff = 1.,
                                   bool invert_order = false);
 
@@ -106,7 +106,7 @@ public:
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 

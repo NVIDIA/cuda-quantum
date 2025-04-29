@@ -17,13 +17,13 @@
 namespace cudaq {
 // Struct captures the system dynamics needed by the integrator
 struct SystemDynamics {
-  std::vector<int64_t> modeExtents;
+  std::vector<std::int64_t> modeExtents;
   sum_op<cudaq::matrix_handler> hamiltonian;
   std::vector<sum_op<cudaq::matrix_handler>> collapseOps;
   std::unordered_map<std::string, std::complex<double>> parameters;
 
   SystemDynamics(
-      const std::vector<int64_t> extents,
+      const std::vector<std::int64_t> extents,
       const sum_op<cudaq::matrix_handler> &ham,
       const std::vector<sum_op<cudaq::matrix_handler>> &cOps = {},
       const std::unordered_map<std::string, std::complex<double>> &params = {})

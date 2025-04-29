@@ -16,9 +16,21 @@
 #include "cudaq/utils/matrix.h"
 
 namespace cudaq {
-
+/// @brief The matrix_handler class manages matrix-based quantum operators.
+/// It derives from operator_handler and facilitates the definition,
+/// instantiation, evaluation, and manipulation of elementary as well as custom
+/// operators that can be represented in matrix form.
 class matrix_handler : public operator_handler {
 public:
+  /// @brief The commutation_behavior struct encapsulates the commutation
+  /// properties for a matrix operator:
+  ///   - group: Specifies the commutation relations group (using
+  ///   commutation_relations enum),
+  ///            defaulting to the operator_handler's
+  ///            default_commutation_relations.
+  ///   - commutes_across_degrees: A flag indicating whether the operator
+  ///   commutes across
+  ///            different degrees of freedom.
   struct commutation_behavior {
     commutation_relations group =
         operator_handler::default_commutation_relations;
@@ -45,8 +57,8 @@ private:
 
   // internal only string encoding
   virtual std::string
-  canonical_form(std::unordered_map<std::size_t, int64_t> &dimensions,
-                 std::vector<int64_t> &relevant_dims) const override;
+  canonical_form(std::unordered_map<std::size_t, std::int64_t> &dimensions,
+                 std::vector<std::int64_t> &relevant_dims) const override;
 
 protected:
   std::string op_code;
@@ -80,14 +92,16 @@ public:
   /// arguments. Note: The dimensions passed during operator evaluation are
   /// automatically validated against the expected dimensions specified during
   /// definition - the `create` function does not need to do this.
-  /// @arg operator_id : A string that uniquely identifies the defined operator.
-  /// @arg expected_dimensions : Defines the number of levels, that is the
+  /// @param operator_id : A string that uniquely identifies the defined
+  /// operator.
+  /// @param expected_dimensions : Defines the number of levels, that is the
   /// dimension,
   ///      for each degree of freedom in canonical (that is sorted) order. A
   ///      negative or zero value for one (or more) of the expected dimensions
   ///      indicates that the operator is defined for any dimension of the
   ///      corresponding degree of freedom.
-  /// @arg create : Takes any number of complex-valued arguments and returns the
+  /// @param create : Takes any number of complex-valued arguments and returns
+  /// the
   ///      matrix representing the operator. The matrix must be ordered such
   ///      that the value returned by `op.degrees()` matches the order of the
   ///      matrix, where `op` is the instantiated the operator defined here. The
@@ -96,21 +110,21 @@ public:
   ///      the operator acts on, and an unordered map from string to complex
   ///      double that contains additional parameters the operator may use.
   static void define(std::string operator_id,
-                     std::vector<int64_t> expected_dimensions,
+                     std::vector<std::int64_t> expected_dimensions,
                      matrix_callback &&create);
 
   /// @brief Instantiates a custom operator.
-  /// @arg operator_id : The ID of the operator as specified when it was
+  /// @param operator_id : The ID of the operator as specified when it was
   /// defined.
-  /// @arg degrees : the degrees of freedom that the operator acts upon.
+  /// @param degrees : the degrees of freedom that the operator acts upon.
   static product_op<matrix_handler>
   instantiate(std::string operator_id, const std::vector<std::size_t> &degrees,
               const commutation_behavior &behavior = commutation_behavior());
 
   /// @brief Instantiates a custom operator.
-  /// @arg operator_id : The ID of the operator as specified when it was
+  /// @param operator_id : The ID of the operator as specified when it was
   /// defined.
-  /// @arg degrees : the degrees of freedom that the operator acts upon.
+  /// @param degrees : the degrees of freedom that the operator acts upon.
   static product_op<matrix_handler>
   instantiate(std::string operator_id, std::vector<std::size_t> &&degrees,
               const commutation_behavior &behavior = commutation_behavior());
@@ -120,36 +134,71 @@ public:
   const commutation_relations &commutation_group = this->group;
   const bool &commutes_across_degrees = this->commutes;
 
+  /// @brief Returns a unique identifier string for this operator instance.
+  /// @return A string representing the unique ID of the operator.
   virtual std::string unique_id() const override;
 
+  /// @brief Returns the degrees of freedom on which the operator acts.
+  /// @return A vector of std::size_t representing the degrees of freedom.
   virtual std::vector<std::size_t> degrees() const override;
 
   // constructors and destructors
 
+  /// @brief Constructs a matrix_handler that applies an identity operator to
+  /// the given target.
+  /// @param target A std::size_t representing the target index relevant for the
+  /// operator.
   matrix_handler(std::size_t target);
 
+  /// @brief Constructs a matrix_handler by copying from an
+  /// operator_handler-derived instance.
+  /// @tparam T A type derived from operator_handler.
+  /// @param other A constant reference to the source operator instance.
   template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
                                          bool> = true>
   matrix_handler(const T &other);
 
+  /// @brief Constructs a matrix_handler from an operator_handler-derived
+  /// instance with specified commutation behavior.
+  /// @tparam T A type derived from operator_handler.
+  /// @param other A constant reference to the source operator instance.
+  /// @param behavior A commutation_behavior object specifying the commutation
+  /// properties.
   template <typename T, std::enable_if_t<std::is_base_of_v<operator_handler, T>,
                                          bool> = true>
   matrix_handler(const T &other, const commutation_behavior &behavior);
 
-  // copy constructor
+  /// @brief Copy constructs a matrix_handler from another matrix_handler
+  /// instance.
+  /// @param other A constant reference to the other matrix_handler instance.
   matrix_handler(const matrix_handler &other);
 
-  // move constructor
+  /// @brief Move constructs a matrix_handler by transferring resources from
+  /// another instance.
+  /// @param other An rvalue reference to the other matrix_handler instance.
   matrix_handler(matrix_handler &&other);
 
+  /// @brief Default destructor for matrix_handler.
   ~matrix_handler() = default;
 
   // assignments
 
+  /// @brief Move assigns a matrix_handler instance by transferring resources
+  /// from another instance.
+  /// @param other An rvalue reference to the other matrix_handler instance.
+  /// @return A reference to the assigned matrix_handler.
   matrix_handler &operator=(matrix_handler &&other);
 
+  /// @brief Copy assigns a matrix_handler instance from another matrix_handler.
+  /// @param other A constant reference to the other matrix_handler instance.
+  /// @return A reference to the assigned matrix_handler.
   matrix_handler &operator=(const matrix_handler &other);
 
+  /// @brief Assigns a base operator to a matrix_handler instance.
+  /// @tparam T A type derived from operator_handler and not matrix_handler.
+  /// @param other A constant reference to the operator_handler-derived
+  /// instance.
+  /// @return A reference to the assigned matrix_handler.
   template <typename T,
             std::enable_if_t<!std::is_same<T, matrix_handler>::value &&
                                  std::is_base_of_v<operator_handler, T>,
@@ -159,15 +208,19 @@ public:
   // evaluations
 
   /// @brief Return the `matrix_handler` as a matrix.
-  /// @arg  `dimensions` : A map specifying the number of levels,
+  /// @param  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 
+  /// @brief Generates a string representation of the matrix_handler.
+  /// @param include_degrees A flag indicating whether to include degree
+  /// information in the string.
+  /// @return A string describing the operator.
   virtual std::string to_string(bool include_degrees) const override;
 
   // comparisons
@@ -178,12 +231,36 @@ public:
 
   // predefined operators
 
+  /// @brief Constructs a operator representing a number operator for
+  /// the given degree.
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix_handler instance that encapsulates the
+  /// constructed number operator matrix.
   static matrix_handler number(std::size_t degree);
+  /// @brief Creates a parity operator with
+  /// matrix_handler.
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix_handler that encapsulates the parity transformation.
   static matrix_handler parity(std::size_t degree);
+  /// @brief Constructs a position operator representing the position operator.
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix_handler that embodies
+  /// the position operator.
   static matrix_handler position(std::size_t degree);
+  /// @brief Constructs a momentum operator based on the specified degree.
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix_handler that represents
+  /// the momentum operator.
   static matrix_handler momentum(std::size_t degree);
-  /// Operators that accept parameters at runtime.
+  /// @brief Creates a squeeze operator with a specific degree.
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix_handler representing the squeeze
+  /// transformation.
   static matrix_handler squeeze(std::size_t degree);
+  /// @brief Creates a displacement operator based on a specified degree.
+  /// @param degree : The degree of freedom that the parity operator acts on.
+  /// @return A matrix handler representing the
+  /// displacement.
   static matrix_handler displace(std::size_t degree);
 };
 } // namespace cudaq

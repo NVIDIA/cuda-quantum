@@ -15,15 +15,15 @@
 namespace cudaq {
 namespace detail {
 
-int states_hash::operator()(const std::vector<int64_t> &vect) const {
+int states_hash::operator()(const std::vector<std::int64_t> &vect) const {
   int hash = vect.size();
   for (auto &i : vect)
     hash ^= i + 0x9e3779b9 + (hash << 6) + (hash >> 2);
   return hash;
 }
 
-std::vector<std::vector<int64_t>>
-generate_all_states(const std::vector<int64_t> &dimensions) {
+std::vector<std::vector<std::int64_t>>
+generate_all_states(const std::vector<std::int64_t> &dimensions) {
   if (dimensions.size() == 0)
     return {};
   auto dim_itr = dimensions.cbegin();
@@ -31,10 +31,10 @@ generate_all_states(const std::vector<int64_t> &dimensions) {
   for (auto d : dimensions)
     total_states *= d;
 
-  std::vector<std::vector<int64_t>> states;
+  std::vector<std::vector<std::int64_t>> states;
   states.reserve(total_states);
-  for (int64_t state = 0; state < *dim_itr; state++) {
-    std::vector<int64_t> expanded_state;
+  for (std::int64_t state = 0; state < *dim_itr; state++) {
+    std::vector<std::int64_t> expanded_state;
     expanded_state.reserve(dimensions.size());
     expanded_state.push_back(state);
     states.push_back(expanded_state);
@@ -42,9 +42,9 @@ generate_all_states(const std::vector<int64_t> &dimensions) {
 
   while (++dim_itr != dimensions.cend()) {
     std::size_t current_size = states.size();
-    for (int64_t state = 1; state < *dim_itr; state++) {
+    for (std::int64_t state = 1; state < *dim_itr; state++) {
       for (std::size_t idx = 0; idx < current_size; ++idx) {
-        std::vector<int64_t> expanded_state;
+        std::vector<std::int64_t> expanded_state;
         expanded_state.reserve(dimensions.size());
         expanded_state.insert(expanded_state.end(), states[idx].cbegin(),
                               states[idx].cend());
@@ -59,10 +59,10 @@ generate_all_states(const std::vector<int64_t> &dimensions) {
   return states;
 }
 
-std::vector<std::vector<int64_t>> generate_all_states(
+std::vector<std::vector<std::int64_t>> generate_all_states(
     const std::vector<std::size_t> &degrees,
-    const std::unordered_map<std::size_t, int64_t> &dimensions) {
-  std::vector<int64_t> relevant_dimensions;
+    const std::unordered_map<std::size_t, std::int64_t> &dimensions) {
+  std::vector<std::int64_t> relevant_dimensions;
   relevant_dimensions.reserve(degrees.size());
   for (auto d : degrees) {
     auto it = dimensions.find(d);
@@ -75,7 +75,7 @@ std::vector<std::vector<int64_t>> generate_all_states(
 std::vector<std::size_t>
 compute_permutation(const std::vector<std::size_t> &op_degrees,
                     const std::vector<std::size_t> &canon_degrees,
-                    const std::unordered_map<std::size_t, int64_t> dimensions) {
+                    const std::unordered_map<std::size_t, std::int64_t> dimensions) {
   // canon_degrees and op_degrees should be the same up to permutation
   assert(op_degrees.size() == canon_degrees.size());
   assert(std::set<std::size_t>(op_degrees.cbegin(), op_degrees.cend()).size() ==
@@ -87,7 +87,7 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
 
   auto states = cudaq::detail::generate_all_states(canon_degrees, dimensions);
 
-  std::vector<int64_t> reordering;
+  std::vector<std::int64_t> reordering;
   reordering.reserve(op_degrees.size());
   for (auto degree : op_degrees) {
     auto it = std::find(canon_degrees.cbegin(), canon_degrees.cend(), degree);
@@ -96,7 +96,7 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
 
   auto op_states = cudaq::detail::generate_all_states(op_degrees, dimensions);
   // probably worth creating a hashmap for faster lookup
-  std::unordered_map<std::vector<int64_t>, std::size_t, states_hash>
+  std::unordered_map<std::vector<std::int64_t>, std::size_t, states_hash>
       op_states_map;
   op_states_map.reserve(op_states.size());
   for (std::size_t idx = 0; idx < op_states.size(); ++idx)
@@ -105,7 +105,7 @@ compute_permutation(const std::vector<std::size_t> &op_degrees,
   std::vector<std::size_t> permutation;
   permutation.reserve(states.size());
   for (const auto &state : states) {
-    std::vector<int64_t> term;
+    std::vector<std::int64_t> term;
     term.reserve(reordering.size());
     for (auto i : reordering) {
       term.push_back(state[i]);

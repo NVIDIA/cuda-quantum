@@ -459,7 +459,7 @@ INSTANTIATE_SUM_ASSIGNMENTS(fermion_handler);
 
 template <typename HandlerTy>
 complex_matrix sum_op<HandlerTy>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto evaluated = this->evaluate(
@@ -499,7 +499,7 @@ complex_matrix sum_op<matrix_handler>::to_matrix(
 #define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                 \
                                                                                \
   template complex_matrix sum_op<HandlerTy>::to_matrix(                        \
-      std::unordered_map<std::size_t, int64_t> dimensions,                     \
+      std::unordered_map<std::size_t, std::int64_t> dimensions,                \
       const std::unordered_map<std::string, std::complex<double>> &params,     \
       bool invert_order) const;
 
@@ -1794,7 +1794,7 @@ template <typename HandlerTy>
 PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
                                       product_op<T>::supports_inplace_mult)
 csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto evaluated = this->evaluate(
@@ -1855,7 +1855,7 @@ template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
                                                            std::size_t nTerms,
                                                            unsigned int seed);
 template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template csr_spmatrix sum_op<fermion_handler>::to_sparse_matrix(
@@ -2010,7 +2010,7 @@ sum_op<HandlerTy>::getDataTuple() const {
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
 sum_op<HandlerTy>::get_raw_data() const {
-  std::unordered_map<std::size_t, int64_t> dims;
+  std::unordered_map<std::size_t, std::int64_t> dims;
   auto degrees = this->degrees();
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(
@@ -2057,7 +2057,7 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
   // This function prints a string representing the operator sum that
   // includes the full representation for any degree in [0, max_degree),
   // padding identities if necessary (opposed to pauli_word).
-  std::unordered_map<std::size_t, int64_t> dims;
+  std::unordered_map<std::size_t, std::int64_t> dims;
   auto degrees = this->degrees();
   auto evaluated = this->evaluate(
       operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
