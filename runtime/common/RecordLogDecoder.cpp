@@ -12,119 +12,197 @@ void cudaq::RecordLogDecoder::decode(const std::string &outputLog) {
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;
-
-  for (auto line : lines) {
+  for (const auto &line : lines) {
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
+    handleRecord(entries);
+  }
+}
 
-    if ("HEADER" == entries[0])
-      currentRecord = RecordType::HEADER;
-    else if ("METADATA" == entries[0])
-      currentRecord = RecordType::METADATA;
-    else if ("OUTPUT" == entries[0])
-      currentRecord = RecordType::OUTPUT;
-    else if ("START" == entries[0])
-      currentRecord = RecordType::START;
-    else if ("END" == entries[0])
-      currentRecord = RecordType::END;
+void cudaq::RecordLogDecoder::handleRecord(
+    const std::vector<std::string> &entries) {
+  const std::string &recordType = entries[0];
+  if (recordType == "HEADER")
+    handleHeader(entries);
+  else if (recordType == "METADATA")
+    handleMetadata(entries);
+  else if (recordType == "START")
+    handleStart(entries);
+  else if (recordType == "OUTPUT")
+    handleOutput(entries);
+  else if (recordType == "END")
+    handleEnd(entries);
+  else
+    throw std::runtime_error("Invalid record type: " + recordType);
+}
+
+void cudaq::RecordLogDecoder::handleHeader(
+    const std::vector<std::string> &entries) {
+  if (entries.size() < 3)
+    throw std::runtime_error("Invalid HEADER record");
+  if (entries[1] == "schema_name") {
+    if (entries[2] == "labeled")
+      schema = RecordSchemaType::LABELED;
+    else if (entries[2] == "ordered")
+      schema = RecordSchemaType::ORDERED;
     else
-      throw std::runtime_error("Invalid data");
+      throw std::runtime_error("Unknown schema type");
+  }
+  /// TODO: Handle schema version if needed
+}
 
-    switch (currentRecord) {
-    case RecordType::HEADER: {
-      if ("schema_name" == entries[1]) {
-        if ("labeled" == entries[2])
-          schema = SchemaType::LABELED;
-        else if ("ordered" == entries[2])
-          schema = SchemaType::ORDERED;
-        else
-          throw std::runtime_error("Unknown schema type");
-      }
-      /// TODO: Check schema version
-    } break;
-    case RecordType::METADATA:
-      // ignore metadata for now
-      break;
-    case RecordType::START:
-      // indicates start of a shot
-      break;
-    case RecordType::END: {
-      // indicates end of a shot
-      if (entries.size() < 2)
-        throw std::runtime_error("Missing shot status");
-      if ("0" != entries[1])
-        throw std::runtime_error("Cannot handle unsuccessful shot");
-    } break;
-    case RecordType::OUTPUT: {
-      if (entries.size() < 3)
-        throw std::runtime_error("Insufficent data in a record");
-      if ((schema == SchemaType::LABELED) && (entries.size() != 4))
-        throw std::runtime_error("Unexpected record size for a labeled record");
+void cudaq::RecordLogDecoder::handleMetadata(
+    const std::vector<std::string> &entries) {
+  // Ignore metadata for now
+}
 
-      std::string recType = entries[1];
-      std::string recValue = entries[2];
-      std::string recLabel = (entries.size() == 4) ? entries[3] : "";
+void cudaq::RecordLogDecoder::handleStart(
+    const std::vector<std::string> &entries) {
+  // Ignore start of a shot for now
+}
 
-      if ("RESULT" == recType)
-        throw std::runtime_error("This type is not yet supported");
-      if ("TUPLE" == recType)
-        throw std::runtime_error("This type is not yet supported");
-      if ("ARRAY" == recType)
-        throw std::runtime_error("This type is not yet supported");
+void cudaq::RecordLogDecoder::handleEnd(
+    const std::vector<std::string> &entries) {
+  if (entries.size() < 2)
+    throw std::runtime_error("Missing shot status");
+  if ("0" != entries[1])
+    throw std::runtime_error("Cannot handle unsuccessful shot");
+}
 
-      if ("BOOL" == recType)
-        currentOutput = OutputType::BOOL;
-      else if ("INT" == recType)
-        currentOutput = OutputType::INT;
-      else if ("DOUBLE" == recType)
-        currentOutput = OutputType::DOUBLE;
-      else
-        throw std::runtime_error("Invalid data");
-
-      processSingleRecord(recValue, recLabel);
-    } break;
+void cudaq::RecordLogDecoder::handleOutput(
+    const std::vector<std::string> &entries) {
+  if (entries.size() < 3)
+    throw std::runtime_error("Insufficient data in a record");
+  if ((schema == RecordSchemaType::LABELED) && (entries.size() != 4))
+    throw std::runtime_error("Unexpected record size for a labeled record");
+  const std::string &recType = entries[1];
+  const std::string &recValue = entries[2];
+  std::string recLabel = (entries.size() == 4) ? entries[3] : "";
+  if (recType == "RESULT")
+    throw std::runtime_error("This type is not yet supported");
+  if (recType == "ARRAY") {
+    containerMeta.m_type = ContainerType::ARRAY;
+    containerMeta.elementCount = std::stoul(recValue);
+    if (!recLabel.empty()) {
+      schema = RecordSchemaType::LABELED;
+      containerMeta.extractArrayInfo(recLabel);
+      preallocateArray();
     }
-  } // for line
+    return;
+  }
+  if (recType == "TUPLE") {
+    containerMeta.m_type = ContainerType::TUPLE;
+    containerMeta.elementCount = std::stoul(recValue);
+    if (!recLabel.empty()) {
+      schema = RecordSchemaType::LABELED;
+      containerMeta.extractTupleInfo(recLabel);
+      preallocateTuple();
+    }
+    return;
+  }
+  if (recType == "BOOL")
+    currentOutput = OutputType::BOOL;
+  else if (recType == "INT")
+    currentOutput = OutputType::INT;
+  else if (recType == "DOUBLE")
+    currentOutput = OutputType::DOUBLE;
+  else
+    throw std::runtime_error("Invalid data");
+  if ((containerMeta.elementCount > 0) &&
+      (schema == RecordSchemaType::LABELED)) {
+    if (containerMeta.m_type == ContainerType::ARRAY)
+      processArrayEntry(recValue, recLabel);
+    else if (containerMeta.m_type == ContainerType::TUPLE)
+      processTupleEntry(recValue, recLabel);
+    containerMeta.processedElements++;
+    if (containerMeta.processedElements == containerMeta.elementCount) {
+      containerMeta.reset();
+    }
+  } else
+    processSingleRecord(recValue, recLabel);
+}
+
+cudaq::details::DataHandlerBase &
+cudaq::RecordLogDecoder::getDataHandler(const std::string &dataType) {
+  // Static handlers for different data types
+  static details::DataHandler<char> boolHandler(
+      std::make_unique<details::BooleanConverter>());
+  static details::DataHandler<std::int8_t> i8Handler(
+      std::make_unique<details::IntegerConverter<std::int8_t>>());
+  static details::DataHandler<std::int16_t> i16Handler(
+      std::make_unique<details::IntegerConverter<std::int16_t>>());
+  static details::DataHandler<std::int32_t> i32Handler(
+      std::make_unique<details::IntegerConverter<std::int32_t>>());
+  static details::DataHandler<std::int64_t> i64Handler(
+      std::make_unique<details::IntegerConverter<std::int64_t>>());
+  static details::DataHandler<float> f32Handler(
+      std::make_unique<details::FloatConverter<float>>());
+  static details::DataHandler<double> f64Handler(
+      std::make_unique<details::FloatConverter<double>>());
+  // Map data type to the corresponding handler
+  if (dataType == "i1")
+    return boolHandler;
+  else if (dataType == "i8")
+    return i8Handler;
+  else if (dataType == "i16")
+    return i16Handler;
+  else if (dataType == "i32")
+    return i32Handler;
+  else if (dataType == "i64")
+    return i64Handler;
+  else if (dataType == "f32")
+    return f32Handler;
+  else if (dataType == "f64")
+    return f64Handler;
+  throw std::runtime_error("Unsupported data type: " + dataType);
+}
+
+void cudaq::RecordLogDecoder::preallocateArray() {
+  cudaq::details::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
+  containerMeta.dataOffset =
+      dh.allocateArray(bufferHandler, containerMeta.elementCount);
+}
+
+void cudaq::RecordLogDecoder::preallocateTuple() {
+  containerMeta.dataOffset = bufferHandler.getBufferSize();
+  for (auto ty : containerMeta.tupleTypes) {
+    cudaq::details::DataHandlerBase &dh = getDataHandler(ty);
+    containerMeta.tupleOffsets.push_back(dh.allocateTuple(bufferHandler));
+  }
 }
 
 void cudaq::RecordLogDecoder::processSingleRecord(const std::string &recValue,
                                                   const std::string &recLabel) {
-  if ((!recLabel.empty()) && (extractPrimitiveType(recLabel) != currentOutput))
-    throw std::runtime_error("Type mismatch in label");
-
-  switch (currentOutput) {
-  case OutputType::BOOL: {
-    bool value;
-    if ("true" == recValue)
-      value = true;
-    else if ("false" == recValue)
-      value = false;
-    else
-      throw std::runtime_error("Invalid boolean value");
-    addPrimitiveRecord<char>((char)value);
-  } break;
-  case OutputType::INT:
-    if (recLabel == "i8")
-      addPrimitiveRecord<std::int8_t>(std::stoi(recValue));
-    else if (recLabel == "i16")
-      addPrimitiveRecord<std::int16_t>(std::stoi(recValue));
-    else if (recLabel == "i32")
-      addPrimitiveRecord<std::int32_t>(std::stoi(recValue));
-    else if (recLabel == "i64")
-      addPrimitiveRecord<std::int64_t>(std::stoi(recValue));
-    else
-      throw std::runtime_error("integer size is not supported");
-    break;
-  case OutputType::DOUBLE:
-    if (recLabel == "f32")
-      addPrimitiveRecord<float>(std::stod(recValue));
-    else if (recLabel == "f64")
-      addPrimitiveRecord<double>(std::stod(recValue));
-    else
-      throw std::runtime_error("floating-point size is not supported");
-    break;
-  default:
-    throw std::runtime_error("Unsupported output type");
+  auto label = recLabel;
+  if (label.empty()) {
+    if (currentOutput == OutputType::BOOL)
+      label = "i1";
+    else if (currentOutput == OutputType::INT)
+      label = "i32";
+    else if (currentOutput == OutputType::DOUBLE)
+      label = "f64";
   }
+  cudaq::details::DataHandlerBase &dh = getDataHandler(label);
+  dh.addRecord(bufferHandler, recValue);
+}
+
+void cudaq::RecordLogDecoder::processArrayEntry(const std::string &recValue,
+                                                const std::string &recLabel) {
+  std::size_t index = containerMeta.extractIndex(recLabel);
+  if (index >= containerMeta.elementCount)
+    throw std::runtime_error("Array index out of bounds");
+  cudaq::details::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
+  dh.insertIntoArray(bufferHandler, containerMeta.dataOffset, index, recValue);
+}
+
+void cudaq::RecordLogDecoder::processTupleEntry(const std::string &recValue,
+                                                const std::string &recLabel) {
+  std::size_t index = containerMeta.extractIndex(recLabel);
+  if (index >= containerMeta.elementCount)
+    throw std::runtime_error("Tuple index out of bounds");
+  cudaq::details::DataHandlerBase &dh =
+      getDataHandler(containerMeta.tupleTypes[index]);
+  dh.insertIntoTuple(bufferHandler, containerMeta.tupleOffsets[index],
+                     recValue);
 }
