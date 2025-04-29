@@ -25,6 +25,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "runtime/cudaq/algorithms/py_utils.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
 #include "llvm/Support/Error.h"
@@ -523,22 +524,62 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
         return list;
       })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
-        auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
-        auto memberTys = ty.getMembers();
-        py::list list;
-        for (std::size_t i = 0; i < offsets.size(); i++) {
-          auto eleTy = memberTys[i];
-          if (!eleTy.isIntOrFloat()) {
-            eleTy.dump();
-            throw std::runtime_error(
-                "Unsupported element type in struct type.");
+        if (ty.getName() == "tuple") {
+          auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+          auto memberTys = ty.getMembers();
+          py::list list;
+          for (std::size_t i = 0; i < offsets.size(); i++) {
+            auto eleTy = memberTys[i];
+            if (!eleTy.isIntOrFloat()) {
+              eleTy.dump();
+              throw std::runtime_error(
+                  "Unsupported element type in struct type.");
+            }
+            auto eleByteSize = byteSize(eleTy);
+            list.append(convertResult(kernelFuncOp, eleTy, data + offsets[i],
+                                      eleByteSize));
           }
-          auto eleByteSize = byteSize(eleTy);
-          list.append(convertResult(kernelFuncOp, eleTy, data + offsets[i],
-                                    eleByteSize));
-        }
-        if (ty.getName() == "tuple")
           return py::tuple(list);
+        } else {
+          auto name = ty.getName().str();
+          if (!DataClassRegistry::isRegisteredClass(name))
+            throw std::runtime_error("No dataclass type info found for: " +
+                                     name);
+
+          // Find class information
+          py::object cls = DataClassRegistry::getClass(name);
+          py::dict attributes = DataClassRegistry::getAttributes(cls);
+
+          // Collect field names
+          std::vector<py::str> fieldNames;
+          for (const auto &[attr_name, unused] : attributes)
+            fieldNames.push_back(py::str(attr_name));
+
+          // Read field values and create the constructor `kwargs`
+          auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+          auto memberTys = ty.getMembers();
+          py::dict kwargs;
+          for (std::size_t i = 0; i < offsets.size(); i++) {
+            auto eleTy = memberTys[i];
+            if (!eleTy.isIntOrFloat()) {
+              // TODO: support nested aggregate types.
+              eleTy.dump();
+              throw std::runtime_error(
+                  "Unsupported element type in struct type.");
+            }
+            auto eleByteSize = byteSize(eleTy);
+            if (i < fieldNames.size())
+              kwargs[fieldNames[i]] = convertResult(
+                  kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
+            else
+              throw std::runtime_error("Field name and value mismatch when "
+                                       "returning an object of dataclass " +
+                                       name);
+          }
+
+          // Create python object of class `cls` with the collected args.
+          return cls(**kwargs);
+        }
 
         // TODO: handle data class types:
         // Idea:

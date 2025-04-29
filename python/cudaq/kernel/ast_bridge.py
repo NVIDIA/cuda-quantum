@@ -567,7 +567,10 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             structName = quake.StruqType.getName(structTy)
         structIdx = None
-        _, userType = globalRegisteredTypes[structName]
+        if not globalRegisteredTypes.isRegisteredClass(structName):
+            self.emitFatalError(f'Dataclass is not registered: {structName})')
+
+        _, userType = globalRegisteredTypes.getClassAttributes(structName)
         for i, (k, _) in enumerate(userType.items()):
             if k == memberName:
                 structIdx = i
@@ -2079,9 +2082,10 @@ class PyASTBridge(ast.NodeVisitor):
                 self.__insertDbgStmt(self.popValue(), node.func.id)
                 return
 
-            elif node.func.id in globalRegisteredTypes:
+            elif node.func.id in globalRegisteredTypes.classes:
                 # Handle User-Custom Struct Constructor
-                cls, annotations = globalRegisteredTypes[node.func.id]
+                cls, annotations = globalRegisteredTypes.getClassAttributes(
+                    node.func.id)
                 # Alloca the struct
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
