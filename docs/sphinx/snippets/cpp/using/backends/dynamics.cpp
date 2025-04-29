@@ -30,7 +30,7 @@ int main() {
   double omega_d = 0.5;
 
   // Qubit Hamiltonian
-  auto hamiltonian = sum_op<product_op>(0.5 * omega_z * spin_op::z(0));
+  auto hamiltonian = spin_op(0.5 * omega_z * spin_op::z(0));
 
   // Time dependent modulation
   auto mod_func =
