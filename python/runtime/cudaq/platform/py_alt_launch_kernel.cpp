@@ -41,6 +41,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
+#include <iostream>
+
 namespace py = pybind11;
 using namespace mlir;
 
@@ -518,9 +520,19 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
         auto eleTy = ty.getElementType();
         auto eleByteSize = byteSize(eleTy);
         py::list list;
-        for (std::size_t i = 0; i < size; i += eleByteSize)
-          list.append(
-              convertResult(kernelFuncOp, eleTy, data + i, eleByteSize));
+
+        // Vector is a triple of pointers: `{ begin, end, end }`.
+        // Read `begin` and `end` pointers from the buffer.
+        struct vec {
+          char *begin;
+          char *end;
+          char *end2;
+        };
+        auto v = reinterpret_cast<vec *>(data);
+
+        // Read vector elements.
+        for (char *i = v->begin; i < v->end; i += eleByteSize)
+          list.append(convertResult(kernelFuncOp, eleTy, i, eleByteSize));
         return list;
       })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
