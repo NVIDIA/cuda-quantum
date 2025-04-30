@@ -28,10 +28,12 @@ def define(id: str,
     that is the dimension, for each degree of freedom it acts on must be provided,
     as well as all additional parameters. Additional parameters must be provided in
     the form of keyword arguments.
+
     Note:
     The dimensions passed during operator evaluation are automatically validated
     against the expected dimensions specified during definition - the `create`
     function does not need to do this.
+
     Arguments:
         op_id: A string that uniquely identifies the defined operator.
         expected_dimensions: defines the number of levels, that is the dimension,
@@ -55,6 +57,7 @@ def instantiate(op_id: str,
                 degrees: int | typing.Iterable[int]) -> MatrixOperatorTerm:
     """
     Instantiates a product operator containing a previously defined operator element.
+
     Arguments:
         operator_id: The id of the operator element as specified when it was defined.
         degrees: The degree(s) of freedom that the operator acts on.
