@@ -239,15 +239,13 @@ nitpick_ignore = [
     ('cpp:identifier', 'cudaq::ctrl'),
     ('py:class', 'function'),
     ('py:class', 'type'),
-    ('py:class', 'cudaq::spin_op'),
     ('py:class', 'numpy.ndarray[]'),
     # FIXME: remove these after adding proper documentation
     # (also reexamine why some of the ones above are ignored)
     ('py:class', 'cudaq::sum_op<cudaq::spin_handler>'),
     ('py:class', 'SpinOperatorTerm'),
-    ('cpp:identifier', 'cudaq::spin_op'),
-    ('cpp:identifier', 'spin_op'),
-    ('cpp:identifier', 'spin_op_term'),
+    ('cpp:identifier', 'cudaq::detail'),
+    ('cpp:identifier', 'cudaq::detail::EigenSparseMatrix'),
 ]
 
 napoleon_google_docstring = True
