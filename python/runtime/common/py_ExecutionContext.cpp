@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/RecordLogDecoder.h"
+#include "common/RecordLogParser.h"
 #include "cudaq/platform.h"
 #include <fmt/core.h>
 #include <pybind11/complex.h>
@@ -77,12 +77,12 @@ void bindExecutionContext(py::module &mod) {
   mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
   mod.def("decodeQirOutputLog",
           [](const std::string &outputLog, py::buffer decodedResults) {
-            cudaq::RecordLogDecoder decoder;
-            decoder.decode(outputLog);
+            cudaq::RecordLogParser parser;
+            parser.parse(outputLog);
             auto info = decodedResults.request();
-            // Get the buffer and length of buffer (in bytes) from the decoder.
-            auto *origBuffer = decoder.getBufferPtr();
-            const std::size_t bufferSize = decoder.getBufferSize();
+            // Get the buffer and length of buffer (in bytes) from the parser.
+            auto *origBuffer = parser.getBufferPtr();
+            const std::size_t bufferSize = parser.getBufferSize();
             std::memcpy(info.ptr, origBuffer, bufferSize);
           });
 }
