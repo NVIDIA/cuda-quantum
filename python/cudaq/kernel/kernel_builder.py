@@ -876,7 +876,7 @@ class PyKernel(object):
                 if isinstance(arg, cudaq_runtime.SpinOperatorTerm):
                     arg = arg.get_pauli_word()
                 if isinstance(arg, cudaq_runtime.SpinOperator):
-                    if arg.get_term_count() > 1:
+                    if arg.term_count > 1:
                         emitFatalError(
                             'exp_pauli operation requires a SpinOperator composed of a single term.'
                         )

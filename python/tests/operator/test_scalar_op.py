@@ -8,10 +8,33 @@
 
 import numpy as np, operator, pytest
 from cudaq.operators import ScalarOperator
-from cudaq import spin
+from cudaq import spin, operators
 
 
 def test_construction():
+    const = operators.const(3)
+    assert const.is_constant()
+    assert const.evaluate() == 3
+    assert np.allclose(const.to_matrix(), [3])
+    assert str(const) == '(3+0i)'
+
+    const = operators.const(3.)
+    assert const.is_constant()
+    assert const.evaluate() == 3
+    assert np.allclose(const.to_matrix(), [3])
+    assert str(const) == '(3+0i)'
+
+    const = operators.const(3j)
+    assert const.is_constant()
+    assert const.evaluate() == 3j
+    assert np.allclose(const.to_matrix(), [3j])
+    assert str(const) == '(0+3i)'
+
+    const = operators.const(np.complex128(3))
+    assert const.is_constant()
+    assert const.evaluate() == 3
+    assert np.allclose(const.to_matrix(), [3])
+    assert str(const) == '(3+0i)'
 
     const = ScalarOperator.const(5)
     assert const.is_constant()

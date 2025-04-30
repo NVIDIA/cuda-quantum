@@ -268,7 +268,7 @@ def test_empty_spin_op():
     h = spin.empty()
     h += spin.z(0)
     batched = h.distribute_terms(2)
-    assert batched[1].get_term_count() == 0
+    assert batched[1].term_count == 0
     assert cudaq.observe(circuit, batched[1], .59).expectation() == 0
 
 

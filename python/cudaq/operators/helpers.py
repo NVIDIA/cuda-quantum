@@ -9,9 +9,7 @@
 import inspect, numpy, os, re, sys, typing  # type: ignore
 from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Tuple
 
-if (3, 11) <= sys.version_info:
-    NumericType = typing.SupportsComplex
-elif (3, 10) <= sys.version_info:
+if (3, 10) <= sys.version_info:
     # type | type syntax is only supported in 3.10 or later
     NumericType = numpy.complexfloating | complex | float | int
 

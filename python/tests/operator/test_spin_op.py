@@ -153,7 +153,7 @@ def test_construction():
     term_count = 7
     for seed in range(100):
         hamiltonian = SpinOperator.random(qubit_count, term_count, seed=seed)
-        assert hamiltonian.get_term_count() == term_count
+        assert hamiltonian.term_count == term_count
     qubit_count = 3
     term_count = 21  # too many because 6 choose 3 = 20
     with pytest.raises(RuntimeError) as error:
@@ -216,12 +216,12 @@ def test_properties():
     # (is_identity on sum is deprecated, kept for backwards compatibility)
     assert spin_operator.is_identity()
     # Sum is empty.
-    assert spin_operator.get_term_count() == 0
-    assert spin_operator.get_qubit_count() == 0
+    assert spin_operator.term_count == 0
+    assert spin_operator.qubit_count == 0
     spin_operator -= x(1)
     # Should now have 1 term acting on 1 qubit.
-    assert spin_operator.get_term_count() == 1
-    assert spin_operator.get_qubit_count() == 1
+    assert spin_operator.term_count == 1
+    assert spin_operator.qubit_count == 1
     # No longer identity.
     assert not spin_operator.is_identity()
     # Term should have a coefficient -1
@@ -243,7 +243,7 @@ def test_matrix_construction():
     assert np.allclose(want_matrix, got_matrix, rtol=1e-3)
 
     # sparse matrix
-    numQubits = hamiltonian.get_qubit_count()
+    numQubits = hamiltonian.qubit_count
     mat = hamiltonian.to_matrix()
     data, rows, cols = hamiltonian.to_sparse_matrix()
     for i, value in enumerate(data):
@@ -349,17 +349,17 @@ def test_trimming():
         orig = empty()
         for term in terms:
             orig += term
-        assert orig.get_term_count() == len(all_degrees)
+        assert orig.term_count == len(all_degrees)
         assert orig.degrees == all_degrees
         orig.trim()
-        assert orig.get_term_count() < len(all_degrees)
-        assert orig.get_term_count() == expected.get_term_count()
+        assert orig.term_count < len(all_degrees)
+        assert orig.term_count == expected.term_count
         assert orig.degrees == expected.degrees
         assert np.allclose(orig.to_matrix(), expected.to_matrix())
         # check that our term map seems accurate
         for term in expected:
             orig += float(term.degrees[0]) * term
-        assert orig.get_term_count() == expected.get_term_count()
+        assert orig.term_count == expected.term_count
         assert orig.degrees == expected.degrees
         for term in orig:
             assert term.evaluate_coefficient() == term.degrees[0] + 1.
@@ -685,11 +685,11 @@ def test_term_distribution():
     for target in range(7):
         op += i(target)
     batches = op.distribute_terms(4)
-    assert op.get_term_count() == 7
+    assert op.term_count == 7
     assert len(batches) == 4
     for idx in range(2):
-        assert batches[idx].get_term_count() == 2
-    assert batches[3].get_term_count() == 1
+        assert batches[idx].term_count == 2
+    assert batches[3].term_count == 1
     sum = empty()
     for batch in batches:
         sum += batch
@@ -701,9 +701,9 @@ def test_term_distribution():
     hamiltonian = SpinOperator.random(qubit_count, term_count, seed=13)
     batched = hamiltonian.distribute_terms(num_of_gpus)
     assert len(batched) == 3
-    assert batched[0].get_term_count() == 4
-    assert batched[1].get_term_count() == 3
-    assert batched[2].get_term_count() == 3
+    assert batched[0].term_count == 4
+    assert batched[1].term_count == 3
+    assert batched[2].term_count == 3
 
 
 def test_serialization():
@@ -729,7 +729,7 @@ def test_vqe():
     # Checking equality operators.
     assert x(2) != hamiltonian
     assert hamiltonian == hamiltonian
-    assert hamiltonian.get_term_count() == 5
+    assert hamiltonian.term_count == 5
 
     got_data, got_coefficients = hamiltonian.get_raw_data()
     assert (len(got_data) == 5)
