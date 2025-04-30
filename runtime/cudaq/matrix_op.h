@@ -102,7 +102,7 @@ public:
   ///      the operator acts on, and an unordered map from string to complex
   ///      double that contains additional parameters the operator may use.
   static void define(std::string operator_id,
-                     std::vector<int64_t> expected_dimensions,
+                     std::vector<std::int64_t> expected_dimensions,
                      matrix_callback &&create,
                      const std::unordered_map<std::string, std::string>
                          &parameter_descriptions = {});
@@ -136,7 +136,7 @@ public:
   ///      the operator acts on, and an unordered map from string to complex
   ///      double that contains additional parameters the operator may use.
   static void
-  define(std::string operator_id, std::vector<int64_t> expected_dimensions,
+  define(std::string operator_id, std::vector<std::int64_t> expected_dimensions,
          matrix_callback &&create,
          std::unordered_map<std::string, std::string> &&parameter_descriptions);
 
@@ -170,7 +170,7 @@ public:
   /// @brief Returns a vector of integers representing the expected dimension
   /// for each degree of freedom. A negative value indicates that the operator
   /// is defined for any dimension of that degree.
-  const std::vector<int64_t> &get_expected_dimensions() const;
+  const std::vector<std::int64_t> &get_expected_dimensions() const;
 
   // read-only properties
 

@@ -87,7 +87,10 @@ void bindFermionModule(py::module &mod) {
 
 void bindFermionOperator(py::module &mod) {
 
-  py::class_<fermion_op>(mod, "FermionOperator")
+  auto fermion_op_class = py::class_<fermion_op>(mod, "FermionOperator");
+  auto fermion_op_term_class = py::class_<fermion_op_term>(mod, "FermionOperatorTerm");
+
+  fermion_op_class
       .def(
           "__iter__",
           [](fermion_op &self) {
@@ -547,7 +550,7 @@ void bindFermionOperator(py::module &mod) {
            "Partitions the terms of the sums into the given number of separate "
            "sums.");
 
-  py::class_<fermion_op_term>(mod, "FermionOperatorTerm")
+  fermion_op_term_class
       .def(
           "__iter__",
           [](fermion_op_term &self) {
@@ -965,12 +968,12 @@ void bindFermionOperator(py::module &mod) {
 }
 
 void bindFermionWrapper(py::module &mod) {
-  bindFermionModule(mod);
   bindFermionOperator(mod);
   py::implicitly_convertible<double, fermion_op_term>();
   py::implicitly_convertible<std::complex<double>, fermion_op_term>();
   py::implicitly_convertible<scalar_operator, fermion_op_term>();
   py::implicitly_convertible<fermion_op_term, fermion_op>();
+  bindFermionModule(mod);
 }
 
 } // namespace cudaq

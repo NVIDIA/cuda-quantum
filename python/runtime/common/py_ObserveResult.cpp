@@ -90,7 +90,7 @@ void bindObserveResult(py::module &mod) {
 to :func:`observe`, return its measurement counts.
 
 Args:
-  sub_term (:class:`SpinOperator`): An individual sub-term of the 
+  sub_term (`SpinOperator`): An individual sub-term of the 
     `spin_operator`.
 
 Returns:

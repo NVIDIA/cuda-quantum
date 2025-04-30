@@ -1,5 +1,6 @@
 import cudaq
-from cudaq.operator import *
+from cudaq.operators import RydbergHamiltonian, ScalarOperator
+from cudaq.dynamics import Schedule
 import numpy as np
 
 ## NOTE: QuEra Aquila system is available via Amazon Braket.
@@ -41,7 +42,7 @@ phi = ScalarOperator.const(0.0)
 delta = ScalarOperator(lambda t: delta_end
                        if time_ramp < t < time_max else delta_start)
 
-async_result = evolve_async(RydbergHamiltonian(atom_sites=register,
+async_result = cudaq.evolve_async(RydbergHamiltonian(atom_sites=register,
                                                amplitude=omega,
                                                phase=phi,
                                                delta_global=delta),

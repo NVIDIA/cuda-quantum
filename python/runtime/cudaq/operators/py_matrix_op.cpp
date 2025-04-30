@@ -96,7 +96,10 @@ void bindOperatorsModule(py::module &mod) {
 
 void bindMatrixOperator(py::module &mod) {
 
-  py::class_<matrix_op>(mod, "MatrixOperator")
+  auto matrix_op_class = py::class_<matrix_op>(mod, "MatrixOperator");
+  auto matrix_op_term_class = py::class_<matrix_op_term>(mod, "MatrixOperatorTerm");
+
+  matrix_op_class
       .def(
           "__iter__",
           [](matrix_op &self) {
@@ -478,7 +481,7 @@ void bindMatrixOperator(py::module &mod) {
            "Partitions the terms of the sums into the given number of separate "
            "sums.");
 
-  py::class_<matrix_op_term>(mod, "MatrixOperatorTerm")
+  matrix_op_term_class
       .def(
           "__iter__",
           [](matrix_op_term &self) {
@@ -825,7 +828,6 @@ void bindMatrixOperator(py::module &mod) {
 }
 
 void bindOperatorsWrapper(py::module &mod) {
-  bindOperatorsModule(mod);
   bindMatrixOperator(mod);
   py::implicitly_convertible<double, matrix_op_term>();
   py::implicitly_convertible<std::complex<double>, matrix_op_term>();
@@ -837,6 +839,7 @@ void bindOperatorsWrapper(py::module &mod) {
   py::implicitly_convertible<fermion_op_term, matrix_op_term>();
   py::implicitly_convertible<fermion_op, matrix_op>();
   py::implicitly_convertible<matrix_op_term, matrix_op>();
+  bindOperatorsModule(mod);
 }
 
 } // namespace cudaq

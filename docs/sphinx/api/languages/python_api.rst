@@ -71,12 +71,6 @@ Kernel Execution
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
 
-Dynamics
-=============================
-
-.. autofunction:: cudaq::evolve
-.. autofunction:: cudaq::evolve_async
-
 Backend Configuration
 =============================
 
@@ -146,6 +140,94 @@ Backend Configuration
 .. automethod:: cudaq::num_available_gpus
 .. automethod:: cudaq::set_random_seed
 
+Dynamics
+=============================
+
+.. autofunction:: cudaq::evolve
+.. autofunction:: cudaq::evolve_async
+
+.. autoclass:: cudaq::Schedule
+.. autoclass:: cudaq.dynamics.integrator.BaseIntegrator
+
+.. autoclass:: cudaq.dynamics.helpers.InitialState
+.. autofunction:: cudaq.dynamics.cudm_state.to_cupy_array
+
+Operators
+=============================
+
+.. autoclass:: cudaq.operators.OperatorSum
+.. autoclass:: cudaq.operators.ProductOperator
+.. autoclass:: cudaq.operators.ElementaryOperator
+
+Spin Operators
+-----------------------------
+.. autoclass:: cudaq.operators.SpinOperator
+   :members:
+.. autoclass:: cudaq.operators.SpinOperatorTerm
+   :members:
+.. autoclass:: cudaq.operators.SpinOperatorElement
+   :members:
+.. autoclass:: cudaq.operators.Pauli
+
+Fermion Operators
+-----------------------------
+.. autoclass:: cudaq.operators.FermionOperator
+   :members:
+.. autoclass:: cudaq.operators.FermionOperatorTerm
+   :members:
+.. autoclass:: cudaq.operators.FermionOperatorElement
+   :members:
+
+Boson Operators
+-----------------------------
+.. autoclass:: cudaq.operators.BosonOperator
+   :members:
+.. autoclass:: cudaq.operators.BosonOperatorTerm
+   :members:
+.. autoclass:: cudaq.operators.BosonOperatorTermElement
+   :members:
+
+General Operators
+-----------------------------
+.. autoclass:: cudaq.operators.MatrixOperator
+   :members:
+.. autoclass:: cudaq.operators.MatrixOperatorTerm
+   :members:
+.. autoclass:: cudaq.operators.MatrixOperatorElement
+   :members:
+
+.. automodule:: cudaq.spin
+   :imported-members:
+   :members:
+
+.. automodule:: cudaq.boson
+   :imported-members:
+   :members:
+
+.. automodule:: cudaq.fermion
+   :imported-members:
+   :members:
+
+.. automodule:: cudaq.operators
+   :imported-members:
+   :members:
+
+..
+    .. automethod:: cudaq.operators::define
+    .. automethod:: cudaq.operators::instantiate
+
+    .. autoclass:: cudaq.operator.expressions.RydbergHamiltonian
+        :members:
+        :special-members: __init__
+
+    .. autoclass:: cudaq.operator.expressions.ScalarOperator
+    .. autoclass:: cudaq.operator.definitions.SpinOperator
+
+    .. autofunction:: cudaq::spin.i
+    .. autofunction:: cudaq::spin.x
+    .. autofunction:: cudaq::spin.y
+    .. autofunction:: cudaq::spin.z
+
 Data Types
 =============================
 
@@ -157,6 +239,10 @@ Data Types
 
 .. autoclass:: cudaq::State
     :members:
+
+..
+    .. autoclass:: cudaq.operator.cudm_state.CuDensityMatState
+        :members:
 
 .. autoclass:: cudaq::Tensor
 
@@ -180,42 +266,6 @@ Data Types
     :members:
     :special-members: __getitem__, __str__
 
-.. autoclass:: cudaq::Schedule
-.. autoclass:: cudaq.operator.integrator.BaseIntegrator
-.. autoclass:: cudaq::EvolveResult
-    :members:
-
-.. autoclass:: cudaq::AsyncEvolveResult
-    :members:
-
-.. autoclass:: cudaq::SpinOperator
-.. autoclass:: cudaq.operator.expressions.OperatorSum
-
-.. autoclass:: cudaq.operator.expressions.ElementaryOperator
-    
-    .. automethod:: define
-
-.. autoclass:: cudaq.operator.expressions.ProductOperator
-
-.. autoclass:: cudaq.operator.expressions.RydbergHamiltonian
-    :members:
-    :special-members: __init__
-
-.. autoclass:: cudaq.operator.expressions.ScalarOperator
-.. autoclass:: cudaq.operator.definitions.SpinOperator
-
-.. autofunction:: cudaq::spin.i
-.. autofunction:: cudaq::spin.x
-.. autofunction:: cudaq::spin.y
-.. autofunction:: cudaq::spin.z
-
-.. autoclass:: cudaq.operator.cudm_state.CuDensityMatState
-    :members:
-
-.. autoclass:: cudaq.operator.helpers.InitialState
-
-.. autofunction:: cudaq.operator.cudm_state.to_cupy_array
-
 .. autoclass:: cudaq::SampleResult
     :members:
     :special-members: __getitem__, __len__, __iter__
@@ -235,6 +285,11 @@ Data Types
 .. autoclass:: cudaq::OptimizationResult
     :members:
 
+.. autoclass:: cudaq::EvolveResult
+    :members:
+
+.. autoclass:: cudaq::AsyncEvolveResult
+    :members:
 
 Optimizers
 -----------------

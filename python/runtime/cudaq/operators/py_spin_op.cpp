@@ -118,6 +118,8 @@ void bindSpinModule(py::module &mod) {
 void bindSpinOperator(py::module &mod) {
 
   auto spin_op_class = py::class_<spin_op>(mod, "SpinOperator");
+  auto spin_op_term_class = py::class_<spin_op_term>(mod, "SpinOperatorTerm");
+
   spin_op_class
       .def(
           "__iter__",
@@ -769,7 +771,6 @@ void bindSpinOperator(py::module &mod) {
 #pragma clang diagnostic pop
 #endif
 
-  auto spin_op_term_class = py::class_<spin_op_term>(mod, "SpinOperatorTerm");
   spin_op_term_class
       .def(
           "__iter__",
@@ -1277,12 +1278,12 @@ void bindSpinOperator(py::module &mod) {
 }
 
 void bindSpinWrapper(py::module &mod) {
-  bindSpinModule(mod);
   bindSpinOperator(mod);
   py::implicitly_convertible<double, spin_op_term>();
   py::implicitly_convertible<std::complex<double>, spin_op_term>();
   py::implicitly_convertible<scalar_operator, spin_op_term>();
   py::implicitly_convertible<spin_op_term, spin_op>();
+  bindSpinModule(mod);
 }
 
 } // namespace cudaq

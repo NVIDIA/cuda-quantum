@@ -92,7 +92,10 @@ void bindBosonModule(py::module &mod) {
 
 void bindBosonOperator(py::module &mod) {
 
-  py::class_<boson_op>(mod, "BosonOperator")
+  auto boson_op_class = py::class_<boson_op>(mod, "BosonOperator");
+  auto boson_op_term_class = py::class_<boson_op_term>(mod, "BosonOperatorTerm");
+
+  boson_op_class
       .def(
           "__iter__",
           [](boson_op &self) {
@@ -546,7 +549,7 @@ void bindBosonOperator(py::module &mod) {
            "Partitions the terms of the sums into the given number of separate "
            "sums.");
 
-  py::class_<boson_op_term>(mod, "BosonOperatorTerm")
+  boson_op_term_class
       .def(
           "__iter__",
           [](boson_op_term &self) {
@@ -956,12 +959,12 @@ void bindBosonOperator(py::module &mod) {
 }
 
 void bindBosonWrapper(py::module &mod) {
-  bindBosonModule(mod);
   bindBosonOperator(mod);
   py::implicitly_convertible<double, boson_op_term>();
   py::implicitly_convertible<std::complex<double>, boson_op_term>();
   py::implicitly_convertible<scalar_operator, boson_op_term>();
   py::implicitly_convertible<boson_op_term, boson_op>();
+  bindBosonModule(mod);
 }
 
 } // namespace cudaq

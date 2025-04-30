@@ -192,7 +192,8 @@ void bindOperatorHandlers(py::module &mod) {
            "Creates an identity operator on the given target.")
       .def(py::init<const spin_handler &>(), "Copy constructor.")
       .def("__eq__", &spin_handler::operator==, py::is_operator())
-      .def("as_pauli", &spin_handler::as_pauli)
+      .def("as_pauli", &spin_handler::as_pauli,
+           "Returns the Pauli representation of the operator.")
       .def("to_string", &spin_handler::to_string, py::arg("include_degrees"),
            "Returns the string representation of the operator.")
       .def(
