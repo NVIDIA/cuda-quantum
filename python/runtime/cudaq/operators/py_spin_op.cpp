@@ -833,19 +833,22 @@ void bindSpinOperator(py::module &mod) {
            "freedom in the range [first_degree, last_degree).")
       // NOTE: only supported on spin ops so far
       .def(py::init([](const std::vector<double> &data) {
-              spin_op op(data);
-              if (op.num_terms() != 1)
-                throw std::runtime_error("invalid data representation for product operator");
-              return *op.begin();
-           }), py::arg("data"),
+             spin_op op(data);
+             if (op.num_terms() != 1)
+               throw std::runtime_error(
+                   "invalid data representation for product operator");
+             return *op.begin();
+           }),
+           py::arg("data"),
            "Creates an operator based on a serialized data representation.")
       // NOTE: only supported on spin ops so far
       .def(py::init([](const std::string &fileName) {
-              binary_spin_op_reader reader;
-              spin_op op = reader.read(fileName);
-              if (op.num_terms() != 1)
-                throw std::runtime_error("invalid data representation for product operator");
-              return *op.begin();
+             binary_spin_op_reader reader;
+             spin_op op = reader.read(fileName);
+             if (op.num_terms() != 1)
+               throw std::runtime_error(
+                   "invalid data representation for product operator");
+             return *op.begin();
            }),
            "Creates an operator based on a serialized data representation in "
            "the given file.")
@@ -861,7 +864,7 @@ void bindSpinOperator(py::module &mod) {
            }),
            "Creates a product operator with non-constant scalar value.")
       .def(py::init<spin_handler>(),
-           "Creates a product operator with the given elementary operator.")           
+           "Creates a product operator with the given elementary operator.")
       .def(py::init<const spin_op_term &, std::size_t>(), py::arg("operator"),
            py::arg("size") = 0,
            "Creates a copy of the given operator and reserves space for "
@@ -874,7 +877,8 @@ void bindSpinOperator(py::module &mod) {
             auto data = py::list(json.attr("loads")(json_str));
             spin_op op(data.cast<std::vector<double>>());
             if (op.num_terms() != 1)
-              throw std::runtime_error("invalid data representation for product operator");
+              throw std::runtime_error(
+                  "invalid data representation for product operator");
             return *op.begin();
           },
           "Convert JSON string ('[d1, d2, d3, ...]') to spin_op")
@@ -1203,11 +1207,12 @@ void bindSpinOperator(py::module &mod) {
            "Prints the string representation of the operator to the standard "
            "output.")
       // NOTE: only supported on spin ops so far
-      .def("serialize",
-            [](const spin_op_term &self) {
-              return spin_op(self).get_data_representation();
-            },
-           "Returns the serialized data representation of the operator. ")
+      .def(
+          "serialize",
+          [](const spin_op_term &self) {
+            return spin_op(self).get_data_representation();
+          },
+          "Returns the serialized data representation of the operator. ")
       // NOTE: only supported on spin ops so far
       .def(
           "to_json",
