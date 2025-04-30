@@ -707,16 +707,40 @@ def test_term_distribution():
 
 
 def test_serialization():
+
+    def check_op_serialization(op):
+        data = op.serialize()
+        op2 = op.__class__(data)
+        assert op == op2
+        json = op.to_json()
+        op3 = op.__class__.from_json(json)
+        assert op == op3
+
+    def check_serialization(op):
+        check_op_serialization(op)
+        # check serialization also for non-consecutive degrees
+        canon = canonicalized(op)
+        if canon.degrees != [target for target in range(canon.qubit_count)]: 
+            check_op_serialization(canon)
+            return 1
+        return 0
+        
+    non_consecutive_sum = 0
+    non_consecutive_prod = 0
     for nq in range(1, 31):
         for nt in range(1, nq + 1):
             # random will product terms that each act on all
             # qubits in the range [0, nq)
-            h1 = SpinOperator.random(qubit_count=nq,
+            h = SpinOperator.random(qubit_count=nq,
                                            term_count=nt,
                                            seed=13)
-            h2 = h1.serialize()
-            h3 = SpinOperator(h2)
-            assert (h1 == h3)
+
+            non_consecutive_sum += check_serialization(h)
+            for term in h:
+                non_consecutive_prod += check_serialization(term)
+
+    assert non_consecutive_sum == 55
+    assert non_consecutive_prod == 4916
 
 
 def test_vqe():
