@@ -10,7 +10,7 @@ add_target_config(anyon)
 add_target_mapping_arch(anyon berkeley-25q.txt)
 add_target_mapping_arch(anyon telegraph-8q.txt)
 
-add_library(cudaq-serverhelper-anyon SHARED AnyonServerHelper.cpp )
+add_library(cudaq-serverhelper-anyon SHARED AnyonServerHelper.cpp)
 target_link_libraries(cudaq-serverhelper-anyon
   PUBLIC 
     cudaq-common 
