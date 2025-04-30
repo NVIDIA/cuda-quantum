@@ -282,7 +282,8 @@ std::complex<double> MPSSimulationState<ScalarType>::getAmplitude(
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors = basisTensorNetState.factorizeMPS(
         1, std::numeric_limits<double>::min(),
-        std::numeric_limits<double>::min(), MPSSettings().svdAlgo);
+        std::numeric_limits<double>::min(), MPSSettings().svdAlgo,
+        MPSSettings().gaugeOption);
     const auto overlap = computeOverlap(m_mpsTensors, basisStateTensors);
     for (auto &mpsTensor : basisStateTensors) {
       HANDLE_CUDA_ERROR(cudaFree(mpsTensor.deviceData));
@@ -622,6 +623,33 @@ MPSSettings::MPSSettings() {
     }
     svdAlgo = iter->second;
     cudaq::info("Setting MPS SVD algorithm to {} ({}).", svdAlgo, iter->first);
+  }
+
+  using GaugePair =
+      std::pair<std::string_view, cutensornetStateMPSGaugeOption_t>;
+  constexpr std::array<GaugePair, 2> g_stringToGaugeEnum = {
+      GaugePair{"FREE"sv, CUTENSORNET_STATE_MPS_GAUGE_FREE},
+      GaugePair{"SIMPLE"sv, CUTENSORNET_STATE_MPS_GAUGE_SIMPLE}};
+  if (auto *gaugeEnvVar = std::getenv("CUDAQ_MPS_GAUGE")) {
+    std::string gaugeOptionStr(gaugeEnvVar);
+    std::transform(gaugeOptionStr.begin(), gaugeOptionStr.end(),
+                   gaugeOptionStr.begin(), ::toupper);
+    const auto iter = std::lower_bound(
+        g_stringToGaugeEnum.begin(), g_stringToGaugeEnum.end(), gaugeOptionStr,
+        [](const GaugePair &pair, const std::string &key) {
+          return pair.first < key;
+        });
+    if (iter == g_stringToGaugeEnum.end() || iter->first != gaugeOptionStr) {
+      std::stringstream errorMsg;
+      errorMsg << "Unknown CUDAQ_MPS_GAUGE value ('" << gaugeEnvVar
+               << "').\nValid values are:\n";
+      for (const auto &[configStr, _] : g_stringToGaugeEnum)
+        errorMsg << "  - " << configStr << "\n";
+      throw std::runtime_error(errorMsg.str());
+    }
+    gaugeOption = iter->second;
+    cudaq::info("Setting MPS GAUGE option to {} ({}).", iter->first,
+                iter->second);
   }
 }
 
