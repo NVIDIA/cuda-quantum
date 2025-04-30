@@ -195,13 +195,13 @@ def test_return_list():
     @cudaq.kernel
     def simple_list_bool(n: int) -> list[bool]:
         qubits = cudaq.qvector(n)
-        result = [True, False]
+        result = [True, False, True]
         return result
 
     results = cudaq.run(simple_list_bool, 2, shots_count=2)
     assert len(results) == 2
-    assert results[0] == [True, False]
-    assert results[1] == [True, False]
+    assert results[0] == [True, False, True]
+    assert results[1] == [True, False, True]
 
     @cudaq.kernel
     def simple_list_int(n: int) -> list[int]:
