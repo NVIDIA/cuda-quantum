@@ -88,7 +88,8 @@ void bindFermionModule(py::module &mod) {
 void bindFermionOperator(py::module &mod) {
 
   auto fermion_op_class = py::class_<fermion_op>(mod, "FermionOperator");
-  auto fermion_op_term_class = py::class_<fermion_op_term>(mod, "FermionOperatorTerm");
+  auto fermion_op_term_class =
+      py::class_<fermion_op_term>(mod, "FermionOperatorTerm");
 
   fermion_op_class
       .def(

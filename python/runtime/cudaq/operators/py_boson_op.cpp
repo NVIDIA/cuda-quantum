@@ -93,7 +93,8 @@ void bindBosonModule(py::module &mod) {
 void bindBosonOperator(py::module &mod) {
 
   auto boson_op_class = py::class_<boson_op>(mod, "BosonOperator");
-  auto boson_op_term_class = py::class_<boson_op_term>(mod, "BosonOperatorTerm");
+  auto boson_op_term_class =
+      py::class_<boson_op_term>(mod, "BosonOperatorTerm");
 
   boson_op_class
       .def(

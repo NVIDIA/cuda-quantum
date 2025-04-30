@@ -97,7 +97,8 @@ void bindOperatorsModule(py::module &mod) {
 void bindMatrixOperator(py::module &mod) {
 
   auto matrix_op_class = py::class_<matrix_op>(mod, "MatrixOperator");
-  auto matrix_op_term_class = py::class_<matrix_op_term>(mod, "MatrixOperatorTerm");
+  auto matrix_op_term_class =
+      py::class_<matrix_op_term>(mod, "MatrixOperatorTerm");
 
   matrix_op_class
       .def(

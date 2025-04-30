@@ -98,13 +98,15 @@ Returns:
       .def(
           "counts",
           [](observe_result &self, const spin_op &sub_term) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-              "ensure to pass a SpinOperatorTerm instead of a SpinOperator",
-              1);
+            PyErr_WarnEx(
+                PyExc_DeprecationWarning,
+                "ensure to pass a SpinOperatorTerm instead of a SpinOperator",
+                1);
             return self.counts(sub_term);
           },
-          py::arg("sub_term"), 
-          "Deprecated - ensure to pass a SpinOperatorTerm instead of a SpinOperator")
+          py::arg("sub_term"),
+          "Deprecated - ensure to pass a SpinOperatorTerm instead of a "
+          "SpinOperator")
       .def(
           "expectation",
           [](observe_result &self) { return self.expectation(); },
@@ -135,14 +137,16 @@ Returns:
       .def(
           "expectation",
           [](observe_result &self, const spin_op &spin_term) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-              "ensure to pass a SpinOperatorTerm instead of a SpinOperator",
-              1);
+            PyErr_WarnEx(
+                PyExc_DeprecationWarning,
+                "ensure to pass a SpinOperatorTerm instead of a SpinOperator",
+                1);
 
             return self.expectation(spin_term);
           },
-          py::arg("sub_term"), 
-          "Deprecated - ensure to pass a SpinOperatorTerm instead of a SpinOperator");
+          py::arg("sub_term"),
+          "Deprecated - ensure to pass a SpinOperatorTerm instead of a "
+          "SpinOperator");
 
   py::class_<async_observe_result>(
       mod, "AsyncObserveResult",
