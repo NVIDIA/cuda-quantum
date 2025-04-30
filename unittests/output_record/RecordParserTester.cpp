@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "common/RecordLogDecoder.h"
+#include "common/RecordLogParser.h"
 #include <cudaq.h>
 
 CUDAQ_TEST(ParserTester, checkSingleBoolean) {
   const std::string log = "OUTPUT\tBOOL\ttrue\ti1\n";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   bool value;
   std::memcpy(&value, origBuffer, sizeof(bool));
@@ -24,8 +24,8 @@ CUDAQ_TEST(ParserTester, checkSingleBoolean) {
 CUDAQ_TEST(ParserTester, checkMoreBoolean) {
   const std::string log = "OUTPUT\tBOOL\t1\ti1\n"
                           "OUTPUT\tBOOL\t0\ti1\n";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   EXPECT_EQ(2, bufferSize / sizeof(char));
@@ -42,8 +42,8 @@ CUDAQ_TEST(ParserTester, checkIntegers) {
   const std::string log = "OUTPUT\tINT\t0\ti32\n"
                           "OUTPUT\tINT\t1\ti32\n"
                           "OUTPUT\tINT\t2\ti32\n";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   EXPECT_EQ(3, bufferSize / sizeof(int));
@@ -61,8 +61,8 @@ CUDAQ_TEST(ParserTester, checkDoubles) {
                           "OUTPUT\tDOUBLE\t3.14\tf64\n"
                           "OUTPUT\tDOUBLE\t2.717\tf64\n"
                           "END\t0";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   EXPECT_EQ(2, bufferSize / sizeof(double));
@@ -79,8 +79,8 @@ CUDAQ_TEST(ParserTester, checkArrayOrdered) {
   const std::string log = "OUTPUT\tARRAY\t2\n"
                           "OUTPUT\tINT\t13\ti32\n"
                           "OUTPUT\tINT\t71\ti32\n";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   EXPECT_EQ(2, bufferSize / sizeof(int));
@@ -98,8 +98,8 @@ CUDAQ_TEST(ParserTester, checkArrayLabeled) {
                           "OUTPUT\tINT\t5\t[0]\n"
                           "OUTPUT\tINT\t6\t[1]\n"
                           "OUTPUT\tINT\t7\t[2]\n";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
@@ -128,8 +128,8 @@ CUDAQ_TEST(ParserTester, checkArrayIntMultiShot) {
                           "OUTPUT\tARRAY\t2\tarray<i32 x 2>\n"
                           "OUTPUT\tINT\t42\t[0]\n"
                           "OUTPUT\tINT\t-13\t[1]\n";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
@@ -162,8 +162,8 @@ CUDAQ_TEST(ParserTester, checkArrayDoubleMultiShot) {
                           "OUTPUT\tDOUBLE\t3.14159\t[0]\n"
                           "OUTPUT\tDOUBLE\t2.71828\t[1]\n"
                           "OUTPUT\tDOUBLE\t6.62607\t[2]\n";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
@@ -191,8 +191,8 @@ CUDAQ_TEST(ParserTester, checkTupleOrdered) {
   const std::string log = "OUTPUT\tTUPLE\t2\n"
                           "OUTPUT\tINT\t561\ti32\n"
                           "OUTPUT\tBOOL\tfalse\ti1\n";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
@@ -214,8 +214,8 @@ CUDAQ_TEST(ParserTester, checkTupleLabeled) {
                           "OUTPUT\tBOOL\ttrue\t.0\n"
                           "OUTPUT\tINT\t37\t.1\n"
                           "OUTPUT\tDOUBLE\t3.1416\t.2\n";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
@@ -253,8 +253,8 @@ CUDAQ_TEST(ParserTester, checkMultipleShots) {
                           "OUTPUT\tINT\t1234\t[1]\n"
                           "OUTPUT\tINT\t6789\t[0]\n"
                           "END\t0";
-  cudaq::RecordLogDecoder parser;
-  parser.decode(log);
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
