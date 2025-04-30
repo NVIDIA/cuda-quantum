@@ -158,34 +158,54 @@ Operators
 .. autoclass:: cudaq.operators.OperatorSum
 .. autoclass:: cudaq.operators.ProductOperator
 .. autoclass:: cudaq.operators.ElementaryOperator
+.. autoclass:: cudaq.operators.ScalarOperator
+   :members:
+
+.. autoclass:: cudaq.operators.RydbergHamiltonian
+    :members:
+    :special-members: __init__
+
+.. automethod:: cudaq.operators.define
+.. automethod:: cudaq.operators.instantiate
 
 Spin Operators
 -----------------------------
-.. autoclass:: cudaq.operators.SpinOperator
+.. autoclass:: cudaq.operators.spin.SpinOperator
    :members:
-.. autoclass:: cudaq.operators.SpinOperatorTerm
+.. autoclass:: cudaq.operators.spin.SpinOperatorTerm
    :members:
-.. autoclass:: cudaq.operators.SpinOperatorElement
+.. autoclass:: cudaq.operators.spin.SpinOperatorElement
    :members:
-.. autoclass:: cudaq.operators.Pauli
+
+.. automodule:: cudaq.spin
+    :imported-members:
+    :members:
 
 Fermion Operators
 -----------------------------
-.. autoclass:: cudaq.operators.FermionOperator
+.. autoclass:: cudaq.operators.fermion.FermionOperator
    :members:
-.. autoclass:: cudaq.operators.FermionOperatorTerm
+.. autoclass:: cudaq.operators.fermion.FermionOperatorTerm
    :members:
-.. autoclass:: cudaq.operators.FermionOperatorElement
+.. autoclass:: cudaq.operators.fermion.FermionOperatorElement
    :members:
+
+.. automodule:: cudaq.fermion
+    :imported-members:
+    :members:
 
 Boson Operators
 -----------------------------
-.. autoclass:: cudaq.operators.BosonOperator
+.. autoclass:: cudaq.operators.boson.BosonOperator
    :members:
-.. autoclass:: cudaq.operators.BosonOperatorTerm
+.. autoclass:: cudaq.operators.boson.BosonOperatorTerm
    :members:
-.. autoclass:: cudaq.operators.BosonOperatorTermElement
+.. autoclass:: cudaq.operators.boson.BosonOperatorElement
    :members:
+
+.. automodule:: cudaq.boson
+    :imported-members:
+    :members:
 
 General Operators
 -----------------------------
@@ -196,37 +216,9 @@ General Operators
 .. autoclass:: cudaq.operators.MatrixOperatorElement
    :members:
 
-.. automodule:: cudaq.spin
-   :imported-members:
-   :members:
-
-.. automodule:: cudaq.boson
-   :imported-members:
-   :members:
-
-.. automodule:: cudaq.fermion
-   :imported-members:
-   :members:
-
-.. automodule:: cudaq.operators
-   :imported-members:
-   :members:
-
-..
-    .. automethod:: cudaq.operators::define
-    .. automethod:: cudaq.operators::instantiate
-
-    .. autoclass:: cudaq.operator.expressions.RydbergHamiltonian
-        :members:
-        :special-members: __init__
-
-    .. autoclass:: cudaq.operator.expressions.ScalarOperator
-    .. autoclass:: cudaq.operator.definitions.SpinOperator
-
-    .. autofunction:: cudaq::spin.i
-    .. autofunction:: cudaq::spin.x
-    .. autofunction:: cudaq::spin.y
-    .. autofunction:: cudaq::spin.z
+.. automodule:: cudaq.operators.custom
+    :imported-members:
+    :members:
 
 Data Types
 =============================
@@ -239,10 +231,6 @@ Data Types
 
 .. autoclass:: cudaq::State
     :members:
-
-..
-    .. autoclass:: cudaq.operator.cudm_state.CuDensityMatState
-        :members:
 
 .. autoclass:: cudaq::Tensor
 
