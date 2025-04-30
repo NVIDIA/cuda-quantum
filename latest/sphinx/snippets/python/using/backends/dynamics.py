@@ -7,11 +7,11 @@
 # ============================================================================ #
 
 # Made up values - not sure what values are reasonable here.
+#[Begin Transmon]
 omega_z = 6.5
 omega_x = 4.0
 omega_d = 0.5
 
-#[Begin Transmon]
 import numpy as np
 from cudaq.operator import *
 
@@ -115,7 +115,7 @@ def displacement_matrix(
     return scipy.linalg.expm(term1 - term2)
 
 
-# The second argument here indicates the the defined operator
+# The second argument here indicates the defined operator
 # acts on a single degree of freedom, which can have any dimension.
 # An argument [2], for example, would indicate that it can only
 # act on a single degree of freedom with dimension two.
