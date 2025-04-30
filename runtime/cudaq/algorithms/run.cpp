@@ -8,7 +8,7 @@
 
 #include "cudaq/algorithms/run.h"
 #include "common/ExecutionContext.h"
-#include "common/RecordLogDecoder.h"
+#include "common/RecordLogParser.h"
 #include "cudaq/simulators.h"
 #include "nvqir/CircuitSimulator.h"
 
@@ -48,13 +48,13 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     }
   }
 
-  // 3. Pass the outputLog to the decoder (target-specific?)
-  cudaq::RecordLogDecoder decoder;
-  decoder.decode(circuitSimulator->outputLog);
+  // 3. Pass the outputLog to the parser (target-specific?)
+  cudaq::RecordLogParser parser;
+  parser.parse(circuitSimulator->outputLog);
 
-  // 4. Get the buffer and length of buffer (in bytes) from the decoder.
-  auto *origBuffer = decoder.getBufferPtr();
-  std::size_t bufferSize = decoder.getBufferSize();
+  // 4. Get the buffer and length of buffer (in bytes) from the parser.
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
 

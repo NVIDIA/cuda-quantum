@@ -75,7 +75,7 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// A helper class to manage the underlying memory buffer used by
-/// 'RecordLogDecoder'. For container types, i.e. composite records, the buffer
+/// 'RecordLogParser'. For container types, i.e. composite records, the buffer
 /// acts as outer vector with pointers to inner buffers.
 class BufferHandler {
 public:
@@ -283,19 +283,19 @@ public:
 
 /// Simple decoder for translating QIR recorded results to a C++ binary data
 /// structure.
-class RecordLogDecoder {
+class RecordLogParser {
 public:
-  RecordLogDecoder() = default;
-  ~RecordLogDecoder() = default;
+  RecordLogParser() = default;
+  ~RecordLogParser() = default;
 
   /// Does the heavy-lifting of parsing the output log and converting it to a
   /// binary data structure that is compatible with the C++ host code. The data
   /// structure is created in a generic memory buffer. The buffer's address and
   /// length may be queried and returned as a result.
-  void decode(const std::string &outputLog);
+  void parse(const std::string &outputLog);
 
   /// Get a pointer to the data buffer. Note that the data buffer will be
-  /// deallocated as soon as the RecordLogDecoder object is deconstructed.
+  /// deallocated as soon as the RecordLogParser object is deconstructed.
   void *getBufferPtr() const { return bufferHandler.getBufferPtr(); }
 
   /// Get the size of the data buffer (in bytes).
