@@ -16,7 +16,8 @@ from .backwards_compatibility import *
 
 def define(id: str,
            expected_dimensions: Sequence[int],
-           create: typing.Callable[..., numpy.typing.NDArray[numpy.complexfloating]],
+           create: typing.Callable[...,
+                                   numpy.typing.NDArray[numpy.complexfloating]],
            override: bool = False) -> None:
     """
     Defines a matrix operator element with the given id.
@@ -50,7 +51,8 @@ def define(id: str,
     MatrixOperatorElement.define(id, expected_dimensions, create, override)
 
 
-def instantiate(op_id: str, degrees: int | typing.Iterable[int]) -> MatrixOperatorTerm:
+def instantiate(op_id: str,
+                degrees: int | typing.Iterable[int]) -> MatrixOperatorTerm:
     """
     Instantiates a product operator containing a previously defined operator element.
     Arguments:
