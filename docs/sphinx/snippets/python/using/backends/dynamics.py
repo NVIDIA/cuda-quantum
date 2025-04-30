@@ -47,14 +47,14 @@ schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
 evolution_result = cudaq.evolve(hamiltonian,
-                          dimensions,
-                          schedule,
-                          rho0,
-                          observables=[spin.x(0),
-                                       spin.y(0),
-                                       spin.z(0)],
-                          collapse_operators=[],
-                          store_intermediate_results=True)
+                                dimensions,
+                                schedule,
+                                rho0,
+                                observables=[spin.x(0),
+                                             spin.y(0),
+                                             spin.z(0)],
+                                collapse_operators=[],
+                                store_intermediate_results=True)
 #[End Evolve]
 
 #[Begin Plot]

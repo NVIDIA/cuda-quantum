@@ -62,11 +62,11 @@ delta = ScalarOperator(lambda t: delta_end
                        if time_ramp < t < time_max else delta_start)
 
 async_result = cudaq.evolve_async(RydbergHamiltonian(atom_sites=register,
-                                               amplitude=omega,
-                                               phase=phi,
-                                               delta_global=delta),
-                            schedule=schedule,
-                            shots_count=100).get()
+                                                     amplitude=omega,
+                                                     phase=phi,
+                                                     delta_global=delta),
+                                  schedule=schedule,
+                                  shots_count=100).get()
 async_result.dump()
 
 ## Sample result

@@ -29,6 +29,7 @@ DOI
 Deuteron
 Deutsch
 Doxygen
+Fermion
 FPGAs
 Fock
 Fortran

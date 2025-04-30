@@ -51,8 +51,8 @@ phi = ScalarOperator.const(0.0)
 delta = ScalarOperator.const(0.0)
 
 evolution_result = cudaq.evolve(RydbergHamiltonian(atom_sites=register,
-                                             amplitude=omega,
-                                             phase=phi,
-                                             delta_global=delta),
-                          schedule=schedule)
+                                                   amplitude=omega,
+                                                   phase=phi,
+                                                   delta_global=delta),
+                                schedule=schedule)
 evolution_result.dump()
