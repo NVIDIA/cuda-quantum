@@ -34,6 +34,11 @@ __qpu__ int unary_test(int count) {
   return result;
 }
 
+__qpu__ std::vector<bool> vector_bool_test() {
+  std::vector<bool> vec{true, false};
+  return vec;
+}
+
 __qpu__ std::vector<int> vector_int_test() {
   std::vector<int> result(2);
   result[0] = 42;
@@ -48,6 +53,13 @@ __qpu__ std::vector<float> vector_float_test() {
   result[2] = 6.62607015;
   return result;
 }
+
+// TODO: this currently fails due to a missing support for tuple copy
+// constructor in ConvertExpr.cpp
+// __qpu__ std::tuple<int, bool> tuple_test(std::tuple<int, bool> tup) {
+//   cudaq::qvector v(2);
+//   return tup;
+// }
 
 int main() {
   int c = 0;
@@ -121,6 +133,21 @@ int main() {
     }
   }
 
+  // TODO: seg fault in vector<bool> copy constructor when copying results
+  // {
+  //   const std::vector<std::vector<bool>> results = cudaq::run(3,
+  //   vector_bool_test); c = 0; if (results.size() != 3) {
+  //     printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
+  //   } else {
+  //     for (auto i : results) {
+  //       printf("%d: {%d , %d}\n", c++, (bool)i[0], (bool)i[1]);
+  //       assert(i[0] == true);
+  //       assert(i[1] == false);
+  //     }
+  //     printf("success!\n");
+  //   }
+  // }
+
   {
     const std::vector<std::vector<int>> results =
         cudaq::run(3, vector_int_test);
@@ -153,6 +180,8 @@ int main() {
   return 0;
 }
 
+// CHECK: success!
+// CHECK: success!
 // CHECK: success!
 // CHECK: success!
 // CHECK: success!

@@ -519,7 +519,6 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
       .Case([&](cudaq::cc::StdvecType ty) -> py::object {
         auto eleTy = ty.getElementType();
         auto eleByteSize = byteSize(eleTy);
-        py::list list;
 
         // Vector is a triple of pointers: `{ begin, end, end }`.
         // Read `begin` and `end` pointers from the buffer.
@@ -531,46 +530,18 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
         auto v = reinterpret_cast<vec *>(data);
 
         // Read vector elements.
+        py::list list;
         for (char *i = v->begin; i < v->end; i += eleByteSize)
           list.append(convertResult(kernelFuncOp, eleTy, i, eleByteSize));
         return list;
       })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
-        if (ty.getName() == "tuple") {
+        auto name = ty.getName().str();
+        // Handle tuples.
+        if (name == "tuple") {
           auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
           auto memberTys = ty.getMembers();
           py::list list;
-          for (std::size_t i = 0; i < offsets.size(); i++) {
-            auto eleTy = memberTys[i];
-            if (!eleTy.isIntOrFloat()) {
-              eleTy.dump();
-              throw std::runtime_error(
-                  "Unsupported element type in struct type.");
-            }
-            auto eleByteSize = byteSize(eleTy);
-            list.append(convertResult(kernelFuncOp, eleTy, data + offsets[i],
-                                      eleByteSize));
-          }
-          return py::tuple(list);
-        } else {
-          auto name = ty.getName().str();
-          if (!DataClassRegistry::isRegisteredClass(name))
-            throw std::runtime_error("No dataclass type info found for: " +
-                                     name);
-
-          // Find class information
-          py::object cls = DataClassRegistry::getClass(name);
-          py::dict attributes = DataClassRegistry::getAttributes(cls);
-
-          // Collect field names
-          std::vector<py::str> fieldNames;
-          for (const auto &[attr_name, unused] : attributes)
-            fieldNames.push_back(py::str(attr_name));
-
-          // Read field values and create the constructor `kwargs`
-          auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
-          auto memberTys = ty.getMembers();
-          py::dict kwargs;
           for (std::size_t i = 0; i < offsets.size(); i++) {
             auto eleTy = memberTys[i];
             if (!eleTy.isIntOrFloat()) {
@@ -580,28 +551,49 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
                   "Unsupported element type in struct type.");
             }
             auto eleByteSize = byteSize(eleTy);
-            if (i < fieldNames.size())
-              kwargs[fieldNames[i]] = convertResult(
-                  kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
-            else
-              throw std::runtime_error("Field name and value mismatch when "
-                                       "returning an object of dataclass " +
-                                       name);
+            list.append(convertResult(kernelFuncOp, eleTy, data + offsets[i],
+                                      eleByteSize));
           }
-
-          // Create python object of class `cls` with the collected args.
-          return cls(**kwargs);
+          return py::tuple(list);
         }
 
-        // TODO: handle data class types:
-        // Idea:
-        // - add a function to create a new object to global dataclass registry
-        // - expose the registry to c++ (add  c++ function from py_run to store
-        //   the dictionary in a c++ global?)
-        // - create a python cudaq.wrapper for current cudaq.run that sets the
-        //    global and calls the current cudaq.run
-        ty.dump();
-        throw std::runtime_error("Unsupported return type.");
+        // Handle data class objects.
+        if (!DataClassRegistry::isRegisteredClass(name))
+          throw std::runtime_error("No dataclass type info found for: " + name);
+
+        // Find class information
+        py::object cls = DataClassRegistry::getClass(name);
+        py::dict attributes = DataClassRegistry::getAttributes(cls);
+
+        // Collect field names
+        std::vector<py::str> fieldNames;
+        for (const auto &[attr_name, unused] : attributes)
+          fieldNames.push_back(py::str(attr_name));
+
+        // Read field values and create the constructor `kwargs`
+        auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+        auto memberTys = ty.getMembers();
+        py::dict kwargs;
+        for (std::size_t i = 0; i < offsets.size(); i++) {
+          auto eleTy = memberTys[i];
+          if (!eleTy.isIntOrFloat()) {
+            // TODO: support nested aggregate types.
+            eleTy.dump();
+            throw std::runtime_error(
+                "Unsupported element type in struct type.");
+          }
+          auto eleByteSize = byteSize(eleTy);
+          if (i < fieldNames.size())
+            kwargs[fieldNames[i]] = convertResult(
+                kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
+          else
+            throw std::runtime_error("Field name and value mismatch when "
+                                     "returning an object of dataclass " +
+                                     name);
+        }
+
+        // Create python object of class `cls` with the collected args.
+        return cls(**kwargs);
       })
       .Default([](Type ty) -> py::object {
         ty.dump();
@@ -990,7 +982,8 @@ void bindAltLaunchKernel(py::module &mod) {
         if (attr)
           m->setAttr("quake.mangled_name_map", attr);
       },
-      "Synthesize away the callable block argument from the entrypoint in modA "
+      "Synthesize away the callable block argument from the entrypoint in "
+      "modA "
       "with the FuncOp of given name.");
 
   mod.def(
