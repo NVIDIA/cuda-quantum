@@ -34,7 +34,11 @@ std::shared_ptr<base_integrator> runge_kutta::clone() {
 }
 
 void runge_kutta::setState(const cudaq::state &initial_state, double t0) {
-  m_state = std::make_shared<cudaq::state>(initial_state);
+  auto *simState = cudaq::state_helper::getSimulationState(const_cast<cudaq::state*>(&initial_state));
+  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
+  if (!castSimState)
+    throw std::runtime_error("Invalid state.");
+  m_state = std::make_shared<cudaq::state>(CuDensityMatState::clonePtr(*castSimState));
   m_t = t0;
 }
 

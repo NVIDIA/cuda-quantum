@@ -8,8 +8,8 @@
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
 from ..cudm_helpers import cudm, CudmStateType
-from ..cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from .builtin_integrators import cuDensityMatTimeStepper
+from .. import nvqir_dynamics_bindings as bindings
 
 has_cupy = True
 has_torch = True
@@ -93,23 +93,12 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
                     "Hamiltonian and collapse operators are required for integrator if no stepper is provided"
                 )
 
-            hilbert_space_dims = tuple(
-                self.dimensions[d] for d in range(len(self.dimensions)))
-            ham_term = self.hamiltonian._transform(
-                CuDensityMatOpConversion(self.dimensions, self.schedule))
-            linblad_terms = []
-            for c_op in self.collapse_operators:
-                linblad_terms.append(
-                    c_op._transform(
-                        CuDensityMatOpConversion(self.dimensions,
-                                                 self.schedule)))
-            is_master_equation = True if type(
-                self.state) == cudm.DenseMixedState else False
-            liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
-                                               linblad_terms,
-                                               is_master_equation)
-            cudm_ctx = self.state._ctx
-            self.stepper = cuDensityMatTimeStepper(liouvillian, cudm_ctx)
+            hilbert_space_dims = [
+                self.dimensions[d] for d in range(len(self.dimensions))]
+            is_master_equation = isinstance(self.state, cudm.DenseMixedState)
+            self.schedule_ = bindings.Schedule(self.schedule._steps, list(self.schedule._parameters))
+            self.stepper = cuDensityMatTimeStepper(self.schedule_, self.hamiltonian, self.collapse_operators, hilbert_space_dims, is_master_equation)
+
 
         if t <= self.t:
             raise ValueError(

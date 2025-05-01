@@ -9,7 +9,7 @@
 from __future__ import annotations
 from typing import Sequence, Mapping, List, Optional
 
-from .cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
+from ..runtime.observe import observe
 from .schedule import Schedule
 from ..operators import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -21,7 +21,8 @@ from .integrators.builtin_integrators import RungeKuttaIntegrator, cuDensityMatT
 import cupy
 import math
 from ..util.timing_helper import ScopeTimer
-
+from . import nvqir_dynamics_bindings as bindings
+from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator
 
 # Master-equation solver using `CuDensityMatState`
 def evolve_dynamics(
@@ -51,63 +52,41 @@ def evolve_dynamics(
             f"Integrator {type(integrator).__name__} does not support distributed state."
         )
 
-    if isinstance(initial_state, InitialState):
-        has_collapse_operators = len(collapse_operators) > 0
-        initial_state = CuDensityMatState.create_initial_state(
-            initial_state, hilbert_space_dims, has_collapse_operators)
-    else:
-        with ScopeTimer("evolve.as_cudm_state") as timer:
-            initial_state = as_cudm_state(initial_state)
-
-    if not isinstance(initial_state, CuDensityMatState):
-        raise ValueError("Unknown type")
-
-    if not initial_state.is_initialized():
-        with ScopeTimer("evolve.init_state") as timer:
-            initial_state.init_state(hilbert_space_dims)
-
-    is_density_matrix = initial_state.is_density_matrix()
-    me_solve = False
-    if not is_density_matrix:
-        if len(collapse_operators) == 0:
-            me_solve = False
-        else:
-            with ScopeTimer("evolve.initial_state.to_dm") as timer:
-                initial_state = initial_state.to_dm()
-            me_solve = True
-    else:
-        # Always solve the master equation if the input is a density matrix
-        me_solve = True
-
-    with ScopeTimer("evolve.hamiltonian._transform") as timer:
-        ham_term = hamiltonian._transform(
-            CuDensityMatOpConversion(dimensions, schedule))
-    linblad_terms = []
-    for c_op in collapse_operators:
-        with ScopeTimer("evolve.collapse_operators._transform") as timer:
-            linblad_terms.append(
-                c_op._transform(CuDensityMatOpConversion(dimensions, schedule)))
-
-    with ScopeTimer("evolve.constructLiouvillian") as timer:
-        liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
-                                           linblad_terms, me_solve)
-
-    initial_state = initial_state.get_impl()
-    cudm_ctx = initial_state._ctx
-    stepper = cuDensityMatTimeStepper(liouvillian, cudm_ctx)
-    if integrator is None:
-        integrator = RungeKuttaIntegrator(stepper)
-    else:
-        integrator.set_system(dimensions, schedule, hamiltonian,
+    collapse_operators = [MatrixOperator(op) for op in collapse_operators]
+    integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
                               collapse_operators)
     expectation_op = [
-        cudm.Operator(
-            hilbert_space_dims,
-            (observable._transform(CuDensityMatOpConversion(dimensions)), 1.0))
+        bindings.CuDensityMatExpectation(MatrixOperator(observable), list(hilbert_space_dims))
         for observable in observables
     ]
-    integrator.set_state(initial_state, schedule._steps[0])
-    exp_vals = []
+
+    if integrator.is_native():
+        initial_state = bindings.initializeState(initial_state, list(hilbert_space_dims), len(collapse_operators) > 0)
+        integrator.set_state(initial_state, schedule._steps[0])
+    else:
+        if isinstance(initial_state, InitialState):
+            has_collapse_operators = len(collapse_operators) > 0
+            initial_state = CuDensityMatState.create_initial_state(
+                initial_state, hilbert_space_dims, has_collapse_operators)
+        else:
+            with ScopeTimer("evolve.as_cudm_state") as timer:
+                initial_state = as_cudm_state(initial_state)
+
+        if not isinstance(initial_state, CuDensityMatState):
+            raise ValueError("Unknown type")
+
+        if not initial_state.is_initialized():
+            with ScopeTimer("evolve.init_state") as timer:
+                initial_state.init_state(hilbert_space_dims)
+
+        is_density_matrix = initial_state.is_density_matrix()
+        if not is_density_matrix:
+            if len(collapse_operators) > 0:
+                with ScopeTimer("evolve.initial_state.to_dm") as timer:
+                    initial_state = initial_state.to_dm()
+        integrator.set_state(initial_state.get_impl(), schedule._steps[0])
+
+       exp_vals = []
     intermediate_states = []
     for step_idx, parameters in enumerate(schedule):
         if step_idx > 0:
@@ -119,28 +98,33 @@ def evolve_dynamics(
             step_exp_vals = []
             for obs_idx, obs in enumerate(expectation_op):
                 _, state = integrator.get_state()
-                with ScopeTimer("evolve.prepare_expectation") as timer:
-                    obs.prepare_expectation(cudm_ctx, state)
-                with ScopeTimer("evolve.compute_expectation") as timer:
-                    exp_val = obs.compute_expectation(schedule.current_step, (),
-                                                      state)
-                step_exp_vals.append(float(cupy.real(exp_val[0])))
+                if isinstance(state, cudm.DensePureState) or isinstance(state, cudm.DenseMixedState):
+                    with ScopeTimer("evolve.prepare_expectation") as timer:
+                        obs.prepare(state._validated_ptr)
+                    with ScopeTimer("evolve.compute_expectation") as timer:
+                        exp_val = obs.compute(state._validated_ptr, schedule.current_step)
+                else:
+                    with ScopeTimer("evolve.prepare_expectation") as timer:
+                        obs.prepare(state)
+                    with ScopeTimer("evolve.compute_expectation") as timer:
+                        exp_val = obs.compute(state, schedule.current_step)
+                step_exp_vals.append(exp_val)
             exp_vals.append(step_exp_vals)
-        if store_intermediate_results:
-            _, state = integrator.get_state()
-            state_length = state.storage.size
-            if is_density_matrix and not CuDensityMatState.is_multi_process():
-                dimension = int(math.sqrt(state_length))
-                with ScopeTimer("evolve.intermediate_states.append") as timer:
-                    intermediate_states.append(
-                        cudaq_runtime.State.from_data(
-                            state.storage.reshape((dimension, dimension))))
-            else:
-                dimension = state_length
-                with ScopeTimer("evolve.intermediate_states.append") as timer:
-                    intermediate_states.append(
-                        cudaq_runtime.State.from_data(
-                            state.storage.reshape((dimension,))))
+        # if store_intermediate_results:
+        #     _, state = integrator.get_state()
+        #     state_length = state.storage.size
+        #     if is_density_matrix and not CuDensityMatState.is_multi_process():
+        #         dimension = int(math.sqrt(state_length))
+        #         with ScopeTimer("evolve.intermediate_states.append") as timer:
+        #             intermediate_states.append(
+        #                 cudaq_runtime.State.from_data(
+        #                     state.storage.reshape((dimension, dimension))))
+        #     else:
+        #         dimension = state_length
+        #         with ScopeTimer("evolve.intermediate_states.append") as timer:
+        #             intermediate_states.append(
+        #                 cudaq_runtime.State.from_data(
+        #                     state.storage.reshape((dimension,))))
 
     if store_intermediate_results:
         return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)

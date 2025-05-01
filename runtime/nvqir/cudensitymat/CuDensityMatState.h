@@ -27,8 +27,7 @@ private:
 
 public:
   CuDensityMatState(std::size_t s, void *ptr, bool isDm)
-      : isDensityMatrix(isDm), devicePtr(ptr),
-        dimension(isDm ? std::sqrt(s) : s) {}
+      : isDensityMatrix(isDm), devicePtr(ptr), dimension(s) {}
 
   CuDensityMatState() {}
 
@@ -92,6 +91,7 @@ public:
   // @brief Create a zero state
   static CuDensityMatState zero_like(const CuDensityMatState &other);
   static CuDensityMatState clone(const CuDensityMatState &other);
+  static CuDensityMatState* clonePtr(const CuDensityMatState &other);
   // Prevent copies (avoids double free issues)
   CuDensityMatState(const CuDensityMatState &) = delete;
   CuDensityMatState &operator=(const CuDensityMatState &) = delete;
@@ -114,6 +114,9 @@ public:
   /// @brief Convert the state vector to a density matrix.
   /// @return A new CuDensityMatState representing the density matrix.
   CuDensityMatState to_density_matrix() const;
+
+  CuDensityMatState* make_density_matrix() const;
+
 
   /// @brief Get the underlying implementation (if any).
   /// @return The underlying state implementation.
