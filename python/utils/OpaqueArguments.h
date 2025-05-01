@@ -344,20 +344,34 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           }
         })
         .Case([&](cudaq::cc::StructType ty) {
-          auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
-          auto memberTys = ty.getMembers();
-          auto allocatedArg = std::malloc(size);
-          py::dict attributes = arg.attr("__annotations__").cast<py::dict>();
-          for (std::size_t i = 0;
-               const auto &[attr_name, unused] : attributes) {
-            py::object attr_value =
-                arg.attr(attr_name.cast<std::string>().c_str());
-            handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
-                                       attr_value);
-            i++;
-          }
+          if (ty.getName() == "tuple") {
+            auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+            auto memberTys = ty.getMembers();
+            auto allocatedArg = std::malloc(size);
+            auto elements = arg.cast<py::tuple>();
+            for (std::size_t i = 0; i < offsets.size(); i++)
+              handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
+                                         elements[i]);
 
-          argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
+            argData.emplace_back(allocatedArg,
+                                 [](void *ptr) { std::free(ptr); });
+          } else {
+            auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+            auto memberTys = ty.getMembers();
+            auto allocatedArg = std::malloc(size);
+            py::dict attributes = arg.attr("__annotations__").cast<py::dict>();
+            for (std::size_t i = 0;
+                 const auto &[attr_name, unused] : attributes) {
+              py::object attr_value =
+                  arg.attr(attr_name.cast<std::string>().c_str());
+              handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
+                                         attr_value);
+              i++;
+            }
+
+            argData.emplace_back(allocatedArg,
+                                 [](void *ptr) { std::free(ptr); });
+          }
         })
         .Case([&](cudaq::cc::StdvecType ty) {
           checkArgumentType<py::list>(arg, i);

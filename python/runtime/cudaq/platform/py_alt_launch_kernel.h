@@ -34,7 +34,8 @@ inline std::size_t byteSize(mlir::Type ty) {
 }
 
 /// @brief Convert raw data to python object.
-py::object convertResult(mlir::Type ty, char *data);
+py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
+                         char *data, std::size_t size);
 
 /// @brief Launch python kernel with arguments.
 void pyAltLaunchKernel(const std::string &name, MlirModule module,
