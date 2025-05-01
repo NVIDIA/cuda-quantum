@@ -126,6 +126,12 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
     return state;
   });
 
+  m.def("clearContext", []() {
+    cudaq::dynamics::Context::getCurrentContext()
+        ->getOpConverter()
+        .clearCallbackContext();
+  });
+
   auto integratorsSubmodule = m.def_submodule("integrators");
 
   py::class_<cudaq::integrators::runge_kutta>(integratorsSubmodule,

@@ -86,7 +86,7 @@ def evolve_dynamics(
                     initial_state = initial_state.to_dm()
         integrator.set_state(initial_state.get_impl(), schedule._steps[0])
 
-       exp_vals = []
+    exp_vals = []
     intermediate_states = []
     for step_idx, parameters in enumerate(schedule):
         if step_idx > 0:
@@ -126,24 +126,27 @@ def evolve_dynamics(
         #                 cudaq_runtime.State.from_data(
         #                     state.storage.reshape((dimension,))))
 
+    bindings.clearContext()
     if store_intermediate_results:
         return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)
     else:
         _, state = integrator.get_state()
-        state_length = state.storage.size
-
-        # Only reshape the data into a density matrix is this is a single-GPU state.
-        # In a multi-GPU state, the density matrix is sliced, hence we cannot reshape each slice into a density matrix form.
-        # The data is returned as a flat buffer in this case.
-        if is_density_matrix and not CuDensityMatState.is_multi_process():
-            dimension = int(math.sqrt(state_length))
-            with ScopeTimer("evolve.final_state") as timer:
-                final_state = cudaq_runtime.State.from_data(
-                    state.storage.reshape((dimension, dimension)))
+        if integrator.is_native():
+            return cudaq_runtime.EvolveResult(state, exp_vals[-1])
         else:
-            dimension = state_length
-            with ScopeTimer("evolve.final_state") as timer:
-                final_state = cudaq_runtime.State.from_data(
-                    state.storage.reshape((dimension,)))
+            state_length = state.storage.size
+            # Only reshape the data into a density matrix is this is a single-GPU state.
+            # In a multi-GPU state, the density matrix is sliced, hence we cannot reshape each slice into a density matrix form.
+            # The data is returned as a flat buffer in this case.
+            if is_density_matrix and not CuDensityMatState.is_multi_process():
+                dimension = int(math.sqrt(state_length))
+                with ScopeTimer("evolve.final_state") as timer:
+                    final_state = cudaq_runtime.State.from_data(
+                        state.storage.reshape((dimension, dimension)))
+            else:
+                dimension = state_length
+                with ScopeTimer("evolve.final_state") as timer:
+                    final_state = cudaq_runtime.State.from_data(
+                        state.storage.reshape((dimension,)))
 
-        return cudaq_runtime.EvolveResult(final_state, exp_vals[-1])
+            return cudaq_runtime.EvolveResult(final_state, exp_vals[-1])

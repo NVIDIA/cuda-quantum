@@ -213,6 +213,11 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
   }
 }
 
+void cudaq::dynamics::CuDensityMatOpConverter::clearCallbackContext() {
+  m_scalarCallbacks.clear();
+  m_tensorCallbacks.clear();
+}
+
 cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
   for (auto term : m_operatorTerms)
     cudensitymatDestroyOperatorTerm(term);
