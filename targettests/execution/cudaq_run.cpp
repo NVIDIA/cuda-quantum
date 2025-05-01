@@ -133,6 +133,21 @@ int main() {
     }
   }
 
+  // TODO: seg fault in vector<bool> copy constructor when copying results
+  // {
+  //   const std::vector<std::vector<bool>> results = cudaq::run(3,
+  //   vector_bool_test); c = 0; if (results.size() != 3) {
+  //     printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
+  //   } else {
+  //     for (auto i : results) {
+  //       printf("%d: {%d , %d}\n", c++, (bool)i[0], (bool)i[1]);
+  //       assert(i[0] == true);
+  //       assert(i[1] == false);
+  //     }
+  //     printf("success!\n");
+  //   }
+  // }
+
   {
     const std::vector<std::vector<bool>> results =
         cudaq::run(3, vector_bool_test);
