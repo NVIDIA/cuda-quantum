@@ -1,5 +1,5 @@
 import cudaq
-from cudaq import operators, spin, Schedule, RungeKuttaIntegrator
+from cudaq import spin, Schedule, RungeKuttaIntegrator
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,14 +19,14 @@ for i in range(N):
     dimensions[i] = 2
 
 # Observable is the average magnetization operator
-avg_magnetization_op = operators.zero()
+avg_magnetization_op = spin.empty()
 for i in range(N):
     avg_magnetization_op += (spin.z(i) / N)
 
 # Arbitrary coupling constant
 g = 1.0
 # Construct the Hamiltonian
-H = operators.zero()
+H = spin.empty()
 for i in range(N):
     H += 2 * np.pi * spin.x(i)
     H += 2 * np.pi * spin.y(i)
@@ -38,9 +38,9 @@ steps = np.linspace(0.0, 1, 200)
 schedule = Schedule(steps, ["time"])
 
 # Initial state (expressed as an enum)
-psi0 = cudaq.operator.InitialState.ZERO
+psi0 = cudaq.dynamics.InitialState.ZERO
 # This can also be used to initialize a uniformly-distributed wave-function instead.
-# `psi0 = cudaq.operator.InitialState.UNIFORM`
+# `psi0 = cudaq.dynamics.InitialState.UNIFORM`
 
 # Run the simulation
 evolution_result = cudaq.evolve(H,
