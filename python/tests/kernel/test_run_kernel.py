@@ -10,7 +10,7 @@ import os, time
 
 import pytest
 import numpy as np
-from typing import Callable, List
+from typing import Callable, List, Tuple
 
 import cudaq
 
@@ -188,6 +188,147 @@ def test_return_floating():
     assert len(results) == 2
     assert results[0] == 3.0
     assert results[1] == 3.0
+
+
+def test_return_list():
+
+    @cudaq.kernel
+    def simple_list_bool(n: int) -> list[bool]:
+        qubits = cudaq.qvector(n)
+        result = [True, False]
+        return result
+
+    results = cudaq.run(simple_list_bool, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [True, False]
+    assert results[1] == [True, False]
+
+    @cudaq.kernel
+    def simple_list_int(n: int) -> list[int]:
+        qubits = cudaq.qvector(n)
+        result = [1, 0]
+        return result
+
+    results = cudaq.run(simple_list_int, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [1, 0]
+    assert results[1] == [1, 0]
+
+    @cudaq.kernel
+    def simple_list_int32(n: int) -> list[np.int32]:
+        qubits = cudaq.qvector(n)
+        result = [1, 0]
+        return result
+
+    results = cudaq.run(simple_list_int32, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [1, 0]
+    assert results[1] == [1, 0]
+
+    @cudaq.kernel
+    def simple_list_int64(n: int) -> list[np.int64]:
+        qubits = cudaq.qvector(n)
+        result = [1, 0]
+        return result
+
+    results = cudaq.run(simple_list_int64, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [1, 0]
+    assert results[1] == [1, 0]
+
+    @cudaq.kernel
+    def simple_list_float(n: int) -> list[float]:
+        qubits = cudaq.qvector(n)
+        result = [1.0, 0.0]
+        return result
+
+    results = cudaq.run(simple_list_float, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [1.0, 0.0]
+    assert results[1] == [1.0, 0.0]
+
+    @cudaq.kernel
+    def simple_list_float32(n: int) -> list[np.float32]:
+        qubits = cudaq.qvector(n)
+        result = [1.0, 0.0]
+        return result
+
+    results = cudaq.run(simple_list_float32, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [1.0, 0.0]
+    assert results[1] == [1.0, 0.0]
+
+    @cudaq.kernel
+    def simple_list_float64(n: int) -> list[np.float64]:
+        qubits = cudaq.qvector(n)
+        result = [1.0, 0.0]
+        return result
+
+    results = cudaq.run(simple_list_float64, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [1.0, 0.0]
+    assert results[1] == [1.0, 0.0]
+
+
+def test_return_tuple():
+
+    @cudaq.kernel
+    def simple_tuple_int_float(n: int, t: tuple[int,
+                                                float]) -> tuple[int, float]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(simple_tuple_int_float, 2, (13, 42.3), shots_count=2)
+    assert len(results) == 2
+    assert results[0] == (13, 42.3)
+    assert results[1] == (13, 42.3)
+
+    @cudaq.kernel
+    def simple_tuple_float_int(n: int, t: tuple[float,
+                                                int]) -> tuple[float, int]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(simple_tuple_float_int, 2, (42.3, 13), shots_count=2)
+    assert len(results) == 2
+    assert results[0] == (42.3, 13)
+    assert results[1] == (42.3, 13)
+
+    @cudaq.kernel
+    def simple_tuple_bool_int(n: int, t: tuple[bool, int]) -> tuple[bool, int]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    # TODO: fix alignment
+    results = cudaq.run(simple_tuple_bool_int, 2, (True, 13), shots_count=2)
+    assert len(results) == 2
+    #assert results[0] == (True, 13)
+    #assert results[1] == (True, 13)
+
+    @cudaq.kernel
+    def simple_tuple_int_bool(n: int, t: tuple[int, bool]) -> tuple[int, bool]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    # TODO: fix alignment
+    results = cudaq.run(simple_tuple_int_bool, 2, (13, True), shots_count=2)
+    assert len(results) == 2
+    # assert results[0] == (13, True)
+    # assert results[1] == (13, True)
+
+    @cudaq.kernel
+    def simple_tuple_bool_int_float(
+            n: int, t: tuple[bool, int, float]) -> tuple[bool, int, float]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    # TODO: fix alignment
+    results = cudaq.run(simple_tuple_bool_int_float,
+                        2, (True, 13, 42.3),
+                        shots_count=2)
+    assert len(results) == 2
+    #assert results[0] == (True, 13, 42.3)
+    #assert results[1] == (True, 13, 42.3)
 
 
 def test_run_errors():

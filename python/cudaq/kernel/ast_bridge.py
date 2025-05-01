@@ -393,6 +393,11 @@ class PyASTBridge(ast.NodeVisitor):
                 imag = self.getConstantFloatWithType(0.0, floatType)
                 operand = complex.CreateOp(complexType, real, imag).result
 
+        if (cc.StdvecType.isinstance(ty)):
+            eleTy = cc.StdvecType.getElementType(ty)
+            if cc.StdvecType.isinstance(operand.type):
+                operand = self.__copyVectorAndCastElements(operand, eleTy)
+
         #FIXME: use cc.cast for all below
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
@@ -3855,6 +3860,16 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         result = self.ifPointerThenLoad(self.popValue())
+        result = self.ifPointerThenLoad(result)
+        if result.type != self.knownResultType:
+            # FIXME consider more auto-casting where possible
+            result = self.promoteOperandType(self.knownResultType, result)
+
+        if result.type != self.knownResultType:
+            self.emitFatalError(
+                f"Invalid return type, function was defined to return a {mlirTypeToPyType(self.knownResultType)} but the value being returned is of type {mlirTypeToPyType(result.type)}",
+                node)
+
         if cc.StdvecType.isinstance(result.type):
             symName = '__nvqpp_vectorCopyCtor'
             load_intrinsic(self.module, symName)
@@ -3874,21 +3889,10 @@ class PyASTBridge(ast.NodeVisitor):
             func.ReturnOp([res])
             return
 
-        result = self.ifPointerThenLoad(result)
-
         if self.symbolTable.numLevels() > 1:
             # We are in an inner scope, release all scopes before returning
             cc.UnwindReturnOp([result])
             return
-
-        if result.type != self.knownResultType:
-            # FIXME consider more auto-casting where possible
-            result = self.promoteOperandType(self.knownResultType, result)
-
-        if result.type != self.knownResultType:
-            self.emitFatalError(
-                f"Invalid return type, function was defined to return a {mlirTypeToPyType(self.knownResultType)} but the value being returned is of type {mlirTypeToPyType(result.type)}",
-                node)
 
         func.ReturnOp([result])
 
