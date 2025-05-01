@@ -478,7 +478,8 @@ TensorNetState<ScalarType>::contractStateVectorInternal(
 template <typename ScalarType>
 std::vector<MPSTensor> TensorNetState<ScalarType>::setupMPSFactorize(
     int64_t maxExtent, double absCutoff, double relCutoff,
-    cutensornetTensorSVDAlgo_t algo) {
+    cutensornetTensorSVDAlgo_t algo,
+    const std::optional<cutensornetStateMPSGaugeOption_t> &gauge) {
   LOG_API_TIME();
   if (m_numQubits == 0)
     return {};
@@ -530,6 +531,12 @@ std::vector<MPSTensor> TensorNetState<ScalarType>::setupMPSFactorize(
   HANDLE_CUTN_ERROR(cutensornetStateConfigure(
       m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_REL_CUTOFF,
       &relCutoff, sizeof(relCutoff)));
+  if (gauge.has_value()) {
+    cutensornetStateMPSGaugeOption_t gaugeOption = gauge.value();
+    HANDLE_CUTN_ERROR(cutensornetStateConfigure(
+        m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_GAUGE_OPTION,
+        &gaugeOption, sizeof(gaugeOption)));
+  }
   return mpsTensors;
 }
 
@@ -706,12 +713,13 @@ TensorNetState<ScalarType>::computeRDM(const std::vector<int32_t> &qubits) {
 // Returns MPS tensors (device mems)
 // Note: user needs to clean up these tensors
 template <typename ScalarType>
-std::vector<MPSTensor>
-TensorNetState<ScalarType>::factorizeMPS(int64_t maxExtent, double absCutoff,
-                                         double relCutoff,
-                                         cutensornetTensorSVDAlgo_t algo) {
+std::vector<MPSTensor> TensorNetState<ScalarType>::factorizeMPS(
+    int64_t maxExtent, double absCutoff, double relCutoff,
+    cutensornetTensorSVDAlgo_t algo,
+    const std::optional<cutensornetStateMPSGaugeOption_t> &gauge) {
   LOG_API_TIME();
-  auto mpsTensors = setupMPSFactorize(maxExtent, absCutoff, relCutoff, algo);
+  auto mpsTensors =
+      setupMPSFactorize(maxExtent, absCutoff, relCutoff, algo, gauge);
   computeMPSFactorize(mpsTensors);
   return mpsTensors;
 }
