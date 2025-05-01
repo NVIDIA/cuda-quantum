@@ -55,16 +55,14 @@ public:
   schedule(pointer ptr) : ptr(ptr){};
 
   /// @brief Constructor.
-  /// @arg steps: The sequence of steps in the schedule. Restricted to a vector
-  /// of complex values.
-  /// @arg parameters: A sequence of strings representing the parameter names of
-  /// an operator expression.
-  /// @arg value_function: A function that takes the name of a parameter as well
-  /// as an additional value ("step") of std::complex<double> type as argument
-  /// and returns the complex value for that parameter at the given step.
-  /// @details current_idx: Initializes the current index (_current_idx) to -1
-  /// to indicate that iteration has not yet begun. Once iteration starts,
-  /// _current_idx will be used to track the position in the sequence of steps.
+  /// @param steps: The sequence of steps in the schedule. Restricted to a
+  /// vector of complex values.
+  /// @param parameters: A sequence of strings representing the parameter names
+  /// of an operator expression.
+  /// @param value_function: A function that takes the name of a parameter as
+  /// well as an additional value ("step") of std::complex<double> type as
+  /// argument and returns the complex value for that parameter at the given
+  /// step.
   schedule(
       const std::vector<std::complex<double>> &steps,
       const std::vector<std::string> &parameters,
@@ -72,13 +70,10 @@ public:
           const std::string &, const std::complex<double> &)> &value_function);
 
   /// @brief Constructor.
-  /// @arg steps: The sequence of steps in the schedule. Restricted to a vector
-  /// of double values.
-  /// @arg parameters: A sequence of strings representing the parameter names of
-  /// an operator expression.
-  /// @arg value_function: A function that takes the name of a parameter as well
-  /// as an additional value ("step") of std::complex<double> type as argument
-  /// and returns the complex value for that parameter at the given step.
+  /// @param steps: The sequence of steps in the schedule. Restricted to a
+  /// vector of double values.
+  /// @param parameters: A sequence of strings representing the parameter names
+  /// of an operator expression.
   schedule(const std::vector<double> &steps,
            const std::vector<std::string> &parameters = {})
       : schedule(toComplex(steps), parameters,

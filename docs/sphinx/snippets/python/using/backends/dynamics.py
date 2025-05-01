@@ -7,13 +7,13 @@
 # ============================================================================ #
 
 # Made up values - not sure what values are reasonable here.
+#[Begin Transmon]
 omega_z = 6.5
 omega_x = 4.0
 omega_d = 0.5
 
-#[Begin Transmon]
 import numpy as np
-from cudaq.operator import *
+from cudaq import spin, ScalarOperator
 
 # Qubit Hamiltonian
 hamiltonian = 0.5 * omega_z * spin.z(0)
@@ -29,6 +29,7 @@ n_steps = 100
 #[Begin Evolve]
 import cudaq
 import cupy as cp
+from cudaq.dynamics import Schedule
 
 # Set the target to our dynamics simulator
 cudaq.set_target("dynamics")
@@ -45,15 +46,15 @@ steps = np.linspace(0, t_final, n_steps)
 schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
-evolution_result = evolve(hamiltonian,
-                          dimensions,
-                          schedule,
-                          rho0,
-                          observables=[spin.x(0),
-                                       spin.y(0),
-                                       spin.z(0)],
-                          collapse_operators=[],
-                          store_intermediate_results=True)
+evolution_result = cudaq.evolve(hamiltonian,
+                                dimensions,
+                                schedule,
+                                rho0,
+                                observables=[spin.x(0),
+                                             spin.y(0),
+                                             spin.z(0)],
+                                collapse_operators=[],
+                                store_intermediate_results=True)
 #[End Evolve]
 
 #[Begin Plot]
@@ -95,7 +96,7 @@ H = H0 + ScalarOperator(lambda t: np.cos(omega * t)) * H1
 #[Begin DefineOp]
 import numpy
 import scipy
-from cudaq.operator import *
+from cudaq import operators, NumericType
 from numpy.typing import NDArray
 
 
@@ -115,18 +116,18 @@ def displacement_matrix(
     return scipy.linalg.expm(term1 - term2)
 
 
-# The second argument here indicates the the defined operator
+# The second argument here indicates the defined operator
 # acts on a single degree of freedom, which can have any dimension.
 # An argument [2], for example, would indicate that it can only
 # act on a single degree of freedom with dimension two.
-ElementaryOperator.define("displace", [0], displacement_matrix)
+operators.define("displace", [0], displacement_matrix)
 
 
-def displacement(degree: int) -> ElementaryOperator:
+def displacement(degree: int) -> operators.MatrixOperatorElement:
     """
     Instantiates a displacement operator acting on the given degree of freedom.
     """
-    return ElementaryOperator("displace", [degree])
+    return operators.instantiate("displace", [degree])
 
 
 #[End DefineOp]
@@ -199,7 +200,7 @@ cudaq.mpi.initialize()
 cudaq.set_target("dynamics")
 
 # Initial state (expressed as an enum)
-psi0 = cudaq.operator.InitialState.ZERO
+psi0 = cudaq.dynamics.InitialState.ZERO
 
 # Run the simulation
 evolution_result = cudaq.evolve(H,

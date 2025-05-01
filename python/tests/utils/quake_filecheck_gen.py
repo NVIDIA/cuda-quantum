@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-#!/usr/bin/env python3
 """
 To generate comments for FileCheck in our python testing suite:
 

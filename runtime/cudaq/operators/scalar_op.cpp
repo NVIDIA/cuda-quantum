@@ -13,6 +13,17 @@
 
 namespace cudaq {
 
+// read-only properties
+
+bool scalar_operator::is_constant() const {
+  return std::holds_alternative<std::complex<double>>(value);
+}
+
+const std::unordered_map<std::string, std::string> &
+scalar_operator::get_parameter_descriptions() const {
+  return this->param_desc;
+}
+
 // constructors and destructors
 
 scalar_operator::scalar_operator(double value)
@@ -22,16 +33,18 @@ scalar_operator::scalar_operator(double value)
 scalar_operator::scalar_operator(std::complex<double> value)
     : value(std::variant<std::complex<double>, scalar_callback>(value)) {}
 
-scalar_operator::scalar_operator(const scalar_callback &create)
-    : value(std::variant<std::complex<double>, scalar_callback>(create)) {}
+scalar_operator::scalar_operator(
+    const scalar_callback &create,
+    std::unordered_map<std::string, std::string> &&paramater_descriptions)
+    : value(std::variant<std::complex<double>, scalar_callback>(create)),
+      param_desc(std::move(paramater_descriptions)) {}
 
-scalar_operator::scalar_operator(scalar_callback &&create)
+scalar_operator::scalar_operator(
+    scalar_callback &&create,
+    std::unordered_map<std::string, std::string> &&paramater_descriptions)
     : value(std::variant<std::complex<double>, scalar_callback>(
-          std::move(create))) {}
-
-bool scalar_operator::is_constant() const {
-  return std::holds_alternative<std::complex<double>>(value);
-}
+          std::move(create))),
+      param_desc(std::move(paramater_descriptions)) {}
 
 // evaluations
 
@@ -52,17 +65,26 @@ complex_matrix scalar_operator::to_matrix(
 }
 
 std::string scalar_operator::to_string() const {
+  std::stringstream sstr;
   if (std::holds_alternative<std::complex<double>>(this->value)) {
     auto value = std::get<std::complex<double>>(this->value);
-    return "(" + std::to_string(value.real()) + "+" +
-           std::to_string(value.imag()) + "i)";
+    sstr << "(" << value.real() << (value.imag() < 0 ? "-" : "+")
+         << std::abs(value.imag()) << "i)";
+    return sstr.str();
   }
-  return "scalar";
+  if (this->param_desc.size() == 0)
+    return "scalar";
+  auto it = this->param_desc.cbegin();
+  sstr << "scalar(" << it->first;
+  while (++it != this->param_desc.cend())
+    sstr << "," << it->first;
+  sstr << ")";
+  return sstr.str();
 }
 
 // comparison
 
-bool scalar_operator::operator==(scalar_operator other) const {
+bool scalar_operator::operator==(const scalar_operator &other) const {
   if (std::holds_alternative<scalar_callback>(this->value)) {
     return std::holds_alternative<scalar_callback>(other.value) &&
            &std::get<scalar_callback>(this->value) ==
