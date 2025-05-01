@@ -51,8 +51,6 @@ std::vector<std::size_t> compute_permutation(
 void permute_matrix(cudaq::complex_matrix &matrix,
                     const std::vector<std::size_t> &permutation);
 
-// FIXME: do we really want to stick with this tuple or should we rather switch
-// to just using the Eigen sparse matrix? Depends on our general usage of Eigen.
 /// Converts and Eigen sparse matrix to the `csr_spmatrix` format used in
 /// CUDA-Q.
 cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,

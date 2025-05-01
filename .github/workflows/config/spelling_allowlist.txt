@@ -30,6 +30,7 @@ Deuteron
 Deutsch
 Doxygen
 FPGAs
+Fermion
 Fock
 Fortran
 Fourier
