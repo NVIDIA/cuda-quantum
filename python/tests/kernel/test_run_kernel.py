@@ -11,10 +11,7 @@ import os, time
 import pytest
 import numpy as np
 from typing import Callable, List, Tuple
-<<<<<<< HEAD
 from dataclasses import dataclass
-=======
->>>>>>> bf7a909fb5ad28b9c1ec211007d1e082e64a4fd0
 
 import cudaq
 
