@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Problem Definition &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Quantum PageRank &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -416,8 +416,9 @@
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#"><strong>Problem Definition</strong></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum PageRank</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Problem-Definition">Problem Definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Breakdown-of-Terms">Breakdown of Terms</a></li>
 </ul>
 </li>
@@ -644,6 +645,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/api.html">   API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../api/languages/cpp_api.html">C++ API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#operators">Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#quantum">Quantum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#common">Common</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
@@ -675,11 +677,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#dynamics">Dynamics</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve"><code class="docutils literal notranslate"><span class="pre">evolve()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve_async"><code class="docutils literal notranslate"><span class="pre">evolve_async()</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
@@ -694,6 +691,29 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#dynamics">Dynamics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve"><code class="docutils literal notranslate"><span class="pre">evolve()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve_async"><code class="docutils literal notranslate"><span class="pre">evolve_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.OperatorSum"><code class="docutils literal notranslate"><span class="pre">OperatorSum</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ProductOperator"><code class="docutils literal notranslate"><span class="pre">ProductOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.define"><code class="docutils literal notranslate"><span class="pre">operators.define()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.instantiate"><code class="docutils literal notranslate"><span class="pre">operators.instantiate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#spin-operators">Spin Operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#fermion-operators">Fermion Operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#boson-operators">Boson Operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#general-operators">General Operators</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#data-types">Data Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
@@ -704,30 +724,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.OperatorSum"><code class="docutils literal notranslate"><span class="pre">OperatorSum</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ProductOperator"><code class="docutils literal notranslate"><span class="pre">ProductOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.definitions.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.CuDensityMatState"><code class="docutils literal notranslate"><span class="pre">CuDensityMatState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -803,7 +807,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active"><strong>Problem Definition</strong></li>
+      <li class="breadcrumb-item active">Quantum PageRank</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/applications/python/quantum_pagerank.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -816,7 +820,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="nbinput nblast docutils container">
+  <section id="Quantum-PageRank">
+<h1>Quantum PageRank<a class="headerlink" href="#Quantum-PageRank" title="Permalink to this heading">¶</a></h1>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
@@ -837,7 +843,7 @@
 </div>
 </div>
 <section id="Problem-Definition">
-<h1><strong>Problem Definition</strong><a class="headerlink" href="#Problem-Definition" title="Permalink to this heading">¶</a></h1>
+<h2>Problem Definition<a class="headerlink" href="#Problem-Definition" title="Permalink to this heading">¶</a></h2>
 <p><strong>PageRank</strong> is an algorithm used to rank nodes—such as web pages or individuals—in directed or undirected graphs based on their relative importance.</p>
 <div class="line-block">
 <div class="line">Given a graph $ G = (V, E) $:</div>
@@ -863,7 +869,7 @@
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_quantum_pagerank_4_0.png" src="../../_images/applications_python_quantum_pagerank_4_0.png" />
+<img alt="../../_images/applications_python_quantum_pagerank_5_0.png" src="../../_images/applications_python_quantum_pagerank_5_0.png" />
 </div>
 </div>
 <p>The mathematical foundations of the PageRank algorithm include <strong>Link matrix :math:`mathbf{L}`</strong> and <strong>PageRank Matrix :math:`mathbf{P}`</strong>. Let’s explore their definitions and meanings: For <strong>Social Network Analysis (SNA)</strong>, the <strong>Link matrix :math:`mathbf{L}`</strong> is used to represent how influence, information, or relationships flow between people (nodes). The entry <span class="math notranslate nohighlight">\(L_{ij}\)</span> in row <span class="math notranslate nohighlight">\(i\)</span>, column <span class="math notranslate nohighlight">\(j\)</span> of the matrix shows how much influence person <span class="math notranslate nohighlight">\(j\)</span> gives to person
@@ -913,10 +919,11 @@
 </div>
 </section>
 <section id="Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">
-<h1>Simulating Quantum PageRank by CUDA-Q dynamics<a class="headerlink" href="#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics" title="Permalink to this heading">¶</a></h1>
+<h2>Simulating Quantum PageRank by CUDA-Q dynamics<a class="headerlink" href="#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics" title="Permalink to this heading">¶</a></h2>
 <p>Instead of computing PageRank iteratively by <a class="reference external" href="https://en.wikipedia.org/wiki/PageRank#Power_method">the power method</a>, we aim to introduce a <a class="reference external" href="https://www.nature.com/articles/srep00605">quantum version of PageRank</a> that solves the ranking problem by leveraging the principles of quantum mechanics, specifically <a class="reference external" href="https://journals.aps.org/pra/abstract/10.1103/PhysRevA.81.022323">Quantum Stochastic Walk (QSW)</a>, which generalizes classical random walks by incorporating both <strong>coherent quantum
 evolution</strong> and <strong>incoherent stochastic dynamics</strong>, described by the <strong>Lindblad master equation</strong>:</p>
 <p>$ <span class="math">\frac{d\rho}{dt}</span> = -i(1-<span class="math">\omega</span>)[H, <span class="math">\rho</span>] + <span class="math">\omega `:nbsphinx-math:</span>sum`_{k&gt;0} <span class="math">\gamma</span>_k <span class="math">\left`( L_k :nbsphinx-math:</span>rho <cite>L_k^:nbsphinx-math:</cite>dagger <cite>- :nbsphinx-math:</cite>frac{1}{2}` {L_k^:nbsphinx-math:<cite>dagger `L_k, :nbsphinx-math:</cite>rho`} <span class="math">\right</span>) $</p>
+</section>
 <section id="Breakdown-of-Terms">
 <h2>Breakdown of Terms<a class="headerlink" href="#Breakdown-of-Terms" title="Permalink to this heading">¶</a></h2>
 <p><strong>Hamiltonian Evolution (coherent):</strong></p>
@@ -1078,7 +1085,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_quantum_pagerank_19_0.png" src="../../_images/applications_python_quantum_pagerank_19_0.png" />
+<img alt="../../_images/applications_python_quantum_pagerank_20_0.png" src="../../_images/applications_python_quantum_pagerank_20_0.png" />
 </div>
 </div>
 <p>Note that the ranking results obtained by the Quantum PageRank algorithm show smoother ranking distribution, which reduces the dominance of major hubs, allowing less connected nodes to be fairly recognized. This facilitates the identification of secondary hubs and reveals finer structural details within the network, offering a more nuanced and continuous scale of node importance for complex networks.</p>
@@ -1106,7 +1113,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_quantum_pagerank_21_0.png" src="../../_images/applications_python_quantum_pagerank_21_0.png" />
+<img alt="../../_images/applications_python_quantum_pagerank_22_0.png" src="../../_images/applications_python_quantum_pagerank_22_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
