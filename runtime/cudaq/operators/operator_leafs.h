@@ -10,6 +10,9 @@
 
 #include <complex>
 #include <functional>
+#include <map>
+#include <type_traits>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -24,8 +27,21 @@ private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
   std::variant<std::complex<double>, scalar_callback> value = 1.;
+  std::unordered_map<std::string, std::string> param_desc = {};
 
 public:
+  // read-only properties
+
+  /// @brief Checks if the scalar operator represents a constant value.
+  /// @return True if the operator is constant, false otherwise.
+  bool is_constant() const;
+
+  /// @brief A map that contains the documentation the parameters of
+  /// the operator, if available. The operator may use parameters that
+  /// are not represented in this dictionary.
+  const std::unordered_map<std::string, std::string> &
+  get_parameter_descriptions() const;
+
   // constructors and destructors
   /// @brief Default constructor that initializes the scalar operator
   constexpr scalar_operator() = default;
@@ -33,18 +49,18 @@ public:
   /// @brief Constructs a scalar operator with a double value.
   scalar_operator(double value);
 
-  /// @brief Checks if the scalar operator represents a constant value.
-  /// @return True if the operator is constant, false otherwise.
-  bool is_constant() const;
-
   /// @brief Constructs a scalar operator with a complex double value.
   scalar_operator(std::complex<double> value);
 
   /// @brief Constructs a scalar operator from a scalar callback.
-  scalar_operator(const scalar_callback &create);
+  scalar_operator(const scalar_callback &create,
+                  std::unordered_map<std::string, std::string>
+                      &&parameter_descriptions = {});
 
   /// @brief Constructs a scalar operator from an rvalue scalar callback.
-  scalar_operator(scalar_callback &&create);
+  scalar_operator(scalar_callback &&create,
+                  std::unordered_map<std::string, std::string>
+                      &&parameter_descriptions = {});
 
   /// @brief Copy constructor.
   scalar_operator(const scalar_operator &other) = default;
@@ -84,7 +100,7 @@ public:
   /// @brief Compares two scalar operators for equality.
   /// @param other The scalar operator to compare against.
   /// @return True if both operators are equal, false otherwise.
-  bool operator==(scalar_operator other) const;
+  bool operator==(const scalar_operator &other) const;
 
   // unary operators
 

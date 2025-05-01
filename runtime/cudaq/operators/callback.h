@@ -111,10 +111,12 @@ private:
 public:
   const std::vector<std::int64_t> &expected_dimensions =
       this->required_dimensions;
+  const std::unordered_map<std::string, std::string> parameter_descriptions;
 
-  Definition(std::string operator_id,
-             const std::vector<std::int64_t> &expected_dimensions,
-             matrix_callback &&create);
+  Definition(
+      std::string operator_id, const std::vector<int64_t> &expected_dimensions,
+      matrix_callback &&create,
+      std::unordered_map<std::string, std::string> &&parameter_descriptions);
   Definition(Definition &&def);
   ~Definition();
 

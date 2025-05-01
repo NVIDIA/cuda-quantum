@@ -96,6 +96,8 @@ public:
 
   virtual std::vector<std::size_t> degrees() const override;
 
+  std::size_t target() const;
+
   // constructors and destructors
 
   fermion_handler(std::size_t target);
