@@ -30,6 +30,7 @@ Deuteron
 Deutsch
 Doxygen
 FPGAs
+Fermion
 Fock
 Fortran
 Fourier
@@ -55,7 +56,7 @@ Jupyter
 JupyterLab
 Kagome
 Kraus
-Krylov
+Kutta
 LLVM
 LSB
 Libraries

@@ -29,13 +29,6 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):
     return results
 
 
-# Helper to convert new a Operator instance to a native `SpinOperator`
-def to_spin_op(obj):
-    if hasattr(obj, "_to_spinop"):
-        return obj._to_spinop()
-    return obj
-
-
 def observe(kernel,
             spin_operator,
             *args,
@@ -57,7 +50,7 @@ a nested list of results over `arguments` then `spin_operator` will be returned.
 Args:
   kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
     expectation value with respect to.
-  spin_operator (:class:`SpinOperator` or `list[SpinOperator]`): The Hermitian spin operator to 
+  spin_operator (`SpinOperator` or `list[SpinOperator]`): The Hermitian spin operator to 
     calculate the expectation of, or a list of such operators.
   *arguments (Optional[Any]): The concrete values to evaluate the 
     kernel function at. Leave empty if the kernel doesn't accept any arguments.
@@ -81,10 +74,10 @@ Returns:
         raise RuntimeError('observe specification violated for \'' +
                            kernel.name + '\': ' + validityCheck[1])
 
-    spin_operator = to_spin_op(spin_operator)
+    spin_operator = spin_operator.copy()
     if isinstance(spin_operator, list):
         for idx, op in enumerate(spin_operator):
-            spin_operator[idx] = to_spin_op(op).canonicalize()
+            spin_operator[idx] = op.canonicalize()
     else:
         spin_operator.canonicalize()
 
@@ -146,7 +139,7 @@ Returns:
                     sum += term.get_coefficient().real
                 else:
                     sum += res.expectation(
-                        term.get_term_id()) * term.get_coefficient().real
+                        term.term_id) * term.get_coefficient().real
 
             for term in localOp:
                 computeExpVal(term)

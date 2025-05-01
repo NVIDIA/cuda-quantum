@@ -349,7 +349,7 @@ def test_sample_result_observe(shots_count):
         # Check that each register is in the proper state.
         for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
-            got_name = sub_term.get_term_id()
+            got_name = sub_term.term_id
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
