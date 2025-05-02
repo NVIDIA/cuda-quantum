@@ -126,7 +126,7 @@ void cudaq::RecordLogParser::handleOutput(
 cudaq::details::DataHandlerBase &
 cudaq::RecordLogParser::getDataHandler(const std::string &dataType) {
   // Static handlers for different data types
-  static details::DataHandler<char> boolHandler(
+  static details::DataHandler<bool> boolHandler(
       std::make_unique<details::BooleanConverter>());
   static details::DataHandler<std::int8_t> i8Handler(
       std::make_unique<details::IntegerConverter<std::int8_t>>());
