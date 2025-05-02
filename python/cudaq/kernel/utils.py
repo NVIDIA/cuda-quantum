@@ -501,7 +501,7 @@ def mlirTypeToPyType(argType):
             return type(tuple(elements))
         clsName = cc.StructType.getName(argType)
         if globalRegisteredTypes.isRegisteredClass(clsName):
-            pyType, _  = globalRegisteredTypes.getClassAttributes(clsName)
+            pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
             return pyType
 
     emitFatalError(
