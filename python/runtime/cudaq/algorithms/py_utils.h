@@ -9,6 +9,7 @@
 #pragma once
 
 #include <pybind11/pybind11.h>
+#include <unordered_map>
 
 namespace py = pybind11;
 
@@ -29,7 +30,7 @@ std::string get_var_name_for_handle(const py::handle &h);
 /// @brief Registry for python data classes used in kernels
 class DataClassRegistry {
 public:
-  static std::map<std::string, py::object> classes;
+  static std::unordered_map<std::string, py::object> classes;
 
   /// @brief Register class object
   static void registerClass(std::string &name, py::object cls) {

@@ -141,7 +141,7 @@ std::string get_var_name_for_handle(const py::handle &h) {
   return std::string();
 }
 
-std::map<std::string, py::object> DataClassRegistry::classes{};
+std::unordered_map<std::string, py::object> DataClassRegistry::classes{};
 
 /// @brief Bind the dataclass registry
 void bindPyDataClassRegistry(py::module &mod) {
