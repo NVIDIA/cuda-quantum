@@ -517,6 +517,16 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
         auto eleTy = ty.getElementType();
         auto eleByteSize = byteSize(eleTy);
 
+        // Vector of booleans has a special layout.
+        // Read the vector and create a list of booleans.
+        if (eleTy.getIntOrFloatBitWidth() == 1) {
+          auto v = reinterpret_cast<std::vector<bool> *>(data);
+          py::list list;
+          for (auto const bit : *v)
+            list.append(py::bool_(bit));
+          return list;
+        }
+
         // Vector is a triple of pointers: `{ begin, end, end }`.
         // Read `begin` and `end` pointers from the buffer.
         struct vec {

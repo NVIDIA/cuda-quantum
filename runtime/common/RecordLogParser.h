@@ -37,13 +37,13 @@ public:
   virtual T convert(const std::string &value) const = 0;
 };
 
-class BooleanConverter : public TypeConverterBase<char> {
+class BooleanConverter : public TypeConverterBase<bool> {
 public:
-  char convert(const std::string &value) const override {
+  bool convert(const std::string &value) const override {
     if (value == "true" || value == "1")
-      return 1;
+      return true;
     if (value == "false" || value == "0")
-      return 0;
+      return false;
     throw std::runtime_error("Invalid boolean value");
   }
 };
@@ -105,6 +105,16 @@ public:
   template <typename T>
   size_t allocateArrayRecord(size_t arrSize) {
     size_t vectorOffset = buffer.size();
+    if constexpr (std::is_same_v<T, bool>) {
+      auto *allocation = new std::vector<bool>(arrSize);
+      if (!allocation)
+        throw std::runtime_error("Memory allocation failed");
+      auto byteLength = sizeof(*allocation);
+      buffer.resize(vectorOffset + byteLength);
+      std::memcpy(buffer.data() + vectorOffset, allocation, byteLength);
+      return vectorOffset;
+    }
+
     buffer.resize(vectorOffset + 3 * sizeof(T *));
     size_t byteLength = arrSize * sizeof(T);
     T *innerBuffer = static_cast<T *>(malloc(byteLength));
@@ -125,8 +135,13 @@ public:
 
   template <typename T>
   void insertIntoArray(size_t offset, std::size_t index, T value) {
-    T **ptrLoc = reinterpret_cast<T **>(buffer.data() + offset);
-    ptrLoc[0][index] = value;
+    if constexpr (std::is_same_v<T, bool>) {
+      auto v = reinterpret_cast<std::vector<bool> *>(buffer.data() + offset);
+      (*v)[index] = value;
+    } else {
+      T **ptrLoc = reinterpret_cast<T **>(buffer.data() + offset);
+      ptrLoc[0][index] = value;
+    }
   }
 
   /// TODO: Revisit tuple parsing to account for alignment
