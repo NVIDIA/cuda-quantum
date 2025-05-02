@@ -399,6 +399,20 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html">Generating the electronic Hamiltonian</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Second-Quantized-formulation.">Second Quantized formulation.</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Computational-Implementation">Computational Implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Hartree-Fock-molecular-orbitals">(a) Generate the molecular Hamiltonian using Hartree Fock molecular orbitals</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Active-space-Hamiltonian:">Active space Hamiltonian:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -622,6 +636,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/api.html">   API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../api/languages/cpp_api.html">C++ API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#operators">Operators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#quantum">Quantum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#common">Common</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
@@ -653,11 +668,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#dynamics">Dynamics</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve"><code class="docutils literal notranslate"><span class="pre">evolve()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve_async"><code class="docutils literal notranslate"><span class="pre">evolve_async()</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
@@ -672,6 +682,29 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#dynamics">Dynamics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve"><code class="docutils literal notranslate"><span class="pre">evolve()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve_async"><code class="docutils literal notranslate"><span class="pre">evolve_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.OperatorSum"><code class="docutils literal notranslate"><span class="pre">OperatorSum</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ProductOperator"><code class="docutils literal notranslate"><span class="pre">ProductOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.define"><code class="docutils literal notranslate"><span class="pre">operators.define()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.instantiate"><code class="docutils literal notranslate"><span class="pre">operators.instantiate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#spin-operators">Spin Operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#fermion-operators">Fermion Operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#boson-operators">Boson Operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#general-operators">General Operators</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#data-types">Data Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SimulationPrecision"><code class="docutils literal notranslate"><span class="pre">SimulationPrecision</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
@@ -682,30 +715,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.OperatorSum"><code class="docutils literal notranslate"><span class="pre">OperatorSum</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ProductOperator"><code class="docutils literal notranslate"><span class="pre">ProductOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.definitions.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.CuDensityMatState"><code class="docutils literal notranslate"><span class="pre">CuDensityMatState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -799,7 +816,7 @@
 <section id="cavity-qed">
 <span id="dynamics-examples"></span><h2>Cavity QED<a class="headerlink" href="#cavity-qed" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id1"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">boson</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -815,17 +832,17 @@
 
 <span class="c1"># Alias for commonly used operators</span>
 <span class="c1"># Cavity operators</span>
-<span class="n">a</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">a_dag</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">boson</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">a_dag</span> <span class="o">=</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 <span class="c1"># Atom operators</span>
-<span class="n">sm</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">sm_dag</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">sm</span> <span class="o">=</span> <span class="n">boson</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">sm_dag</span> <span class="o">=</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="c1"># Defining the Hamiltonian for the system: self-energy terms and cavity-atom interaction term.</span>
 <span class="c1"># This is the so-called Jaynes-Cummings model:</span>
 <span class="c1"># https://en.wikipedia.org/wiki/Jaynes%E2%80%93Cummings_model</span>
-<span class="n">hamiltonian</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span>
     <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="n">sm</span> <span class="o">*</span> <span class="n">a_dag</span> <span class="o">+</span> <span class="n">sm_dag</span> <span class="o">*</span> <span class="n">a</span><span class="p">)</span>
 
 <span class="c1"># Initial state of the system</span>
@@ -841,15 +858,15 @@
 <span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
 
 <span class="c1"># First, evolve the system without any collapse operators (ideal).</span>
-<span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
-    <span class="n">hamiltonian</span><span class="p">,</span>
-    <span class="n">dimensions</span><span class="p">,</span>
-    <span class="n">schedule</span><span class="p">,</span>
-    <span class="n">rho0</span><span class="p">,</span>
-    <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
-    <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
-    <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
+<span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span>
+                                <span class="n">dimensions</span><span class="p">,</span>
+                                <span class="n">schedule</span><span class="p">,</span>
+                                <span class="n">rho0</span><span class="p">,</span>
+                                <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                                             <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+                                <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
+                                <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
 
 <span class="c1"># Then, evolve the system with a collapse operator modeling cavity decay (leaking photons)</span>
 <span class="n">evolution_result_decay</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
@@ -857,7 +874,7 @@
     <span class="n">dimensions</span><span class="p">,</span>
     <span class="n">schedule</span><span class="p">,</span>
     <span class="n">rho0</span><span class="p">,</span>
-    <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+    <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
     <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span><span class="p">],</span>
     <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
@@ -1030,7 +1047,7 @@
 <section id="gate-calibration">
 <h2>Gate Calibration<a class="headerlink" href="#gate-calibration" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id3"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">boson</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -1086,16 +1103,16 @@
     <span class="n">amplitude</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">amps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">drag_amp</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">amps</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="c1"># Qubit Hamiltonian</span>
-    <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">detuning</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
-        <span class="n">anharmonicity</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-            <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">detuning</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
+        <span class="n">anharmonicity</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="c1"># Drive term</span>
-    <span class="n">hamiltonian</span> <span class="o">+=</span> <span class="n">amplitude</span> <span class="o">*</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="n">gaussian</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
-        <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="n">hamiltonian</span> <span class="o">+=</span> <span class="n">amplitude</span> <span class="o">*</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="n">gaussian</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span>
+                                                           <span class="n">boson</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
 
     <span class="c1"># Drag term (leakage reduction)</span>
     <span class="n">hamiltonian</span> <span class="o">+=</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">drag_amp</span> <span class="o">*</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="n">dgaussian</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
-        <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">boson</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
 
     <span class="c1"># We optimize for a X(pi/2) rotation</span>
     <span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span>
@@ -1128,7 +1145,7 @@
 <section id="heisenberg-model">
 <h2>Heisenberg Model<a class="headerlink" href="#heisenberg-model" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id4"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span><span class="p">,</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
@@ -1154,7 +1171,7 @@
     <span class="n">spin_state</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span> <span class="o">%</span> <span class="mi">2</span><span class="p">))</span>
 
 <span class="c1"># Observable is the staggered magnetization operator</span>
-<span class="n">staggered_magnetization_op</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span>
+<span class="n">staggered_magnetization_op</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">staggered_magnetization_op</span> <span class="o">+=</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
@@ -1171,7 +1188,7 @@
     <span class="n">Jz</span> <span class="o">=</span> <span class="n">g</span>
 
     <span class="c1"># Construct the Hamiltonian</span>
-    <span class="n">H</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
         <span class="n">H</span> <span class="o">+=</span> <span class="n">Jx</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
@@ -1220,7 +1237,7 @@
 <section id="landau-zener">
 <h2>Landau Zener<a class="headerlink" href="#landau-zener" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id5"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">boson</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -1241,8 +1258,8 @@
 <span class="c1"># Define some shorthand operators</span>
 <span class="n">sx</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">sz</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">sm</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">sm_dag</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">sm</span> <span class="o">=</span> <span class="n">boson</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">sm_dag</span> <span class="o">=</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="c1"># Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).</span>
 <span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
@@ -1272,7 +1289,7 @@
                                 <span class="n">dimensions</span><span class="p">,</span>
                                 <span class="n">schedule</span><span class="p">,</span>
                                 <span class="n">psi0</span><span class="p">,</span>
-                                <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+                                <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
                                 <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
                                 <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                 <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
@@ -1304,7 +1321,7 @@
 <section id="pulse">
 <h2>Pulse<a class="headerlink" href="#pulse" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id6"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">boson</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -1364,7 +1381,7 @@
                                 <span class="n">dimensions</span><span class="p">,</span>
                                 <span class="n">schedule</span><span class="p">,</span>
                                 <span class="n">psi0</span><span class="p">,</span>
-                                <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+                                <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
                                 <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
                                 <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                 <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
@@ -1610,7 +1627,7 @@
 <section id="silicon-spin-qubit">
 <h2>Silicon Spin Qubit<a class="headerlink" href="#silicon-spin-qubit" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id9"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">boson</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -1647,7 +1664,7 @@
                                     <span class="n">dimensions</span><span class="p">,</span>
                                     <span class="n">schedule</span><span class="p">,</span>
                                     <span class="n">rho0</span><span class="p">,</span>
-                                    <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+                                    <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
                                     <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
                                     <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                     <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
@@ -1670,7 +1687,7 @@
 <section id="tensor-callback">
 <h2>Tensor Callback<a class="headerlink" href="#tensor-callback" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id10"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElementaryOperator</span><span class="p">,</span> <span class="n">spin</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">MatrixOperatorElement</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">boson</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -1697,10 +1714,10 @@
 <span class="n">lz_formula_p1</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">lz_formula_p0</span>
 
 <span class="c1"># Let&#39;s define the control term as a callback tensor that acts on 2-level systems</span>
-<span class="n">ElementaryOperator</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">&quot;lz_op&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">callback_tensor</span><span class="p">)</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">&quot;lz_op&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">callback_tensor</span><span class="p">)</span>
 
 <span class="c1"># Hamiltonian</span>
-<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">ElementaryOperator</span><span class="p">(</span><span class="s2">&quot;lz_op&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="s2">&quot;lz_op&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 <span class="c1"># Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).</span>
 <span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
@@ -1717,7 +1734,7 @@
                                 <span class="n">dimensions</span><span class="p">,</span>
                                 <span class="n">schedule</span><span class="p">,</span>
                                 <span class="n">psi0</span><span class="p">,</span>
-                                <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">operators</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+                                <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
                                 <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
                                 <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                 <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
@@ -1749,7 +1766,7 @@
 <section id="transmon-resonator">
 <h2>Transmon Resonator<a class="headerlink" href="#transmon-resonator" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id11"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span><span class="p">,</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span><span class="p">,</span> <span class="n">spin</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -1867,7 +1884,7 @@
 <section id="initial-state-multi-gpu-multi-node">
 <h2>Initial State (Multi-GPU Multi-Node)<a class="headerlink" href="#initial-state-multi-gpu-multi-node" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="initial-state-mgmn"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span><span class="p">,</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
@@ -1887,14 +1904,14 @@
     <span class="n">dimensions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
 
 <span class="c1"># Observable is the average magnetization operator</span>
-<span class="n">avg_magnetization_op</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span>
+<span class="n">avg_magnetization_op</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
     <span class="n">avg_magnetization_op</span> <span class="o">+=</span> <span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">/</span> <span class="n">N</span><span class="p">)</span>
 
 <span class="c1"># Arbitrary coupling constant</span>
 <span class="n">g</span> <span class="o">=</span> <span class="mf">1.0</span>
 <span class="c1"># Construct the Hamiltonian</span>
-<span class="n">H</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span>
+<span class="n">H</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
     <span class="n">H</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="n">H</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
@@ -1906,9 +1923,9 @@
 <span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
 
 <span class="c1"># Initial state (expressed as an enum)</span>
-<span class="n">psi0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">operator</span><span class="o">.</span><span class="n">InitialState</span><span class="o">.</span><span class="n">ZERO</span>
+<span class="n">psi0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">InitialState</span><span class="o">.</span><span class="n">ZERO</span>
 <span class="c1"># This can also be used to initialize a uniformly-distributed wave-function instead.</span>
-<span class="c1"># `psi0 = cudaq.operator.InitialState.UNIFORM`</span>
+<span class="c1"># `psi0 = cudaq.dynamics.InitialState.UNIFORM`</span>
 
 <span class="c1"># Run the simulation</span>
 <span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">H</span><span class="p">,</span>
@@ -1943,7 +1960,7 @@
 <section id="heisenberg-model-multi-gpu-multi-node">
 <h2>Heisenberg Model (Multi-GPU Multi-Node)<a class="headerlink" href="#heisenberg-model-multi-gpu-multi-node" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="heisenberg-model-mgmn"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span><span class="p">,</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
@@ -1973,7 +1990,7 @@
     <span class="n">spin_state</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span> <span class="o">%</span> <span class="mi">2</span><span class="p">))</span>
 
 <span class="c1"># Observable is the staggered magnetization operator</span>
-<span class="n">staggered_magnetization_op</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span>
+<span class="n">staggered_magnetization_op</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">staggered_magnetization_op</span> <span class="o">+=</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
@@ -1990,7 +2007,7 @@
     <span class="n">Jz</span> <span class="o">=</span> <span class="n">g</span>
 
     <span class="c1"># Construct the Hamiltonian</span>
-    <span class="n">H</span> <span class="o">=</span> <span class="n">operators</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
         <span class="n">H</span> <span class="o">+=</span> <span class="n">Jx</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
