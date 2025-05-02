@@ -218,7 +218,7 @@ do
                 echo ":white_flag: $filename: Incomplete MPI installation. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
                 continue
 
-            elif [[ "$ex" == *"executing_kernels"* ]];
+            elif [ "$ex" == *"executing_kernels"* ];
             then
                 let "skipped+=1"
                 echo "Skipping $t target due to a missing remote server process.";
