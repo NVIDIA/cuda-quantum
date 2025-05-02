@@ -557,13 +557,12 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
 
         // Handle data class objects.
         if (!DataClassRegistry::isRegisteredClass(name))
-          throw std::runtime_error("No dataclass type info found for: " + name);
+          throw std::runtime_error("Dataclass is not registered: " + name);
 
-        // Find class information
-        py::object cls = DataClassRegistry::getClass(name);
-        py::dict attributes = DataClassRegistry::getAttributes(cls);
+        // Find class information.
+        auto [cls, attributes] = DataClassRegistry::getClassAttributes(name);
 
-        // Collect field names
+        // Collect field names.
         std::vector<py::str> fieldNames;
         for (const auto &[attr_name, unused] : attributes)
           fieldNames.push_back(py::str(attr_name));

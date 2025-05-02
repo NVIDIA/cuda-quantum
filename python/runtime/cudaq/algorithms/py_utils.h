@@ -9,6 +9,7 @@
 #pragma once
 
 #include <pybind11/pybind11.h>
+#include <tuple>
 #include <unordered_map>
 
 namespace py = pybind11;
@@ -30,11 +31,12 @@ std::string get_var_name_for_handle(const py::handle &h);
 /// @brief Registry for python data classes used in kernels
 class DataClassRegistry {
 public:
-  static std::unordered_map<std::string, py::object> classes;
+  static std::unordered_map<std::string, std::tuple<py::object, py::dict>>
+      classes;
 
   /// @brief Register class object
   static void registerClass(std::string &name, py::object cls) {
-    classes[name] = cls;
+    classes[name] = {cls, cls.attr("__annotations__").cast<py::dict>()};
   }
 
   /// @brief Is data class name registered
@@ -42,21 +44,10 @@ public:
     return classes.contains(name);
   }
 
-  /// @brief Find registered data class object
-  static py::object getClass(std::string &name) { return classes[name]; }
-
   /// @brief Find registered data class object and its attributes
-  static py::tuple getClassAttributes(std::string &name) {
-    py::list list;
-    py::object cls = getClass(name);
-    list.append(getClass(name));
-    list.append(getAttributes(cls));
-    return py::tuple(list);
-  }
-
-  /// @brief Find class attributes
-  static py::dict getAttributes(py::object cls) {
-    return cls.attr("__annotations__").cast<py::dict>();
+  static std::tuple<py::object, py::dict>
+  getClassAttributes(std::string &name) {
+    return classes[name];
   }
 };
 

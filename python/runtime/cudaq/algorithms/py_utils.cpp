@@ -141,7 +141,8 @@ std::string get_var_name_for_handle(const py::handle &h) {
   return std::string();
 }
 
-std::unordered_map<std::string, py::object> DataClassRegistry::classes{};
+std::unordered_map<std::string, std::tuple<py::object, py::dict>>
+    DataClassRegistry::classes{};
 
 /// @brief Bind the dataclass registry
 void bindPyDataClassRegistry(py::module &mod) {
@@ -151,8 +152,6 @@ void bindPyDataClassRegistry(py::module &mod) {
                   "Register class\n")
       .def_static("isRegisteredClass", &DataClassRegistry::isRegisteredClass,
                   "Is class registered\n")
-      .def_static("getClass", &DataClassRegistry::getClass,
-                  "Find registered class\n")
       .def_static("getClassAttributes", &DataClassRegistry::getClassAttributes,
                   "Find registered class and its attributes\n")
       .def_readonly_static("classes", &DataClassRegistry::classes);
