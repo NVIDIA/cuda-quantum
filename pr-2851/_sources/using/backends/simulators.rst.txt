@@ -42,13 +42,13 @@ technical details and code examples for using each circuit simulator.
      - Tensor Network
      - Shallow-depth (low-entanglement) and high width circuits (exact)
      - multi-GPU multi-node
-     - double
+     - double (default) / single
      - Thousands 
    * - `tensornet-mps` *
      - Matrix Product State
      - Square-shaped circuits (approximate)
      - Single GPU
-     - double
+     - double (default) / single
      - Hundreds
    * - `fermioniq`
      - Matrix Product State
