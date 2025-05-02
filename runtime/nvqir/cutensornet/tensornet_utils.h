@@ -35,11 +35,12 @@
 
 /// @brief Allocate and initialize device memory according to the input host
 /// data.
+template <typename T>
 inline void *
-allocateGateMatrix(const std::vector<std::complex<double>> &gateMatHost) {
+allocateGateMatrix(const std::vector<std::complex<T>> &gateMatHost) {
   // Copy quantum gates to Device memory
   void *d_gate{nullptr};
-  const auto sizeBytes = gateMatHost.size() * sizeof(std::complex<double>);
+  const auto sizeBytes = gateMatHost.size() * sizeof(std::complex<T>);
   HANDLE_CUDA_ERROR(cudaMalloc(&d_gate, sizeBytes));
   HANDLE_CUDA_ERROR(cudaMemcpy(d_gate, gateMatHost.data(), sizeBytes,
                                cudaMemcpyHostToDevice));

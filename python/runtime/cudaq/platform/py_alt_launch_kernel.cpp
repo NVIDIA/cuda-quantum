@@ -525,7 +525,16 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
       .Case([&](cudaq::cc::StdvecType ty) -> py::object {
         auto eleTy = ty.getElementType();
         auto eleByteSize = byteSize(eleTy);
-        py::list list;
+
+        // Vector of booleans has a special layout.
+        // Read the vector and create a list of booleans.
+        if (eleTy.getIntOrFloatBitWidth() == 1) {
+          auto v = reinterpret_cast<std::vector<bool> *>(data);
+          py::list list;
+          for (auto const bit : *v)
+            list.append(py::bool_(bit));
+          return list;
+        }
 
         // Vector is a triple of pointers: `{ begin, end, end }`.
         // Read `begin` and `end` pointers from the buffer.
@@ -537,6 +546,7 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
         auto v = reinterpret_cast<vec *>(data);
 
         // Read vector elements.
+        py::list list;
         for (char *i = v->begin; i < v->end; i += eleByteSize)
           list.append(convertResult(kernelFuncOp, eleTy, i, eleByteSize));
         return list;
@@ -598,16 +608,6 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
           // Create python object of class `cls` with the collected args.
           return cls(**kwargs);
         }
-
-        // TODO: handle data class types:
-        // Idea:
-        // - add a function to create a new object to global dataclass registry
-        // - expose the registry to c++ (add  c++ function from py_run to store
-        //   the dictionary in a c++ global?)
-        // - create a python cudaq.wrapper for current cudaq.run that sets the
-        //    global and calls the current cudaq.run
-        ty.dump();
-        throw std::runtime_error("Unsupported return type.");
       })
       .Default([](Type ty) -> py::object {
         ty.dump();
