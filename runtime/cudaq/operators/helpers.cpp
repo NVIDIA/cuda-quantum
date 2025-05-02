@@ -16,7 +16,7 @@ namespace detail {
 
 std::vector<std::string> generate_all_states(
     const std::vector<std::size_t> &degrees,
-    const std::unordered_map<std::size_t, int64_t> &dimensions) {
+    const std::unordered_map<std::size_t, std::int64_t> &dimensions) {
   if (degrees.size() == 0)
     return {};
   auto dit = degrees.crbegin();
@@ -43,10 +43,10 @@ std::vector<std::string> generate_all_states(
   return states;
 }
 
-std::vector<std::size_t>
-compute_permutation(const std::vector<std::size_t> &op_degrees,
-                    const std::vector<std::size_t> &canon_degrees,
-                    const std::unordered_map<std::size_t, int64_t> dimensions) {
+std::vector<std::size_t> compute_permutation(
+    const std::vector<std::size_t> &op_degrees,
+    const std::vector<std::size_t> &canon_degrees,
+    const std::unordered_map<std::size_t, std::int64_t> dimensions) {
   assert(op_degrees.size() == canon_degrees.size());
   auto states = cudaq::detail::generate_all_states(canon_degrees, dimensions);
 
