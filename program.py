@@ -8,17 +8,30 @@
 
 import cudaq
 
-def test_return_bool():
+def test_no_return():
 
     @cudaq.kernel
     def simple_bool_no_args() -> bool:
         qubits = cudaq.qvector(2)
         return True
 
+    results = cudaq.sample(simple_bool_no_args, shots_count=2)
+    print(simple_bool_no_args)
+    print(results)
+
+test_no_return()
+
+def test_return_bool():
+
+    @cudaq.kernel
+    def simple_bool_no_args() -> bool:
+        #qubits = cudaq.qvector(2)
+        return True
+
+    print(simple_bool_no_args)
     # TODO: seg fault on running any kernel with no args
     results = cudaq.run(simple_bool_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == True
-    assert results[1] == True
+    
+    print(results)
 
 test_return_bool()

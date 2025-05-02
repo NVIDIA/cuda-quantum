@@ -230,7 +230,10 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     auto argsCreator =
         reinterpret_cast<std::size_t (*)(void **, void **)>(*expectedPtr);
     rawArgs = nullptr;
+    std::cout << "Creating args, size: " << runtimeArgs.size() << std::endl;
     size = argsCreator(runtimeArgs.data(), &rawArgs);
+    std::cout << "Created args, size: " << size << std::endl;
+    std::cout << "Created args, args: " << (int)(*(char*)rawArgs) << std::endl;
   }
 
   std::int32_t returnOffset = 0;
@@ -246,6 +249,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     if (returnOffset == NoResultOffset) {
       returnOffset = 0;
     }
+    std::cout << "Return offset: " << returnOffset << std::endl;
   }
   return {jit, rawArgs, size, returnOffset};
 }
@@ -386,8 +390,10 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
         throw std::runtime_error("not implemented: support dynamic results");
     } else {
       // Local simulator - use altLaunchKernel with the thunk function.
+      std::cout << "Launching kernel " << std::endl;
       auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
                                                   size, uReturnOffset);
+      std::cout << "done launching kernel " << std::endl;
       if (dynamicResult.data_buffer || dynamicResult.size)
         throw std::runtime_error("not implemented: support dynamic results");
     }
