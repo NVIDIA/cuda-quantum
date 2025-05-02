@@ -60,32 +60,37 @@ def evolve_dynamics(
         for observable in observables
     ]
 
+    if isinstance(initial_state, InitialState):
+        has_collapse_operators = len(collapse_operators) > 0
+        initial_state = CuDensityMatState.create_initial_state(
+            initial_state, hilbert_space_dims, has_collapse_operators)
+    else:
+        with ScopeTimer("evolve.as_cudm_state") as timer:
+            initial_state = as_cudm_state(initial_state)
+
+    if not isinstance(initial_state, CuDensityMatState):
+        raise ValueError("Unknown type")
+
+    if not initial_state.is_initialized():
+        with ScopeTimer("evolve.init_state") as timer:
+            initial_state.init_state(hilbert_space_dims)
+
+    is_density_matrix = initial_state.is_density_matrix()
+    if not is_density_matrix:
+        if len(collapse_operators) > 0:
+            with ScopeTimer("evolve.initial_state.to_dm") as timer:
+                initial_state = initial_state.to_dm()
+
     if integrator.is_native():
+        if (initial_state.is_density_matrix()):
+            initial_state = cudaq_runtime.State.from_data(cupy.ravel(cupy.transpose(initial_state.state.storage).copy()))
+        else:
+            initial_state = cudaq_runtime.State.from_data(cupy.ravel(initial_state.state.storage))
         initial_state = bindings.initializeState(initial_state, list(hilbert_space_dims), len(collapse_operators) > 0)
         integrator.set_state(initial_state, schedule._steps[0])
     else:
-        if isinstance(initial_state, InitialState):
-            has_collapse_operators = len(collapse_operators) > 0
-            initial_state = CuDensityMatState.create_initial_state(
-                initial_state, hilbert_space_dims, has_collapse_operators)
-        else:
-            with ScopeTimer("evolve.as_cudm_state") as timer:
-                initial_state = as_cudm_state(initial_state)
-
-        if not isinstance(initial_state, CuDensityMatState):
-            raise ValueError("Unknown type")
-
-        if not initial_state.is_initialized():
-            with ScopeTimer("evolve.init_state") as timer:
-                initial_state.init_state(hilbert_space_dims)
-
-        is_density_matrix = initial_state.is_density_matrix()
-        if not is_density_matrix:
-            if len(collapse_operators) > 0:
-                with ScopeTimer("evolve.initial_state.to_dm") as timer:
-                    initial_state = initial_state.to_dm()
         integrator.set_state(initial_state.get_impl(), schedule._steps[0])
-
+    
     exp_vals = []
     intermediate_states = []
     for step_idx, parameters in enumerate(schedule):
@@ -110,21 +115,24 @@ def evolve_dynamics(
                         exp_val = obs.compute(state, schedule.current_step)
                 step_exp_vals.append(exp_val)
             exp_vals.append(step_exp_vals)
-        # if store_intermediate_results:
-        #     _, state = integrator.get_state()
-        #     state_length = state.storage.size
-        #     if is_density_matrix and not CuDensityMatState.is_multi_process():
-        #         dimension = int(math.sqrt(state_length))
-        #         with ScopeTimer("evolve.intermediate_states.append") as timer:
-        #             intermediate_states.append(
-        #                 cudaq_runtime.State.from_data(
-        #                     state.storage.reshape((dimension, dimension))))
-        #     else:
-        #         dimension = state_length
-        #         with ScopeTimer("evolve.intermediate_states.append") as timer:
-        #             intermediate_states.append(
-        #                 cudaq_runtime.State.from_data(
-        #                     state.storage.reshape((dimension,))))
+        if store_intermediate_results:
+            _, state = integrator.get_state()
+            if integrator.is_native():
+                intermediate_states.append(state)
+            else:
+                state_length = state.storage.size
+                if is_density_matrix and not CuDensityMatState.is_multi_process():
+                    dimension = int(math.sqrt(state_length))
+                    with ScopeTimer("evolve.intermediate_states.append") as timer:
+                        intermediate_states.append(
+                            cudaq_runtime.State.from_data(
+                                state.storage.reshape((dimension, dimension))))
+                else:
+                    dimension = state_length
+                    with ScopeTimer("evolve.intermediate_states.append") as timer:
+                        intermediate_states.append(
+                            cudaq_runtime.State.from_data(
+                                state.storage.reshape((dimension,))))
 
     bindings.clearContext()
     if store_intermediate_results:

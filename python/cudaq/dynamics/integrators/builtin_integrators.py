@@ -89,5 +89,4 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
         self.rk_integrator.setSystem(system_, schedule_)
     
     def integrate(self, t):
-        print("Integrate @", t)
         self.rk_integrator.integrate(t)   
