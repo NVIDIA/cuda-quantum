@@ -54,12 +54,13 @@ schedule = Schedule(steps, ["t"])
 omega_max = 1000000
 delta_end = 1000000
 delta_start = 0.0
-omega = ScalarOperator(lambda t: omega_max if time_ramp < t < time_max else 0.0)
+omega = ScalarOperator(lambda t: omega_max
+                       if time_ramp < t.real < time_max else 0.0)
 # Global phase at each step
 phi = ScalarOperator.const(0.0)
 # Global detuning at each step
 delta = ScalarOperator(lambda t: delta_end
-                       if time_ramp < t < time_max else delta_start)
+                       if time_ramp < t.real < time_max else delta_start)
 
 async_result = cudaq.evolve_async(RydbergHamiltonian(atom_sites=register,
                                                      amplitude=omega,

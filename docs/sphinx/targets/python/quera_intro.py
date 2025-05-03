@@ -37,11 +37,11 @@ schedule = Schedule(steps, ["t"])
 def trapezoidal_signal(t):
     slope = omega_const / time_ramp
     y_intercept = slope * time_max
-    if 0 < t < time_ramp + time_plateau:
+    if 0 < t.real < time_ramp + time_plateau:
         return slope * t
-    if time_ramp < t < time_max:
+    if time_ramp < t.real < time_max:
         return omega_const
-    if time_ramp + time_plateau < t < time_max:
+    if time_ramp + time_plateau < t.real < time_max:
         return (-slope * t) + y_intercept
     return 0.0
 
