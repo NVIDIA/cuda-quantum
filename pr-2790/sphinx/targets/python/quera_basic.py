@@ -35,12 +35,13 @@ delta_end = 5 * omega_max
 steps = [0.0, time_ramp, time_max - time_ramp, time_max]
 schedule = Schedule(steps, ["t"])
 # Rabi frequencies at each step
-omega = ScalarOperator(lambda t: omega_max if time_ramp < t < time_max else 0.0)
+omega = ScalarOperator(lambda t: omega_max
+                       if time_ramp < t.real < time_max else 0.0)
 # Global phase at each step
 phi = ScalarOperator.const(0.0)
 # Global detuning at each step
 delta = ScalarOperator(lambda t: delta_end
-                       if time_ramp < t < time_max else delta_start)
+                       if time_ramp < t.real < time_max else delta_start)
 
 async_result = cudaq.evolve_async(RydbergHamiltonian(atom_sites=register,
                                                      amplitude=omega,
