@@ -1,5 +1,5 @@
 import cudaq
-from cudaq import spin, operators, Schedule, ScalarOperator, ScipyZvodeIntegrator
+from cudaq import spin, boson, Schedule, ScalarOperator, ScipyZvodeIntegrator
 import numpy as np
 import cupy as cp
 import os
@@ -36,7 +36,7 @@ for amplitude in amplitudes:
                                     dimensions,
                                     schedule,
                                     rho0,
-                                    observables=[operators.number(0)],
+                                    observables=[boson.number(0)],
                                     collapse_operators=[],
                                     store_intermediate_results=True,
                                     integrator=ScipyZvodeIntegrator())
