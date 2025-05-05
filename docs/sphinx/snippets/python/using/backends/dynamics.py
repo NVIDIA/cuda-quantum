@@ -13,7 +13,7 @@ omega_x = 4.0
 omega_d = 0.5
 
 import numpy as np
-from cudaq import spin, ScalarOperator
+from cudaq import operators, spin, ScalarOperator
 
 # Qubit Hamiltonian
 hamiltonian = 0.5 * omega_z * spin.z(0)
@@ -96,7 +96,7 @@ H = H0 + ScalarOperator(lambda t: np.cos(omega * t)) * H1
 #[Begin DefineOp]
 import numpy
 import scipy
-from cudaq import operators, NumericType
+from cudaq import NumericType
 from numpy.typing import NDArray
 
 
