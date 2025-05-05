@@ -249,7 +249,7 @@ cudaq::detail::EigenSparseMatrix
 boson_handler::to_sparse_matrix(const std::string &boson_word,
                                 const std::vector<std::int64_t> &dimensions,
                                 std::complex<double> coeff, bool invert_order) {
-  auto dim = 1;
+  std::int64_t dim = 1;
   for (auto d : dimensions)
     dim *= d;
   return cudaq::detail::create_sparse_matrix(
@@ -265,7 +265,7 @@ complex_matrix
 boson_handler::to_matrix(const std::string &boson_word,
                          const std::vector<std::int64_t> &dimensions,
                          std::complex<double> coeff, bool invert_order) {
-  auto dim = 1;
+  std::int64_t dim = 1;
   for (auto d : dimensions)
     dim *= d;
   return cudaq::detail::create_matrix(
