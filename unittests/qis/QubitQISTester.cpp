@@ -422,7 +422,7 @@ CUDAQ_TEST(QubitQISTester, checkU3Adj) {
     // mimic Rx gate
     u3(1.1, -M_PI_2, M_PI_2, q);
     // rx<adj>(angle) = u3<adj>(angle, pi/2, -pi/2)
-    u3<cudaq::adj>(1.1, M_PI_2, -M_PI_2, q);
+    u3<cudaq::adj>(1.1, -M_PI_2, M_PI_2, q);
     // mimic Ry gate
     u3(1.1, 0., 0., q);
     u3<cudaq::adj>(1.1, 0., 0., q);
