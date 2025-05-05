@@ -78,6 +78,8 @@ omega_a = 4 * np.pi
 Omega = 0.5
 
 #[Begin Jaynes-Cummings]
+from cudaq import operators
+
 hamiltonian = omega_c * operators.create(1) * operators.annihilate(1) \
                 + (omega_a / 2) * spin.z(0) \
                 + (Omega / 2) * (operators.annihilate(1) * spin.plus(0) + operators.create(1) * spin.minus(0))
