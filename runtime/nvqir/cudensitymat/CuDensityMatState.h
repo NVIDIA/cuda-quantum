@@ -26,8 +26,7 @@ private:
   std::vector<int64_t> hilbertSpaceDims;
 
 public:
-  CuDensityMatState(std::size_t s, void *ptr, bool isDm)
-      : isDensityMatrix(isDm), devicePtr(ptr), dimension(s) {}
+  CuDensityMatState(std::size_t s, void *ptr, bool isDm);
 
   CuDensityMatState() {}
 

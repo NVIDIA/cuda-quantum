@@ -47,28 +47,6 @@ std::string getMpiPluginFilePath() {
   return mpiPlugin->getPluginPath();
 }
 
-/// @brief Retrieve the MPI plugin comm interface
-static cudaqDistributedInterface_t *getMpiPluginInterface() {
-  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
-  if (!mpiPlugin)
-    throw std::runtime_error("Failed to retrieve MPI plugin");
-  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
-  if (!mpiInterface)
-    throw std::runtime_error("Invalid MPI distributed plugin encountered");
-  return mpiInterface;
-}
-
-/// @brief Retrieve the MPI plugin (type-erased) comm pointer
-static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
-  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
-  if (!mpiPlugin)
-    throw std::runtime_error("Failed to retrieve MPI plugin");
-  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
-  if (!comm)
-    throw std::runtime_error("Invalid MPI distributed plugin encountered");
-  return comm;
-}
-
 void initCuDensityMatCommLib() {
   // If CUDENSITYMAT_COMM_LIB environment variable is not set,
   // use this builtin plugin shim (redirect MPI calls to CUDA-Q plugin)
@@ -79,19 +57,6 @@ void initCuDensityMatCommLib() {
                 getThisSharedLibFilePath(), getMpiPluginFilePath());
     setenv("CUDENSITYMAT_COMM_LIB", getThisSharedLibFilePath(), 0);
   }
-
-  cudaqDistributedInterface_t *mpiInterface = getMpiPluginInterface();
-  cudaqDistributedCommunicator_t *comm = getMpiCommWrapper();
-  assert(mpiInterface && comm);
-  cudaqDistributedCommunicator_t *dupComm = nullptr;
-  const auto dupStatus = mpiInterface->CommDup(comm, &dupComm);
-  if (dupStatus != 0 || dupComm == nullptr)
-    throw std::runtime_error("Failed to duplicate the MPI communicator when "
-                             "initializing cuDensityMat MPI");
-  HANDLE_CUDM_ERROR(cudensitymatResetDistributedConfiguration(
-      cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-      CUDENSITYMAT_DISTRIBUTED_PROVIDER_MPI, dupComm->commPtr,
-      dupComm->commSize));
 }
 
 class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double> {
