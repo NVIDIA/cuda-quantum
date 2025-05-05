@@ -31,7 +31,15 @@ enum class pauli;
                                  std::is_same<HandlerTy, T>::value,            \
                              bool> = true>
 
-// utility functions for backward compatibility
+#define PROPERTY_SPECIFIC_TEMPLATE(property)                                   \
+  template <typename T = HandlerTy,                                            \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
+                             std::true_type> = std::true_type()>
+
+#define PROPERTY_AGNOSTIC_TEMPLATE(property)                                   \
+  template <typename T = HandlerTy,                                            \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
+                             std::false_type> = std::false_type()>
 
 #define SPIN_OPS_BACKWARD_COMPATIBILITY(deprecation_message)                   \
   template <typename T = HandlerTy,                                            \
@@ -63,7 +71,7 @@ private:
   void aggregate_terms(product_op<HandlerTy> &&head, Args &&...args);
 
   template <typename EvalTy>
-  EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
+  EvalTy transform(operator_arithmetics<EvalTy> arithmetics) const;
 
 protected:
   std::unordered_map<std::string, std::size_t>
@@ -158,6 +166,9 @@ public:
 
   /// @brief Return the number of operator terms that make up this operator sum.
   std::size_t num_terms() const;
+
+  std::unordered_map<std::string, std::string>
+  get_parameter_descriptions() const;
 
   // constructors and destructors
 
@@ -802,7 +813,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
-  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   csr_spmatrix to_sparse_matrix(
       std::unordered_map<std::size_t, std::int64_t> dimensions = {},
       const std::unordered_map<std::string, std::complex<double>> &parameters =
@@ -887,16 +898,10 @@ private:
   typename std::vector<HandlerTy>::const_iterator
   find_insert_at(const HandlerTy &other);
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 !product_op<T>::supports_inplace_mult,
-                             std::false_type> = std::false_type()>
+  PROPERTY_AGNOSTIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   void insert(T &&other);
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 product_op<T>::supports_inplace_mult,
-                             std::true_type> = std::true_type()>
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   void insert(T &&other);
 
   void aggregate_terms();
@@ -905,7 +910,7 @@ private:
   void aggregate_terms(HandlerTy &&head, Args &&...args);
 
   template <typename EvalTy>
-  EvalTy evaluate(operator_arithmetics<EvalTy> arithmetics) const;
+  EvalTy transform(operator_arithmetics<EvalTy> arithmetics) const;
 
 protected:
   std::vector<HandlerTy> operators;
@@ -1013,7 +1018,7 @@ public:
 #endif
 
   /// @brief The degrees of freedom that the operator acts on.
-  /// The order of degrees is from smallest to largest and reflect
+  /// The order of degrees is from smallest to largest and reflects
   /// the ordering of the matrix returned by `to_matrix`.
   /// Specifically, the indices of a statevector with two qubits are {00, 01,
   /// 10, 11}. An ordering of degrees {0, 1} then indicates that a state where
@@ -1037,6 +1042,9 @@ public:
   /// @brief Retrieves the coefficient associated with this operator instance.
   /// @return A scalar_operator representing the operator's coefficient.
   scalar_operator get_coefficient() const;
+
+  std::unordered_map<std::string, std::string>
+  get_parameter_descriptions() const;
 
   // constructors and destructors
 
@@ -1642,7 +1650,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
-  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   csr_spmatrix to_sparse_matrix(
       std::unordered_map<std::size_t, std::int64_t> dimensions = {},
       const std::unordered_map<std::string, std::complex<double>> &parameters =

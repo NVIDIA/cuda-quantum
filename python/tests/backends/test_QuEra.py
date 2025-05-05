@@ -7,9 +7,11 @@
 # ============================================================================ #
 
 import cudaq
-from cudaq.operator import *
+from cudaq.operators import RydbergHamiltonian, ScalarOperator
+from cudaq.dynamics import Schedule
 import json
 import numpy as np
+import os
 import pytest
 
 
@@ -92,16 +94,16 @@ def test_ahs_hello():
     delta_end = 5 * omega_max
 
     omega = ScalarOperator(lambda t: omega_max
-                           if time_ramp < t < time_max else 0.0)
+                           if time_ramp < t.real < time_max else 0.0)
     phi = ScalarOperator.const(0.0)
     delta = ScalarOperator(lambda t: delta_end
-                           if time_ramp < t < time_max else delta_start)
+                           if time_ramp < t.real < time_max else delta_start)
 
     # Schedule of time steps.
     steps = [0.0, time_ramp, time_max - time_ramp, time_max]
     schedule = Schedule(steps, ["t"])
 
-    evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
+    evolution_result = cudaq.evolve(RydbergHamiltonian(atom_sites=register,
                                                  amplitude=omega,
                                                  phase=phi,
                                                  delta_global=delta),
