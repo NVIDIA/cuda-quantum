@@ -219,43 +219,17 @@ do
         fi
 
         echo "Testing on $t target..."
-        if [ "$t" == "nvidia" ]; then
-            # For the unified 'nvidia' target, we validate all target options as well.
-            # Note: this overlaps some legacy standalone targets (e.g., nvidia-mqpu, nvidia-mgpu, etc.),
-            # but we want to make sure all supported configurations in the unified 'nvidia' target are validated.
-            declare -a optionArray=("fp32" "fp64" "fp32,mqpu" "fp64,mqpu" "fp32,mgpu" "fp64,mgpu")
-            arraylength=${#optionArray[@]}
-            for (( i=0; i<${arraylength}; i++ ));
-            do
-                echo "  Testing $t target option: ${optionArray[$i]}"
-                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${optionArray[$i]}"
-                if [ ! $? -eq 0 ]; then
-                    let "failed+=1"
-                    echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-                    continue
-                fi
-
-                ./a.out &> /tmp/cudaq_validation.out
-                status=$?
-                echo "  Exited with code $status"
-                if [ "$status" -eq "0" ]; then 
-                    let "passed+=1"
-                    echo "  :white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-                else
-                    cat /tmp/cudaq_validation.out
-                    let "failed+=1"
-                    echo "  :x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-                fi 
-                rm a.out /tmp/cudaq_validation.out &> /dev/null
-            done
-        elif [[ "$t" == "tensornet" || "$t" == "tensornet-mps" ]]; then
-            # For the unified tensor network targets, we validate both single and double precision
-            declare -a optionArray=("fp32" "fp64")
-            arraylength=${#optionArray[@]}
-            for (( i=0; i<${arraylength}; i++ ));
-            do
-                echo "  Testing $t target option: ${optionArray[$i]}"
-                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${optionArray[$i]}"
+        
+        # All target options to test for targets that support multiple configurations.
+        declare -A target_options=(
+            [nvidia]="fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu"
+            [tensornet]="fp32 fp64"
+            [tensornet-mps]="fp32 fp64"
+        )
+        if [[ -n "${target_options[$t]}" ]]; then
+            for opt in ${target_options[$t]}; do
+                echo "  Testing $t target option: ${opt}"
+                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${opt}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
                     echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
