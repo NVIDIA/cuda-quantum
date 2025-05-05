@@ -1705,8 +1705,7 @@ parameters of the time bin interferometer.</p>
 <span class="c1">// ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)</span>
-<span class="c1">// have been set. To set `PASQAL_AUTH_TOKEN` from Pasqal Cloud username and</span>
-<span class="c1">// password, use `pasqal_auth.py` in this folder.</span>
+<span class="c1">// have been set.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
@@ -1765,7 +1764,7 @@ parameters of the time bin interferometer.</p>
 
 <span class="w">  </span><span class="c1">// Evolve the system</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">);</span>
-<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">get_sampling_result</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">sampling_result</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
@@ -2058,7 +2057,7 @@ parameters of the time bin interferometer.</p>
 
 <span class="w">  </span><span class="c1">// Evolve the system</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve_async</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">).</span><span class="n">get</span><span class="p">();</span>
-<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">get_sampling_result</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">sampling_result</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
