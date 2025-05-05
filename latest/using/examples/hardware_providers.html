@@ -48,7 +48,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                0.11.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -1667,12 +1667,13 @@ parameters of the time bin interferometer.</p>
 <span class="n">omega_max</span> <span class="o">=</span> <span class="mi">1000000</span>
 <span class="n">delta_end</span> <span class="o">=</span> <span class="mi">1000000</span>
 <span class="n">delta_start</span> <span class="o">=</span> <span class="mf">0.0</span>
-<span class="n">omega</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">omega_max</span> <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">omega</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">omega_max</span>
+                       <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span><span class="o">.</span><span class="n">real</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
 <span class="c1"># Global phase at each step</span>
 <span class="n">phi</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
 <span class="c1"># Global detuning at each step</span>
 <span class="n">delta</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">delta_end</span>
-                       <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="n">delta_start</span><span class="p">)</span>
+                       <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span><span class="o">.</span><span class="n">real</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="n">delta_start</span><span class="p">)</span>
 
 <span class="n">async_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve_async</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="n">atom_sites</span><span class="o">=</span><span class="n">register</span><span class="p">,</span>
                                                      <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
@@ -1696,8 +1697,7 @@ parameters of the time bin interferometer.</p>
 <span class="c1">// ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)</span>
-<span class="c1">// have been set. To set `PASQAL_AUTH_TOKEN` from Pasqal Cloud username and</span>
-<span class="c1">// password, use `pasqal_auth.py` in this folder.</span>
+<span class="c1">// have been set.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/evolve.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/algorithms/integrator.h&quot;</span>
@@ -1756,7 +1756,7 @@ parameters of the time bin interferometer.</p>
 
 <span class="w">  </span><span class="c1">// Evolve the system</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">);</span>
-<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">get_sampling_result</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">sampling_result</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
@@ -1931,12 +1931,13 @@ parameters of the time bin interferometer.</p>
 <span class="n">steps</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">time_ramp</span><span class="p">,</span> <span class="n">time_max</span> <span class="o">-</span> <span class="n">time_ramp</span><span class="p">,</span> <span class="n">time_max</span><span class="p">]</span>
 <span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
 <span class="c1"># Rabi frequencies at each step</span>
-<span class="n">omega</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">omega_max</span> <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">omega</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">omega_max</span>
+                       <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span><span class="o">.</span><span class="n">real</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
 <span class="c1"># Global phase at each step</span>
 <span class="n">phi</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
 <span class="c1"># Global detuning at each step</span>
 <span class="n">delta</span> <span class="o">=</span> <span class="n">ScalarOperator</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">delta_end</span>
-                       <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="n">delta_start</span><span class="p">)</span>
+                       <span class="k">if</span> <span class="n">time_ramp</span> <span class="o">&lt;</span> <span class="n">t</span><span class="o">.</span><span class="n">real</span> <span class="o">&lt;</span> <span class="n">time_max</span> <span class="k">else</span> <span class="n">delta_start</span><span class="p">)</span>
 
 <span class="n">async_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve_async</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="n">atom_sites</span><span class="o">=</span><span class="n">register</span><span class="p">,</span>
                                                      <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
@@ -2048,7 +2049,7 @@ parameters of the time bin interferometer.</p>
 
 <span class="w">  </span><span class="c1">// Evolve the system</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve_async</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">).</span><span class="n">get</span><span class="p">();</span>
-<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">get_sampling_result</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">sampling_result</span><span class="o">-&gt;</span><span class="n">dump</span><span class="p">();</span>
 
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
