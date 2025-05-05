@@ -23,6 +23,8 @@ enum class pauli { I, X, Y, Z };
 class spin_handler : public operator_handler {
   template <typename T>
   friend class product_op;
+  template <typename T>
+  friend class sum_op;
 
 private:
   // I = 0, Z = 1, X = 2, Y = 3
@@ -33,9 +35,12 @@ private:
 
   // private helpers
 
+  // user friendly string encoding
   std::string op_code_to_string() const;
-  virtual std::string op_code_to_string(
-      std::unordered_map<std::size_t, std::int64_t> &dimensions) const override;
+  // internal only string encoding
+  virtual std::string
+  canonical_form(std::unordered_map<std::size_t, std::int64_t> &dimensions,
+                 std::vector<std::int64_t> &relevant_dims) const override;
 
   std::complex<double> inplace_mult(const spin_handler &other);
 
@@ -45,6 +50,20 @@ private:
       const std::function<void(std::size_t, std::size_t, std::complex<double>)>
           &process_element,
       bool invert_order);
+
+  // overload for consistency with other operator classes
+  // that support in-place multiplication
+  static cudaq::detail::EigenSparseMatrix
+  to_sparse_matrix(const std::string &pauli,
+                   const std::vector<std::int64_t> &dimensions,
+                   std::complex<double> coeff = 1., bool invert_order = false);
+
+  // overload for consistency with other operator classes
+  // that support in-place multiplication
+  static complex_matrix to_matrix(const std::string &pauli,
+                                  const std::vector<std::int64_t> &dimensions,
+                                  std::complex<double> coeff = 1.,
+                                  bool invert_order = false);
 
 public:
   // read-only properties
@@ -69,14 +88,14 @@ public:
 
   /// @brief Computes the sparse matrix representation of a Pauli string.
   /// By default, the ordering of the matrix matches the ordering of the Pauli
-  /// string,
+  /// string.
   static cudaq::detail::EigenSparseMatrix
   to_sparse_matrix(const std::string &pauli, std::complex<double> coeff = 1.,
                    bool invert_order = false);
 
   /// @brief Computes the matrix representation of a Pauli string.
   /// By default, the ordering of the matrix matches the ordering of the Pauli
-  /// string,
+  /// string.
   static complex_matrix to_matrix(const std::string &pauli,
                                   std::complex<double> coeff = 1.,
                                   bool invert_order = false);
