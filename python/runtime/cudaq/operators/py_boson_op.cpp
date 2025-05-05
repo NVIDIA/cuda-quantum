@@ -186,39 +186,44 @@ void bindBosonOperator(py::module &mod) {
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
-      /* FIXME: uncomment once corresponding PR is merged
-      .def("to_sparse_matrix", [](const boson_op &self,
-                                  dimension_map &dimensions,
-                                  const parameter_map &params,
-                                  bool invert_order) {
-          return self.to_sparse_matrix(dimensions, params, invert_order);
-        },
-        py::arg("dimensions") = dimension_map(), py::arg("parameters") =
-      parameter_map(), py::arg("invert_order") = false, "Return the sparse
-      matrix representation of the operator. This representation is a "
-        "`Tuple[list[complex], list[int], list[int]]`, encoding the "
-        "non-zero values, rows, and columns of the matrix. "
-        "This format is supported by `scipy.sparse.csr_array`."
-        "The matrix is ordered according to the convention (endianness) "
-        "used in CUDA-Q, and the ordering returned by `degrees`. This order "
-        "can be inverted by setting the optional `invert_order` argument to
-      `True`. " "See also the documentation for `degrees` for more detail.")
-      .def("to_sparse_matrix", [, &kwargs_to_param_map](const
-      boson_op &self, dimension_map &dimensions, bool invert_order, const
-      py::kwargs &kwargs) { return self.to_sparse_matrix(dimensions,
-      kwargs_to_param_map(kwargs), invert_order);
-        },
-        py::arg("dimensions") = dimension_map(), py::arg("invert_order") =
-      false, "Return the sparse matrix representation of the operator. This
-      representation is a "
-        "`Tuple[list[complex], list[int], list[int]]`, encoding the "
-        "non-zero values, rows, and columns of the matrix. "
-        "This format is supported by `scipy.sparse.csr_array`."
-        "The matrix is ordered according to the convention (endianness) "
-        "used in CUDA-Q, and the ordering returned by `degrees`. This order "
-        "can be inverted by setting the optional `invert_order` argument to
-      `True`. " "See also the documentation for `degrees` for more detail.")
-      */
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op &self, dimension_map &dimensions,
+             const parameter_map &params, bool invert_order) {
+            return self.to_sparse_matrix(dimensions, params, invert_order);
+          },
+          py::arg("dimensions") = dimension_map(),
+          py::arg("parameters") = parameter_map(),
+          py::arg("invert_order") = false,
+          "Return the sparse matrix representation of the operator. This "
+          "representation is a "
+          "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+          "non-zero values, rows, and columns of the matrix. "
+          "This format is supported by `scipy.sparse.csr_array`."
+          "The matrix is ordered according to the convention (endianness) "
+          "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+          "can be inverted by setting the optional `invert_order` argument to "
+          "`True`. "
+          "See also the documentation for `degrees` for more detail.")
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op &self, dimension_map &dimensions, bool invert_order,
+             const py::kwargs &kwargs) {
+            return self.to_sparse_matrix(
+                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          },
+          py::arg("dimensions") = dimension_map(),
+          py::arg("invert_order") = false,
+          "Return the sparse matrix representation of the operator. This "
+          "representation is a "
+          "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+          "non-zero values, rows, and columns of the matrix. "
+          "This format is supported by `scipy.sparse.csr_array`."
+          "The matrix is ordered according to the convention (endianness) "
+          "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+          "can be inverted by setting the optional `invert_order` argument to "
+          "`True`. "
+          "See also the documentation for `degrees` for more detail.")
 
       // comparisons
 
@@ -665,39 +670,44 @@ void bindBosonOperator(py::module &mod) {
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
-      /* FIXME: uncomment once corresponding PR is merged
-      .def("to_sparse_matrix", [](const boson_op_term &self,
-                                  dimension_map &dimensions,
-                                  const parameter_map &params,
-                                  bool invert_order) {
-          return self.to_sparse_matrix(dimensions, params, invert_order);
-        },
-        py::arg("dimensions") = dimension_map(), py::arg("parameters") =
-      parameter_map(), py::arg("invert_order") = false, "Return the sparse
-      matrix representation of the operator. This representation is a "
-        "`Tuple[list[complex], list[int], list[int]]`, encoding the "
-        "non-zero values, rows, and columns of the matrix. "
-        "This format is supported by `scipy.sparse.csr_array`."
-        "The matrix is ordered according to the convention (endianness) "
-        "used in CUDA-Q, and the ordering returned by `degrees`. This order "
-        "can be inverted by setting the optional `invert_order` argument to
-      `True`. " "See also the documentation for `degrees` for more detail.")
-      .def("to_sparse_matrix", [, &kwargs_to_param_map](const
-      boson_op_term &self, dimension_map &dimensions, bool invert_order, const
-      py::kwargs &kwargs) { return self.to_sparse_matrix(dimensions,
-      kwargs_to_param_map(kwargs), invert_order);
-        },
-        py::arg("dimensions") = dimension_map(), py::arg("invert_order") =
-      false, "Return the sparse matrix representation of the operator. This
-      representation is a "
-        "`Tuple[list[complex], list[int], list[int]]`, encoding the "
-        "non-zero values, rows, and columns of the matrix. "
-        "This format is supported by `scipy.sparse.csr_array`."
-        "The matrix is ordered according to the convention (endianness) "
-        "used in CUDA-Q, and the ordering returned by `degrees`. This order "
-        "can be inverted by setting the optional `invert_order` argument to
-      `True`. " "See also the documentation for `degrees` for more detail.")
-      */
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op_term &self, dimension_map &dimensions,
+             const parameter_map &params, bool invert_order) {
+            return self.to_sparse_matrix(dimensions, params, invert_order);
+          },
+          py::arg("dimensions") = dimension_map(),
+          py::arg("parameters") = parameter_map(),
+          py::arg("invert_order") = false,
+          "Return the sparse matrix representation of the operator. This "
+          "representation is a "
+          "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+          "non-zero values, rows, and columns of the matrix. "
+          "This format is supported by `scipy.sparse.csr_array`."
+          "The matrix is ordered according to the convention (endianness) "
+          "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+          "can be inverted by setting the optional `invert_order` argument to "
+          "`True`. "
+          "See also the documentation for `degrees` for more detail.")
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op_term &self, dimension_map &dimensions,
+             bool invert_order, const py::kwargs &kwargs) {
+            return self.to_sparse_matrix(
+                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          },
+          py::arg("dimensions") = dimension_map(),
+          py::arg("invert_order") = false,
+          "Return the sparse matrix representation of the operator. This "
+          "representation is a "
+          "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+          "non-zero values, rows, and columns of the matrix. "
+          "This format is supported by `scipy.sparse.csr_array`."
+          "The matrix is ordered according to the convention (endianness) "
+          "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+          "can be inverted by setting the optional `invert_order` argument to "
+          "`True`. "
+          "See also the documentation for `degrees` for more detail.")
 
       // comparisons
 

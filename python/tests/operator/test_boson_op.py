@@ -11,6 +11,12 @@ from cudaq import boson
 from cudaq.operators.boson import *
 from op_utils import * # test helpers
 
+has_scipy = True
+try:
+    import scipy
+except ImportError:
+    has_scipy = False
+
 
 @pytest.fixture(autouse=True)
 def setup():
@@ -164,6 +170,23 @@ def test_properties():
     assert str(prod1) == "(0+0.25i) * Ad0Ad1 + (0-0.25i) * A0Ad1 + (0+0.25i) * Ad0A1 + (0-0.25i) * A0A1"
     assert str(sum) == "(0+0.5i) * Ad0Ad1 + (0-0.5i) * A0Ad1 + (0+0.5i) * Ad0A1 + (0-0.5i) * A0A1 + (1+0i) * N1A3"
     assert prod2.term_id == "N1A3"
+
+
+def test_matrix_construction():
+    dims = {0: 3, 1: 4}
+    hamiltonian = 5.5 - 2.03 * create(0) * annihilate(1) - 2.33 * number(0)
+    mat = hamiltonian.to_matrix(dims)
+    ev = sorted(np.linalg.eigvals(mat))
+
+    # sparse matrix
+    data, rows, cols = hamiltonian.to_sparse_matrix(dims)
+    for i, value in enumerate(data):
+        print(rows[i], cols[i], value)
+        assert np.isclose(mat[rows[i], cols[i]], value)
+    if has_scipy:
+        scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(3 * 4, 3 * 4))
+        scipyEv = scipy.sparse.linalg.eigs(scipyM, k=10, return_eigenvectors=False, sigma=ev[0] - 1e-2)
+        assert np.allclose(ev[:10], sorted(scipyEv), rtol=1e-2)
 
 
 def test_canonicalization():

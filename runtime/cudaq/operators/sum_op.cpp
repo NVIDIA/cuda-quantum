@@ -20,6 +20,16 @@
 
 namespace cudaq {
 
+#define PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
+  template <typename T,                                                        \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
+                             std::true_type>>
+
+#define PROPERTY_AGNOSTIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
+  template <typename T,                                                        \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
+                             std::false_type>>
+
 // private methods
 
 /// expects is_default to be false
@@ -141,9 +151,9 @@ INSTANTIATE_SUM_EVALUATE_METHODS(matrix_handler,
 INSTANTIATE_SUM_EVALUATE_METHODS(spin_handler,
                                  operator_handler::canonical_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(boson_handler,
-                                 operator_handler::matrix_evaluation);
+                                 operator_handler::canonical_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(fermion_handler,
-                                 operator_handler::matrix_evaluation);
+                                 operator_handler::canonical_evaluation);
 #endif
 
 // read-only properties
@@ -493,6 +503,27 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
+  auto evaluated = this->transform(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+  if (evaluated.terms.size() == 0)
+    return cudaq::complex_matrix(0, 0);
+
+  auto matrix = HandlerTy::to_matrix(
+      evaluated.terms[0].encoding, evaluated.terms[0].relevant_dimensions,
+      evaluated.terms[0].coefficient, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    matrix += HandlerTy::to_matrix(
+        evaluated.terms[i].encoding, evaluated.terms[i].relevant_dimensions,
+        evaluated.terms[i].coefficient, invert_order);
+  return matrix;
+}
+
+template <>
+complex_matrix sum_op<matrix_handler>::to_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
   auto evaluated =
       this->transform(operator_arithmetics<operator_handler::matrix_evaluation>(
           dimensions, parameters));
@@ -504,25 +535,6 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
     cudaq::detail::permute_matrix(evaluated.matrix, permutation);
   }
   return std::move(evaluated.matrix);
-}
-
-template <>
-complex_matrix sum_op<spin_handler>::to_matrix(
-    std::unordered_map<std::size_t, std::int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto evaluated = this->transform(
-      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
-                                                                   parameters));
-  if (evaluated.terms.size() == 0)
-    return cudaq::complex_matrix(0, 0);
-
-  auto matrix = spin_handler::to_matrix(evaluated.terms[0].second,
-                                        evaluated.terms[0].first, invert_order);
-  for (auto i = 1; i < terms.size(); ++i)
-    matrix += spin_handler::to_matrix(evaluated.terms[i].second,
-                                      evaluated.terms[i].first, invert_order);
-  return matrix;
 }
 
 #define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                 \
@@ -1819,7 +1831,9 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits,
   return sum;
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+template <typename HandlerTy>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
 csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -1833,13 +1847,15 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
                            std::vector<std::size_t>, std::vector<std::size_t>>(
         {}, {}, {});
 
-  auto matrix = spin_handler::to_sparse_matrix(
-      evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
+  auto matrix = HandlerTy::to_sparse_matrix(
+      evaluated.terms[0].encoding, evaluated.terms[0].relevant_dimensions,
+      evaluated.terms[0].coefficient, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
-    matrix += spin_handler::to_sparse_matrix(
-        evaluated.terms[i].second, evaluated.terms[i].first, invert_order);
+    matrix += HandlerTy::to_sparse_matrix(
+        evaluated.terms[i].encoding, evaluated.terms[i].relevant_dimensions,
+        evaluated.terms[i].coefficient, invert_order);
   return cudaq::detail::to_csr_spmatrix(
-      matrix, 1ul << evaluated.terms[0].second.size());
+      matrix, 1ul << evaluated.terms[0].relevant_dimensions.size());
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
@@ -1881,6 +1897,14 @@ template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
                                                            unsigned int seed);
 template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix sum_op<fermion_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix sum_op<boson_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template std::vector<double>
@@ -2048,7 +2072,7 @@ sum_op<HandlerTy>::get_raw_data() const {
   // include all consecutive degrees starting from 0 (even if the operator
   // doesn't act on them).
   for (auto &term : evaluated.terms) {
-    auto pauli_str = std::move(term.second);
+    auto pauli_str = std::move(term.encoding);
     std::vector<bool> bsf(term_size << 1, 0);
     for (std::size_t i = 0; i < degrees.size(); ++i) {
       auto op = pauli_str[i];
@@ -2062,7 +2086,7 @@ sum_op<HandlerTy>::get_raw_data() const {
       }
     }
     bsf_terms.push_back(std::move(bsf));
-    coeffs.push_back(std::move(term.first));
+    coeffs.push_back(std::move(term.coefficient));
   }
 
   // always little endian order by definition of the bsf
@@ -2097,7 +2121,7 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
     else
       ss << std::endl;
     if (printCoeffs) {
-      auto coeff = term.first;
+      auto coeff = term.coefficient;
       ss << "[" << coeff.real() << (coeff.imag() < 0.0 ? "-" : "+")
          << std::fabs(coeff.imag()) << "j] ";
     }
@@ -2107,7 +2131,7 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
           operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
       std::string term_str(max_target + 1, 'I');
       for (std::size_t i = 0; i < degrees.size(); ++i)
-        term_str[degrees[i]] = term.second[get_le_index(i)];
+        term_str[degrees[i]] = term.encoding[get_le_index(i)];
       ss << term_str;
     }
   }

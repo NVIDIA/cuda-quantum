@@ -79,7 +79,7 @@ int main() {
 
   // Evolve the system
   auto result = cudaq::evolve(hamiltonian, schedule);
-  result.get_sampling_result()->dump();
+  result.sampling_result->dump();
 
   return 0;
 }

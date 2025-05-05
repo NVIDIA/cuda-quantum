@@ -31,7 +31,15 @@ enum class pauli;
                                  std::is_same<HandlerTy, T>::value,            \
                              bool> = true>
 
-// utility functions for backward compatibility
+#define PROPERTY_SPECIFIC_TEMPLATE(property)                                   \
+  template <typename T = HandlerTy,                                            \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
+                             std::true_type> = std::true_type()>
+
+#define PROPERTY_AGNOSTIC_TEMPLATE(property)                                   \
+  template <typename T = HandlerTy,                                            \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
+                             std::false_type> = std::false_type()>
 
 #define SPIN_OPS_BACKWARD_COMPATIBILITY(deprecation_message)                   \
   template <typename T = HandlerTy,                                            \
@@ -805,7 +813,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
-  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   csr_spmatrix to_sparse_matrix(
       std::unordered_map<std::size_t, std::int64_t> dimensions = {},
       const std::unordered_map<std::string, std::complex<double>> &parameters =
@@ -890,16 +898,10 @@ private:
   typename std::vector<HandlerTy>::const_iterator
   find_insert_at(const HandlerTy &other);
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 !product_op<T>::supports_inplace_mult,
-                             std::false_type> = std::false_type()>
+  PROPERTY_AGNOSTIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   void insert(T &&other);
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 product_op<T>::supports_inplace_mult,
-                             std::true_type> = std::true_type()>
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   void insert(T &&other);
 
   void aggregate_terms();
@@ -1648,7 +1650,7 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
-  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   csr_spmatrix to_sparse_matrix(
       std::unordered_map<std::size_t, std::int64_t> dimensions = {},
       const std::unordered_map<std::string, std::complex<double>> &parameters =
