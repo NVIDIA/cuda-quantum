@@ -60,7 +60,7 @@ def test_euler_integrator():
         observables=[hamiltonian],
         collapse_operators=[np.sqrt(decay_rate) * operators.annihilate(0)],
         store_intermediate_results=True,
-        integrator=RungeKuttaIntegrator(order=1))
+        integrator=RungeKuttaIntegrator(order=1, max_step_size=0.01))
     expt = []
     for exp_vals in evolution_result.expectation_values():
         expt.append(exp_vals[0].expectation())

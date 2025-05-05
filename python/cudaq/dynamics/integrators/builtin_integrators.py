@@ -13,6 +13,7 @@ from typing import Sequence, Mapping
 from ...operators import Operator
 from ..schedule import Schedule
 from ...mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator
+import warnings
 
 has_cupy = True
 try:
@@ -51,24 +52,28 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
     n_steps = 1
     # Order of the integrator: supporting `1st` order (Euler) or `4th` order (`Runge-Kutta`).
     order = 4
-
+    max_step_size = None
+    
     def __init__(self,
                  **kwargs):
         if not has_cupy:
             raise ImportError('CuPy is required to use integrators.')
         super().__init__(**kwargs)
-        self.rk_integrator = bindings.integrators.runge_kutta()
+        self.rk_integrator = bindings.integrators.runge_kutta(order=self.order, max_step_size=self.max_step_size)
 
     def is_native(self):
         return True
     
     def __post_init__(self):
         if "nsteps" in self.integrator_options:
+            warnings.warn("deprecated - use max_step_size instead", DeprecationWarning)
             self.n_steps = self.integrator_options["nsteps"]
         if "order" in self.integrator_options:
             self.order = self.integrator_options["order"]
-            if self.order != 1 and self.order != 4:
-                raise ValueError("The 'order' parameter must be either 1 or 4.")
+            if self.order != 1 and self.order != 2 and self.order != 4:
+                raise ValueError("The 'order' parameter must be either 1, 2, or 4.")
+        if "max_step_size" in self.integrator_options:
+            self.max_step_size = self.integrator_options["max_step_size"]
 
     def set_state(self, state, t):
         self.rk_integrator.setState(state, t)

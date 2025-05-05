@@ -136,7 +136,9 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
 
   py::class_<cudaq::integrators::runge_kutta>(integratorsSubmodule,
                                               "runge_kutta")
-      .def(py::init<>())
+      .def(py::init<int, std::optional<double>>(), py::kw_only(),
+           py::arg("order") = cudaq::integrators::runge_kutta::default_order,
+           py::arg("max_step_size") = py::none())
       .def("setState",
            [](cudaq::integrators::runge_kutta &self, cudaq::state &state,
               double t) { self.setState(state, t); })

@@ -82,10 +82,7 @@ def evolve_dynamics(
                 initial_state = initial_state.to_dm()
 
     if integrator.is_native():
-        if (initial_state.is_density_matrix()):
-            initial_state = cudaq_runtime.State.from_data(cupy.ravel(cupy.transpose(initial_state.state.storage).copy()))
-        else:
-            initial_state = cudaq_runtime.State.from_data(cupy.ravel(initial_state.state.storage))
+        initial_state = cudaq_runtime.State.from_data(cupy.ravel(cupy.transpose(initial_state.state.storage).copy()))
         initial_state = bindings.initializeState(initial_state, list(hilbert_space_dims), len(collapse_operators) > 0)
         integrator.set_state(initial_state, schedule._steps[0])
     else:
