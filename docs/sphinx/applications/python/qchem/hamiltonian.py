@@ -458,7 +458,7 @@ def jordan_wigner_fermion(h_pq, h_pqrs, ecore, tolerance=1e-12):
 
     # Remove term with zero coefficient.
     spin_hamiltonian = spin_hamiltonian.canonicalize().trim(tolerance)
-    
+
     return spin_hamiltonian
 
 
