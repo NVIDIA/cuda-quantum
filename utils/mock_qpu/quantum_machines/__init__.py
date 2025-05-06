@@ -39,60 +39,33 @@ countJobGetRequests = 0
 # Save how many qubits were needed for each test (emulates real backend)
 numQubitsRequired = 0
 
+server_exec_response = {
+    "id":"12345678-1234-1234-1234-0123456789ab",
+    "samples":{"000":19,"001":2,"010":27,"011":4,"100":11,"101":3,"110":30,"111":4},
+    "status":"Done"}
 
 # Here we test that the login endpoint works
-@app.post("/qm-runner/v1.0.0/login")
-async def login(token: Union[str, None] = Header(alias="Authorization",
-                                                 default=None)):
+@app.post("/v1/auth")
+async def login(token: Union[str, None] = Header(alias="Authorization",                                                 default=None)):
     # TODO: Implement proper authentication
     #if token == None:
     #    raise HTTPException(status_code=401, detail="Credentials not provided")
     return {"id-token": "mock-token", "refresh-token": "mock-refresh-token"}
 
 
-# Here we expose a way to post jobs,
-# Must have a Access Token
-# with entry_point tag
-@app.post("/qm-runner/v1.0.0/oq2/compile")
-async def post_compile_job(job: Job,
-                  token: Union[str, None] = Header(alias="Authorization",
-                                                   default=None)):
-    # TODO: Implement job submission
-    #if token == None:
-    #    raise HTTPException(status_code=401, detail="Credentials not provided")
-    quam = """
-from qm import qua
-
-with qua.program() as prog:
-    q1.apply("X")
-    i1 = 4
-    I1 = qua.declare(qua.fixed, i1)
-    q1.apply("clifford", I1)
-    # Virtual to physical qubit mapping used:
-    # qubits[0]=>1
-    """
-    return {"job_ids": ["mock-job-id"], "content": quam}
-
-
-@app.post("/qm-runner/v1.0.0/oq2/execute")
+@app.post("/v1/execute")
 async def post_execute_job(job: Job,
                            token: Union[str, None] = Header(alias="Authorization",
                                                           default=None)):
-    return {"job_ids": ["mock-job-id"]}
+    createdJobs[server_exec_response["id"]] = server_exec_response
+    return server_exec_response
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
-@app.get("/qm-runner/v1.0.0/job/{id}")
+@app.get("/v1/results/{id}")
 async def get_job(id: str):
     # TODO: Implement job retrieval
-    return {
-        "status": "Done",
-        "id": id,
-        "samples": {
-            "00": 50,
-            "11": 50
-        }
-    }
+    return createdJobs.get(id)
 
 
 def start_server(port):

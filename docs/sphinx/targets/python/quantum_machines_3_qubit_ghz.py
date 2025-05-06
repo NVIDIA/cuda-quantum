@@ -15,5 +15,5 @@ def three_qubit_ghz():
 
 cudaq.sample(three_qubit_ghz, shots_count=1000)
 
-trans = cudaq.translate(three_qubit_ghz, format='openqasm2')
-print(trans)
+#trans = cudaq.translate(three_qubit_ghz, format='openqasm2')
+#print(trans)

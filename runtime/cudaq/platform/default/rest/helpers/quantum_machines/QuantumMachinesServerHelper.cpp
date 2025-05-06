@@ -31,6 +31,7 @@ class QuantumMachinesServerHelper : public ServerHelper {
   static constexpr const char *DEFAULT_URL = "https://api.quantum-machines.com";
   static constexpr const char *DEFAULT_VERSION = "v1.0.0";
   static constexpr const char *DEFAULT_ACTION = "compile"; // can be either compile, execute, or execute-simulator
+  static constexpr const char *DEFAULT_EXECUTOR = "mock";
 
 public:
   /// @brief Returns the name of the server helper.
@@ -61,6 +62,7 @@ public:
     backendConfig["url"] = getValueOrDefault(config, "url", DEFAULT_URL);
     backendConfig["version"] = getValueOrDefault(config, "version", DEFAULT_VERSION);
     backendConfig["action"] = getValueOrDefault(config, "action", DEFAULT_ACTION);
+    backendConfig["executor"] = getValueOrDefault(config, "executor", DEFAULT_EXECUTOR);
    
     cudaq::info("Initializing Quantum Machines Backend. config: {}", backendConfig);
   }
@@ -73,63 +75,71 @@ public:
   //    std::tuple<std::string, RestHeaders, std::vector<ServerMessage>>;
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
-    // TODO: Implement job creation for Quantum Machines
     cudaq::info("In createJob. code: {}", circuitCodes[0].code);
     ServerMessage job;
     job["content"] = circuitCodes[0].code;
     job["source"] = "oq2";
-    RestHeaders headers;
-    std::string path = "/v1/compile"; // compile is the default
-    if(backendConfig["action"] == "execute") {
-      path = "/v1/execute";
-    } else if (backendConfig["action"] == "execute-simulator") {
-      path = "/v1/simulate"; // not yet implemented on server side
-    }
-    
-    return std::make_tuple(backendConfig["url"]+path, headers, std::vector<ServerMessage>{job});
+    job["shots"] = shots;
+    job["executor"] = backendConfig["executor"];
+    RestHeaders headers = getHeaders();
+    std::string path = backendConfig["url"]+"/v1/execute";
+    return std::make_tuple(path, headers, std::vector<ServerMessage>{job});
   }
 
   /// @brief Extracts the job ID from the server's response to a job submission.
   std::string extractJobId(ServerMessage &postResponse) override {
-    // TODO: Implement job ID extraction for Quantum Machines
-    return postResponse["id"];
+    cudaq::info("In extractJobId. {}", postResponse.dump());
+    if (!postResponse.contains("id"))
+      return "";
+
+  // Return the job ID from the response
+    return postResponse.at("id");
   }
 
   /// @brief Constructs the URL for retrieving a job based on the server's
   /// response to a job submission.
   std::string constructGetJobPath(ServerMessage &postResponse) override {
-    // TODO: Implement job path construction for Quantum Machines
-    cudaq::info("In constructGetJobPath");
-    return "";
+    cudaq::info("In constructGetJobPath(postResponse={})", postResponse.dump());
+    return extractJobId(postResponse);
   }
 
   /// @brief Constructs the URL for retrieving a job based on a job ID.
   std::string constructGetJobPath(std::string &jobId) override {
-    // TODO: Implement job path construction for Quantum Machines
-    return "";
+    cudaq::info("In constructGetJobPath(std::string &jobId)");
+    std::string results_url = backendConfig["url"]+"/v1/results/" + jobId;
+    return results_url;
   }
 
   /// @brief Checks if a job is done based on the server's response to a job
   /// retrieval request.
   bool jobIsDone(ServerMessage &getJobResponse) override {
-    // TODO: Implement job status checking for Quantum Machines
-    return false;
+    cudaq::info("jobIsDone");
+    return true;
   }
 
   /// @brief Processes the server's response to a job retrieval request and
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                       std::string &jobId) override {
-    // TODO: Implement result processing for Quantum Machines
+    cudaq::info("Sample results: {}", getJobResponse.dump());
+    auto samplesJson = getJobResponse["samples"];
     cudaq::CountsDictionary counts;
+    for (auto &item : samplesJson.items()) {
+      std::string bitstring = item.key();
+      std::size_t count = item.value();
+      counts[bitstring] = count;
+    }
+    // Create an ExecutionResult
     cudaq::ExecutionResult execResult{counts};
+  
+    // Return the sample_result
     return cudaq::sample_result{execResult};
   }
 
   /// @brief Override the polling interval method
   std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override {
-    // TODO: Implement polling interval for Quantum Machines
+    cudaq::info("nextResultPollingInterval");
     return std::chrono::seconds(1);
   }
 };
@@ -137,5 +147,4 @@ public:
 } // namespace cudaq
 
 // Register the Quantum Machines server helper in the CUDA-Q server helper factory
-CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::QuantumMachinesServerHelper,
-                    quantum_machines)
+CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::QuantumMachinesServerHelper, quantum_machines)
