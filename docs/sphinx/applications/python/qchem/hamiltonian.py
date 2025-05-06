@@ -462,20 +462,4 @@ def jordan_wigner_fermion(h_pq, h_pqrs, ecore, tolerance=1e-12):
     return spin_hamiltonian
 
 
-'''
-    # Remove term with zero coefficient.
-    non_zeros = []
-    for term in spin_hamiltonian:
-        coeff = term.get_coefficient()
-        if np.abs(coeff) > tolerance:
-            non_zeros.append(term)
-
-    op = non_zeros[0]
-
-    for i in range(1, len(non_zeros)):
-        op += non_zeros[i]
-
-    return op
-'''
-
 ############
