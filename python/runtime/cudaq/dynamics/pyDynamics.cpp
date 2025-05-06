@@ -120,9 +120,6 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
       castSimState.initialize_cudm(
           cudaq::dynamics::Context::getCurrentContext()->getHandle(),
           modeExtents);
-
-    if (asDensityMat && !castSimState.is_density_matrix())
-      return cudaq::state(castSimState.make_density_matrix());
     return state;
   });
 

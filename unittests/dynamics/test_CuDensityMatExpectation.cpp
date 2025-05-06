@@ -16,6 +16,7 @@
 #include <iostream>
 #include <memory>
 #include <unsupported/Eigen/KroneckerProduct>
+#include "CuDensityMatUtils.h"
 
 using namespace cudaq;
 
@@ -47,10 +48,10 @@ TEST_F(CuDensityMatExpectationTest, checkCompute) {
   for (std::size_t stateIdx = 0; stateIdx < dims[0]; ++stateIdx) {
     std::vector<std::complex<double>> initialState(dims[0], 0.0);
     initialState[stateIdx] = 1.0;
-    auto inputState =
-        std::make_unique<CuDensityMatState>(handle_, initialState, dims);
-    expectation.prepare(inputState->get_impl());
-    const auto expVal = expectation.compute(inputState->get_impl(), 0.0);
+    CuDensityMatState inputState(initialState.size(), cudaq::dynamics::createArrayGpu(initialState));
+    inputState.initialize_cudm(handle_, dims);
+    expectation.prepare(inputState.get_impl());
+    const auto expVal = expectation.compute(inputState.get_impl(), 0.0);
     EXPECT_NEAR(expVal.real(), 1.0 * stateIdx, 1e-12);
     EXPECT_NEAR(expVal.imag(), 0.0, 1e-12);
   }
@@ -76,10 +77,11 @@ TEST_F(CuDensityMatExpectationTest, checkCompositeSystem) {
     std::vector<std::complex<double>> initialState(
         initial_state_vec.data(),
         initial_state_vec.data() + initial_state_vec.size());
-    auto inputState =
-        std::make_unique<CuDensityMatState>(handle_, initialState, dims);
-    expectation.prepare(inputState->get_impl());
-    const auto expVal = expectation.compute(inputState->get_impl(), 0.0);
+    CuDensityMatState inputState(initialState.size(),
+                                 cudaq::dynamics::createArrayGpu(initialState));
+    inputState.initialize_cudm(handle_, dims);
+    expectation.prepare(inputState.get_impl());
+    const auto expVal = expectation.compute(inputState.get_impl(), 0.0);
     std::cout << "Result: " << expVal << "\n";
     EXPECT_NEAR(expVal.real(), 1.0 * stateIdx, 1e-12);
     EXPECT_NEAR(expVal.imag(), 0.0, 1e-12);
@@ -106,9 +108,10 @@ TEST_F(CuDensityMatExpectationTest, checkCompositeSystemDensityMatrix) {
     std::vector<std::complex<double>> initialState(
         initial_state_vec.data(),
         initial_state_vec.data() + initial_state_vec.size());
-    auto inputPureState =
-        std::make_unique<CuDensityMatState>(handle_, initialState, dims);
-    auto inputState = inputPureState->to_density_matrix();
+    CuDensityMatState inputPureState(
+        initialState.size(), cudaq::dynamics::createArrayGpu(initialState));
+    inputPureState.initialize_cudm(handle_, dims);
+    auto inputState = inputPureState.to_density_matrix();
     inputState.dump(std::cout);
     expectation.prepare(inputState.get_impl());
     const auto expVal = expectation.compute(inputState.get_impl(), 0.0);
@@ -138,11 +141,12 @@ TEST_F(CuDensityMatExpectationTest, checkCompositeSystemDensityMatrixKron) {
     std::vector<std::complex<double>> initialState(
         initial_state_vec.data(),
         initial_state_vec.data() + initial_state_vec.size());
-    auto inputState =
-        std::make_unique<CuDensityMatState>(handle_, initialState, dims);
-    inputState->dump(std::cout);
-    expectation.prepare(inputState->get_impl());
-    const auto expVal = expectation.compute(inputState->get_impl(), 0.0);
+    CuDensityMatState inputState(initialState.size(),
+                                 cudaq::dynamics::createArrayGpu(initialState));
+    inputState.initialize_cudm(handle_, dims);
+    inputState.dump(std::cout);
+    expectation.prepare(inputState.get_impl());
+    const auto expVal = expectation.compute(inputState.get_impl(), 0.0);
     std::cout << "Result: " << expVal << "\n";
     EXPECT_NEAR(expVal.real(), 1.0 * stateIdx, 1e-12);
     EXPECT_NEAR(expVal.imag(), 0.0, 1e-12);

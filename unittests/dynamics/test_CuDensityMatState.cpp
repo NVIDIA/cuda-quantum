@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CuDensityMatState.h"
+#include "CuDensityMatUtils.h"
 #include <CuDensityMatErrorHandling.h>
 #include <complex>
 #include <gtest/gtest.h>
@@ -50,16 +51,18 @@ protected:
 };
 
 TEST_F(CuDensityMatStateTest, InitializeWithStateVector) {
-  CuDensityMatState state(handle, stateVectorData, hilbertSpaceDims);
-
+  CuDensityMatState state(stateVectorData.size(),
+                          cudaq::dynamics::createArrayGpu(stateVectorData));
+  state.initialize_cudm(handle, hilbertSpaceDims);
   EXPECT_TRUE(state.is_initialized());
   EXPECT_FALSE(state.is_density_matrix());
   EXPECT_NO_THROW(state.dump(std::cout));
 }
 
 TEST_F(CuDensityMatStateTest, InitializeWithDensityMatrix) {
-  CuDensityMatState state(handle, densityMatrixData, hilbertSpaceDims);
-
+  CuDensityMatState state(densityMatrixData.size(),
+                          cudaq::dynamics::createArrayGpu(densityMatrixData));
+  state.initialize_cudm(handle, hilbertSpaceDims);
   EXPECT_TRUE(state.is_initialized());
   EXPECT_TRUE(state.is_density_matrix());
   EXPECT_NO_THROW(state.dump(std::cout));
@@ -68,13 +71,16 @@ TEST_F(CuDensityMatStateTest, InitializeWithDensityMatrix) {
 TEST_F(CuDensityMatStateTest, InvalidInitialization) {
   // Data size mismatch for hilbertSpaceDims (2x2 system expects size 4 or 16)
   std::vector<std::complex<double>> invalidData = {{1.0, 0.0}, {0.0, 0.0}};
-
-  EXPECT_THROW(CuDensityMatState state(handle, invalidData, hilbertSpaceDims),
+  CuDensityMatState state(invalidData.size(),
+                          cudaq::dynamics::createArrayGpu(invalidData));
+  EXPECT_THROW(state.initialize_cudm(handle, hilbertSpaceDims),
                std::invalid_argument);
 }
 
 TEST_F(CuDensityMatStateTest, ToDensityMatrixConversion) {
-  CuDensityMatState state(handle, stateVectorData, hilbertSpaceDims);
+  CuDensityMatState state(stateVectorData.size(),
+                          cudaq::dynamics::createArrayGpu(stateVectorData));
+  state.initialize_cudm(handle, hilbertSpaceDims);
   EXPECT_FALSE(state.is_density_matrix());
 
   CuDensityMatState densityMatrixState = state.to_density_matrix();
@@ -84,28 +90,35 @@ TEST_F(CuDensityMatStateTest, ToDensityMatrixConversion) {
 }
 
 TEST_F(CuDensityMatStateTest, AlreadyDensityMatrixConversion) {
-  CuDensityMatState state(handle, densityMatrixData, hilbertSpaceDims);
-
+  CuDensityMatState state(densityMatrixData.size(),
+                          cudaq::dynamics::createArrayGpu(densityMatrixData));
+  state.initialize_cudm(handle, hilbertSpaceDims);
   EXPECT_TRUE(state.is_density_matrix());
   EXPECT_THROW(state.to_density_matrix(), std::runtime_error);
 }
 
 TEST_F(CuDensityMatStateTest, DestructorCleansUp) {
-  EXPECT_NO_THROW(
-      { CuDensityMatState state(handle, stateVectorData, hilbertSpaceDims); });
+  EXPECT_NO_THROW({
+    CuDensityMatState state(stateVectorData.size(),
+                            cudaq::dynamics::createArrayGpu(stateVectorData));
+  });
 }
 
 TEST_F(CuDensityMatStateTest, InitializeWithEmptyRawData) {
   std::vector<std::complex<double>> emptyData;
 
-  EXPECT_THROW(CuDensityMatState state(handle, emptyData, hilbertSpaceDims),
-               std::invalid_argument);
+  EXPECT_THROW(
+      CuDensityMatState state(emptyData.size(),
+                              cudaq::dynamics::createArrayGpu(emptyData)),
+      std::invalid_argument);
 }
 
 TEST_F(CuDensityMatStateTest, ConversionForSingleQubitSystem) {
   hilbertSpaceDims = {2};
   stateVectorData = {{1.0, 0.0}, {0.0, 0.0}};
-  CuDensityMatState state(handle, stateVectorData, hilbertSpaceDims);
+  CuDensityMatState state(stateVectorData.size(),
+                          cudaq::dynamics::createArrayGpu(stateVectorData));
+  state.initialize_cudm(handle, hilbertSpaceDims);
 
   EXPECT_FALSE(state.is_density_matrix());
 
@@ -118,18 +131,15 @@ TEST_F(CuDensityMatStateTest, ConversionForSingleQubitSystem) {
 TEST_F(CuDensityMatStateTest, InvalidHilbertSpaceDims) {
   // 3x3 space is not supported by the provided rawData size
   hilbertSpaceDims = {3, 3};
-  EXPECT_THROW(
-      CuDensityMatState state(handle, stateVectorData, hilbertSpaceDims),
-      std::invalid_argument);
-}
-
-TEST_F(CuDensityMatStateTest, ValidDensityMatrixState) {
-  CuDensityMatState state(handle, densityMatrixData, hilbertSpaceDims);
-  EXPECT_TRUE(state.is_density_matrix());
-  EXPECT_TRUE(state.is_initialized());
+  CuDensityMatState state(stateVectorData.size(),
+                          cudaq::dynamics::createArrayGpu(stateVectorData));
+  EXPECT_THROW(state.initialize_cudm(handle, hilbertSpaceDims),
+               std::invalid_argument);
 }
 
 TEST_F(CuDensityMatStateTest, DumpWorksForInitializedState) {
-  CuDensityMatState state(handle, stateVectorData, hilbertSpaceDims);
+  CuDensityMatState state(stateVectorData.size(),
+                          cudaq::dynamics::createArrayGpu(stateVectorData));
+  state.initialize_cudm(handle, hilbertSpaceDims);
   EXPECT_NO_THROW(state.dump(std::cout));
 }

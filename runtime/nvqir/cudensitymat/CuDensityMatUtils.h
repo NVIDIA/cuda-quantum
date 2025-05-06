@@ -8,9 +8,16 @@
 
 #pragma once
 #include "CuDensityMatErrorHandling.h"
+#include "common/Logger.h"
 #include <complex>
 #include <concepts>
 #include <vector>
+
+#ifndef NTIMING
+#define LOG_API_TIME() ScopedTraceWithContext(__FUNCTION__);
+#else
+#define LOG_API_TIME()
+#endif
 
 namespace cudaq::dynamics {
 // Adapted from cuquantum team
