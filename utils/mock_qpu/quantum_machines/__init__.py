@@ -6,12 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import cudaq
 from fastapi import FastAPI, HTTPException, Header
 from typing import Union
 import uvicorn, uuid
 from pydantic import BaseModel
-
-from python import cudaq
 
 # Define the REST Server App
 app = FastAPI()
@@ -57,8 +56,8 @@ async def login(token: Union[str, None] = Header(alias="Authorization",         
 async def post_execute_job(job: Job,
                            token: Union[str, None] = Header(alias="Authorization",
                                                           default=None)):
-    createdJobs[server_exec_response["id"]] = server_exec_response
-    return server_exec_response
+    return {"job_ids": ["mock-job-id"]}
+
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
