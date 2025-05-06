@@ -457,6 +457,13 @@ def jordan_wigner_fermion(h_pq, h_pqrs, ecore, tolerance=1e-12):
             spin_hamiltonian += jordan_wigner_two_body(p, q, r, s, coef)
 
     # Remove term with zero coefficient.
+    spin_hamiltonian = spin_hamiltonian.canonicalize().trim(tolerance)
+    
+    return spin_hamiltonian
+
+
+'''
+    # Remove term with zero coefficient.
     non_zeros = []
     for term in spin_hamiltonian:
         coeff = term.get_coefficient()
@@ -469,6 +476,6 @@ def jordan_wigner_fermion(h_pq, h_pqrs, ecore, tolerance=1e-12):
         op += non_zeros[i]
 
     return op
-
+'''
 
 ############
