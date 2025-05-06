@@ -17,19 +17,37 @@ The :code:`tensornet` backend represents quantum states and circuits as tensor n
 Measurement samples and expectation values are computed via tensor network contractions. 
 This backend supports multi-GPU, multi-node distribution of tensor operations required to evaluate and simulate the circuit.
 
+The code:`tensornet` target supports both single and double floating point precision.
+
 To execute a program on the :code:`tensornet` target using a *single GPU*, use the following commands:
 
 .. tab:: Python
+
+    Double Precision (Default): 
 
     .. code:: bash 
 
         python3 program.py [...] --target tensornet
 
+    Single Precision:
+    
+     .. code:: bash 
+
+        python3 program.py [...] --target tensornet --target-option fp32
+    
     The target can also be defined in the application code by calling
 
     .. code:: python 
 
         cudaq.set_target('tensornet')
+
+    for the default double-precision setting, or
+    
+    .. code:: python 
+
+        cudaq.set_target('tensornet', option='fp32')
+
+    for the single-precision setting.   
 
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
 
@@ -99,27 +117,54 @@ Matrix product state
 The :code:`tensornet-mps` backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable. 
 The :code:`tensornet-mps` backend only supports single-GPU simulation. Its approximate nature allows the :code:`tensornet-mps` backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.
 
+The code:`tensornet-mps` target supports both single and double floating point precision.
+
 To execute a program on the :code:`tensornet-mps` target, use the following commands:
 
 .. tab:: Python
 
+    Double Precision (Default): 
+    
     .. code:: bash 
 
         python3 program.py [...] --target tensornet-mps
 
+    Single Precision:
+
+    .. code:: bash 
+
+        python3 program.py [...] --target tensornet-mps --target-option fp32
+    
     The target can also be defined in the application code by calling
 
     .. code:: python 
 
         cudaq.set_target('tensornet-mps')
 
+    for the default double-precision setting, or
+    
+    .. code:: python 
+
+        cudaq.set_target('tensornet-mps', option='fp32')
+
+    for the single-precision setting.   
+
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
 
 .. tab:: C++
 
+    Double Precision (Default): 
+
     .. code:: bash 
 
         nvq++ --target tensornet-mps program.cpp [...] -o program.x
+        ./program.x
+
+    Single Precision:
+
+    .. code:: bash 
+
+        nvq++ --target tensornet-mps --target-option fp32 program.cpp [...] -o program.x
         ./program.x
 
 Specific aspects of the simulation can be configured by defining the following environment variables:
@@ -128,6 +173,7 @@ Specific aspects of the simulation can be configured by defining the following e
 * **`CUDAQ_MPS_ABS_CUTOFF=X`**: The cutoff for the largest singular value during truncation. Eigenvalues that are smaller will be trimmed out. Default: 1e-5.
 * **`CUDAQ_MPS_RELATIVE_CUTOFF=X`**: The cutoff for the maximal singular value relative to the largest eigenvalue. Eigenvalues that are smaller than this fraction of the largest singular value will be trimmed out. Default: 1e-5
 * **`CUDAQ_MPS_SVD_ALGO=X`**: The SVD algorithm to use. Valid values are: `GESVD` (QR algorithm), `GESVDJ` (Jacobi method), `GESVDP` (`polar decomposition <https://epubs.siam.org/doi/10.1137/090774999>`__), `GESVDR` (`randomized methods <https://epubs.siam.org/doi/10.1137/090771806>`__). Default: `GESVDJ`.
+* **`CUDAQ_MPS_GAUGE=X`**: The optional gauge option to improve accuracy of the MPS simulation. Valid values are: `FREE` (gauge is disabled) or `SIMPLE` (simple update algorithm). By default, no gauge configuration is set, thus the default `cuquantum` MPS setting will be used (see `cuquantum` `doc <https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/api/types.html#cutensornetstatempsgaugeoption-t>`__).  
 
 .. note:: 
 
@@ -150,6 +196,13 @@ Specific aspects of the simulation can be configured by defining the following e
     Valid setting must be between 5% and 95%. 
     Users may encounter runtime errors, e.g., insufficient workspace or CUDA memory allocation errors,
     when setting `CUDAQ_TENSORNET_SCRATCH_SIZE_PERCENTAGE` toward its limits.
+
+
+.. note::
+
+    All floating-point data, e.g., gate matrices, noise channel Kraus operator matrices, contracted state vector, etc., are converted to
+    the target's precision setting, if not already in that precision format. Hence, users would need to take into account potential precision 
+    lost when using the single precision setting.
 
 
 Fermioniq
