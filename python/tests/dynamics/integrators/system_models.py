@@ -1,1 +1,1 @@
-/workspaces/cuda-quantum/python/tests/dynamics/system_models.py
+../system_models.py
