@@ -1519,7 +1519,7 @@ def test_u3_adj():
         # implement Rx gate with U3
         u3(1.1, -np.pi / 2, np.pi / 2, q)
         # rx.adj(angle) = u3.adj(angle, pi/2, -pi/2)
-        u3.adj(1.1, np.pi / 2, -np.pi / 2, q)
+        u3.adj(1.1, -np.pi / 2, np.pi / 2, q)
 
         # implement Ry gate with U3
         u3(1.1, 0, 0, q)
