@@ -10,6 +10,9 @@
 
 #include <complex>
 #include <functional>
+#include <map>
+#include <type_traits>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -24,130 +27,264 @@ private:
   // If someone gave us a constant value, we will just return that
   // directly to them when they call `evaluate`.
   std::variant<std::complex<double>, scalar_callback> value = 1.;
+  std::unordered_map<std::string, std::string> param_desc = {};
 
 public:
-  // constructors and destructors
+  // read-only properties
 
-  constexpr scalar_operator() = default;
-
-  scalar_operator(double value);
-
+  /// @brief Checks if the scalar operator represents a constant value.
+  /// @return True if the operator is constant, false otherwise.
   bool is_constant() const;
 
-  /// @brief Constructor that just takes and returns a complex double value.
+  /// @brief A map that contains the documentation the parameters of
+  /// the operator, if available. The operator may use parameters that
+  /// are not represented in this dictionary.
+  const std::unordered_map<std::string, std::string> &
+  get_parameter_descriptions() const;
+
+  // constructors and destructors
+  /// @brief Default constructor that initializes the scalar operator
+  constexpr scalar_operator() = default;
+
+  /// @brief Constructs a scalar operator with a double value.
+  scalar_operator(double value);
+
+  /// @brief Constructs a scalar operator with a complex double value.
   scalar_operator(std::complex<double> value);
 
-  scalar_operator(const scalar_callback &create);
+  /// @brief Constructs a scalar operator from a scalar callback.
+  scalar_operator(const scalar_callback &create,
+                  std::unordered_map<std::string, std::string>
+                      &&parameter_descriptions = {});
 
-  /// @brief Constructor that just takes a callback function with no
-  /// arguments.
-  scalar_operator(scalar_callback &&create);
+  /// @brief Constructs a scalar operator from an rvalue scalar callback.
+  scalar_operator(scalar_callback &&create,
+                  std::unordered_map<std::string, std::string>
+                      &&parameter_descriptions = {});
 
-  // copy constructor
+  /// @brief Copy constructor.
   scalar_operator(const scalar_operator &other) = default;
 
-  // move constructor
+  /// @brief Move constructor.
   scalar_operator(scalar_operator &&other) = default;
 
+  /// @brief Default destructor.
   ~scalar_operator() = default;
 
   // assignments
 
-  // assignment operator
+  /// @brief Copy assignment operator.
   scalar_operator &operator=(const scalar_operator &other) = default;
 
-  // move assignment operator
+  /// @brief Move assignment operator.
   scalar_operator &operator=(scalar_operator &&other) = default;
 
-  // evaluations
-
-  /// @brief Return the scalar operator as a concrete complex value.
+  /// @brief Evaluates the scalar operator using the given parameters.
+  /// @param parameters A map of parameter names to complex values.
+  /// @return The evaluated complex value.
   std::complex<double>
   evaluate(const std::unordered_map<std::string, std::complex<double>>
                &parameters = {}) const;
 
-  // Return the scalar operator as a 1x1 matrix. This is needed for
-  // compatibility with the other inherited classes.
+  /// @brief Converts the scalar operator to a 1x1 matrix.
+  /// @param parameters A map of parameter names to complex values.
+  /// @return The 1x1 complex matrix representation.
   complex_matrix
   to_matrix(const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const;
 
+  /// @brief Returns a string representation of the scalar operator.
+  /// @return The string representation.
   std::string to_string() const;
 
-  // comparisons
-
-  bool operator==(scalar_operator other) const;
+  /// @brief Compares two scalar operators for equality.
+  /// @param other The scalar operator to compare against.
+  /// @return True if both operators are equal, false otherwise.
+  bool operator==(const scalar_operator &other) const;
 
   // unary operators
 
+  /// @brief Unary minus operator (lvalue).
+  /// @return A new scalar operator representing the negation.
   scalar_operator operator-() const &;
+
+  /// @brief Unary minus operator (rvalue).
+  /// @return A new scalar operator representing the negation.
   scalar_operator operator-() &&;
+
+  /// @brief Unary plus operator (lvalue).
+  /// @return A copy of the current scalar operator.
   scalar_operator operator+() const &;
+
+  /// @brief Unary plus operator (rvalue).
+  /// @return A moved copy of the current scalar operator.
   scalar_operator operator+() &&;
 
   // right-hand arithmetics
 
+  /// @brief Multiplies the scalar operator by a double (lvalue).
   scalar_operator operator*(double other) const &;
+
+  /// @brief Multiplies the scalar operator by a double (rvalue).
   scalar_operator operator*(double other) &&;
+
+  /// @brief Divides the scalar operator by a double (lvalue).
   scalar_operator operator/(double other) const &;
+
+  /// @brief Divides the scalar operator by a double (rvalue).
   scalar_operator operator/(double other) &&;
+
+  /// @brief Adds a double to the scalar operator (lvalue).
   scalar_operator operator+(double other) const &;
+
+  /// @brief Adds a double to the scalar operator (rvalue).
   scalar_operator operator+(double other) &&;
+
+  /// @brief Subtracts a double from the scalar operator (lvalue).
   scalar_operator operator-(double other) const &;
+
+  /// @brief Subtracts a double from the scalar operator (rvalue).
   scalar_operator operator-(double other) &&;
+
+  /// @brief Multiplies the scalar operator by a double in-place.
   scalar_operator &operator*=(double other);
+
+  /// @brief Divides the scalar operator by a double in-place.
   scalar_operator &operator/=(double other);
+
+  /// @brief Adds a double to the scalar operator in-place.
   scalar_operator &operator+=(double other);
+
+  /// @brief Subtracts a double from the scalar operator in-place.
   scalar_operator &operator-=(double other);
+
+  /// @brief Multiplies the scalar operator by a complex number (lvalue).
   scalar_operator operator*(std::complex<double> other) const &;
+
+  /// @brief Multiplies the scalar operator by a complex number (rvalue).
   scalar_operator operator*(std::complex<double> other) &&;
+
+  /// @brief Divides the scalar operator by a complex number (lvalue).
   scalar_operator operator/(std::complex<double> other) const &;
+
+  /// @brief Divides the scalar operator by a complex number (rvalue).
   scalar_operator operator/(std::complex<double> other) &&;
+
+  /// @brief Adds a complex number to the scalar operator (lvalue).
   scalar_operator operator+(std::complex<double> other) const &;
+
+  /// @brief Adds a complex number to the scalar operator (rvalue).
   scalar_operator operator+(std::complex<double> other) &&;
+
+  /// @brief Subtracts a complex number from the scalar operator (lvalue).
   scalar_operator operator-(std::complex<double> other) const &;
+
+  /// @brief Subtracts a complex number from the scalar operator (rvalue).
   scalar_operator operator-(std::complex<double> other) &&;
+
+  /// @brief Multiplies the scalar operator by a complex number in-place.
   scalar_operator &operator*=(std::complex<double> other);
+
+  /// @brief Divides the scalar operator by a complex number in-place.
   scalar_operator &operator/=(std::complex<double> other);
+
+  /// @brief Adds a complex number to the scalar operator in-place.
   scalar_operator &operator+=(std::complex<double> other);
+
+  /// @brief Subtracts a complex number from the scalar operator in-place.
   scalar_operator &operator-=(std::complex<double> other);
+
+  /// @brief Multiplies two scalar operators (lvalue).
   scalar_operator operator*(const scalar_operator &other) const &;
+
+  /// @brief Multiplies two scalar operators (rvalue).
   scalar_operator operator*(const scalar_operator &other) &&;
+
+  /// @brief Divides two scalar operators (lvalue).
   scalar_operator operator/(const scalar_operator &other) const &;
+
+  /// @brief Divides two scalar operators (rvalue).
   scalar_operator operator/(const scalar_operator &other) &&;
+
+  /// @brief Adds two scalar operators (lvalue).
   scalar_operator operator+(const scalar_operator &other) const &;
+
+  /// @brief Adds two scalar operators (rvalue).
   scalar_operator operator+(const scalar_operator &other) &&;
+
+  /// @brief Subtracts two scalar operators (lvalue).
   scalar_operator operator-(const scalar_operator &other) const &;
+
+  /// @brief Subtracts two scalar operators (rvalue).
   scalar_operator operator-(const scalar_operator &other) &&;
+
+  /// @brief Multiplies two scalar operators in-place.
   scalar_operator &operator*=(const scalar_operator &other);
+
+  /// @brief Divides two scalar operators in-place.
   scalar_operator &operator/=(const scalar_operator &other);
+
+  /// @brief Adds two scalar operators in-place.
   scalar_operator &operator+=(const scalar_operator &other);
+
+  /// @brief Subtracts two scalar operators in-place.
   scalar_operator &operator-=(const scalar_operator &other);
 
   // left-hand arithmetics
 
+  /// @brief Multiplies a double with a scalar operator (lvalue).
   friend scalar_operator operator*(double other, const scalar_operator &self);
+
+  /// @brief Multiplies a double with a scalar operator (rvalue).
   friend scalar_operator operator*(double other, scalar_operator &&self);
+
+  /// @brief Divides a double by a scalar operator (lvalue).
   friend scalar_operator operator/(double other, const scalar_operator &self);
+
+  /// @brief Divides a double by a scalar operator (rvalue).
   friend scalar_operator operator/(double other, scalar_operator &&self);
+
+  /// @brief Adds a double to a scalar operator (lvalue).
   friend scalar_operator operator+(double other, const scalar_operator &self);
+
+  /// @brief Adds a double to a scalar operator (rvalue).
   friend scalar_operator operator+(double other, scalar_operator &&self);
+
+  /// @brief Subtracts a scalar operator from a double (lvalue).
   friend scalar_operator operator-(double other, const scalar_operator &self);
+
+  /// @brief Subtracts a scalar operator from a double (rvalue).
   friend scalar_operator operator-(double other, scalar_operator &&self);
+
+  /// @brief Multiplies a complex number with a scalar operator (lvalue).
   friend scalar_operator operator*(std::complex<double> other,
                                    const scalar_operator &self);
+
+  /// @brief Multiplies a complex number with a scalar operator (rvalue).
   friend scalar_operator operator*(std::complex<double> other,
                                    scalar_operator &&self);
+
+  /// @brief Divides a complex number by a scalar operator (lvalue).
   friend scalar_operator operator/(std::complex<double> other,
                                    const scalar_operator &self);
+
+  /// @brief Divides a complex number by a scalar operator (rvalue).
   friend scalar_operator operator/(std::complex<double> other,
                                    scalar_operator &&self);
+
+  /// @brief Adds a complex number to a scalar operator (lvalue).
   friend scalar_operator operator+(std::complex<double> other,
                                    const scalar_operator &self);
+
+  /// @brief Adds a complex number to a scalar operator (rvalue).
   friend scalar_operator operator+(std::complex<double> other,
                                    scalar_operator &&self);
+
+  /// @brief Subtracts a scalar operator from a complex number (lvalue).
   friend scalar_operator operator-(std::complex<double> other,
                                    const scalar_operator &self);
+
+  /// @brief Subtracts a scalar operator from a complex number (rvalue).
   friend scalar_operator operator-(std::complex<double> other,
                                    scalar_operator &&self);
 };
@@ -225,9 +362,11 @@ class operator_handler {
 private:
   // Validate or populate the dimension defined for the degree(s) of freedom the
   // operator acts on, and return a string that identifies the operator but not
-  // what degrees it acts on.
-  virtual std::string op_code_to_string(
-      std::unordered_map<std::size_t, int64_t> &dimensions) const = 0;
+  // what degrees it acts on. Use for canonical evaluation and not expected to
+  // be user friendly.
+  virtual std::string
+  canonical_form(std::unordered_map<std::size_t, std::int64_t> &dimensions,
+                 std::vector<std::int64_t> &relevant_dims) const = 0;
 
   // data storage classes for evaluation
 
@@ -263,17 +402,25 @@ private:
     friend class operator_arithmetics;
 
   private:
-    std::vector<std::pair<std::complex<double>, std::string>> terms;
+    struct term_data {
+      std::string encoding;
+      std::complex<double> coefficient;
+      std::vector<int64_t> relevant_dimensions;
+    };
+    std::vector<term_data> terms;
 
   public:
     canonical_evaluation();
+    canonical_evaluation(std::complex<double> &&coefficient);
+    canonical_evaluation(std::string &&encoding,
+                         std::vector<int64_t> &&relevant_dims);
     canonical_evaluation(canonical_evaluation &&other);
     canonical_evaluation &operator=(canonical_evaluation &&other);
     // delete copy constructor and copy assignment to avoid unnecessary copies
     canonical_evaluation(const canonical_evaluation &other) = delete;
     canonical_evaluation &operator=(const canonical_evaluation &other) = delete;
-    void push_back(std::pair<std::complex<double>, std::string> &&term);
-    void push_back(const std::string &op);
+    void push_back(const std::string &op,
+                   const std::vector<int64_t> &relevant_dimensions);
   };
 
 public:
@@ -313,20 +460,26 @@ public:
   virtual ~operator_handler() = default;
 
   // returns a unique string id for the operator
+  /// @brief Generates a unique identifier for the derived class.
+  /// @return A string representing the unique identifier.
   virtual std::string unique_id() const = 0;
 
   virtual std::vector<std::size_t> degrees() const = 0;
 
   /// @brief Return the `matrix_handler` as a matrix.
-  /// @arg  `dimensions` : A map specifying the number of levels,
+  /// @param  `dimensions` : A map specifying the number of levels,
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const = 0;
 
+  /// @brief Converts the object to a string representation.
+  /// @param include_degrees A boolean flag indicating whether to include
+  /// degrees in the string representation.
+  /// @return A string representation of the object.
   virtual std::string to_string(bool include_degrees = true) const = 0;
 };
 

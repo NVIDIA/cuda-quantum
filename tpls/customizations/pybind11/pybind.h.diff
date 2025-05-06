@@ -1,5 +1,5 @@
 diff --git a/include/pybind11/pybind11.h b/include/pybind11/pybind11.h
-index b87fe66b..b5700db2 100644
+index b87fe66b..a4d26607 100644
 --- a/include/pybind11/pybind11.h
 +++ b/include/pybind11/pybind11.h
 @@ -25,6 +25,7 @@
@@ -10,7 +10,7 @@ index b87fe66b..b5700db2 100644
  
  #if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
  #    define PYBIND11_STD_LAUNDER std::launder
-@@ -628,9 +629,28 @@ protected:
+@@ -628,9 +629,29 @@ protected:
                  if (chain) {
                      signatures += std::to_string(++index) + ". ";
                  }
@@ -24,6 +24,7 @@ index b87fe66b..b5700db2 100644
 +                // There are some additional classes that reference their C++ counterpart, so we also
 +                // handle those manually.
 +                auto formatted_string = std::regex_replace(std::string(rec->name) + std::string(it->signature), std::regex("_pycudaq."), "");
++                formatted_string = std::regex_replace(formatted_string, std::regex("cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime."), "");
 +                formatted_string = std::regex_replace(formatted_string, std::regex("numpy.complex128"), "");
 +                formatted_string = std::regex_replace(formatted_string, std::regex(".ndarray[]"), ".ndarray");
 +                formatted_string = std::regex_replace(formatted_string, std::regex("buffer"), "numpy.ndarray");

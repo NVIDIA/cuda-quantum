@@ -20,6 +20,16 @@
 
 namespace cudaq {
 
+#define PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
+  template <typename T,                                                        \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
+                             std::true_type>>
+
+#define PROPERTY_AGNOSTIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
+  template <typename T,                                                        \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
+                             std::false_type>>
+
 // private methods
 
 /// expects is_default to be false
@@ -69,19 +79,9 @@ void sum_op<HandlerTy>::aggregate_terms(product_op<HandlerTy> &&head,
 template <typename HandlerTy>
 template <typename EvalTy>
 EvalTy
-sum_op<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithmetics) const {
+sum_op<HandlerTy>::transform(operator_arithmetics<EvalTy> arithmetics) const {
   if (terms.size() == 0)
     return EvalTy();
-
-  // Canonicalizing a term adds a tensor product with the identity for degrees
-  // that an operator doesn't act on. Needed e.g. to make sure all matrices are
-  // of the same size before summing them up.
-  std::set<std::size_t> degrees;
-  for (const auto &term : this->terms)
-    for (const auto &op : term) {
-      auto op_degrees = op.degrees();
-      degrees.insert(op_degrees.cbegin(), op_degrees.cend());
-    }
 
   // NOTE: It is important that we evaluate the terms in a specific order,
   // otherwise the evaluation is not consistent with other methods.
@@ -90,18 +90,27 @@ sum_op<HandlerTy>::evaluate(operator_arithmetics<EvalTy> arithmetics) const {
   auto it = this->begin();
   auto end = this->end();
   if (arithmetics.pad_sum_terms) {
+    // Canonicalizing a term adds a tensor product with the identity for degrees
+    // that an operator doesn't act on. Needed e.g. to make sure all matrices
+    // are of the same size before summing them up.
+    std::set<std::size_t> degrees;
+    for (const auto &term : this->terms)
+      for (const auto &op : term) {
+        auto op_degrees = op.degrees();
+        degrees.insert(op_degrees.cbegin(), op_degrees.cend());
+      }
     product_op<HandlerTy> padded_term = it->canonicalize(degrees);
-    EvalTy sum = padded_term.template evaluate<EvalTy>(arithmetics);
+    EvalTy sum = padded_term.template transform<EvalTy>(arithmetics);
     while (++it != end) {
       padded_term = it->canonicalize(degrees);
-      EvalTy term_eval = padded_term.template evaluate<EvalTy>(arithmetics);
+      EvalTy term_eval = padded_term.template transform<EvalTy>(arithmetics);
       sum = arithmetics.add(std::move(sum), std::move(term_eval));
     }
     return sum;
   } else {
-    EvalTy sum = it->template evaluate<EvalTy>(arithmetics);
+    EvalTy sum = it->template transform<EvalTy>(arithmetics);
     while (++it != end) {
-      EvalTy term_eval = it->template evaluate<EvalTy>(arithmetics);
+      EvalTy term_eval = it->template transform<EvalTy>(arithmetics);
       sum = arithmetics.add(std::move(sum), std::move(term_eval));
     }
     return sum;
@@ -133,7 +142,7 @@ INSTANTIATE_SUM_PRIVATE_METHODS(fermion_handler);
 
 #define INSTANTIATE_SUM_EVALUATE_METHODS(HandlerTy, EvalTy)                    \
                                                                                \
-  template EvalTy sum_op<HandlerTy>::evaluate(                                 \
+  template EvalTy sum_op<HandlerTy>::transform(                                \
       operator_arithmetics<EvalTy> arithmetics) const;
 
 #if !defined(__clang__)
@@ -142,9 +151,9 @@ INSTANTIATE_SUM_EVALUATE_METHODS(matrix_handler,
 INSTANTIATE_SUM_EVALUATE_METHODS(spin_handler,
                                  operator_handler::canonical_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(boson_handler,
-                                 operator_handler::matrix_evaluation);
+                                 operator_handler::canonical_evaluation);
 INSTANTIATE_SUM_EVALUATE_METHODS(fermion_handler,
-                                 operator_handler::matrix_evaluation);
+                                 operator_handler::canonical_evaluation);
 #endif
 
 // read-only properties
@@ -185,6 +194,45 @@ std::size_t sum_op<HandlerTy>::num_terms() const {
   return this->terms.size();
 }
 
+template <typename HandlerTy>
+std::unordered_map<std::string, std::string>
+sum_op<HandlerTy>::get_parameter_descriptions() const {
+  std::unordered_map<std::string, std::string> descriptions;
+  for (const auto &coeff : this->coefficients)
+    for (const auto &entry : coeff.get_parameter_descriptions()) {
+      // don't overwrite an existing entry with an empty description,
+      // but generally just overwrite descriptions otherwise
+      if (!entry.second.empty())
+        descriptions.insert_or_assign(entry.first, entry.second);
+      else if (descriptions.find(entry.first) == descriptions.end())
+        descriptions.insert(descriptions.end(), entry);
+    }
+  return descriptions;
+}
+
+template <>
+std::unordered_map<std::string, std::string>
+sum_op<matrix_handler>::get_parameter_descriptions() const {
+  std::unordered_map<std::string, std::string> descriptions;
+  auto update_descriptions =
+      [&descriptions](const std::pair<std::string, std::string> &entry) {
+        // don't overwrite an existing entry with an empty description,
+        // but generally just overwrite descriptions otherwise
+        if (!entry.second.empty())
+          descriptions.insert_or_assign(entry.first, entry.second);
+        else if (descriptions.find(entry.first) == descriptions.end())
+          descriptions.insert(descriptions.end(), entry);
+      };
+  for (const auto &coeff : this->coefficients)
+    for (const auto &entry : coeff.get_parameter_descriptions())
+      update_descriptions(entry);
+  for (const auto &term : this->terms)
+    for (const auto &op : term)
+      for (const auto &entry : op.get_parameter_descriptions())
+        update_descriptions(entry);
+  return descriptions;
+}
+
 #define INSTANTIATE_SUM_PROPERTIES(HandlerTy)                                  \
                                                                                \
   template std::vector<std::size_t> sum_op<HandlerTy>::degrees() const;        \
@@ -193,7 +241,10 @@ std::size_t sum_op<HandlerTy>::num_terms() const {
                                                                                \
   template std::size_t sum_op<HandlerTy>::max_degree() const;                  \
                                                                                \
-  template std::size_t sum_op<HandlerTy>::num_terms() const;
+  template std::size_t sum_op<HandlerTy>::num_terms() const;                   \
+                                                                               \
+  template std::unordered_map<std::string, std::string>                        \
+  sum_op<HandlerTy>::get_parameter_descriptions() const;
 
 #if !defined(__clang__)
 INSTANTIATE_SUM_PROPERTIES(matrix_handler);
@@ -449,11 +500,32 @@ INSTANTIATE_SUM_ASSIGNMENTS(fermion_handler);
 
 template <typename HandlerTy>
 complex_matrix sum_op<HandlerTy>::to_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto evaluated = this->transform(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+  if (evaluated.terms.size() == 0)
+    return cudaq::complex_matrix(0, 0);
+
+  auto matrix = HandlerTy::to_matrix(
+      evaluated.terms[0].encoding, evaluated.terms[0].relevant_dimensions,
+      evaluated.terms[0].coefficient, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    matrix += HandlerTy::to_matrix(
+        evaluated.terms[i].encoding, evaluated.terms[i].relevant_dimensions,
+        evaluated.terms[i].coefficient, invert_order);
+  return matrix;
+}
+
+template <>
+complex_matrix sum_op<matrix_handler>::to_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
   auto evaluated =
-      this->evaluate(operator_arithmetics<operator_handler::matrix_evaluation>(
+      this->transform(operator_arithmetics<operator_handler::matrix_evaluation>(
           dimensions, parameters));
   if (invert_order) {
     auto reverse_degrees = evaluated.degrees;
@@ -465,29 +537,10 @@ complex_matrix sum_op<HandlerTy>::to_matrix(
   return std::move(evaluated.matrix);
 }
 
-template <>
-complex_matrix sum_op<spin_handler>::to_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto evaluated = this->evaluate(
-      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
-                                                                   parameters));
-  if (evaluated.terms.size() == 0)
-    return cudaq::complex_matrix(0, 0);
-
-  auto matrix = spin_handler::to_matrix(evaluated.terms[0].second,
-                                        evaluated.terms[0].first, invert_order);
-  for (auto i = 1; i < terms.size(); ++i)
-    matrix += spin_handler::to_matrix(evaluated.terms[i].second,
-                                      evaluated.terms[i].first, invert_order);
-  return matrix;
-}
-
 #define INSTANTIATE_SUM_EVALUATIONS(HandlerTy)                                 \
                                                                                \
   template complex_matrix sum_op<HandlerTy>::to_matrix(                        \
-      std::unordered_map<std::size_t, int64_t> dimensions,                     \
+      std::unordered_map<std::size_t, std::int64_t> dimensions,                \
       const std::unordered_map<std::string, std::complex<double>> &params,     \
       bool invert_order) const;
 
@@ -1516,7 +1569,7 @@ std::string sum_op<HandlerTy>::to_string() const {
 template <typename HandlerTy>
 void sum_op<HandlerTy>::dump() const {
   auto str = to_string();
-  std::cout << str;
+  std::cout << str << std::endl;
 }
 
 template <typename HandlerTy>
@@ -1778,12 +1831,14 @@ sum_op<HandlerTy> sum_op<HandlerTy>::random(std::size_t nQubits,
   return sum;
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+template <typename HandlerTy>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
 csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
-    std::unordered_map<std::size_t, int64_t> dimensions,
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
-  auto evaluated = this->evaluate(
+  auto evaluated = this->transform(
       operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
                                                                    parameters));
 
@@ -1792,13 +1847,15 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
                            std::vector<std::size_t>, std::vector<std::size_t>>(
         {}, {}, {});
 
-  auto matrix = spin_handler::to_sparse_matrix(
-      evaluated.terms[0].second, evaluated.terms[0].first, invert_order);
+  auto matrix = HandlerTy::to_sparse_matrix(
+      evaluated.terms[0].encoding, evaluated.terms[0].relevant_dimensions,
+      evaluated.terms[0].coefficient, invert_order);
   for (auto i = 1; i < terms.size(); ++i)
-    matrix += spin_handler::to_sparse_matrix(
-        evaluated.terms[i].second, evaluated.terms[i].first, invert_order);
+    matrix += HandlerTy::to_sparse_matrix(
+        evaluated.terms[i].encoding, evaluated.terms[i].relevant_dimensions,
+        evaluated.terms[i].coefficient, invert_order);
   return cudaq::detail::to_csr_spmatrix(
-      matrix, 1ul << evaluated.terms[0].second.size());
+      matrix, 1ul << evaluated.terms[0].relevant_dimensions.size());
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
@@ -1839,6 +1896,14 @@ template sum_op<spin_handler> sum_op<spin_handler>::random(std::size_t nQubits,
                                                            std::size_t nTerms,
                                                            unsigned int seed);
 template csr_spmatrix sum_op<spin_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix sum_op<fermion_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix sum_op<boson_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
@@ -1986,9 +2051,9 @@ sum_op<HandlerTy>::getDataTuple() const {
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
 sum_op<HandlerTy>::get_raw_data() const {
-  std::unordered_map<std::size_t, int64_t> dims;
+  std::unordered_map<std::size_t, std::int64_t> dims;
   auto degrees = this->degrees();
-  auto evaluated = this->evaluate(
+  auto evaluated = this->transform(
       operator_arithmetics<operator_handler::canonical_evaluation>(
           dims, {})); // fails if we have parameters
 
@@ -2007,7 +2072,7 @@ sum_op<HandlerTy>::get_raw_data() const {
   // include all consecutive degrees starting from 0 (even if the operator
   // doesn't act on them).
   for (auto &term : evaluated.terms) {
-    auto pauli_str = std::move(term.second);
+    auto pauli_str = std::move(term.encoding);
     std::vector<bool> bsf(term_size << 1, 0);
     for (std::size_t i = 0; i < degrees.size(); ++i) {
       auto op = pauli_str[i];
@@ -2021,7 +2086,7 @@ sum_op<HandlerTy>::get_raw_data() const {
       }
     }
     bsf_terms.push_back(std::move(bsf));
-    coeffs.push_back(std::move(term.first));
+    coeffs.push_back(std::move(term.coefficient));
   }
 
   // always little endian order by definition of the bsf
@@ -2033,9 +2098,9 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
   // This function prints a string representing the operator sum that
   // includes the full representation for any degree in [0, max_degree),
   // padding identities if necessary (opposed to pauli_word).
-  std::unordered_map<std::size_t, int64_t> dims;
+  std::unordered_map<std::size_t, std::int64_t> dims;
   auto degrees = this->degrees();
-  auto evaluated = this->evaluate(
+  auto evaluated = this->transform(
       operator_arithmetics<operator_handler::canonical_evaluation>(dims, {}));
   auto le_order = std::less<std::size_t>();
   auto get_le_index = [&degrees, &le_order](std::size_t idx) {
@@ -2056,7 +2121,7 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
     else
       ss << std::endl;
     if (printCoeffs) {
-      auto coeff = term.first;
+      auto coeff = term.coefficient;
       ss << "[" << coeff.real() << (coeff.imag() < 0.0 ? "-" : "+")
          << std::fabs(coeff.imag()) << "j] ";
     }
@@ -2066,7 +2131,7 @@ std::string sum_op<HandlerTy>::to_string(bool printCoeffs) const {
           operator_handler::canonical_order(0, 1) ? degrees.back() : degrees[0];
       std::string term_str(max_target + 1, 'I');
       for (std::size_t i = 0; i < degrees.size(); ++i)
-        term_str[degrees[i]] = term.second[get_le_index(i)];
+        term_str[degrees[i]] = term.encoding[get_le_index(i)];
       ss << term_str;
     }
   }

@@ -30,8 +30,13 @@ std::string spin_handler::op_code_to_string() const {
   return "I";
 }
 
-std::string spin_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int64_t> &dimensions) const {
+// Used internally for canonical evaluation -
+// use a single char for representing the operator.
+// Relevant dimensions is not used but only exists
+// for consistency with other operator classes.
+std::string spin_handler::canonical_form(
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
+    std::vector<std::int64_t> &relevant_dims) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     dimensions[this->degree] = 2;
@@ -130,7 +135,7 @@ void spin_handler::create_matrix(
   for (std::size_t old_state = 0; old_state < dim; ++old_state) {
     std::size_t new_state = 0;
     std::complex<double> entry = 1.;
-    for (auto degree = 0; degree < nr_deg; ++degree) {
+    for (std::size_t degree = 0; degree < nr_deg; ++degree) {
       auto state = (old_state & (1ul << degree)) >> degree;
       auto op = pauli_word[invert_order ? nr_deg - 1 - degree : degree];
       auto mapped = map_state(op, state);
@@ -144,45 +149,57 @@ void spin_handler::create_matrix(
 cudaq::detail::EigenSparseMatrix
 spin_handler::to_sparse_matrix(const std::string &pauli_word,
                                std::complex<double> coeff, bool invert_order) {
-  using Triplet = Eigen::Triplet<std::complex<double>>;
   auto dim = 1ul << pauli_word.size();
-  std::vector<Triplet> triplets;
-  triplets.reserve(dim);
-  auto process_entry = [&triplets, &coeff](std::size_t new_state,
-                                           std::size_t old_state,
-                                           std::complex<double> entry) {
-    triplets.push_back(Triplet(new_state, old_state, coeff * entry));
-  };
-  create_matrix(pauli_word, process_entry, invert_order);
-  cudaq::detail::EigenSparseMatrix matrix(dim, dim);
-  matrix.setFromTriplets(triplets.begin(), triplets.end());
-  return matrix;
+  return cudaq::detail::create_sparse_matrix(
+      dim, coeff,
+      [&pauli_word, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(pauli_word, process_entry, invert_order);
+      });
+}
+
+cudaq::detail::EigenSparseMatrix
+spin_handler::to_sparse_matrix(const std::string &pauli,
+                               const std::vector<std::int64_t> &dimensions,
+                               std::complex<double> coeff, bool invert_order) {
+  // private method, so we only assert dimensions
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
+                      [](std::int64_t d) { return d != 2; }) ==
+         dimensions.cend());
+  return to_sparse_matrix(pauli, coeff, invert_order);
 }
 
 complex_matrix spin_handler::to_matrix(const std::string &pauli_word,
                                        std::complex<double> coeff,
                                        bool invert_order) {
   auto dim = 1ul << pauli_word.size();
-  complex_matrix matrix(dim, dim);
-  auto process_entry = [&matrix, &coeff](std::size_t new_state,
-                                         std::size_t old_state,
-                                         std::complex<double> entry) {
-    matrix[{new_state, old_state}] = coeff * entry;
-  };
-  create_matrix(pauli_word, process_entry, invert_order);
-  return matrix;
+  return cudaq::detail::create_matrix(
+      dim, coeff,
+      [&pauli_word, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(pauli_word, process_entry, invert_order);
+      });
+}
+
+complex_matrix
+spin_handler::to_matrix(const std::string &pauli_word,
+                        const std::vector<std::int64_t> &dimensions,
+                        std::complex<double> coeff, bool invert_order) {
+  // private method, so we only assert dimensions
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
+                      [](std::int64_t d) { return d != 2; }) ==
+         dimensions.cend());
+  return to_matrix(pauli_word, coeff, invert_order);
 }
 
 complex_matrix spin_handler::to_matrix(
-    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = dimensions.find(this->degree);
-  if (it == dimensions.end())
-    dimensions[this->degree] = 2;
-  else if (it->second != 2)
-    throw std::runtime_error("dimension for spin operator must be 2");
-  return spin_handler::to_matrix(this->op_code_to_string());
+  std::vector<std::int64_t> rel_dims;
+  return spin_handler::to_matrix(this->canonical_form(dimensions, rel_dims));
 }
 
 std::string spin_handler::to_string(bool include_degrees) const {
