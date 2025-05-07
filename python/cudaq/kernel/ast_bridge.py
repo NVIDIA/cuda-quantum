@@ -611,7 +611,7 @@ class PyASTBridge(ast.NodeVisitor):
                                             [iterVar], rawIndex).result
             cc.StoreOp(castedEle, targetEleAddr)
 
-        self.createInvariantForLoop(sourceSize, bodyBuilder)
+        self.createForLoop(sourceSize, bodyBuilder, invariant=True)
         return cc.StdvecInitOp(targetVecTy, targetPtr, sourceSize).result
 
     def __insertDbgStmt(self, value, dbgStmt):
@@ -797,12 +797,13 @@ class PyASTBridge(ast.NodeVisitor):
             for i, target in enumerate(targets)
         ]
 
-    def createInvariantForLoop(self,
-                               endVal,
-                               bodyBuilder,
-                               startVal=None,
-                               stepVal=None,
-                               isDecrementing=False):
+    def createForLoop(self,
+                      endVal,
+                      bodyBuilder,
+                      startVal=None,
+                      stepVal=None,
+                      isDecrementing=False,
+                      invariant=False):
         """
         Create an invariant loop using the CC dialect. 
         """
@@ -838,7 +839,8 @@ class PyASTBridge(ast.NodeVisitor):
             incr = arith.AddIOp(stepBlock.arguments[0], stepVal).result
             cc.ContinueOp([incr])
 
-        loop.attributes.__setitem__('invariant', UnitAttr.get())
+        if invariant:
+            loop.attributes.__setitem__('invariant', UnitAttr.get())
         return
 
     def __applyQuantumOperation(self, opName, parameters, targets):
@@ -855,7 +857,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                 veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                           quantumValue).result
-                self.createInvariantForLoop(veqSize, bodyBuilder)
+                self.createForLoop(veqSize, bodyBuilder, invariant=True)
             elif quake.RefType.isinstance(quantumValue.type):
                 opCtor([], parameters, [], [quantumValue])
             else:
@@ -1595,11 +1597,12 @@ class PyASTBridge(ast.NodeVisitor):
                     incrementedCounter = arith.AddIOp(loadedCounter, one).result
                     cc.StoreOp(incrementedCounter, counter)
 
-                self.createInvariantForLoop(endVal,
-                                            bodyBuilder,
-                                            startVal=startVal,
-                                            stepVal=stepVal,
-                                            isDecrementing=isDecrementing)
+                self.createForLoop(endVal,
+                                   bodyBuilder,
+                                   startVal=startVal,
+                                   stepVal=stepVal,
+                                   isDecrementing=isDecrementing,
+                                   invariant=True)
 
                 self.pushValue(iterable)
                 self.pushValue(actualSize)
@@ -1699,7 +1702,7 @@ class PyASTBridge(ast.NodeVisitor):
                         DenseI64ArrayAttr.get([1], context=self.ctx)).result
                     cc.StoreOp(element, eleAddr)
 
-                self.createInvariantForLoop(totalSize, bodyBuilder)
+                self.createForLoop(totalSize, bodyBuilder, invariant=True)
                 self.pushValue(enumIterable)
                 self.pushValue(totalSize)
                 return
@@ -1808,7 +1811,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                     veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                               target).result
-                    self.createInvariantForLoop(veqSize, bodyBuilder)
+                    self.createForLoop(veqSize, bodyBuilder, invariant=True)
                     return
                 elif quake.RefType.isinstance(target.type):
                     opCtor([], [], [], [target], is_adj=True)
@@ -1887,7 +1890,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                     veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                               target).result
-                    self.createInvariantForLoop(veqSize, bodyBuilder)
+                    self.createForLoop(veqSize, bodyBuilder, invariant=True)
                     return
                 self.emitFatalError(
                     'reset quantum operation on incorrect type {}.'.format(
@@ -2645,7 +2648,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                         veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                                   target).result
-                        self.createInvariantForLoop(veqSize, bodyBuilder)
+                        self.createForLoop(veqSize, bodyBuilder, invariant=True)
                         return
                     elif quake.RefType.isinstance(target.type):
                         opCtor([], [], [], [target], is_adj=True)
@@ -2725,7 +2728,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                         veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                                   target).result
-                        self.createInvariantForLoop(veqSize, bodyBuilder)
+                        self.createForLoop(veqSize, bodyBuilder, invariant=True)
                         return
                     elif quake.RefType.isinstance(target.type):
                         opCtor([], [param], [], [target], is_adj=True)
@@ -2803,7 +2806,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                         veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                                   target).result
-                        self.createInvariantForLoop(veqSize, bodyBuilder)
+                        self.createForLoop(veqSize, bodyBuilder, invariant=True)
                         return
                     elif quake.RefType.isinstance(target.type):
                         opCtor([], params, [], [target], is_adj=True)
@@ -2978,7 +2981,7 @@ class PyASTBridge(ast.NodeVisitor):
             cc.StoreOp(result, listValueAddr)
             self.symbolTable.popScope()
 
-        self.createInvariantForLoop(iterableSize, bodyBuilder)
+        self.createForLoop(iterableSize, bodyBuilder, invariant=True)
         self.pushValue(
             cc.StdvecInitOp(cc.StdvecType.get(self.ctx, listComputePtrTy),
                             listValue, iterableSize).result)
@@ -3288,11 +3291,11 @@ class PyASTBridge(ast.NodeVisitor):
                     [self.visit(b) for b in node.body]
                     self.symbolTable.popScope()
 
-                self.createInvariantForLoop(endVal,
-                                            bodyBuilder,
-                                            startVal=startVal,
-                                            stepVal=stepVal,
-                                            isDecrementing=isDecrementing)
+                self.createForLoop(endVal,
+                                   bodyBuilder,
+                                   startVal=startVal,
+                                   stepVal=stepVal,
+                                   isDecrementing=isDecrementing)
                 return
 
         # We can simplify `for i,j in enumerate(L)` MLIR code immensely
@@ -3359,7 +3362,7 @@ class PyASTBridge(ast.NodeVisitor):
                         [self.visit(b) for b in node.body]
                         self.symbolTable.popScope()
 
-                    self.createInvariantForLoop(totalSize, bodyBuilder)
+                    self.createForLoop(totalSize, bodyBuilder)
                     return
 
         self.visit(node.iter)
@@ -3475,7 +3478,7 @@ class PyASTBridge(ast.NodeVisitor):
             [self.visit(b) for b in node.body]
             self.symbolTable.popScope()
 
-        self.createInvariantForLoop(totalSize, bodyBuilder)
+        self.createForLoop(totalSize, bodyBuilder)
 
     def visit_While(self, node):
         """
@@ -3710,8 +3713,9 @@ class PyASTBridge(ast.NodeVisitor):
                 current = cc.LoadOp(accumulator).result
                 cc.StoreOp(arith.OrIOp(current, cmp_result.result), accumulator)
 
-            self.createInvariantForLoop(self.__get_vector_size(right_val),
-                                        check_element)
+            self.createForLoop(self.__get_vector_size(right_val),
+                               check_element,
+                               invariant=True)
 
             final_result = cc.LoadOp(accumulator).result
             if isinstance(op, ast.NotIn):
