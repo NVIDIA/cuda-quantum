@@ -11,6 +11,12 @@ from cudaq import fermion
 from cudaq.operators.fermion import *
 from op_utils import * # test helpers
 
+has_scipy = True
+try:
+    import scipy
+except ImportError:
+    has_scipy = False
+
 
 @pytest.fixture(autouse=True)
 def setup():
@@ -164,6 +170,22 @@ def test_properties():
     assert str(prod1) == "(-1-0.5i) * A0Ad1"
     assert str(sum) == "(-2-1i) * A0Ad1 + (1+0i) * N1Ad3"
     assert prod1.term_id == "A0Ad1"
+
+
+def test_matrix_construction():
+    hamiltonian = 5.5 - 2.03 * create(0) * annihilate(1) - 2.33 * number(0)
+    mat = hamiltonian.to_matrix()
+    ev = sorted(np.linalg.eigvals(mat))
+
+    # sparse matrix
+    data, rows, cols = hamiltonian.to_sparse_matrix()
+    for i, value in enumerate(data):
+        print(rows[i], cols[i], value)
+        assert np.isclose(mat[rows[i], cols[i]], value)
+    if has_scipy:
+        scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(4, 4))
+        scipyEv = scipy.sparse.linalg.eigs(scipyM, k=2, return_eigenvectors=False, sigma=ev[0] - 1e-2)
+        assert np.allclose(ev[:2], sorted(scipyEv), rtol=1e-2)
 
 
 def test_canonicalization():
