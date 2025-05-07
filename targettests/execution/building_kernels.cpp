@@ -135,143 +135,132 @@ for (auto &&bits : values) {
 }
 
 int main() {
-    std::vector<complex> d = {
-        {0.70710678, 0}, {0.0, 0.0}, {0.0, 0.0}, {0.70710678, 0.0}};
-    auto e = {
-        cudaq::complex{0.70710678, 0}, {0.0, 0.0}, {0.0, 0.0}, {0, 0.70710678}};
-    {
-        std::cout << "Building kernel (kernel mode)"
-              << std::endl;
-        auto counts = cudaq::sample(kernel);
-        printCounts(counts);
-    }
-    // clang-format off
+  std::vector<complex> d = {
+    {0.70710678, 0}, {0.0, 0.0}, {0.0, 0.0}, {0.70710678, 0.0}};
+  auto e = {
+    cudaq::complex{0.70710678, 0}, {0.0, 0.0}, {0.0, 0.0}, {0, 0.70710678}};
+  {
+    std::cout << "Building kernel (kernel mode)" << std::endl;
+    auto counts = cudaq::sample(kernel);
+    printCounts(counts);
+  }
+  // clang-format off
   // CHECK: Building kernel (kernel mode)
   // CHECK: 000000000
   // clang-format on
 
-    {
-        std::cout << "Building kernel with an argument (kernel mode)"
-              << std::endl;
-        auto counts = cudaq::sample(kernel0, 10);
-        printCounts(counts);
-    }
-    // clang-format off
+  {
+    std::cout << "Building kernel with an argument (kernel mode)" << std::endl;
+    auto counts = cudaq::sample(kernel0, 10);
+    printCounts(counts);
+  }
+  // clang-format off
   // CHECK: Building kernel with an argument (kernel mode)
   // CHECK: 0000000000
   // clang-format on
 
   {
-    std::cout << "Building kernel with passing complex vector (kernel mode)"
-          << std::endl;
+    std::cout << "Building kernel with passing complex vector (kernel mode)" << std::endl;
     auto counts = cudaq::sample(kernel1, d);
     printCounts(counts);
-}
-// clang-format off
-// CHECK: Building kernel with passing complex vector (kernel mode)
-// CHECK: 00
-// CHECK: 01
-// clang-format on
+  }
+  // clang-format off
+  // CHECK: Building kernel with passing complex vector (kernel mode)
+  // CHECK: 00
+  // CHECK: 01
+  // clang-format on
 
-{
-    std::cout << "Building kernel with a precision agnostic API (kernel mode)"
-          << std::endl;
+  {
+    std::cout << "Building kernel with a precision agnostic API (kernel mode)" << std::endl;
     auto counts = cudaq::sample(kernel2, e);
     printCounts(counts);
-}
-// clang-format off
-// CHECK: Building kernel with a precision agnostic API (kernel mode)
-// CHECK: 00
-// CHECK: 01
-// clang-format on
+  }
+  // clang-format off
+  // CHECK: Building kernel with a precision agnostic API (kernel mode)
+  // CHECK: 00
+  // CHECK: 01
+  // clang-format on
 
-{
-    std::cout << "Building kernel with a Hadamard gate (kernel mode)"
-          << std::endl;
+  {
+    std::cout << "Building kernel with a Hadamard gate (kernel mode)" << std::endl;
     auto counts = cudaq::sample(kernel3);
     printCounts(counts);
-}
-// clang-format off
-// CHECK: Building kernel with a Hadamard gate (kernel mode)
-// CHECK: 000
-// CHECK: 001
-// CHECK: 010
-// CHECK: 011
-// CHECK: 100
-// CHECK: 101
-// CHECK: 110
-// CHECK: 111
-// clang-format on
+  }
+  // clang-format off
+  // CHECK: Building kernel with a Hadamard gate (kernel mode)
+  // CHECK: 000
+  // CHECK: 001
+  // CHECK: 010
+  // CHECK: 011
+  // CHECK: 100
+  // CHECK: 101
+  // CHECK: 110
+  // CHECK: 111
+  // clang-format on
 
-{
-    std::cout << "Building kernel with a Hadamard gate on the first and the last qubit (kernel mode)"
-          << std::endl;
+  {
+    std::cout << "Building kernel with a Hadamard gate on the first and the last qubit (kernel mode)" << std::endl;
     auto counts = cudaq::sample(kernel4);
     printCounts(counts);
-}
-// clang-format off
-// CHECK: Building kernel with a Hadamard gate on the first and the last qubit (kernel mode)
-// CHECK: 000
-// CHECK: 001
-// CHECK: 100
-// CHECK: 101
-// clang-format on
+  }
+  // clang-format off
+  // CHECK: Building kernel with a Hadamard gate on the first and the last qubit (kernel mode)
+  // CHECK: 000
+  // CHECK: 001
+  // CHECK: 100
+  // CHECK: 101
+  // clang-format on
 
-{
-    std::cout << "Building kernel with a CNOT gate (kernel mode)"
-          << std::endl;
+  {
+    std::cout << "Building kernel with a CNOT gate (kernel mode)" << std::endl;
     auto counts = cudaq::sample(kernel5);
     printCounts(counts);
-}
-// clang-format off
-// CHECK: Building kernel with a CNOT gate (kernel mode)
-// CHECK: 00
-// CHECK: 11
-// clang-format on
+  }
+  // clang-format off
+  // CHECK: Building kernel with a CNOT gate (kernel mode)
+  // CHECK: 00
+  // CHECK: 11
+  // clang-format on
 
-{
-    std::cout << "Building kernel with a CNOT gate on the first and the last qubit (kernel mode)"
-          << std::endl;
+  {
+    std::cout << "Building kernel with a CNOT gate on the first and the last qubit (kernel mode)" << std::endl;
     auto counts = cudaq::sample(kernel6);
     printCounts(counts);
-}
-// clang-format off
-// CHECK: Building kernel with a CNOT gate on the first and the last qubit (kernel mode)
-// CHECK: 000
-// CHECK: 010
-// CHECK: 100
-// CHECK: 111
-// clang-format on
+  }
+  // clang-format off
+  // CHECK: Building kernel with a CNOT gate on the first and the last qubit (kernel mode)
+  // CHECK: 000
+  // CHECK: 010
+  // CHECK: 100
+  // CHECK: 111
+  // clang-format on
 
-{
-    std::cout << "Building kernel with a nested kernel (kernel mode)"
-          << std::endl;
+  {
+    std::cout << "Building kernel with a nested kernel (kernel mode)" << std::endl;
     auto counts = cudaq::sample(kernel8);
     printCounts(counts);
-}
-// clang-format off
-// CHECK: Building kernel with a nested kernel (kernel mode)
-// CHECK: 111
-// clang-format on
+  }
+  // clang-format off
+  // CHECK: Building kernel with a nested kernel (kernel mode)
+  // CHECK: 111
+  // clang-format on
 
-{
-    std::cout << "Building kernel with a nested kernel with theta (kernel mode)"
-          << std::endl;
+  {
+    std::cout << "Building kernel with a nested kernel with theta (kernel mode)" << std::endl;
     auto counts = cudaq::sample(kernel9);
     printCounts(counts);
-}
-// clang-format off
-// CHECK: Building kernel with a nested kernel (kernel mode)
-// CHECK: 010
-// clang-format on
+  }
+  // clang-format off
+  // CHECK: Building kernel with a nested kernel (kernel mode)
+  // CHECK: 010
+  // clang-format on
 
-{
-        std::cout << "Building kernel with a double vector (kernel mode)"
-              << std::endl;
-        auto counts = cudaq::sample(kernel10, thetas);
-        printCounts(counts);
-    }
-    // clang-format off
+  {
+    std::cout << "Building kernel with a double vector (kernel mode)" << std::endl;
+    auto counts = cudaq::sample(kernel10, thetas);
+    printCounts(counts);
+  }
+  // clang-format off
   // CHECK: Building kernel with a double vector (kernel mode)
   // CHECK: 00
   // CHECK: 01
