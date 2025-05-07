@@ -922,6 +922,6 @@ func.func @cable() {
 // CHECK:           %[[VAL_0:.*]] = quake.null_cable <4>
 // CHECK:           %[[VAL_1:.*]]:4 = quake.terminate_cable %[[VAL_0]] : (!quake.cable<4>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire)
 // CHECK:           %[[VAL_2:.*]] = quake.bundle_cable %[[VAL_1]]#0, %[[VAL_1]]#3, %[[VAL_1]]#1, %[[VAL_1]]#2 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<4>
-// CHECK:           quake.sink_cable %[[VAL_2]] : !quake.cable<4>
+// CHECK:           quake.sink_cable %[[VAL_2]] : <4>
 // CHECK:           return
 // CHECK:         }

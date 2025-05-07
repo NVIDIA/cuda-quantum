@@ -703,7 +703,7 @@ def quake_SinkCableOp : QuakeOp<"sink_cable"> {
   );
 
   let assemblyFormat = [{
-    $cable `:` type(operands) attr-dict
+    $cable `:` type($cable) attr-dict
   }];
 }
 
