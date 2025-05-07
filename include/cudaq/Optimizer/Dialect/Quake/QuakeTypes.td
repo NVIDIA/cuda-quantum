@@ -200,6 +200,19 @@ def StruqType : QuakeType<"Struq", "struq"> {
   ];
 }
 
+def CableType : QuakeType<"Cable", "cable"> {
+  let summary = "the type of a sequence of wires bound together";
+  let description = [{
+    This is the type of an aggregate of wire types. It is simply syntactic
+    sugar that allows a group of wires to be passed around as a single cable
+    value.
+  }];
+
+  let parameters = (ins "std::uint64_t":$size);
+
+  let assemblyFormat = "`<` $size `>`";
+}
+
 //===----------------------------------------------------------------------===//
 // MeasureType: classical data type
 //===----------------------------------------------------------------------===//

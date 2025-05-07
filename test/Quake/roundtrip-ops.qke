@@ -909,3 +909,19 @@ func.func @quantum_apply_noise(%0 : !cc.ptr<f64>, %3 : !cc.ptr<f32>) {
 // CHECK:           quake.apply_noise %[[VAL_4]](%[[VAL_0]], %[[VAL_1]]) %[[VAL_3]] : (i64, !cc.ptr<f64>, !cc.ptr<f32>, !quake.veq<3>) -> ()
 // CHECK:           return
 // CHECK:         }
+
+func.func @cable() {
+  %0 = quake.null_cable !quake.cable<4>
+  %1:4 = quake.terminate_cable %0 : (!quake.cable<4>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire)
+  %2 = quake.bundle_cable %1#0, %1#3, %1#1, %1#2 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<4>
+  quake.sink_cable %2 : !quake.cable<4>
+  return
+}
+
+// CHECK-LABEL:   func.func @cable() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_cable <4>
+// CHECK:           %[[VAL_1:.*]]:4 = quake.terminate_cable %[[VAL_0]] : (!quake.cable<4>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_2:.*]] = quake.bundle_cable %[[VAL_1]]#0, %[[VAL_1]]#3, %[[VAL_1]]#1, %[[VAL_1]]#2 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<4>
+// CHECK:           quake.sink_cable %[[VAL_2]] : !quake.cable<4>
+// CHECK:           return
+// CHECK:         }
