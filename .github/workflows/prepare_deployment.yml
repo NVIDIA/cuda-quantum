@@ -7,7 +7,6 @@ on:
       - 'releases/*'
       - 'staging/*'
       - 'experimental/*'
-      - 'features/*'
 
 name: PR merged
 

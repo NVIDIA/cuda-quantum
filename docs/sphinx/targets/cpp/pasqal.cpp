@@ -3,9 +3,8 @@
 // nvq++ --target pasqal pasqal.cpp -o out.x
 // ./out.x
 // ```
-// Assumes a valid set of credentials (PASQAL_AUTH_TOKEN, PASQAL_PROJECT_ID)
-// have been set. To set PASQAL_AUTH_TOKEN from Pasqal Cloud username and
-// password, use pasqal_auth.py in this folder.
+// Assumes a valid set of credentials (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`)
+// have been set.
 
 #include "cudaq/algorithms/evolve.h"
 #include "cudaq/algorithms/integrator.h"
@@ -15,8 +14,8 @@
 #include <map>
 #include <vector>
 
-// This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's
-// cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through
+// This example illustrates how to use `Pasqal's` EMU_MPS emulator over
+// `Pasqal's` cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through
 // https://community.pasqal.com for assistance.
 
 int main() {
@@ -64,7 +63,7 @@ int main() {
 
   // Evolve the system
   auto result = cudaq::evolve(hamiltonian, schedule, 100);
-  result.get_sampling_result()->dump();
+  result.sampling_result->dump();
 
   return 0;
 }

@@ -433,6 +433,43 @@ def test_arbitrary_unitary_synthesis():
     check_sample(bell)
 
 
+def test_capture_array():
+    arr = np.array([1., 0], dtype=np.complex128)
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(arr)
+
+    counts = cudaq.sample(kernel)
+    assert len(counts) == 1
+    assert "0" in counts
+
+    arr = np.array([0., 1], dtype=np.complex128)
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(arr)
+
+    counts = cudaq.sample(kernel)
+    assert len(counts) == 1
+    assert "1" in counts
+
+
+def test_capture_state():
+    s = cudaq.State.from_data(np.array([1., 0], dtype=np.complex128))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(s)
+
+    with pytest.raises(
+            RuntimeError,
+            match=
+            "captured states are not supported on quantum hardware or remote simulators"
+    ):
+        counts = cudaq.sample(kernel)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

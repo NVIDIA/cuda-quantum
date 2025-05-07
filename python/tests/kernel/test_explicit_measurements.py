@@ -280,7 +280,7 @@ def test_error_cases():
         e)
 
     ## NOTE: The following does not fail.
-    ## See: https://github.com/NVIDIA/cuda-quantum/issues/2000
+    ## Needs inlining of the function calls.
     # @cudaq.kernel
     # def measure(q: cudaq.qubit) -> bool:
     #     return mz(q)

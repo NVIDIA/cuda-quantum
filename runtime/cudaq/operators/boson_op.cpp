@@ -8,11 +8,14 @@
 
 #include <cmath>
 #include <complex>
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
+#include "common/EigenSparse.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
+#include "helpers.h"
 
 #include "cudaq/boson_op.h"
 
@@ -20,6 +23,8 @@ namespace cudaq {
 
 // private helpers
 
+// used internally and externally to identity the operator -
+// use a human friendly string code to make it more comprehensible
 std::string boson_handler::op_code_to_string() const {
   // Note that we can (and should) have the same op codes across boson, fermion,
   // and spin ops, since individual operators with the same op codes are
@@ -43,20 +48,35 @@ std::string boson_handler::op_code_to_string() const {
     else
       str += "(N" + std::to_string(offset) + ")";
   }
-  for (auto i = 0; i < this->additional_terms; ++i)
+  if (this->additional_terms > 0) {
     str += "Ad";
-  for (auto i = 0; i > this->additional_terms; --i)
+    if (this->additional_terms > 1)
+      str += "^" + std::to_string(this->additional_terms);
+  } else if (this->additional_terms < 0) {
     str += "A";
+    if (-this->additional_terms > 1)
+      str += "^" + std::to_string(-this->additional_terms);
+  }
   return str;
 }
 
-std::string boson_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int64_t> &dimensions) const {
+// used internally for canonical evaluation -
+// use a encoding that makes it convenient to reconstruct the operator
+std::string boson_handler::canonical_form(
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
+    std::vector<std::int64_t> &relevant_dims) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     throw std::runtime_error("missing dimension for degree " +
                              std::to_string(this->degree));
-  return this->op_code_to_string();
+  relevant_dims.push_back(it->second);
+
+  if (this->additional_terms == 0 && this->number_offsets.size() == 0)
+    return "I_";
+  std::string str = std::to_string(this->additional_terms);
+  for (auto offset : this->number_offsets)
+    str += "." + std::to_string(offset);
+  return str + "_";
 }
 
 void boson_handler::inplace_mult(const boson_handler &other) {
@@ -131,6 +151,8 @@ std::vector<std::size_t> boson_handler::degrees() const {
   return {this->degree};
 }
 
+std::size_t boson_handler::target() const { return this->degree; }
+
 // constructors
 
 boson_handler::boson_handler(std::size_t target)
@@ -149,44 +171,119 @@ boson_handler::boson_handler(std::size_t target, int op_id)
 
 // evaluations
 
+void boson_handler::create_matrix(
+    const std::string &boson_word, const std::vector<std::int64_t> &dimensions,
+    const std::function<void(std::size_t, std::size_t, std::complex<double>)>
+        &process_element,
+    bool invert_order) {
+  auto tokenize = [](std::string s, char delim) {
+    std::vector<std::string> tokens;
+    std::size_t start = 0, end = 0;
+    while ((end = s.find(delim, start)) != std::string::npos) {
+      tokens.push_back(s.substr(start, end - start));
+      start = end + 1;
+    }
+    tokens.push_back(s.substr(start));
+    return tokens;
+  };
+
+  auto map_state = [&tokenize](std::string encoding, std::int64_t old_state) {
+    if (encoding == "I")
+      return std::pair<double, std::int64_t>{1., old_state};
+    auto ops = tokenize(encoding, '.');
+    assert(ops.size() > 0);
+
+    auto it = ops.cbegin();
+    int additional_terms = std::stol(*it);
+    std::int64_t new_state = old_state + additional_terms;
+    if (new_state < 0)
+      return std::pair<double, std::int64_t>{0., old_state};
+
+    double value = 1.;
+    if (additional_terms > 0)
+      for (auto offset = additional_terms; offset > 0; --offset)
+        value *= std::sqrt(old_state + offset);
+    if (additional_terms < 0)
+      for (auto offset = -additional_terms; offset > 0; --offset)
+        value *= std::sqrt(new_state + offset);
+    while (++it != ops.cend())
+      value *= (new_state + std::stol(*it));
+    return std::pair<double, std::int64_t>{value, new_state};
+  };
+
+  auto states = cudaq::detail::generate_all_states(dimensions);
+  if (states.size() == 0)
+    process_element(0, 0, 1.);
+  std::vector<std::string> boson_terms = tokenize(boson_word, '_');
+  std::size_t old_state_idx = 0;
+  for (const auto &old_state : states) {
+    std::vector<std::int64_t> new_state(old_state.size(), 0);
+    std::complex<double> entry = 1.;
+    for (std::size_t degree = 0; degree < old_state.size(); ++degree) {
+      auto state = old_state[degree];
+      auto op =
+          boson_terms[invert_order ? old_state.size() - 1 - degree : degree];
+      auto mapped = map_state(op, state);
+      entry *= mapped.first;
+      if (mapped.second >= dimensions[degree])
+        entry = 0.;
+      else
+        new_state[degree] = mapped.second;
+    }
+
+    if (entry != 0.) {
+      auto new_state_idx = 0;
+      for (std::size_t idx = 0; idx < new_state.size(); ++idx) {
+        auto offset = 1;
+        for (std::size_t d = 0; d < idx; ++d)
+          offset *= dimensions[d];
+        new_state_idx += new_state[idx] * offset;
+      }
+      process_element(new_state_idx, old_state_idx, entry);
+    }
+    old_state_idx += 1;
+  }
+}
+
+cudaq::detail::EigenSparseMatrix
+boson_handler::to_sparse_matrix(const std::string &boson_word,
+                                const std::vector<std::int64_t> &dimensions,
+                                std::complex<double> coeff, bool invert_order) {
+  std::int64_t dim = 1;
+  for (auto d : dimensions)
+    dim *= d;
+  return cudaq::detail::create_sparse_matrix(
+      dim, coeff,
+      [&boson_word, &dimensions, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(boson_word, dimensions, process_entry, invert_order);
+      });
+}
+
+complex_matrix
+boson_handler::to_matrix(const std::string &boson_word,
+                         const std::vector<std::int64_t> &dimensions,
+                         std::complex<double> coeff, bool invert_order) {
+  std::int64_t dim = 1;
+  for (auto d : dimensions)
+    dim *= d;
+  return cudaq::detail::create_matrix(
+      dim, coeff,
+      [&boson_word, &dimensions, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(boson_word, dimensions, process_entry, invert_order);
+      });
+}
+
 complex_matrix boson_handler::to_matrix(
-    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = dimensions.find(this->degree);
-  if (it == dimensions.end())
-    throw std::runtime_error("missing dimension for degree " +
-                             std::to_string(this->degree));
-  auto dim = it->second;
-
-  auto mat = complex_matrix(dim, dim);
-  if (this->additional_terms > 0) {
-    for (std::size_t column = 0; column + this->additional_terms < dim;
-         column++) {
-      auto row = column + this->additional_terms;
-      mat[{row, column}] = 1.;
-      for (auto offset : this->number_offsets)
-        mat[{row, column}] *= (row + offset);
-      for (auto offset = this->additional_terms; offset > 0; --offset)
-        mat[{row, column}] *= std::sqrt(column + offset);
-    }
-  } else if (this->additional_terms < 0) {
-    for (std::size_t row = 0; row - this->additional_terms < dim; row++) {
-      auto column = row - this->additional_terms;
-      mat[{row, column}] = 1.;
-      for (auto offset : this->number_offsets)
-        mat[{row, column}] *= (row + offset);
-      for (auto offset = -this->additional_terms; offset > 0; --offset)
-        mat[{row, column}] *= std::sqrt(row + offset);
-    }
-  } else {
-    for (std::size_t i = 0; i < dim; i++) {
-      mat[{i, i}] = 1.;
-      for (auto offset : this->number_offsets)
-        mat[{i, i}] *= (i + offset);
-    }
-  }
-  return mat;
+  std::vector<std::int64_t> relevant_dims;
+  auto boson_word = this->canonical_form(dimensions, relevant_dims);
+  return boson_handler::to_matrix(boson_word, relevant_dims);
 }
 
 std::string boson_handler::to_string(bool include_degrees) const {
