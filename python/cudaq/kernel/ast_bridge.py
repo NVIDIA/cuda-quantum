@@ -567,7 +567,10 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             structName = quake.StruqType.getName(structTy)
         structIdx = None
-        _, userType = globalRegisteredTypes[structName]
+        if not globalRegisteredTypes.isRegisteredClass(structName):
+            self.emitFatalError(f'Dataclass is not registered: {structName})')
+
+        _, userType = globalRegisteredTypes.getClassAttributes(structName)
         for i, (k, _) in enumerate(userType.items()):
             if k == memberName:
                 structIdx = i
@@ -2079,9 +2082,10 @@ class PyASTBridge(ast.NodeVisitor):
                 self.__insertDbgStmt(self.popValue(), node.func.id)
                 return
 
-            elif node.func.id in globalRegisteredTypes:
+            elif node.func.id in globalRegisteredTypes.classes:
                 # Handle User-Custom Struct Constructor
-                cls, annotations = globalRegisteredTypes[node.func.id]
+                cls, annotations = globalRegisteredTypes.getClassAttributes(
+                    node.func.id)
                 # Alloca the struct
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
@@ -3895,6 +3899,42 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         func.ReturnOp([result])
+
+    def visit_Tuple(self, node):
+        """
+        Map tuples in the Python AST to equivalents in MLIR.
+        """
+        if self.verbose:
+            print("[Visit Tuple = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
+
+        self.generic_visit(node)
+        self.currentNode = node
+
+        elementValues = [self.popValue() for _ in range(len(node.elts))]
+        elementValues.reverse()
+
+        # We do not store structs of pointers
+        elementValues = [
+            cc.LoadOp(ele).result
+            if cc.PointerType.isinstance(ele.type) else ele
+            for ele in elementValues
+        ]
+
+        structTys = [v.type for v in elementValues]
+        structTy = cc.StructType.getNamed(self.ctx, "tuple", structTys)
+        stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
+                                TypeAttr.get(structTy)).result
+
+        # loop over each type and `compute_ptr` / store
+
+        for i, ty in enumerate(structTys):
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, ty), stackSlot, [],
+                DenseI32ArrayAttr.get([i], context=self.ctx)).result
+            cc.StoreOp(elementValues[i], eleAddr)
+        self.pushValue(stackSlot)
+        return
 
     def visit_UnaryOp(self, node):
         """

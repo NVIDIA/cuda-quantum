@@ -25,6 +25,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "runtime/cudaq/algorithms/py_utils.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
 #include "llvm/Support/Error.h"
@@ -36,6 +37,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
+#include "mlir/Transforms/Passes.h"
 #include <fmt/core.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -75,6 +77,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
                  std::size_t startingArgIdx = 0) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
   auto mod = unwrap(module);
+  auto funcOp = getKernelFuncOp(module, name);
 
   // Do not cache the JIT if we are running with startingArgIdx > 0 because a)
   // we won't be executing right after JIT-ing, and b) we might get called later
@@ -101,6 +104,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
         SmallVector<StringRef>(names.begin(), names.end())));
+    cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
@@ -206,6 +210,23 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             delete static_cast<float *>(ptr);
           });
         })
+        .Case([&](cudaq::cc::StdvecType ty) {
+          // Vector is a span: `{ data, length }`.
+          struct vec {
+            char *data;
+            std::size_t length;
+          };
+          vec *ourAllocatedArg = new vec{nullptr, 0};
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<vec *>(ptr);
+          });
+        })
+        .Case([&](cudaq::cc::StructType ty) {
+          auto [size, offsets] = getTargetLayout(funcOp, ty);
+          auto ourAllocatedArg = std::malloc(size);
+          runtimeArgs.emplace_back(ourAllocatedArg,
+                                   [](void *ptr) { std::free(ptr); });
+        })
         .Default([](Type ty) {
           std::string msg;
           {
@@ -310,14 +331,50 @@ void storeCapturedData(ExecutionEngine *jit, const std::string &kernelName) {
   }
 }
 
-std::tuple<void *, std::size_t, std::int32_t>
+void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
+                    mlir::ModuleOp mod, cudaq::OpaqueArguments &runtimeArgs,
+                    void *rawArgs, std::size_t size, std::uint32_t returnOffset,
+                    const std::vector<std::string> &names) {
+  auto &platform = cudaq::get_platform();
+  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
+  auto isQuantumDevice =
+      !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+
+  if (isRemoteSimulator) {
+    // Remote simulator - use altLaunchKernel to support returning values.
+    // TODO: after cudaq::run support this should be merged with the quantum
+    // device case.
+    auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
+    auto dynamicResult = cudaq::altLaunchKernel(
+        name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
+        returnOffset);
+    if (dynamicResult.data_buffer || dynamicResult.size)
+      throw std::runtime_error("not implemented: support dynamic results");
+    delete wrapper;
+  } else if (isQuantumDevice) {
+    // Quantum devices or their emulation - we can use streamlinedLaunchKernel
+    // as quantum platform do not support direct returns.
+    auto dynamicResult =
+        cudaq::streamlinedLaunchKernel(name.c_str(), runtimeArgs.getArgs());
+    if (dynamicResult.data_buffer || dynamicResult.size)
+      throw std::runtime_error("not implemented: support dynamic results");
+  } else {
+    // Local simulator - use altLaunchKernel with the thunk function.
+    auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
+                                                size, returnOffset);
+    if (dynamicResult.data_buffer || dynamicResult.size)
+      throw std::runtime_error("not implemented: support dynamic results");
+  }
+}
+
+std::tuple<void *, std::size_t, std::int32_t, KernelThunkType>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                       Type returnType, cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names,
-                      std::size_t startingArgIdx = 0) {
+                      std::size_t startingArgIdx, bool launch) {
   // Do not allow kernel execution if we are running with startingArgIdx > 0.
   // This is used in remote VQE execution.
-  const bool launch = startingArgIdx == 0;
+  launch = launch && (startingArgIdx == 0);
 
   auto [jit, rawArgs, size, returnOffset] = jitAndCreateArgs(
       name, module, runtimeArgs, names, returnType, startingArgIdx);
@@ -355,42 +412,11 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
   kernelReg();
 
-  if (launch) {
-    auto &platform = cudaq::get_platform();
-    auto uReturnOffset = static_cast<std::uint64_t>(returnOffset);
-    auto isRemoteSimulator =
-        platform.get_remote_capabilities().isRemoteSimulator;
-    auto isQuantumDevice =
-        !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+  if (launch)
+    pyLaunchKernel(name, thunk, mod, runtimeArgs, rawArgs, size, returnOffset,
+                   names);
 
-    if (isRemoteSimulator) {
-      // Remote simulator - use altLaunchKernel to support returning values.
-      // TODO: after cudaq::run support this should be merged with the quantum
-      // device case.
-      auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
-      auto dynamicResult = cudaq::altLaunchKernel(
-          name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
-          uReturnOffset);
-      if (dynamicResult.data_buffer || dynamicResult.size)
-        throw std::runtime_error("not implemented: support dynamic results");
-      delete wrapper;
-    } else if (isQuantumDevice) {
-      // Quantum devices or their emulation - we can use streamlinedLaunchKernel
-      // as quantum platform do not support direct returns.
-      auto dynamicResult =
-          cudaq::streamlinedLaunchKernel(name.c_str(), runtimeArgs.getArgs());
-      if (dynamicResult.data_buffer || dynamicResult.size)
-        throw std::runtime_error("not implemented: support dynamic results");
-    } else {
-      // Local simulator - use altLaunchKernel with the thunk function.
-      auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
-                                                  size, uReturnOffset);
-      if (dynamicResult.data_buffer || dynamicResult.size)
-        throw std::runtime_error("not implemented: support dynamic results");
-    }
-  }
-
-  return std::make_tuple(rawArgs, size, returnOffset);
+  return std::make_tuple(rawArgs, size, returnOffset, thunk);
 }
 
 cudaq::KernelArgsHolder
@@ -436,7 +462,7 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
                        cudaq::OpaqueArguments &runtimeArgs,
                        const std::vector<std::string> &names) {
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
-  auto [rawArgs, size, returnOffset] =
+  auto [rawArgs, size, returnOffset, thunk] =
       pyAltLaunchKernelBase(name, module, noneType, runtimeArgs, names);
   std::free(rawArgs);
 }
@@ -462,7 +488,7 @@ void *pyGetKernelArgs(const std::string &name, MlirModule module,
                       const std::vector<std::string> &names,
                       std::size_t startingArgIdx) {
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
-  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
+  auto [rawArgs, size, returnOffset, thunk] = pyAltLaunchKernelBase(
       name, module, noneType, runtimeArgs, names, startingArgIdx);
   return rawArgs;
 }
@@ -482,8 +508,10 @@ py::object readPyObject(mlir::Type ty, char *arg) {
   return py_ext::convert<T>(concrete);
 }
 
-py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
-                         char *data, std::size_t size) {
+py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
+                         mlir::Type ty, char *data, std::size_t size) {
+  auto isRunContext = module->hasAttr(runtime::enableCudaqRun);
+
   return llvm::TypeSwitch<mlir::Type, py::object>(ty)
       .Case([&](IntegerType ty) -> py::object {
         if (ty.getIntOrFloatBitWidth() == 1)
@@ -514,61 +542,115 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
         return readPyObject<float>(ty, data);
       })
       .Case([&](cudaq::cc::StdvecType ty) -> py::object {
-        auto eleTy = ty.getElementType();
-        auto eleByteSize = byteSize(eleTy);
+        if (isRunContext) {
+          // cudaq.run return.
+          auto eleTy = ty.getElementType();
+          auto eleByteSize = byteSize(eleTy);
 
-        // Vector of booleans has a special layout.
-        // Read the vector and create a list of booleans.
-        if (eleTy.getIntOrFloatBitWidth() == 1) {
-          auto v = reinterpret_cast<std::vector<bool> *>(data);
+          // Vector of booleans has a special layout.
+          // Read the vector and create a list of booleans.
+          if (eleTy.getIntOrFloatBitWidth() == 1) {
+            auto v = reinterpret_cast<std::vector<bool> *>(data);
+            py::list list;
+            for (auto const bit : *v)
+              list.append(py::bool_(bit));
+            return list;
+          }
+
+          // Vector is a triple of pointers: `{ begin, end, end }`.
+          // Read `begin` and `end` pointers from the buffer.
+          struct vec {
+            char *begin;
+            char *end;
+            char *end2;
+          };
+          auto v = reinterpret_cast<vec *>(data);
+
+          // Read vector elements.
           py::list list;
-          for (auto const bit : *v)
-            list.append(py::bool_(bit));
+          for (char *i = v->begin; i < v->end; i += eleByteSize)
+            list.append(
+                convertResult(module, kernelFuncOp, eleTy, i, eleByteSize));
           return list;
         }
 
-        // Vector is a triple of pointers: `{ begin, end, end }`.
-        // Read `begin` and `end` pointers from the buffer.
+        // Direct call return.
+        auto eleTy = ty.getElementType();
+        auto eleByteSize = byteSize(eleTy);
+
+        // Vector is a span: `{ data, length }`.
+        // Read `data` and `length` from the buffer.
         struct vec {
-          char *begin;
-          char *end;
-          char *end2;
+          char *data;
+          std::size_t length;
         };
         auto v = reinterpret_cast<vec *>(data);
 
         // Read vector elements.
         py::list list;
-        for (char *i = v->begin; i < v->end; i += eleByteSize)
-          list.append(convertResult(kernelFuncOp, eleTy, i, eleByteSize));
+        std::size_t byteLength = v->length * eleByteSize;
+        for (std::size_t i = 0; i < byteLength; i += eleByteSize)
+          list.append(convertResult(module, kernelFuncOp, eleTy, v->data + i,
+                                    eleByteSize));
         return list;
       })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
-        auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
-        auto memberTys = ty.getMembers();
-        py::list list;
-        for (std::size_t i = 0; i < offsets.size(); i++) {
-          auto eleTy = memberTys[i];
-          if (!eleTy.isIntOrFloat()) {
-            eleTy.dump();
-            throw std::runtime_error(
-                "Unsupported element type in struct type.");
+        if (ty.getName() == "tuple") {
+          auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+          auto memberTys = ty.getMembers();
+          py::list list;
+          for (std::size_t i = 0; i < offsets.size(); i++) {
+            auto eleTy = memberTys[i];
+            if (!eleTy.isIntOrFloat()) {
+              eleTy.dump();
+              throw std::runtime_error(
+                  "Unsupported element type in struct type.");
+            }
+            auto eleByteSize = byteSize(eleTy);
+            list.append(convertResult(module, kernelFuncOp, eleTy,
+                                      data + offsets[i], eleByteSize));
           }
-          auto eleByteSize = byteSize(eleTy);
-          list.append(convertResult(kernelFuncOp, eleTy, data + offsets[i],
-                                    eleByteSize));
-        }
-        if (ty.getName() == "tuple")
           return py::tuple(list);
+        } else {
+          auto name = ty.getName().str();
+          if (!DataClassRegistry::isRegisteredClass(name))
+            throw std::runtime_error("No dataclass type info found for: " +
+                                     name);
 
-        // TODO: handle data class types:
-        // Idea:
-        // - add a function to create a new object to global dataclass registry
-        // - expose the registry to c++ (add  c++ function from py_run to store
-        //   the dictionary in a c++ global?)
-        // - create a python cudaq.wrapper for current cudaq.run that sets the
-        //    global and calls the current cudaq.run
-        ty.dump();
-        throw std::runtime_error("Unsupported return type.");
+          // Find class information
+          py::object cls = DataClassRegistry::getClass(name);
+          py::dict attributes = DataClassRegistry::getAttributes(cls);
+
+          // Collect field names
+          std::vector<py::str> fieldNames;
+          for (const auto &[attr_name, unused] : attributes)
+            fieldNames.push_back(py::str(attr_name));
+
+          // Read field values and create the constructor `kwargs`
+          auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+          auto memberTys = ty.getMembers();
+          py::dict kwargs;
+          for (std::size_t i = 0; i < offsets.size(); i++) {
+            auto eleTy = memberTys[i];
+            if (!eleTy.isIntOrFloat()) {
+              // TODO: support nested aggregate types.
+              eleTy.dump();
+              throw std::runtime_error(
+                  "Unsupported element type in struct type.");
+            }
+            auto eleByteSize = byteSize(eleTy);
+            if (i < fieldNames.size())
+              kwargs[fieldNames[i]] = convertResult(
+                  module, kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
+            else
+              throw std::runtime_error("Field name and value mismatch when "
+                                       "returning an object of dataclass " +
+                                       name);
+          }
+
+          // Create python object of class `cls` with the collected args.
+          return cls(**kwargs);
+        }
       })
       .Default([](Type ty) -> py::object {
         ty.dump();
@@ -580,17 +662,17 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
                               const std::vector<std::string> &names) {
-  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
-      name, module, unwrap(returnType), runtimeArgs, names);
+  auto mod = unwrap(module);
+  auto returnTy = unwrap(returnType);
 
-  auto unwrapped = unwrap(returnType);
+  auto [rawArgs, size, returnOffset, thunk] =
+      pyAltLaunchKernelBase(name, module, returnTy, runtimeArgs, names);
+
   auto rawReturn = ((char *)rawArgs) + returnOffset;
+  auto funcOp = cudaq::getKernelFuncOp(module, name);
 
-  // Extract the return value from the rawReturn pointer.
-  // FIXME: pass the funcOp to support returning aggregate types in direct
-  // calls.
   auto returnValue =
-      convertResult(nullptr, unwrapped, rawReturn, size - returnOffset);
+      convertResult(mod, funcOp, returnTy, rawReturn, size - returnOffset);
   std::free(rawArgs);
   return returnValue;
 }
