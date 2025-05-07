@@ -29,7 +29,10 @@ public:
   CuDensityMatState(std::size_t s, void *ptr);
 
   CuDensityMatState() {}
-
+  static std::unique_ptr<CuDensityMatState> createInitialState(
+      cudensitymatHandle_t handle, cudaq::InitialState initial_state,
+      const std::unordered_map<std::size_t, std::int64_t> &dimensions,
+      bool createDensityMatrix);
   std::size_t getNumQubits() const override { return std::log2(dimension); }
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override;

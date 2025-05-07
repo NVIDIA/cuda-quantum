@@ -8,6 +8,7 @@
 
 #include "CuDensityMatState.h"
 #include "CuDensityMatUtils.h"
+#include "common/EigenDense.h"
 #include <CuDensityMatErrorHandling.h>
 #include <complex>
 #include <gtest/gtest.h>
@@ -142,4 +143,49 @@ TEST_F(CuDensityMatStateTest, DumpWorksForInitializedState) {
                           cudaq::dynamics::createArrayGpu(stateVectorData));
   state.initialize_cudm(handle, hilbertSpaceDims);
   EXPECT_NO_THROW(state.dump(std::cout));
+}
+
+TEST_F(CuDensityMatStateTest, InitialStateEnum) {
+  const std::unordered_map<std::size_t, std::int64_t> dims{{0, 2}, {1, 3}};
+  for (auto stateType :
+       {cudaq::InitialState::ZERO, cudaq::InitialState::UNIFORM}) {
+    for (auto isDm : {false, true}) {
+      auto state =
+          CuDensityMatState::createInitialState(handle, stateType, dims, isDm);
+      state->dump(std::cout);
+      EXPECT_TRUE(state->is_initialized());
+      EXPECT_EQ(state->is_density_matrix(), isDm);
+      Eigen::MatrixXcd hostBuffer = Eigen::MatrixXcd::Zero(6, isDm ? 6 : 1);
+      state->toHost(hostBuffer.data(), hostBuffer.size());
+      const auto checkNorm = [&]() {
+        if (isDm) {
+          return std::abs(hostBuffer.trace() - 1.0) < 1e-6;
+        } else {
+          return std::abs(hostBuffer.squaredNorm() - 1.0) < 1e-6;
+        }
+      };
+      EXPECT_TRUE(checkNorm());
+      auto hostBufferView = hostBuffer.reshaped();
+      const auto checkVal = [&]() {
+        if (stateType == cudaq::InitialState::ZERO) {
+          const std::complex<double> firstVal = *hostBufferView.begin();
+          // First element is 1.0, the rest are zero
+          return std::abs(firstVal - 1.0) < 1e-12 &&
+                 std::all_of(hostBufferView.begin() + 1, hostBufferView.end(),
+                             [](std::complex<double> val) {
+                               return std::abs(val) < 1e-12;
+                             });
+        } else {
+          // All elements are equal.
+          // The norm condition should guarantee that it's the expected value.
+          const std::complex<double> firstVal = *hostBufferView.begin();
+          return std::all_of(hostBufferView.begin(), hostBufferView.end(),
+                             [&](std::complex<double> val) {
+                               return std::abs(val - firstVal) < 1e-12;
+                             });
+        }
+      };
+      EXPECT_TRUE(checkVal());
+    }
+  }
 }

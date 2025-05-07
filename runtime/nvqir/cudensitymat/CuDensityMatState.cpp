@@ -209,6 +209,97 @@ CuDensityMatState::CuDensityMatState(std::size_t s, void *ptr)
     : devicePtr(ptr), dimension(s),
       cudmHandle(dynamics::Context::getCurrentContext()->getHandle()) {}
 
+std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
+    cudensitymatHandle_t handle, InitialState initial_state,
+    const cudaq::dimension_map &dimensions, bool createDensityMatrix) {
+  auto state = std::make_unique<CuDensityMatState>();
+  state->cudmHandle = handle;
+  std::size_t totalDim = 1;
+  for (std::size_t i = 0; i < dimensions.size(); ++i) {
+    const auto iter = dimensions.find(i);
+    if (iter == dimensions.end())
+      throw std::runtime_error(fmt::format(
+          "Unable to find dimension of sub-system {} in the dimension map {}",
+          i, dimensions));
+    state->hilbertSpaceDims.emplace_back(iter->second);
+    totalDim *= iter->second;
+  }
+  const cudensitymatStatePurity_t purity = createDensityMatrix
+                                               ? CUDENSITYMAT_STATE_PURITY_MIXED
+                                               : CUDENSITYMAT_STATE_PURITY_PURE;
+  state->isDensityMatrix = createDensityMatrix;
+
+  HANDLE_CUDM_ERROR(cudensitymatCreateState(
+      state->cudmHandle, purity,
+      static_cast<int32_t>(state->hilbertSpaceDims.size()),
+      state->hilbertSpaceDims.data(), 1, CUDA_C_64F, &state->cudmState));
+
+  std::size_t storageSize;
+  HANDLE_CUDM_ERROR(cudensitymatStateGetComponentStorageSize(
+    state->cudmHandle, state->cudmState,
+      1,              // only one storage component
+      &storageSize)); // storage size in bytes
+  const std::size_t stateVolume =
+      storageSize / sizeof(std::complex<double>); // quantum state tensor volume
+  // (number of elements)
+  state->dimension = stateVolume;
+  switch (initial_state) {
+  case InitialState::ZERO: {
+    const bool isFirstStateSegment = [&]() {
+      if (stateVolume == totalDim || stateVolume == totalDim * totalDim)
+        return true;
+
+      int32_t numComponents = 0;
+      HANDLE_CUDM_ERROR(cudensitymatStateGetNumComponents(
+          state->cudmHandle, state->cudmState, &numComponents));
+      assert(numComponents == 1);
+      int32_t numModes{0};
+      int32_t stateComponentGlobalId{-1};
+      int32_t batchModeLocation{-1};
+      HANDLE_CUDM_ERROR(cudensitymatStateGetComponentNumModes(
+          state->cudmHandle, state->cudmState, /*stateComponentLocalId=*/0,
+          &stateComponentGlobalId, &numModes, &batchModeLocation));
+      std::vector<int64_t> stateComponentModeExtents(numModes);
+      std::vector<int64_t> stateComponentModeOffsets(numModes);
+
+      HANDLE_CUDM_ERROR(cudensitymatStateGetComponentInfo(
+          state->cudmHandle, state->cudmState, /*stateComponentLocalId=*/0,
+          &stateComponentGlobalId, &numModes, stateComponentModeExtents.data(),
+          stateComponentModeOffsets.data()));
+      // All the offsets are zero
+      return std::all_of(stateComponentModeOffsets.cbegin(),
+                         stateComponentModeOffsets.cend(),
+                         [](int64_t i) { return i == 0; });
+    }();
+
+    HANDLE_CUDA_ERROR(cudaMallocAsync(
+        reinterpret_cast<void **>(&state->devicePtr), storageSize, 0));
+    HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+    HANDLE_CUDA_ERROR(cudaMemset(state->devicePtr, 0, storageSize));
+    if (isFirstStateSegment) {
+      // Set the first element to 1.0
+      constexpr std::complex<double> oneVal = 1.0;
+      HANDLE_CUDA_ERROR(cudaMemcpy(state->devicePtr, &oneVal,
+                                   sizeof(std::complex<double>),
+                                   cudaMemcpyDefault));
+    }
+    break;
+  }
+  case InitialState::UNIFORM: {
+    const double factor = createDensityMatrix
+                              ? static_cast<double>(totalDim)
+                              : std::sqrt(static_cast<double>(totalDim));
+    std::vector<std::complex<double>> uniformState(stateVolume, 1.0 / factor);
+    state->devicePtr = cudaq::dynamics::createArrayGpu(uniformState);
+    break;
+  }
+  default:
+    __builtin_unreachable();
+  }
+
+  return state;
+}
+
 CuDensityMatState CuDensityMatState::zero_like(const CuDensityMatState &other) {
   CuDensityMatState state;
   state.cudmHandle = other.cudmHandle;
