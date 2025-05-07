@@ -30,10 +30,9 @@
 using namespace std::complex_literals;
 using complex = std::complex<cudaq::real>;
 
-__qpu__ void kernel() {
+void kernel() __qpu__ {
   cudaq::qubit A;
-  cudaq::qvector B(3);
-  cudaq::qvector C(5);
+  cudaq::qvector B(2);
 }
 
 void kernel0(int N) __qpu__ { cudaq::qvector r(N); }
