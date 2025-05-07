@@ -1,5 +1,6 @@
 import cudaq
-from cudaq.operator import *
+from cudaq.operators import RydbergHamiltonian, ScalarOperator
+from cudaq.dynamics import Schedule
 
 # This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's cloud via CUDA-Q.
 #
@@ -53,19 +54,20 @@ schedule = Schedule(steps, ["t"])
 omega_max = 1000000
 delta_end = 1000000
 delta_start = 0.0
-omega = ScalarOperator(lambda t: omega_max if time_ramp < t < time_max else 0.0)
+omega = ScalarOperator(lambda t: omega_max
+                       if time_ramp < t.real < time_max else 0.0)
 # Global phase at each step
 phi = ScalarOperator.const(0.0)
 # Global detuning at each step
 delta = ScalarOperator(lambda t: delta_end
-                       if time_ramp < t < time_max else delta_start)
+                       if time_ramp < t.real < time_max else delta_start)
 
-async_result = evolve_async(RydbergHamiltonian(atom_sites=register,
-                                               amplitude=omega,
-                                               phase=phi,
-                                               delta_global=delta),
-                            schedule=schedule,
-                            shots_count=100).get()
+async_result = cudaq.evolve_async(RydbergHamiltonian(atom_sites=register,
+                                                     amplitude=omega,
+                                                     phase=phi,
+                                                     delta_global=delta),
+                                  schedule=schedule,
+                                  shots_count=100).get()
 async_result.dump()
 
 ## Sample result

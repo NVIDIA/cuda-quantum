@@ -6,7 +6,7 @@
 // Assumes a valid set of credentials have been stored.
 
 #include "cudaq/algorithms/evolve.h"
-#include "cudaq/dynamics_integrators.h"
+#include "cudaq/algorithms/integrator.h"
 #include "cudaq/operators.h"
 #include "cudaq/schedule.h"
 #include <cmath>
@@ -79,7 +79,7 @@ int main() {
 
   // Evolve the system
   auto result = cudaq::evolve(hamiltonian, schedule);
-  result.get_sampling_result()->dump();
+  result.sampling_result->dump();
 
   return 0;
 }
