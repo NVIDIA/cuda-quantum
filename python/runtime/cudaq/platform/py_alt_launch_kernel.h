@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/algorithms/run.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
@@ -34,13 +35,26 @@ inline std::size_t byteSize(mlir::Type ty) {
 }
 
 /// @brief Convert raw data to python object.
-py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
-                         char *data, std::size_t size);
+py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
+                         mlir::Type ty, char *data, std::size_t size);
 
 /// @brief Launch python kernel with arguments.
 void pyAltLaunchKernel(const std::string &name, MlirModule module,
                        cudaq::OpaqueArguments &runtimeArgs,
                        const std::vector<std::string> &names);
+
+/// @brief Launch python kernel with arguments.
+std::tuple<void *, std::size_t, std::int32_t, KernelThunkType>
+pyAltLaunchKernelBase(const std::string &name, MlirModule module,
+                      Type returnType, cudaq::OpaqueArguments &runtimeArgs,
+                      const std::vector<std::string> &names,
+                      std::size_t startingArgIdx = 0, bool launch = true);
+
+/// @brief Launch python kernel with arguments.
+void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
+                    mlir::ModuleOp mod, cudaq::OpaqueArguments &runtimeArgs,
+                    void *rawArgs, std::size_t size, std::uint32_t returnOffset,
+                    const std::vector<std::string> &names);
 
 void bindAltLaunchKernel(py::module &mod);
 } // namespace cudaq

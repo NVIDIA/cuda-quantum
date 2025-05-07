@@ -499,17 +499,11 @@ def mlirTypeToPyType(argType):
                 mlirTypeToPyType(v)() for v in cc.StructType.getTypes(argType)
             ]
             return type(tuple(elements))
-<<<<<<< HEAD
         clsName = cc.StructType.getName(argType)
         if globalRegisteredTypes.isRegisteredClass(clsName):
             pyType = globalRegisteredTypes.getClass(
                 cc.StructType.getName(argType))
             return pyType
-=======
-        pyType, memberTypes = globalRegisteredTypes[cc.StructType.getName(
-            argType)]
-        return pyType
->>>>>>> a8bfd166b45e7246dc82e10876c6ffe39f5bfda6
 
     emitFatalError(
         f"Cannot infer CUDA-Q type from provided Python type ({argType})")

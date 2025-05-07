@@ -3900,6 +3900,42 @@ class PyASTBridge(ast.NodeVisitor):
 
         func.ReturnOp([result])
 
+    def visit_Tuple(self, node):
+        """
+        Map tuples in the Python AST to equivalents in MLIR.
+        """
+        if self.verbose:
+            print("[Visit Tuple = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
+
+        self.generic_visit(node)
+        self.currentNode = node
+
+        elementValues = [self.popValue() for _ in range(len(node.elts))]
+        elementValues.reverse()
+
+        # We do not store structs of pointers
+        elementValues = [
+            cc.LoadOp(ele).result
+            if cc.PointerType.isinstance(ele.type) else ele
+            for ele in elementValues
+        ]
+
+        structTys = [v.type for v in elementValues]
+        structTy = cc.StructType.getNamed(self.ctx, "tuple", structTys)
+        stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
+                                TypeAttr.get(structTy)).result
+
+        # loop over each type and `compute_ptr` / store
+
+        for i, ty in enumerate(structTys):
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, ty), stackSlot, [],
+                DenseI32ArrayAttr.get([i], context=self.ctx)).result
+            cc.StoreOp(elementValues[i], eleAddr)
+        self.pushValue(stackSlot)
+        return
+
     def visit_UnaryOp(self, node):
         """
         Map unary operations in the Python AST to equivalents in MLIR.
