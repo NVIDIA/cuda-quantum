@@ -11,7 +11,7 @@
 swagger: "2.0"
 info:
   title: CUDA-Q Remote Simulation Runtime REST API
-  version: "1.0.0"
+  version: "1.1.0"
 paths:
   /job:
     post:
@@ -87,6 +87,11 @@ definitions:
             type: string
         example: ["inline", "canonicalize", "quake-to-qir"]
         description: List of IR passes to be applied on the server.
+      serializedCodeExecutionContext:
+        type: object
+        description: Optional context to indicate how the serialized code should be executed.
+        $ref: '#/definitions/SerializedCodeRequestExecutionContext'
+
   RequestExecutionContext:
     type: object
     required:
@@ -113,6 +118,20 @@ definitions:
         type: object
         description: Optional spin operator. Required for "observe" execution context.
         $ref: '#/definitions/spin_op'
+      SerializedCodeRequestExecutionContext:
+        type: object
+        required:
+          - code
+          - globals
+        properties:
+          code:
+            type: string
+            format: Base64
+            description: The serialized combined source code of the objective function and its caller function.
+          globals:
+            type: dictionary
+            format: Base64
+            description: The global namespace seen by the frame containing the code.
 
   ResultExecutionContext:
     type: object
