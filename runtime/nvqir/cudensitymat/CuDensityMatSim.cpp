@@ -93,6 +93,32 @@ public:
     if (cudaq::mpi::is_initialized())
       initCuDensityMatCommLib();
     HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
+
+    // Enable CUDA mem pool
+    {
+      // Enable by default
+      const bool enableMemPool =
+          cudaq::getEnvBool("CUDAQ_ENABLE_MEMPOOL", true);
+      if (!enableMemPool) {
+        cudaq::info("Mempool is disabled.");
+      } else {
+        // Check if mempool is available
+        int device{0};
+        HANDLE_CUDA_ERROR(cudaGetDevice(&device));
+        int supported{0};
+        HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
+            &supported, cudaDevAttrMemoryPoolsSupported, device));
+        if (!supported) {
+          cudaq::info("Memory pools unsupported on this GPU");
+        } else {
+          cudaMemPool_t memPool;
+          HANDLE_CUDA_ERROR(cudaDeviceGetDefaultMemPool(&memPool, device));
+          uint64_t uMax = UINT64_MAX;
+          HANDLE_CUDA_ERROR(cudaMemPoolSetAttribute(
+              memPool, cudaMemPoolAttrReleaseThreshold, &uMax));
+        }
+      }
+    }
   }
 
   /// The destructor

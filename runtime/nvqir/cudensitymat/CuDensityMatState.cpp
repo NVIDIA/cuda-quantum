@@ -98,8 +98,9 @@ CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
   }
   std::complex<double> *devicePtr = nullptr;
 
-  HANDLE_CUDA_ERROR(
-      cudaMalloc((void **)&devicePtr, size * sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(cudaMallocAsync((void **)&devicePtr,
+                                    size * sizeof(std::complex<double>), 0));
+  HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
   HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, dataPtr,
                                size * sizeof(std::complex<double>),
                                cudaMemcpyDefault));
@@ -158,9 +159,11 @@ CuDensityMatState::operator()(std::size_t tensorIdx,
 // Copy the state device data to the user-provided host data pointer.
 void CuDensityMatState::toHost(std::complex<double> *userData,
                                std::size_t numElements) const {
-  if (numElements != dimension * (isDensityMatrix ? dimension : 1))
-    throw std::runtime_error("Number of elements in user data does not match "
-                             "the size of the state");
+  if (numElements != dimension)
+    throw std::runtime_error(
+        fmt::format("Number of elements in user data does not match "
+                    "the size of the state: provided {}, expected {}.",
+                    numElements, dimension));
 
   HANDLE_CUDA_ERROR(cudaMemcpy(userData, devicePtr,
                                numElements * sizeof(std::complex<double>),
@@ -182,7 +185,8 @@ void CuDensityMatState::destroyState() {
     cudmState = nullptr;
   }
   if (devicePtr != nullptr) {
-    HANDLE_CUDA_ERROR(cudaFree(devicePtr));
+    HANDLE_CUDA_ERROR(cudaFreeAsync(devicePtr, 0));
+    HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
     devicePtr = nullptr;
     dimension = 0;
     isDensityMatrix = false;
@@ -212,8 +216,9 @@ CuDensityMatState CuDensityMatState::zero_like(const CuDensityMatState &other) {
   state.dimension = other.dimension;
   state.isDensityMatrix = other.isDensityMatrix;
   const size_t dataSize = state.dimension * sizeof(std::complex<double>);
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(reinterpret_cast<void **>(&state.devicePtr), dataSize));
+  HANDLE_CUDA_ERROR(cudaMallocAsync(reinterpret_cast<void **>(&state.devicePtr),
+                                    dataSize, 0));
+  HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
   HANDLE_CUDA_ERROR(cudaMemset(state.devicePtr, 0, dataSize));
   const cudensitymatStatePurity_t purity = state.isDensityMatrix
                                                ? CUDENSITYMAT_STATE_PURITY_MIXED
@@ -243,8 +248,9 @@ CuDensityMatState::clone(const CuDensityMatState &other) {
   state->dimension = other.dimension;
   state->isDensityMatrix = other.isDensityMatrix;
   const size_t dataSize = state->dimension * sizeof(std::complex<double>);
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(reinterpret_cast<void **>(&state->devicePtr), dataSize));
+  HANDLE_CUDA_ERROR(cudaMallocAsync(
+      reinterpret_cast<void **>(&state->devicePtr), dataSize, 0));
+  HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
   HANDLE_CUDA_ERROR(cudaMemcpy(state->devicePtr, other.devicePtr, dataSize,
                                cudaMemcpyDefault));
   const cudensitymatStatePurity_t purity = state->isDensityMatrix
@@ -287,8 +293,10 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
     if (cudmState)
       cudensitymatDestroyState(cudmState);
 
-    if (devicePtr)
-      cudaFree(devicePtr);
+    if (devicePtr) {
+      cudaFreeAsync(devicePtr, 0);
+      cudaStreamSynchronize(0);
+    }
 
     // Move data from other
     isDensityMatrix = other.isDensityMatrix;
@@ -447,6 +455,21 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
   }
 }
 
+void CuDensityMatState::accumulate_inplace(const CuDensityMatState &other,
+                                           const std::complex<double> &coeff) {
+
+  if (dimension != other.dimension)
+    throw std::invalid_argument(
+        fmt::format("State size mismatch for accumulate_inplace ({} vs {}).",
+                    dimension, other.dimension));
+
+  cuDoubleComplex scalar{coeff.real(), coeff.imag()};
+  HANDLE_CUBLAS_ERROR(cublasZaxpy(
+      dynamics::Context::getCurrentContext()->getCublasHandle(), dimension,
+      &scalar, reinterpret_cast<const cuDoubleComplex *>(other.devicePtr), 1,
+      reinterpret_cast<cuDoubleComplex *>(devicePtr), 1));
+}
+
 CuDensityMatState &
 cudaq::CuDensityMatState::operator+=(const CuDensityMatState &other) {
   if (dimension != other.dimension)
@@ -454,26 +477,12 @@ cudaq::CuDensityMatState::operator+=(const CuDensityMatState &other) {
         fmt::format("State size mismatch for addition ({} vs {}).", dimension,
                     other.dimension));
 
-  cuDoubleComplex scalar{1.0, 0.0};
-  HANDLE_CUBLAS_ERROR(cublasZaxpy(
-      dynamics::Context::getCurrentContext()->getCublasHandle(), dimension,
-      &scalar, reinterpret_cast<const cuDoubleComplex *>(other.devicePtr), 1,
-      reinterpret_cast<cuDoubleComplex *>(devicePtr), 1));
+  accumulate_inplace(other);
   return *this;
 }
 
 CuDensityMatState &
 cudaq::CuDensityMatState::operator*=(const std::complex<double> &scalar) {
-  // void *gpuScalar;
-  // HANDLE_CUDA_ERROR(cudaMalloc(&gpuScalar, sizeof(std::complex<double>)));
-  // HANDLE_CUDA_ERROR(cudaMemcpy(gpuScalar, &scalar,
-  // sizeof(std::complex<double>),
-  //                              cudaMemcpyHostToDevice));
-
-  // HANDLE_CUDM_ERROR(
-  //     cudensitymatStateComputeScaling(cudmHandle, cudmState, gpuScalar, 0));
-
-  // HANDLE_CUDA_ERROR(cudaFree(gpuScalar));
   HANDLE_CUBLAS_ERROR(
       cublasZscal(dynamics::Context::getCurrentContext()->getCublasHandle(),
                   dimension, reinterpret_cast<const cuDoubleComplex *>(&scalar),

@@ -27,7 +27,8 @@ void *createArrayGpu(const std::vector<std::complex<T>> &cpuArray) {
   void *gpuArray{nullptr};
   const std::size_t arraySizeBytes = cpuArray.size() * sizeof(std::complex<T>);
   if (arraySizeBytes > 0) {
-    HANDLE_CUDA_ERROR(cudaMalloc(&gpuArray, arraySizeBytes));
+    HANDLE_CUDA_ERROR(cudaMallocAsync(&gpuArray, arraySizeBytes, /*stream=*/0));
+    HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
     HANDLE_CUDA_ERROR(cudaMemcpy(gpuArray,
                                  static_cast<const void *>(cpuArray.data()),
                                  arraySizeBytes, cudaMemcpyHostToDevice));
@@ -37,7 +38,9 @@ void *createArrayGpu(const std::vector<std::complex<T>> &cpuArray) {
 
 // Adapted from cuquantum team
 inline void destroyArrayGpu(void *gpuArray) {
-  if (gpuArray)
-    HANDLE_CUDA_ERROR(cudaFree(gpuArray));
+  if (gpuArray) {
+    HANDLE_CUDA_ERROR(cudaFreeAsync(gpuArray, 0));
+    HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+  }
 }
 } // namespace cudaq::dynamics

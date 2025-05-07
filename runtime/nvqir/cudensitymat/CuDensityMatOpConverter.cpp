@@ -8,6 +8,7 @@
 
 #include "CuDensityMatOpConverter.h"
 #include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
 #include "common/Logger.h"
 #include <iostream>
 #include <map>
@@ -51,24 +52,6 @@ flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix) {
   }
 
   return flatMatrix;
-}
-
-void *createArrayGpu(const std::vector<std::complex<double>> &cpuArray) {
-  void *gpuArray{nullptr};
-  const std::size_t array_size = cpuArray.size() * sizeof(std::complex<double>);
-  if (array_size > 0) {
-    HANDLE_CUDA_ERROR(cudaMalloc(&gpuArray, array_size));
-    HANDLE_CUDA_ERROR(cudaMemcpy(gpuArray,
-                                 static_cast<const void *>(cpuArray.data()),
-                                 array_size, cudaMemcpyHostToDevice));
-  }
-  return gpuArray;
-}
-
-// Function to destroy a previously created array copy in GPU memory
-void destroyArrayGpu(void *gpuArray) {
-  if (gpuArray)
-    HANDLE_CUDA_ERROR(cudaFree(gpuArray));
 }
 
 cudaq::product_op<cudaq::matrix_handler>
@@ -225,8 +208,10 @@ cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
   for (auto op : m_elementaryOperators)
     cudensitymatDestroyElementaryOperator(op);
 
-  for (auto *buffer : m_deviceBuffers)
-    cudaFree(buffer);
+  for (auto *buffer : m_deviceBuffers) {
+    cudaFreeAsync(buffer, 0);
+  }
+  cudaStreamSynchronize(0);
 }
 
 cudensitymatElementaryOperator_t
@@ -282,7 +267,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
   if (subspaceExtents.empty())
     throw std::invalid_argument("subspaceExtents cannot be empty.");
 
-  auto *elementaryMat_d = createArrayGpu(flatMatrix);
+  auto *elementaryMat_d = cudaq::dynamics::createArrayGpu(flatMatrix);
   cudensitymatElementaryOperator_t cudmElemOp = nullptr;
 
   HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
@@ -293,7 +278,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
   if (!cudmElemOp) {
     std::cerr << "[ERROR] cudmElemOp is NULL in createElementaryOperator !"
               << std::endl;
-    destroyArrayGpu(elementaryMat_d);
+    cudaq::dynamics::destroyArrayGpu(elementaryMat_d);
     throw std::runtime_error("Failed to create elementary operator.");
   }
   m_elementaryOperators.emplace(cudmElemOp);

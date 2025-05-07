@@ -46,13 +46,17 @@ Context *Context::getCurrentContext() {
 void *Context::getScratchSpace(std::size_t minSizeBytes) {
   if (minSizeBytes > m_scratchSpaceSizeBytes) {
     // Realloc
-    if (m_scratchSpace)
-      HANDLE_CUDA_ERROR(cudaFree(m_scratchSpace));
+    if (m_scratchSpace) {
+      HANDLE_CUDA_ERROR(cudaFreeAsync(m_scratchSpace, 0));
+      HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+    }
 
     cudaq::info("Allocate scratch buffer of size {} bytes on device {}",
                 minSizeBytes, m_deviceId);
 
-    HANDLE_CUDA_ERROR(cudaMalloc(&m_scratchSpace, minSizeBytes));
+    HANDLE_CUDA_ERROR(
+        cudaMallocAsync(&m_scratchSpace, minSizeBytes, /*stream=*/ 0));
+    HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
     m_scratchSpaceSizeBytes = minSizeBytes;
   }
 
@@ -122,7 +126,9 @@ Context::~Context() {
   m_opConverter.reset();
   cudensitymatDestroy(m_cudmHandle);
   cublasDestroy(m_cublasHandle);
-  if (m_scratchSpaceSizeBytes > 0)
-    cudaFree(m_scratchSpace);
+  if (m_scratchSpaceSizeBytes > 0) {
+    cudaFreeAsync(m_scratchSpace, 0);
+    cudaStreamSynchronize(0);
+  }
 }
 } // namespace cudaq::dynamics
