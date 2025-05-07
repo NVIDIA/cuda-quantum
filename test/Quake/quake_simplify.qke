@@ -139,19 +139,23 @@ func.func @simp3() -> (i1, i1) {
 }
 
 // CHECK-LABEL:   func.func @simp3() -> (i1, i1) {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1.100000e+01 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant -1.800000e+01 : f64
-// CHECK:           %[[VAL_2:.*]] = arith.constant -2.700000e+01 : f64
-// CHECK:           %[[VAL_3:.*]] = quake.null_wire
-// CHECK:           %[[VAL_4:.*]] = quake.null_wire
-// CHECK:           %[[VAL_5:.*]]:2 = quake.u3 (%[[VAL_0]], %[[VAL_1]], %[[VAL_2]]) {{\[}}%[[VAL_3]]] %[[VAL_4]] : (f64, f64, f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_6:.*]], %[[VAL_7:.*]] = quake.mz %[[VAL_5]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_8:.*]], %[[VAL_9:.*]] = quake.mz %[[VAL_5]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_10:.*]] = quake.discriminate %[[VAL_6]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[VAL_8]] : (!quake.measure) -> i1
-// CHECK:           quake.sink %[[VAL_7]] : !quake.wire
-// CHECK:           quake.sink %[[VAL_9]] : !quake.wire
-// CHECK:           return %[[VAL_10]], %[[VAL_11]] : i1, i1
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3.000000e+01 : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 3.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2.000000e+01 : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant -1.000000e+01 : f64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           %[[VAL_6:.*]] = quake.null_wire
+// CHECK:           %[[VAL_7:.*]] = quake.null_wire
+// CHECK:           %[[VAL_8:.*]]:2 = quake.u3 (%[[VAL_5]], %[[VAL_3]], %[[VAL_1]]) {{\[}}%[[VAL_6]]] %[[VAL_7]] : (f64, f64, f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_9:.*]]:2 = quake.u3<adj> (%[[VAL_4]], %[[VAL_2]], %[[VAL_0]]) {{\[}}%[[VAL_8]]#0] %[[VAL_8]]#1 : (f64, f64, f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_10:.*]], %[[VAL_11:.*]] = quake.mz %[[VAL_9]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_12:.*]], %[[VAL_13:.*]] = quake.mz %[[VAL_9]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_14:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_15:.*]] = quake.discriminate %[[VAL_12]] : (!quake.measure) -> i1
+// CHECK:           quake.sink %[[VAL_11]] : !quake.wire
+// CHECK:           quake.sink %[[VAL_13]] : !quake.wire
+// CHECK:           return %[[VAL_14]], %[[VAL_15]] : i1, i1
 // CHECK:         }
 
 func.func @fail_to_simplify() -> (i1, i1) {
