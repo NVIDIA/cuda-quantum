@@ -1301,9 +1301,21 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     SmallVector<Value> opParams = adaptor.getParameters();
     if (!opParams.empty()) {
       // If this is adjoint, each parameter is negated.
-      if (op.getIsAdj())
+      if (op.getIsAdj()) {
         for (std::size_t i = 0; i < opParams.size(); ++i)
           opParams[i] = rewriter.create<arith::NegFOp>(loc, opParams[i]);
+        if constexpr (std::is_same_v<OP, quake::U2Op>) {
+          std::swap(opParams[0], opParams[1]);
+          auto fltTy = cast<FloatType>(opParams[0].getType());
+          Value pi = rewriter.create<arith::ConstantFloatOp>(
+              loc, llvm::APFloat{M_PI}, fltTy);
+          opParams[0] = rewriter.create<arith::SubFOp>(loc, opParams[0], pi);
+          opParams[1] = rewriter.create<arith::AddFOp>(loc, opParams[1], pi);
+        } else if constexpr (std::is_same_v<OP, quake::U3Op>) {
+          // swap the 2nd and 3rd parameter for correctness
+          std::swap(opParams[1], opParams[2]);
+        }
+      }
 
       // Each parameter must be converted to double-precision.
       auto f64Ty = rewriter.getF64Type();
