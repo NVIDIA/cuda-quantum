@@ -68,7 +68,7 @@ void genericOpPrinter(mlir::OpAsmPrinter &_odsPrinter, mlir::Operation *op,
 // Is \p op in the Quake dialect?
 inline bool isQuakeOperation(mlir::Operation *op) {
   if (auto *dialect = op->getDialect())
-    return dialect->getNamespace().equals("quake");
+    return dialect->getNamespace() == "quake";
   return false;
 }
 
