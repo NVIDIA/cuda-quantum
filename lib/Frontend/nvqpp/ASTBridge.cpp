@@ -359,7 +359,7 @@ public:
           if (auto *id = decl->getIdentifier()) {
             auto name = id->getName();
             if (name == "qubit" || name == "qudit" || name == "qspan" ||
-                name == "qreg" || name.startswith("qvector") ||
+                name.startswith("qreg") || name.startswith("qvector") ||
                 name.startswith("qarray") || name.startswith("qview"))
               cudaq::details::reportClangError(
                   x, mangler,
