@@ -20,10 +20,10 @@ gtest_discover_tests(OptimizerUnitTests)
 
 add_executable(test_quake_synth QuakeSynthTester.cpp)
 target_link_libraries(test_quake_synth
-  PRIVATE 
+  PRIVATE
   cudaq
   cudaq-operator
-  cudaq-mlir-runtime
+  cudaq-mlir-compiler
   cudaq-builder
   cudaq-common
   cudaq-platform-default

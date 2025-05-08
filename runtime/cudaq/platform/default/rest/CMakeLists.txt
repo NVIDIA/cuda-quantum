@@ -31,7 +31,8 @@ target_link_libraries(cudaq-rest-qpu
     cudaq-operator
     cudaq-common 
   PRIVATE 
-    cudaq-mlir-runtime 
+    cudaq-mlir-compiler
+    nvqir
     MLIRTranslateLib
     fmt::fmt-header-only 
     cudaq 

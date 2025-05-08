@@ -20,7 +20,7 @@ target_link_libraries(cudaq-builder
     cudaq
     fmt::fmt-header-only
     nvqir
-    cudaq-mlir-runtime
+    cudaq-mlir-compiler
 )
 
 install(TARGETS cudaq-builder DESTINATION lib)
