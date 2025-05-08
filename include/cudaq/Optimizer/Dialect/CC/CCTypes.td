@@ -288,7 +288,7 @@ def cc_CharSpanType
   }];
 }
 
-def IsSpanLikePred : CPred<"$_self.isa<cudaq::cc::SpanLikeType>()">;
+def IsSpanLikePred : CPred<"isa<cudaq::cc::SpanLikeType>($_self)">;
 def SpanningType : Type<IsSpanLikePred, "dynamic length type">;
 
 def AnyStateInitLike : TypeConstraint<cc_PointerType.predicate,
