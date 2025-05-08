@@ -527,7 +527,7 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
   if (numResults > 1)
     return true;
   auto resTy = funcTy.getResult(0);
-  if (resTy.isa<cc::SpanLikeType, cc::ArrayType, cc::CallableType>())
+  if (isa<cc::SpanLikeType, cc::ArrayType, cc::CallableType>(resTy))
     return true;
   if (auto strTy = dyn_cast<cc::StructType>(resTy)) {
     SmallVector<Type> packedTys;
