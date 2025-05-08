@@ -118,7 +118,7 @@ echo "Running core tests."
 python3 -m pip install pytest numpy psutil
 python3 -m pytest -v "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
-    --ignore "$root_folder/tests/operator/integrators" \
+    --ignore "$root_folder/tests/dynamics/integrators" \
     --ignore "$root_folder/tests/parallel" \
     --ignore "$root_folder/tests/domains"
 if [ ! $? -eq 0 ]; then
@@ -166,7 +166,7 @@ done
 # Torch if installed as part of torchdiffeq's dependencies, may default to the latest cuda version. 
 python3 -m pip install torch --index-url https://download.pytorch.org/whl/cu$(echo $cuda_version | cut -d '.' -f-2 | tr -d .)
 python3 -m pip install torchdiffeq
-python3 -m pytest -v "$root_folder/tests/operator/integrators"
+python3 -m pytest -v "$root_folder/tests/dynamics/integrators"
 if [ ! $? -eq 0 ]; then
     echo -e "\e[01;31mPython tests failed.\e[0m" >&2
     status_sum=$((status_sum+1))
