@@ -50,7 +50,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                0.11.0
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -1078,7 +1078,9 @@ the interaction between a two-level atom and a light (Boson) field.</p>
 <p>This Hamiltonian can be converted to CUDA-Q <code class="code docutils literal notranslate"><span class="pre">Operator</span></code> representation with</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">omega_c</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> \
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span>
+
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">omega_c</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> \
                 <span class="o">+</span> <span class="p">(</span><span class="n">omega_a</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> \
                 <span class="o">+</span> <span class="p">(</span><span class="n">Omega</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">operators</span><span class="o">.</span><span class="n">annihilate</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">plus</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">operators</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">minus</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
 </pre></div>
