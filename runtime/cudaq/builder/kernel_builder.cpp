@@ -694,7 +694,7 @@ void applyOneQubitOp(ImplicitLocOpBuilder &builder, auto &&params, auto &&ctrls,
     cudaq::info("kernel_builder apply {}", std::string(#NAME));                \
     auto value = target.getValue();                                            \
     auto type = value.getType();                                               \
-    if (isa<quake::VeqType>(type)) {                                          \
+    if (isa<quake::VeqType>(type)) {                                           \
       if (!ctrls.empty())                                                      \
         throw std::runtime_error(                                              \
             "Cannot specify controls for a veq broadcast.");                   \
@@ -722,7 +722,7 @@ CUDAQ_ONE_QUBIT_IMPL(z, ZOp)
     cudaq::info("kernel_builder apply {}", std::string(#NAME));                \
     Value value = target.getValue();                                           \
     auto type = value.getType();                                               \
-    if (isa<quake::VeqType>(type)) {                                          \
+    if (isa<quake::VeqType>(type)) {                                           \
       if (!ctrls.empty())                                                      \
         throw std::runtime_error(                                              \
             "Cannot specify controls for a veq broadcast.");                   \
