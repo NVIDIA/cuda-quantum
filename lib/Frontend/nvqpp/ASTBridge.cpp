@@ -318,7 +318,7 @@ public:
 
   bool isTupleReverseVar(clang::VarDecl *decl) {
     if (cudaq::isInNamespace(decl, "cudaq"))
-      return decl->getName().equals("TupleIsReverse");
+      return decl->getName() == "TupleIsReverse";
     return false;
   }
 
@@ -333,8 +333,7 @@ public:
       }
     }
     if (cudaq::isInNamespace(x, "cudaq") &&
-        cudaq::isInNamespace(x, "details") &&
-        x->getName().equals("_nvqpp_sizeof")) {
+        cudaq::isInNamespace(x, "details") && x->getName() == "_nvqpp_sizeof") {
       // This constexpr is the sizeof a pauli_word and a std::string.
       auto loc = x->getLocation();
       auto opt = x->getAnyInitializer()->getIntegerConstantExpr(
@@ -359,10 +358,9 @@ public:
             decl && cudaq::isInNamespace(decl, "cudaq"))
           if (auto *id = decl->getIdentifier()) {
             auto name = id->getName();
-            if (name.equals("qubit") || name.equals("qudit") ||
-                name.equals("qspan") || name.startswith("qreg") ||
-                name.startswith("qvector") || name.startswith("qarray") ||
-                name.startswith("qview"))
+            if (name == "qubit" || name == "qudit" || name == "qspan" ||
+                name == "qreg" || name.startswith("qvector") ||
+                name.startswith("qarray") || name.startswith("qview"))
               cudaq::details::reportClangError(
                   x, mangler,
                   "may not use quantum types in non-kernel functions");
