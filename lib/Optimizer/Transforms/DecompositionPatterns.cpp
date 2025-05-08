@@ -1604,6 +1604,8 @@ struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
 
     if (op.isAdj()) {
       theta = rewriter.create<arith::NegFOp>(loc, theta);
+      // swap the 2nd and 3rd parameter for correctness
+      std::swap(phi, lam);
       phi = rewriter.create<arith::NegFOp>(loc, phi);
       lam = rewriter.create<arith::NegFOp>(loc, lam);
     }

@@ -258,8 +258,8 @@ public:
       }
     }
 
-    auto params = qop.getParameters();
-    auto prevParams = prev.getParameters();
+    SmallVector<Value> params = qop.getParameters();
+    SmallVector<Value> prevParams = prev.getParameters();
     if (params.size() != prevParams.size()) {
       LLVM_DEBUG(llvm::dbgs()
                  << "Two identical ops with different numbers of parameters?\n"
@@ -550,7 +550,6 @@ public:
         HermitianElimination<quake::YOp>, HermitianElimination<quake::ZOp>,
         RotationCombine<quake::R1Op>, RotationCombine<quake::RxOp>,
         RotationCombine<quake::RyOp>, RotationCombine<quake::RzOp>,
-        RotationCombine<quake::U2Op>, RotationCombine<quake::U3Op>,
         RotationCombine<quake::PhasedRxOp>>(ctx);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();

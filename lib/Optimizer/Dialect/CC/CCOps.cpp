@@ -508,7 +508,7 @@ void printInterleavedIndices(OpAsmPrinter &printer, B computePtrOp,
                              DenseI32ArrayAttr rawConstantIndices) {
   llvm::interleaveComma(Adaptor{rawConstantIndices, indices}, printer,
                         [&](PointerUnion<IntegerAttr, Value> cst) {
-                          if (Value val = cst.dyn_cast<Value>())
+                          if (Value val = dyn_cast<Value>(cst))
                             printer.printOperand(val);
                           else
                             printer << cst.get<IntegerAttr>().getInt();

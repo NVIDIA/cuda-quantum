@@ -123,6 +123,10 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
   * - ``CUDAQ_ALLOW_FP32_EMULATED``
     - `TRUE` (`1`, `ON`) or `FALSE` (`0`, `OFF`)
     - [Blackwell (compute capability 10.0+) only] Enable or disable floating point math emulation. If enabled, allows `FP32` emulation kernels using `BFloat16` (`BF16`) whenever possible. Enabled by default. 
+  * - ``CUDAQ_ENABLE_MEMPOOL``
+    - `TRUE` (`1`, `ON`) or `FALSE` (`0`, `OFF`)
+    - Enable or disable `CUDA memory pool <https://developer.nvidia.com/blog/using-cuda-stream-ordered-memory-allocator-part-1/#memory_pools>`__ for state vector allocation/deallocation. Enabled by default. 
+
 
 .. deprecated:: 0.8
     The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
