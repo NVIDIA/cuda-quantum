@@ -30,8 +30,6 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
-#include <iostream>
-
 namespace py = pybind11;
 using namespace std::chrono_literals;
 using namespace mlir;
@@ -288,16 +286,6 @@ inline void handleVectorElements(void *data, Type eleTy, py::list list) {
     std::memcpy(((char *)data), values, sizeof(std::vector<T>));
   };
 
-  auto appendVectorValue = []<typename T>(void *data, Type eleTy,
-                                          py::list list) {
-    auto *values = new std::vector<std::vector<T>>(list.size());
-    for (std::size_t i = 0; i < list.size(); i++) {
-      checkListElementType<py::list>(list[i], i);
-      handleVectorElements(values->data() + i, eleTy, list[i]);
-    }
-    std::memcpy(((char *)data), values, sizeof(std::vector<std::vector<T>>));
-  };
-
   llvm::TypeSwitch<Type, void>(eleTy)
       .Case([&](IntegerType ty) {
         if (ty.isInteger(1))
@@ -348,6 +336,17 @@ inline void handleVectorElements(void *data, Type eleTy, py::list list) {
               });
       })
       .Case([&](cudaq::cc::StdvecType ty) {
+        auto appendVectorValue = []<typename T>(void *data, Type eleTy,
+                                                py::list list) {
+          auto *values = new std::vector<std::vector<T>>(list.size());
+          for (std::size_t i = 0; i < list.size(); i++) {
+            checkListElementType<py::list>(list[i], i);
+            handleVectorElements(values->data() + i, eleTy, list[i]);
+          }
+          std::memcpy(((char *)data), values,
+                      sizeof(std::vector<std::vector<T>>));
+        };
+
         auto eleTy = ty.getElementType();
         if (ty.getElementType().isInteger(1))
           appendVectorValue.template operator()<bool>(data, eleTy, list);
@@ -370,14 +369,6 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
                              std::to_string(kernelFuncOp.getNumArguments()) +
                              " but was provided " +
                              std::to_string(args.size()) + " arguments.");
-
-  auto appendVectorValue = [&argData]<typename T>(Type eleTy, py::list list) {
-    // Allocate memory for the vector object.
-    // The data is allocated in `handleVectorElements`.
-    auto *allocatedArg = std::malloc(sizeof(std::vector<T>));
-    handleVectorElements(allocatedArg, eleTy, list);
-    argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
-  };
 
   for (std::size_t i = startingArgIdx; i < args.size(); i++) {
     py::object arg = args[i];
@@ -454,6 +445,16 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
         })
         .Case([&](cudaq::cc::StdvecType ty) {
+          auto appendVectorValue = [&argData]<typename T>(Type eleTy,
+                                                          py::list list) {
+            // Allocate memory for the vector object.
+            // The data is allocated in `handleVectorElements`.
+            auto *allocatedArg = std::malloc(sizeof(std::vector<T>));
+            handleVectorElements(allocatedArg, eleTy, list);
+            argData.emplace_back(allocatedArg,
+                                 [](void *ptr) { std::free(ptr); });
+          };
+
           checkArgumentType<py::list>(arg, i);
           auto list = py::cast<py::list>(arg);
           auto eleTy = ty.getElementType();
