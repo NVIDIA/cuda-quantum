@@ -81,3 +81,9 @@ class BaseIntegrator(ABC, Generic[TState]):
         Returns true if the integrator supports distributed state else returns false. Default is set to false.
         """
         return False
+
+    def is_native(self):
+        """
+        Returns true if the integrator is a native C-API implementation. Default is set to false.
+        """
+        return False

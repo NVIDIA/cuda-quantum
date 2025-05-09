@@ -43,6 +43,11 @@ public:
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool isMasterEquation);
 
+  /// @brief Clear the current callback context
+  // Callback context may contain Python objects, hence needs to be clear before
+  // shutdown to prevent race condition.
+  void clearCallbackContext();
+
   ~CuDensityMatOpConverter();
 
 private:

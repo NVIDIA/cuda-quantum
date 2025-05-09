@@ -26,12 +26,13 @@ private:
   std::vector<int64_t> hilbertSpaceDims;
 
 public:
-  CuDensityMatState(std::size_t s, void *ptr, bool isDm)
-      : isDensityMatrix(isDm), devicePtr(ptr),
-        dimension(isDm ? std::sqrt(s) : s) {}
+  CuDensityMatState(std::size_t s, void *ptr);
 
   CuDensityMatState() {}
-
+  static std::unique_ptr<CuDensityMatState> createInitialState(
+      cudensitymatHandle_t handle, cudaq::InitialState initial_state,
+      const std::unordered_map<std::size_t, std::int64_t> &dimensions,
+      bool createDensityMatrix);
   std::size_t getNumQubits() const override { return std::log2(dimension); }
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override;
@@ -80,18 +81,10 @@ public:
   // Free the device data.
   void destroyState() override;
 
-  // TODO: Tidy this up, remove unnecessary methods
-  /// @brief To initialize state with raw data.
-  explicit CuDensityMatState(cudensitymatHandle_t handle,
-                             const std::vector<std::complex<double>> &rawData,
-                             const std::vector<int64_t> &hilbertSpaceDims);
-  /// @brief To initialize state from a `cudaq::state`
-  explicit CuDensityMatState(cudensitymatHandle_t handle,
-                             const CuDensityMatState &simState,
-                             const std::vector<int64_t> &hilbertSpaceDims);
   // @brief Create a zero state
   static CuDensityMatState zero_like(const CuDensityMatState &other);
-  static CuDensityMatState clone(const CuDensityMatState &other);
+  static std::unique_ptr<CuDensityMatState>
+  clone(const CuDensityMatState &other);
   // Prevent copies (avoids double free issues)
   CuDensityMatState(const CuDensityMatState &) = delete;
   CuDensityMatState &operator=(const CuDensityMatState &) = delete;
@@ -133,9 +126,10 @@ public:
 
   void initialize_cudm(cudensitymatHandle_t handleToSet,
                        const std::vector<int64_t> &hilbertSpaceDims);
-  /// @brief Addition operator (element-wise)
-  /// @return The new state after the summation of two states.
-  CuDensityMatState operator+(const CuDensityMatState &other) const;
+
+  /// @brief Accumulation inplace with a coefficient
+  void accumulate_inplace(const CuDensityMatState &other,
+                          const std::complex<double> &coeff = 1.0);
 
   /// @brief Accumulation operator
   /// @return Accumulates the summation of two states.
@@ -144,8 +138,6 @@ public:
   /// @brief Scalar multiplication operator
   /// @return The new state after multiplying scalar with the current state.
   CuDensityMatState &operator*=(const std::complex<double> &scalar);
-
-  CuDensityMatState operator*(double scalar) const;
 };
 /// @endcond
 } // namespace cudaq
