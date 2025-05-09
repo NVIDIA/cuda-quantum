@@ -298,7 +298,7 @@ inline void handleVectorElements(void *data, Type eleTy, py::list list) {
           appendValue.template operator()<std::size_t>(
               list, data, [](py::handle v, std::size_t i) {
                 checkListElementType<py::int_>(v, i);
-                return v.cast<std::size_t>();
+                return v.cast<std::int64_t>();
               });
       })
       .Case([&](mlir::Float32Type ty) {
