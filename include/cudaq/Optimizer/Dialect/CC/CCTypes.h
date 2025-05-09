@@ -35,7 +35,7 @@ public:
 namespace cudaq::cc {
 
 inline bool SpanLikeType::classof(mlir::Type type) {
-  return type.isa<StdvecType, CharspanType>();
+  return mlir::isa<StdvecType, CharspanType>(type);
 }
 
 /// Return true if and only if \p ty has dynamic extent. This is a recursive

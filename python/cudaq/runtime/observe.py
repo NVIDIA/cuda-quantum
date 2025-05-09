@@ -136,10 +136,10 @@ Returns:
             def computeExpVal(term):
                 nonlocal sum
                 if term.is_identity():
-                    sum += term.get_coefficient().real
+                    sum += term.evaluate_coefficient().real
                 else:
                     sum += res.expectation(
-                        term.term_id) * term.get_coefficient().real
+                        term.term_id) * term.evaluate_coefficient().real
 
             for term in localOp:
                 computeExpVal(term)
