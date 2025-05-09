@@ -388,6 +388,17 @@ class PyKernelDecorator(object):
             location=j['location'],
             overrideGlobalScopedVars=overrideDict)
 
+    def __convertStringsToPauli__(self, arg):
+        if isinstance(arg, str):
+            # Only allow `pauli_word` as string input
+            emitErrorIfInvalidPauli(arg)
+            return cudaq_runtime.pauli_word(arg)
+
+        if issubclass(type(arg), list):
+            return [self.__convertStringsToPauli__(a) for a in arg]
+
+        return arg
+
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to MLIR 
@@ -414,16 +425,7 @@ class PyKernelDecorator(object):
             if isinstance(arg, PyKernelDecorator):
                 arg.compile()
 
-            if isinstance(arg, str):
-                # Only allow `pauli_word` as string input
-                emitErrorIfInvalidPauli(arg)
-                arg = cudaq_runtime.pauli_word(arg)
-
-            if issubclass(type(arg), list):
-                if all(isinstance(a, str) for a in arg):
-                    [emitErrorIfInvalidPauli(a) for a in arg]
-                    arg = [cudaq_runtime.pauli_word(a) for a in arg]
-
+            arg = self.__convertStringsToPauli__(arg)
             mlirType = mlirTypeFromPyType(type(arg),
                                           self.module.context,
                                           argInstance=arg,
