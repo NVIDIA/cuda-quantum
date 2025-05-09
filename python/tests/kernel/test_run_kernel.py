@@ -11,6 +11,7 @@ import os, time
 import pytest
 import numpy as np
 from typing import Callable, List, Tuple
+from dataclasses import dataclass
 
 import cudaq
 
@@ -115,6 +116,17 @@ def test_run_async_with_noise():
 
 
 def test_return_bool():
+
+    @cudaq.kernel
+    def simple_bool_no_args() -> bool:
+        qubits = cudaq.qvector(2)
+        return True
+
+    # TODO: seg fault on running any kernel with no args
+    # results = cudaq.run(simple_bool_no_args, shots_count=2)
+    # assert len(results) == 2
+    # assert results[0] == True
+    # assert results[1] == True
 
     @cudaq.kernel
     def simple_bool(numQubits: int) -> bool:
@@ -329,6 +341,133 @@ def test_return_tuple():
     assert len(results) == 2
     #assert results[0] == (True, 13, 42.3)
     #assert results[1] == (True, 13, 42.3)
+
+
+def test_return_dataclass_int_bool():
+
+    @dataclass
+    class MyClass:
+        x: int
+        y: bool
+
+    @cudaq.kernel
+    def test_return_dataclass(n: int, t: MyClass) -> MyClass:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(test_return_dataclass,
+                        2,
+                        MyClass(16, True),
+                        shots_count=2)
+    assert len(results) == 2
+    # TODO: fix alignment
+    # assert results[0] == MyClass(16, True)
+    # assert results[1] == MyClass(16, True)
+
+
+def test_return_dataclass_bool_int():
+
+    @dataclass
+    class MyClass:
+        x: bool
+        y: int
+
+    @cudaq.kernel
+    def test_return_dataclass(n: int, t: MyClass) -> MyClass:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(test_return_dataclass,
+                        2,
+                        MyClass(True, 17),
+                        shots_count=2)
+    assert len(results) == 2
+    # TODO: fix alignment
+    # assert results[0] == MyClass(True, 17)
+    # assert results[1] == MyClass(True, 17)
+
+
+def test_return_dataclass_float_int():
+
+    @dataclass
+    class MyClass:
+        x: float
+        y: int
+
+    @cudaq.kernel
+    def test_return_dataclass(n: int, t: MyClass) -> MyClass:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(test_return_dataclass,
+                        2,
+                        MyClass(42.5, 17),
+                        shots_count=2)
+    assert len(results) == 2
+    assert results[0] == MyClass(42.5, 17)
+    assert results[1] == MyClass(42.5, 17)
+
+
+def test_return_dataclass_list_int_bool():
+
+    @dataclass
+    class MyClass:
+        x: list[int]
+        y: bool
+
+    @cudaq.kernel
+    def test_return_dataclass(n: int, t: MyClass) -> MyClass:
+        qubits = cudaq.qvector(n)
+        return t
+
+    # TODO: RuntimeError: Tuple size mismatch in value and label
+    # results = cudaq.run(test_return_dataclass, 2, MyClass([0,1], 18), shots_count=2)
+    # assert len(results) == 2
+    # assert results[0] == MyClass([0,1], 18)
+    # assert results[1] == MyClass([0,1], 18)
+
+
+def test_return_dataclass_tuple_bool():
+
+    @dataclass
+    class MyClass:
+        x: tuple[int, bool]
+        y: bool
+
+    @cudaq.kernel
+    def test_return_dataclass(n: int, t: MyClass) -> MyClass:
+        qubits = cudaq.qvector(n)
+        return t
+
+    # TODO: error: recursive struct types are not allowed in kernels.
+    # results = cudaq.run(test_return_dataclass, 2, MyClass((0, True), 19), shots_count=2)
+    # assert len(results) == 2
+    # assert results[0] == MyClass((0, True), 19)
+    # assert results[1] == MyClass((0, True), 19)
+
+
+def test_return_dataclass_dataclass_bool():
+
+    @dataclass
+    class MyClass1:
+        x: int
+        y: bool
+
+    @dataclass
+    class MyClass2:
+        x: MyClass1
+        y: bool
+
+    @cudaq.kernel
+    def test_return_dataclass(n: int, t: MyClass2) -> MyClass2:
+        qubits = cudaq.qvector(n)
+        return t
+
+    # TODO: error: recursive struct types are not allowed in kernels.
+    # results = cudaq.run(test_return_dataclass, 2, MyClass2(MyClass1(0,True), 20), shots_count=2)
+    # assert len(results) == 2
+    # assert results[0] == MyClass2(MyClass1(0,True), 20)
+    # assert results[1] == MyClass2(MyClass1(0,True), 20)
 
 
 def test_run_errors():

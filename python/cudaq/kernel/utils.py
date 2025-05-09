@@ -42,7 +42,7 @@ globalAstRegistry = {}
 globalRegisteredOperations = {}
 
 # Keep a global registry of any custom data types
-globalRegisteredTypes = {}
+globalRegisteredTypes = cudaq_runtime.DataClassRegistry
 
 
 class Color:
@@ -237,8 +237,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         id = annotation.attr
 
     # One final check to see if this is a custom data type.
-    if id in globalRegisteredTypes:
-        pyType, memberTys = globalRegisteredTypes[id]
+    if id in globalRegisteredTypes.classes:
+        pyType, memberTys = globalRegisteredTypes.getClassAttributes(id)
         structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
         for ty in structTys:
             if cc.StructType.isinstance(ty):
@@ -406,8 +406,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         if isinstance(argInstance, Callable):
             return cc.CallableType.get(ctx, argInstance.argTypes)
 
-    for name, (customTys, memberTys) in globalRegisteredTypes.items():
-        if argType == customTys:
+    for name in globalRegisteredTypes.classes:
+        customTy, memberTys = globalRegisteredTypes.getClassAttributes(name)
+        if argType == customTy:
             structTys = [
                 mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
             ]
@@ -498,9 +499,10 @@ def mlirTypeToPyType(argType):
                 mlirTypeToPyType(v)() for v in cc.StructType.getTypes(argType)
             ]
             return type(tuple(elements))
-        pyType, memberTypes = globalRegisteredTypes[cc.StructType.getName(
-            argType)]
-        return pyType
+        clsName = cc.StructType.getName(argType)
+        if globalRegisteredTypes.isRegisteredClass(clsName):
+            pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
+            return pyType
 
     emitFatalError(
         f"Cannot infer CUDA-Q type from provided Python type ({argType})")
