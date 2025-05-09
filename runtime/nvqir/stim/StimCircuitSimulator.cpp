@@ -7,17 +7,25 @@
  ******************************************************************************/
 
 #include "nvqir/CircuitSimulator.h"
-#include "nvqir/Gates.h"
 #include "stim.h"
-
-#include <bit>
-#include <iostream>
-#include <set>
-#include <span>
 
 using namespace cudaq;
 
 namespace nvqir {
+
+/// @brief Collection of information about a noise type in Stim
+struct StimNoiseType {
+  /// The name of the error mechanism in Stim
+  std::string stim_name;
+  /// Whether the error mechanism flips X; one per error mechanism per target
+  std::vector<bool> flips_x;
+  /// Whether the error mechanism flips Z; one per error mechanism per target
+  std::vector<bool> flips_z;
+  /// One probability per error mechanism
+  std::vector<double> params;
+  /// The number of targets for the noise type
+  int num_targets = 1;
+};
 
 /// @brief The StimCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator delegating to the Stim library from
@@ -40,28 +48,86 @@ protected:
   /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
   std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
 
-  std::optional<std::string>
+  /// @brief Error counter for PCM matrix generation. This is only used for
+  /// "pcm" and "pcm_size" execution contexts.
+  std::size_t pcm_err_count = 0;
+
+  /// @brief Whether or not the execution context name is "pcm" (value is cached
+  /// for speed)
+  bool is_pcm_mode = false;
+
+  std::optional<StimNoiseType>
   isValidStimNoiseChannel(const kraus_channel &channel) const {
 
     // Check the old way first
     switch (channel.noise_type) {
     case cudaq::noise_model_type::bit_flip_channel:
     case cudaq::noise_model_type::x_error:
-      return "X_ERROR";
+      return StimNoiseType{"X_ERROR", {true}, {false}, {channel.parameters[0]}};
     case cudaq::noise_model_type::y_error:
-      return "Y_ERROR";
+      return StimNoiseType{"Y_ERROR", {true}, {true}, {channel.parameters[0]}};
     case cudaq::noise_model_type::phase_flip_channel:
     case cudaq::noise_model_type::z_error:
-      return "Z_ERROR";
+      return StimNoiseType{"Z_ERROR", {false}, {true}, {channel.parameters[0]}};
     case cudaq::noise_model_type::depolarization_channel:
     case cudaq::noise_model_type::depolarization1:
-      return "DEPOLARIZE1";
-    case cudaq::noise_model_type::depolarization2:
-      return "DEPOLARIZE2";
-    case cudaq::noise_model_type::pauli1:
-      return "PAULI_CHANNEL_1";
-    case cudaq::noise_model_type::pauli2:
-      return "PAULI_CHANNEL_2";
+      return StimNoiseType{"DEPOLARIZE1",
+                           {true, true, false},
+                           {false, true, true},
+                           std::vector<double>(channel.parameters[0] / 3.0, 3)};
+    case cudaq::noise_model_type::depolarization2: {
+      StimNoiseType ret{
+          .stim_name = "DEPOLARIZE2",
+          .params = std::vector<double>(15, channel.parameters[0] / 15.0),
+          .num_targets = 2};
+
+      // Generate the entries for p/15: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY,
+      // YZ, ZI, ZX, ZY, ZZ
+      std::vector<bool> x_err{false, true, true, false}; // X errors for IXYZ
+      std::vector<bool> z_err{false, false, true, true}; // Z errors for IXYZ
+      for (int q1_err = 0; q1_err < 4; q1_err++) {       // qubit 1 loop
+        for (int q2_err = 0; q2_err < 4; q2_err++) {     // qubit 2 loop
+          if (q1_err == 0 && q2_err == 0)                // skip II
+            continue;
+          // Push back the values for the two qubits, for both x and z errors
+          ret.flips_x.insert(ret.flips_x.end(), {x_err[q1_err], x_err[q2_err]});
+          ret.flips_z.insert(ret.flips_z.end(), {z_err[q1_err], z_err[q2_err]});
+        }
+      }
+      return ret;
+    }
+    case cudaq::noise_model_type::pauli1: {
+      // Either X error, Y error, or Z error happens, each with its own
+      // probability that is specified in the 3 channel parameters.
+      static_assert(cudaq::pauli1::num_parameters == 3);
+      assert(channel.parameters.size() == cudaq::pauli1::num_parameters);
+      return StimNoiseType{.stim_name = "PAULI_CHANNEL_1",
+                           .flips_x = {true, true, false},
+                           .flips_z = {false, true, true},
+                           .params = channel.parameters};
+    }
+    case cudaq::noise_model_type::pauli2: {
+      static_assert(cudaq::pauli2::num_parameters == 15);
+      assert(channel.parameters.size() == cudaq::pauli2::num_parameters);
+      StimNoiseType ret{.stim_name = "PAULI_CHANNEL_2",
+                        .params = channel.parameters,
+                        .num_targets = 2};
+
+      // Generate the entries for: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ,
+      // ZI, ZX, ZY, ZZ
+      std::vector<bool> x_err{false, true, true, false}; // X errors for IXYZ
+      std::vector<bool> z_err{false, false, true, true}; // Z errors for IXYZ
+      for (int q1_err = 0; q1_err < 4; q1_err++) {       // qubit 1 loop
+        for (int q2_err = 0; q2_err < 4; q2_err++) {     // qubit 2 loop
+          if (q1_err == 0 && q2_err == 0)                // skip II
+            continue;
+          // Push back the values for the two qubits, for both x and z errors
+          ret.flips_x.insert(ret.flips_x.end(), {x_err[q1_err], x_err[q2_err]});
+          ret.flips_z.insert(ret.flips_z.end(), {z_err[q1_err], z_err[q2_err]});
+        }
+      }
+      return ret;
+    }
     case cudaq::noise_model_type::amplitude_damping_channel:
     case cudaq::noise_model_type::amplitude_damping:
     case cudaq::noise_model_type::phase_damping:
@@ -75,14 +141,47 @@ protected:
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
 
-  /// @brief Get the batch size to use for the Stim sample simulator.
+  /// @brief Get the batch size to use for the Stim simulator.
   std::size_t getBatchSize() {
     // Default to single shot
     std::size_t batch_size = 1;
     if (getExecutionContext() && getExecutionContext()->name == "sample" &&
         !getExecutionContext()->hasConditionalsOnMeasureResults)
       batch_size = getExecutionContext()->shots;
+    else if (getExecutionContext() && getExecutionContext()->name == "pcm")
+      batch_size = getExecutionContext()
+                       ->pcm_dimensions.value_or(std::make_pair(1, 1))
+                       .second;
     return batch_size;
+  }
+
+  /// @brief Return the number of rows and columns needed for a Parity Check
+  /// Matrix
+  std::pair<std::size_t, std::size_t> generatePCMSize() override {
+    return std::make_pair(num_measurements, pcm_err_count);
+  }
+
+  void generatePCM() override {
+    const auto num_cols = getBatchSize();
+    stim::simd_bit_table<W> pcmSample = sampleSim->m_record.storage;
+    cudaq::info("pcmSample is {} {}\n{}", pcm_err_count, num_cols,
+                pcmSample.str(num_measurements, num_cols).c_str());
+
+    // Now it's pcmSample[error_mechanism_index][measure_idx]
+    pcmSample = pcmSample.transposed();
+    CountsDictionary counts;
+    std::vector<std::string> sequentialData;
+    sequentialData.reserve(num_cols);
+    for (std::size_t shot = 0; shot < num_cols; shot++) {
+      std::string aShot(num_measurements, '0');
+      for (std::size_t b = 0; b < num_measurements; b++)
+        aShot[b] = pcmSample[shot][b] ? '1' : '0';
+      counts[aShot]++;
+      sequentialData.push_back(std::move(aShot));
+    }
+    ExecutionResult result(counts);
+    result.sequentialData = std::move(sequentialData);
+    executionContext->result = result;
   }
 
   /// @brief Override the default sized allocation of qubits
@@ -103,6 +202,23 @@ protected:
           std::mt19937_64(randomEngine), /*num_qubits=*/0, /*sign_bias=*/+0);
     }
     if (!sampleSim) {
+      is_pcm_mode = executionContext && executionContext->name == "pcm";
+      std::size_t anticipated_num_measurements = 0;
+      std::size_t num_pcm_cols = 0;
+      if (is_pcm_mode) {
+        auto dims =
+            executionContext->pcm_dimensions.value_or(std::make_pair(1, 1));
+        anticipated_num_measurements = dims.first;
+        num_pcm_cols = dims.second;
+        executionContext->pcm_probabilities.emplace();
+        executionContext->pcm_probabilities->reserve(num_pcm_cols);
+      }
+
+      // If possible, provide a non-empty stim::CircuitStats in order to avoid
+      // reallocations during execution.
+      stim::CircuitStats circuit_stats;
+      circuit_stats.num_measurements = anticipated_num_measurements;
+
       auto batch_size = getBatchSize();
       cudaq::info("Creating new Stim frame simulator with batch size {}",
                   batch_size);
@@ -111,10 +227,13 @@ protected:
       randomEngine.discard(
           std::uniform_int_distribution<int>(1, 30)(randomEngine));
       sampleSim = std::make_unique<stim::FrameSimulator<W>>(
-          stim::CircuitStats(),
-          stim::FrameSimulatorMode::STORE_MEASUREMENTS_TO_MEMORY, batch_size,
-          std::mt19937_64(randomEngine));
+          circuit_stats, stim::FrameSimulatorMode::STORE_MEASUREMENTS_TO_MEMORY,
+          batch_size, std::mt19937_64(randomEngine));
+      if (is_pcm_mode) {
+        sampleSim->guarantee_anticommutation_via_frame_randomization = false;
+      }
       sampleSim->reset_all();
+      pcm_err_count = 0;
     }
   }
 
@@ -127,6 +246,8 @@ protected:
       randomEngine = std::move(sampleSim->rng);
     sampleSim.reset();
     num_measurements = 0;
+    pcm_err_count = 0;
+    is_pcm_mode = false;
   }
 
   /// @brief Apply operation to all Stim simulators.
@@ -176,15 +297,8 @@ protected:
     cudaq::info("Applying {} kraus channels to qubits {}", krausChannels.size(),
                 stimTargets);
 
-    stim::Circuit noiseOps;
-    for (auto &channel : krausChannels) {
-      if (auto stimName = isValidStimNoiseChannel(channel))
-        noiseOps.safe_append_u(stimName.value(), stimTargets,
-                               channel.parameters);
-    }
-    // Only apply the noise operations to the sample simulator (not the Tableau
-    // simulator).
-    sampleSim->safe_do_circuit(noiseOps);
+    for (auto &channel : krausChannels)
+      applyNoise(channel, stimTargets);
   }
 
   bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
@@ -196,17 +310,47 @@ protected:
   void applyNoise(const cudaq::kraus_channel &channel,
                   const std::vector<std::size_t> &qubits) override {
     flushGateQueue();
-    cudaq::info("[stim] apply kraus channel {}", channel.get_type_name());
-    stim::Circuit noiseOps;
-    std::vector<std::uint32_t> stimTargets;
-    stimTargets.reserve(qubits.size());
-    for (auto q : qubits)
-      stimTargets.push_back(static_cast<std::uint32_t>(q));
+    std::vector<std::uint32_t> stimTargets(qubits.begin(), qubits.end());
+    applyNoise(channel, stimTargets);
+  }
+
+  void applyNoise(const cudaq::kraus_channel &channel,
+                  const std::vector<std::uint32_t> &qubits) {
+    cudaq::info("[stim] apply kraus channel {}, is_pcm_mode = {}",
+                channel.get_type_name(), is_pcm_mode);
 
     // If we have a valid operation, apply it
-    if (auto stimName = isValidStimNoiseChannel(channel)) {
-      noiseOps.safe_append_u(stimName.value(), stimTargets, channel.parameters);
-      sampleSim->safe_do_circuit(noiseOps);
+    if (auto res = isValidStimNoiseChannel(channel)) {
+      if (is_pcm_mode) {
+        // Apply the errors found in res directly into sampleSim, as if they
+        // definitely happened, 1 mechanism at a time. (For example, a
+        // depolarization channel will manifest as 3 possible error mechanisms:
+        // an X error, Y error, or Z error.)
+        std::size_t num_mechanisms = res->params.size();
+        std::size_t flip_ix = 0;
+        for (std::size_t m = 0; m < num_mechanisms; m++) {
+          // In this mode, the "shot" is an alias for the PCM error count.
+          std::size_t shot = pcm_err_count;
+          if (pcm_err_count < sampleSim->batch_size) {
+            for (std::size_t t = 0; t < res->num_targets; t++, flip_ix++) {
+              sampleSim->x_table[qubits[t]][shot] ^= res->flips_x[flip_ix];
+              sampleSim->z_table[qubits[t]][shot] ^= res->flips_z[flip_ix];
+            }
+            executionContext->pcm_probabilities->push_back(res->params[m]);
+            pcm_err_count++;
+          }
+        }
+      } else {
+        stim::Circuit noiseOps;
+        noiseOps.safe_append_u(res.value().stim_name, qubits,
+                               channel.parameters);
+        // Only apply the noise operations to the sample simulator (not the
+        // Tableau simulator).
+        sampleSim->safe_do_circuit(noiseOps);
+
+        // Increment the error count by the number of mechanisms
+        pcm_err_count += res->params.size();
+      }
     }
   }
 

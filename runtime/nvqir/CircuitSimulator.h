@@ -136,6 +136,17 @@ public:
   /// simulator.
   virtual void synchronize() {}
 
+  /// @brief For simulators that support generating a PCM, this returns the
+  /// number of rows and columns in the PCM (for a given noisy kernel)
+  virtual std::pair<std::size_t, std::size_t> generatePCMSize() {
+    return std::make_pair<std::size_t, std::size_t>(0, 0);
+  }
+
+  /// @brief For simulators that support generating a PCM, this generates the
+  /// PCM and stores the result in the execution context. The result is only
+  /// valid for a specific kernel with a specific noise profile.
+  virtual void generatePCM() {}
+
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -1177,6 +1188,16 @@ public:
     if (executionContext->name == "extract-state") {
       flushGateQueue();
       executionContext->simulationState = getSimulationState();
+    }
+
+    if (executionContext->name == "pcm_size") {
+      flushGateQueue();
+      executionContext->pcm_dimensions = generatePCMSize();
+    }
+
+    if (executionContext->name == "pcm") {
+      flushGateQueue();
+      generatePCM();
     }
 
     // Deallocate the deferred qubits, but do so
