@@ -22,8 +22,9 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-operator
     cudaq-common 
   PRIVATE
-    pthread
-    cudaq-mlir-runtime 
+    pthread    
+    cudaq-mlir-compiler
+    nvqir
     fmt::fmt-header-only
     cudaq 
     cudaq-platform-default)

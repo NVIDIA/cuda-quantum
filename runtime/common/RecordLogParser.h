@@ -95,6 +95,8 @@ public:
 
   std::size_t getBufferSize() const { return buffer.size(); }
 
+  void resizeBuffer(std::size_t more) { buffer.resize(buffer.size() + more); }
+
   template <typename T>
   void addPrimitiveRecord(T value) {
     std::size_t position = buffer.size();
@@ -144,7 +146,7 @@ public:
     }
   }
 
-  /// TODO: Revisit tuple parsing to account for alignment
+  /// NOTE: This is used only if data layout (alignment) is missing
   template <typename T>
   size_t allocateTupleRecord() {
     size_t position = buffer.size();
@@ -286,6 +288,9 @@ public:
 class RecordLogParser {
 public:
   RecordLogParser() = default;
+  RecordLogParser(
+      const std::pair<std::size_t, std::vector<std::size_t>> &layoutInfo)
+      : dataLayoutInfo(layoutInfo) {}
   ~RecordLogParser() = default;
 
   /// Does the heavy-lifting of parsing the output log and converting it to a
@@ -330,5 +335,7 @@ private:
   details::BufferHandler bufferHandler;
   /// Tracks container metadata during decoding
   details::ContainerMetadata containerMeta;
+  /// Data layout information
+  std::pair<std::size_t, std::vector<std::size_t>> dataLayoutInfo = {0, {}};
 };
 } // namespace cudaq

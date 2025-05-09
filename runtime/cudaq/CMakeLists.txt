@@ -43,7 +43,7 @@ if (CUDA_FOUND)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
-    PRIVATE nvqir fmt::fmt-header-only CUDA::cudart_static)
+    PRIVATE nvqir cudaq-layout-extractor fmt::fmt-header-only CUDA::cudart_static)
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
 else()
@@ -55,7 +55,7 @@ else()
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
-    PRIVATE nvqir fmt::fmt-header-only)
+    PRIVATE nvqir cudaq-layout-extractor fmt::fmt-header-only)
 endif()
 
 add_subdirectory(qis/managers)

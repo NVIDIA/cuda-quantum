@@ -15,11 +15,13 @@ namespace mlir {
 class MLIRContext;
 class ExecutionEngine;
 class ModuleOp;
+class Operation;
 } // namespace mlir
 
 namespace llvm {
+class LLVMContext;
 class Module;
-}
+} // namespace llvm
 
 namespace cudaq {
 /// @brief Function to lower MLIR to target

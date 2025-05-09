@@ -77,6 +77,64 @@ if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
 endif()
 
+## ----- MLIR-dependent core components -----
+set(LIBRARY_NAME cudaq-mlir-core)
+add_library(${LIBRARY_NAME} SHARED
+  RuntimeMLIR.cpp
+  JIT.cpp
+)
+target_include_directories(${LIBRARY_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(${LIBRARY_NAME}
+  PRIVATE
+    cudaq-common
+    CCDialect
+    QuakeDialect    
+    OptTransforms
+    OptCodeGen
+    MLIRParser
+    MLIRIR
+    MLIRExecutionEngine
+    MLIRTranslateLib
+    MLIRSupport 
+    MLIROptLib
+    MLIRTransforms
+    MLIRTargetLLVMIRExport
+    MLIRLLVMCommonConversion
+    MLIRLLVMToLLVMIRTranslation
+    fmt::fmt-header-only
+)
+install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
+
+## ----- MLIR-dependent all compiler components including argument converter -----
+## TODO: Combine cudaq-mlir-compiler and cudaq-mlir-runtime
+set(LIBRARY_NAME cudaq-mlir-compiler)
+add_library(${LIBRARY_NAME} SHARED
+  ArgumentConversion.cpp
+)
+target_include_directories(${LIBRARY_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
+    ${CMAKE_SOURCE_DIR}/tpls/fmt/include
+)
+target_link_libraries(${LIBRARY_NAME}
+  PUBLIC
+    cudaq-mlir-core
+  PRIVATE
+    cudaq
+    fmt::fmt-header-only
+    MLIRPass
+)
+install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
+
 ## ----- Runtime MLIR Library -----
 ## We need support in the runtime for compiler-level things,
 ## but we have to collate this functionality in one place to avoid
@@ -86,19 +144,14 @@ endif()
 
 add_library(cudaq-mlir-runtime
   SHARED
-    ArgumentConversion.cpp
     Environment.cpp
-    JIT.cpp
     Logger.cpp
-    RuntimeMLIR.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
 set_source_files_properties(
     Environment.cpp
-    JIT.cpp
     Logger.cpp
-    RuntimeMLIR.cpp
 )
 
 target_include_directories(cudaq-mlir-runtime
@@ -109,25 +162,40 @@ target_include_directories(cudaq-mlir-runtime
 
 target_link_libraries(cudaq-mlir-runtime
   PUBLIC
-    nvqir
-    CCDialect
-    QuakeDialect
-    OptCodeGen
-    OptTransforms
-    MLIRTranslateLib
-    MLIRIR
-    MLIRParser
+    cudaq-mlir-compiler
     MLIRPass
-    MLIRTranslateLib
-    MLIRSupport
-    MLIROptLib
     MLIRExecutionEngine
-    MLIRTransforms
-    MLIRTargetLLVMIRExport
-    MLIRLLVMCommonConversion
-    MLIRLLVMToLLVMIRTranslation
   PRIVATE
-    cudaq
-    spdlog::spdlog)
+    cudaq-common
+    cudaq-operator
+    fmt::fmt-header-only
+    spdlog::spdlog
+)
 
-install(TARGETS cudaq-mlir-runtime DESTINATION lib)
+install(TARGETS cudaq-mlir-runtime EXPORT cudaq-targets DESTINATION lib)
+
+## ----- Data layout extraction Library -----
+## This library is used by runtime to get the LLVM data layout for a specific 
+## kernel. This will be used by the `run` API and hence a dependency for the
+## `cudaq` library.
+
+add_library(cudaq-layout-extractor
+  SHARED
+    LayoutExtractor.cpp
+)
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-layout-extractor)
+
+target_include_directories(cudaq-layout-extractor
+  PRIVATE .
+    ${CMAKE_SOURCE_DIR}/runtime)
+
+target_link_libraries(cudaq-layout-extractor
+  PRIVATE
+    cudaq-mlir-core
+)
+install(TARGETS cudaq-layout-extractor EXPORT cudaq-layout-extractor-targets DESTINATION lib)
+
+install(EXPORT cudaq-layout-extractor-targets
+        FILE CUDAQLayoutExtractorTargets.cmake
+        NAMESPACE cudaq::
+        DESTINATION lib/cmake/cudaq)

@@ -17,7 +17,7 @@ target_link_libraries(test_infleqtion
   cudaq-common 
   cudaq
   cudaq-builder
-  cudaq-mlir-runtime
+  cudaq-mlir-compiler
   cudaq-rest-qpu
   cudaq-operator
   cudaq-platform-default 
