@@ -429,3 +429,14 @@ func.func @castAndTest () {
 // CHECK:     }
 // CHECK:     return
 // CHECK:   }
+
+func.func @castIntToBool() -> i1 {
+  %0 = arith.constant 800 : i16
+  %1 = cc.cast %0 : (i16) -> i1
+  return %1: i1
+}
+
+// CHECK:   func.func @castIntToBool() -> i1 {
+// CHECK:     %true = arith.constant true
+// CHECK:     return %true : i1
+// CHECK:   }

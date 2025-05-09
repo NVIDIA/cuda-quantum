@@ -222,22 +222,6 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
         val.getDefiningOp<quake::VeqSizeOp>())
       if (getZint())
         return val;
-
-    // Fold consecutive casts when possible.
-    if (auto cast = val.getDefiningOp<cc::CastOp>()) {
-      // A repeated cast.
-      if ((getZint() == cast.getZint()) && (getSint() == cast.getSint()))
-        return val;
-
-      // Second cast changes the sign.
-      // Replace both casts by a cast to the current type and sign.
-      OpBuilder builder(*this);
-      auto loc = getLoc();
-      return builder
-          .create<cc::CastOp>(loc, ty, cast.getValue(), getSintAttr(),
-                              getZintAttr())
-          .getResult();
-    }
   }
 
   if (auto optConst = adaptor.getValue()) {
@@ -259,8 +243,15 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
           if (srcWidth < 64)
             val &= ((1UL << srcWidth) - 1);
         }
+
+        if (width == 1) {
+          bool v = val != 0;
+          return builder.create<arith::ConstantIntOp>(loc, v, width)
+              .getResult();
+        }
         return builder.create<arith::ConstantIntOp>(loc, val, width)
             .getResult();
+
       } else if (ty == fltTy) {
         if (getZint()) {
           APFloat fval(static_cast<float>(static_cast<std::uint64_t>(val)));
@@ -423,13 +414,14 @@ LogicalResult cudaq::cc::CastOp::verify() {
 
 namespace {
 // There are a number of series of casts that can be fused. For now, fuse
-// pointer cast chains.
+// pointer cast chains and some integer cast chains.
 struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::CastOp castOp,
                                 PatternRewriter &rewriter) const override {
-    if (auto castToCast = castOp.getValue().getDefiningOp<cudaq::cc::CastOp>())
+    if (auto castToCast =
+            castOp.getValue().getDefiningOp<cudaq::cc::CastOp>()) {
       if (isa<cudaq::cc::PointerType>(castOp.getType()) &&
           isa<cudaq::cc::PointerType>(castToCast.getType())) {
         // %4 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<U>
@@ -440,6 +432,21 @@ struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
                                                        castToCast.getValue());
         return success();
       }
+      if (isa<IntegerType>(castOp.getType()) &&
+          (castOp.getType() == castToCast.getType())) {
+        // consecutive integer casts to the same type with a possible sign
+        // change. %4 = cc.cast %3 : (i64) -> i64 %5 = cc.cast unsigned %4 :
+        // (i64) -> i64 ──────────────────────────────────────────── %5 =
+        // cc.cast unsigned %3 : (i64) -> i64
+
+        // Replace both casts by a cast to of the original value with current
+        // type and sign.
+        rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
+            castOp, castOp.getType(), castToCast.getValue(),
+            castOp.getSintAttr(), castOp.getZintAttr());
+        return success();
+      }
+    }
     return failure();
   }
 };

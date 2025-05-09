@@ -200,7 +200,8 @@ static Value getConstantInt(OpBuilder &builder, Location loc, int64_t value,
                                               builder.getIntegerType(bitwidth));
 }
 
-static Value getConstantInt(OpBuilder &builder, Location loc, int64_t  value, Type intTy) {
+static Value getConstantInt(OpBuilder &builder, Location loc, int64_t value,
+                            Type intTy) {
   assert(isa<IntegerType>(intTy));
   return builder.create<arith::ConstantIntOp>(loc, value, intTy);
 }
@@ -603,11 +604,11 @@ Value QuakeBridgeVisitor::integerCoercion(Location loc,
                                           const clang::QualType &clangTy,
                                           Type dstTy, Value srcVal) {
   auto fromTy = getResultType(srcVal.getType());
-  // if (dstTy == fromTy)
-  //   return srcVal;
+  if (dstTy == fromTy)
+    return srcVal;
 
   assert(isa<IntegerType>(fromTy) && isa<IntegerType>(dstTy));
-  if (fromTy.getIntOrFloatBitWidth() <= dstTy.getIntOrFloatBitWidth()) {
+  if (fromTy.getIntOrFloatBitWidth() < dstTy.getIntOrFloatBitWidth()) {
     auto mode = (clangTy->isUnsignedIntegerOrEnumerationType())
                     ? cudaq::cc::CastOpMode::Unsigned
                     : cudaq::cc::CastOpMode::Signed;
