@@ -336,7 +336,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                     argInstance=argInstance[0],
                     argTypeToCompareTo=cc.StdvecType.getElementType(
                         argTypeToCompareTo)))
-        
+
         emitFatalError(f'Invalid list element type ({argType})')
 
     if argType == qvector or argType == qreg or argType == qview:
@@ -419,7 +419,7 @@ def mlirTypeToPyType(argType):
 
         pyEleTy = mlirTypeToPyType(eleTy)
         return list[pyEleTy]
-        
+
     if cc.PointerType.isinstance(argType):
         valueTy = cc.PointerType.getElementType(argType)
         if cc.StateType.isinstance(valueTy):
