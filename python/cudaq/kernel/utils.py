@@ -253,6 +253,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
+    print(f'mlirTypeFromPyType: {argType}')
     if argType == int:
         return IntegerType.get_signless(64, ctx)
     if argType in [float, np.float64]:
@@ -325,7 +326,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.complex64, ctx))
 
         if isinstance(argInstance[0], pauli_word):
-            return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(pauli_word, ctx))
+            #return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
 
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
@@ -336,7 +338,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                     argInstance=argInstance[0],
                     argTypeToCompareTo=cc.StdvecType.getElementType(
                         argTypeToCompareTo)))
-
+        
+        print(type(argInstance[0]))
+        print(isinstance(argInstance[0], list))
         emitFatalError(f'Invalid list element type ({argType})')
 
     if argType == qvector or argType == qreg or argType == qview:
@@ -417,18 +421,20 @@ def mlirTypeToPyType(argType):
         if cc.CharspanType.isinstance(eleTy):
             return list[pauli_word]
 
-        if IntegerType.isinstance(eleTy):
-            if IntegerType(eleTy).width == 1:
-                return list[bool]
-            return list[int]
-        if F64Type.isinstance(eleTy):
-            return list[float]
-        if F32Type.isinstance(eleTy):
-            return list[np.float32]
-        if ComplexType.isinstance(eleTy):
-            ty = complex if F64Type.isinstance(
-                ComplexType(eleTy).element_type) else np.complex64
-            return list[ty]
+        pyEleTy = mlirTypeToPyType(eleTy)
+        return list[pyEleTy]
+        # if IntegerType.isinstance(eleTy):
+        #     if IntegerType(eleTy).width == 1:
+        #         return list[bool]
+        #     return list[int]
+        # if F64Type.isinstance(eleTy):
+        #     return list[float]
+        # if F32Type.isinstance(eleTy):
+        #     return list[np.float32]
+        # if ComplexType.isinstance(eleTy):
+        #     ty = complex if F64Type.isinstance(
+        #         ComplexType(eleTy).element_type) else np.complex64
+        #     return list[ty]
 
     if cc.PointerType.isinstance(argType):
         valueTy = cc.PointerType.getElementType(argType)

@@ -30,6 +30,8 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
+#include <iostream>
+
 namespace py = pybind11;
 using namespace std::chrono_literals;
 using namespace mlir;
@@ -159,18 +161,18 @@ void checkArgumentType(py::handle arg, int index) {
   }
 }
 
-template <typename T>
-void checkListElementType(py::handle arg, int index, int elementIndex) {
-  if (!py_ext::isConvertible<T>(arg)) {
-    throw std::runtime_error(
-        "kernel argument's element type is '" +
-        std::string(py_ext::typeName<T>()) + "'" +
-        " but argument provided is not (argument " + std::to_string(index) +
-        ", element " + std::to_string(elementIndex) +
-        ", value=" + py::str(arg).cast<std::string>() +
-        ", type=" + py::str(py::type::of(arg)).cast<std::string>() + ").");
-  }
-}
+// template <typename T>
+// void checkListElementType(py::handle arg, int index, int elementIndex) {
+//   if (!py_ext::isConvertible<T>(arg)) {
+//     throw std::runtime_error(
+//         "kernel argument's element type is '" +
+//         std::string(py_ext::typeName<T>()) + "'" +
+//         " but argument provided is not (argument " + std::to_string(index) +
+//         ", element " + std::to_string(elementIndex) +
+//         ", value=" + py::str(arg).cast<std::string>() +
+//         ", type=" + py::str(py::type::of(arg)).cast<std::string>() + ").");
+//   }
+// }
 
 template <typename T>
 inline void addArgument(OpaqueArguments &argData, T &&arg) {
@@ -274,6 +276,79 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
       });
 }
 
+/// @brief For the current vector element type, insert the
+/// value into the dynamically-constructed vector.
+inline void handleVectorElements(void *data, Type eleTy, py::list list) {
+  auto appendValue = []<typename T>(py::list list, void *data,
+                                    auto &&converter) {
+    std::vector<T> *values = new std::vector<T>(list.size());
+    for (std::size_t i = 0; auto &v : list) {
+      py::print(" element:");
+      py::print(list[i]);
+      (*values)[i++] = converter(v);
+      py::print("converted element:");
+      py::print(T((*values)[i-1]));
+    }
+
+    std::memcpy(((char *)data), values, sizeof(std::vector<T>));
+  };
+
+  py::print("list:");
+  py::print(list);
+  py::print("list size:");
+  py::print(list.size());
+
+  llvm::TypeSwitch<Type, void>(eleTy)
+      .Case([&](IntegerType ty) {
+        if (ty.isInteger(1))
+          appendValue.template operator()<bool>(
+              list, data, [](py::handle v) { return v.cast<bool>(); });
+        else
+          appendValue.template operator()<std::size_t>(
+              list, data, [](py::handle v) { return v.cast<std::size_t>(); });
+      })
+      .Case([&](mlir::Float32Type ty) {
+        appendValue.template operator()<float>(
+            list, data, [](py::handle v) { return v.cast<float>(); });
+      })
+      .Case([&](mlir::Float64Type ty) {
+        appendValue.template operator()<double>(
+            list, data, [](py::handle v) { return v.cast<double>(); });
+      })
+      .Case([&](cudaq::cc::CharspanType type) {
+        appendValue.template operator()<std::string>(
+            list, data,
+            [](py::handle v) { return v.cast<cudaq::pauli_word>().str(); });
+      })
+      .Case([&](ComplexType type) {
+        if (isa<Float64Type>(type.getElementType()))
+          appendValue.template operator()<std::complex<double>>(
+              list, data,
+              [](py::handle v) { return v.cast<std::complex<double>>(); });
+        else
+          appendValue.template operator()<std::complex<float>>(
+              list, data,
+              [](py::handle v) { return v.cast<std::complex<float>>(); });
+      })
+      .Case([&](cudaq::cc::StdvecType ty) {
+        if (ty.getElementType().isInteger(1)) {
+          auto *values = new std::vector<std::vector<bool>>(list.size());
+          for (std::size_t i = 0; i < list.size(); i++)
+            handleVectorElements(values->data() + i, ty.getElementType(), list[i]);
+          std::memcpy(((char *)data), values, sizeof(std::vector<std::vector<bool>>));
+          return;
+        }
+        auto *values = new std::vector<std::vector<std::size_t>>(list.size());
+        for (std::size_t i = 0; i < list.size(); i++)
+          handleVectorElements(values->data() + i, ty.getElementType(), list[i]);
+        std::memcpy(((char *)data), values, sizeof(std::vector<std::vector<std::size_t>>));
+      })
+      .Default([&](Type ty) {
+        throw std::runtime_error("invalid list element type (" +
+          mlirTypeToString(ty) + ").");
+      });
+}
+
 inline void packArgs(OpaqueArguments &argData, py::args args,
                      mlir::func::FuncOp kernelFuncOp,
                      const std::function<bool(OpaqueArguments &argData,
@@ -360,6 +435,19 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
         })
         .Case([&](cudaq::cc::StdvecType ty) {
+          auto list = py::cast<py::list>(arg);
+    
+          if(ty.getElementType().isInteger(1)) {
+            auto *allocatedArg = std::malloc(sizeof(std::vector<bool>));
+            handleVectorElements(allocatedArg, ty.getElementType(), list);
+            argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
+            return;
+          }
+          
+          auto *allocatedArg =std::malloc(sizeof(std::vector<std::size_t>));
+          handleVectorElements(allocatedArg, ty.getElementType(), list);
+          argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
+          /*
           checkArgumentType<py::list>(arg, i);
           auto casted = py::cast<py::list>(arg);
           auto eleTy = ty.getElementType();
@@ -460,7 +548,7 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
               .Default([](Type ty) {
                 throw std::runtime_error("invalid list element type (" +
                                          mlirTypeToString(ty) + ").");
-              });
+              });*/
         })
         .Default([&](Type ty) {
           // See if we have a backup type handler.

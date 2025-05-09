@@ -212,6 +212,7 @@ using namespace nvqir;
 
 extern "C" {
 
+void print_i1(const char *msg, bool i) { printf(msg, i); }
 void print_i64(const char *msg, std::size_t i) { printf(msg, i); }
 void print_f64(const char *msg, double f) { printf(msg, f); }
 
