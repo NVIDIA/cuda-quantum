@@ -1,5 +1,6 @@
 import cudaq
-from cudaq.operator import *
+from cudaq.operators import RydbergHamiltonian, ScalarOperator
+from cudaq.dynamics import Schedule
 import numpy as np
 
 # This example illustrates how to use QuEra's Aquila device on Braket with CUDA-Q.
@@ -36,11 +37,11 @@ schedule = Schedule(steps, ["t"])
 def trapezoidal_signal(t):
     slope = omega_const / time_ramp
     y_intercept = slope * time_max
-    if 0 < t < time_ramp + time_plateau:
+    if 0 < t.real < time_ramp + time_plateau:
         return slope * t
-    if time_ramp < t < time_max:
+    if time_ramp < t.real < time_max:
         return omega_const
-    if time_ramp + time_plateau < t < time_max:
+    if time_ramp + time_plateau < t.real < time_max:
         return (-slope * t) + y_intercept
     return 0.0
 
@@ -49,9 +50,9 @@ omega = ScalarOperator(lambda t: trapezoidal_signal(t))
 phi = ScalarOperator.const(0.0)
 delta = ScalarOperator.const(0.0)
 
-evolution_result = evolve(RydbergHamiltonian(atom_sites=register,
-                                             amplitude=omega,
-                                             phase=phi,
-                                             delta_global=delta),
-                          schedule=schedule)
+evolution_result = cudaq.evolve(RydbergHamiltonian(atom_sites=register,
+                                                   amplitude=omega,
+                                                   phase=phi,
+                                                   delta_global=delta),
+                                schedule=schedule)
 evolution_result.dump()

@@ -475,8 +475,12 @@ struct SimplifyIntegerCompare : public OpRewritePattern<arith::CmpIOp> {
     return failure();
   }
 };
+} // namespace
 
-// Ad hoc pattern to erase complex.create. (MLIR doesn't do this.)
+namespace {
+// Ad hoc pattern to erase complex.create. (MLIR doesn't do this.) This pattern
+// gets piggybacked into the canonicalizations, but does NOT have anything to do
+// with cc::CastOp.
 struct FuseComplexCreate : public OpRewritePattern<complex::CreateOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(complex::CreateOp create,
@@ -498,10 +502,16 @@ struct FuseComplexCreate : public OpRewritePattern<complex::CreateOp> {
 };
 } // namespace
 
+static void
+getArbitraryCustomCanonicalizationPatterns(RewritePatternSet &patterns,
+                                           MLIRContext *context) {
+  patterns.add<FuseComplexCreate>(context);
+}
+
 void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                     MLIRContext *context) {
-  patterns.add<FuseCastCascade, SimplifyIntegerCompare, FuseComplexCreate>(
-      context);
+  patterns.add<FuseCastCascade, SimplifyIntegerCompare>(context);
+  getArbitraryCustomCanonicalizationPatterns(patterns, context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -543,7 +553,7 @@ void printInterleavedIndices(OpAsmPrinter &printer, B computePtrOp,
                              DenseI32ArrayAttr rawConstantIndices) {
   llvm::interleaveComma(Adaptor{rawConstantIndices, indices}, printer,
                         [&](PointerUnion<IntegerAttr, Value> cst) {
-                          if (Value val = cst.dyn_cast<Value>())
+                          if (Value val = dyn_cast<Value>(cst))
                             printer.printOperand(val);
                           else
                             printer << cst.get<IntegerAttr>().getInt();

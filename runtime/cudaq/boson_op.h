@@ -19,6 +19,8 @@ namespace cudaq {
 class boson_handler : public operator_handler {
   template <typename T>
   friend class product_op;
+  template <typename T>
+  friend class sum_op;
 
 private:
   // Each boson operator is represented as number operators along with an
@@ -34,11 +36,38 @@ private:
   // 0 = I, Ad = 1, A = 2, AdA = 3
   boson_handler(std::size_t target, int op_code);
 
+  // user friendly string encoding
   std::string op_code_to_string() const;
-  virtual std::string op_code_to_string(
-      std::unordered_map<std::size_t, int64_t> &dimensions) const override;
+  // internal only string encoding
+  virtual std::string
+  canonical_form(std::unordered_map<std::size_t, std::int64_t> &dimensions,
+                 std::vector<std::int64_t> &relevant_dims) const override;
 
   void inplace_mult(const boson_handler &other);
+
+  // helper function for matrix creations
+  static void create_matrix(
+      const std::string &boson_word,
+      const std::vector<std::int64_t> &dimensions,
+      const std::function<void(std::size_t, std::size_t, std::complex<double>)>
+          &process_element,
+      bool invert_order);
+
+  /// @brief Computes the sparse matrix representation of the string encoding
+  /// of a bosonic product operator. Private method since this encoding is
+  /// not very user friendly.
+  static cudaq::detail::EigenSparseMatrix
+  to_sparse_matrix(const std::string &boson_word,
+                   const std::vector<std::int64_t> &dimensions,
+                   std::complex<double> coeff = 1., bool invert_order = false);
+
+  /// @brief Computes the sparse matrix representation of the string encoding
+  /// of a bosonic product operator. Private method since this encoding is
+  /// not very user friendly.
+  static complex_matrix to_matrix(const std::string &boson_word,
+                                  const std::vector<std::int64_t> &dimensions,
+                                  std::complex<double> coeff = 1.,
+                                  bool invert_order = false);
 
 public:
   // read-only properties
@@ -46,6 +75,8 @@ public:
   virtual std::string unique_id() const override;
 
   virtual std::vector<std::size_t> degrees() const override;
+
+  std::size_t target() const;
 
   // constructors and destructors
 
@@ -57,10 +88,10 @@ public:
 
   /// @brief Return the matrix representation of the operator in the eigenbasis
   /// of the number operator.
-  /// @arg  `dimensions` : A map specifying the dimension, that is the number of
-  /// eigenstates, for each degree of freedom.
+  /// @param  `dimensions` : A map specifying the dimension, that is the number
+  /// of eigenstates, for each degree of freedom.
   virtual complex_matrix
-  to_matrix(std::unordered_map<std::size_t, int64_t> &dimensions,
+  to_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 

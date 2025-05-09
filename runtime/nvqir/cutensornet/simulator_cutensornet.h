@@ -14,9 +14,14 @@
 
 namespace nvqir {
 /// @brief Base class of `cutensornet` simulator backends
-class SimulatorTensorNetBase : public nvqir::CircuitSimulatorBase<double> {
-
+template <typename ScalarType = double>
+class SimulatorTensorNetBase : public nvqir::CircuitSimulatorBase<ScalarType> {
 public:
+  using DataType = std::complex<ScalarType>;
+  static constexpr cudaDataType_t cudaDataType =
+      std::is_same_v<ScalarType, float> ? CUDA_C_32F : CUDA_C_64F;
+  using GateApplicationTask =
+      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
   SimulatorTensorNetBase();
   SimulatorTensorNetBase(const SimulatorTensorNetBase &another) = delete;
   SimulatorTensorNetBase &
@@ -115,7 +120,7 @@ private:
 
 protected:
   cutensornetHandle_t m_cutnHandle;
-  std::unique_ptr<TensorNetState> m_state;
+  std::unique_ptr<TensorNetState<ScalarType>> m_state;
   std::unordered_map<std::string, void *> m_gateDeviceMemCache;
   ScratchDeviceMem scratchPad;
   // Random number generator for generating 32-bit numbers with a state size of
@@ -139,3 +144,5 @@ protected:
 };
 
 } // end namespace nvqir
+
+#include "simulator_cutensornet.inc"

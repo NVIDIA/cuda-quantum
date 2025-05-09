@@ -1,5 +1,5 @@
 import cudaq
-from cudaq import operators, spin, Schedule, ScipyZvodeIntegrator
+from cudaq import operators, spin, operators, Schedule, ScipyZvodeIntegrator
 import numpy as np
 import cupy as cp
 import os

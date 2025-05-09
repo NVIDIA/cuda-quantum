@@ -14,8 +14,8 @@
 #include <map>
 #include <vector>
 
-// This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's
-// cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through
+// This example illustrates how to use `Pasqal's` EMU_MPS emulator over
+// `Pasqal's` cloud via CUDA-Q. Contact Pasqal at help@pasqal.com or through
 // https://community.pasqal.com for assistance.
 
 int main() {
@@ -63,7 +63,7 @@ int main() {
 
   // Evolve the system
   auto result = cudaq::evolve(hamiltonian, schedule, 100);
-  result.get_sampling_result()->dump();
+  result.sampling_result->dump();
 
   return 0;
 }
