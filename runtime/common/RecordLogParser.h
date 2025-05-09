@@ -286,6 +286,9 @@ public:
 class RecordLogParser {
 public:
   RecordLogParser() = default;
+  RecordLogParser(
+      const std::pair<std::size_t, std::vector<std::size_t>> &layoutInfo)
+      : dataLayoutInfo(layoutInfo) {}
   ~RecordLogParser() = default;
 
   /// Does the heavy-lifting of parsing the output log and converting it to a
@@ -330,5 +333,7 @@ private:
   details::BufferHandler bufferHandler;
   /// Tracks container metadata during decoding
   details::ContainerMetadata containerMeta;
+  /// Data layout information
+  std::pair<std::size_t, std::vector<std::size_t>> dataLayoutInfo = {0, {}};
 };
 } // namespace cudaq

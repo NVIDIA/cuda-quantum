@@ -172,3 +172,29 @@ target_link_libraries(cudaq-mlir-runtime
 )
 
 install(TARGETS cudaq-mlir-runtime EXPORT cudaq-targets DESTINATION lib)
+
+## ----- Data layout extraction Library -----
+## This library is used by runtime to get the LLVM data layout for a specific 
+## kernel. This will be used by the `run` API and hence a dependency for the
+## `cudaq` library.
+
+add_library(cudaq-layout-extractor
+  SHARED
+    LayoutExtractor.cpp
+)
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-layout-extractor)
+
+target_include_directories(cudaq-layout-extractor
+  PRIVATE .
+    ${CMAKE_SOURCE_DIR}/runtime)
+
+target_link_libraries(cudaq-layout-extractor
+  PRIVATE
+    cudaq-mlir-core
+)
+install(TARGETS cudaq-layout-extractor EXPORT cudaq-layout-extractor-targets DESTINATION lib)
+
+install(EXPORT cudaq-layout-extractor-targets
+        FILE CUDAQLayoutExtractorTargets.cmake
+        NAMESPACE cudaq::
+        DESTINATION lib/cmake/cudaq)

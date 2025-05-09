@@ -8,6 +8,7 @@
 
 #include "cudaq/algorithms/run.h"
 #include "common/ExecutionContext.h"
+#include "common/LayoutExtractor.h"
 #include "common/RecordLogParser.h"
 #include "cudaq/simulators.h"
 #include "nvqir/CircuitSimulator.h"
@@ -48,8 +49,12 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     }
   }
 
-  // 3. Pass the outputLog to the parser (target-specific?)
-  cudaq::RecordLogParser parser;
+  // 3a. Get the data layout information
+  auto quakeCode = cudaq::get_quake_by_name(kernel_name);
+  auto layoutInfo = cudaq::extractDataLayout(kernel_name, quakeCode);
+
+  // 3b. Pass the outputLog to the parser (target-specific?)
+  cudaq::RecordLogParser parser(layoutInfo);
   parser.parse(circuitSimulator->outputLog);
 
   // 4. Get the buffer and length of buffer (in bytes) from the parser.
