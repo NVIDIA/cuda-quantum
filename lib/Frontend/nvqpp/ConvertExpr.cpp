@@ -488,7 +488,7 @@ bool QuakeBridgeVisitor::VisitCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr *x) {
   auto intTy =
       builtinTypeToType(cast<clang::BuiltinType>(x->getType().getTypePtr()));
   auto intVal = x->getValue();
-  return pushValue(getConstantInt(builder, loc, intVal, intTy));
+  return pushValue(getConstantInt(builder, loc, intVal ? 1 : 0, intTy));
 }
 
 bool QuakeBridgeVisitor::VisitIntegerLiteral(clang::IntegerLiteral *x) {
