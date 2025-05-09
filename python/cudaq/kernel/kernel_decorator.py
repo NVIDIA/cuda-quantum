@@ -321,21 +321,25 @@ class PyKernelDecorator(object):
 
         return False
 
+    def castPyPrimitiveType(self, toTy, value):
+        if F64Type.isinstance(toTy):
+            return float(value)
+
+        if F32Type.isinstance(toTy):
+            return np.float32(value)
+
+        if ComplexType.isinstance(toTy):
+            floatToType = ComplexType(toTy).element_type
+            if F64Type.isinstance(floatToType):
+                return complex(value)
+            return np.complex64(value)
+
+        return None
+
     def castPyList(self, fromEleTy, toEleTy, list):
         if self.isCastable(fromEleTy, toEleTy):
             if F64Type.isinstance(toEleTy):
-                return [float(i) for i in list]
-
-            if F32Type.isinstance(toEleTy):
-                return [np.float32(i) for i in list]
-
-            if ComplexType.isinstance(toEleTy):
-                floatToType = ComplexType(toEleTy).element_type
-
-                if F64Type.isinstance(floatToType):
-                    return [complex(i) for i in list]
-
-                return [np.complex64(i) for i in list]
+                return [self.castPyPrimitiveType(toEleTy, i) for i in list]
         return list
 
     def createStorage(self):
@@ -450,6 +454,12 @@ class PyKernelDecorator(object):
                             self.castPyList(argEleTy, eleTy, arg))
                         mlirType = self.argTypes[i]
                         continue
+
+            if self.isCastable(mlirType, self.argTypes[i]):
+                processedArgs.append(
+                    self.castPyPrimitiveType(self.argTypes[i], arg))
+                mlirType = self.argTypes[i]
+                continue
 
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:

@@ -1216,7 +1216,11 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
         else:
-            self.visit(node.value)
+            if isinstance(node.value, ast.Tuple):
+                for ele in node.value.elts:
+                    self.visit(ele)
+            else:
+                self.visit(node.value)
 
         if len(self.valueStack) == 0:
             self.emitFatalError("invalid assignment detected.", node)
@@ -3272,6 +3276,38 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(cc.LoadOp(eleAddr).result)
                 return
 
+        if cc.StructType.isinstance(var.type):
+            # Return the pointer if someone asked for it
+            if self.subscriptPushPointerValue:
+                self.pushValue(var)
+                return
+
+            # Handle the case where we have a tuple member extraction, memory semantics
+            idxValue = None
+            if hasattr(idx.owner, 'opview') and isinstance(
+                    idx.owner.opview, arith.ConstantOp):
+                if 'value' in idx.owner.attributes:
+                    attr = IntegerAttr(idx.owner.attributes['value'])
+                    idxValue = attr.value
+
+            if idxValue == None:
+                self.emitFatalError(
+                    "non-constant subscript value on a tuple is not supported",
+                    node)
+
+            memberTys = cc.StructType.getTypes(var.type)
+            if idxValue >= len(memberTys):
+                self.emitFatalError(f'tuple index is out of range: {idxValue}',
+                                    node)
+
+            structPtr = self.ifNotPointerThenStore(var)
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, memberTys[idxValue]), structPtr,
+                [], DenseI32ArrayAttr.get([idxValue], context=self.ctx)).result
+
+            self.pushValue(cc.LoadOp(eleAddr).result)
+            return
+
         self.emitFatalError("unhandled subscript", node)
 
     def visit_For(self, node):
@@ -3895,6 +3931,42 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         func.ReturnOp([result])
+
+    def visit_Tuple(self, node):
+        """
+        Map tuples in the Python AST to equivalents in MLIR.
+        """
+        if self.verbose:
+            print("[Visit Tuple = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
+
+        self.generic_visit(node)
+        self.currentNode = node
+
+        elementValues = [self.popValue() for _ in range(len(node.elts))]
+        elementValues.reverse()
+
+        # We do not store structs of pointers
+        elementValues = [
+            cc.LoadOp(ele).result
+            if cc.PointerType.isinstance(ele.type) else ele
+            for ele in elementValues
+        ]
+
+        structTys = [v.type for v in elementValues]
+        structTy = cc.StructType.getNamed(self.ctx, "tuple", structTys)
+        stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
+                                TypeAttr.get(structTy)).result
+
+        # loop over each type and `compute_ptr` / store
+
+        for i, ty in enumerate(structTys):
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, ty), stackSlot, [],
+                DenseI32ArrayAttr.get([i], context=self.ctx)).result
+            cc.StoreOp(elementValues[i], eleAddr)
+        self.pushValue(stackSlot)
+        return
 
     def visit_UnaryOp(self, node):
         """
