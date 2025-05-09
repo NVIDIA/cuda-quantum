@@ -146,7 +146,7 @@ public:
     }
   }
 
-  /// TODO: Revisit tuple parsing to account for alignment
+  /// NOTE: This is used only if data layout (alignment) is missing
   template <typename T>
   size_t allocateTupleRecord() {
     size_t position = buffer.size();

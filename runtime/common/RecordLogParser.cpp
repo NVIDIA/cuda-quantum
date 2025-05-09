@@ -167,7 +167,7 @@ void cudaq::RecordLogParser::preallocateArray() {
 void cudaq::RecordLogParser::preallocateTuple() {
   containerMeta.dataOffset = bufferHandler.getBufferSize();
   if (dataLayoutInfo.first == 0) {
-    // Allocate contiguous memory for the tuple
+    // Packed data allocation since alignment info is not provided
     for (auto ty : containerMeta.tupleTypes) {
       cudaq::details::DataHandlerBase &dh = getDataHandler(ty);
       containerMeta.tupleOffsets.push_back(dh.allocateTuple(bufferHandler));
@@ -212,6 +212,7 @@ void cudaq::RecordLogParser::processTupleEntry(const std::string &recValue,
     throw std::runtime_error("Tuple index out of bounds");
   cudaq::details::DataHandlerBase &dh =
       getDataHandler(containerMeta.tupleTypes[index]);
-  dh.insertIntoTuple(bufferHandler, containerMeta.tupleOffsets[index],
-                     recValue);
+  dh.insertIntoTuple(
+      bufferHandler,
+      containerMeta.dataOffset + containerMeta.tupleOffsets[index], recValue);
 }

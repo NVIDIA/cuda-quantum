@@ -279,7 +279,41 @@ CUDAQ_TEST(ParserTester, checkMultipleShots) {
   origBuffer = nullptr;
 }
 
-CUDAQ_TEST(ParserTester, checkTupleWithLayout) {
+CUDAQ_TEST(ParserTester, checkTupleWithLayoutWithoutBool) {
+  const std::string log = "OUTPUT\tTUPLE\t2\ttuple<i64, f64>\n"
+                          "OUTPUT\tINT\t37\t.0\n"
+                          "OUTPUT\tDOUBLE\t3.1416\t.1\n";
+  std::pair<std::size_t, std::vector<std::size_t>> layout;
+  layout.first = 16;
+  layout.second = {0, 8};
+  cudaq::RecordLogParser parser(layout);
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  EXPECT_EQ(16, bufferSize);
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  /// NOTE: The following doesn't create expected vector of tuple of `i64` and
+  /// `f64`, see alternate approach with `struct` below
+  // cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  // std::vector<std::tuple<std::int64_t, double>> results = {
+  //     reinterpret_cast<std::tuple<std::int64_t, double> *>(span.data),
+  //     reinterpret_cast<std::tuple<std::int64_t, double> *>(span.data +
+  //                                                          span.lengthInBytes)};
+  /// Create a struct to hold the tuple data
+  struct MyTuple {
+    std::int64_t i64Val;
+    double f64Val;
+  };
+  MyTuple *tuplePtr = reinterpret_cast<MyTuple *>(buffer);
+  EXPECT_EQ(37, tuplePtr->i64Val);
+  EXPECT_EQ(3.1416, tuplePtr->f64Val);
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
+CUDAQ_TEST(ParserTester, checkTupleWithLayoutAndBool) {
   const std::string log = "OUTPUT\tTUPLE\t3\ttuple<i1, i64, f64>\n"
                           "OUTPUT\tBOOL\ttrue\t.0\n"
                           "OUTPUT\tINT\t37\t.1\n"
@@ -290,7 +324,7 @@ CUDAQ_TEST(ParserTester, checkTupleWithLayout) {
                           "OUTPUT\tDOUBLE\t4.14\t.2\n";
   std::pair<std::size_t, std::vector<std::size_t>> layout;
   layout.first = 24;
-  layout.second = {0, 4, 16};
+  layout.second = {0, 8, 16};
   cudaq::RecordLogParser parser(layout);
   parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
@@ -299,21 +333,23 @@ CUDAQ_TEST(ParserTester, checkTupleWithLayout) {
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
   cudaq::details::RunResultSpan span = {buffer, bufferSize};
-  std::vector<std::tuple<bool, std::int64_t, double>> results = {
-      reinterpret_cast<std::tuple<bool, std::int64_t, double> *>(span.data),
-      reinterpret_cast<std::tuple<bool, std::int64_t, double> *>(
-          span.data + span.lengthInBytes)};
+  /// Create a struct for tuple data, see note in
+  /// `checkTupleWithLayoutWithoutBool`
+  struct MyTuple {
+    bool boolVal;
+    std::int64_t i64Val;
+    double f64Val;
+  };
+  std::vector<MyTuple> results = {
+      reinterpret_cast<MyTuple *>(span.data),
+      reinterpret_cast<MyTuple *>(span.data + span.lengthInBytes)};
   EXPECT_EQ(2, results.size());
-  for (const auto &tuple : results) {
-    std::cout << std::get<0>(tuple) << ", " << std::get<1>(tuple) << ", "
-              << std::get<2>(tuple) << std::endl;
-  }
-  EXPECT_EQ(true, std::get<0>(results[0]));
-  EXPECT_EQ(37, std::get<1>(results[0]));
-  EXPECT_EQ(3.1416, std::get<2>(results[0]));
-  EXPECT_EQ(false, std::get<0>(results[1]));
-  EXPECT_EQ(42, std::get<1>(results[1]));
-  EXPECT_EQ(4.14, std::get<2>(results[1]));
+  EXPECT_EQ(true, results[0].boolVal);
+  EXPECT_EQ(37, results[0].i64Val);
+  EXPECT_EQ(3.1416, results[0].f64Val);
+  EXPECT_EQ(false, results[1].boolVal);
+  EXPECT_EQ(42, results[1].i64Val);
+  EXPECT_EQ(4.14, results[1].f64Val);
   free(buffer);
   buffer = nullptr;
   origBuffer = nullptr;
