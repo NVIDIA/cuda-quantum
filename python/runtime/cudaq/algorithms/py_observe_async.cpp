@@ -205,7 +205,7 @@ can be retrieved via `future.get()`.
 Args:
   kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
     expectation value with respect to.
-  spin_operator (:class:`SpinOperator`): The Hermitian spin operator to 
+  spin_operator (`SpinOperator`): The Hermitian spin operator to 
     calculate the expectation of.
   *arguments (Optional[Any]): The concrete values to evaluate the 
     kernel function at. Leave empty if the kernel doesn't accept any arguments.

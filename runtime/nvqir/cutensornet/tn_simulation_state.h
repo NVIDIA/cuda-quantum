@@ -18,10 +18,13 @@
 
 namespace nvqir {
 
+template <typename ScalarType = double>
 class TensorNetSimulationState : public cudaq::SimulationState {
+  static constexpr cudaDataType_t cudaDataType =
+      std::is_same_v<ScalarType, float> ? CUDA_C_32F : CUDA_C_64F;
 
 public:
-  TensorNetSimulationState(std::unique_ptr<TensorNetState> inState,
+  TensorNetSimulationState(std::unique_ptr<TensorNetState<ScalarType>> inState,
                            ScratchDeviceMem &inScratchPad,
                            cutensornetHandle_t cutnHandle,
                            std::mt19937 &randomEngine);
@@ -42,7 +45,9 @@ public:
   std::size_t getNumQubits() const override;
   void dump(std::ostream &) const override;
   cudaq::SimulationState::precision getPrecision() const override {
-    return cudaq::SimulationState::precision::fp64;
+    return std::is_same_v<ScalarType, float>
+               ? cudaq::SimulationState::precision::fp32
+               : cudaq::SimulationState::precision::fp64;
   }
 
   bool isDeviceData() const override { return true; }
@@ -64,6 +69,12 @@ public:
   void destroyState() override;
   void toHost(std::complex<double> *clientAllocatedData,
               std::size_t numElements) const override;
+  void toHost(std::complex<float> *clientAllocatedData,
+              std::size_t numElements) const override;
+
+  template <typename T>
+  void toHostImpl(std::complex<T> *clientAllocatedData,
+                  std::size_t numElements) const;
   /// @brief Return a reference to all the tensors that have been applied to the
   /// state.
   const std::vector<AppliedTensorOp> &getAppliedTensors() const {
@@ -71,14 +82,16 @@ public:
   }
 
 protected:
-  std::unique_ptr<TensorNetState> m_state;
+  std::unique_ptr<TensorNetState<ScalarType>> m_state;
   ScratchDeviceMem &scratchPad;
   cutensornetHandle_t m_cutnHandle;
   // Max number of qubits whereby the tensor network state should be contracted
   // and cached into a state vector.
   // This speeds up sequential state amplitude accessors for small states.
   static constexpr std::size_t g_maxQubitsForStateContraction = 30;
-  std::vector<std::complex<double>> m_contractedStateVec;
+  std::vector<std::complex<ScalarType>> m_contractedStateVec;
   std::mt19937 &m_randomEngine;
 };
 } // namespace nvqir
+
+#include "tn_simulation_state.inc"

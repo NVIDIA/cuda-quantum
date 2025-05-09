@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/EigenSparse.h"
 #include "cudaq/operators.h"
 #include "cudaq/utils/matrix.h"
 
@@ -31,6 +32,8 @@ void fermion_handler::validate_opcode() const {
 }
 #endif
 
+// used internally and externally to identity the operator -
+// use a human friendly string code to make it more comprehensible
 std::string fermion_handler::op_code_to_string() const {
   // Note that we can (and should) have the same op codes across boson, fermion,
   // and spin ops, since individual operators with the same op codes are
@@ -56,14 +59,19 @@ std::string fermion_handler::op_code_to_string() const {
   return "I";
 }
 
-std::string fermion_handler::op_code_to_string(
-    std::unordered_map<std::size_t, int64_t> &dimensions) const {
+// Used internally for canonical evaluation -
+// use a single char for representing the operator.
+// Relevant dimensions is not used but only exists
+// for consistency with other operator classes.
+std::string fermion_handler::canonical_form(
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
+    std::vector<std::int64_t> &relevant_dims) const {
   auto it = dimensions.find(this->degree);
   if (it == dimensions.end())
     dimensions[this->degree] = 2;
   else if (it->second != 2)
     throw std::runtime_error("dimension for fermion operator must be 2");
-  return this->op_code_to_string();
+  return std::to_string(this->op_code);
 }
 
 void fermion_handler::inplace_mult(const fermion_handler &other) {
@@ -103,6 +111,8 @@ std::vector<std::size_t> fermion_handler::degrees() const {
   return {this->degree};
 }
 
+std::size_t fermion_handler::target() const { return this->degree; }
+
 // constructors
 
 fermion_handler::fermion_handler(std::size_t target)
@@ -137,30 +147,102 @@ fermion_handler &fermion_handler::operator=(const fermion_handler &other) {
 
 // evaluations
 
+void fermion_handler::create_matrix(
+    const std::string &fermi_word,
+    const std::function<void(std::size_t, std::size_t, std::complex<double>)>
+        &process_element,
+    bool invert_order) {
+
+  // check if the operator quenches all states
+  auto it = std::find(fermi_word.cbegin(), fermi_word.cend(), '0');
+  if (it != fermi_word.cend())
+    return;
+
+  auto map_state = [](char encoding, bool state) {
+    if (state) {
+      if (encoding == '4' || encoding == '1') // zeros the state
+        return std::pair<double, bool>{0., state};
+      if (encoding == '8')
+        return std::pair<double, bool>{1., state};
+      if (encoding == '2')
+        return std::pair<double, bool>{1., !state};
+      else {
+        assert(encoding == '9');
+        return std::pair<double, bool>{1., state};
+      }
+    } else {
+      if (encoding == '2' || encoding == '8') // zeros the state
+        return std::pair<double, bool>{0., state};
+      if (encoding == '1')
+        return std::pair<double, bool>{1., state};
+      if (encoding == '4')
+        return std::pair<double, bool>{1., !state};
+      else {
+        assert(encoding == '9');
+        return std::pair<double, bool>{1., state};
+      }
+    }
+  };
+
+  auto dim = 1 << fermi_word.size();
+  auto nr_deg = fermi_word.size();
+
+  for (std::size_t old_state = 0; old_state < dim; ++old_state) {
+    std::size_t new_state = 0;
+    std::complex<double> entry = 1.;
+    for (std::size_t degree = 0; degree < nr_deg; ++degree) {
+      auto state = (old_state & (1 << degree)) >> degree;
+      auto op = fermi_word[invert_order ? nr_deg - 1 - degree : degree];
+      auto mapped = map_state(op, state);
+      entry *= mapped.first;
+      new_state |= (mapped.second << degree);
+    }
+    process_element(new_state, old_state, entry);
+  }
+}
+
+cudaq::detail::EigenSparseMatrix fermion_handler::to_sparse_matrix(
+    const std::string &fermi_word, const std::vector<std::int64_t> &dimensions,
+    std::complex<double> coeff, bool invert_order) {
+  // private method, so we only assert dimensions
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
+                      [](std::int64_t d) { return d != 2; }) ==
+         dimensions.cend());
+  auto dim = 1 << fermi_word.size();
+  return cudaq::detail::create_sparse_matrix(
+      dim, coeff,
+      [&fermi_word, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(fermi_word, process_entry, invert_order);
+      });
+}
+
+complex_matrix
+fermion_handler::to_matrix(const std::string &fermi_word,
+                           const std::vector<std::int64_t> &dimensions,
+                           std::complex<double> coeff, bool invert_order) {
+  // private method, so we only assert dimensions
+  assert(std::find_if(dimensions.cbegin(), dimensions.cend(),
+                      [](std::int64_t d) { return d != 2; }) ==
+         dimensions.cend());
+  auto dim = 1 << fermi_word.size();
+  return cudaq::detail::create_matrix(
+      dim, coeff,
+      [&fermi_word, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(fermi_word, process_entry, invert_order);
+      });
+}
+
 complex_matrix fermion_handler::to_matrix(
-    std::unordered_map<std::size_t, int64_t> &dimensions,
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  auto it = dimensions.find(this->degree);
-  if (it == dimensions.end())
-    dimensions[this->degree] = 2;
-  else if (it->second != 2)
-    throw std::runtime_error("dimension for fermion operator must be 2");
-
-#if !defined(NDEBUG)
-  this->validate_opcode();
-#endif
-
-  auto mat = complex_matrix(2, 2);
-  if (this->op_code & 1)
-    mat[{0, 0}] = 1.;
-  if (this->op_code & 2)
-    mat[{0, 1}] = 1.;
-  if (this->op_code & 4)
-    mat[{1, 0}] = 1.;
-  if (this->op_code & 8)
-    mat[{1, 1}] = 1.;
-  return mat;
+  std::vector<std::int64_t> relevant_dims;
+  return fermion_handler::to_matrix(
+      this->canonical_form(dimensions, relevant_dims));
 }
 
 std::string fermion_handler::to_string(bool include_degrees) const {
