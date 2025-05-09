@@ -317,13 +317,11 @@ Platform
 
 .. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
 
+.. doxygenclass:: cudaq::AnalogRemoteRESTQPU    
+
 .. doxygenclass:: cudaq::FermioniqBaseQPU
 
 .. doxygenclass:: cudaq::OrcaRemoteRESTQPU
-
-.. doxygenclass:: cudaq::PasqalBaseQPU
-
-.. doxygenclass:: cudaq::QuEraBaseQPU
 
 .. doxygenclass:: cudaq::quantum_platform
     :members:
