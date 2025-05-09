@@ -95,6 +95,8 @@ public:
 
   std::size_t getBufferSize() const { return buffer.size(); }
 
+  void resizeBuffer(std::size_t more) { buffer.resize(buffer.size() + more); }
+
   template <typename T>
   void addPrimitiveRecord(T value) {
     std::size_t position = buffer.size();

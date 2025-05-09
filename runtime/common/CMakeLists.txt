@@ -111,6 +111,7 @@ target_link_libraries(${LIBRARY_NAME}
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 
 ## ----- MLIR-dependent all compiler components including argument converter -----
+## TODO: Combine cudaq-mlir-compiler and cudaq-mlir-runtime
 set(LIBRARY_NAME cudaq-mlir-compiler)
 add_library(${LIBRARY_NAME} SHARED
   ArgumentConversion.cpp

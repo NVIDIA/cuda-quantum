@@ -278,3 +278,43 @@ CUDAQ_TEST(ParserTester, checkMultipleShots) {
   buffer = nullptr;
   origBuffer = nullptr;
 }
+
+CUDAQ_TEST(ParserTester, checkTupleWithLayout) {
+  const std::string log = "OUTPUT\tTUPLE\t3\ttuple<i1, i64, f64>\n"
+                          "OUTPUT\tBOOL\ttrue\t.0\n"
+                          "OUTPUT\tINT\t37\t.1\n"
+                          "OUTPUT\tDOUBLE\t3.1416\t.2\n"
+                          "OUTPUT\tTUPLE\t3\ttuple<i1, i64, f64>\n"
+                          "OUTPUT\tBOOL\tfalse\t.0\n"
+                          "OUTPUT\tINT\t42\t.1\n"
+                          "OUTPUT\tDOUBLE\t4.14\t.2\n";
+  std::pair<std::size_t, std::vector<std::size_t>> layout;
+  layout.first = 24;
+  layout.second = {0, 4, 16};
+  cudaq::RecordLogParser parser(layout);
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  EXPECT_EQ(24 * 2, bufferSize);
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  std::vector<std::tuple<bool, std::int64_t, double>> results = {
+      reinterpret_cast<std::tuple<bool, std::int64_t, double> *>(span.data),
+      reinterpret_cast<std::tuple<bool, std::int64_t, double> *>(
+          span.data + span.lengthInBytes)};
+  EXPECT_EQ(2, results.size());
+  for (const auto &tuple : results) {
+    std::cout << std::get<0>(tuple) << ", " << std::get<1>(tuple) << ", "
+              << std::get<2>(tuple) << std::endl;
+  }
+  EXPECT_EQ(true, std::get<0>(results[0]));
+  EXPECT_EQ(37, std::get<1>(results[0]));
+  EXPECT_EQ(3.1416, std::get<2>(results[0]));
+  EXPECT_EQ(false, std::get<0>(results[1]));
+  EXPECT_EQ(42, std::get<1>(results[1]));
+  EXPECT_EQ(4.14, std::get<2>(results[1]));
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}

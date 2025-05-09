@@ -166,9 +166,18 @@ void cudaq::RecordLogParser::preallocateArray() {
 
 void cudaq::RecordLogParser::preallocateTuple() {
   containerMeta.dataOffset = bufferHandler.getBufferSize();
-  for (auto ty : containerMeta.tupleTypes) {
-    cudaq::details::DataHandlerBase &dh = getDataHandler(ty);
-    containerMeta.tupleOffsets.push_back(dh.allocateTuple(bufferHandler));
+  if (dataLayoutInfo.first == 0) {
+    // Allocate contiguous memory for the tuple
+    for (auto ty : containerMeta.tupleTypes) {
+      cudaq::details::DataHandlerBase &dh = getDataHandler(ty);
+      containerMeta.tupleOffsets.push_back(dh.allocateTuple(bufferHandler));
+    }
+  } else {
+    if (dataLayoutInfo.second.size() != containerMeta.tupleTypes.size())
+      throw std::runtime_error("Tuple size mismatch in kernel and label.");
+    // Directly allocate memory for the tuple, update offsets
+    bufferHandler.resizeBuffer(dataLayoutInfo.first);
+    containerMeta.tupleOffsets = dataLayoutInfo.second;
   }
 }
 
