@@ -434,13 +434,11 @@ struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
       }
       if (isa<IntegerType>(castOp.getType()) &&
           (castOp.getType() == castToCast.getType())) {
-        // consecutive integer casts to the same type with a possible sign
-        // change. %4 = cc.cast %3 : (i64) -> i64 %5 = cc.cast unsigned %4 :
-        // (i64) -> i64 ──────────────────────────────────────────── %5 =
-        // cc.cast unsigned %3 : (i64) -> i64
+        // %4 = cc.cast %3 : (i64) -> i64
+        // %5 = cc.cast unsigned %4 : (i64) -> i64
+        // ────────────────────────────────────────────
+        // %5 = cc.cast unsigned %3 : (i64) -> i64
 
-        // Replace both casts by a cast to of the original value with current
-        // type and sign.
         rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
             castOp, castOp.getType(), castToCast.getValue(),
             castOp.getSintAttr(), castOp.getZintAttr());
