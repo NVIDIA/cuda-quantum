@@ -1,22 +1,21 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import cudaq
 
-def print_i1(value: bool) -> None:
-    raise RuntimeError(
-        'cudaq.dbg.ast.print_i1 can only be called from a CUDA-Q kernel')
+def test_param_negative_int_list():
 
+    @cudaq.kernel
+    def kernel(l: list[int], i: int) -> int:
+        return l[i]
 
-def print_i64(value: int) -> None:
-    raise RuntimeError(
-        'cudaq.dbg.ast.print_i64 can only be called from a CUDA-Q kernel')
+    lst = [0, 1, -1]
+    for i in range(len(lst)):
+        assert kernel(lst, i) == lst[i]
 
-
-def print_f64(value: float) -> None:
-    raise RuntimeError(
-        'cudaq.dbg.ast.print_f64 can only be called from a CUDA-Q kernel')
+test_param_negative_int_list()

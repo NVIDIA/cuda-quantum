@@ -642,6 +642,25 @@ class PyASTBridge(ast.NodeVisitor):
             printFunc = currentST['print_i64']
             printStr += '%ld\n'
 
+        elif dbgStmt == 'print_i1':
+            if not IntegerType.isinstance(value.type):
+                self.emitFatalError(
+                    f"print_i1 requested, but value is not of integer type (type was {value.type})."
+                )
+
+            currentST = SymbolTable(self.module.operation)
+            argsTy += [self.getIntegerType(1)]
+            # If `printf` is not in the module, or if it is but the last argument type is not an integer
+            # then we have to add it
+            if not 'print_i1' in currentST or not IntegerType.isinstance(
+                    currentST['print_i1'].type.inputs[-1]):
+                with InsertionPoint(self.module.body):
+                    printOp = func.FuncOp('print_i1', (argsTy, []))
+                    printOp.sym_visibility = StringAttr.get("private")
+            currentST = SymbolTable(self.module.operation)
+            printFunc = currentST['print_i1']
+            printStr += '%ld\n'
+
         elif dbgStmt == 'print_f64':
             if not F64Type.isinstance(value.type):
                 self.emitFatalError(
@@ -2059,7 +2078,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                 self.emitFatalError('Invalid list() cast requested.', node)
 
-            elif node.func.id in ['print_i64', 'print_f64']:
+            elif node.func.id in ['print_i1', 'print_i64', 'print_f64']:
                 self.__insertDbgStmt(self.popValue(), node.func.id)
                 return
 

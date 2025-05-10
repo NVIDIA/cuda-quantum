@@ -537,6 +537,118 @@ def test_list_creation():
     assert len(counts) == 1
     assert '1' * 5 in counts
 
+    @cudaq.kernel
+    def kernel5(myList: list[bool]):
+        q = cudaq.qvector(len(myList))
+        for i, b in enumerate(myList):
+            if b:
+                x(q[i])
+
+    counts = cudaq.sample(kernel5, [True, False, True, False])
+    assert len(counts) == 1
+    assert '1010' in counts
+
+    @cudaq.kernel
+    def kernel(n: int, words: list[cudaq.pauli_word], theta: float):
+        qubits = cudaq.qvector(n)
+        for term in words:
+            exp_pauli(theta, qubits, term)
+
+    words = [cudaq.pauli_word('YZXI'), cudaq.pauli_word('XZYI')]
+    counts = cudaq.sample(kernel, 4, words, 0.5)
+    assert len(counts) == 2
+    assert '0000' in counts
+    assert '1010' in counts
+
+    @cudaq.kernel
+    def kernel(n: int, words: list[cudaq.pauli_word], theta: float):
+
+        qubits = cudaq.qvector(n)
+        for term in words:
+            exp_pauli(theta, qubits, term)
+
+    words = ['YZXI', 'XZYI']
+    counts = cudaq.sample(kernel, 4, words, 0.5)
+    assert len(counts) == 2
+    assert '0000' in counts
+    assert '1010' in counts
+
+
+def test_nested_list_iteration():
+
+    @cudaq.kernel
+    def kernel5(n: int, myList: list[list[bool]]):
+        q = cudaq.qvector(n)
+        for i, inner in enumerate(myList):
+            for j, e in enumerate(inner):
+                if e:
+                    x(q[i * len(inner) + j])
+
+    counts = cudaq.sample(
+        kernel5, 8, [[True, False, True, False], [False, True, False, True]])
+    assert len(counts) == 1
+    assert '10100101' in counts
+
+    @cudaq.kernel
+    def kernel6(n: int, myList: list[list[int]]):
+        q = cudaq.qvector(n)
+        for inner in myList:
+            for i in inner:
+                x(q[i])
+
+    counts = cudaq.sample(kernel6, 8, [[0, 1, 2, 3], [4, 5, 6, 7]])
+    assert len(counts) == 1
+    assert '11111111' in counts
+
+    @cudaq.kernel
+    def kernel7(n: int, myList: list[list[float]]):
+        q = cudaq.qvector(n)
+        for inner in myList:
+            for i in inner:
+                j = int(i)
+                x(q[j])
+
+    counts = cudaq.sample(kernel7, 8, [[0., 1., 2., 3.], [4., 5., 6., 7.]])
+    assert len(counts) == 1
+    assert '11111111' in counts
+
+    @cudaq.kernel
+    def kernel(qubit_num: int, words: list[list[cudaq.pauli_word]],
+               theta: list[float]):
+
+        qubits = cudaq.qvector(qubit_num)
+        for i in range(len(words)):
+            for term in words[i]:
+                exp_pauli(theta[i], qubits, term)
+
+    words = [[cudaq.pauli_word('YZXI'),
+              cudaq.pauli_word('XZYI')],
+             [cudaq.pauli_word('IYZX'),
+              cudaq.pauli_word('IXZY')]]
+    counts = cudaq.sample(kernel, 4, words, [0.5, 0.5])
+    assert len(counts) == 4
+    assert '0000' in counts
+    assert '0101' in counts
+    assert '1010' in counts
+    assert '1111' in counts
+
+    @cudaq.kernel
+    def kernel(qubit_num: int, words: list[list[cudaq.pauli_word]],
+               theta: list[float]):
+
+        qubits = cudaq.qvector(qubit_num)
+        for i in range(len(words)):
+            for term in words[i]:
+                exp_pauli(theta[i], qubits, term)
+
+    words = [['YZXI', 'XZYI'], ['IYZX', 'IXZY']]
+    counts = cudaq.sample(kernel, 4, words, [0.5, 0.5])
+    assert len(counts) == 4
+    assert '0000' in counts
+    assert '0101' in counts
+    assert '1010' in counts
+    assert '1111' in counts
+
 
 def test_list_creation_with_cast():
 

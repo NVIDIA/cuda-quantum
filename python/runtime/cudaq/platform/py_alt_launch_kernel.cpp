@@ -751,7 +751,6 @@ void bindAltLaunchKernel(py::module &mod) {
       [&](const std::string &kernelName, MlirModule module,
           py::args runtimeArgs, std::vector<std::string> callable_names) {
         auto kernelFunc = getKernelFuncOp(module, kernelName);
-
         cudaq::OpaqueArguments args;
         cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
         pyAltLaunchKernel(kernelName, module, args, callable_names);
