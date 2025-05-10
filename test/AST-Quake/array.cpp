@@ -112,4 +112,3 @@ struct S1 {
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_15]]) : (i32) -> ()
 // CHECK:           return
 // CHECK:         }
-

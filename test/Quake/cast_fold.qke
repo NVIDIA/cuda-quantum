@@ -93,7 +93,7 @@ func.func @b9() -> i32 {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @b7() -> i64 {
-// CHECK:           %[[VAL_0:.*]] = arith.constant -82 : i64
+// CHECK:           %[[VAL_0:.*]] = arith.constant 65454 : i64
 // CHECK:           return %[[VAL_0]] : i64
 // CHECK:         }
 
@@ -106,3 +106,337 @@ func.func @b9() -> i32 {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 7 : i32
 // CHECK:           return %[[VAL_0]] : i32
 // CHECK:         }
+
+
+// Cast of bool
+
+func.func @b_ib() -> i1 {
+  %0 = arith.constant true
+  %1 = cc.cast signed %0 : (i1) -> i1
+  return %1 : i1
+}
+
+// CHECK:   func.func @b_ib() -> i1 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant true
+// CHECK:     return %[[VAL_0]] : i1
+// CHECK:   }
+
+func.func @b_ub() -> i1 {
+  %0 = arith.constant true
+  %1 = cc.cast unsigned %0 : (i1) -> i1
+  return %1 : i1
+}
+
+// CHECK:   func.func @b_ub() -> i1 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant true
+// CHECK:     return %[[VAL_0]] : i1
+// CHECK:   }
+
+func.func @b_i8() -> i8 {
+  %0 = arith.constant true
+  %1 = cc.cast signed %0 : (i1) -> i8
+  return %1 : i8
+}
+
+// CHECK:   func.func @b_i8() -> i8 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i8
+// CHECK:     return %[[VAL_0]] : i8
+// CHECK:   }
+
+
+func.func @b_u8() -> i8 {
+  %0 = arith.constant true
+  %1 = cc.cast unsigned %0 : (i1) -> i8
+  return %1 : i8
+}
+
+// CHECK:   func.func @b_u8() -> i8 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant 1 : i8
+// CHECK:     return %[[VAL_0]] : i8
+// CHECK:   }
+
+func.func @b_i16() -> i16 {
+  %0 = arith.constant true
+  %1 = cc.cast signed %0 : (i1) -> i16
+  return %1 : i16
+}
+
+// CHECK:   func.func @b_i16() -> i16 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i16
+// CHECK:     return %[[VAL_0]] : i16
+// CHECK:   }
+
+func.func @b_u16() -> i16 {
+  %0 = arith.constant true
+  %1 = cc.cast unsigned %0 : (i1) -> i16
+  return %1 : i16
+}
+
+// CHECK:   func.func @b_u16() -> i16 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant 1 : i16
+// CHECK:     return %[[VAL_0]] : i16
+// CHECK:   }
+
+
+func.func @b_i32() -> i32 {
+  %0 = arith.constant true
+  %1 = cc.cast signed %0 : (i1) -> i32
+  return %1 : i32
+}
+
+// CHECK:   func.func @b_i32() -> i32 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i32
+// CHECK:     return %[[VAL_0]] : i32
+// CHECK:   }
+
+func.func @b_u32() -> i32 {
+  %0 = arith.constant true
+  %1 = cc.cast unsigned %0 : (i1) -> i32
+  return %1 : i32
+}
+
+// CHECK:   func.func @b_u32() -> i32 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant 1 : i32
+// CHECK:     return %[[VAL_0]] : i32
+// CHECK:   }
+
+func.func @b_i64() -> i64 {
+  %0 = arith.constant true
+  %1 = cc.cast signed %0 : (i1) -> i64
+  return %1 : i64
+}
+
+// CHECK:   func.func @b_i64() -> i64 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i64
+// CHECK:     return %[[VAL_0]] : i64
+// CHECK:   }
+
+func.func @b_u64() -> i64 {
+  %0 = arith.constant true
+  %1 = cc.cast unsigned %0 : (i1) -> i64
+  return %1 : i64
+}
+
+// CHECK:   func.func @b_u64() -> i64 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant 1 : i64
+// CHECK:     return %[[VAL_0]] : i64
+// CHECK:   }
+
+
+// Cast of int32
+
+func.func @i32_ib() -> i1 {
+  %0 = arith.constant -1 : i32
+  %1 = cc.cast %0 : (i32) -> i1
+  return %1 : i1
+}
+
+// CHECK:   func.func @i32_ib() -> i1 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant true
+// CHECK:     return %[[VAL_0]] : i1
+// CHECK:   }
+
+func.func @i32_i8() -> i8 {
+  %0 = arith.constant -1 : i32
+  %1 = cc.cast %0 : (i32) -> i8
+  return %1 : i8
+}
+
+// CHECK:   func.func @i32_i8() -> i8 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i8
+// CHECK:     return %[[VAL_0]] : i8
+// CHECK:   }
+
+func.func @i32_i16() -> i16 {
+  %0 = arith.constant -1 : i32
+  %1 = cc.cast %0 : (i32) -> i16
+  return %1 : i16
+}
+
+// CHECK:   func.func @i32_i16() -> i16 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i16
+// CHECK:     return %[[VAL_0]] : i16
+// CHECK:   }
+
+func.func @i32_i32() -> i32 {
+  %0 = arith.constant -1 : i32
+  %1 = cc.cast signed %0 : (i32) -> i32
+  return %1 : i32
+}
+
+// CHECK:   func.func @i32_i32() -> i32 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i32
+// CHECK:     return %[[VAL_0]] : i32
+// CHECK:   }
+
+func.func @i32_u32() -> i32 {
+  %0 = arith.constant -1 : i32
+  %1 = cc.cast unsigned %0 : (i32) -> i32
+  return %1 : i32
+}
+
+// CHECK:   func.func @i32_u32() -> i32 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i32
+// CHECK:     return %[[VAL_0]] : i32
+// CHECK:   }
+
+func.func @i32_i64() -> i64 {
+  %0 = arith.constant -1 : i32
+  %1 = cc.cast signed %0 : (i32) -> i64
+  return %1 : i64
+}
+
+// CHECK:   func.func @i32_i64() -> i64 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i64
+// CHECK:     return %[[VAL_0]] : i64
+// CHECK:   }
+
+func.func @i32_u64() -> i64 {
+  %0 = arith.constant -1 : i32
+  %1 = cc.cast unsigned %0 : (i32) -> i64
+  return %1 : i64
+}
+
+// CHECK:   func.func @i32_u64() -> i64 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant 4294967295 : i64
+// CHECK:     return %[[VAL_0]] : i64
+// CHECK:   }
+
+
+// Cast of uint32
+
+func.func @u32_u64() -> i64 {
+  %0 = arith.constant 4294967295 : i32
+  %1 = cc.cast unsigned %0 : (i32) -> i64
+  return %1 : i64
+}
+
+// CHECK:   func.func @u32_u64() -> i64 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant 4294967295 : i64
+// CHECK:     return %[[VAL_0]] : i64
+// CHECK:   }
+
+func.func @u32_i64() -> i64 {
+  %0 = arith.constant 4294967295 : i32
+  %1 = cc.cast signed %0 : (i32) -> i64
+  return %1 : i64
+}
+
+// CHECK:   func.func @u32_i64() -> i64 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i64
+// CHECK:     return %[[VAL_0]] : i64
+// CHECK:   }
+
+
+// Cast folding optimizations on integer casts
+
+func.func @i32_nop() -> i32 {
+  %0 = arith.constant -1: i32
+  %1 = cc.cast %0 : (i32) -> i32
+  return %1 : i32
+}
+
+// CHECK:   func.func @i32_nop() -> i32 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i32
+// CHECK:     return %[[VAL_0]] : i32
+// CHECK:   }
+
+func.func @i32_repeat() -> i32 {
+  %0 = arith.constant -1: i32
+  %1 = cc.cast unsigned %0 : (i32) -> i32
+  %2 = cc.cast unsigned %1 : (i32) -> i32
+  return %2 : i32
+}
+
+// CHECK:   func.func @i32_repeat() -> i32 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i32
+// CHECK:     return %[[VAL_0]] : i32
+// CHECK:   }
+
+func.func @i32_change_sign() -> i32 {
+  %0 = arith.constant -1: i32
+  %1 = cc.cast signed %0 : (i32) -> i32
+  %2 = cc.cast unsigned %1 : (i32) -> i32
+  return %2 : i32
+}
+
+// CHECK:   func.func @i32_change_sign() -> i32 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i32
+// CHECK:     return %[[VAL_0]] : i32
+// CHECK:   }
+
+func.func @i32_change_type() -> i64 {
+  %0 = arith.constant -1: i32
+  %1 = cc.cast unsigned %0 : (i32) -> i32
+  %2 = cc.cast unsigned %1 : (i32) -> i64
+  return %2 : i64
+}
+
+// CHECK:   func.func @i32_change_type() -> i64 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant 4294967295 : i64
+// CHECK:     return %[[VAL_0]] : i64
+// CHECK:   }
+
+func.func @i32_change_type_and_sign() -> i64 {
+  %0 = arith.constant -1: i32
+  %1 = cc.cast unsigned %0 : (i32) -> i32
+  %2 = cc.cast signed %1 : (i32) -> i64
+  return %2 : i64
+}
+
+// CHECK:   func.func @i32_change_type_and_sign() -> i64 {
+// CHECK:     %[[VAL_0:.*]] = arith.constant -1 : i64
+// CHECK:     return %[[VAL_0]] : i64
+// CHECK:   }
+
+
+// cast pointers
+
+func.func @p32_u64() -> i32 {
+  %0 = cc.alloca i32
+  %1 = cc.cast %0 : (!cc.ptr<i32>) -> i64
+  %2 = cc.cast %1 : (i64) -> i32
+  return %2 : i32
+}
+
+// CHECK:   func.func @p32_u64() -> i32 {
+// CHECK:     %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:     %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i32>) -> i64
+// CHECK:     %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (i64) -> i32
+// CHECK:     return %[[VAL_2]] : i32
+// CHECK:   }
+
+// Cast and test
+
+func.func @castAndTest () {
+    %c0 = arith.constant -1 : i32
+    %c1 = arith.constant 4294967295 : i64
+    %0 = cc.cast unsigned %c0 : (i32) -> i32
+    %1 = cc.cast unsigned %0 : (i32) -> i64
+    %2 = quake.alloca !quake.ref
+    %3 = arith.cmpi eq, %1, %c1 : i64
+    cc.if(%3) {
+      quake.x %2 : (!quake.ref) -> ()
+    }
+    return
+  }
+
+// CHECK:   func.func @castAndTest() {
+// CHECK:     %true = arith.constant true
+// CHECK:     %0 = quake.alloca !quake.ref
+// CHECK:     cc.if(%true) {
+// CHECK:       quake.x %0 : (!quake.ref) -> ()
+// CHECK:     }
+// CHECK:     return
+// CHECK:   }
+
+func.func @castIntToBool() -> i1 {
+  %0 = arith.constant 800 : i16
+  %1 = cc.cast %0 : (i16) -> i1
+  return %1: i1
+}
+
+// CHECK:   func.func @castIntToBool() -> i1 {
+// CHECK:     %true = arith.constant true
+// CHECK:     return %true : i1
+// CHECK:   }
