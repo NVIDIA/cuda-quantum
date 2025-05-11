@@ -19,23 +19,21 @@ config.name = "NVQPP-Unit"
 # testFormat: The test format to use to interpret tests.
 config.test_format = lit.formats.GoogleTest(".", "")
 
-config.test_format.test_suffixes.update(
-    [
-        "test_mqpu",
-        "test_mpi",
-        "test_gpu_get_state",
-        "test_spin",
-        "test_operators",
-        "test_dynamics",
-        "test_qudit",
-        "test_photonics",
-        "test_utils",
-        "test_domains",
-        "test_runtime_qpp",
-        "test_runtime_dm",
-        "test_runtime_sm",
-    ]
-)
+config.test_format.test_suffixes = [
+    "test_mqpu",
+    "test_mpi",
+    "test_gpu_get_state",
+    "test_spin",
+    "test_operators",
+    "test_dynamics",
+    "test_qudit",
+    "test_photonics",
+    "test_utils",
+    "test_domains",
+    "test_runtime_qpp",
+    "test_runtime_dm",
+    "test_runtime_sm",
+]
 
 # A list of file extensions to treat as test files.
 
