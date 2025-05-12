@@ -45,7 +45,8 @@ void CuDensityMatTimeStepper::computeImpl(
   HANDLE_CUDM_ERROR(cudensitymatCreateWorkspace(m_handle, &workspace));
 
   {
-    cudaq::dynamics::PerfMetricScopeTimer metricTimer("cudensitymatOperatorPrepareAction");
+    cudaq::dynamics::PerfMetricScopeTimer metricTimer(
+        "cudensitymatOperatorPrepareAction");
     // Prepare the operator for action
     HANDLE_CUDM_ERROR(cudensitymatOperatorPrepareAction(
         m_handle, m_liouvillian, inState, outState, CUDENSITYMAT_COMPUTE_64F,
@@ -80,7 +81,8 @@ void CuDensityMatTimeStepper::computeImpl(
       static_cast<double *>(cudaq::dynamics::createArrayGpu(paramValues));
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   {
-    cudaq::dynamics::PerfMetricScopeTimer metricTimer("cudensitymatOperatorComputeAction");
+    cudaq::dynamics::PerfMetricScopeTimer metricTimer(
+        "cudensitymatOperatorComputeAction");
     HANDLE_CUDM_ERROR(cudensitymatOperatorComputeAction(
         m_handle, m_liouvillian, t, 1, paramValues.size() * 2, param_d, inState,
         outState, workspace, 0x0));

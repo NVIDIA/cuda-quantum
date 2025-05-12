@@ -8,10 +8,10 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
 #include "common/EigenDense.h"
 #include "common/Logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "CuDensityMatUtils.h"
 namespace cudaq {
 
 std::complex<double>
@@ -66,7 +66,8 @@ CuDensityMatState::getAmplitude(const std::vector<int> &basisState) {
 // Dump the state to the given output stream
 void CuDensityMatState::dump(std::ostream &os) const {
   // get state data from device to print
-  const auto dim = isDensityMatrix ? std::size_t(std::sqrt(dimension)) : dimension;
+  const auto dim =
+      isDensityMatrix ? std::size_t(std::sqrt(dimension)) : dimension;
   Eigen::MatrixXcd state(dim, isDensityMatrix ? dim : 1);
   const auto size = state.size();
   HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
@@ -233,7 +234,7 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
 
   std::size_t storageSize;
   HANDLE_CUDM_ERROR(cudensitymatStateGetComponentStorageSize(
-    state->cudmHandle, state->cudmState,
+      state->cudmHandle, state->cudmState,
       1,              // only one storage component
       &storageSize)); // storage size in bytes
   const std::size_t stateVolume =
@@ -430,7 +431,7 @@ CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
     }
   }
 
-  void* densityMat_d = cudaq::dynamics::createArrayGpu(densityMatrix);
+  void *densityMat_d = cudaq::dynamics::createArrayGpu(densityMatrix);
 
   CuDensityMatState dmState(expectedDensityMatrixSize, densityMat_d);
   dmState.initialize_cudm(cudmHandle, hilbertSpaceDims);

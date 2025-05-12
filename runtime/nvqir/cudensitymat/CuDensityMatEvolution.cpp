@@ -11,12 +11,12 @@
 #include "CuDensityMatExpectation.h"
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
+#include "CuDensityMatUtils.h"
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/algorithms/integrator.h"
 #include <iterator>
 #include <random>
 #include <stdexcept>
-#include "CuDensityMatUtils.h"
 namespace cudaq::__internal__ {
 template <typename Key, typename Value>
 std::map<Key, Value>

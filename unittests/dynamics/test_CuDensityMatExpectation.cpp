@@ -8,6 +8,7 @@
 
 #include "CuDensityMatContext.h"
 #include "CuDensityMatState.h"
+#include "CuDensityMatUtils.h"
 #include "common/EigenDense.h"
 #include "test_Mocks.h"
 #include <CuDensityMatErrorHandling.h>
@@ -16,7 +17,6 @@
 #include <iostream>
 #include <memory>
 #include <unsupported/Eigen/KroneckerProduct>
-#include "CuDensityMatUtils.h"
 
 using namespace cudaq;
 
@@ -48,7 +48,8 @@ TEST_F(CuDensityMatExpectationTest, checkCompute) {
   for (std::size_t stateIdx = 0; stateIdx < dims[0]; ++stateIdx) {
     std::vector<std::complex<double>> initialState(dims[0], 0.0);
     initialState[stateIdx] = 1.0;
-    CuDensityMatState inputState(initialState.size(), cudaq::dynamics::createArrayGpu(initialState));
+    CuDensityMatState inputState(initialState.size(),
+                                 cudaq::dynamics::createArrayGpu(initialState));
     inputState.initialize_cudm(handle_, dims);
     expectation.prepare(inputState.get_impl());
     const auto expVal = expectation.compute(inputState.get_impl(), 0.0);

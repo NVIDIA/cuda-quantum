@@ -55,7 +55,8 @@ std::complex<double> CuDensityMatExpectation::compute(cudensitymatState_t state,
   auto *expectationValue_d = cudaq::dynamics::createArrayGpu(
       std::vector<std::complex<double>>(1, {0.0, 0.0}));
   {
-    cudaq::dynamics::PerfMetricScopeTimer metricTimer("cudensitymatExpectationCompute");
+    cudaq::dynamics::PerfMetricScopeTimer metricTimer(
+        "cudensitymatExpectationCompute");
     HANDLE_CUDM_ERROR(cudensitymatExpectationCompute(
         m_handle, m_expectation, time, 1, 0, nullptr, state, expectationValue_d,
         m_workspace, 0x0));

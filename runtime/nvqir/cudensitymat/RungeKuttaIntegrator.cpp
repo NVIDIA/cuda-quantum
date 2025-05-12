@@ -147,11 +147,11 @@ void runge_kutta::integrate(double targetTime) {
       auto k4State = m_stepper->compute(cudaq::state(rho_temp_3.release()),
                                         m_t + step_size, step_size, params);
       auto &k4 = *asCudmState(k4State);
-      
-      castSimState.accumulate_inplace(k1, step_size/6.0);
-      castSimState.accumulate_inplace(k2, step_size/3.0);
-      castSimState.accumulate_inplace(k3, step_size/3.0);
-      castSimState.accumulate_inplace(k4, step_size/6.0);
+
+      castSimState.accumulate_inplace(k1, step_size / 6.0);
+      castSimState.accumulate_inplace(k2, step_size / 3.0);
+      castSimState.accumulate_inplace(k3, step_size / 3.0);
+      castSimState.accumulate_inplace(k4, step_size / 6.0);
     } else {
       throw std::runtime_error("Invalid integrator order");
     }

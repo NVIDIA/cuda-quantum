@@ -6,16 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CuDensityMatContext.h"
+#include "CuDensityMatExpectation.h"
+#include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
+#include "CuDensityMatUtils.h"
 #include "cudaq/algorithms/base_integrator.h"
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/schedule.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "CuDensityMatState.h"
-#include "CuDensityMatContext.h"
-#include "CuDensityMatExpectation.h"
-#include "CuDensityMatUtils.h"
 
 namespace py = pybind11;
 namespace {
@@ -113,16 +113,16 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
       .def(py::init<const std::vector<double> &,
                     const std::vector<std::string> &>());
 
-  m.def("initializeState", [](cudaq::state &state,
-                              const std::vector<int64_t> &modeExtents,
-                              bool asDensityMat) {
-    auto &castSimState = *asCudmState(state);
-    if (!castSimState.is_initialized())
-      castSimState.initialize_cudm(
-          cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-          modeExtents);
-    return state;
-  });
+  m.def("initializeState",
+        [](cudaq::state &state, const std::vector<int64_t> &modeExtents,
+           bool asDensityMat) {
+          auto &castSimState = *asCudmState(state);
+          if (!castSimState.is_initialized())
+            castSimState.initialize_cudm(
+                cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+                modeExtents);
+          return state;
+        });
 
   m.def("clearContext", []() {
     cudaq::dynamics::Context::getCurrentContext()

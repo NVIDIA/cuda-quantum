@@ -49,15 +49,13 @@ void cudaq::dynamics::dumpPerfTrace(std::ostream &os) {
       [](const std::pair<std::string, cudaq::dynamics::PerfMetric> &metricPair1,
          const std::pair<std::string, cudaq::dynamics::PerfMetric>
              &metricPair2) {
-        return metricPair1.second.totalTimeMs >
-               metricPair2.second.totalTimeMs;
+        return metricPair1.second.totalTimeMs > metricPair2.second.totalTimeMs;
       });
 
   if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
     for (const auto &[name, metric] : metrics) {
       os << name << ": number of calls = " << metric.numCalls
-         << ", total time = " << metric.totalTimeMs
-         << " [ms]. Time per call = "
+         << ", total time = " << metric.totalTimeMs << " [ms]. Time per call = "
          << metric.totalTimeMs / static_cast<double>(metric.numCalls)
          << "[ms].\n";
     }
