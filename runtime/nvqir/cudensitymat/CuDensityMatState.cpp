@@ -215,9 +215,12 @@ calculate_density_matrix_size(const std::vector<int64_t> &hilbertSpaceDims) {
   return vectorSize * vectorSize;
 }
 
-CuDensityMatState::CuDensityMatState(std::size_t s, void *ptr)
-    : devicePtr(ptr), dimension(s),
-      cudmHandle(dynamics::Context::getCurrentContext()->getHandle()) {}
+CuDensityMatState::CuDensityMatState(std::size_t size, void *ptr)
+    : devicePtr(ptr), dimension(size),
+      cudmHandle(dynamics::Context::getCurrentContext()->getHandle()) {
+  if (size == 0)
+    throw std::invalid_argument("Zero-length state is not allowed.");
+}
 
 std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
     cudensitymatHandle_t handle, InitialState initial_state,
