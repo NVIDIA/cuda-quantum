@@ -94,11 +94,16 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
                 )
 
             hilbert_space_dims = [
-                self.dimensions[d] for d in range(len(self.dimensions))]
+                self.dimensions[d] for d in range(len(self.dimensions))
+            ]
             is_master_equation = isinstance(self.state, cudm.DenseMixedState)
-            self.schedule_ = bindings.Schedule(self.schedule._steps, list(self.schedule._parameters))
-            self.stepper = cuDensityMatTimeStepper(self.schedule_, self.hamiltonian, self.collapse_operators, hilbert_space_dims, is_master_equation)
-
+            self.schedule_ = bindings.Schedule(self.schedule._steps,
+                                               list(self.schedule._parameters))
+            self.stepper = cuDensityMatTimeStepper(self.schedule_,
+                                                   self.hamiltonian,
+                                                   self.collapse_operators,
+                                                   hilbert_space_dims,
+                                                   is_master_equation)
 
         if t <= self.t:
             raise ValueError(

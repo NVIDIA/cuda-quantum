@@ -127,7 +127,7 @@ public:
   void initialize_cudm(cudensitymatHandle_t handleToSet,
                        const std::vector<int64_t> &hilbertSpaceDims);
 
-  /// @brief Accumulation inplace with a coefficient
+  /// @brief Accumulation in-place with a coefficient
   void accumulate_inplace(const CuDensityMatState &other,
                           const std::complex<double> &coeff = 1.0);
 

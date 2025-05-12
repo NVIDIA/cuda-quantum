@@ -24,6 +24,7 @@ from ..util.timing_helper import ScopeTimer
 from . import nvqir_dynamics_bindings as bindings
 from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator
 
+
 # Master-equation solver using `CuDensityMatState`
 def evolve_dynamics(
         hamiltonian: Operator,
@@ -54,9 +55,10 @@ def evolve_dynamics(
 
     collapse_operators = [MatrixOperator(op) for op in collapse_operators]
     integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
-                              collapse_operators)
+                          collapse_operators)
     expectation_op = [
-        bindings.CuDensityMatExpectation(MatrixOperator(observable), list(hilbert_space_dims))
+        bindings.CuDensityMatExpectation(MatrixOperator(observable),
+                                         list(hilbert_space_dims))
         for observable in observables
     ]
 
@@ -82,12 +84,15 @@ def evolve_dynamics(
                 initial_state = initial_state.to_dm()
 
     if integrator.is_native():
-        initial_state = cudaq_runtime.State.from_data(cupy.ravel(cupy.transpose(initial_state.state.storage).copy()))
-        initial_state = bindings.initializeState(initial_state, list(hilbert_space_dims), len(collapse_operators) > 0)
+        initial_state = cudaq_runtime.State.from_data(
+            cupy.ravel(cupy.transpose(initial_state.state.storage).copy()))
+        initial_state = bindings.initializeState(initial_state,
+                                                 list(hilbert_space_dims),
+                                                 len(collapse_operators) > 0)
         integrator.set_state(initial_state, schedule._steps[0])
     else:
         integrator.set_state(initial_state.get_impl(), schedule._steps[0])
-    
+
     exp_vals = []
     intermediate_states = []
     for step_idx, parameters in enumerate(schedule):
@@ -100,11 +105,13 @@ def evolve_dynamics(
             step_exp_vals = []
             for obs_idx, obs in enumerate(expectation_op):
                 _, state = integrator.get_state()
-                if isinstance(state, cudm.DensePureState) or isinstance(state, cudm.DenseMixedState):
+                if isinstance(state, cudm.DensePureState) or isinstance(
+                        state, cudm.DenseMixedState):
                     with ScopeTimer("evolve.prepare_expectation") as timer:
                         obs.prepare(state._validated_ptr)
                     with ScopeTimer("evolve.compute_expectation") as timer:
-                        exp_val = obs.compute(state._validated_ptr, schedule.current_step)
+                        exp_val = obs.compute(state._validated_ptr,
+                                              schedule.current_step)
                 else:
                     with ScopeTimer("evolve.prepare_expectation") as timer:
                         obs.prepare(state)
@@ -118,15 +125,18 @@ def evolve_dynamics(
                 intermediate_states.append(state)
             else:
                 state_length = state.storage.size
-                if is_density_matrix and not CuDensityMatState.is_multi_process():
+                if is_density_matrix and not CuDensityMatState.is_multi_process(
+                ):
                     dimension = int(math.sqrt(state_length))
-                    with ScopeTimer("evolve.intermediate_states.append") as timer:
+                    with ScopeTimer(
+                            "evolve.intermediate_states.append") as timer:
                         intermediate_states.append(
                             cudaq_runtime.State.from_data(
                                 state.storage.reshape((dimension, dimension))))
                 else:
                     dimension = state_length
-                    with ScopeTimer("evolve.intermediate_states.append") as timer:
+                    with ScopeTimer(
+                            "evolve.intermediate_states.append") as timer:
                         intermediate_states.append(
                             cudaq_runtime.State.from_data(
                                 state.storage.reshape((dimension,))))
