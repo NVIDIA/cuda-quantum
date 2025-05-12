@@ -448,9 +448,9 @@ public:
   /// type. Otherwise, just returns \p val.
   mlir::Value loadLValue(mlir::Value val) {
     auto valTy = val.getType();
-    if (valTy.isa<cudaq::cc::PointerType>())
+    if (isa<cudaq::cc::PointerType>(valTy))
       return builder.create<cudaq::cc::LoadOp>(val.getLoc(), val);
-    if (valTy.isa<mlir::LLVM::LLVMPointerType>())
+    if (isa<mlir::LLVM::LLVMPointerType>(valTy))
       return builder.create<mlir::LLVM::LoadOp>(val.getLoc(), val);
     return val;
   }

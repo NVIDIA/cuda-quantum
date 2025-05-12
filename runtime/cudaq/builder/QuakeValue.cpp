@@ -43,7 +43,7 @@ public:
   /// allows us to validate later that the number of runtime
   /// std::vector elements are correct.
   void addUniqueExtraction(std::size_t idx) {
-    if (!value.getType().isa<cc::StdvecType>())
+    if (!isa<cc::StdvecType>(value.getType()))
       throw std::runtime_error(
           "Tracking unique extraction on non-stdvec type.");
 
@@ -90,11 +90,11 @@ QuakeValue::QuakeValue(mlir::ImplicitLocOpBuilder &builder, Value v)
     : value(std::make_shared<QuakeValue::ValueHolder>(v)), opBuilder(builder) {}
 
 bool QuakeValue::isStdVec() {
-  return value->asMLIR().getType().isa<cc::StdvecType>();
+  return isa<cc::StdvecType>(value->asMLIR().getType());
 }
 
 std::size_t QuakeValue::getRequiredElements() {
-  if (!value->asMLIR().getType().isa<cc::StdvecType>())
+  if (!isStdVec())
     throw std::runtime_error("Tracking unique extraction on non-stdvec type.");
   return value->countUniqueExtractions();
 }
@@ -102,7 +102,7 @@ std::size_t QuakeValue::getRequiredElements() {
 QuakeValue QuakeValue::operator[](const std::size_t idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!type.isa<cc::StdvecType, quake::VeqType>()) {
+  if (!isa<cc::StdvecType, quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -115,7 +115,7 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 
   Value indexVar = opBuilder.create<arith::ConstantIntOp>(idx, 32);
 
-  if (type.isa<quake::VeqType>()) {
+  if (isa<quake::VeqType>(type)) {
     Value extractedQubit =
         opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
     return QuakeValue(opBuilder, extractedQubit);
@@ -139,7 +139,7 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!type.isa<cc::StdvecType, quake::VeqType>()) {
+  if (!isa<cc::StdvecType, quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -152,7 +152,7 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 
   Value indexVar = idx.getValue();
 
-  if (type.isa<quake::VeqType>()) {
+  if (isa<quake::VeqType>(type)) {
     Value extractedQubit =
         opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
     return QuakeValue(opBuilder, extractedQubit);
@@ -175,12 +175,12 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 QuakeValue QuakeValue::size() {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!type.isa<cc::StdvecType, quake::VeqType>())
+  if (!isa<cc::StdvecType, quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue does not expose .size().");
 
   Type i64Ty = opBuilder.getI64Type();
   Value ret;
-  if (type.isa<cc::StdvecType>())
+  if (isa<cc::StdvecType>(type))
     ret = opBuilder.create<cc::StdvecSizeOp>(i64Ty, vectorValue);
   else
     ret = opBuilder.create<quake::VeqSizeOp>(i64Ty, vectorValue);
@@ -200,7 +200,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
                              const std::size_t count) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!type.isa<cc::StdvecType, quake::VeqType>())
+  if (!isa<cc::StdvecType, quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue is not sliceable.");
 
   if (count == 0)
