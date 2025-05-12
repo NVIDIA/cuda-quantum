@@ -9,7 +9,12 @@
 from ..integrator import BaseTimeStepper, BaseIntegrator
 from ..cudm_helpers import cudm, CudmStateType
 from .builtin_integrators import cuDensityMatTimeStepper
-from .. import nvqir_dynamics_bindings as bindings
+
+has_dynamics = True
+try:
+    from .. import nvqir_dynamics_bindings as bindings
+except ImportError:
+    has_dynamics = False
 
 has_scipy = True
 try:
@@ -32,6 +37,10 @@ class ScipyZvodeIntegrator(BaseIntegrator[CudmStateType]):
     order = 12
 
     def __init__(self, stepper: BaseTimeStepper[CudmStateType], **kwargs):
+        if not has_dynamics:
+            raise ImportError(
+                'CUDA-Q is missing dynamics support. Please check your installation'
+            )
         if not has_scipy:
             raise ImportError("scipy is required to use this integrator.")
         if not has_cupy:

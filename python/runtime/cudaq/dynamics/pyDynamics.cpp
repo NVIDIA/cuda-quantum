@@ -40,6 +40,7 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
     cudaq::schedule m_schedule;
   };
 
+  // Time stepper bindings
   py::class_<PyCuDensityMatTimeStepper>(m, "TimeStepper")
       .def(py::init(
           [](cudaq::schedule schedule, std::vector<int64_t> modeExtents,
@@ -72,6 +73,7 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
         self.computeImpl(inputState, outputState, t, params);
       });
 
+  // System dynamics data class
   py::class_<cudaq::SystemDynamics>(m, "SystemDynamics")
       .def(py::init<>())
       .def_readwrite("modeExtents", &cudaq::SystemDynamics::modeExtents)
@@ -79,6 +81,7 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
       .def_readwrite("collapseOps", &cudaq::SystemDynamics::collapseOps)
       .def_readwrite("parameters", &cudaq::SystemDynamics::parameters);
 
+  // Expectation calculation
   py::class_<cudaq::CuDensityMatExpectation>(m, "CuDensityMatExpectation")
       .def(py::init([](cudaq::sum_op<cudaq::matrix_handler> &obs,
                        const std::vector<int64_t> &modeExtents) {
@@ -109,10 +112,12 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
             .real();
       });
 
+  // Schedule class
   py::class_<cudaq::schedule>(m, "Schedule")
       .def(py::init<const std::vector<double> &,
                     const std::vector<std::string> &>());
 
+  // Helper to initialize a data buffer state
   m.def("initializeState",
         [](cudaq::state &state, const std::vector<int64_t> &modeExtents,
            bool asDensityMat) {
@@ -124,6 +129,9 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
           return state;
         });
 
+  // Helper to clear context (performance/callback) after an evolve simulation.
+  // Note: the callback contexts contain Python functions, hence must be cleared
+  // before the actual shutdown.
   m.def("clearContext", []() {
     cudaq::dynamics::Context::getCurrentContext()
         ->getOpConverter()
@@ -134,6 +142,7 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
 
   auto integratorsSubmodule = m.def_submodule("integrators");
 
+  // Runge-Kutta integrator
   py::class_<cudaq::integrators::runge_kutta>(integratorsSubmodule,
                                               "runge_kutta")
       .def(py::init<int, std::optional<double>>(), py::kw_only(),

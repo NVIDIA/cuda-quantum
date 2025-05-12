@@ -14,6 +14,18 @@
 #include "cudaq/utils/cudaq_utils.h"
 namespace cudaq {
 
+std::size_t CuDensityMatState::getNumQubits() const {
+  if (!is_initialized())
+    throw std::runtime_error("[CuDensityMatState] Get number of qubits for an "
+                             "uninitiated state is not supported.");
+
+  if (std::any_of(hilbertSpaceDims.begin(), hilbertSpaceDims.end(),
+                  [](auto dim) { return dim != 2; }))
+    throw std::runtime_error("[CuDensityMatState] Get number of qubits is only "
+                             "supported on qubit (2-level) systems");
+  return hilbertSpaceDims.size();
+}
+
 std::complex<double>
 CuDensityMatState::overlap(const cudaq::SimulationState &other) {
   if (getTensor().extents != other.getTensor().extents)

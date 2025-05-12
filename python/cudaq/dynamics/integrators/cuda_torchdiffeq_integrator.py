@@ -9,12 +9,17 @@
 from ..integrator import BaseTimeStepper, BaseIntegrator
 from ..cudm_helpers import cudm, CudmStateType
 from .builtin_integrators import cuDensityMatTimeStepper
-from .. import nvqir_dynamics_bindings as bindings
 
 has_cupy = True
 has_torch = True
 has_torchdiffeq = True
 has_torch_without_cuda = False
+has_dynamics = True
+
+try:
+    from .. import nvqir_dynamics_bindings as bindings
+except ImportError:
+    has_dynamics = False
 
 try:
     import cupy as cp
@@ -44,6 +49,11 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
                  stepper: BaseTimeStepper[CudmStateType],
                  solver: str = 'rk4',
                  **kwargs):
+        if not has_dynamics:
+            raise ImportError(
+                'CUDA-Q is missing dynamics support. Please check your installation'
+            )
+
         if not has_torch:
             # If users don't have torch (hence, no `torchdiffeq` as well), raise an error when they want to use it.
             raise ImportError(

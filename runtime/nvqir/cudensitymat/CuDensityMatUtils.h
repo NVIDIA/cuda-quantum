@@ -22,12 +22,15 @@
 #endif
 
 namespace cudaq::dynamics {
+// Track performance metric for a repetitive task in terms of the number of
+// executions and the total elapsed time on this task.
 struct PerfMetric {
   std::size_t numCalls = 0;
   double totalTimeMs = 0.0;
-  void add(double duration);
+  void add(double durationMs);
 };
 
+// Scope timer that will update the performance metric indexed by a unique name.
 struct PerfMetricScopeTimer {
   PerfMetricScopeTimer(const std::string &name);
   ~PerfMetricScopeTimer();
@@ -37,9 +40,15 @@ private:
   std::chrono::time_point<std::chrono::system_clock> m_startTime;
 };
 
+// Dump and reset the performance metric
 void dumpPerfTrace(std::ostream &os = std::cout);
 
+// Returns the number of MPI ranks.
 int getNumRanks();
+
+// Wrapper for CUDA memory allocator.
+// This allows us to switch between stream-based/blocking allocation scheme and
+// to track performance metric for allocation.
 struct DeviceAllocator {
   static inline bool useStreamAllocator = false;
 
