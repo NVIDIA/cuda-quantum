@@ -706,7 +706,7 @@ jobs:
           export PASQAL_MACHINE_TARGET="EMU_FREE" # Speedup queuing time
           set +e # Allow script to keep going through errors
           echo "### Generating Pasqal auth token" >> $GITHUB_STEP_SUMMARY
-          PASQAL_AUTH_TOKEN=$(python3 -c "import pasqal_cloud; import os; import sys; sdk = SDK(username=os.environ.get("PASQAL_USERNAME"), password=os.environ.get("PASQAL_PASSWORD")); sys.stdout.write(str(sdk.user_token()))")
+          PASQAL_AUTH_TOKEN=$(python3 -c "from pasqal_cloud import SDK; import os; import sys; sdk = SDK(username=os.environ.get('PASQAL_USERNAME'), password=os.environ.get('PASQAL_PASSWORD')); sys.stdout.write(str(sdk.user_token()))")
           export PASQAL_AUTH_TOKEN
           test_err_sum=0
           cpp_tests="docs/sphinx/targets/cpp/pasqal.cpp"
