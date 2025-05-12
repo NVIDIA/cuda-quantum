@@ -41,10 +41,10 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
         self.stepper = bindings.TimeStepper(schedule, dims, ham, collapsed_ops,
                                             is_master_equation)
 
-    def compute(self, state: CudmStateType, t: float):
+    def compute(self, state: CudmStateType, current_time: float):
         action_result = state.clone(cp.zeros_like(state.storage))
         self.stepper.compute(state._validated_ptr, action_result._validated_ptr,
-                             t)
+                             current_time)
         return action_result
 
 
