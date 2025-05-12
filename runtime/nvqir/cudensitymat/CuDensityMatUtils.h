@@ -39,6 +39,7 @@ private:
 
 void dumpPerfTrace(std::ostream &os = std::cout);
 
+int getNumRanks();
 struct DeviceAllocator {
   static inline bool useStreamAllocator = false;
 

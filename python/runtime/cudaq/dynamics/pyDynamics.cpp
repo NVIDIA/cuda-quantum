@@ -15,6 +15,7 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatContext.h"
 #include "CuDensityMatExpectation.h"
+#include "CuDensityMatUtils.h"
 
 namespace py = pybind11;
 namespace {
@@ -127,6 +128,8 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
     cudaq::dynamics::Context::getCurrentContext()
         ->getOpConverter()
         .clearCallbackContext();
+    if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
+      cudaq::dynamics::dumpPerfTrace();
   });
 
   auto integratorsSubmodule = m.def_submodule("integrators");

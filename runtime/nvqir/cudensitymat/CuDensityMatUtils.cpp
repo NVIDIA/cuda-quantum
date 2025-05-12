@@ -64,3 +64,7 @@ void cudaq::dynamics::dumpPerfTrace(std::ostream &os) {
   }
   g_perfMetric.clear();
 }
+
+int cudaq::dynamics::getNumRanks() {
+  return cudaq::mpi::is_initialized() ? cudaq::mpi::num_ranks() : 1;
+}

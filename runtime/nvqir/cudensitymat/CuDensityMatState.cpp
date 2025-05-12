@@ -462,14 +462,18 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
       calculate_state_vector_size(hilbertSpaceDims);
 
   if (dimension != expectedDensityMatrixSize &&
-      dimension != expectedStateVectorSize) {
+      dimension != expectedStateVectorSize &&
+      cudaq::dynamics::getNumRanks() * dimension != expectedDensityMatrixSize &&
+      cudaq::dynamics::getNumRanks() * dimension != expectedStateVectorSize) {
     throw std::invalid_argument("Invalid hilbertSpaceDims for the state data");
   }
 
-  const cudensitymatStatePurity_t purity =
-      dimension == expectedDensityMatrixSize ? CUDENSITYMAT_STATE_PURITY_MIXED
-                                             : CUDENSITYMAT_STATE_PURITY_PURE;
-  isDensityMatrix = dimension == expectedDensityMatrixSize;
+  isDensityMatrix =
+      (dimension == expectedDensityMatrixSize ||
+       dimension * cudaq::dynamics::getNumRanks() == expectedDensityMatrixSize);
+  const cudensitymatStatePurity_t purity = isDensityMatrix
+                                               ? CUDENSITYMAT_STATE_PURITY_MIXED
+                                               : CUDENSITYMAT_STATE_PURITY_PURE;
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
       cudmHandle, purity, static_cast<int32_t>(hilbertSpaceDims.size()),
       hilbertSpaceDims.data(), 1, CUDA_C_64F, &cudmState));

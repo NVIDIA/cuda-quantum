@@ -8,7 +8,8 @@
 
 // Compile and run with:
 // ```
-// nvq++ --target dynamics heisenberg_model.cpp -o a.out && ./a.out
+// nvq++ --target dynamics heisenberg_model.cpp -o a.out &&
+// mpiexec -np <N> ./a.out
 // ```
 
 #include "cudaq/algorithms/evolve.h"
@@ -20,7 +21,7 @@
 int main() {
   cudaq::mpi::initialize();
   std::cout << "Number of ranks = " << cudaq::mpi::num_ranks() << "\n";
-  // Set up a 9-spin chain, where each spin is a two-level system.
+  // Set up a 15-spin chain, where each spin is a two-level system.
   const int num_spins = 15;
   cudaq::dimension_map dimensions;
   for (int i = 0; i < num_spins; i++) {
@@ -30,15 +31,15 @@ int main() {
   // Initial state
   // Prepare an initial state where the spins are arranged in a staggered
   // configuration. Even indices get the value '0' and odd indices get '1'. For
-  // example, for 9 spins: spins: 0 1 0 1 0 1 0 1 0
+  // example, for 15 spins: spins: 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0
   std::string spin_state;
   for (int i = 0; i < num_spins; i++) {
     spin_state.push_back((i % 2 == 0) ? '0' : '1');
   }
 
   // Convert the binary string to an integer index
-  // In the Hilbert space of 9 spins (size 2^9 = 512), this index corresponds to
-  // the state |0 1 0 1 0 1 0 1 0>
+  // In the Hilbert space of 15 spins (size 2^15 = 32768), this index
+  // corresponds to the state |0 1 0 1 0 1 0 1 0 1 0 1 0 1 0>
   int initial_state_index = std::stoi(spin_state, nullptr, 2);
 
   // Build the staggered magnetization operator
@@ -64,7 +65,7 @@ int main() {
   // magnetization.
   std::vector<std::pair<double, std::vector<double>>> observe_results;
 
-  // Simulate the dynamics over 1000 time steps spanning from time 0 to 5.
+  // Simulate the dynamics over 100 time steps spanning from time 0 to 5.
   const int num_steps = 100;
   std::vector<double> steps = cudaq::linspace(0.0, 5.0, num_steps);
 
@@ -138,6 +139,7 @@ int main() {
   }
 
   if (cudaq::mpi::rank() == 0) {
+    // Only save on the first rank to prevent race condition.
     // The `CSV` file "`heisenberg`_model.`csv`" will contain column with:
     //    - The time steps
     //    - The expectation values of the staggered magnetization for each g
