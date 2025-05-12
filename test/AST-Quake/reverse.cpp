@@ -62,8 +62,7 @@ __qpu__ int std_reverse_std_vector_int() {
 // CHECK:             %[[VAL_34:.*]] = cc.compute_ptr %[[VAL_5]][%[[VAL_32]]] : (!cc.ptr<!cc.array<i32 x 10>>, i64) -> !cc.ptr<i32>
 // CHECK:             %[[VAL_35:.*]] = cc.load %[[VAL_34]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_36:.*]] = cc.load %[[VAL_27]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_35_casted:.*]] = cc.cast signed %[[VAL_35]] : (i32) -> i32
-// CHECK:             %[[VAL_37:.*]] = arith.addi %[[VAL_36]], %[[VAL_35_casted]] : i32
+// CHECK:             %[[VAL_37:.*]] = arith.addi %[[VAL_36]], %[[VAL_35]] : i32
 // CHECK:             cc.store %[[VAL_37]], %[[VAL_27]] : !cc.ptr<i32>
 // CHECK:             cc.continue %[[VAL_32]] : i64
 // CHECK:           } step {

@@ -422,8 +422,7 @@ __qpu__ void non_iterating_loop2() {
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_6:.*]]: i64):
 // CHECK:             %[[VAL_7:.*]] = arith.addi %[[VAL_6]], %[[VAL_1]] : i64
-// CHECK:             %[[VAL_7_casted:.*]] = cc.cast signed %[[VAL_7]] : (i64) -> i64
-// CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_7_casted]]] : (!quake.veq<100>, i64) -> !quake.ref
+// CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_7]]] : (!quake.veq<100>, i64) -> !quake.ref
 // CHECK:             quake.x %[[VAL_8]] : (!quake.ref) -> ()
 // CHECK:             cc.continue %[[VAL_6]] : i64
 // CHECK:           } step {
