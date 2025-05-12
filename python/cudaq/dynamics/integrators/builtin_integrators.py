@@ -49,7 +49,7 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
 
 
 class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
-    n_steps = 1
+    n_steps = None
     # Order of the integrator: supporting `1st` order (Euler) or `4th` order (`Runge-Kutta`).
     order = 4
     max_step_size = None
@@ -72,6 +72,9 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
             warnings.warn("deprecated - use max_step_size instead",
                           DeprecationWarning)
             self.n_steps = self.integrator_options["nsteps"]
+            if self.n_steps < 1:
+                raise ValueError(
+                    "The 'nsteps' parameter must be a positive number")
         if "order" in self.integrator_options:
             self.order = self.integrator_options["order"]
             if self.order != 1 and self.order != 2 and self.order != 4:
@@ -99,6 +102,14 @@ class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
         ]
         schedule_ = bindings.Schedule(schedule._steps,
                                       list(schedule._parameters))
+        # Handle the legacy (deprecated) `nsteps` parameter.
+        # Translate it to `max_step_size` w.r.t. to the schedule step size.
+        if self.n_steps is not None and self.max_step_size is None:
+            max_step_size = (schedule._steps[1] -
+                             schedule._steps[0]) / self.n_steps
+            self.rk_integrator = bindings.integrators.runge_kutta(
+                order=self.order, max_step_size=max_step_size)
+
         self.rk_integrator.setSystem(system_, schedule_)
 
     def integrate(self, t):
