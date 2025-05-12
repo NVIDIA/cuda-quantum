@@ -96,11 +96,9 @@ CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
     size = std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
     dataPtr = const_cast<void *>(ptr);
   }
-  std::complex<double> *devicePtr = nullptr;
-
-  HANDLE_CUDA_ERROR(cudaMallocAsync((void **)&devicePtr,
-                                    size * sizeof(std::complex<double>), 0));
-  HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+  std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
+      cudaq::dynamics::DeviceAllocator::allocate(size *
+                                                 sizeof(std::complex<double>)));
   HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, dataPtr,
                                size * sizeof(std::complex<double>),
                                cudaMemcpyDefault));
@@ -185,8 +183,7 @@ void CuDensityMatState::destroyState() {
     cudmState = nullptr;
   }
   if (devicePtr != nullptr) {
-    HANDLE_CUDA_ERROR(cudaFreeAsync(devicePtr, 0));
-    HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+    cudaq::dynamics::DeviceAllocator::free(devicePtr);
     devicePtr = nullptr;
     dimension = 0;
     isDensityMatrix = false;
@@ -272,9 +269,7 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
                          [](int64_t i) { return i == 0; });
     }();
 
-    HANDLE_CUDA_ERROR(cudaMallocAsync(
-        reinterpret_cast<void **>(&state->devicePtr), storageSize, 0));
-    HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+    state->devicePtr = cudaq::dynamics::DeviceAllocator::allocate(storageSize);
     HANDLE_CUDA_ERROR(cudaMemset(state->devicePtr, 0, storageSize));
     if (isFirstStateSegment) {
       // Set the first element to 1.0
@@ -307,9 +302,7 @@ CuDensityMatState CuDensityMatState::zero_like(const CuDensityMatState &other) {
   state.dimension = other.dimension;
   state.isDensityMatrix = other.isDensityMatrix;
   const size_t dataSize = state.dimension * sizeof(std::complex<double>);
-  HANDLE_CUDA_ERROR(cudaMallocAsync(reinterpret_cast<void **>(&state.devicePtr),
-                                    dataSize, 0));
-  HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+  state.devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dataSize);
   HANDLE_CUDA_ERROR(cudaMemset(state.devicePtr, 0, dataSize));
   const cudensitymatStatePurity_t purity = state.isDensityMatrix
                                                ? CUDENSITYMAT_STATE_PURITY_MIXED
@@ -339,9 +332,7 @@ CuDensityMatState::clone(const CuDensityMatState &other) {
   state->dimension = other.dimension;
   state->isDensityMatrix = other.isDensityMatrix;
   const size_t dataSize = state->dimension * sizeof(std::complex<double>);
-  HANDLE_CUDA_ERROR(cudaMallocAsync(
-      reinterpret_cast<void **>(&state->devicePtr), dataSize, 0));
-  HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+  state->devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dataSize);
   HANDLE_CUDA_ERROR(cudaMemcpy(state->devicePtr, other.devicePtr, dataSize,
                                cudaMemcpyDefault));
   const cudensitymatStatePurity_t purity = state->isDensityMatrix
@@ -385,8 +376,7 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
       cudensitymatDestroyState(cudmState);
 
     if (devicePtr) {
-      cudaFreeAsync(devicePtr, 0);
-      cudaStreamSynchronize(0);
+      cudaq::dynamics::DeviceAllocator::free(devicePtr);
     }
 
     // Move data from other
@@ -554,11 +544,14 @@ void CuDensityMatState::accumulate_inplace(const CuDensityMatState &other,
         fmt::format("State size mismatch for accumulate_inplace ({} vs {}).",
                     dimension, other.dimension));
 
-  cuDoubleComplex scalar{coeff.real(), coeff.imag()};
-  HANDLE_CUBLAS_ERROR(cublasZaxpy(
-      dynamics::Context::getCurrentContext()->getCublasHandle(), dimension,
-      &scalar, reinterpret_cast<const cuDoubleComplex *>(other.devicePtr), 1,
-      reinterpret_cast<cuDoubleComplex *>(devicePtr), 1));
+  {
+    cudaq::dynamics::PerfMetricScopeTimer metricTimer("cublasZaxpy");
+    cuDoubleComplex scalar{coeff.real(), coeff.imag()};
+    HANDLE_CUBLAS_ERROR(cublasZaxpy(
+        dynamics::Context::getCurrentContext()->getCublasHandle(), dimension,
+        &scalar, reinterpret_cast<const cuDoubleComplex *>(other.devicePtr), 1,
+        reinterpret_cast<cuDoubleComplex *>(devicePtr), 1));
+  }
 }
 
 CuDensityMatState &

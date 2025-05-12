@@ -44,10 +44,13 @@ void CuDensityMatTimeStepper::computeImpl(
   cudensitymatWorkspaceDescriptor_t workspace;
   HANDLE_CUDM_ERROR(cudensitymatCreateWorkspace(m_handle, &workspace));
 
-  // Prepare the operator for action
-  HANDLE_CUDM_ERROR(cudensitymatOperatorPrepareAction(
-      m_handle, m_liouvillian, inState, outState, CUDENSITYMAT_COMPUTE_64F,
-      dynamics::Context::getRecommendedWorkSpaceLimit(), workspace, 0x0));
+  {
+    cudaq::dynamics::PerfMetricScopeTimer metricTimer("cudensitymatOperatorPrepareAction");
+    // Prepare the operator for action
+    HANDLE_CUDM_ERROR(cudensitymatOperatorPrepareAction(
+        m_handle, m_liouvillian, inState, outState, CUDENSITYMAT_COMPUTE_64F,
+        dynamics::Context::getRecommendedWorkSpaceLimit(), workspace, 0x0));
+  }
 
   // Query required workspace buffer size
   std::size_t requiredBufferSize = 0;
@@ -76,10 +79,13 @@ void CuDensityMatTimeStepper::computeImpl(
   double *param_d =
       static_cast<double *>(cudaq::dynamics::createArrayGpu(paramValues));
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
-  HANDLE_CUDM_ERROR(cudensitymatOperatorComputeAction(
-      m_handle, m_liouvillian, t, 1, paramValues.size() * 2, param_d, inState,
-      outState, workspace, 0x0));
-  HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
+  {
+    cudaq::dynamics::PerfMetricScopeTimer metricTimer("cudensitymatOperatorComputeAction");
+    HANDLE_CUDM_ERROR(cudensitymatOperatorComputeAction(
+        m_handle, m_liouvillian, t, 1, paramValues.size() * 2, param_d, inState,
+        outState, workspace, 0x0));
+    HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
+  }
 
   // Cleanup
   cudaq::dynamics::destroyArrayGpu(param_d);

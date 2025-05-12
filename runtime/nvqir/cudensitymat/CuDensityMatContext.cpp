@@ -8,6 +8,7 @@
 
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
 #include "common/Logger.h"
 #include "cudaq.h"
 #include "cudaq/distributed/mpi_plugin.h"
@@ -47,16 +48,13 @@ void *Context::getScratchSpace(std::size_t minSizeBytes) {
   if (minSizeBytes > m_scratchSpaceSizeBytes) {
     // Realloc
     if (m_scratchSpace) {
-      HANDLE_CUDA_ERROR(cudaFreeAsync(m_scratchSpace, 0));
-      HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+      cudaq::dynamics::DeviceAllocator::free(m_scratchSpace);
     }
 
     cudaq::info("Allocate scratch buffer of size {} bytes on device {}",
                 minSizeBytes, m_deviceId);
 
-    HANDLE_CUDA_ERROR(
-        cudaMallocAsync(&m_scratchSpace, minSizeBytes, /*stream=*/ 0));
-    HANDLE_CUDA_ERROR(cudaStreamSynchronize(0));
+    m_scratchSpace = cudaq::dynamics::DeviceAllocator::allocate(minSizeBytes);
     m_scratchSpaceSizeBytes = minSizeBytes;
   }
 
@@ -127,8 +125,7 @@ Context::~Context() {
   cudensitymatDestroy(m_cudmHandle);
   cublasDestroy(m_cublasHandle);
   if (m_scratchSpaceSizeBytes > 0) {
-    cudaFreeAsync(m_scratchSpace, 0);
-    cudaStreamSynchronize(0);
+    cudaq::dynamics::DeviceAllocator::free(m_scratchSpace);
   }
 }
 } // namespace cudaq::dynamics

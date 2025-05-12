@@ -16,6 +16,7 @@
 #include <iterator>
 #include <random>
 #include <stdexcept>
+#include "CuDensityMatUtils.h"
 namespace cudaq::__internal__ {
 template <typename Key, typename Value>
 std::map<Key, Value>
@@ -41,6 +42,7 @@ evolve_result evolveSingle(
     const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
     const std::vector<sum_op<cudaq::matrix_handler>> &observables,
     bool storeIntermediateResults, std::optional<int> shotsCount) {
+  LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
   std::map<std::size_t, int64_t> dimensions =
@@ -95,6 +97,9 @@ evolve_result evolveSingle(
       intermediateStates.emplace_back(currentState);
     }
   }
+
+  if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
+    cudaq::dynamics::dumpPerfTrace();
 
   if (storeIntermediateResults) {
     return evolve_result(intermediateStates, expectationVals);

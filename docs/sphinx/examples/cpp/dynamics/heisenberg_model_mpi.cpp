@@ -21,7 +21,7 @@ int main() {
   cudaq::mpi::initialize();
   std::cout << "Number of ranks = " << cudaq::mpi::num_ranks() << "\n";
   // Set up a 9-spin chain, where each spin is a two-level system.
-  const int num_spins = 9;
+  const int num_spins = 15;
   cudaq::dimension_map dimensions;
   for (int i = 0; i < num_spins; i++) {
     dimensions[i] = 2; // Each spin (site) has dimension 2.
@@ -56,7 +56,7 @@ int main() {
   }
 
   // Normalize the number of spins so that the observable is intensive.
-  auto stagged_magnetization_op =
+  auto staggered_magnetization_op =
       (1 / static_cast<double>(num_spins)) * staggered_magnetization_t;
 
   // Each entry will associate a value of g (the `anisotropy` in the Z coupling)
@@ -65,7 +65,7 @@ int main() {
   std::vector<std::pair<double, std::vector<double>>> observe_results;
 
   // Simulate the dynamics over 1000 time steps spanning from time 0 to 5.
-  const int num_steps = 1000;
+  const int num_steps = 100;
   std::vector<double> steps = cudaq::linspace(0.0, 5.0, num_steps);
 
   // For three different values of g, which sets the strength of the Z-Z
@@ -116,7 +116,7 @@ int main() {
     // magnetization operator at each time step.
     auto evolve_result =
         cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator, {},
-                      {stagged_magnetization_op}, true);
+                      {staggered_magnetization_op}, true);
 
     // Lambda to extract expectation values for a given observable index
     auto get_expectation = [](int idx, auto &result) -> std::vector<double> {

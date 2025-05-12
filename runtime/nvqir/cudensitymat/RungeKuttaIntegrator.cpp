@@ -10,6 +10,7 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
+#include "CuDensityMatUtils.h"
 #include "common/Logger.h"
 #include "cudaq/algorithms/integrator.h"
 namespace cudaq {
@@ -55,6 +56,7 @@ std::pair<double, cudaq::state> runge_kutta::getState() {
 }
 
 void runge_kutta::integrate(double targetTime) {
+  cudaq::dynamics::PerfMetricScopeTimer metricTimer("runge_kutta::integrate");
   const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
     auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
     auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
@@ -82,8 +84,8 @@ void runge_kutta::integrate(double targetTime) {
     const double step_size =
         std::min(m_dt.value_or(targetTime - m_t), targetTime - m_t);
 
-    cudaq::debug("Runge-Kutta step at time {} with step size {}", m_t,
-                 step_size);
+    // cudaq::debug("Runge-Kutta step at time {} with step size {}", m_t,
+    //              step_size);
 
     if (m_order == 1) {
       // Euler method (1st order)

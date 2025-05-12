@@ -122,6 +122,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     const std::vector<int64_t> &modeExtents,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool isMasterEquation) {
+  LOG_API_TIME();
   if (!isMasterEquation && collapseOperators.empty()) {
     cudaq::info("Construct state vector Liouvillian");
     auto liouvillian = ham * std::complex<double>(0.0, -1.0);
@@ -209,9 +210,8 @@ cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
     cudensitymatDestroyElementaryOperator(op);
 
   for (auto *buffer : m_deviceBuffers) {
-    cudaFreeAsync(buffer, 0);
+    cudaq::dynamics::DeviceAllocator::free(buffer);
   }
-  cudaStreamSynchronize(0);
 }
 
 cudensitymatElementaryOperator_t
