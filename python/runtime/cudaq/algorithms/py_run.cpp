@@ -95,7 +95,7 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
   return details::readRunResults(kernelFuncOp, returnTy, results, shots_count);
 }
 
-/// @brief Bind the run cudaq function
+/// @brief Bind the run cudaq function.
 void bindPyRun(py::module &mod) {
   mod.def("run", &pyRun, py::arg("kernel"), py::kw_only(),
           py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
