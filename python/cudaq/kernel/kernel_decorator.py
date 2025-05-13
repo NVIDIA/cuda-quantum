@@ -338,8 +338,7 @@ class PyKernelDecorator(object):
 
     def castPyList(self, fromEleTy, toEleTy, list):
         if self.isCastable(fromEleTy, toEleTy):
-            if F64Type.isinstance(toEleTy):
-                return [self.castPyPrimitiveType(toEleTy, i) for i in list]
+            return [self.castPyPrimitiveType(toEleTy, i) for i in list]
         return list
 
     def createStorage(self):
