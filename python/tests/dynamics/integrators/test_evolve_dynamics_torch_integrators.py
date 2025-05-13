@@ -31,7 +31,7 @@ all_integrator_classes = [CUDATorchDiffEqDopri5Integrator]
 all_models = [
     TestCavityModel, TestCavityModelTimeDependentHam,
     TestCavityModelTimeDependentCollapseOp, TestCompositeSystems,
-    TestCrossResonance, TestCallbackTensor, TestInitialStateEnum
+    TestCrossResonance, TestCallbackTensor, TestInitialStateEnum, TestCavityModelBatchedInputState
 ]
 
 

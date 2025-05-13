@@ -41,59 +41,40 @@ psi_10 = cudaq.State.from_data(
 steps = np.linspace(0.0, 1.0, 1001)
 schedule = Schedule(steps, ["time"])
 
-# Run the simulation.
-# Control bit = 0
-evolution_result_00 = cudaq.evolve(hamiltonian,
-                                   dimensions,
-                                   schedule,
-                                   psi_00,
-                                   observables=[
-                                       spin.x(0),
-                                       spin.y(0),
-                                       spin.z(0),
-                                       spin.x(1),
-                                       spin.y(1),
-                                       spin.z(1)
-                                   ],
-                                   collapse_operators=[],
-                                   store_intermediate_results=True,
-                                   integrator=ScipyZvodeIntegrator())
-
-# Control bit = 1
-evolution_result_10 = cudaq.evolve(hamiltonian,
-                                   dimensions,
-                                   schedule,
-                                   psi_10,
-                                   observables=[
-                                       spin.x(0),
-                                       spin.y(0),
-                                       spin.z(0),
-                                       spin.x(1),
-                                       spin.y(1),
-                                       spin.z(1)
-                                   ],
-                                   collapse_operators=[],
-                                   store_intermediate_results=True,
-                                   integrator=ScipyZvodeIntegrator())
+# Run the simulations (batched).
+evolution_results = cudaq.evolve(hamiltonian,
+                                 dimensions,
+                                 schedule, [psi_00, psi_10],
+                                 observables=[
+                                     spin.x(0),
+                                     spin.y(0),
+                                     spin.z(0),
+                                     spin.x(1),
+                                     spin.y(1),
+                                     spin.z(1)
+                                 ],
+                                 collapse_operators=[],
+                                 store_intermediate_results=True,
+                                 integrator=ScipyZvodeIntegrator())
 
 get_result = lambda idx, res: [
     exp_vals[idx].expectation() for exp_vals in res.expectation_values()
 ]
 results_00 = [
-    get_result(0, evolution_result_00),
-    get_result(1, evolution_result_00),
-    get_result(2, evolution_result_00),
-    get_result(3, evolution_result_00),
-    get_result(4, evolution_result_00),
-    get_result(5, evolution_result_00)
+    get_result(0, evolution_results[0]),
+    get_result(1, evolution_results[0]),
+    get_result(2, evolution_results[0]),
+    get_result(3, evolution_results[0]),
+    get_result(4, evolution_results[0]),
+    get_result(5, evolution_results[0])
 ]
 results_10 = [
-    get_result(0, evolution_result_10),
-    get_result(1, evolution_result_10),
-    get_result(2, evolution_result_10),
-    get_result(3, evolution_result_10),
-    get_result(4, evolution_result_10),
-    get_result(5, evolution_result_10)
+    get_result(0, evolution_results[1]),
+    get_result(1, evolution_results[1]),
+    get_result(2, evolution_results[1]),
+    get_result(3, evolution_results[1]),
+    get_result(4, evolution_results[1]),
+    get_result(5, evolution_results[1])
 ]
 
 # The changes in recession frequencies of the target qubit when control qubit is in |1> state allow us to implement two-qubit conditional gates.
