@@ -802,6 +802,7 @@ def test_broadcast():
                 x(q[i])
 
     #FIXME: update broadcast detection logic to allow this case.
+    # https://github.com/NVIDIA/cuda-quantum/issues/2895
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(kernel, [[0, 1]])
     assert 'Invalid runtime argument type. Argument of type list[int] was provided' in repr(
