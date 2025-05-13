@@ -635,6 +635,78 @@ def quake_SinkOp : QuakeOp<"sink"> {
   }];
 }
 
+def quake_NullCableOp : QuakeOp<"null_cable"> {
+  let summary = "Create a new cable of individual wires, all at null state.";
+  let description = [{
+    This operation can be used as syntactic sugar to create a number of wires,
+    each of which is in the null state, all in one operation. This op has
+    identical semantics to a series of `quake.null_wire` operations.
+  }];
+
+  let results = (outs 
+    Arg<CableType, "cable created", [MemRead, MemWrite]>:$cableType
+  );
+
+  let assemblyFormat = [{
+    type($cableType) attr-dict
+  }];
+}
+
+def quake_BundleCableOp : QuakeOp<"bundle_cable"> {
+  let summary = "Bundle a list of wire values into a single cable value.";
+  let description = [{
+    This operation can be used as syntactic sugar to logically bind any number
+    of quantum wires together in a cable value. The resulting cable must have
+    a size that exactly matches the arity of the arguments.
+
+    The order of the wires as presented at the `bundle_cable` operation will be
+    the exact same order as will be found in the results of a `terminate_cable`
+    operation.
+  }];
+
+  let arguments = (ins Variadic<WireType>:$wires);
+  let results = (outs CableType);
+
+  let assemblyFormat = [{
+    $wires `:` functional-type(operands, results) attr-dict
+  }];
+  let hasVerifier = 1;
+}
+
+def quake_TerminateCableOp : QuakeOp<"terminate_cable"> {
+  let summary = "Termination of a cable of wires, exposing all the wires.";
+  let description = [{
+    This operation can be used as syntactic sugar at the termination of a cable
+    of wires. This exposed all the wires in a cable as individual wire values.
+    All wires are linear types and must be used exactly one time.
+  }];
+  
+  let arguments = (ins CableType:$cable);
+  let results = (outs Variadic<WireType>);
+
+  let assemblyFormat = [{
+    $cable `:` functional-type(operands, results) attr-dict
+  }];
+  let hasVerifier = 1;
+}
+
+def quake_SinkCableOp : QuakeOp<"sink_cable"> {
+  let summary = "Sink a cable of quantum wires.";
+  let description = [{
+    This operation can be used as syntactic sugar for connecting a set of wire
+    values to a series of `quake.sink` operations. It can be used, possibly, to
+    declutter code by combining a long sequence of `quake.sink` operations.
+  }];
+
+  let arguments = (ins
+    Arg<CableType, "cable destroyed", [MemRead, MemWrite]>:$cable
+  );
+
+  let assemblyFormat = [{
+    $cable `:` type($cable) attr-dict
+  }];
+}
+
 //===----------------------------------------------------------------------===//
 // Qubit assignment: WireSet, BorrowWire, ReturnWire
 //===----------------------------------------------------------------------===//
