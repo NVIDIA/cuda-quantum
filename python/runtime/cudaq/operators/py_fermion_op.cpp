@@ -264,15 +264,15 @@ void bindFermionOperator(py::module &mod) {
       .def(py::self -= fermion_op_term(), py::is_operator())
       .def(py::self *= py::self, py::is_operator())
       .def(py::self += py::self, py::is_operator())
-      // see issue https://github.com/pybind/pybind11/issues/1893
-      #ifdef __clang__
-      #pragma clang diagnostic push
-      #pragma clang diagnostic ignored "-Wself-assign-overloaded"
-      #endif
+// see issue https://github.com/pybind/pybind11/issues/1893
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
       .def(py::self -= py::self, py::is_operator())
-      #ifdef __clang__
-      #pragma clang diagnostic pop
-      #endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
       // right-hand arithmetics
 
