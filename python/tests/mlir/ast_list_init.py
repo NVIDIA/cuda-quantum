@@ -66,4 +66,3 @@ def test_list_init():
 # CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
-

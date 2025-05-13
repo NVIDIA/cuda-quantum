@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../.. python3 %s
-# RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate
+# RUN: PYTHONPATH=../../.. python3 %s | FileCheck %s
+# RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate | FileCheck %s
 
 import numpy as np
 
@@ -102,19 +102,6 @@ for i in range(12):
     for j in range(0, 8, 2):
         print(strings[i][j:j + 2], end=' ')
     print()
-
-assert "01101101" in most_probable
-assert "10110110" in most_probable
-assert "11101101" in most_probable
-assert "01110110" in most_probable
-assert "01100111" in most_probable
-assert "01111001" in most_probable
-assert "10111001" in most_probable
-assert "11011110" in most_probable
-assert "11100111" in most_probable
-assert "10011011" in most_probable
-assert "10011110" in most_probable
-assert "11011011" in most_probable
 
 # CHECK-DAG: 01 10 11 01
 # CHECK-DAG: 10 11 01 10
