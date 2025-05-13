@@ -23,6 +23,57 @@ def do_something():
     cudaq.__clearKernelRegistries()
 
 
+def test_argument_int():
+
+    @cudaq.kernel
+    def kernel(n: int):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int8):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int16):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int32):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int64):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int64):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+
 def test_adjoint():
     """Test that adjoint can be called on kernels and operations."""
 
@@ -704,26 +755,58 @@ def test_nested_list_iteration_int4():
     print(counts)
     assert '1111111111111111' in counts
 
+
 def test_string_argument_error():
-    def kernel(s: str):
+
+    @cudaq.kernel
+    def kernel(n: int, s: str):
         qubits = cudaq.qvector(n)
         exp_pauli(2.2, qubits, 'YY')
 
     with pytest.raises(RuntimeError) as e:
-         counts = cudaq.sample(kernel, "aaa")
-    assert 'target operand 0 is not of quantum type' in repr(e)
+        counts = cudaq.sample(kernel, "aaa")
+    assert 'str is not a sup' in repr(e)
 
 
 def test_list_string_argument_error():
-    def kernel(s: list[str]):
+
+    @cudaq.kernel
+    def kernel(n: int, s: list[str]):
         qubits = cudaq.qvector(n)
         exp_pauli(2.2, qubits, 'YY')
 
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, 2, ["aaa"])
+    assert 'str is not a sup' in repr(e)
+
+
+def test_list_list_string_argument_error():
+
+    @cudaq.kernel
+    def kernel(n: int, s: list[list[str]]):
+        qubits = cudaq.qvector(n)
+        exp_pauli(2.2, qubits, 'YY')
 
     with pytest.raises(RuntimeError) as e:
-        counts = cudaq.sample(kernel, ["aaa"])
-    assert 'target operand 0 is not of quantum type' in repr(e)
-    counts = cudaq.sample(kernel, ["aaa"])
+        counts = cudaq.sample(kernel, 2, [["aaa"]])
+    assert 'str is not a sup' in repr(e)
+
+
+def test_broadcast():
+
+    @cudaq.kernel
+    def kernel(l: list[list[int]]):
+        q = cudaq.qvector(2)
+        for inner in l:
+            for i in inner:
+                x(q[i])
+
+    #FIXME: update broadcast detection logic to allow this case.
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, [[0, 1]])
+    assert 'Invalid runtime argument type. Argument of type list[int] was provided' in repr(
+        e)
+
 
 def test_list_creation_with_cast():
 

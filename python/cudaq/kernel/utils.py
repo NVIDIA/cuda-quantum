@@ -140,6 +140,14 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 return F64Type.get()
             if annotation.attr == 'float32':
                 return F32Type.get()
+            if annotation.attr == 'int64':
+                return IntegerType.get_signless(64)
+            if annotation.attr == 'int32':
+                return IntegerType.get_signless(32)
+            if annotation.attr == 'int16':
+                return IntegerType.get_signless(16)
+            if annotation.attr == 'int8':
+                return IntegerType.get_signless(8)
 
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':

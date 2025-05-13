@@ -297,6 +297,9 @@ class PyKernelDecorator(object):
             return None
 
     def isCastable(self, fromTy, toTy):
+        if IntegerType.isinstance(toTy):
+            return IntegerType.isinstance(fromTy)
+
         if F64Type.isinstance(toTy):
             return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
@@ -313,21 +316,42 @@ class PyKernelDecorator(object):
 
         return False
 
-    def castPyList(self, fromEleTy, toEleTy, list):
-        if self.isCastable(fromEleTy, toEleTy):
-            if F64Type.isinstance(toEleTy):
-                return [float(i) for i in list]
+    def castPy(self, fromTy, toTy, value):
+        if self.isCastable(fromTy, toTy):
+            if IntegerType.isinstance(toTy):
+                intToTy = IntegerType(toTy)
+                if intToTy.width == 1:
+                    return bool(value)
+                if intToTy.width == 8:
+                    return np.int8(value)
+                if intToTy.width == 16:
+                    return np.int16(value)
+                if intToTy.width == 32:
+                    return np.int32(value)
+                if intToTy.width == 64:
+                    return int(value)
 
-            if F32Type.isinstance(toEleTy):
-                return [np.float32(i) for i in list]
+            if F64Type.isinstance(toTy):
+                return float(value)
 
-            if ComplexType.isinstance(toEleTy):
-                floatToType = ComplexType(toEleTy).element_type
+            if F32Type.isinstance(toTy):
+                return np.float32(value)
+
+            if ComplexType.isinstance(toTy):
+                floatToType = ComplexType(toTy).element_type
 
                 if F64Type.isinstance(floatToType):
-                    return [complex(i) for i in list]
+                    return complex(value)
 
-                return [np.complex64(i) for i in list]
+                return np.complex64(value)
+        return list
+
+    def castPyList(self, fromEleTy, toEleTy, list):
+        if self.isCastable(fromEleTy, toEleTy):
+            return [
+                self.castPy(fromEleTy, toEleTy, element) for element in list
+            ]
+
         return list
 
     def createStorage(self):
@@ -431,11 +455,14 @@ class PyKernelDecorator(object):
                                           argInstance=arg,
                                           argTypeToCompareTo=self.argTypes[i])
 
+            if self.isCastable(mlirType, self.argTypes[i]):
+                processedArgs.append(
+                    self.castPy(mlirType, self.argTypes[i], arg))
+                mlirType = self.argTypes[i]
+                continue
+
             # Support passing `list[int]` to a `list[float]` argument
             # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
-            print('call')
-            print(mlirType)
-            print(self.argTypes[i])
             if cc.StdvecType.isinstance(mlirType):
                 if cc.StdvecType.isinstance(self.argTypes[i]):
                     argEleTy = cc.StdvecType.getElementType(mlirType)  # actual
