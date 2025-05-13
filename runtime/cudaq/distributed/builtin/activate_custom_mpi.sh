@@ -48,9 +48,14 @@ fi
 
 echo "Using $CXX to build the MPI plugin for MPI installation in $MPI_PATH."
 lib_mpi_plugin="$this_file_dir/libcudaq_distributed_interface_mpi.so"
-# --disable-mlir-links for https://github.com/NVIDIA/cuda-quantum/issues/2892
+
+extra_flags=""
+if [[ "$CXX" == *nvq++* ]]; then
+    extra_flags="--disable-mlir-links"
+fi
+
 $CXX -shared -std=c++17 -fPIC \
-    --disable-mlir-links \
+    $extra_flags \
     -I"${MPI_PATH}/include" \
     -I"$this_file_dir" \
     "$this_file_dir/mpi_comm_impl.cpp" \
