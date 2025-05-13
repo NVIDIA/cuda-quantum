@@ -345,7 +345,6 @@ toolset
 transmon
 trotterization
 uccsd
-wf
 unary
 uncomputation
 uncompute
@@ -364,5 +363,6 @@ vertices
 vqe
 waveforms
 wavefunction
+wf
 workflow
 zener
