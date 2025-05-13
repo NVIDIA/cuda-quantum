@@ -344,6 +344,8 @@ toolchains
 toolset
 transmon
 trotterization
+uccsd
+wf
 unary
 uncomputation
 uncompute

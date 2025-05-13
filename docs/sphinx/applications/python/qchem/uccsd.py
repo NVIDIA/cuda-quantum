@@ -1,7 +1,8 @@
 import cudaq
 from cudaq import spin
 
-def uccsd_get_excitation_list(n_electrons: int, n_qubits: int, spin_mult = 0):
+
+def uccsd_get_excitation_list(n_electrons: int, n_qubits: int, spin_mult=0):
 
     if n_qubits % 2 != 0:
         raise ValueError(
@@ -23,10 +24,14 @@ def uccsd_get_excitation_list(n_electrons: int, n_qubits: int, spin_mult = 0):
         n_virtual_beta = n_spatial_orbitals - n_occupied_beta
 
         occupied_alpha_indices = [i * 2 for i in range(n_occupied_alpha)]
-        virtual_alpha_indices = [i * 2 + n_electrons + 1 for i in range(n_virtual_alpha)]
+        virtual_alpha_indices = [
+            i * 2 + n_electrons + 1 for i in range(n_virtual_alpha)
+        ]
 
         occupied_beta_indices = [i * 2 + 1 for i in range(n_occupied_beta)]
-        virtual_beta_indices = [i * 2 + 1 + n_electrons - 1 for i in range(n_virtual_beta)]
+        virtual_beta_indices = [
+            i * 2 + 1 + n_electrons - 1 for i in range(n_virtual_beta)
+        ]
 
     elif n_electrons % 2 == 0 and spin_mult == 0:
         n_occupied = n_electrons // 2
@@ -36,8 +41,10 @@ def uccsd_get_excitation_list(n_electrons: int, n_qubits: int, spin_mult = 0):
         virtual_alpha_indices = [i * 2 + n_electrons for i in range(n_virtual)]
 
         occupied_beta_indices = [i * 2 + 1 for i in range(n_occupied)]
-        virtual_beta_indices = [i * 2 + 1 + n_electrons for i in range(n_virtual)]
-    
+        virtual_beta_indices = [
+            i * 2 + 1 + n_electrons for i in range(n_virtual)
+        ]
+
     else:
         raise ValueError("spin should be zero or larger than zero.")
 
@@ -84,9 +91,11 @@ def uccsd_get_excitation_list(n_electrons: int, n_qubits: int, spin_mult = 0):
 
     return singles_alpha, singles_beta, doubles_mixed, doubles_alpha, doubles_beta
 
+
 #######################################
 
-def uccsd_parameter_size(n_electrons: int, n_qubits: int, spin_mult = 0):
+
+def uccsd_parameter_size(n_electrons: int, n_qubits: int, spin_mult=0):
     # Compute the size of theta parameters for all UCCSD excitation.
 
     singles_alpha, singles_beta, doubles_mixed, doubles_alpha, doubles_beta = \
@@ -104,7 +113,9 @@ def uccsd_parameter_size(n_electrons: int, n_qubits: int, spin_mult = 0):
 
     return singles, doubles, total
 
+
 ###################################################
+
 
 def add_single_excitation(op, p_occ, q_virt):
 
@@ -116,7 +127,9 @@ def add_single_excitation(op, p_occ, q_virt):
     op.append(c * spin.y(p_occ) * parity * spin.x(q_virt) -
               c * spin.x(p_occ) * parity * spin.y(q_virt))
 
+
 ##################################
+
 
 def add_double_excitation(op, p_occ, q_occ, r_virt, s_virt):
 
@@ -165,10 +178,16 @@ def add_double_excitation(op, p_occ, q_occ, r_virt, s_virt):
         a_virt) * parity_b * spin.x(b_virt)
 
     op.append(temp_op)
-    
+
+
 ########################################
 
-def get_uccsd_op(nelectrons, n_qubits, spin_mult = 0, only_singles = False, only_doubles = False):
+
+def get_uccsd_op(nelectrons,
+                 n_qubits,
+                 spin_mult=0,
+                 only_singles=False,
+                 only_doubles=False):
 
     singles_alpha, singles_beta, doubles_mixed, doubles_alpha, doubles_beta = \
         uccsd_get_excitation_list(nelectrons, n_qubits, spin_mult)
@@ -179,10 +198,9 @@ def get_uccsd_op(nelectrons, n_qubits, spin_mult = 0, only_singles = False, only
     n_alpha_doubles = len(doubles_alpha)
     n_beta_doubles = len(doubles_beta)
 
-
     pool_op_single = []
     pool_op_double = []
-    
+
     if not only_singles and not only_doubles:
 
         for i in range(n_alpha_singles):
@@ -194,21 +212,23 @@ def get_uccsd_op(nelectrons, n_qubits, spin_mult = 0, only_singles = False, only
             add_single_excitation(pool_op_single, p_beta_occ, q_beta_virt)
 
         for i in range(n_mixed_doubles):
-            p_alpha_occ, q_beta_occ, r_beta_virt, s_alpha_virt = doubles_mixed[i]
-            add_double_excitation(pool_op_double, p_alpha_occ, q_beta_occ, r_beta_virt,
-                                s_alpha_virt)
+            p_alpha_occ, q_beta_occ, r_beta_virt, s_alpha_virt = doubles_mixed[
+                i]
+            add_double_excitation(pool_op_double, p_alpha_occ, q_beta_occ,
+                                  r_beta_virt, s_alpha_virt)
 
         for i in range(n_alpha_doubles):
-            p_alpha_occ, q_alpha_occ, r_alpha_virt, s_alpha_virt = doubles_alpha[i]
-            add_double_excitation(pool_op_double, p_alpha_occ, q_alpha_occ, r_alpha_virt,
-                                s_alpha_virt)
+            p_alpha_occ, q_alpha_occ, r_alpha_virt, s_alpha_virt = doubles_alpha[
+                i]
+            add_double_excitation(pool_op_double, p_alpha_occ, q_alpha_occ,
+                                  r_alpha_virt, s_alpha_virt)
 
         for i in range(n_beta_doubles):
             p_beta_occ, q_beta_occ, r_beta_virt, s_beta_virt = doubles_beta[i]
 
-            add_double_excitation(pool_op_double, p_beta_occ, q_beta_occ, r_beta_virt,
-                                s_beta_virt)
-            
+            add_double_excitation(pool_op_double, p_beta_occ, q_beta_occ,
+                                  r_beta_virt, s_beta_virt)
+
     elif only_singles and not only_doubles:
         pool_op = []
 
@@ -224,36 +244,38 @@ def get_uccsd_op(nelectrons, n_qubits, spin_mult = 0, only_singles = False, only
         pool_op = []
 
         for i in range(n_mixed_doubles):
-            p_alpha_occ, q_beta_occ, r_beta_virt, s_alpha_virt = doubles_mixed[i]
-            add_double_excitation(pool_op_double, p_alpha_occ, q_beta_occ, r_beta_virt,
-                                s_alpha_virt)
+            p_alpha_occ, q_beta_occ, r_beta_virt, s_alpha_virt = doubles_mixed[
+                i]
+            add_double_excitation(pool_op_double, p_alpha_occ, q_beta_occ,
+                                  r_beta_virt, s_alpha_virt)
 
         for i in range(n_alpha_doubles):
-            p_alpha_occ, q_alpha_occ, r_alpha_virt, s_alpha_virt = doubles_alpha[i]
-            add_double_excitation(pool_op_double, p_alpha_occ, q_alpha_occ, r_alpha_virt,
-                                s_alpha_virt)
+            p_alpha_occ, q_alpha_occ, r_alpha_virt, s_alpha_virt = doubles_alpha[
+                i]
+            add_double_excitation(pool_op_double, p_alpha_occ, q_alpha_occ,
+                                  r_alpha_virt, s_alpha_virt)
 
         for i in range(n_beta_doubles):
             p_beta_occ, q_beta_occ, r_beta_virt, s_beta_virt = doubles_beta[i]
 
-            add_double_excitation(pool_op_double, p_beta_occ, q_beta_occ, r_beta_virt,
-                                s_beta_virt)
+            add_double_excitation(pool_op_double, p_beta_occ, q_beta_occ,
+                                  r_beta_virt, s_beta_virt)
 
-    # Convert the list of operators to cudaq.pauli_word
+    # Convert the list of operators to cudaq.`pauli_word`
     word_single = []
     word_double = []
     coef_single = []
     coef_double = []
 
     for i in range(len(pool_op_single)):
-        
+
         op_i = pool_op_single[i]
         for term in op_i:
             coef_single.append(term.evaluate_coefficient().real)
             word_single.append(term.get_pauli_word(n_qubits))
-    
+
     for i in range(len(pool_op_double)):
-        
+
         op_i = pool_op_double[i]
         for term in op_i:
             coef_double.append(term.evaluate_coefficient().real)
@@ -272,8 +294,11 @@ def get_uccsd_op(nelectrons, n_qubits, spin_mult = 0, only_singles = False, only
 
 ###################################################
 
+
 @cudaq.kernel
-def uccsd_circuit_single(qubits: cudaq.qview, theta: list[float], words_single: list[cudaq.pauli_word], coef_single: list[float]):
+def uccsd_circuit_single(qubits: cudaq.qview, theta: list[float],
+                         words_single: list[cudaq.pauli_word],
+                         coef_single: list[float]):
     """
     UCCSD circuit implementation for only single excitation.
     """
@@ -283,11 +308,15 @@ def uccsd_circuit_single(qubits: cudaq.qview, theta: list[float], words_single: 
     count = 0
     for i in range(0, len(words_single), 2):
         exp_pauli(coef_single[i] * theta[count], qubits, words_single[i])
-        exp_pauli(coef_single[i + 1] * theta[count], qubits, words_single[i + 1])
-        count += 1      
+        exp_pauli(coef_single[i + 1] * theta[count], qubits,
+                  words_single[i + 1])
+        count += 1
+
 
 @cudaq.kernel
-def uccsd_circuit_double(qubits: cudaq.qview, theta: list[float], words_double: list[cudaq.pauli_word], coef_double: list[float]):
+def uccsd_circuit_double(qubits: cudaq.qview, theta: list[float],
+                         words_double: list[cudaq.pauli_word],
+                         coef_double: list[float]):
     """
     UCCSD circuit implementation for only double excitation.
     """
@@ -297,18 +326,29 @@ def uccsd_circuit_double(qubits: cudaq.qview, theta: list[float], words_double: 
     count = 0
     for i in range(0, len(words_double), 8):
         exp_pauli(coef_double[i] * theta[count], qubits, words_double[i])
-        exp_pauli(coef_double[i + 1] * theta[count], qubits, words_double[i + 1])
-        exp_pauli(coef_double[i + 2] * theta[count], qubits, words_double[i + 2])
-        exp_pauli(coef_double[i + 3] * theta[count], qubits, words_double[i + 3])
-        exp_pauli(coef_double[i + 4] * theta[count], qubits, words_double[i + 4])
-        exp_pauli(coef_double[i + 5] * theta[count], qubits, words_double[i + 5])
-        exp_pauli(coef_double[i + 6] * theta[count], qubits, words_double[i + 6])
-        exp_pauli(coef_double[i + 7] * theta[count], qubits, words_double[i + 7])
+        exp_pauli(coef_double[i + 1] * theta[count], qubits,
+                  words_double[i + 1])
+        exp_pauli(coef_double[i + 2] * theta[count], qubits,
+                  words_double[i + 2])
+        exp_pauli(coef_double[i + 3] * theta[count], qubits,
+                  words_double[i + 3])
+        exp_pauli(coef_double[i + 4] * theta[count], qubits,
+                  words_double[i + 4])
+        exp_pauli(coef_double[i + 5] * theta[count], qubits,
+                  words_double[i + 5])
+        exp_pauli(coef_double[i + 6] * theta[count], qubits,
+                  words_double[i + 6])
+        exp_pauli(coef_double[i + 7] * theta[count], qubits,
+                  words_double[i + 7])
         count += 1
 
 
 @cudaq.kernel
-def uccsd_circuit(qubits: cudaq.qview, theta: list[float], words_single: list[cudaq.pauli_word], coef_single: list[float], words_double: list[cudaq.pauli_word], coef_double: list[float]):
+def uccsd_circuit(qubits: cudaq.qview, theta: list[float],
+                  words_single: list[cudaq.pauli_word],
+                  coef_single: list[float],
+                  words_double: list[cudaq.pauli_word],
+                  coef_double: list[float]):
     """
     UCCSD circuit implementation for both single and double excitation.
     """
@@ -318,16 +358,24 @@ def uccsd_circuit(qubits: cudaq.qview, theta: list[float], words_single: list[cu
     count = 0
     for i in range(0, len(words_single), 2):
         exp_pauli(coef_single[i] * theta[count], qubits, words_single[i])
-        exp_pauli(coef_single[i + 1] * theta[count], qubits, words_single[i + 1])
+        exp_pauli(coef_single[i + 1] * theta[count], qubits,
+                  words_single[i + 1])
         count += 1
 
     for i in range(0, len(words_double), 8):
         exp_pauli(coef_double[i] * theta[count], qubits, words_double[i])
-        exp_pauli(coef_double[i + 1] * theta[count], qubits, words_double[i + 1])
-        exp_pauli(coef_double[i + 2] * theta[count], qubits, words_double[i + 2])
-        exp_pauli(coef_double[i + 3] * theta[count], qubits, words_double[i + 3])
-        exp_pauli(coef_double[i + 4] * theta[count], qubits, words_double[i + 4])
-        exp_pauli(coef_double[i + 5] * theta[count], qubits, words_double[i + 5])
-        exp_pauli(coef_double[i + 6] * theta[count], qubits, words_double[i + 6])
-        exp_pauli(coef_double[i + 7] * theta[count], qubits, words_double[i + 7])
+        exp_pauli(coef_double[i + 1] * theta[count], qubits,
+                  words_double[i + 1])
+        exp_pauli(coef_double[i + 2] * theta[count], qubits,
+                  words_double[i + 2])
+        exp_pauli(coef_double[i + 3] * theta[count], qubits,
+                  words_double[i + 3])
+        exp_pauli(coef_double[i + 4] * theta[count], qubits,
+                  words_double[i + 4])
+        exp_pauli(coef_double[i + 5] * theta[count], qubits,
+                  words_double[i + 5])
+        exp_pauli(coef_double[i + 6] * theta[count], qubits,
+                  words_double[i + 6])
+        exp_pauli(coef_double[i + 7] * theta[count], qubits,
+                  words_double[i + 7])
         count += 1

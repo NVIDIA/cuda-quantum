@@ -3,7 +3,7 @@ from qchem.uccsd import uccsd_get_excitation_list, add_single_excitation, add_do
 import numpy as np
 
 
-def get_uccsd_pool(nelectrons, n_qubits, spin = 0):
+def get_uccsd_pool(nelectrons, n_qubits, spin=0):
 
     singles_alpha, singles_beta, doubles_mixed, doubles_alpha, doubles_beta = \
         uccsd_get_excitation_list(nelectrons, n_qubits, spin)
