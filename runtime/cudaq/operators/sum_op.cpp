@@ -36,7 +36,8 @@ namespace cudaq {
 template <typename HandlerTy>
 void sum_op<HandlerTy>::insert(const product_op<HandlerTy> &other) {
   assert(!this->is_default);
-  auto [it, inserted] = this->term_map.try_emplace(other.get_term_id(), this->terms.size());
+  auto [it, inserted] =
+      this->term_map.try_emplace(other.get_term_id(), this->terms.size());
   if (inserted) {
     this->coefficients.push_back(other.coefficient);
     this->terms.push_back(other.operators);
@@ -49,7 +50,8 @@ void sum_op<HandlerTy>::insert(const product_op<HandlerTy> &other) {
 template <typename HandlerTy>
 void sum_op<HandlerTy>::insert(product_op<HandlerTy> &&other) {
   assert(!this->is_default);
-  auto [it, inserted] = this->term_map.try_emplace(other.get_term_id(), this->terms.size());
+  auto [it, inserted] =
+      this->term_map.try_emplace(other.get_term_id(), this->terms.size());
   if (inserted) {
     this->coefficients.push_back(std::move(other.coefficient));
     this->terms.push_back(std::move(other.operators));
