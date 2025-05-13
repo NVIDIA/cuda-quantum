@@ -12,30 +12,37 @@
 
 namespace cudaq {
 
-/// @brief The `PasqalBaseQPU` is a QPU that allows users to submit kernels to
-/// the Pasqal machine.
-class PasqalBaseQPU : public BaseRemoteRESTQPU {
+/// @brief Base QPU class for analog platforms like `quera` and `pasqal`.
+/// Provides common functionality and implementation.
+class AnalogRemoteRESTQPU : public BaseRemoteRESTQPU {
 protected:
-  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
+  std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
-
     throw std::runtime_error("Not supported on this target.");
   }
 
 public:
+  /// @brief Check if this is a remote target
+  virtual bool isRemote() override { return true; }
+
+  /// @brief Check if this is an emulated target
+  virtual bool isEmulated() override { return false; }
+
+  /// @brief Launch a kernel with the given arguments
   void launchKernel(const std::string &kernelName,
                     const std::vector<void *> &rawArgs) override {
     throw std::runtime_error(
         "Arbitrary kernel execution is not supported on this target.");
   }
 
+  /// @brief Launch a kernel with the given arguments
+  /// Only analog Hamiltonian kernels are supported
   KernelThunkResultType
   launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-
     if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
       throw std::runtime_error(
           "Arbitrary kernel execution is not supported on this target.");
@@ -46,7 +53,6 @@ public:
 
     cudaq::info("Launching remote kernel ({})", kernelName);
     std::vector<cudaq::KernelExecution> codes;
-
     std::string name = kernelName;
     char *charArgs = (char *)(args);
     std::string strArgs = charArgs;
@@ -66,7 +72,6 @@ public:
       // Otherwise make this synchronous
       executionContext->result = future.get();
     }
-
     return {};
   }
 };
