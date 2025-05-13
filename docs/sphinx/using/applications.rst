@@ -38,7 +38,6 @@ CUDA-Q Applications
    /applications/python/uccsd_wf_ansatz
 
 
-
 .. raw:: html
 
     <div class="filter-groups" style="margin-bottom: 60px;">
