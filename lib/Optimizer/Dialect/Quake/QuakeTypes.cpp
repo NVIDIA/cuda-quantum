@@ -127,6 +127,6 @@ std::size_t quake::getAllocationSize(Type ty) {
 //===----------------------------------------------------------------------===//
 
 void quake::QuakeDialect::registerTypes() {
-  addTypes<ControlType, MeasureType, RefType, StateType, StruqType, VeqType,
-           WireType>();
+  addTypes<CableType, ControlType, MeasureType, RefType, StateType, StruqType,
+           VeqType, WireType>();
 }
