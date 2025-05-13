@@ -374,7 +374,6 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           }
         })
         .Case([&](cudaq::cc::StdvecType ty) {
-          checkArgumentType<py::list>(arg, i);
           auto casted = py::cast<py::list>(arg);
           auto eleTy = ty.getElementType();
           if (casted.empty()) {
