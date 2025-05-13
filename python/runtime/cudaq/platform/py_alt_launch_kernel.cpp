@@ -595,41 +595,12 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
         return list;
       })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
-        if (ty.getName() == "tuple") {
+        auto name = ty.getName().str();
+        // Handle tuples.
+        if (name == "tuple") {
           auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
           auto memberTys = ty.getMembers();
           py::list list;
-          for (std::size_t i = 0; i < offsets.size(); i++) {
-            auto eleTy = memberTys[i];
-            if (!eleTy.isIntOrFloat()) {
-              eleTy.dump();
-              throw std::runtime_error(
-                  "Unsupported element type in struct type.");
-            }
-            auto eleByteSize = byteSize(eleTy);
-            list.append(convertResult(module, kernelFuncOp, eleTy,
-                                      data + offsets[i], eleByteSize));
-          }
-          return py::tuple(list);
-        } else {
-          auto name = ty.getName().str();
-          if (!DataClassRegistry::isRegisteredClass(name))
-            throw std::runtime_error("No dataclass type info found for: " +
-                                     name);
-
-          // Find class information
-          py::object cls = DataClassRegistry::getClass(name);
-          py::dict attributes = DataClassRegistry::getAttributes(cls);
-
-          // Collect field names
-          std::vector<py::str> fieldNames;
-          for (const auto &[attr_name, unused] : attributes)
-            fieldNames.push_back(py::str(attr_name));
-
-          // Read field values and create the constructor `kwargs`
-          auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
-          auto memberTys = ty.getMembers();
-          py::dict kwargs;
           for (std::size_t i = 0; i < offsets.size(); i++) {
             auto eleTy = memberTys[i];
             if (!eleTy.isIntOrFloat()) {
@@ -639,18 +610,48 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
                   "Unsupported element type in struct type.");
             }
             auto eleByteSize = byteSize(eleTy);
-            if (i < fieldNames.size())
-              kwargs[fieldNames[i]] = convertResult(
-                  module, kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
-            else
-              throw std::runtime_error("Field name and value mismatch when "
-                                       "returning an object of dataclass " +
-                                       name);
+            list.append(convertResult(module, kernelFuncOp, eleTy, data + offsets[i],
+                                      eleByteSize));
           }
-
-          // Create python object of class `cls` with the collected args.
-          return cls(**kwargs);
+          return py::tuple(list);
         }
+
+        // Handle data class objects.
+        if (!DataClassRegistry::isRegisteredClass(name))
+          throw std::runtime_error("Dataclass is not registered: " + name);
+
+        // Find class information.
+        auto [cls, attributes] = DataClassRegistry::getClassAttributes(name);
+
+        // Collect field names.
+        std::vector<py::str> fieldNames;
+        for (const auto &[attr_name, unused] : attributes)
+          fieldNames.push_back(py::str(attr_name));
+
+        // Read field values and create the constructor `kwargs`
+        auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+        auto memberTys = ty.getMembers();
+        py::dict kwargs;
+        for (std::size_t i = 0; i < offsets.size(); i++) {
+          auto eleTy = memberTys[i];
+          if (!eleTy.isIntOrFloat()) {
+            // TODO: support nested aggregate types.
+            eleTy.dump();
+            throw std::runtime_error(
+                "Unsupported element type in struct type.");
+          }
+          auto eleByteSize = byteSize(eleTy);
+          if (i < fieldNames.size())
+            kwargs[fieldNames[i]] = convertResult(module,
+                kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
+          else
+            throw std::runtime_error("Field name and value mismatch when "
+                                     "returning an object of dataclass " +
+                                     name);
+        }
+
+        // Create python object of class `cls` with the collected args.
+        return cls(**kwargs);
       })
       .Default([](Type ty) -> py::object {
         ty.dump();
@@ -1039,7 +1040,8 @@ void bindAltLaunchKernel(py::module &mod) {
         if (attr)
           m->setAttr("quake.mangled_name_map", attr);
       },
-      "Synthesize away the callable block argument from the entrypoint in modA "
+      "Synthesize away the callable block argument from the entrypoint in "
+      "modA "
       "with the FuncOp of given name.");
 
   mod.def(

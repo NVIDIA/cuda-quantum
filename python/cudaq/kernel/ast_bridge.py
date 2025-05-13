@@ -1219,7 +1219,11 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
         else:
-            self.visit(node.value)
+            if isinstance(node.value, ast.Tuple):
+                for ele in node.value.elts:
+                    self.visit(ele)
+            else:
+                self.visit(node.value)
 
         if len(self.valueStack) == 0:
             self.emitFatalError("invalid assignment detected.", node)
@@ -3275,6 +3279,38 @@ class PyASTBridge(ast.NodeVisitor):
                                           context=self.ctx)).result
                 self.pushValue(cc.LoadOp(eleAddr).result)
                 return
+
+        if cc.StructType.isinstance(var.type):
+            # Return the pointer if someone asked for it
+            if self.subscriptPushPointerValue:
+                self.pushValue(var)
+                return
+
+            # Handle the case where we have a tuple member extraction, memory semantics
+            idxValue = None
+            if hasattr(idx.owner, 'opview') and isinstance(
+                    idx.owner.opview, arith.ConstantOp):
+                if 'value' in idx.owner.attributes:
+                    attr = IntegerAttr(idx.owner.attributes['value'])
+                    idxValue = attr.value
+
+            if idxValue == None:
+                self.emitFatalError(
+                    "non-constant subscript value on a tuple is not supported",
+                    node)
+
+            memberTys = cc.StructType.getTypes(var.type)
+            if idxValue >= len(memberTys):
+                self.emitFatalError(f'tuple index is out of range: {idxValue}',
+                                    node)
+
+            structPtr = self.ifNotPointerThenStore(var)
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, memberTys[idxValue]), structPtr,
+                [], DenseI32ArrayAttr.get([idxValue], context=self.ctx)).result
+
+            self.pushValue(cc.LoadOp(eleAddr).result)
+            return
 
         self.emitFatalError("unhandled subscript", node)
 
