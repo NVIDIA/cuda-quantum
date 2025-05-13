@@ -275,61 +275,64 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
 
 /// @brief For the current vector element type, insert the
 /// value into the dynamically-constructed vector.
-inline void handleVectorElements(void *data, Type eleTy, py::list list) {
+inline std::tuple<void*, std::function<void(void*)>> handleVectorElements(void *data, Type eleTy, py::list list) {
   auto appendValue = []<typename T>(py::list list, void *data,
-                                    auto &&converter) {
+                                    auto &&converter) -> std::tuple<void*, std::function<void(void*)>> {
     std::vector<T> *values = new std::vector<T>(list.size());
     for (std::size_t i = 0; auto &v : list) {
       auto converted = converter(v, i);
       (*values)[i++] = converted;
     }
+    
     std::memcpy(((char *)data), values, sizeof(std::vector<T>));
+    auto deleter = [](void* ptr) { delete static_cast<std::vector<T>*>(ptr); };
+    return {values, deleter};
   };
 
-  llvm::TypeSwitch<Type, void>(eleTy)
+  return llvm::TypeSwitch<Type, std::tuple<void*, std::function<void(void*)>>>(eleTy)
       .Case([&](IntegerType ty) {
         if (ty.isInteger(1))
-          appendValue.template operator()<bool>(
+          return appendValue.template operator()<bool>(
               list, data, [](py::handle v, std::size_t i) {
                 checkListElementType<py::bool_>(v, i);
                 return v.cast<bool>();
               });
         else
-          appendValue.template operator()<std::size_t>(
+          return appendValue.template operator()<std::size_t>(
               list, data, [](py::handle v, std::size_t i) {
                 checkListElementType<py::int_>(v, i);
                 return v.cast<std::int64_t>();
               });
       })
       .Case([&](mlir::Float32Type ty) {
-        appendValue.template operator()<float>(
+        return appendValue.template operator()<float>(
             list, data, [](py::handle v, std::size_t i) {
               checkListElementType<py_ext::Float>(v, i);
               return v.cast<float>();
             });
       })
       .Case([&](mlir::Float64Type ty) {
-        appendValue.template operator()<double>(
+        return appendValue.template operator()<double>(
             list, data, [](py::handle v, std::size_t i) {
               checkListElementType<py_ext::Float>(v, i);
               return v.cast<double>();
             });
       })
       .Case([&](cudaq::cc::CharspanType type) {
-        appendValue.template operator()<std::string>(
+        return appendValue.template operator()<std::string>(
             list, data, [](py::handle v, std::size_t i) {
               return v.cast<cudaq::pauli_word>().str();
             });
       })
       .Case([&](ComplexType type) {
         if (isa<Float64Type>(type.getElementType()))
-          appendValue.template operator()<std::complex<double>>(
+          return appendValue.template operator()<std::complex<double>>(
               list, data, [](py::handle v, std::size_t i) {
                 checkListElementType<py_ext::Complex>(v, i);
                 return v.cast<std::complex<double>>();
               });
         else
-          appendValue.template operator()<std::complex<float>>(
+          return appendValue.template operator()<std::complex<float>>(
               list, data, [](py::handle v, std::size_t i) {
                 checkListElementType<py_ext::Complex>(v, i);
                 return v.cast<std::complex<float>>();
@@ -337,7 +340,7 @@ inline void handleVectorElements(void *data, Type eleTy, py::list list) {
       })
       .Case([&](cudaq::cc::StdvecType ty) {
         auto appendVectorValue = []<typename T>(void *data, Type eleTy,
-                                                py::list list) {
+                                                py::list list) -> std::tuple<void*, std::function<void(void*)>>{
           auto *values = new std::vector<std::vector<T>>(list.size());
           for (std::size_t i = 0; i < list.size(); i++) {
             checkListElementType<py::list>(list[i], i);
@@ -345,13 +348,15 @@ inline void handleVectorElements(void *data, Type eleTy, py::list list) {
           }
           std::memcpy(((char *)data), values,
                       sizeof(std::vector<std::vector<T>>));
+          auto deleter = [](void* ptr) { delete static_cast<std::vector<std::vector<T>>*>(ptr); };
+          return {values, deleter};
         };
 
         auto eleTy = ty.getElementType();
         if (ty.getElementType().isInteger(1))
-          appendVectorValue.template operator()<bool>(data, eleTy, list);
+          return appendVectorValue.template operator()<bool>(data, eleTy, list);
         else
-          appendVectorValue.template operator()<std::size_t>(data, eleTy, list);
+          return appendVectorValue.template operator()<std::size_t>(data, eleTy, list);
       })
       .Default([&](Type ty) {
         throw std::runtime_error("invalid list element type (" +
@@ -450,9 +455,8 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
             // Allocate memory for the vector object.
             // The data is allocated in `handleVectorElements`.
             auto *allocatedArg = std::malloc(sizeof(std::vector<T>));
-            handleVectorElements(allocatedArg, eleTy, list);
-            argData.emplace_back(allocatedArg,
-                                 [](void *ptr) { std::free(ptr); });
+            auto [unused, deleter] = handleVectorElements(allocatedArg, eleTy, list);
+            argData.emplace_back(allocatedArg, deleter);
           };
 
           checkArgumentType<py::list>(arg, i);

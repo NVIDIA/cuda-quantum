@@ -433,6 +433,9 @@ class PyKernelDecorator(object):
 
             # Support passing `list[int]` to a `list[float]` argument
             # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
+            print('call')
+            print(mlirType)
+            print(self.argTypes[i])
             if cc.StdvecType.isinstance(mlirType):
                 if cc.StdvecType.isinstance(self.argTypes[i]):
                     argEleTy = cc.StdvecType.getElementType(mlirType)  # actual

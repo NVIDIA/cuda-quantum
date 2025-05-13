@@ -7,11 +7,6 @@
 # ============================================================================ #
 
 
-def print_i1(value: bool) -> None:
-    raise RuntimeError(
-        'cudaq.dbg.ast.print_i1 can only be called from a CUDA-Q kernel')
-
-
 def print_i64(value: int) -> None:
     raise RuntimeError(
         'cudaq.dbg.ast.print_i64 can only be called from a CUDA-Q kernel')
