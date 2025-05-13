@@ -38,7 +38,8 @@ protected:
     auto *simState = cudaq::state_helper::getSimulationState(&state_);
     auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
     EXPECT_TRUE(castSimState != nullptr);
-    castSimState->initialize_cudm(handle_, mock_hilbert_space_dims());
+    castSimState->initialize_cudm(handle_, mock_hilbert_space_dims(),
+                                  /*batchSize=*/1);
     ASSERT_TRUE(castSimState->is_initialized());
   }
 
@@ -94,7 +95,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepCheckOutput) {
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   EXPECT_TRUE(castSimState != nullptr);
-  castSimState->initialize_cudm(handle_, dims);
+  castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
 
   cudaq::boson_op_term op_1 = cudaq::boson_op::create(0);
   cudaq::sum_op<cudaq::matrix_handler> op(op_1);
@@ -128,7 +129,7 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   auto *simState = cudaq::state_helper::getSimulationState(&input_state);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   EXPECT_TRUE(castSimState != nullptr);
-  castSimState->initialize_cudm(handle_, dims);
+  castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
   cudaq::product_op<cudaq::matrix_handler> c_op_0 =
       cudaq::boson_op::annihilate(0);
   cudaq::sum_op<cudaq::matrix_handler> c_op(c_op_0);
@@ -162,7 +163,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckScalarCallback) {
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   EXPECT_TRUE(castSimState != nullptr);
-  castSimState->initialize_cudm(handle_, dims);
+  castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
   const std::string paramName = "alpha";
   const std::complex<double> paramValue{2.0, 3.0};
   std::unordered_map<std::string, std::complex<double>> params{
@@ -209,7 +210,7 @@ TEST_F(CuDensityMatTimeStepperTest, CheckTensorCallback) {
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   EXPECT_TRUE(castSimState != nullptr);
-  castSimState->initialize_cudm(handle_, dims);
+  castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
 
   const std::string paramName = "beta";
   const std::complex<double> paramValue{2.0, 3.0};
@@ -267,7 +268,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrder) {
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   EXPECT_TRUE(castSimState != nullptr);
-  castSimState->initialize_cudm(handle_, dims);
+  castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
 
   cudaq::product_op<cudaq::matrix_handler> op_t =
       cudaq::boson_op::create(0) *
@@ -307,7 +308,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrderDensityMatrix) {
   auto *simState = cudaq::state_helper::getSimulationState(&inputState);
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
   EXPECT_TRUE(castSimState != nullptr);
-  castSimState->initialize_cudm(handle_, dims);
+  castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
 
   cudaq::product_op<cudaq::matrix_handler> op_t =
       cudaq::boson_op::create(0) *

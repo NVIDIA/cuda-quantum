@@ -9,6 +9,7 @@
 #pragma once
 #include <complex>
 #include <cudensitymat.h>
+#include <vector>
 namespace cudaq {
 
 class CuDensityMatExpectation {
@@ -36,10 +37,13 @@ public:
   void prepare(cudensitymatState_t state);
 
   /// @brief Compute the expectation value
-  /// @param state The state to compute the expectation value
+  /// @param state The state to compute the expectation value (could be a
+  /// batched state)
   /// @param time The time at which the expectation value is computed
-  /// @return The expectation value
-  std::complex<double> compute(cudensitymatState_t state, double time);
+  /// @param batchSize The batched size of the input state
+  /// @return The expectation value(s)
+  std::vector<std::complex<double>> compute(cudensitymatState_t state,
+                                            double time, int64_t batchSize);
 };
 
 } // namespace cudaq

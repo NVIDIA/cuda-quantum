@@ -54,7 +54,7 @@ protected:
 TEST_F(CuDensityMatStateTest, InitializeWithStateVector) {
   CuDensityMatState state(stateVectorData.size(),
                           cudaq::dynamics::createArrayGpu(stateVectorData));
-  state.initialize_cudm(handle, hilbertSpaceDims);
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
   EXPECT_TRUE(state.is_initialized());
   EXPECT_FALSE(state.is_density_matrix());
   EXPECT_NO_THROW(state.dump(std::cout));
@@ -63,7 +63,7 @@ TEST_F(CuDensityMatStateTest, InitializeWithStateVector) {
 TEST_F(CuDensityMatStateTest, InitializeWithDensityMatrix) {
   CuDensityMatState state(densityMatrixData.size(),
                           cudaq::dynamics::createArrayGpu(densityMatrixData));
-  state.initialize_cudm(handle, hilbertSpaceDims);
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
   EXPECT_TRUE(state.is_initialized());
   EXPECT_TRUE(state.is_density_matrix());
   EXPECT_NO_THROW(state.dump(std::cout));
@@ -74,14 +74,14 @@ TEST_F(CuDensityMatStateTest, InvalidInitialization) {
   std::vector<std::complex<double>> invalidData = {{1.0, 0.0}, {0.0, 0.0}};
   CuDensityMatState state(invalidData.size(),
                           cudaq::dynamics::createArrayGpu(invalidData));
-  EXPECT_THROW(state.initialize_cudm(handle, hilbertSpaceDims),
+  EXPECT_THROW(state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1),
                std::invalid_argument);
 }
 
 TEST_F(CuDensityMatStateTest, ToDensityMatrixConversion) {
   CuDensityMatState state(stateVectorData.size(),
                           cudaq::dynamics::createArrayGpu(stateVectorData));
-  state.initialize_cudm(handle, hilbertSpaceDims);
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
   EXPECT_FALSE(state.is_density_matrix());
 
   CuDensityMatState densityMatrixState = state.to_density_matrix();
@@ -97,7 +97,7 @@ TEST_F(CuDensityMatStateTest, ToDensityMatrixConversionCorrectnessCheck) {
     std::vector<std::complex<double>> initialState(
         randomVec.data(), randomVec.data() + randomVec.size());
     CuDensityMatState state(N, cudaq::dynamics::createArrayGpu(initialState));
-    state.initialize_cudm(handle, {N});
+    state.initialize_cudm(handle, {N}, /*batchSize=*/1);
     EXPECT_FALSE(state.is_density_matrix());
     Eigen::MatrixXcd expectedDensityMatrix = randomVec * randomVec.adjoint();
     std::cout << "Expected:\n" << expectedDensityMatrix << "\n";
@@ -114,7 +114,7 @@ TEST_F(CuDensityMatStateTest, ToDensityMatrixConversionCorrectnessCheck) {
 TEST_F(CuDensityMatStateTest, AlreadyDensityMatrixConversion) {
   CuDensityMatState state(densityMatrixData.size(),
                           cudaq::dynamics::createArrayGpu(densityMatrixData));
-  state.initialize_cudm(handle, hilbertSpaceDims);
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
   EXPECT_TRUE(state.is_density_matrix());
   EXPECT_THROW(state.to_density_matrix(), std::runtime_error);
 }
@@ -140,7 +140,7 @@ TEST_F(CuDensityMatStateTest, ConversionForSingleQubitSystem) {
   stateVectorData = {{1.0, 0.0}, {0.0, 0.0}};
   CuDensityMatState state(stateVectorData.size(),
                           cudaq::dynamics::createArrayGpu(stateVectorData));
-  state.initialize_cudm(handle, hilbertSpaceDims);
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
 
   EXPECT_FALSE(state.is_density_matrix());
 
@@ -155,14 +155,14 @@ TEST_F(CuDensityMatStateTest, InvalidHilbertSpaceDims) {
   hilbertSpaceDims = {3, 3};
   CuDensityMatState state(stateVectorData.size(),
                           cudaq::dynamics::createArrayGpu(stateVectorData));
-  EXPECT_THROW(state.initialize_cudm(handle, hilbertSpaceDims),
+  EXPECT_THROW(state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1),
                std::invalid_argument);
 }
 
 TEST_F(CuDensityMatStateTest, DumpWorksForInitializedState) {
   CuDensityMatState state(stateVectorData.size(),
                           cudaq::dynamics::createArrayGpu(stateVectorData));
-  state.initialize_cudm(handle, hilbertSpaceDims);
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
   EXPECT_NO_THROW(state.dump(std::cout));
 }
 

@@ -35,7 +35,8 @@ protected:
     state_ = std::make_unique<CuDensityMatState>(
         mock_initial_state_data().size(),
         cudaq::dynamics::createArrayGpu(mock_initial_state_data()));
-    state_->initialize_cudm(handle_, mock_hilbert_space_dims());
+    state_->initialize_cudm(handle_, mock_hilbert_space_dims(),
+                            /*batchSize=*/1);
     ASSERT_NE(state_, nullptr);
     ASSERT_TRUE(state_->is_initialized());
 
@@ -77,7 +78,7 @@ TEST_F(RungeKuttaIntegratorTest, CheckEvolve) {
     auto *simState = cudaq::state_helper::getSimulationState(&initialState);
     auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
     EXPECT_TRUE(castSimState != nullptr);
-    castSimState->initialize_cudm(handle_, dims);
+    castSimState->initialize_cudm(handle_, dims, /*batchSize=*/1);
     integrator.setState(initialState, 0.0);
     std::vector<std::complex<double>> steps;
     for (double t : cudaq::linspace(0.0, 1.0 * numDataPoints, numDataPoints)) {

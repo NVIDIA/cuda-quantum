@@ -426,3 +426,35 @@ class TestInitialStateEnum(TestSystem):
             expt.append(exp_vals[0].expectation())
         expected_answer = np.cos(4.0 * np.pi * 0.1 * steps)
         np.testing.assert_allclose(expected_answer, expt, 1e-3)
+class TestCavityModelBatchedInputState(TestSystem):
+
+    def run_tests(self, integrator):
+        hamiltonian = ScalarOperator(lambda t: 1.0) * number(0)
+        N = 10
+        steps = np.linspace(0, 10, 101)
+        schedule = Schedule(steps, ["t"])
+        hamiltonian = number(0)
+        dimensions = {0: N}
+        # initial states
+        num_states = 4
+        initial_states = []
+        for i in range(num_states):
+            psi0_ = cp.zeros(N, dtype=cp.complex128)
+            psi0_[-(i + 1)] = 1.0
+            initial_states.append(cudaq.State.from_data(psi0_))
+        decay_rate = 0.1
+        evolution_results = cudaq.evolve(
+            hamiltonian,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[hamiltonian],
+            collapse_operators=[np.sqrt(decay_rate) * annihilate(0)],
+            store_intermediate_results=True,
+            integrator=integrator())
+        for i in range(num_states):
+            expt = []
+            for exp_vals in evolution_results[i].expectation_values():
+                expt.append(exp_vals[0].expectation())
+            expected_answer = (N - 1 - i) * np.exp(-decay_rate * steps)
+            np.testing.assert_allclose(expected_answer, expt, 1e-3)
