@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "PasqalBaseQPU.h"
+#include "common/AnalogRemoteRESTQPU.h"
 
 namespace {
 
 /// @brief The `PasqalRemoteRESTQPU` is a subtype of QPU that enables the
 /// execution of Analog Hamiltonian Program via a REST Client.
-class PasqalRemoteRESTQPU : public cudaq::PasqalBaseQPU {
+class PasqalRemoteRESTQPU : public cudaq::AnalogRemoteRESTQPU {
 public:
-  PasqalRemoteRESTQPU() : PasqalBaseQPU() {}
+  PasqalRemoteRESTQPU() : AnalogRemoteRESTQPU() {}
   PasqalRemoteRESTQPU(PasqalRemoteRESTQPU &&) = delete;
   virtual ~PasqalRemoteRESTQPU() = default;
 };
