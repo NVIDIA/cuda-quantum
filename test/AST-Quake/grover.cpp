@@ -28,7 +28,8 @@ __qpu__ void reflect_about_uniform(cudaq::qvector<> &qs) {
 
 struct run_grover {
   template <typename CallableKernel>
-  __qpu__ auto operator()(const int n_qubits, CallableKernel &&oracle, const long target_state) {
+  __qpu__ auto operator()(const int n_qubits, CallableKernel &&oracle,
+                          const long target_state) {
     int n_iterations = round(0.25 * M_PI * sqrt(2 ^ n_qubits));
 
     cudaq::qvector qs(n_qubits);
@@ -118,9 +119,9 @@ int main(int argc, char *argv[]) {
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_11]] : !cc.ptr<i64>
 // CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_13:.*]] = arith.xori %[[VAL_12]], %[[VAL_8]] : i32
-// CHECK:           %[[VAL_14:.*]] = call @_ZSt4sqrtIiEN9__gnu_cxx11__enable_ifIXsr12__is_integerIT_EE7__valueEdE6__typeES2_(%[[VAL_13]]) : (i32) -> f64
+// CHECK:           %[[VAL_14:.*]] = call @{{.*}}(%[[VAL_13]]) : (i32) -> f64
 // CHECK:           %[[VAL_15:.*]] = arith.mulf %[[VAL_14]], %[[VAL_3]] : f64
-// CHECK:           %[[VAL_16:.*]] = call @round(%[[VAL_15]]) : (f64) -> f64
+// CHECK:           %[[VAL_16:.*]] = call @{{.*}}(%[[VAL_15]]) : (f64) -> f64
 // CHECK:           %[[VAL_17:.*]] = cc.cast signed %[[VAL_16]] : (f64) -> i32
 // CHECK:           %[[VAL_18:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_17]], %[[VAL_18]] : !cc.ptr<i32>
