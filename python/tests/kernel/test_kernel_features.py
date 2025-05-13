@@ -593,7 +593,6 @@ def test_list_creation():
         for i in myList:
             x(q[i])
 
-    print(kernel3)
     counts = cudaq.sample(kernel3, 5)
     assert len(counts) == 1
     assert '1' * 5 in counts
@@ -605,7 +604,6 @@ def test_list_creation():
         for i in casted:
             x(q[i])
 
-    print(kernel4)
     counts = cudaq.sample(kernel4, list(range(5)))
     assert len(counts) == 1
     assert '1' * 5 in counts

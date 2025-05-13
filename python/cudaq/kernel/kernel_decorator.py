@@ -94,7 +94,7 @@ class PyKernelDecorator(object):
         # in the kernel definition
         for name, var in self.globalScopedVars.items():
             if isinstance(var, type) and hasattr(var, '__annotations__'):
-                globalRegisteredTypes[name] = (var, var.__annotations__)
+                globalRegisteredTypes.registerClass(name, var)
 
         # Once the kernel is compiled to MLIR, we
         # want to know what capture variables, if any, were
