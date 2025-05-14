@@ -305,11 +305,18 @@ class PyKernelDecorator(object):
             return None
 
     def isCastable(self, fromTy, toTy):
+        if IntegerType.isinstance(toTy) and IntegerType(toTy).width != 1:
+            return IntegerType.isinstance(fromTy) and IntegerType(
+                fromTy).width != 1
+
         if F64Type.isinstance(toTy):
             return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
         if F32Type.isinstance(toTy):
             return F64Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
+
+        if F64Type.isinstance(toTy):
+            return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
         if ComplexType.isinstance(toTy):
             floatToType = ComplexType(toTy).element_type
@@ -322,6 +329,11 @@ class PyKernelDecorator(object):
         return False
 
     def castPyPrimitiveType(self, toTy, value):
+        if IntegerType.isinstance(toTy):
+            if IntegerType(toTy).width == 32:
+                return np.int32(value)
+            return int(value)
+
         if F64Type.isinstance(toTy):
             return float(value)
 
@@ -459,6 +471,12 @@ class PyKernelDecorator(object):
                     self.castPyPrimitiveType(self.argTypes[i], arg))
                 mlirType = self.argTypes[i]
                 continue
+
+            if cc.StructType.isinstance(mlirType):
+                if cc.StructType.isinstance(self.argTypes[i]):
+                    memberTys = cc.StructType.getTypes(mlirType)
+                    if len(memberTys) == 0:
+                        mlirType = self.argTypes[i]
 
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:

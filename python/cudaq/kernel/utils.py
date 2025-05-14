@@ -289,6 +289,10 @@ def pyInstanceFromName(name: str):
         return int(0)
     if name == 'float':
         return float(0.0)
+    if name in ['numpy.float32', 'np.float32']:
+        return np.float32(0.0)
+    if name in ['numpy.float64', 'np.float64']:
+        return np.float64(0.0)
     if name == 'complex':
         return 0j
     if name == 'pauli_word':
@@ -392,7 +396,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             if pyInstance == None:
                 emitFatalError(f'Invalid tuple element type ({eleTyName})')
             eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
+        eleTypes.reverse()
         return cc.StructType.getNamed(ctx, "tuple", eleTypes)
+
+    if (argType == tuple):
+        return cc.StructType.getNamed(ctx, "tuple", [])
 
     if argType == qvector or argType == qreg or argType == qview:
         return quake.VeqType.get(ctx)
