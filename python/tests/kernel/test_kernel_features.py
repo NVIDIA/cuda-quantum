@@ -634,6 +634,13 @@ def test_nested_list_iteration():
             for j, e in enumerate(inner):
                 if e:
                     x(q[i * len(inner) + j])
+                    cudaq.dbg.ast.print_i64(i)
+                    cudaq.dbg.ast.print_i64(j)
+                    cudaq.dbg.ast.print_i64(i * len(inner) + j)
+                    if e:
+                        cudaq.dbg.ast.print_i64(1)
+                    else:
+                        cudaq.dbg.ast.print_i64(0)
 
     counts = cudaq.sample(
         kernel5, 8, [[True, False, True, False], [False, True, False, True]])
@@ -712,6 +719,15 @@ def test_nested_list_iteration3_bool():
                 for j, e in enumerate(inner2):
                     if e:
                         x(q[k * len(inner) * len(inner2) + i * len(inner2) + j])
+                        cudaq.dbg.ast.print_i64(k)
+                        cudaq.dbg.ast.print_i64(i)
+                        cudaq.dbg.ast.print_i64(j)
+                        cudaq.dbg.ast.print_i64(k * len(inner) * len(inner2) +
+                                                i * len(inner2) + j)
+                        if e:
+                            cudaq.dbg.ast.print_i64(1)
+                        else:
+                            cudaq.dbg.ast.print_i64(0)
 
     counts = cudaq.sample(
         kernel5, 16, [[[True, False, True, False], [False, True, False, True]],
