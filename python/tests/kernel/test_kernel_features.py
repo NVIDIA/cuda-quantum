@@ -637,6 +637,7 @@ def test_nested_list_iteration():
 
     counts = cudaq.sample(
         kernel5, 8, [[True, False, True, False], [False, True, False, True]])
+    print(counts)
     assert len(counts) == 1
     assert '10100101' in counts
 
@@ -701,7 +702,7 @@ def test_nested_list_iteration():
     assert '1111' in counts
 
 
-def test_nested_list3_iteration():
+def test_nested_list_iteration3_bool():
 
     @cudaq.kernel
     def kernel5(n: int, myList: list[list[list[bool]]]):
@@ -715,11 +716,12 @@ def test_nested_list3_iteration():
     counts = cudaq.sample(
         kernel5, 16, [[[True, False, True, False], [False, True, False, True]],
                       [[True, False, True, False], [False, True, False, True]]])
+    print(counts)
     assert len(counts) == 1
     assert '1010010110100101' in counts
 
 
-def test_nested_list_iteration4_int():
+def test_nested_list_iteration3_int():
 
     @cudaq.kernel
     def kernel6(n: int, myList: list[list[list[int]]]):
@@ -736,7 +738,7 @@ def test_nested_list_iteration4_int():
     assert '1111111111111111' in counts
 
 
-def test_nested_list_iteration_int4():
+def test_nested_list_iteration3_int():
 
     @cudaq.kernel
     def kernel6(n: int, myList: list[list[list[list[int]]]]):
