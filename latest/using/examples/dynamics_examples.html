@@ -48,7 +48,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                0.11.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -813,9 +813,8 @@
              
   <section id="cuda-q-dynamics">
 <h1>CUDA-Q Dynamics<a class="headerlink" href="#cuda-q-dynamics" title="Permalink to this heading">¶</a></h1>
-<p id="dynamics-examples">This page contains a number of examples that use CUDA-Q dynamics to simulate a range of fundamental physical systems and specific qubit modalities. All example problems simulate systems of very low dimension so that the code can be run quickly on any device. For small problems, the GPU will not provide a significant performance advantage over the CPU. The GPU will start to outperform the CPU for cases where the total dimension of all subsystems is O(1000).</p>
 <section id="cavity-qed">
-<h2>Cavity QED<a class="headerlink" href="#cavity-qed" title="Permalink to this heading">¶</a></h2>
+<span id="dynamics-examples"></span><h2>Cavity QED<a class="headerlink" href="#cavity-qed" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id1"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">boson</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>

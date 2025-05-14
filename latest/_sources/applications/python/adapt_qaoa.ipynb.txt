@@ -36,7 +36,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 13,
+   "execution_count": 41,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -59,7 +59,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 14,
+   "execution_count": 42,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -102,7 +102,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 15,
+   "execution_count": 43,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -126,17 +126,17 @@
     "def term_coefficients(ham: cudaq.SpinOperator) -> list[complex]:\n",
     "    result = []\n",
     "    for term in ham:\n",
-    "        result.append(term.evaluate_coefficient())\n",
+    "        result.append(term.get_coefficient())\n",
     "    return result\n",
     "\n",
     "# Collect Pauli words from a spin operator so we can pass them to a kernel\n",
     "def term_words(ham: cudaq.SpinOperator) -> list[str]:\n",
     "    # Our kernel uses these words to apply exp_pauli to the entire state.\n",
     "    # we hence ensure that each pauli word covers the entire space.\n",
-    "    \n",
+    "    n_spins = ham.get_qubit_count()\n",
     "    result = []\n",
     "    for term in ham:\n",
-    "        result.append(term.get_pauli_word(qubits_num))\n",
+    "        result.append(term.get_pauli_word(n_spins))\n",
     "    return result\n",
     "\n",
     "# Generate the Spin Hamiltonian:\n",
@@ -157,7 +157,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 16,
+   "execution_count": 44,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -203,7 +203,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 17,
+   "execution_count": 45,
    "metadata": {},
    "outputs": [
     {
@@ -230,7 +230,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 18,
+   "execution_count": 46,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -251,7 +251,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 19,
+   "execution_count": 47,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -303,12 +303,12 @@
    "source": [
     "### Beginning of ADAPT-QAOA iteration:\n",
     "\n",
-    "Note that, here in this tutorial, we set the seed for the random number generator. This ensures that the random choices are reproducible in each step of iteration when choosing operator pools if more than one operator pool has the same value. For production, users need to change that."
+    "Note that, here in this tutorial, we set the seed for the random number generator. This ensures that the random choices are reproducible in each step of iteration when choosing operator pools if more than one operator pool has the same value. "
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 20,
+   "execution_count": 48,
    "metadata": {},
    "outputs": [
     {
@@ -484,7 +484,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 21,
+   "execution_count": 49,
    "metadata": {},
    "outputs": [
     {
@@ -495,7 +495,7 @@
       " Sampling the Final ADAPT QAOA circuit \n",
       "\n",
       "The most probable max cut:  01011\n",
-      "All bitstring from circuit sampling:  { 01011:2550 10100:2450 }\n",
+      "All bitstring from circuit sampling:  { 01011:2507 10100:2493 }\n",
       "\n"
      ]
     }
@@ -510,14 +510,14 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 12,
+   "execution_count": 50,
    "metadata": {},
    "outputs": [
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 05873efb8973bd60fcf7cfe193e6ab54c6edee60)\n"
+      "CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 3d04e4a243907104fcc7da2b0fb01f8a06d5c69d)\n"
      ]
     }
    ],
