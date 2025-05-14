@@ -168,7 +168,7 @@ struct testSignedCastBoolConstFalse {
   void operator()() __qpu__ {
     cudaq::qubit q0;
     // This tests casting from bool to int32
-    // and constant folding
+    // and constant folding.
     signed int i = (signed)(false);
     if (i == 0)
       x(q0);
