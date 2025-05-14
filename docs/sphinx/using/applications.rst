@@ -36,7 +36,7 @@ CUDA-Q Applications
    /applications/python/shors
    /applications/python/generate_fermionic_ham
    /applications/python/grovers
-
+   /applications/python/uccsd_wf_ansatz
 
 
 .. raw:: html
@@ -272,6 +272,13 @@ CUDA-Q Applications
         </div>
         <img src="../_static/app_title_images/grovers_preview.png" alt="DJ Preview" class="notebook-image">
     </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noisless">
+        <a href="../applications/python/uccsd_wf_ansatz.html" class="notebook-title">UCCSD Wavefunction Ansatz</a>
+        <div class="notebook-content">
+            Learn how to implement the UCCSD wavefunction ansatz using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/uccsd.png" alt="UCCSD Wavefunction Ansatz" class="notebook-image">
 
 
     <script>
