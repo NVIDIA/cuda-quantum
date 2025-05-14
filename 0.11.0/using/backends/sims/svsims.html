@@ -917,6 +917,10 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 <td><p><code class="code docutils literal notranslate"><span class="pre">TRUE</span></code> (<code class="code docutils literal notranslate"><span class="pre">1</span></code>, <code class="code docutils literal notranslate"><span class="pre">ON</span></code>) or <code class="code docutils literal notranslate"><span class="pre">FALSE</span></code> (<code class="code docutils literal notranslate"><span class="pre">0</span></code>, <code class="code docutils literal notranslate"><span class="pre">OFF</span></code>)</p></td>
 <td><p>[Blackwell (compute capability 10.0+) only] Enable or disable floating point math emulation. If enabled, allows <code class="code docutils literal notranslate"><span class="pre">FP32</span></code> emulation kernels using <code class="code docutils literal notranslate"><span class="pre">BFloat16</span></code> (<code class="code docutils literal notranslate"><span class="pre">BF16</span></code>) whenever possible. Enabled by default.</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_ENABLE_MEMPOOL</span></code></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">TRUE</span></code> (<code class="code docutils literal notranslate"><span class="pre">1</span></code>, <code class="code docutils literal notranslate"><span class="pre">ON</span></code>) or <code class="code docutils literal notranslate"><span class="pre">FALSE</span></code> (<code class="code docutils literal notranslate"><span class="pre">0</span></code>, <code class="code docutils literal notranslate"><span class="pre">OFF</span></code>)</p></td>
+<td><p>Enable or disable <a class="reference external" href="https://developer.nvidia.com/blog/using-cuda-stream-ordered-memory-allocator-part-1/#memory_pools">CUDA memory pool</a> for state vector allocation/deallocation. Enabled by default.</p></td>
+</tr>
 </tbody>
 </table>
 <div class="deprecated">
