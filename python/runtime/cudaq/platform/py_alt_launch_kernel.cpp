@@ -610,8 +610,8 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
                   "Unsupported element type in struct type.");
             }
             auto eleByteSize = byteSize(eleTy);
-            list.append(convertResult(module, kernelFuncOp, eleTy, data + offsets[i],
-                                      eleByteSize));
+            list.append(convertResult(module, kernelFuncOp, eleTy,
+                                      data + offsets[i], eleByteSize));
           }
           return py::tuple(list);
         }
@@ -642,8 +642,8 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
           }
           auto eleByteSize = byteSize(eleTy);
           if (i < fieldNames.size())
-            kwargs[fieldNames[i]] = convertResult(module,
-                kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
+            kwargs[fieldNames[i]] = convertResult(
+                module, kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
           else
             throw std::runtime_error("Field name and value mismatch when "
                                      "returning an object of dataclass " +

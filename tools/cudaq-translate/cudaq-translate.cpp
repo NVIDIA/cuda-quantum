@@ -158,6 +158,7 @@ int main(int argc, char **argv) {
     }
   };
 
+  cudaq::opt::addAggressiveEarlyInlining(pm);
   llvm::StringSwitch<std::function<void()>>(convertTo)
       .Case("qir", [&]() { cudaq::opt::addPipelineConvertToQIR(pm); })
       .Cases("qir-adaptive", "qir-base",

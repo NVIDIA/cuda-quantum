@@ -228,7 +228,7 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
   llvm::TypeSwitch<Type, void>(memberType)
       .Case([&](IntegerType ty) {
         if (ty.isInteger(1)) {
-          appendValue(data, value.cast<py::bool_>(), offset);
+          appendValue(data, (bool)value.cast<py::bool_>(), offset);
           return;
         }
         appendValue(data, (std::size_t)value.cast<py::int_>(), offset);

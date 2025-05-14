@@ -282,6 +282,9 @@ public:
     auto thunkTy = cudaq::opt::marshal::getThunkType(ctx);
     auto thunk =
         builder.create<func::FuncOp>(loc, classNameStr + ".thunk", thunkTy);
+
+    thunk->setAttr("noinline", builder.getUnitAttr());
+    thunk->setAttr("optnone", builder.getUnitAttr());
     OpBuilder::InsertionGuard guard(builder);
     auto *thunkEntry = thunk.addEntryBlock();
     builder.setInsertionPointToStart(thunkEntry);
