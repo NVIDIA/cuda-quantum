@@ -296,7 +296,7 @@ class PyKernelDecorator(object):
         except ImportError:
             return None
 
-    def isCastable(self, fromTy, toTy):
+    def isCastablePyType(self, fromTy, toTy):
         if IntegerType.isinstance(toTy):
             return IntegerType.isinstance(fromTy)
 
@@ -310,14 +310,24 @@ class PyKernelDecorator(object):
             floatToType = ComplexType(toTy).element_type
             if ComplexType.isinstance(fromTy):
                 floatFromType = ComplexType(fromTy).element_type
-                return self.isCastable(floatFromType, floatToType)
+                return self.isCastablePyType(floatFromType, floatToType)
 
-            return fromTy == floatToType or self.isCastable(fromTy, floatToType)
+            return fromTy == floatToType or self.isCastablePyType(
+                fromTy, floatToType)
+
+        # Support passing `list[int]` to a `list[float]` argument
+        # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
+        if cc.StdvecType.isinstance(fromTy):
+            if cc.StdvecType.isinstance(toTy):
+                fromEleTy = cc.StdvecType.getElementType(fromTy)
+                toEleTy = cc.StdvecType.getElementType(toTy)
+
+                return self.isCastablePyType(fromEleTy, toEleTy)
 
         return False
 
-    def castPy(self, fromTy, toTy, value):
-        if self.isCastable(fromTy, toTy):
+    def castPyType(self, fromTy, toTy, value):
+        if self.isCastablePyType(fromTy, toTy):
             if IntegerType.isinstance(toTy):
                 intToTy = IntegerType(toTy)
                 if intToTy.width == 1:
@@ -344,15 +354,20 @@ class PyKernelDecorator(object):
                     return complex(value)
 
                 return np.complex64(value)
-        return list
 
-    def castPyList(self, fromEleTy, toEleTy, list):
-        if self.isCastable(fromEleTy, toEleTy):
-            return [
-                self.castPy(fromEleTy, toEleTy, element) for element in list
-            ]
+            # Support passing `list[int]` to a `list[float]` argument
+            # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
+            if cc.StdvecType.isinstance(fromTy):
+                if cc.StdvecType.isinstance(toTy):
+                    fromEleTy = cc.StdvecType.getElementType(fromTy)
+                    toEleTy = cc.StdvecType.getElementType(toTy)
 
-        return list
+                    if self.isCastablePyType(fromEleTy, toEleTy):
+                        return [
+                            self.castPyType(fromEleTy, toEleTy, element)
+                            for element in value
+                        ]
+        return value
 
     def createStorage(self):
         ctx = None if self.module == None else self.module.context
@@ -455,25 +470,11 @@ class PyKernelDecorator(object):
                                           argInstance=arg,
                                           argTypeToCompareTo=self.argTypes[i])
 
-            if self.isCastable(mlirType, self.argTypes[i]):
+            if self.isCastablePyType(mlirType, self.argTypes[i]):
                 processedArgs.append(
-                    self.castPy(mlirType, self.argTypes[i], arg))
+                    self.castPyType(mlirType, self.argTypes[i], arg))
                 mlirType = self.argTypes[i]
                 continue
-
-            # Support passing `list[int]` to a `list[float]` argument
-            # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
-            if cc.StdvecType.isinstance(mlirType):
-                if cc.StdvecType.isinstance(self.argTypes[i]):
-                    argEleTy = cc.StdvecType.getElementType(mlirType)  # actual
-                    eleTy = cc.StdvecType.getElementType(
-                        self.argTypes[i])  # formal
-
-                    if self.isCastable(argEleTy, eleTy):
-                        processedArgs.append(
-                            self.castPyList(argEleTy, eleTy, arg))
-                        mlirType = self.argTypes[i]
-                        continue
 
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:

@@ -633,9 +633,9 @@ def test_nested_list_iteration():
         for i, inner in enumerate(myList):
             for j, e in enumerate(inner):
                 m = i * len(inner) + j
+                cudaq.dbg.ast.print_i64(m)
                 if e:
                     x(q[m])
-                    cudaq.dbg.ast.print_i64(m)
                     cudaq.dbg.ast.print_i64(1)
                 else:
                     cudaq.dbg.ast.print_i64(0)
@@ -718,8 +718,8 @@ def test_nested_list_iteration3_bool():
                     m = k * len(inner) * len(inner2) + i * len(inner2) + j
                     cudaq.dbg.ast.print_i64(m)
                     if e:
-                        cudaq.dbg.ast.print_i64(1)
                         x(q[m])
+                        cudaq.dbg.ast.print_i64(1)
                     else:
                         cudaq.dbg.ast.print_i64(0)
 
@@ -748,7 +748,7 @@ def test_nested_list_iteration3_int():
     assert '1111111111111111' in counts
 
 
-def test_nested_list_iteration3_int():
+def test_nested_list_iteration4_int():
 
     @cudaq.kernel
     def kernel6(n: int, myList: list[list[list[list[int]]]]):
