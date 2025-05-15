@@ -60,8 +60,8 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
                 liouvillian, schedule);
           }))
-      .def("compute", [](PyCuDensityMatTimeStepper &self, cudaq::state &inputState,
-                         double t) {
+      .def("compute", [](PyCuDensityMatTimeStepper &self,
+                         cudaq::state &inputState, double t) {
         std::unordered_map<std::string, std::complex<double>> params;
         for (const auto &param : self.m_schedule.get_parameters()) {
           params[param] = self.m_schedule.get_value_function()(param, t);

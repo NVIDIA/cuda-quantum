@@ -129,15 +129,13 @@ void runge_kutta::integrate(double targetTime) {
         params[param] =
             m_schedule.get_value_function()(param, m_t + step_size / 2.0);
       }
-      auto k2State =
-          m_stepper->compute(cudaq::state(rho_temp.release()),
-                             m_t + step_size / 2.0, params);
+      auto k2State = m_stepper->compute(cudaq::state(rho_temp.release()),
+                                        m_t + step_size / 2.0, params);
       auto &k2 = *asCudmState(k2State);
       auto rho_temp_2 = CuDensityMatState::clone(castSimState);
       rho_temp_2->accumulate_inplace(k2, step_size / 2); // y + h * k2/2
-      auto k3State =
-          m_stepper->compute(cudaq::state(rho_temp_2.release()),
-                             m_t + step_size / 2.0, params);
+      auto k3State = m_stepper->compute(cudaq::state(rho_temp_2.release()),
+                                        m_t + step_size / 2.0, params);
       auto &k3 = *asCudmState(k3State);
       auto rho_temp_3 = CuDensityMatState::clone(castSimState);
       rho_temp_3->accumulate_inplace(k3, step_size); // y + h * k3
