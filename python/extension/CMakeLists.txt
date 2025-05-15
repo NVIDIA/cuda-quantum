@@ -77,7 +77,6 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/mlir/py_register_dialects.cpp
     ../runtime/utils/PyRemoteRESTQPU.cpp
     ../runtime/utils/PyFermioniqRESTQPU.cpp
-    ../runtime/utils/PyQuEraRemoteRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
@@ -90,6 +89,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/orca/OrcaServerHelper.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalRemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalServerHelper.cpp
+    ../../runtime/cudaq/platform/quera/QuEraRemoteRESTQPU.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
