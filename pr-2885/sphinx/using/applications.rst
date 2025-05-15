@@ -265,7 +265,7 @@ CUDA-Q Applications
         </div>
         <img src="../_static/app_title_images/electronic-ham.png" alt="Electronic Hamiltonian" class="notebook-image">
     </div> 
-    <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
+    <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu,community">
         <a href="../applications/python/grovers.html" class="notebook-title">Grover's Algorithm</a>
         <div class="notebook-content">
             Learn how quantum computers can quadratically speed up searching through an unstructured database by amplifying the probability of finding the desired item.
