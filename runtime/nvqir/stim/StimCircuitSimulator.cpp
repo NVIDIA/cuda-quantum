@@ -74,7 +74,7 @@ protected:
       return StimNoiseType{"DEPOLARIZE1",
                            {true, true, false},
                            {false, true, true},
-                           std::vector<double>(channel.parameters[0] / 3.0, 3)};
+                           std::vector<double>(3, channel.parameters[0] / 3.0)};
     case cudaq::noise_model_type::depolarization2: {
       StimNoiseType ret{
           .stim_name = "DEPOLARIZE2",

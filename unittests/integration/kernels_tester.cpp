@@ -186,7 +186,7 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
 #if defined(CUDAQ_BACKEND_STIM)
 
 // This test tests the "pcm_size" and "pcm" execution contexts for Stim.
-CUDAQ_TEST(KernelsTester, pcmTester) {
+CUDAQ_TEST(KernelsTester, pcmTester_mz_only) {
   struct multi_round_ghz {
     void operator()(int num_qubits, int num_rounds) __qpu__ {
       cudaq::qvector q(num_qubits);
@@ -209,9 +209,6 @@ CUDAQ_TEST(KernelsTester, pcmTester) {
   cudaq::bit_flip_channel bf(noise_bf_prob);
   for (std::size_t i = 0; i < num_qubits; i++)
     noise.add_channel("mz", {i}, bf);
-  // noise.add_all_qubit_channel("x",
-  // cudaq::qec::two_qubit_bitflip(noise_bf_prob),
-  //                             /*num_controls=*/1);
   cudaq::set_noise(noise);
 
   // Stage 1 - get the PCM size by running with "pcm_size". The
@@ -245,10 +242,62 @@ CUDAQ_TEST(KernelsTester, pcmTester) {
     EXPECT_EQ(p, noise_bf_prob);
     col++;
   }
-  // for (auto &[k, v] : ctx_pcm.result.to_map()) {
-  //   if (v > 1) {
-  //     printf("Key %s found with >1 entries (%lu)\n", k.c_str(), v);
-  //   }
-  // }
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_mz_and_depol) {
+  struct multi_round_ghz {
+    void operator()(int num_qubits, int num_rounds,
+                    double noise_probability) __qpu__ {
+      cudaq::qvector q(num_qubits);
+      for (int round = 0; round < num_rounds; round++) {
+        h(q[0]);
+        for (int qi = 0; qi < num_qubits; qi++)
+          cudaq::apply_noise<cudaq::depolarization_channel>(
+              noise_probability, q[qi]);
+        for (int qi = 1; qi < num_qubits; qi++)
+          x<cudaq::ctrl>(q[qi - 1], q[qi]);
+        mz(q);
+        for (int qi = 0; qi < num_qubits; qi++)
+          reset(q[qi]);
+      }
+    }
+  };
+
+  int num_qubits = 5;
+  int num_rounds = 3;
+  double noise_bf_prob = 0.1;
+
+  cudaq::noise_model noise;
+  cudaq::bit_flip_channel bf(noise_bf_prob);
+  for (std::size_t i = 0; i < num_qubits; i++)
+    noise.add_channel("mz", {i}, bf);
+  cudaq::set_noise(noise);
+
+  // Stage 1 - get the PCM size by running with "pcm_size". The
+  // result will be returned in ctx_pcm_size.shots.
+  cudaq::ExecutionContext ctx_pcm_size("pcm_size");
+  auto &platform = cudaq::get_platform();
+  platform.set_exec_ctx(&ctx_pcm_size);
+  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
+  platform.reset_exec_ctx();
+
+  // Stage 2 - get the PCM using the ctx_pcm_size.shots value.
+  cudaq::ExecutionContext ctx_pcm("pcm");
+  ctx_pcm.noiseModel = &noise;
+  ctx_pcm.pcm_dimensions = ctx_pcm_size.pcm_dimensions;
+  platform.set_exec_ctx(&ctx_pcm);
+  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
+  platform.reset_exec_ctx();
+
+  // The PCM is now stored in ctx_pcm.result. More precisely, the unfiltered
+  // PCM is stored there, but some post-processing may be required to
+  // eliminate duplicate columns.
+  auto pcm_as_strings = ctx_pcm.result.sequential_data();
+  printf("Columns of PCM:\n");
+  for (int col = 0; auto x : pcm_as_strings) {
+    auto p = ctx_pcm.pcm_probabilities.value()[col];
+    printf("Column %02d (Prob %.6f): %s\n", col, p, x.c_str());
+    col++;
+  }
 }
 #endif
