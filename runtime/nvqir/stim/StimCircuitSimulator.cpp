@@ -164,8 +164,10 @@ protected:
   void generatePCM() override {
     const auto num_cols = getBatchSize();
     stim::simd_bit_table<W> pcmSample = sampleSim->m_record.storage;
-    cudaq::info("pcmSample is {} {}\n{}", pcm_err_count, num_cols,
-                pcmSample.str(num_measurements, num_cols).c_str());
+    // Disabled because it's too verbose, but left here as comments for
+    // reference.
+    // cudaq::info("pcmSample is {} {}\n{}", pcm_err_count, num_cols,
+    //             pcmSample.str(num_measurements, num_cols).c_str());
 
     // Now it's pcmSample[error_mechanism_index][measure_idx]
     pcmSample = pcmSample.transposed();
