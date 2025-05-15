@@ -63,10 +63,12 @@ def evolve_dynamics(
 
     if isinstance(initial_state, InitialState):
         has_collapse_operators = len(collapse_operators) > 0
-        initial_state = bindings.createInitialState(
-            initial_state, dimensions, has_collapse_operators)
+        initial_state = bindings.createInitialState(initial_state, dimensions,
+                                                    has_collapse_operators)
     else:
-        initial_state = bindings.initializeState(initial_state, list(hilbert_space_dims), len(collapse_operators) > 0)
+        initial_state = bindings.initializeState(initial_state,
+                                                 list(hilbert_space_dims),
+                                                 len(collapse_operators) > 0)
     integrator.set_state(initial_state, schedule._steps[0])
 
     exp_vals = []

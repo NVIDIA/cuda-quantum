@@ -25,6 +25,7 @@ try:
 except ImportError:
     has_scipy = False
 
+
 class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
     n_steps = 2500
     atol = 1e-8
@@ -49,9 +50,10 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
     def compute_rhs(self, t, vec):
         state = cudaq_runtime.State.from_data(vec)
-        state = bindings.initializeState(state, list(self.dimensions), self.is_density_state)
+        state = bindings.initializeState(state, list(self.dimensions),
+                                         self.is_density_state)
         result = self.stepper.compute(state, t)
-        as_array = numpy.ravel(numpy.array(result)) 
+        as_array = numpy.ravel(numpy.array(result))
         return as_array
 
     def __post_init__(self):
@@ -83,7 +85,9 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
             self.schedule_ = bindings.Schedule(self.schedule._steps,
                                                list(self.schedule._parameters))
             if self.is_density_state is None:
-                self.is_density_state = math.prod(self.dimensions) ** 2 == self.state.getTensor().get_num_elements()
+                self.is_density_state = math.prod(
+                    self.dimensions)**2 == self.state.getTensor(
+                    ).get_num_elements()
             self.stepper = cuDensityMatTimeStepper(self.schedule_,
                                                    self.hamiltonian,
                                                    self.collapse_operators,
@@ -95,12 +99,14 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
                 "Integration time must be greater than current time")
         new_state_vec = self.solver.integrate(t)
         self.state = cudaq_runtime.State.from_data(new_state_vec)
-        self.state = bindings.initializeState(self.state, list(self.dimensions), self.is_density_state)
+        self.state = bindings.initializeState(self.state, list(self.dimensions),
+                                              self.is_density_state)
         self.t = t
 
     def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
         super().set_state(state, t)
         as_array = numpy.ravel(numpy.array(self.state))
         if self.dimensions is not None:
-            self.is_density_state = math.prod(self.dimensions) ** 2 == len(as_array)
+            self.is_density_state = math.prod(
+                self.dimensions)**2 == len(as_array)
         self.solver.set_initial_value(as_array, t)

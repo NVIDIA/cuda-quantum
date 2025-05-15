@@ -42,6 +42,7 @@ try:
 except ImportError:
     has_torchdiffeq = False
 
+
 # Wrap state data (on device memory) as a `cupy` array.
 # Note: the `cupy` array only holds a reference to the GPU memory buffer, no copy.
 def to_cupy_array(state):
@@ -53,9 +54,10 @@ def to_cupy_array(state):
     mem = UnownedMemory(pDevice, sizeByte, owner=state)
     memptr = MemoryPointer(mem, 0)
     cupy_array = cp.ndarray(tensor.get_num_elements(),
-                              dtype=dtype,
-                              memptr=memptr)
+                            dtype=dtype,
+                            memptr=memptr)
     return cupy_array
+
 
 class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
     atol = 1e-8
@@ -100,7 +102,8 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         # convert torch tensor to CuPy array without copying data
         vec_cupy = cp.from_dlpack(vec)
         temp_state = cudaq_runtime.State.from_data(vec_cupy)
-        temp_state = bindings.initializeState(temp_state, list(self.dimensions), self.is_density_state)
+        temp_state = bindings.initializeState(temp_state, list(self.dimensions),
+                                              self.is_density_state)
         result = self.stepper.compute(temp_state, t_scalar)
         # convert result back to torch tensor without copying data
         result_vec = torch.from_dlpack(to_cupy_array(result))
@@ -121,8 +124,10 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
             self.schedule_ = bindings.Schedule(self.schedule._steps,
                                                list(self.schedule._parameters))
             if self.is_density_state is None:
-                self.is_density_state = math.prod(self.dimensions) ** 2 == self.state.getTensor().get_num_elements()
-            
+                self.is_density_state = math.prod(
+                    self.dimensions)**2 == self.state.getTensor(
+                    ).get_num_elements()
+
             self.stepper = cuDensityMatTimeStepper(self.schedule_,
                                                    self.hamiltonian,
                                                    self.collapse_operators,
@@ -139,7 +144,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
         # time span
         t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
-        
+
         # solve ODE using TorchDiffEq
         solution = odeint(self.compute_rhs,
                           y0,
@@ -156,7 +161,8 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
         # Keep results in GPU memory
         self.state = cudaq_runtime.State.from_data(y_t_cupy)
-        self.state = bindings.initializeState(self.state, list(self.dimensions), self.is_density_state)
+        self.state = bindings.initializeState(self.state, list(self.dimensions),
+                                              self.is_density_state)
         self.t = t
 
     def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
