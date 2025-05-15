@@ -252,8 +252,8 @@ CUDAQ_TEST(KernelsTester, pcmTester_mz_and_depol) {
       for (int round = 0; round < num_rounds; round++) {
         h(q[0]);
         for (int qi = 0; qi < num_qubits; qi++)
-          cudaq::apply_noise<cudaq::depolarization_channel>(
-              noise_probability, q[qi]);
+          cudaq::apply_noise<cudaq::depolarization_channel>(noise_probability,
+                                                            q[qi]);
         for (int qi = 1; qi < num_qubits; qi++)
           x<cudaq::ctrl>(q[qi - 1], q[qi]);
         mz(q);
