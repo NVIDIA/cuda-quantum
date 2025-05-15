@@ -96,6 +96,7 @@ import cudaq.operators.expressions  # needs to be imported, since otherwise e.g.
 from .dynamics.schedule import Schedule
 from .dynamics.evolution import evolve, evolve_async
 from .dynamics.integrators import *
+InitialStateType = cudaq_runtime.InitialStateType
 
 # Optimizers + Gradients
 optimizers = cudaq_runtime.optimizers

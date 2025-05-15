@@ -186,7 +186,9 @@ state pyGetStateLibraryMode(py::object kernel, py::args args) {
 
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
-  py::enum_<cudaq::InitialState>(mod, "InitialStateType")
+  py::enum_<cudaq::InitialState>(mod, "InitialStateType",
+                                 "Enumeration describing the initial state "
+                                 "type to be created in the backend")
       .value("ZERO", cudaq::InitialState::ZERO)
       .value("UNIFORM", cudaq::InitialState::UNIFORM)
       .export_values();
