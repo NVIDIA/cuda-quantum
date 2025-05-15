@@ -834,27 +834,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0 AND CC-BY-NC-4.0</span>
-<span class="c1">#</span>
-<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
-<span class="c1"># you may not use this file except in compliance with the License.</span>
-<span class="c1"># You may obtain a copy of the License at</span>
-<span class="c1">#</span>
-<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
-<span class="c1">#</span>
-<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
-<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
-<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
-<span class="c1"># See the License for the specific language governing permissions and</span>
-<span class="c1"># limitations under the License.</span>
-</pre></div>
-</div>
-</div>
-<section id="Grover's-Algorithm">
+  <section id="Grover's-Algorithm">
 <h1>Grover’s Algorithm<a class="headerlink" href="#Grover's-Algorithm" title="Permalink to this heading">¶</a></h1>
 <hr class="docutils" />
 <section id="Overview">
@@ -961,7 +941,7 @@
 <p>Let us now examine the geometric picture behind our current discussion. We’ll consider the ambient Hilbert space to be spanned by the standard basis vectors <span class="math notranslate nohighlight">\(|0\rangle, |1\rangle, \dots, |N-1\rangle\)</span>, where the full dimension is <span class="math notranslate nohighlight">\(N = 2^n\)</span>. Since the uniform superposition state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> can be expressed as a linear combination of the states <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> with real coefficients, all three states <span class="math notranslate nohighlight">\(|\xi\rangle, |G\rangle,\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>
 reside in a two-dimensional real subspace of the ambient Hilbert space, which we can visualize as a 2D plane as in the image below. Since, <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> are orthogonal, we can imagine them graphed as unit vectors in the positive <span class="math notranslate nohighlight">\(y\)</span> and positive <span class="math notranslate nohighlight">\(x\)</span> directions, respectively. From our previous expression, <span class="math notranslate nohighlight">\(\ket{\xi} = \sin(\theta) |G\rangle + \cos(\theta) |B\rangle,\)</span> we see that the state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> forms an angle <span class="math notranslate nohighlight">\(\theta\)</span> with
 <span class="math notranslate nohighlight">\(|B\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="6b43cde5ff344f6abad9170c51303325" src="../../_images/grovers-2D-plane.png" /></p>
+<div style="text-align: center;"><p><img alt="9baea10bb8394fe3a8cee9c6c466374e" src="../../_images/grovers-2D-plane.png" /></p>
 </div><p>Given that the number of marked states <span class="math notranslate nohighlight">\(t\)</span> is typically small compared to <span class="math notranslate nohighlight">\(N\)</span>, it follows that <span class="math notranslate nohighlight">\(\theta = \arcsin\left(\sqrt{\frac{t}{N}}\right)\)</span> is a small angle. This assumption is reasonable, as otherwise, a sufficient number of independent queries to the oracle would likely yield a solution through classical search methods.</p>
 </section>
 <section id="Step-2:-Oracle-application">
@@ -1082,9 +1062,9 @@ animation below.</p>
 <div class="math notranslate nohighlight">
 \[\mathcal{G} = r_\xi \circ r_B = H^{\otimes n} \big( 2|0^{\otimes n} \rangle \langle 0^{\otimes n}| - \text{Id} \big) H^{\otimes n} \mathcal{O}_f.\]</div>
 <p>The circuit diagram below puts together steps 1 through 3:</p>
-<div style="text-align: center;"><p><img alt="c5616337f2af4b2aa52bd59c57700f47" src="../../_images/grovers-steps1-3.png" /></p>
+<div style="text-align: center;"><p><img alt="a99a94fe804549c487ac5bc1da7247ea" src="../../_images/grovers-steps1-3.png" /></p>
 </div><p>Running this circuit initializes <span class="math notranslate nohighlight">\(\ket{\xi}\)</span> and performs a rotation by <span class="math notranslate nohighlight">\(2\theta\)</span> (twice the angle between <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>) in the direction from <span class="math notranslate nohighlight">\(|B\rangle\)</span> to <span class="math notranslate nohighlight">\(|G\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="2fc1170987ab4cdd8a473238a07bfbf1" src="../../_images/grovers-full-rotation.png" /></p>
+<div style="text-align: center;"><p><img alt="6edbbfb9b324413ba2a4b79c774324a8" src="../../_images/grovers-full-rotation.png" /></p>
 </div><p>Let’s verify that the state resulting from one iteration of Grover’s algorithm brings us closer to the good state, <span class="math notranslate nohighlight">\(\ket{G}\)</span>. In particular, notice that the amplitudes of <code class="docutils literal notranslate"><span class="pre">1001</span></code> and <code class="docutils literal notranslate"><span class="pre">1111</span></code> in the resulting state have been amplified compared to the equal superposition of states.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
@@ -1172,7 +1152,7 @@ animation below.</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_grovers_25_0.png" src="../../_images/applications_python_grovers_25_0.png" />
+<img alt="../../_images/applications_python_grovers_24_0.png" src="../../_images/applications_python_grovers_24_0.png" />
 </div>
 </div>
 </section>
@@ -1232,7 +1212,7 @@ marked state? How does this compare from the number of iterations that are presc
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_grovers_28_1.png" src="../../_images/applications_python_grovers_28_1.png" />
+<img alt="../../_images/applications_python_grovers_27_1.png" src="../../_images/applications_python_grovers_27_1.png" />
 </div>
 </div>
 <p>As an exercise, adapt the code to search for a different set of unmarked elements on another unstructured database.</p>
