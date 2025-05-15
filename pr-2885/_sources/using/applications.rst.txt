@@ -10,7 +10,6 @@ CUDA-Q Applications
    :maxdepth: 1
    :hidden:
 
-
    /applications/python/qaoa
    /applications/python/digitized_counterdiabatic_qaoa
    /applications/python/krylov
@@ -37,7 +36,6 @@ CUDA-Q Applications
    /applications/python/generate_fermionic_ham
    /applications/python/grovers
    /applications/python/uccsd_wf_ansatz
-
 
 .. raw:: html
 
