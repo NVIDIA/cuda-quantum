@@ -27,7 +27,6 @@ namespace cudaq {
 /// handle interactions with the Quantum Machines server for submitting and retrieving
 /// quantum computation jobs.
 class QuantumMachinesServerHelper : public ServerHelper {
-  // TODO: Replace with actual Quantum Machines API URL and version
   static constexpr const char *DEFAULT_URL = "https://api.quantum-machines.com";
   static constexpr const char *DEFAULT_VERSION = "v1.0.0";
   static constexpr const char *DEFAULT_EXECUTOR = "mock";
@@ -38,7 +37,6 @@ public:
 
   /// @brief Returns the headers for the server requests.
   RestHeaders getHeaders() override {
-    // TODO: Implement headers for Quantum Machines API
     RestHeaders headers;
     headers["Content-Type"] = "application/json";
     return headers;
