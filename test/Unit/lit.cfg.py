@@ -52,12 +52,6 @@ llvm_config.use_default_substitutions()
 # name: The name of this test suite.
 config.name = "NVQPP-Unit"
 
-# test_source_root: The root path where unit test binaries are located.
-# test_exec_root: The root path where tests should be run.
-# config.test_source_root = os.path.join(config.cudaq_obj_root, "unittests")
-# config.test_exec_root = config.test_source_root
-
-
 # Ask `llvm-config` about asserts
 llvm_config.feature_config([("--assertion-mode", {"ON": "asserts"})])
 
