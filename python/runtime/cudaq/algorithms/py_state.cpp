@@ -186,6 +186,10 @@ state pyGetStateLibraryMode(py::object kernel, py::args args) {
 
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
+  py::enum_<cudaq::InitialState>(mod, "InitialStateType")
+      .value("ZERO", cudaq::InitialState::ZERO)
+      .value("UNIFORM", cudaq::InitialState::UNIFORM)
+      .export_values();
 
   py::class_<SimulationState::Tensor>(
       mod, "Tensor",

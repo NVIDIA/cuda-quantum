@@ -307,7 +307,14 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
   default:
     __builtin_unreachable();
   }
-
+  // Attach initialized GPU storage to the input quantum state
+  HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
+      state->cudmHandle, state->cudmState,
+      1, // only one storage component (tensor)
+      std::vector<void *>({state->devicePtr})
+          .data(), // pointer to the GPU storage for the quantum state
+      std::vector<std::size_t>({storageSize})
+          .data())); // size of the GPU storage for the quantum state
   return state;
 }
 
@@ -431,25 +438,25 @@ CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
   if (is_density_matrix())
     throw std::runtime_error("State is already a density matrix.");
 
-  size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
-  std::vector<std::complex<double>> stateVecData(vectorSize);
-  HANDLE_CUDA_ERROR(cudaMemcpy(stateVecData.data(), devicePtr,
-                               dimension * sizeof(std::complex<double>),
-                               cudaMemcpyDeviceToHost));
-  size_t expectedDensityMatrixSize = vectorSize * vectorSize;
-  std::vector<std::complex<double>> densityMatrix(expectedDensityMatrixSize);
+  const std::size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
+  const std::size_t expectedDensityMatrixSize = vectorSize * vectorSize;
+  const std::size_t dmSizeBytes =
+      expectedDensityMatrixSize * sizeof(std::complex<double>);
 
-  for (size_t i = 0; i < vectorSize; i++) {
-    for (size_t j = 0; j < vectorSize; j++) {
-      densityMatrix[i * vectorSize + j] =
-          stateVecData[i] * std::conj(stateVecData[j]);
-    }
-  }
-
-  void *densityMat_d = cudaq::dynamics::createArrayGpu(densityMatrix);
-
-  CuDensityMatState dmState(expectedDensityMatrixSize, densityMat_d);
+  CuDensityMatState dmState;
+  dmState.devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dmSizeBytes);
+  dmState.isDensityMatrix = true;
+  HANDLE_CUDA_ERROR(cudaMemset(dmState.devicePtr, 0, dmSizeBytes));
+  dmState.dimension = expectedDensityMatrixSize;
+  cuDoubleComplex scalar{1.0, 0.0};
+  HANDLE_CUBLAS_ERROR(cublasZgerc(
+      dynamics::Context::getCurrentContext()->getCublasHandle(), vectorSize,
+      vectorSize, &scalar, reinterpret_cast<const cuDoubleComplex *>(devicePtr),
+      1, reinterpret_cast<const cuDoubleComplex *>(devicePtr), 1,
+      reinterpret_cast<cuDoubleComplex *>(dmState.devicePtr), vectorSize));
   dmState.initialize_cudm(cudmHandle, hilbertSpaceDims);
+  assert(dmState.is_initialized());
+  assert(dmState.is_density_matrix());
   return dmState;
 }
 

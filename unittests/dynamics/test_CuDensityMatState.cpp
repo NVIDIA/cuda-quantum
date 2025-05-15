@@ -90,6 +90,27 @@ TEST_F(CuDensityMatStateTest, ToDensityMatrixConversion) {
   EXPECT_NO_THROW(densityMatrixState.dump(std::cout));
 }
 
+TEST_F(CuDensityMatStateTest, ToDensityMatrixConversionCorrectnessCheck) {
+  // Check a range of dimensions
+  for (int64_t N = 2; N < 10; N += 2) {
+    Eigen::VectorXcd randomVec = Eigen::VectorXcd::Random(N);
+    std::vector<std::complex<double>> initialState(
+        randomVec.data(), randomVec.data() + randomVec.size());
+    CuDensityMatState state(N, cudaq::dynamics::createArrayGpu(initialState));
+    state.initialize_cudm(handle, {N});
+    EXPECT_FALSE(state.is_density_matrix());
+    Eigen::MatrixXcd expectedDensityMatrix = randomVec * randomVec.adjoint();
+    std::cout << "Expected:\n" << expectedDensityMatrix << "\n";
+    CuDensityMatState densityMatrixState = state.to_density_matrix();
+    EXPECT_TRUE(densityMatrixState.is_density_matrix());
+    EXPECT_TRUE(densityMatrixState.is_initialized());
+    Eigen::MatrixXcd resultVec = Eigen::MatrixXcd::Zero(N, N);
+    densityMatrixState.toHost(resultVec.data(), resultVec.size());
+    std::cout << "Result:\n" << resultVec << "\n";
+    EXPECT_TRUE(expectedDensityMatrix.isApprox(resultVec));
+  }
+}
+
 TEST_F(CuDensityMatStateTest, AlreadyDensityMatrixConversion) {
   CuDensityMatState state(densityMatrixData.size(),
                           cudaq::dynamics::createArrayGpu(densityMatrixData));

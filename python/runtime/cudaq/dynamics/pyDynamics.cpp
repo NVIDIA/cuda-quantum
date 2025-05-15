@@ -60,17 +60,13 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
                 liouvillian, schedule);
           }))
-      .def("compute", [](PyCuDensityMatTimeStepper &self, int64_t inputStatePtr,
-                         int64_t outputStatePtr, double t) {
-        cudensitymatState_t inputState =
-            reinterpret_cast<cudensitymatState_t>(inputStatePtr);
-        cudensitymatState_t outputState =
-            reinterpret_cast<cudensitymatState_t>(outputStatePtr);
+      .def("compute", [](PyCuDensityMatTimeStepper &self, cudaq::state &inputState,
+                         double t) {
         std::unordered_map<std::string, std::complex<double>> params;
         for (const auto &param : self.m_schedule.get_parameters()) {
           params[param] = self.m_schedule.get_value_function()(param, t);
         }
-        self.computeImpl(inputState, outputState, t, params);
+        return self.compute(inputState, t, params);
       });
 
   // System dynamics data class
@@ -94,22 +90,14 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
       .def("prepare",
            [](cudaq::CuDensityMatExpectation &self, cudaq::state &state) {
              auto *cudmState = asCudmState(state);
+             assert(cudmState->is_initialized());
              self.prepare(cudmState->get_impl());
            })
-      .def("compute",
-           [](cudaq::CuDensityMatExpectation &self, cudaq::state &state,
-              double t) {
-             auto *cudmState = asCudmState(state);
-             return self.compute(cudmState->get_impl(), t).real();
-           })
-      .def("prepare",
-           [](cudaq::CuDensityMatExpectation &self, int64_t statePtr) {
-             self.prepare(reinterpret_cast<cudensitymatState_t>(statePtr));
-           })
-      .def("compute", [](cudaq::CuDensityMatExpectation &self, int64_t statePtr,
-                         double t) {
-        return self.compute(reinterpret_cast<cudensitymatState_t>(statePtr), t)
-            .real();
+      .def("compute", [](cudaq::CuDensityMatExpectation &self,
+                         cudaq::state &state, double t) {
+        auto *cudmState = asCudmState(state);
+        assert(cudmState->is_initialized());
+        return self.compute(cudmState->get_impl(), t).real();
       });
 
   // Schedule class
@@ -126,7 +114,23 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
             castSimState.initialize_cudm(
                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
                 modeExtents);
+          if (asDensityMat && !castSimState.is_density_matrix()) {
+            return cudaq::state(
+                new cudaq::CuDensityMatState(castSimState.to_density_matrix()));
+          }
           return state;
+        });
+
+  // Helper to create an initial state
+  m.def("createInitialState",
+        [](cudaq::InitialState initialStateType,
+           const std::unordered_map<std::size_t, std::int64_t> &dimensions,
+           bool createDensityMatrix) {
+          auto state = cudaq::CuDensityMatState::createInitialState(
+              cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+              initialStateType, dimensions, createDensityMatrix);
+          assert(state->is_initialized());
+          return cudaq::state(state.release());
         });
 
   // Helper to clear context (performance/callback) after an evolve simulation.

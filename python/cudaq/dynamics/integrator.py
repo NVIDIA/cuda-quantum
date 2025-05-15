@@ -55,7 +55,7 @@ class BaseIntegrator(ABC, Generic[TState]):
                    schedule: Schedule,
                    hamiltonian: Operator,
                    collapse_operators: Sequence[Operator] = []):
-        self.dimensions = dimensions
+        self.dimensions = tuple(dimensions[d] for d in range(len(dimensions)))
         self.schedule = schedule
         self.hamiltonian = hamiltonian
         self.collapse_operators = collapse_operators

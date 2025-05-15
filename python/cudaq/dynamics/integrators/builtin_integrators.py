@@ -7,12 +7,12 @@
 # ============================================================================ #
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
-from ..cudm_helpers import cudm, CudmStateType, CudmOperator, CudmWorkStream
+from ..cudm_helpers import cudm, CudmOperator, CudmWorkStream
 from ...util.timing_helper import ScopeTimer
 from typing import Sequence, Mapping
 from ...operators import Operator
 from ..schedule import Schedule
-from ...mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator
+from ...mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, State
 import warnings
 
 has_cupy = True
@@ -28,7 +28,7 @@ except ImportError:
     has_dynamics = False
 
 
-class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
+class cuDensityMatTimeStepper(BaseTimeStepper[State]):
     # Thin wrapper around the `TimeStepper` C++ bindings
     def __init__(self, schedule, ham, collapsed_ops, dims, is_master_equation):
         if not has_dynamics:
@@ -41,14 +41,12 @@ class cuDensityMatTimeStepper(BaseTimeStepper[CudmStateType]):
         self.stepper = bindings.TimeStepper(schedule, dims, ham, collapsed_ops,
                                             is_master_equation)
 
-    def compute(self, state: CudmStateType, current_time: float):
-        action_result = state.clone(cp.zeros_like(state.storage))
-        self.stepper.compute(state._validated_ptr, action_result._validated_ptr,
-                             current_time)
+    def compute(self, state: State, current_time: float):
+        action_result = self.stepper.compute(state, current_time)
         return action_result
 
 
-class RungeKuttaIntegrator(BaseIntegrator[CudmStateType]):
+class RungeKuttaIntegrator(BaseIntegrator[State]):
     n_steps = None
     # Order of the integrator: supporting `1st` order (Euler) or `4th` order (`Runge-Kutta`).
     order = 4

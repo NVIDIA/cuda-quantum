@@ -28,9 +28,8 @@ all_integrator_classes = [RungeKuttaIntegrator, ScipyZvodeIntegrator]
 all_models = [
     TestCavityModel, TestCavityModelTimeDependentHam,
     TestCavityModelTimeDependentCollapseOp, TestCompositeSystems,
-    TestCrossResonance, TestCallbackTensor
+    TestCrossResonance, TestCallbackTensor, TestInitialStateEnum
 ]
-
 
 @pytest.mark.parametrize('integrator', all_integrator_classes)
 @pytest.mark.parametrize('model', all_models)

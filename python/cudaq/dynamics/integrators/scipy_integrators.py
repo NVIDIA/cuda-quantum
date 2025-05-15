@@ -7,8 +7,10 @@
 # ============================================================================ #
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
-from ..cudm_helpers import cudm, CudmStateType
+from ..cudm_helpers import cudm
 from .builtin_integrators import cuDensityMatTimeStepper
+from ...mlir._mlir_libs._quakeDialects import cudaq_runtime
+import numpy, math
 
 has_dynamics = True
 try:
@@ -23,45 +25,33 @@ try:
 except ImportError:
     has_scipy = False
 
-has_cupy = True
-try:
-    import cupy
-except ImportError:
-    has_cupy = False
-
-
-class ScipyZvodeIntegrator(BaseIntegrator[CudmStateType]):
+class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
     n_steps = 2500
     atol = 1e-8
     rtol = 1e-6
     order = 12
 
-    def __init__(self, stepper: BaseTimeStepper[CudmStateType], **kwargs):
+    def __init__(self, stepper: BaseTimeStepper[cudaq_runtime.State], **kwargs):
         if not has_dynamics:
             raise ImportError(
                 'CUDA-Q is missing dynamics support. Please check your installation'
             )
         if not has_scipy:
             raise ImportError("scipy is required to use this integrator.")
-        if not has_cupy:
-            raise ImportError('CuPy is required to use this integrator.')
         super().__init__(**kwargs)
         self.stepper = stepper
-        self.state_data_shape = None
+        self.is_density_state = None
 
     def __init__(self, **kwargs):
         if not has_scipy:
             raise ImportError("scipy is required to use this integrator.")
         super().__init__(**kwargs)
-        self.state_data_shape = None
 
     def compute_rhs(self, t, vec):
-        rho_data = cupy.asfortranarray(
-            cupy.array(vec).reshape(*self.state_data_shape,
-                                    self.state.batch_size))
-        temp_state = self.state.clone(rho_data)
-        result = self.stepper.compute(temp_state, t)
-        as_array = result.storage.ravel().get()
+        state = cudaq_runtime.State.from_data(vec)
+        state = bindings.initializeState(state, list(self.dimensions), self.is_density_state)
+        result = self.stepper.compute(state, t)
+        as_array = numpy.ravel(numpy.array(result)) 
         return as_array
 
     def __post_init__(self):
@@ -90,34 +80,27 @@ class ScipyZvodeIntegrator(BaseIntegrator[CudmStateType]):
                 raise ValueError(
                     "Hamiltonian and collapse operators are required for integrator if no stepper is provided"
                 )
-            hilbert_space_dims = [
-                self.dimensions[d] for d in range(len(self.dimensions))
-            ]
-            is_master_equation = isinstance(self.state, cudm.DenseMixedState)
             self.schedule_ = bindings.Schedule(self.schedule._steps,
                                                list(self.schedule._parameters))
+            if self.is_density_state is None:
+                self.is_density_state = math.prod(self.dimensions) ** 2 == self.state.getTensor().get_num_elements()
             self.stepper = cuDensityMatTimeStepper(self.schedule_,
                                                    self.hamiltonian,
                                                    self.collapse_operators,
-                                                   hilbert_space_dims,
-                                                   is_master_equation)
+                                                   list(self.dimensions),
+                                                   self.is_density_state)
 
         if t <= self.t:
             raise ValueError(
                 "Integration time must be greater than current time")
-        new_state = self.solver.integrate(t)
-        rho_data = cupy.asfortranarray(
-            cupy.array(new_state).reshape(*self.state_data_shape,
-                                          self.state.batch_size))
-        self.state.inplace_scale(0.0)
-        self.state.inplace_accumulate(self.state.clone(rho_data))
+        new_state_vec = self.solver.integrate(t)
+        self.state = cudaq_runtime.State.from_data(new_state_vec)
+        self.state = bindings.initializeState(self.state, list(self.dimensions), self.is_density_state)
         self.t = t
 
-    def set_state(self, state: CudmStateType, t: float = 0.0):
+    def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
         super().set_state(state, t)
-        if self.state_data_shape is None:
-            self.state_data_shape = self.state.storage.shape
-        else:
-            assert self.state_data_shape == self.state.storage.shape, "State shape must remain constant"
-        as_array = self.state.storage.ravel().get()
+        as_array = numpy.ravel(numpy.array(self.state))
+        if self.dimensions is not None:
+            self.is_density_state = math.prod(self.dimensions) ** 2 == len(as_array)
         self.solver.set_initial_value(as_array, t)

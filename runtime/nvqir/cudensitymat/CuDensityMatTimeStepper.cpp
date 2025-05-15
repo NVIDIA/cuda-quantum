@@ -18,10 +18,8 @@ CuDensityMatTimeStepper::CuDensityMatTimeStepper(
     : m_handle(handle), m_liouvillian(liouvillian){};
 
 state CuDensityMatTimeStepper::compute(
-    const state &inputState, double t, double step_size,
+    const state &inputState, double t,
     const std::unordered_map<std::string, std::complex<double>> &parameters) {
-  if (step_size <= 0)
-    throw std::runtime_error("Invalid step_size.");
   auto *simState =
       cudaq::state_helper::getSimulationState(const_cast<state *>(&inputState));
   auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
