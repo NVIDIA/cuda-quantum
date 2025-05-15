@@ -177,7 +177,7 @@ Here's a template for implementing a server helper class:
 ``CMakeLists.txt``
 --------------
 
-You will need to configure CUDA-Q's cmake system for your new server helper. By convention, you should setup your target as optional by adding a CMake flag in the ``CMakeLists.txt`` at the root of the CUDA-Q repository:
+You will need to configure CUDA-Q's ``cmake`` system for your new server helper. By convention, you should setup your target as optional by adding a CMake flag in the ``CMakeLists.txt`` at the root of the CUDA-Q repository:
 
 .. code-block:: cmake
 
@@ -370,9 +370,10 @@ To make sure the C++ tests don't run if your target is not enabled, add the foll
     else:
         config.substitutions.append(('%provider_avail', 'false'))
 
-And add the following to your targettests `.cpp` file:
+And add the following to your ``targettests`` ``.cpp`` file:
 
 .. code-block:: cpp
+
     // RUN: if %provider_avail; then nvq++ %cpp_std --target provider %s -o %t.x; fi
 
 Mock Server
@@ -563,7 +564,7 @@ Once your backend is implemented, users can use it as follows:
 Code Review
 ===========
 
-Once you have implemented a BackendHelper, some basic tests, and documentation, please `create a PR <https://github.com/NVIDIA/cuda-quantum/pulls>`_ with your changes and tag the CUDA-Q team for review.
+Once you have implemented a ``BackendHelper``, some basic tests, and documentation, please `create a PR <https://github.com/NVIDIA/cuda-quantum/pulls>`_ with your changes and tag the CUDA-Q team for review.
 
 Maintaining a Backend
 ====================
