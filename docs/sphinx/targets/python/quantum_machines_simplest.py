@@ -21,6 +21,3 @@ def simplest():
 
 
 cudaq.sample(simplest, shots_count=100)
-
-#trans = cudaq.translate(three_qubit_ghz, format='openqasm2')
-#print(trans)
