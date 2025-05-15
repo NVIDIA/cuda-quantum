@@ -46,7 +46,7 @@ endif()
 if (CUTENSORNET_ROOT AND CUDA_FOUND)
   add_subdirectory(cutensornet)  
 endif()
-if (CUDA_FOUND)
+if (CUDENSITYMAT_ROOT AND CUDA_FOUND)
   add_subdirectory(cudensitymat)
 endif()
 
