@@ -53,6 +53,7 @@ message(STATUS "CUDENSITYMAT_LIB: ${CUDENSITYMAT_LIB}")
 
 get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
 get_filename_component(CUDENSITYMAT_LIB_DIR ${CUDENSITYMAT_LIB} DIRECTORY)
+get_filename_component(CUTENSOR_LIB_DIR ${CUTENSOR_LIB} DIRECTORY)
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUDENSITYMAT_LIB_DIR}:${CUTENSOR_LIB_DIR}")
 
 add_library(${LIBRARY_NAME} SHARED
@@ -89,7 +90,8 @@ target_link_libraries(${LIBRARY_NAME}
                         fmt::fmt-header-only
                         cudaq-common
                         ${CUDENSITYMAT_LIB}
-                        CUDA::cudart
+                        ${CUTENSOR_LIB}
+                        CUDA::cudart_static
                      )
 target_link_libraries(${LIBRARY_NAME}
                      PUBLIC
