@@ -870,6 +870,77 @@ std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
   return result;
 }
 
+template <typename... Qs>
+std::vector<measure_result> my(qubit &q, Qs &&...qs);
+
+#if CUDAQ_USE_STD20
+template <typename QubitRange, typename... Qs>
+  requires(std::ranges::range<QubitRange>)
+#else
+template <
+    typename QubitRange, typename... Qs,
+    typename = std::enable_if_t<!std::is_same_v<
+        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
+#endif
+std::vector<measure_result> my(QubitRange &qr, Qs &&...qs) {
+  std::vector<measure_result> result = my(qr);
+  auto rest = my(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename... Qs>
+std::vector<measure_result> my(qubit &q, Qs &&...qs) {
+  std::vector<measure_result> result = {my(q)};
+  auto rest = my(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename... Qs>
+std::vector<measure_result> mx(qubit &q, Qs &&...qs);
+
+#if CUDAQ_USE_STD20
+template <typename QubitRange, typename... Qs>
+  requires(std::ranges::range<QubitRange>)
+#else
+template <
+    typename QubitRange, typename... Qs,
+    typename = std::enable_if_t<!std::is_same_v<
+        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
+#endif
+std::vector<measure_result> mx(QubitRange &qr, Qs &&...qs) {
+  std::vector<measure_result> result = mx(qr);
+  auto rest = mx(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename... Qs>
+std::vector<measure_result> mx(qubit &q, Qs &&...qs) {
+  std::vector<measure_result> result = {mx(q)};
+  auto rest = mx(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+
 namespace support {
 // Helpers to deal with the `vector<bool>` specialized template type.
 extern "C" {
