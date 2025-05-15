@@ -23,14 +23,13 @@ using json = nlohmann::json;
 
 namespace cudaq {
 
-/// @brief The QuantumMachinesServerHelper class extends the ServerHelper class
-/// to handle interactions with the Quantum Machines server for submitting and
-/// retrieving quantum computation jobs.
+/// @brief The QuantumMachinesServerHelper class extends the ServerHelper class to
+/// handle interactions with the Quantum Machines server for submitting and retrieving
+/// quantum computation jobs.
 class QuantumMachinesServerHelper : public ServerHelper {
   // TODO: Replace with actual Quantum Machines API URL and version
   static constexpr const char *DEFAULT_URL = "https://api.quantum-machines.com";
   static constexpr const char *DEFAULT_VERSION = "v1.0.0";
-  static constexpr const char *DEFAULT_ACTION = "compile"; // can be either compile, execute, or execute-simulator
   static constexpr const char *DEFAULT_EXECUTOR = "mock";
 
 public:
@@ -46,11 +45,11 @@ public:
   }
 
   // Helper function to get a value from config or return a default
-  std::string getValueOrDefault(const BackendConfig &config,
-                                const std::string &key,
-                                const std::string &defaultValue) const {
-    auto it = config.find(key);
-    return (it != config.end()) ? it->second : defaultValue;
+  std::string getValueOrDefault(
+    const BackendConfig &config, const std::string &key,
+    const std::string &defaultValue) const {
+  auto it = config.find(key);
+  return (it != config.end()) ? it->second : defaultValue;
   }
 
 
@@ -61,7 +60,8 @@ public:
     backendConfig = config;
     backendConfig["url"] = getValueOrDefault(config, "url", DEFAULT_URL);
     backendConfig["version"] = getValueOrDefault(config, "version", DEFAULT_VERSION);
-    backendConfig["action"] = getValueOrDefault(config, "action", DEFAULT_ACTION);
+    backendConfig["executor"] = getValueOrDefault(config, "executor", DEFAULT_EXECUTOR);
+    backendConfig["api_key"] = getValueOrDefault(config, "api_key", "");
    
     cudaq::info("Initializing Quantum Machines Backend. config: {}", backendConfig);
   }
@@ -78,15 +78,12 @@ public:
     ServerMessage job;
     job["content"] = circuitCodes[0].code;
     job["source"] = "oq2";
-    RestHeaders headers;
-    std::string path = "/v1/compile"; // compile is the default
-    if(backendConfig["action"] == "execute") {
-      path = "/v1/execute";
-    } else if (backendConfig["action"] == "execute-simulator") {
-      path = "/v1/simulate"; // not yet implemented on server side
-    }
-    
-    return std::make_tuple(backendConfig["url"]+path, headers, std::vector<ServerMessage>{job});
+    job["shots"] = shots;
+    job["executor"] = backendConfig["executor"];
+    job["api_key"] = backendConfig["api_key"];
+    RestHeaders headers = getHeaders();
+    std::string path = backendConfig["url"]+"/v1/execute";
+    return std::make_tuple(path, headers, std::vector<ServerMessage>{job});
   }
 
   /// @brief Extracts the job ID from the server's response to a job submission.
@@ -102,6 +99,7 @@ public:
   /// @brief Constructs the URL for retrieving a job based on the server's
   /// response to a job submission.
   std::string constructGetJobPath(ServerMessage &postResponse) override {
+    //cudaq::info("In constructGetJobPath(postResponse)");
     cudaq::info("In constructGetJobPath(postResponse={})", postResponse.dump());
     return extractJobId(postResponse);
   }
@@ -117,7 +115,8 @@ public:
   /// retrieval request.
   bool jobIsDone(ServerMessage &getJobResponse) override {
     cudaq::info("jobIsDone");
-    return true;
+    std::string status = getJobResponse.at("status");
+    return status == "Done" || status == "Failed";
   }
 
   /// @brief Processes the server's response to a job retrieval request and
@@ -134,7 +133,7 @@ public:
     }
     // Create an ExecutionResult
     cudaq::ExecutionResult execResult{counts};
-
+  
     // Return the sample_result
     return cudaq::sample_result{execResult};
   }

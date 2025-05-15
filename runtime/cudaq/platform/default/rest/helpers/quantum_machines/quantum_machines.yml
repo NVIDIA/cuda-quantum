@@ -26,34 +26,19 @@ config:
   library-mode: false
 
 target-arguments:
-  - key: base-url
-    required: false
+  - key: url
+    required: true
     type: string
-    platform-arg: base-url
+    platform-arg: url
     help-string: "Specify Quantum Machine base server url."
-  - key: action
+  - key: executor
     required: false
     type: string
-    platform-arg: action
-    help-string: "Specify the action to run: compile[default]/execute/execute-simulator."
-  - key: machine
+    platform-arg: executor
+    help-string: "Specify the executor to run. Default is mock"
+  - key: api_key
     required: false
     type: string
-    platform-arg: machine
-    help-string: "Specify the Amazon Braket QPU."
-  - key: default_bucket
-    required: false
-    type: string
-    platform-arg: default_bucket
-    help-string: "Specify a default S3 bucket for Amazon Braket results."
-  - key: polling_interval_ms
-    required: false
-    type: integer
-    platform-arg: polling_interval_ms
-    help-string: "Specify the polling interval (in milliseconds) for checking task completion status on Amazon Braket."
-  - key: noise-model
-    required: false
-    type: string
-    platform-arg: noise 
-    help-string: "Specify the noise model for simulation."
-
+    platform-arg: api_key
+    help-string: "An API key to access the Qoperator server"
+  

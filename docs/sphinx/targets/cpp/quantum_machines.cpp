@@ -6,7 +6,7 @@
 // By default, the action runs a on a mock executor. 
 // To execute or a real qpu please note the executor name by --quantum-machines-executor.
 // ```
-// nvq++ --target quantum-machines --quantum-machines-url "https://iqcc.qoperator.qm.co" \
+// nvq++ --target quantum_machines --quantum-machines-url "https://iqcc.qoperator.qm.co" \
 //  --quantum-machines-executor iqcc quantum_machines.cpp -o out.x
 // ./out.x
 // ```
