@@ -874,7 +874,9 @@
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<br/></pre></div>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+</pre></div>
 </div>
 </div>
 </section>
@@ -959,7 +961,7 @@
 <p>Let us now examine the geometric picture behind our current discussion. We’ll consider the ambient Hilbert space to be spanned by the standard basis vectors <span class="math notranslate nohighlight">\(|0\rangle, |1\rangle, \dots, |N-1\rangle\)</span>, where the full dimension is <span class="math notranslate nohighlight">\(N = 2^n\)</span>. Since the uniform superposition state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> can be expressed as a linear combination of the states <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> with real coefficients, all three states <span class="math notranslate nohighlight">\(|\xi\rangle, |G\rangle,\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>
 reside in a two-dimensional real subspace of the ambient Hilbert space, which we can visualize as a 2D plane as in the image below. Since, <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> are orthogonal, we can imagine them graphed as unit vectors in the positive <span class="math notranslate nohighlight">\(y\)</span> and positive <span class="math notranslate nohighlight">\(x\)</span> directions, respectively. From our previous expression, <span class="math notranslate nohighlight">\(\ket{\xi} = \sin(\theta) |G\rangle + \cos(\theta) |B\rangle,\)</span> we see that the state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> forms an angle <span class="math notranslate nohighlight">\(\theta\)</span> with
 <span class="math notranslate nohighlight">\(|B\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="8fffae0b37a4493daf877d6e8b8140e7" src="../../_images/grovers-2D-plane.png" /></p>
+<div style="text-align: center;"><p><img alt="4b5b5177a3fb478b9b13d0b6048a49e4" src="../../_images/grovers-2D-plane.png" /></p>
 </div><p>Given that the number of marked states <span class="math notranslate nohighlight">\(t\)</span> is typically small compared to <span class="math notranslate nohighlight">\(N\)</span>, it follows that <span class="math notranslate nohighlight">\(\theta = \arcsin\left(\sqrt{\frac{t}{N}}\right)\)</span>is a small angle. This assumption is reasonable, as otherwise, a sufficient number of independent queries to the oracle would likely yield a solution through classical search methods.</p>
 </section>
 <section id="Step-2:-Oracle-application">
@@ -1080,9 +1082,9 @@ animation below.</p>
 <div class="math notranslate nohighlight">
 \[\mathcal{G} = r_\xi \circ r_B = H^{\otimes n} \big( 2|0^{\otimes n} \rangle \langle 0^{\otimes n}| - \text{Id} \big) H^{\otimes n} \mathcal{O}_f.\]</div>
 <p>The circuit diagram below puts together steps 1 through 3:</p>
-<div style="text-align: center;"><p><img alt="dc21deef67b64a86b6c9854ea348cab2" src="../../_images/grovers-steps1-3.png" /></p>
+<div style="text-align: center;"><p><img alt="66d8db5aee664e2494d3740642c63ac2" src="../../_images/grovers-steps1-3.png" /></p>
 </div><p>Running this circuit initializes <span class="math notranslate nohighlight">\(\ket{\xi}\)</span> and performs a rotation by <span class="math notranslate nohighlight">\(2\theta\)</span> (twice the angle between <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>) in the direction from <span class="math notranslate nohighlight">\(|B\rangle\)</span> to <span class="math notranslate nohighlight">\(|G\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="42ca62b47539438598dc69019dcde082" src="../../_images/grovers-full-rotation.png" /></p>
+<div style="text-align: center;"><p><img alt="09a0d70284134589b24ff3671efb48ac" src="../../_images/grovers-full-rotation.png" /></p>
 </div><p>Recall that in our example the state <span class="math notranslate nohighlight">\(\ket{\xi}\)</span> is approximately <span class="math notranslate nohighlight">\(21^\circ\)</span> away from <span class="math notranslate nohighlight">\(\ket{B}\)</span>. Let’s verify that the state resulting from one iteration of Grover’s algorithm is <span class="math notranslate nohighlight">\(90^\circ -3\theta\approx 27^\circ\)</span> away from <span class="math notranslate nohighlight">\(\ket{G}\)</span>. Moreover, notice that the amplitudes of <code class="docutils literal notranslate"><span class="pre">1001</span></code> and <code class="docutils literal notranslate"><span class="pre">1111</span></code> in the resulting state have been amplified compared to the equal superposition of states.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -1187,9 +1189,9 @@ animation below.</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;iterator object at 0x72f4a377d3b0&gt;
+&lt;iterator object at 0x77ccecb61270&gt;
 The angle between the resulting state and the good state
- after one iteration of the circuit is  47.74677827265565
+ after one iteration of the circuit is  48.193928917674185
 </pre></div></div>
 </div>
 </section>
@@ -1241,7 +1243,7 @@ chance of sampling a marked state? How does this compare from the number of iter
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{ 0000:182 0001:157 0010:139 0011:182 0100:151 0101:168 0110:180 0111:186 1000:154 1001:1385 1010:158 1011:155 1100:179 1101:170 1110:149 1111:1305 }
+{ 0000:164 0001:180 0010:168 0011:157 0100:172 0101:149 0110:156 0111:157 1000:169 1001:1367 1010:159 1011:175 1100:169 1101:146 1110:166 1111:1346 }
 
 </pre></div></div>
 </div>
