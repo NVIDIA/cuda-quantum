@@ -144,6 +144,13 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 return IntegerType.get_signless(64)
             if annotation.attr == 'int32':
                 return IntegerType.get_signless(32)
+<<<<<<< HEAD
+=======
+            if annotation.attr == 'int16':
+                return IntegerType.get_signless(16)
+            if annotation.attr == 'int8':
+                return IntegerType.get_signless(8)
+>>>>>>> 4dc549fb85 ([Python] Support passing nested lists as arguments (#2894))
 
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
@@ -304,6 +311,13 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return IntegerType.get_signless(64, ctx)
     if argType == np.int32:
         return IntegerType.get_signless(32, ctx)
+<<<<<<< HEAD
+=======
+    if argType == np.int16:
+        return IntegerType.get_signless(16, ctx)
+    if argType == np.int8:
+        return IntegerType.get_signless(8, ctx)
+>>>>>>> 4dc549fb85 ([Python] Support passing nested lists as arguments (#2894))
     if argType in [float, np.float64]:
         return F64Type.get(ctx)
     if argType == np.float32:
@@ -347,27 +361,6 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
             return cc.StdvecType.get(ctx, eleTy)
 
-        if isinstance(argInstance[0], bool):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
-        if isinstance(argInstance[0], (int, np.int64)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
-        if isinstance(argInstance[0], np.int32):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int32, ctx))
-
-        if isinstance(argInstance[0], (float, np.float64)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
-        if isinstance(argInstance[0], np.float32):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.float32, ctx))
-
-        if isinstance(argInstance[0], (complex, np.complex128)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
-
-        if isinstance(argInstance[0], np.complex64):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.complex64, ctx))
-
-        if isinstance(argInstance[0], pauli_word):
-            return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
-
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
                 ctx,
@@ -378,7 +371,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                     argTypeToCompareTo=cc.StdvecType.getElementType(
                         argTypeToCompareTo)))
 
-        emitFatalError(f'Invalid list element type ({argType})')
+        return cc.StdvecType.get(ctx,
+                                 mlirTypeFromPyType(type(argInstance[0]), ctx))
 
     if get_origin(argType) == tuple:
         result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
@@ -444,11 +438,23 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 def mlirTypeToPyType(argType):
 
     if IntegerType.isinstance(argType):
-        if IntegerType(argType).width == 1:
+        width = IntegerType(argType).width
+        if width == 1:
             return bool
+<<<<<<< HEAD
         if IntegerType(argType).width == 32:
             return np.int32
         return int
+=======
+        if width == 8:
+            return np.int8
+        if width == 16:
+            return np.int16
+        if width == 32:
+            return np.int32
+        if width == 64:
+            return int
+>>>>>>> 4dc549fb85 ([Python] Support passing nested lists as arguments (#2894))
 
     if F64Type.isinstance(argType):
         return float
@@ -475,18 +481,8 @@ def mlirTypeToPyType(argType):
         if cc.CharspanType.isinstance(eleTy):
             return list[pauli_word]
 
-        if IntegerType.isinstance(eleTy):
-            if IntegerType(eleTy).width == 1:
-                return list[bool]
-            return list[int]
-        if F64Type.isinstance(eleTy):
-            return list[float]
-        if F32Type.isinstance(eleTy):
-            return list[np.float32]
-        if ComplexType.isinstance(eleTy):
-            ty = complex if F64Type.isinstance(
-                ComplexType(eleTy).element_type) else np.complex64
-            return list[ty]
+        pyEleTy = mlirTypeToPyType(eleTy)
+        return list[pyEleTy]
 
     if cc.PointerType.isinstance(argType):
         valueTy = cc.PointerType.getElementType(argType)
@@ -505,7 +501,7 @@ def mlirTypeToPyType(argType):
             return pyType
 
     emitFatalError(
-        f"Cannot infer CUDA-Q type from provided Python type ({argType})")
+        f"Cannot infer python type from provided CUDA-Q type ({argType})")
 
 
 def emitErrorIfInvalidPauli(pauliArg):
