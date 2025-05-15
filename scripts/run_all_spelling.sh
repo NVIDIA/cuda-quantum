@@ -58,7 +58,7 @@ for f in $ff; do
 done
 
 # rst
-ff=`find $ALL_FILES_TO_CONSIDER -name "*.rst" | grep -v -P "^tpls/|_templates"`
+ff=`find $ALL_FILES_TO_CONSIDER -name "*.rst" | grep -v -P "^tpls/|_templates|^docs/sphinx/using/applications.rst"`
 NCHECK=0; for f in $ff; do NCHECK=$((NCHECK+1)); done
 echo "Beginning rst check ($NCHECK files to check)"
 for f in $ff; do

@@ -235,7 +235,6 @@ fmt
 fourier
 frontend
 frontends
-grovers
 hadamard
 hamiltonian
 heisenberg
