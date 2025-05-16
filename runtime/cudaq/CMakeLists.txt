@@ -15,7 +15,6 @@ add_library(${LIBRARY_NAME}
          SHARED cudaq.cpp 
                 target_control.cpp
                 algorithms/draw.cpp
-                algorithms/run.cpp
                 algorithms/evolve.cpp
                 algorithms/schedule.cpp
                 platform/qpu_state.cpp

@@ -91,6 +91,7 @@ add_library(cudaq-mlir-runtime
     JIT.cpp
     Logger.cpp
     RuntimeMLIR.cpp
+    RunTheKernel.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
