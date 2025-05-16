@@ -1378,12 +1378,14 @@ sleep<span class="w"> </span><span class="m">2</span>
 <li><p>Examples of running circuits on the backend</p></li>
 <li><p>Adding your logo to the diagram on <a class="reference internal" href="../backends/hardware.html"><span class="doc">Quantum Hardware (QPU)</span></a></p></li>
 </ol>
-<p>More specifically, you will need to modify at least the following files:
-* <code class="docutils literal notranslate"><span class="pre">docs/sphinx/using/examples/hardware_providers.rst</span></code>
-* <code class="docutils literal notranslate"><span class="pre">docs/sphinx/using/backends/hardware.rst</span></code>
-* <code class="docutils literal notranslate"><span class="pre">docs/sphinx/using/backends/hardware/&lt;your-technology&gt;.rst</span></code>
-* <code class="docutils literal notranslate"><span class="pre">docs/sphinx/targets/python/&lt;provider_name&gt;.py</span></code>
-* <code class="docutils literal notranslate"><span class="pre">docs/sphinx/targets/cpp/&lt;provider_name&gt;.cpp</span></code></p>
+<p>More specifically, you will need to modify at least the following files:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/using/examples/hardware_providers.rst</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/using/backends/hardware.rst</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/using/backends/hardware/&lt;your-technology&gt;.rst</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/targets/python/&lt;provider_name&gt;.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/targets/cpp/&lt;provider_name&gt;.cpp</span></code></p></li>
+</ul>
 </section>
 <section id="example-usage">
 <h2>Example Usage<a class="headerlink" href="#example-usage" title="Permalink to this heading">¶</a></h2>
@@ -1411,7 +1413,7 @@ sleep<span class="w"> </span><span class="m">2</span>
 </section>
 <section id="code-review">
 <h2>Code Review<a class="headerlink" href="#code-review" title="Permalink to this heading">¶</a></h2>
-<p>Once you have implemented a <code class="docutils literal notranslate"><span class="pre">BackendHelper</span></code>, some basic tests, and documentation, please <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/pulls">create a PR</a> with your changes and tag the CUDA-Q team for review.</p>
+<p>Once you have implemented a <code class="docutils literal notranslate"><span class="pre">ProviderNameServerHelper</span></code>, some basic tests, and documentation, please <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/pulls">create a PR</a> with your changes and tag the CUDA-Q team for review.</p>
 </section>
 <section id="maintaining-a-backend">
 <h2>Maintaining a Backend<a class="headerlink" href="#maintaining-a-backend" title="Permalink to this heading">¶</a></h2>

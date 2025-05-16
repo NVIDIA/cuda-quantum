@@ -565,6 +565,7 @@ Add documentation for your backend in the appropriate sections of the CUDA-Q doc
 5. Adding your logo to the diagram on :doc:`../backends/hardware`
 
 More specifically, you will need to modify at least the following files:
+
 * ``docs/sphinx/using/examples/hardware_providers.rst``
 * ``docs/sphinx/using/backends/hardware.rst``
 * ``docs/sphinx/using/backends/hardware/<your-technology>.rst``
@@ -600,7 +601,7 @@ Once your backend is implemented, users can use it as follows:
 Code Review
 ===========
 
-Once you have implemented a ``BackendHelper``, some basic tests, and documentation, please `create a PR <https://github.com/NVIDIA/cuda-quantum/pulls>`_ with your changes and tag the CUDA-Q team for review.
+Once you have implemented a ``ProviderNameServerHelper``, some basic tests, and documentation, please `create a PR <https://github.com/NVIDIA/cuda-quantum/pulls>`_ with your changes and tag the CUDA-Q team for review.
 
 Maintaining a Backend
 =====================
