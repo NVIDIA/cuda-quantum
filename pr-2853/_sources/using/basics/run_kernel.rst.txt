@@ -42,7 +42,7 @@ The code above can be run like any other program:
 
 .. tab:: Python
 
-  Assuming the program is saved in the file `sample.py`, we can execute is with the command
+  Assuming the program is saved in the file `sample.py`, we can execute it with the command
 
   .. code-block:: console
 

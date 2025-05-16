@@ -413,6 +413,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Run-VQE">Run VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -688,7 +695,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#operators">Operators</a><ul>
@@ -7704,7 +7711,7 @@ like this:</p>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq17BaseRemoteRESTQPUE">
 <span class="target" id="classcudaq_1_1BaseRemoteRESTQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Subclassed by <a class="reference internal" href="#classcudaq_1_1FermioniqBaseQPU"><span class="std std-ref">cudaq::FermioniqBaseQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1PasqalBaseQPU"><span class="std std-ref">cudaq::PasqalBaseQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1QuEraBaseQPU"><span class="std std-ref">cudaq::QuEraBaseQPU</span></a></p>
+<dd><p>Subclassed by <a class="reference internal" href="#classcudaq_1_1AnalogRemoteRESTQPU"><span class="std std-ref">cudaq::AnalogRemoteRESTQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1FermioniqBaseQPU"><span class="std std-ref">cudaq::FermioniqBaseQPU</span></a></p>
 </dd></dl>
 
 <dl class="cpp class">
@@ -7720,6 +7727,12 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq19AnalogRemoteRESTQPUE">
+<span class="target" id="classcudaq_1_1AnalogRemoteRESTQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AnalogRemoteRESTQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="cudaq::BaseRemoteRESTQPU"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq19AnalogRemoteRESTQPUE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Base <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> class for analog platforms like <code class="docutils literal notranslate"><span class="pre">quera</span></code> and <code class="docutils literal notranslate"><span class="pre">pasqal</span></code>. Provides common functionality and implementation. </p>
+</dd></dl>
+
+<dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16FermioniqBaseQPUE">
 <span class="target" id="classcudaq_1_1FermioniqBaseQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FermioniqBaseQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="cudaq::BaseRemoteRESTQPU"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq16FermioniqBaseQPUE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1FermioniqBaseQPU"><span class="std std-ref"><span class="pre">FermioniqBaseQPU</span></span></a></code> is a <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that allows users to. </p>
@@ -7729,18 +7742,6 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq17OrcaRemoteRESTQPUE">
 <span class="target" id="classcudaq_1_1OrcaRemoteRESTQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OrcaRemoteRESTQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq17OrcaRemoteRESTQPUE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <a class="reference internal" href="#classcudaq_1_1OrcaRemoteRESTQPU"><span class="std std-ref">OrcaRemoteRESTQPU</span></a> is a subtype of <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that enables the execution of CUDA-Q kernels on remotely hosted quantum computing services via a REST Client / Server interaction. This type is meant to be general enough to support any remotely hosted service. Moreover, this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> handles launching kernels under the Execution Context that includes sampling via synchronous client invocations. </p>
-</dd></dl>
-
-<dl class="cpp class">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13PasqalBaseQPUE">
-<span class="target" id="classcudaq_1_1PasqalBaseQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PasqalBaseQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="cudaq::BaseRemoteRESTQPU"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq13PasqalBaseQPUE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1PasqalBaseQPU"><span class="std std-ref"><span class="pre">PasqalBaseQPU</span></span></a></code> is a <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that allows users to submit kernels to the Pasqal machine. </p>
-</dd></dl>
-
-<dl class="cpp class">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq12QuEraBaseQPUE">
-<span class="target" id="classcudaq_1_1QuEraBaseQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuEraBaseQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="cudaq::BaseRemoteRESTQPU"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq12QuEraBaseQPUE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1QuEraBaseQPU"><span class="std std-ref"><span class="pre">QuEraBaseQPU</span></span></a></code> is a <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that allows users to. </p>
 </dd></dl>
 
 <dl class="cpp class">

@@ -8,7 +8,7 @@
 
 // Compile and run with:
 // ```
-// nvq++ --target dynamics heisenberg_model.cpp -o a.out &&
+// nvq++ --target dynamics heisenberg_model_mpi.cpp -o a.out &&
 // mpiexec -np <N> ./a.out
 // ```
 
