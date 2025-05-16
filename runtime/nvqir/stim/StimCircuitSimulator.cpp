@@ -157,7 +157,8 @@ protected:
 
   /// @brief Return the number of rows and columns needed for a Parity Check
   /// Matrix
-  std::pair<std::size_t, std::size_t> generatePCMSize() override {
+  std::optional<std::pair<std::size_t, std::size_t>>
+  generatePCMSize() override {
     return std::make_pair(num_measurements, pcm_err_count);
   }
 

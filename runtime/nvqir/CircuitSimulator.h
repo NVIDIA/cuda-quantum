@@ -138,8 +138,9 @@ public:
 
   /// @brief For simulators that support generating a PCM, this returns the
   /// number of rows and columns in the PCM (for a given noisy kernel)
-  virtual std::pair<std::size_t, std::size_t> generatePCMSize() {
-    return std::make_pair<std::size_t, std::size_t>(0, 0);
+  virtual std::optional<std::pair<std::size_t, std::size_t>>
+  generatePCMSize() {
+    return std::nullopt;
   }
 
   /// @brief For simulators that support generating a PCM, this generates the
