@@ -1,6 +1,6 @@
-*************************
+********************************************
 Extending CUDA-Q with a new Hardware Backend
-*************************
+********************************************
 
 This guide explains how to integrate a new quantum hardware provider with CUDA-Q. The integration process involves creating a server helper that handles communication with the provider's API, defining configuration files, and implementing necessary tests.
 
@@ -17,12 +17,12 @@ CUDA-Q supports various quantum hardware :doc:`backends <../backends/hardware>` 
 The following sections detail each step of this process.
 
 Server Helper Implementation
-===========================
+============================
 
 The server helper is the core component that handles communication with the quantum hardware provider's API. It extends the ``ServerHelper`` base class and implements methods for job submission, result retrieval, and other provider-specific functionality. The base class definition can be found in the `CUDA-Q repository <https://github.com/NVIDIA/cuda-quantum/blob/main/runtime/common/ServerHelper.h>`_.
 
 Directory Structure
-------------------
+-------------------
 
 Create the following directory structure for your new backend (replace ``<provider_name>`` with your provider's name):
 
@@ -34,7 +34,7 @@ Create the following directory structure for your new backend (replace ``<provid
     └── <provider_name>.yml
 
 Server Helper Class
-------------------
+-------------------
 
 Here's a template for implementing a server helper class:
 
@@ -175,7 +175,7 @@ Here's a template for implementing a server helper class:
     CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::ProviderNameServerHelper, <provider_name>)
 
 ``CMakeLists.txt``
---------------
+------------------
 
 You will need to configure CUDA-Q's ``cmake`` system for your new server helper. By convention, you should setup your target as optional by adding a CMake flag in the ``CMakeLists.txt`` at the root of the CUDA-Q repository:
 
@@ -204,7 +204,7 @@ Then, create a ``CMakeLists.txt`` file in your server helper's directory and che
     endif()
 
 Target Configuration
-===================
+====================
 
 Create a ``YAML`` configuration file for your target:
 
@@ -252,7 +252,7 @@ Create a ``YAML`` configuration file for your target:
         help-string: "Specify the Provider Name quantum device to use."
 
 Update Parent ``CMakeLists.txt``
-----------------------------
+--------------------------------
 
 Add your provider to the parent ``CMakeLists.txt`` file:
 
@@ -377,7 +377,7 @@ And add the following to your ``targettests`` ``.cpp`` file:
     // RUN: if %provider_avail; then nvq++ %cpp_std --target provider %s -o %t.x; fi
 
 Mock Server
-----------
+-----------
 
 Create a mock server for testing:
 
@@ -449,7 +449,7 @@ Implement the mock server:
         startServer(port)
 
 Python Tests
------------
+------------
 
 Create Python tests for your backend:
 
@@ -518,7 +518,7 @@ Create Python tests for your backend:
         assert '11' in counts
 
 Documentation
-============
+=============
 
 Add documentation for your backend in the appropriate sections of the CUDA-Q documentation. This should include:
 
@@ -536,7 +536,7 @@ More specifically, you will need to modify at least the following files:
 * ``docs/sphinx/targets/cpp/<provider_name>.cpp``
 
 Example Usage
-============
+=============
 
 Once your backend is implemented, users can use it as follows:
 
@@ -567,7 +567,7 @@ Code Review
 Once you have implemented a ``BackendHelper``, some basic tests, and documentation, please `create a PR <https://github.com/NVIDIA/cuda-quantum/pulls>`_ with your changes and tag the CUDA-Q team for review.
 
 Maintaining a Backend
-====================
+=====================
 
 Once your backend is integrated, you will need to maintain it. This includes:
 
