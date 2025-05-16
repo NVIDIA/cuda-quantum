@@ -726,6 +726,19 @@ LogicalResult quake::DiscriminateOp::verify() {
   return success();
 }
 
+LogicalResult quake::BundleCableOp::verify() {
+  auto ty = cast<quake::CableType>(getResult().getType());
+  if (getWires().size() != ty.getSize())
+    return emitOpError("the bundle type size must equal the arity.");
+  return success();
+}
+
+LogicalResult quake::TerminateCableOp::verify() {
+  if (getResults().size() != getCable().getType().getSize())
+    return emitOpError("the bundle type size must equal the coarity.");
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // WireSetOp
 //===----------------------------------------------------------------------===//
