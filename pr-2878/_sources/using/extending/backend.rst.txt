@@ -226,7 +226,7 @@ Create a ``YAML`` configuration file for your target:
       # Define the lowering pipeline
       # This will cover applying hardware-specific constraints since each provider may have different native gate sets, requiring custom mappings and decompositions. You may need assistance from the CUDA-Q team to set this up correctly.
       platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements),symbol-dce"
-      # Tell the rest-qpu that we are generating OpenQASM 2.0.
+      # Tell the rest-qpu that we are generating QIR base profile.
       # As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.
       codegen-emission: qir-base
       # Library mode is only for simulators, physical backends must turn this off
@@ -516,6 +516,42 @@ Create Python tests for your backend:
         assert len(counts) == 2
         assert '00' in counts
         assert '11' in counts
+
+Integration Tests
+-----------------
+
+To ensure proper execution on the hardware, a validation backend must be provided that:
+
+1. Consumes the same format that your target will use
+2. Validates that circuits passing this validation will execute successfully on the actual hardware
+3. Can be accessed by CUDA-Q's GitHub CI/CD pipelines
+
+Your validation backend doesn't need to be publicly available, but it should:
+
+- Accept the same input format as your actual quantum processor
+- Return meaningful error messages for invalid circuits
+- Provide an API endpoint that can be called from our integration tests
+
+If your validation backend is not publicly available, please coordinate the exchange of necessary credentials for CI/CD with the CUDA-Q team.
+
+Add your target to ``.github/workflows/integration_tests.yml``:
+
+.. code-block:: yaml
+
+    - name: Submit to <provider_name> test server
+      if: (success() || failure()) && (inputs.target == '<provider_name>' || github.event_name == 'schedule')
+      run: |
+        echo "### Submit to <provider_name> server" >> $GITHUB_STEP_SUMMARY
+        # Set up any required dependencies        
+        # Set up environment variables for authentication
+        export PROVIDER_API_KEY='${{ secrets.PROVIDER_API_KEY }}'
+        
+        # Run the integration tests
+        python_tests="docs/sphinx/targets/python/<provider_name>.py"
+        cpp_tests="docs/sphinx/targets/cpp/<provider_name>.cpp"
+        
+        # Execute tests (see other provider examples for implementation details)
+        # ...
 
 Documentation
 =============

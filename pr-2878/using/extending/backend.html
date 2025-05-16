@@ -596,6 +596,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#unit-tests">Unit Tests</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mock-server">Mock Server</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#integration-tests">Integration Tests</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#documentation">Documentation</a></li>
@@ -1054,7 +1055,7 @@
 <span class="w">  </span><span class="c1"># Define the lowering pipeline</span>
 <span class="w">  </span><span class="c1"># This will cover applying hardware-specific constraints since each provider may have different native gate sets, requiring custom mappings and decompositions. You may need assistance from the CUDA-Q team to set this up correctly.</span>
 <span class="w">  </span><span class="nt">platform-lowering-config</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements),symbol-dce&quot;</span>
-<span class="w">  </span><span class="c1"># Tell the rest-qpu that we are generating OpenQASM 2.0.</span>
+<span class="w">  </span><span class="c1"># Tell the rest-qpu that we are generating QIR base profile.</span>
 <span class="w">  </span><span class="c1"># As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.</span>
 <span class="w">  </span><span class="nt">codegen-emission</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qir-base</span>
 <span class="w">  </span><span class="c1"># Library mode is only for simulators, physical backends must turn this off</span>
@@ -1330,6 +1331,39 @@ sleep<span class="w"> </span><span class="m">2</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
     <span class="k">assert</span> <span class="s1">&#39;00&#39;</span> <span class="ow">in</span> <span class="n">counts</span>
     <span class="k">assert</span> <span class="s1">&#39;11&#39;</span> <span class="ow">in</span> <span class="n">counts</span>
+</pre></div>
+</div>
+</section>
+<section id="integration-tests">
+<h3>Integration Tests<a class="headerlink" href="#integration-tests" title="Permalink to this heading">¶</a></h3>
+<p>To ensure proper execution on the hardware, a validation backend must be provided that:</p>
+<ol class="arabic simple">
+<li><p>Consumes the same format that your target will use</p></li>
+<li><p>Validates that circuits passing this validation will execute successfully on the actual hardware</p></li>
+<li><p>Can be accessed by CUDA-Q’s GitHub CI/CD pipelines</p></li>
+</ol>
+<p>Your validation backend doesn’t need to be publicly available, but it should:</p>
+<ul class="simple">
+<li><p>Accept the same input format as your actual quantum processor</p></li>
+<li><p>Return meaningful error messages for invalid circuits</p></li>
+<li><p>Provide an API endpoint that can be called from our integration tests</p></li>
+</ul>
+<p>If your validation backend is not publicly available, please coordinate the exchange of necessary credentials for CI/CD with the CUDA-Q team.</p>
+<p>Add your target to <code class="docutils literal notranslate"><span class="pre">.github/workflows/integration_tests.yml</span></code>:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Submit to &lt;provider_name&gt; test server</span>
+<span class="w">  </span><span class="nt">if</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">(success() || failure()) &amp;&amp; (inputs.target == &#39;&lt;provider_name&gt;&#39; || github.event_name == &#39;schedule&#39;)</span>
+<span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">    </span><span class="no">echo &quot;### Submit to &lt;provider_name&gt; server&quot; &gt;&gt; $GITHUB_STEP_SUMMARY</span>
+<span class="w">    </span><span class="no"># Set up any required dependencies</span>
+<span class="w">    </span><span class="no"># Set up environment variables for authentication</span>
+<span class="w">    </span><span class="no">export PROVIDER_API_KEY=&#39;${{ secrets.PROVIDER_API_KEY }}&#39;</span>
+
+<span class="w">    </span><span class="no"># Run the integration tests</span>
+<span class="w">    </span><span class="no">python_tests=&quot;docs/sphinx/targets/python/&lt;provider_name&gt;.py&quot;</span>
+<span class="w">    </span><span class="no">cpp_tests=&quot;docs/sphinx/targets/cpp/&lt;provider_name&gt;.cpp&quot;</span>
+
+<span class="w">    </span><span class="no"># Execute tests (see other provider examples for implementation details)</span>
+<span class="w">    </span><span class="no"># ...</span>
 </pre></div>
 </div>
 </section>
