@@ -54,7 +54,7 @@ __qpu__ std::vector<float> vector_float_test() {
   return result;
 }
 
-// TODO: this currently fails due to a missing support for tuple copy
+/// TODO: this currently fails due to a missing support for tuple copy
 // constructor in ConvertExpr.cpp
 // __qpu__ std::tuple<int, bool> tuple_test(std::tuple<int, bool> tup) {
 //   cudaq::qvector v(2);
@@ -62,14 +62,15 @@ __qpu__ std::vector<float> vector_float_test() {
 // }
 
 struct MyTuple {
+  bool boolVal;
   std::int64_t i64Val;
   double f64Val;
 };
 
-__qpu__ MyTuple kernel() {
-  MyTuple t = {654, 9.123};
+auto struct_test = []() __qpu__ {
+  MyTuple t = {true, 654, 9.123};
   return t;
-}
+};
 
 int main() {
   int c = 0;
@@ -188,23 +189,23 @@ int main() {
     }
   }
 
-  /// NOTE: The following fails because the kernel name is incorrect in
-  /// `runTheKernel()`, hence layout info is not retrieved correctly.
-  // {
-  //   const auto results = cudaq::run(3, kernel);
-  //   if (results.size() != 3) {
-  //     printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
-  //   } else {
-  //     c = 0;
-  //     for (auto i : results)
-  //       printf("%d: {%ld, %f}\n", c++, i.i64Val, i.f64Val);
-  //     printf("success!\n");
-  //   }
-  // }
+  {
+    const auto results = cudaq::run(3, struct_test);
+    if (results.size() != 3) {
+      printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
+    } else {
+      c = 0;
+      for (auto i : results)
+        printf("%d: {%s, %ld, %f}\n", c++, i.boolVal ? "true" : "false",
+               i.i64Val, i.f64Val);
+      printf("success!\n");
+    }
+  }
 
   return 0;
 }
 
+// CHECK: success!
 // CHECK: success!
 // CHECK: success!
 // CHECK: success!

@@ -80,6 +80,7 @@ cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
     if (auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
       dataLayoutSpec = cast<StringAttr>(attr);
     auto dataLayout = llvm::DataLayout(dataLayoutSpec);
+    cudaq::info("Data Layout: {}", dataLayout.getStringRepresentation());
     llvm::LLVMContext context;
     LLVMTypeConverter converter(kernelFunc.getContext());
     cudaq::opt::initializeTypeConversions(converter);
