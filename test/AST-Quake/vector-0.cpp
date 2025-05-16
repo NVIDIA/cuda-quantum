@@ -27,7 +27,7 @@ struct simple_double_rotation {
 
 // clang-format off
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__simple_double_rotation
-// CHECK-SAME: ([[arg:.*]]: !cc.stdvec<f64>{{.*}}) attributes
+// CHECK-SAME: (%[[VAL_0:.*]]: !cc.stdvec<f64>{{.*}}) attributes
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f64>) -> i64
@@ -62,7 +62,7 @@ struct simple_float_rotation {
 
 // clang-format off
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__simple_float_rotation
-// CHECK-SAME: ([[arg:.*]]: !cc.stdvec<f32>{{.*}}) attributes
+// CHECK-SAME: (%[[VAL_0:.*]]: !cc.stdvec<f32>{{.*}}) attributes
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_2:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f32>) -> i64
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (i64) -> i32
