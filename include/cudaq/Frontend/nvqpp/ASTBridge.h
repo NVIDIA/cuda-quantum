@@ -230,6 +230,8 @@ public:
   // Stmt nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
+  bool TraverseDeclStmt(clang::DeclStmt *x, DataRecursionQueue *q = nullptr);
+
   bool VisitBreakStmt(clang::BreakStmt *x);
   bool TraverseCompoundStmt(clang::CompoundStmt *x,
                             DataRecursionQueue *q = nullptr);
