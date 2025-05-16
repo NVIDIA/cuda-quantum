@@ -21,16 +21,20 @@ int main() {
   cudaq::noise_model noise;
 
   // We define a depolarization channel setting the probability of the
-  // qubit state being scrambled to `1.0`.
-  cudaq::depolarization_channel depolarization(1.);
+  // qubit state being scrambled to `0.75` (25% of probability each for X, Y, or
+  // Z noise). The remaining 25% is for no noise, i.e., identity (I) operation.
+  // Note: This depolarizing channel (equal probability for I, X, Y, and Z)
+  // produced a so-called maximally-mixed state, which have a flat distribution
+  // on all measurement bases.
+  cudaq::depolarization_channel depolarization(0.75);
   // We will apply the channel to any Y-gate on qubit 0. In other words,
   // for each Y-gate on our qubit, the qubit will have a `1.0`
-  // probability of decaying into a mixed state.
+  // probability of decaying into a maximally-mixed state.
   noise.add_channel<cudaq::types::y>({0}, depolarization);
 
   // Our kernel will apply a Y-gate to qubit 0.
-  // This will bring the qubit to the |1> state, where it will remain
-  // with a probability of `1 - p = 0.0`.
+  // This will bring the qubit to the |1> state, where it will undergo an equal
+  // mixture of I, X, Y, Z depolarizing noise.
   auto kernel = []() __qpu__ {
     cudaq::qubit q;
     y(q);

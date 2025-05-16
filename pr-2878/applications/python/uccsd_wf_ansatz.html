@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Molecular docking via DC-QAOA &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>The UCCSD Wavefunction ansatz &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -35,8 +35,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" href="krylov.html" />
-    <link rel="prev" title="Max-Cut with QAOA" href="qaoa.html" /> 
+    <link rel="next" title="CUDA-Q Backends" href="../../using/backends/backends.html" />
+    <link rel="prev" title="Generating the electronic Hamiltonian" href="generate_fermionic_ham.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -219,9 +219,9 @@
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../using/applications.html">   Applications</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="qaoa.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Molecular docking via DC-QAOA</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
@@ -416,11 +416,11 @@
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#Run-VQE">Run VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">The UCCSD Wavefunction ansatz</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#What-is-UCCSD?">What is UCCSD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Run-VQE">Run VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Challenges-and-consideration">Challenges and consideration</a></li>
 </ul>
 </li>
 </ul>
@@ -833,82 +833,209 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active">Molecular docking via DC-QAOA</li>
+      <li class="breadcrumb-item active">The UCCSD Wavefunction ansatz</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/applications/python/digitized_counterdiabatic_qaoa.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/applications/python/uccsd_wf_ansatz.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="qaoa.html" class="btn btn-neutral float-left" title="Max-Cut with QAOA" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="krylov.html" class="btn btn-neutral float-right" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="generate_fermionic_ham.html" class="btn btn-neutral float-left" title="Generating the electronic Hamiltonian" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Molecular-docking-via-DC-QAOA">
-<h1>Molecular docking via DC-QAOA<a class="headerlink" href="#Molecular-docking-via-DC-QAOA" title="Permalink to this heading">¶</a></h1>
-<p>Drugs often work by binding to an active site of a protein, inhibiting or activating its function for some therapeutic purpose. Finding new candidate drugs is extremely difficult. The study of molecular docking helps guide this search and involves the prediction of how strongly a certain ligand (drug) will bind to its target (usually a protein).</p>
-<p>One of the primary challenges to molecular docking arises from the many geometric degrees of freedom present in proteins and ligands, making it difficult to predict the optimal orientation and assess if the drug is a good candidate or not. One solution is to formulate the problem as a mathematical optimization problem where the optimal solution corresponds to the most likely ligand-protein configuration. This optimization problem can be solved on a quantum computer using methods like the Quantum
-Approximate Optimization Algorithm (QAOA). This tutorial demonstrates how this <a class="reference external" href="https://arxiv.org/pdf/2308.04098">paper</a> used digitized-counteradiabatic (DC) QAOA to study molecular docking. This tutorial assumes you have an understanding of QAOA, if not, please see the CUDA-Q MaxCut tutorial found <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/applications/python/qaoa.html">here</a>.</p>
-<p>The next section provides more detail on the problem setup followed by CUDA-Q implementations below.</p>
-<section id="Setting-up-the-Molecular-Docking-Problem">
-<h2>Setting up the Molecular Docking Problem<a class="headerlink" href="#Setting-up-the-Molecular-Docking-Problem" title="Permalink to this heading">¶</a></h2>
-<p>The figure from the <a class="reference external" href="https://arxiv.org/pdf/2308.04098">paper</a> provides a helpful diagram for understanding the workflow.</p>
-<p><img alt="docking" src="../../_images/docking.png" /></p>
-<p>There are 6 key steps: 1. The experimental protein and ligand structures are determined and used to select pharmacores, or an important chemical group that will govern the chemical interactions. 2. Two labeled distance graphs (LAGs) of size <span class="math notranslate nohighlight">\(N\)</span> and <span class="math notranslate nohighlight">\(M\)</span> represent the protein and the ligand, respectively. Each node corresponds to a pharmacore and each edge weight corresponds to the distance between pharmacores. 3. A <span class="math notranslate nohighlight">\(M*N\)</span> node binding interaction graph (BIG) is created from the
-LAGs. Each node in the BIG graph corresponds to a pair of pharmacores, one from the ligand and the other from the protein. The existence of edges between nodes in the BIG graph are determined from the LAGs and correspond to interactions that can feesibly coexist. Therefore, cliques in the graph correspond to mutually possible interactions. 4. The problem is mapped to a QAOA circuit and corresponding Hamiltonian. From there, the ground state solution is determined. 5. The ground state will
-produce the maximum weighted clique which corresponds to the best (most strongly bound) orientation of the ligand and protein. 6. The predicted docking structure is interpreted from the QAOA result and is used for further analysis.</p>
-</section>
-<section id="CUDA-Q-Implementation">
-<h2>CUDA-Q Implementation<a class="headerlink" href="#CUDA-Q-Implementation" title="Permalink to this heading">¶</a></h2>
-<p>First, the appropriate libraries are imported and the <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> backend is selected to run on GPUs if available.</p>
+  <section id="The-UCCSD-Wavefunction-ansatz">
+<h1>The UCCSD Wavefunction ansatz<a class="headerlink" href="#The-UCCSD-Wavefunction-ansatz" title="Permalink to this heading">¶</a></h1>
+<p>In quantum chemistry, the Unitary Coupled Cluster with Single and Double excitations (UCCSD) wavefunction ansatz <a class="reference external" href="https://arxiv.org/pdf/1701.02691">1</a>, <a class="reference external" href="https://arxiv.org/pdf/2109.15176">2</a> is a powerful method used to approximate the ground state of a quantum system. This approach is particularly valuable in the context of quantum computing, where it is employed to solve the electronic structure problem. In this tutorial, we will learn how to implement the UCCSD in CUDA-Q to calclate the
+ground state energy for chemical systems.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Requires pyscf to be installed</span>
+<span class="o">%</span><span class="k">pip</span> install pyscf
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># Set the traget</span>
+
+<span class="c1"># Double precision.</span>
+<span class="c1">#cudaq.set_target(&quot;nvidia&quot;, option = &quot;fp64&quot;)</span>
+
+<span class="c1"># Single precision.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We begin by calculating the electronic hamiltonian and converting it to qubit hamiltonian. To learn more, see this <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/applications/python/generate_fermionic_ham.html">tutorial</a></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.classical_pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_mol_hamiltonian</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qchem.hamiltonian</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner_fermion</span>
+
+<span class="c1">#geometry = &#39;H 0.0 0.0 0.0; H 0.0 0.0 0.7474&#39;</span>
+<span class="c1">#geometry = &#39;Li 0.3925 0.0 0.0; H -1.1774 0.0 0.0&#39;</span>
+<span class="n">geometry</span> <span class="o">=</span>  <span class="s1">&#39;Zn 0.0 0.0 00; O 0.0 0.0 1.7047&#39;</span>
+
+<span class="c1"># When not using active space.</span>
+<span class="c1">#molecular_data = get_mol_hamiltonian(xyz=geometry, spin=0, charge=0, basis=&#39;sto3g&#39;, ccsd=True, verbose=True)</span>
+
+<span class="c1"># When using active space.</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;ccpvdz&#39;</span><span class="p">,</span> <span class="n">nele_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norb_cas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                                     <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">casci</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">tbi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">const</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">electron_count</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">norbitals</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+<span class="n">qubits_num</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span>
+
+<span class="c1"># Here, we are excluding the const from the jordan wigner transformation.</span>
+<span class="c1"># When calculating the expectation value of the Hamiltonian,</span>
+<span class="c1"># it is recommend to remove the identity operator from the</span>
+<span class="c1"># Hamiltonian and add its coefficient as a constant shift to the energy.</span>
+<span class="c1"># In exact arithmetic, this should not make a difference because the expectation value</span>
+<span class="c1"># for the identity is just the norm, which is 1.</span>
+<span class="c1"># However, in floating-point arithmetic, this avoids the round-off error</span>
+<span class="c1"># associated with that term.  This error can be significant because the</span>
+<span class="c1"># coefficient in this term corresponds to core energy, which is usually the largest</span>
+<span class="c1"># coefficient in the Hamiltonian by an order of magnitude.</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1e-15</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
-<p>The block below defines two of the BIG data sets from the paper. The first is a smaller example, but it can be swapped with the commented out example below at your discretion. The weights are specified for each node based on the nature of the ligand and protein pharmacores represented by the node.</p>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+overwrite output file: Zn 0-pyscf.log
+[pyscf] Total number of orbitals =  57
+[pyscf] Total number of electrons =  38
+[pyscf] HF energy =  -1852.5618486460523
+[pyscf] R-CASCI energy using molecular orbitals=  -1852.589855127006
+[pyscf] R-CCSD energy of the active space using molecular orbitals=  -1852.5897242853828
+</pre></div></div>
+</div>
+<section id="What-is-UCCSD?">
+<h2>What is UCCSD?<a class="headerlink" href="#What-is-UCCSD?" title="Permalink to this heading">¶</a></h2>
+<p>The UCCSD ansatz is an extension of the traditional coupled cluster method, which is widely used in classical computational chemistry. The key idea behind UCCSD is to construct the wavefunction as an exponential of an anti-Hermitian operator that includes single and double excitations. Mathematically, this can be expressed as:</p>
+<div class="math notranslate nohighlight">
+\[|\Psi_{\mathrm{UCCSD}}\rangle = e^{T - T^\dagger} |\Phi\rangle\]</div>
+<p>where <span class="math notranslate nohighlight">\(T\)</span> is the cluster operator defined as:</p>
+<div class="math notranslate nohighlight">
+\[T = T_1 + T_2\]</div>
+<p>Here, <span class="math notranslate nohighlight">\(T_1\)</span> and <span class="math notranslate nohighlight">\(T_2\)</span> represent the single and double excitation operators, respectively.</p>
+<p>The UCCSD ansatz maintains the unitarity of the wavefunction, which is crucial for quantum computations. This unitarity ensures that the norm of the wavefunction remains constant, preserving the physical properties of the system.</p>
+</section>
+<section id="Implementation-in-Quantum-Computing">
+<h2>Implementation in Quantum Computing<a class="headerlink" href="#Implementation-in-Quantum-Computing" title="Permalink to this heading">¶</a></h2>
+<p>In the context of quantum computing, the UCCSD ansatz is implemented using quantum circuits. The exponential operator <span class="math notranslate nohighlight">\(e^{T-T^\dagger}\)</span> is decomposed into a sequence of quantum gates that can be executed on a quantum computer. This decomposition typically involves the Trotter-Suzuki approximation, which approximates the exponential of a sum of operators by a product of exponentials of the individual operators.</p>
+<p>Below, we show how to get the UCCSD operators and how to prepare the quantum circuit using UCCSD ansatz. User can try to employ only single excitations, double excitations, or both singles and doubles excitations.</p>
+<p>Note: the <code class="docutils literal notranslate"><span class="pre">cudaq.kernels.uccsd(qubits,</span> <span class="pre">thetas,</span> <span class="pre">electron_count,</span> <span class="pre">qubits_num)</span></code> available in cudaq.kernels uses cnot and rotation gates to implement the exponential of pauli operators in the UCCSD, see this <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/applications/python/vqe_advanced.html">tutorial</a>. The version we use in this tutorial employs the <code class="docutils literal notranslate"><span class="pre">exp_pauli()</span></code> gate available in CUDA-Q. Using <code class="docutils literal notranslate"><span class="pre">exp_pauli()</span></code> gate instead of decomposing it when running on classical simulator reduces the
+number of gates dramatically leading to improvements in perfomance.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The two graph inputs from the paper</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.uccsd</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_uccsd_op</span><span class="p">,</span> <span class="n">uccsd_circuit</span><span class="p">,</span> <span class="n">uccsd_parameter_size</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qchem.uccsd</span><span class="w"> </span><span class="kn">import</span> <span class="n">uccsd_circuit_double</span><span class="p">,</span> <span class="n">uccsd_circuit_single</span>
 
-<span class="c1"># BIG 1</span>
+<span class="n">spin_mult</span><span class="p">,</span> <span class="n">only_singles</span><span class="p">,</span> <span class="n">only_doubles</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span>
 
-<span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
-<span class="n">qubit_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
-<span class="n">edges</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
-         <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]]</span>
-<span class="n">non_edges</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">nodes</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">nodes</span> <span class="k">if</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">v</span> <span class="ow">and</span> <span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">edges</span>
-<span class="p">]</span>
+<span class="c1"># Get the number of parameters</span>
+<span class="n">singles</span><span class="p">,</span> <span class="n">doubles</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="n">uccsd_parameter_size</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">spin_mult</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of parameters: </span><span class="si">{</span><span class="n">singles</span><span class="si">}</span><span class="s2"> singles, </span><span class="si">{</span><span class="n">doubles</span><span class="si">}</span><span class="s2"> doubles, </span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> total&quot;</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Edges: &#39;</span><span class="p">,</span> <span class="n">edges</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Non-Edges: &#39;</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span>
 
-<span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.6686</span><span class="p">,</span> <span class="mf">0.6686</span><span class="p">,</span> <span class="mf">0.6686</span><span class="p">,</span> <span class="mf">0.1453</span><span class="p">,</span> <span class="mf">0.1453</span><span class="p">,</span> <span class="mf">0.1453</span><span class="p">]</span>
-<span class="n">penalty</span> <span class="o">=</span> <span class="mf">6.0</span>
-<span class="n">num_layers</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="c1"># Get the UCCSD pool</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">only_singles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_doubles</span><span class="p">:</span>
+    <span class="n">word_single</span><span class="p">,</span> <span class="n">word_double</span><span class="p">,</span> <span class="n">coef_single</span><span class="p">,</span> <span class="n">coef_double</span> <span class="o">=</span> <span class="n">get_uccsd_op</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span>
+                                                                  <span class="n">spin_mult</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">only_singles</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">only_doubles</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;word_single: </span><span class="si">{</span><span class="n">word_single</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;word_double: </span><span class="si">{</span><span class="n">word_double</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;coef_single: </span><span class="si">{</span><span class="n">coef_single</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;coef_double: </span><span class="si">{</span><span class="n">coef_double</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-<span class="c1"># BIG 2 (More expensive simulation)</span>
-<span class="c1">#nodes=[0,1,2,3,4,5,6,7]</span>
-<span class="c1">#qubit_num=len(nodes)</span>
-<span class="c1">#edges=[[0,1],[0,2],[0,5],[0,6],[0,7],[1,2],[1,4],[1,6],[1,7],[2,4],[2,5],[2,7],[3,4],[3,5],[3,6],\</span>
-<span class="c1">#    [4,5],[4,6],[5,6]]</span>
-<span class="c1">#non_edges=[[u,v] for u in nodes for v in nodes if u&lt;v and [u,v] not in edges]</span>
-<span class="c1">#print(&#39;Edges: &#39;, edges)</span>
-<span class="c1">#print(&#39;Non-edges: &#39;, non_edges)</span>
-<span class="c1">#weights=[0.6686,0.6686,0.6886,0.1091,0.0770,0.0770,0.0770,0.0770]</span>
-<span class="c1">#penalty=8.0</span>
-<span class="c1">#num_layers=8</span>
-</pre></div>
+<span class="k">elif</span> <span class="n">only_singles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_doubles</span><span class="p">:</span>
+    <span class="n">word_single</span><span class="p">,</span> <span class="n">coef_single</span> <span class="o">=</span> <span class="n">get_uccsd_op</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">spin_mult</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">only_singles</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">only_doubles</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;word_single: </span><span class="si">{</span><span class="n">word_single</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;coef_single: </span><span class="si">{</span><span class="n">coef_single</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">elif</span> <span class="n">only_doubles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_singles</span><span class="p">:</span>
+    <span class="n">word_double</span><span class="p">,</span> <span class="n">coef_double</span> <span class="o">=</span> <span class="n">get_uccsd_op</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">spin_mult</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">only_singles</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">only_doubles</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;word_double: </span><span class="si">{</span><span class="n">word_double</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;coef_double: </span><span class="si">{</span><span class="n">coef_double</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid option for only_singles and only_doubles&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># Get the UCCSD circuit (singles and doubles excitation are included)</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">uccsd_kernel</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+                 <span class="n">word_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">word_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">coef_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">coef_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    UCCSD kernel</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Prepare the statefrom qchem.uccsd import get_uccsd_op, uccsd_circuit, uccsd_parameter_size</span>
+
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
+
+    <span class="c1"># Initialize the qubits</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_count</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="c1"># Apply the UCCSD circuit</span>
+    <span class="n">uccsd_circuit</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">word_single</span><span class="p">,</span> <span class="n">coef_single</span><span class="p">,</span> <span class="n">word_double</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span>
+
+
+<span class="c1"># Get the UCCSD circuit (only doubles excitations are included)</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">uccsd_double_kernel</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+                <span class="n">word_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">coef_double</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    UCCSD kernel</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Prepare the state</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
+
+    <span class="c1"># Initialize the qubits</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_count</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="c1"># Apply the UCCSD circuit</span>
+    <span class="n">uccsd_circuit_double</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">word_double</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span>
+
+<span class="c1"># Get the UCCSD circuit (only singles excitations are included)</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">uccsd_single_kernel</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">theta</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+                <span class="n">word_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">coef_single</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    UCCSD kernel</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Prepare the state</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)</span>
+
+    <span class="c1"># Initialize the qubits</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">electron_count</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="c1"># Apply the UCCSD circuit</span>
+    <span class="n">uccsd_circuit_single</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">word_single</span><span class="p">,</span> <span class="n">coef_single</span><span class="p">)</span>
+<br/><br/></pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -916,71 +1043,83 @@ produce the maximum weighted clique which corresponds to the best (most strongly
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Edges:  [[0, 1], [0, 2], [0, 4], [0, 5], [1, 2], [1, 3], [1, 5], [2, 3], [2, 4], [3, 4], [3, 5], [4, 5]]
-Non-Edges:  [[0, 3], [1, 4], [2, 5]]
+Number of parameters: 8 singles, 18 doubles, 26 total
+word_single: [&#39;YZZZXIII&#39;, &#39;XZZZYIII&#39;, &#39;YZZZZZXI&#39;, &#39;XZZZZZYI&#39;, &#39;IIYZXIII&#39;, &#39;IIXZYIII&#39;, &#39;IIYZZZXI&#39;, &#39;IIXZZZYI&#39;, &#39;IYZZZXII&#39;, &#39;IXZZZYII&#39;, &#39;IYZZZZZX&#39;, &#39;IXZZZZZY&#39;, &#39;IIIYZXII&#39;, &#39;IIIXZYII&#39;, &#39;IIIYZZZX&#39;, &#39;IIIXZZZY&#39;]
+word_double: [&#39;XXIIXYII&#39;, &#39;XXIIYXII&#39;, &#39;XYIIYYII&#39;, &#39;YXIIYYII&#39;, &#39;XYIIXXII&#39;, &#39;YXIIXXII&#39;, &#39;YYIIXYII&#39;, &#39;YYIIYXII&#39;, &#39;XXIIIXYI&#39;, &#39;XXIIIYXI&#39;, &#39;XYIIIYYI&#39;, &#39;YXIIIYYI&#39;, &#39;XYIIIXXI&#39;, &#39;YXIIIXXI&#39;, &#39;YYIIIXYI&#39;, &#39;YYIIIYXI&#39;, &#39;XXIIXZZY&#39;, &#39;XXIIYZZX&#39;, &#39;XYIIYZZY&#39;, &#39;YXIIYZZY&#39;, &#39;XYIIXZZX&#39;, &#39;YXIIXZZX&#39;, &#39;YYIIXZZY&#39;, &#39;YYIIYZZX&#39;, &#39;XXIIIIXY&#39;, &#39;XXIIIIYX&#39;, &#39;XYIIIIYY&#39;, &#39;YXIIIIYY&#39;, &#39;XYIIIIXX&#39;, &#39;YXIIIIXX&#39;, &#39;YYIIIIXY&#39;, &#39;YYIIIIYX&#39;, &#39;XZZXXYII&#39;, &#39;XZZXYXII&#39;, &#39;XZZYYYII&#39;, &#39;YZZXYYII&#39;, &#39;XZZYXXII&#39;, &#39;YZZXXXII&#39;, &#39;YZZYXYII&#39;, &#39;YZZYYXII&#39;, &#39;XZZXIXYI&#39;, &#39;XZZXIYXI&#39;, &#39;XZZYIYYI&#39;, &#39;YZZXIYYI&#39;, &#39;XZZYIXXI&#39;, &#39;YZZXIXXI&#39;, &#39;YZZYIXYI&#39;, &#39;YZZYIYXI&#39;, &#39;XZZXXZZY&#39;, &#39;XZZXYZZX&#39;, &#39;XZZYYZZY&#39;, &#39;YZZXYZZY&#39;, &#39;XZZYXZZX&#39;, &#39;YZZXXZZX&#39;, &#39;YZZYXZZY&#39;, &#39;YZZYYZZX&#39;, &#39;XZZXIIXY&#39;, &#39;XZZXIIYX&#39;, &#39;XZZYIIYY&#39;, &#39;YZZXIIYY&#39;, &#39;XZZYIIXX&#39;, &#39;YZZXIIXX&#39;, &#39;YZZYIIXY&#39;, &#39;YZZYIIYX&#39;, &#39;IXXIXYII&#39;, &#39;IXXIYXII&#39;, &#39;IXYIYYII&#39;, &#39;IYXIYYII&#39;, &#39;IXYIXXII&#39;, &#39;IYXIXXII&#39;, &#39;IYYIXYII&#39;, &#39;IYYIYXII&#39;, &#39;IXXIIXYI&#39;, &#39;IXXIIYXI&#39;, &#39;IXYIIYYI&#39;, &#39;IYXIIYYI&#39;, &#39;IXYIIXXI&#39;, &#39;IYXIIXXI&#39;, &#39;IYYIIXYI&#39;, &#39;IYYIIYXI&#39;, &#39;IXXIXZZY&#39;, &#39;IXXIYZZX&#39;, &#39;IXYIYZZY&#39;, &#39;IYXIYZZY&#39;, &#39;IXYIXZZX&#39;, &#39;IYXIXZZX&#39;, &#39;IYYIXZZY&#39;, &#39;IYYIYZZX&#39;, &#39;IXXIIIXY&#39;, &#39;IXXIIIYX&#39;, &#39;IXYIIIYY&#39;, &#39;IYXIIIYY&#39;, &#39;IXYIIIXX&#39;, &#39;IYXIIIXX&#39;, &#39;IYYIIIXY&#39;, &#39;IYYIIIYX&#39;, &#39;IIXXXYII&#39;, &#39;IIXXYXII&#39;, &#39;IIXYYYII&#39;, &#39;IIYXYYII&#39;, &#39;IIXYXXII&#39;, &#39;IIYXXXII&#39;, &#39;IIYYXYII&#39;, &#39;IIYYYXII&#39;, &#39;IIXXIXYI&#39;, &#39;IIXXIYXI&#39;, &#39;IIXYIYYI&#39;, &#39;IIYXIYYI&#39;, &#39;IIXYIXXI&#39;, &#39;IIYXIXXI&#39;, &#39;IIYYIXYI&#39;, &#39;IIYYIYXI&#39;, &#39;IIXXXZZY&#39;, &#39;IIXXYZZX&#39;, &#39;IIXYYZZY&#39;, &#39;IIYXYZZY&#39;, &#39;IIXYXZZX&#39;, &#39;IIYXXZZX&#39;, &#39;IIYYXZZY&#39;, &#39;IIYYYZZX&#39;, &#39;IIXXIIXY&#39;, &#39;IIXXIIYX&#39;, &#39;IIXYIIYY&#39;, &#39;IIYXIIYY&#39;, &#39;IIXYIIXX&#39;, &#39;IIYXIIXX&#39;, &#39;IIYYIIXY&#39;, &#39;IIYYIIYX&#39;, &#39;XZXIXZYI&#39;, &#39;XZXIYZXI&#39;, &#39;XZYIYZYI&#39;, &#39;YZXIYZYI&#39;, &#39;XZYIXZXI&#39;, &#39;YZXIXZXI&#39;, &#39;YZYIXZYI&#39;, &#39;YZYIYZXI&#39;, &#39;IXZXIXZY&#39;, &#39;IXZXIYZX&#39;, &#39;IXZYIYZY&#39;, &#39;IYZXIYZY&#39;, &#39;IXZYIXZX&#39;, &#39;IYZXIXZX&#39;, &#39;IYZYIXZY&#39;, &#39;IYZYIYZX&#39;]
+coef_single: [0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5]
+coef_double: [0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125, 0.125, 0.125, 0.125, 0.125, -0.125, -0.125, -0.125, -0.125]
 </pre></div></div>
 </div>
-<p>Next, the Hamiltonian is constructed:</p>
-<div class="math notranslate nohighlight">
-\[H = \frac{1}{2}\sum_{i \in V}w_i(\sigma^z_i - 1) + \frac{P}{4} \sum_{(i,j) \notin E, i \neq j} (\sigma^z_i -1)(\sigma^z_j - 1)\]</div>
-<p>The first term concerns the vertices and the weights of the given pharmacores. The second term is a penalty term that penalizes edges of the graph with no interactions. The penalty <span class="math notranslate nohighlight">\(P\)</span> is set by the user and is defined as 6 in the cell above. The function below returns the Hamiltonian as a CUDA-Q <code class="docutils literal notranslate"><span class="pre">spin_op</span></code> object.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the Hamiltonian</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">ham_clique</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">:</span>
-
-    <span class="n">spin_ham</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">wt</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">nodes</span><span class="p">):</span>
-        <span class="c1">#print(wt,node)</span>
-        <span class="n">spin_ham</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">wt</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-        <span class="n">spin_ham</span> <span class="o">-=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">wt</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">non_edge</span> <span class="ow">in</span> <span class="n">non_edges</span><span class="p">:</span>
-        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="p">(</span><span class="n">non_edge</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">non_edge</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="c1">#print(u,v)</span>
-        <span class="n">spin_ham</span> <span class="o">+=</span> <span class="n">penalty</span> <span class="o">/</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">-</span>
-                                     <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">spin_ham</span>
-</pre></div>
-</div>
-</div>
-<p>The code below strips the Hamiltonian into a list of coefficients and corresponding Pauli words which can be passed into a quantum kernel.</p>
+</section>
+<section id="Run-VQE">
+<h2>Run VQE<a class="headerlink" href="#Run-VQE" title="Permalink to this heading">¶</a></h2>
+<p>To learn about VQE in CUDA-Q, check this <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/applications/python/vqe_advanced.html">tutorial</a>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">ham</span><span class="p">:</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">evaluate_coefficient</span><span class="p">())</span>
-    <span class="k">return</span> <span class="n">result</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
 
-    <span class="c1"># Collect Pauli words from a spin operator so we can pass them to a kernel</span>
+<span class="c1"># Initial guess for the parameters</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">only_singles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_doubles</span><span class="p">:</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">total</span>
+<span class="k">elif</span> <span class="n">only_singles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_doubles</span><span class="p">:</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">singles</span>
+<span class="k">elif</span> <span class="n">only_doubles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_singles</span><span class="p">:</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">doubles</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid option for only_singles and only_doubles&quot;</span><span class="p">)</span>
 
+<span class="c1">#print(cudaq.draw(kernel, qubits_num, electron_count, theta, word_single, word_double, coef_single, coef_double))</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-    <span class="c1"># Our kernel uses these words to apply exp_pauli to the entire state.</span>
-    <span class="c1"># we hence ensure that each pauli word covers the entire space.</span>
+<span class="c1"># The ansatz is a variational circuit, so we need to optimize the parameters</span>
 
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">ham</span><span class="p">:</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">result</span>
+<span class="c1"># Parameter shift to compute the gradient</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parameter_shift</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
+    <span class="n">parameter_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">epsilon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span>
+    <span class="c1"># The gradient is calculated using parameter shift.</span>
+    <span class="n">grad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">parameter_count</span><span class="p">)</span>
+    <span class="n">theta2</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-<span class="n">ham</span> <span class="o">=</span> <span class="n">ham_clique</span><span class="p">(</span><span class="n">penalty</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">non_edges</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">parameter_count</span><span class="p">):</span>
+        <span class="n">theta2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">epsilon</span>
+        <span class="n">exp_val_plus</span> <span class="o">=</span> <span class="n">cost</span><span class="p">(</span><span class="n">theta2</span><span class="p">)</span>
+        <span class="n">theta2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">epsilon</span>
+        <span class="n">exp_val_minus</span> <span class="o">=</span> <span class="n">cost</span><span class="p">(</span><span class="n">theta2</span><span class="p">)</span>
+        <span class="n">grad</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">exp_val_plus</span> <span class="o">-</span> <span class="n">exp_val_minus</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">epsilon</span><span class="p">)</span>
+        <span class="n">theta2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">grad</span>
 
-<span class="n">coef</span> <span class="o">=</span> <span class="n">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
-<span class="n">words</span> <span class="o">=</span> <span class="n">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">))</span>
-</pre></div>
+    <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">only_singles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_doubles</span><span class="p">:</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">uccsd_kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span>
+                            <span class="n">theta</span><span class="p">,</span> <span class="n">word_single</span><span class="p">,</span> <span class="n">word_double</span><span class="p">,</span> <span class="n">coef_single</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">only_singles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_doubles</span><span class="p">:</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">uccsd_single_kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span>
+                            <span class="n">theta</span><span class="p">,</span> <span class="n">word_single</span><span class="p">,</span> <span class="n">coef_single</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">only_doubles</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_singles</span><span class="p">:</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">uccsd_double_kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span>
+                            <span class="n">theta</span><span class="p">,</span> <span class="n">word_double</span><span class="p">,</span> <span class="n">coef_double</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid option for only_singles and only_doubles&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">energy</span>
+
+<span class="c1">#result_vqe=minimize(cost, theta, method=&#39;L-BFGS-B&#39;, jac=&#39;2-point&#39;, tol=1e-7)</span>
+<span class="n">result_vqe</span><span class="o">=</span><span class="n">minimize</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="n">parameter_shift</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">)</span>
+
+<span class="n">total_energy</span> <span class="o">=</span> <span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span> <span class="o">+</span> <span class="n">const</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total energy: </span><span class="si">{</span><span class="n">total_energy</span><span class="si">:</span><span class="s2">.10f</span><span class="si">}</span><span class="s2"> Hartree&quot;</span><span class="p">)</span>
+<span class="c1"># Print the optimized parameters: first n are singles, then doubles.</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimized parameters: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<br/></pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -988,167 +1127,20 @@ Non-Edges:  [[0, 3], [1, 4], [2, 5]]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(0+0i) + (-1.1657+0i) * Z0 + (-0.3343+0i) * I0 + (-1.1657+0i) * Z1 + (-0.3343+0i) * I1 + (-1.1657+0i) * Z2 + (-0.3343+0i) * I2 + (-1.42735+0i) * Z3 + (-0.07265+0i) * I3 + (-1.42735+0i) * Z4 + (-0.07265+0i) * I4 + (-1.42735+0i) * Z5 + (-0.07265+0i) * I5 + (1.5+0i) * Z0Z3 + (1.5+0i) * I0I3 + (1.5+0i) * Z1Z4 + (1.5+0i) * I1I4 + (1.5+0i) * Z2Z5 + (1.5+0i) * I2I5
-[0j, (-1.1657+0j), (-0.3343-0j), (-1.1657+0j), (-0.3343-0j), (-1.1657+0j), (-0.3343-0j), (-1.42735+0j), (-0.07265-0j), (-1.42735+0j), (-0.07265-0j), (-1.42735+0j), (-0.07265-0j), (1.5+0j), (1.5+0j), (1.5+0j), (1.5+0j), (1.5+0j), (1.5+0j)]
-[&#39;IIIIII&#39;, &#39;ZIIIII&#39;, &#39;IIIIII&#39;, &#39;IZIIII&#39;, &#39;IIIIII&#39;, &#39;IIZIII&#39;, &#39;IIIIII&#39;, &#39;IIIZII&#39;, &#39;IIIIII&#39;, &#39;IIIIZI&#39;, &#39;IIIIII&#39;, &#39;IIIIIZ&#39;, &#39;IIIIII&#39;, &#39;ZIIZII&#39;, &#39;IIIIII&#39;, &#39;IZIIZI&#39;, &#39;IIIIII&#39;, &#39;IIZIIZ&#39;, &#39;IIIIII&#39;]
+Total energy: -1852.5895309905 Hartree
+optimized parameters: [ 0.00000000e+00  1.91918143e-03 -1.18739821e-01 -4.56567309e-18
+  0.00000000e+00  1.93627077e-03 -1.18755472e-01  1.54888818e-21
+  9.53533311e-03  0.00000000e+00  0.00000000e+00  1.40615591e-03
+  0.00000000e+00 -1.02368050e-02  2.78804812e-03  0.00000000e+00
+  0.00000000e+00  2.78862284e-03 -1.01582650e-02  0.00000000e+00
+  3.21798016e-01 -9.94788673e-15  9.94560544e-15  1.54838228e-02
+ -4.22692720e-03 -4.25296495e-03]
 </pre></div></div>
 </div>
-<p>The kernel below defines a DC-QAOA circuit. What makes the approach “DC” is the inclusion of additional counteradiabatic terms to better drive the optimization to the ground state. These terms are digitized and applied as additional operations following each QAOA layer. The increase in parameters is hopefully offset by requiring fewer layers. In this example, the DC terms are the additional parameterized <span class="math notranslate nohighlight">\(Y\)</span> operations applied to each qubit. These can be commented out to run conventional
-QAOA.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">dc_qaoa</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>\
-    <span class="n">coef</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span> <span class="n">words</span><span class="p">:</span><span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
-
-    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">)</span>
-
-    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
-
-    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
-
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coef</span><span class="p">)):</span>
-            <span class="n">exp_pauli</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">*</span> <span class="n">coef</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">):</span>
-            <span class="n">rx</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="c1">#Comment out this for loop for conventional QAOA</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_num</span><span class="p">):</span>
-            <span class="n">ry</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">count</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-</pre></div>
-</div>
-</div>
-<p>The classical optimizer for the QAOA procedure can be specified as one of the built-in CUDA-Q optimizers, in this case Nelder Mead. The parameter count is defined for DC-QAOA, but can be swapped with the commented line below for conventional QAOA.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Specify the optimizer and its initial parameters.</span>
-<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">NelderMead</span><span class="p">()</span>
-
-<span class="c1">#Specify random seeds</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
-
-<span class="c1"># if dc_qaoa used</span>
-<span class="n">parameter_count</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">qubit_num</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">coef</span><span class="p">))</span> <span class="o">*</span> <span class="n">num_layers</span>
-
-<span class="c1"># if qaoa used</span>
-<span class="c1"># parameter_count=(qubit_num+len(coef))*num_layers</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total number of parameters: &#39;</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
-<span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span>
-                                                 <span class="n">parameter_count</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial parameters = &quot;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Total number of parameters:  93
-Initial parameters =  [0.21810696323572243, -0.20613464375211488, 0.2546877639814583, 0.3657985647468064, 0.37118004688049144, -0.03656087558321203, 0.08564174998504231, 0.21639801853794682, 0.11122286088634259, 0.1743727097033635, -0.36518146001762486, -0.15829741539542244, -0.3467434780387345, 0.28043500852894776, -0.09986021299050934, 0.14125225086023052, -0.19141728018199775, -0.11970943368650361, -0.3853063093646483, -0.1112643868789806, 0.3527177454825464, -0.22156160012057186, -0.1418496891385843, 0.32811766468303116, -0.367642000671186, -0.34158180583996006, 0.10196745745501312, 0.29359239180502594, -0.3858537615546677, 0.19366130907065582, 0.24570488114056754, -0.3332307385378807, 0.12287973244618389, 0.007274514934614895, -0.015799547372526146, 0.3578070967202224, -0.39268963055535144, -0.19872246354138554, 0.16668715544467982, -0.13777293592446055, -0.17514665212709513, 0.15350249947988204, 0.32872977428061945, -0.20068831419712105, -0.032919322131134854, -0.19399909325771983, -0.09477141125241506, 0.08210460401106645, 0.21392577760158515, -0.3393568044538389, 0.14615087942938465, 0.03790339186006314, -0.2843250892879255, -0.3151384847055956, -0.19983741137121905, -0.27348611567665115, 0.33457528180906904, 0.14145414847455462, -0.20604220093940323, 0.05410235084309195, 0.04447870918600966, -0.3355714098595045, 0.266806440171265, -0.07436189654442632, -0.2789176729721685, -0.2427508182662484, -0.007351219158674538, 0.16652355413124942, 0.3808697740391629, 0.2943566301288585, -0.0007526597041920824, -0.3088342705284747, 0.3245365797019699, -0.10609475622422088, -0.21473737933378598, 0.29250730067679076, -0.28560348266311547, -0.20704653805110443, 0.07492639208926116, 0.050204699769995864, 0.3604464956189818, -0.036725741805424705, -0.2914156467694673, 0.20464937477384804, -0.2343360494257549, -0.2546811698770065, -0.04938739737483455, -0.1254588720659109, 0.3669797333052197, -0.2803666634362036, 0.27061563884884454, 0.13305127120906368, -0.3068512076427221]
-</pre></div></div>
-</div>
-<p>A cost function is specified which computes the expectation value of the DC-QAOA circuit and the Hamiltonian using the <code class="docutils literal notranslate"><span class="pre">observe</span></code> function. Running the optimization returns the minimized expectation value and the optimal parameters.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cost_values</span> <span class="o">=</span> <span class="p">[]</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
-
-    <span class="n">cost</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">dc_qaoa</span><span class="p">,</span> <span class="n">ham</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span>
-                         <span class="n">words</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-    <span class="n">cost_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">cost</span>
-
-
-<span class="c1"># Optimize!</span>
-<span class="n">optimal_expectation</span><span class="p">,</span> <span class="n">optimal_parameters</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span>
-    <span class="n">dimensions</span><span class="o">=</span><span class="n">parameter_count</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">objective</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;optimal_expectation =&#39;</span><span class="p">,</span> <span class="n">optimal_expectation</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;optimal_parameters =&#39;</span><span class="p">,</span> <span class="n">optimal_parameters</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-optimal_expectation = -2.005710024421982
-optimal_parameters = [1.8481888913540985, -0.2535399481030596, 0.22783474501904072, 2.081416556947703, 0.3374107641822874, -0.05224802127495901, 1.8679499667316164, 2.009143330388614, 0.1339973108317789, 0.2652751145535136, 1.324101519994548, 1.5559093725862327, -0.16508452001869578, 0.10055168392123187, 1.4335293611790534, -0.022802387382032274, -0.02345217217095934, 0.025049619373114198, -0.32382028011884517, 1.1592457772894376, 0.5114936288385474, -0.14306579846281064, -0.32504364746711095, 1.5987201329360095, -0.47283036988738203, -0.2879606126466135, 0.03195039154942317, 1.6485828925522248, -0.8013579153446403, -0.025680220483288878, 0.37302396767692614, 1.5188370864376863, 2.106660523866304, -0.09725921137896973, 0.17491777895553523, 0.5884424387073575, 1.0185444633156848, 1.2506750467643695, 1.5730001880356774, 0.923145372786352, -0.3016838127319703, 0.10130783752008649, 0.34049803711462423, -0.2742308863536732, -0.0843331582214344, -0.304728036625607, 0.03164048010752481, -0.16945553246060785, 0.21199415583984976, -0.333776464782457, 0.6762454214008358, 0.7077770344190998, -0.04315001481827706, -0.8685775873913754, -0.31256033232512964, -0.13726466931210604, -0.18103220051469332, -0.07014233979739845, -0.04255058220153306, 0.5213395683000333, -0.2522616199668185, -0.5922668326436884, 1.7533503557489256, -0.4243163991330685, 1.8047318156160967, -0.11962817999838339, 1.8264810507160347, 1.9427616058014427, 0.7014295339746117, 0.20606112998073237, 0.5143352145327803, -0.34597927642063775, 0.2594379052182792, -0.05203689954085833, -0.5794522822029166, 0.4906495726071997, -0.034324583542975434, -0.14861293759475658, -0.12344152798253367, 0.025496591883733336, 1.284665133192642, -0.3804169340191194, 0.24490229273798853, 0.17606447338069542, -0.3615511014437435, -0.32667907511589545, -0.02539630711633685, -0.6837298769178322, 0.5233213940389638, -0.10356768274588322, 0.3255850390639937, 0.23127621992973585, -0.44519166728496085]
-</pre></div></div>
-</div>
-<p>Sampling the circuit with the optimal parameters allows for the <code class="docutils literal notranslate"><span class="pre">most_probable</span></code> command to reveal the bitsting corresponding to the ideal graph partitioning solution. This indicates what sort of interactions are present in the ideal docking configuration</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">shots</span> <span class="o">=</span> <span class="mi">200000</span>
-
-<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">dc_qaoa</span><span class="p">,</span>
-                      <span class="n">qubit_num</span><span class="p">,</span>
-                      <span class="n">num_layers</span><span class="p">,</span>
-                      <span class="n">optimal_parameters</span><span class="p">,</span>
-                      <span class="n">coef</span><span class="p">,</span>
-                      <span class="n">words</span><span class="p">,</span>
-                      <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The MVWCP is given by the partition: &#39;</span><span class="p">,</span> <span class="n">counts</span><span class="o">.</span><span class="n">most_probable</span><span class="p">())</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-{ 011100:1 101010:6 110001:20 111000:199973 }
-
-The MVWCP is given by the partition:  111000
-</pre></div></div>
-</div>
-<p><img alt="dockin" class="no-scaled-link" src="../../_images/partition.png" style="width: 300px;" /></p>
-<p>The convergence of the optimization can be plotted below.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-
-<span class="n">x_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cost_values</span><span class="p">)))</span>
-<span class="n">y_values</span> <span class="o">=</span> <span class="n">cost_values</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_values</span><span class="p">,</span> <span class="n">y_values</span><span class="p">)</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Epochs&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Cost Value&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../../_images/applications_python_digitized_counterdiabatic_qaoa_20_0.png" src="../../_images/applications_python_digitized_counterdiabatic_qaoa_20_0.png" />
-</div>
-</div>
+</section>
+<section id="Challenges-and-consideration">
+<h2>Challenges and consideration<a class="headerlink" href="#Challenges-and-consideration" title="Permalink to this heading">¶</a></h2>
+<p>While UCCSD is a powerful method, it is not without its challenges. The primary difficulty lies in the efficient implementation of the quantum circuits, as the number of gates required can grow significantly with the size of the system. Additionally, the accuracy of the Trotter-Suzuki approximation can affect the overall precision of the results.</p>
 </section>
 </section>
 
@@ -1156,8 +1148,8 @@ The MVWCP is given by the partition:  111000
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="qaoa.html" class="btn btn-neutral float-left" title="Max-Cut with QAOA" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="krylov.html" class="btn btn-neutral float-right" title="Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="generate_fermionic_ham.html" class="btn btn-neutral float-left" title="Generating the electronic Hamiltonian" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

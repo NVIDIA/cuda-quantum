@@ -413,6 +413,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Run-VQE">Run VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -838,8 +845,9 @@
              
   <section id="cuda-q-dynamics">
 <h1>CUDA-Q Dynamics<a class="headerlink" href="#cuda-q-dynamics" title="Permalink to this heading">¶</a></h1>
+<p id="dynamics-examples">This page contains a number of examples that use CUDA-Q dynamics to simulate a range of fundamental physical systems and specific qubit modalities. All example problems simulate systems of very low dimension so that the code can be run quickly on any device. For small problems, the GPU will not provide a significant performance advantage over the CPU. The GPU will start to outperform the CPU for cases where the total dimension of all subsystems is O(1000).</p>
 <section id="cavity-qed">
-<span id="dynamics-examples"></span><h2>Cavity QED<a class="headerlink" href="#cavity-qed" title="Permalink to this heading">¶</a></h2>
+<h2>Cavity QED<a class="headerlink" href="#cavity-qed" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate" id="id1"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">boson</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
