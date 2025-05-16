@@ -27,10 +27,9 @@
 
 // CHECK-LABEL: func.func private @test.adj.ctrl(
 // CHECK-SAME:     %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.ref) {
-// CHECK:         %[[VAL_2:.*]] = arith.constant 1.0{{.*}} : f32
+// CHECK:         %[[VAL_2:.*]] = arith.constant -1.0{{.*}} : f32
 // CHECK-DAG:     quake.x [%[[VAL_0]]] %[[VAL_1]] :
-// CHECK-DAG:     %[[VAL_3:.*]] = arith.negf %[[VAL_2]] : f32
-// CHECK:         quake.rx (%[[VAL_3]]) [%[[VAL_0]]] %[[VAL_1]] :
+// CHECK:         quake.rx (%[[VAL_2]]) [%[[VAL_0]]] %[[VAL_1]] :
 // CHECK:         quake.h [%[[VAL_0]]] %[[VAL_1]] :
 // CHECK:         quake.t<adj> [%[[VAL_0]]] %[[VAL_1]] : (!quake.veq<?>,
 // CHECK:         return
@@ -41,9 +40,9 @@
 
 // CHECK-LABEL:   func.func private @test.ctrl(
 // CHECK-SAME:       %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1.000000e+00 : f32
 // CHECK:           quake.t [%[[VAL_0]]] %[[VAL_1]]
 // CHECK:           quake.h [%[[VAL_0]]] %[[VAL_1]]
-// CHECK:           %[[VAL_2:.*]] = arith.constant 1.000000e+00 : f32
 // CHECK:           quake.rx (%[[VAL_2]]) [%[[VAL_0]]] %[[VAL_1]]
 // CHECK:           quake.x [%[[VAL_0]]] %[[VAL_1]]
 // CHECK:           return
@@ -51,9 +50,9 @@
 
 // CHECK-LABEL:   func.func @test(
 // CHECK-SAME:                    %[[VAL_0:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f32
 // CHECK:           quake.t %[[VAL_0]] :
 // CHECK:           quake.h %[[VAL_0]] :
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f32
 // CHECK:           quake.rx (%[[VAL_1]]) %[[VAL_0]] :
 // CHECK:           quake.x %[[VAL_0]] :
 // CHECK:           return
