@@ -376,6 +376,7 @@ class PyKernelDecorator(object):
                             for element in value
                         ]
         return value
+
     def castPyPrimitiveType(self, toTy, value):
         if F64Type.isinstance(toTy):
             return float(value)
