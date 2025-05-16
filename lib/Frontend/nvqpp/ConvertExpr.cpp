@@ -1148,19 +1148,9 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
   return true;
 }
 
-bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
-  auto loc = toLocation(x->getSourceRange());
-  // The called function is reified as a Value in the IR.
-  auto *callee = x->getCalleeDecl();
-  auto *func = dyn_cast<clang::FunctionDecl>(callee);
-  if (!func)
-    TODO_loc(loc, "call doesn't have function decl");
-  assert(valueStack.size() >= x->getNumArgs() + 1 &&
-         "stack must contain all arguments plus the expression to call");
-  StringRef funcName;
-  if (auto *id = func->getIdentifier())
-    funcName = id->getName();
-
+bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
+                                          clang::FunctionDecl *func,
+                                          Location loc, StringRef funcName) {
   // Handle any std::pow(N,M)
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
       funcName == "pow") {
@@ -1197,6 +1187,66 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
+
+  // Handle std::sqrt
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      funcName == "sqrt") {
+    assert(func->getNumParams() == 1 && "must be unary");
+    Value arg = popValue();
+    [[maybe_unused]] auto funcConst = popValue();
+    if (isa<IntegerType>(arg.getType()))
+      arg = builder.create<cudaq::cc::CastOp>(
+          loc, builder.getF64Type(), arg,
+          x->getArg(0)->getType()->isUnsignedIntegerOrEnumerationType()
+              ? cudaq::cc::CastOpMode::Unsigned
+              : cudaq::cc::CastOpMode::Signed);
+    return pushValue(builder.create<math::SqrtOp>(loc, arg));
+  }
+
+  // Handle std::round
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      funcName == "round") {
+    assert(func->getNumParams() == 1 && "must be unary");
+    Value arg = popValue();
+    [[maybe_unused]] auto funcConst = popValue();
+    if (isa<IntegerType>(arg.getType()))
+      arg = builder.create<cudaq::cc::CastOp>(
+          loc, builder.getF64Type(), arg,
+          x->getArg(0)->getType()->isUnsignedIntegerOrEnumerationType()
+              ? cudaq::cc::CastOpMode::Unsigned
+              : cudaq::cc::CastOpMode::Signed);
+    return pushValue(builder.create<math::RoundOp>(loc, arg));
+  }
+
+  // Handle std::abs
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      funcName == "abs") {
+    assert(func->getNumParams() == 1 && "must be unary");
+    Value arg = popValue();
+    [[maybe_unused]] auto funcConst = popValue();
+    if (isa<IntegerType>(arg.getType()))
+      return pushValue(builder.create<math::AbsIOp>(loc, arg));
+    return pushValue(builder.create<math::AbsFOp>(loc, arg));
+  }
+
+  return false;
+}
+
+bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
+  auto loc = toLocation(x->getSourceRange());
+  // The called function is reified as a Value in the IR.
+  auto *callee = x->getCalleeDecl();
+  auto *func = dyn_cast<clang::FunctionDecl>(callee);
+  if (!func)
+    TODO_loc(loc, "call doesn't have function decl");
+  assert(valueStack.size() >= x->getNumArgs() + 1 &&
+         "stack must contain all arguments plus the expression to call");
+  StringRef funcName;
+  if (auto *id = func->getIdentifier())
+    funcName = id->getName();
+
+  if (visitMathLibFunc(x, func, loc, funcName))
+    return true;
 
   // Handle std::complex member functions
   if (isInClassInNamespace(func, "complex", "std")) {
@@ -1402,7 +1452,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                 loc, unsizedVecTy, qregArg, zero, offset));
           }
           assert(actArgs.size() == 0);
-          popValue();
           return pushValue(
               builder.create<quake::ExtractRefOp>(loc, qregArg, zero));
         }
@@ -1424,7 +1473,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                 builder.create<arith::SubIOp>(loc, qrSize, actArgs.front());
             auto unsizedVecTy =
                 quake::VeqType::getUnsized(builder.getContext());
-            popValue();
             return pushValue(builder.create<quake::SubVeqOp>(
                 loc, unsizedVecTy, qregArg, startOff, endOff));
           }

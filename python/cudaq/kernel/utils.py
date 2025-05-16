@@ -144,6 +144,10 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 return IntegerType.get_signless(64)
             if annotation.attr == 'int32':
                 return IntegerType.get_signless(32)
+            if annotation.attr == 'int16':
+                return IntegerType.get_signless(16)
+            if annotation.attr == 'int8':
+                return IntegerType.get_signless(8)
 
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
@@ -304,6 +308,10 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return IntegerType.get_signless(64, ctx)
     if argType == np.int32:
         return IntegerType.get_signless(32, ctx)
+    if argType == np.int16:
+        return IntegerType.get_signless(16, ctx)
+    if argType == np.int8:
+        return IntegerType.get_signless(8, ctx)
     if argType in [float, np.float64]:
         return F64Type.get(ctx)
     if argType == np.float32:
@@ -378,7 +386,22 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                     argTypeToCompareTo=cc.StdvecType.getElementType(
                         argTypeToCompareTo)))
 
-        emitFatalError(f'Invalid list element type ({argType})')
+        return cc.StdvecType.get(ctx,
+                                 mlirTypeFromPyType(type(argInstance[0]), ctx))
+
+    if get_origin(argType) == tuple:
+        result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
+        eleTyNames = result.group('names')
+        eleTypes = []
+        while eleTyNames != None:
+            result = re.search(r'(?P<names>.*),\s*(?P<name>.*)', eleTyNames)
+            eleTyName = result.group('name') if result != None else eleTyNames
+            eleTyNames = result.group('names') if result != None else None
+            pyInstance = pyInstanceFromName(eleTyName)
+            if pyInstance == None:
+                emitFatalError(f'Invalid tuple element type ({eleTyName})')
+            eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
+        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
     if get_origin(argType) == tuple:
         result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
@@ -444,11 +467,17 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 def mlirTypeToPyType(argType):
 
     if IntegerType.isinstance(argType):
-        if IntegerType(argType).width == 1:
+        width = IntegerType(argType).width
+        if width == 1:
             return bool
-        if IntegerType(argType).width == 32:
+        if width == 8:
+            return np.int8
+        if width == 16:
+            return np.int16
+        if width == 32:
             return np.int32
-        return int
+        if width == 64:
+            return int
 
     if F64Type.isinstance(argType):
         return float
@@ -475,18 +504,8 @@ def mlirTypeToPyType(argType):
         if cc.CharspanType.isinstance(eleTy):
             return list[pauli_word]
 
-        if IntegerType.isinstance(eleTy):
-            if IntegerType(eleTy).width == 1:
-                return list[bool]
-            return list[int]
-        if F64Type.isinstance(eleTy):
-            return list[float]
-        if F32Type.isinstance(eleTy):
-            return list[np.float32]
-        if ComplexType.isinstance(eleTy):
-            ty = complex if F64Type.isinstance(
-                ComplexType(eleTy).element_type) else np.complex64
-            return list[ty]
+        pyEleTy = mlirTypeToPyType(eleTy)
+        return list[pyEleTy]
 
     if cc.PointerType.isinstance(argType):
         valueTy = cc.PointerType.getElementType(argType)
@@ -505,7 +524,7 @@ def mlirTypeToPyType(argType):
             return pyType
 
     emitFatalError(
-        f"Cannot infer CUDA-Q type from provided Python type ({argType})")
+        f"Cannot infer python type from provided CUDA-Q type ({argType})")
 
 
 def emitErrorIfInvalidPauli(pauliArg):

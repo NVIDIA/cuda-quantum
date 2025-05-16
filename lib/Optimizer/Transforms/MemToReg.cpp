@@ -101,14 +101,6 @@ struct MemoryAnalysis {
 
   bool isMember(Operation *op) const { return allocSet.count(op); }
 
-  SmallVector<quake::AllocaOp> getAllQuantumAllocations() const {
-    SmallVector<quake::AllocaOp> result;
-    for (auto *op : allocSet)
-      if (auto qalloc = dyn_cast<quake::AllocaOp>(op))
-        result.push_back(qalloc);
-    return result;
-  }
-
 private:
   bool nonEscapingDef(Operation *use, Value result) {
     // Return false if not a def.
