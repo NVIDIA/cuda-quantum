@@ -325,6 +325,15 @@ protected:
     // If we have a valid operation, apply it
     if (auto res = isValidStimNoiseChannel(channel)) {
       if (is_pcm_mode) {
+        // If the noise operation is the first operation done to a qubit, the
+        // x_table and z_table may not be sized for the qubits. If that is the
+        // case, then we simply perform a reset on the qubit to essentially
+        // allocate it, which ensures the tables are resized to the correct
+        // size.
+        auto max_qubit = *std::max_element(qubits.begin(), qubits.end());
+        if (sampleSim->num_qubits < max_qubit + 1)
+          applyOpToSims("R", std::vector<std::uint32_t>{max_qubit});
+
         // Apply the errors found in res directly into sampleSim, as if they
         // definitely happened, 1 mechanism at a time. (For example, a
         // depolarization channel will manifest as 3 possible error mechanisms:
