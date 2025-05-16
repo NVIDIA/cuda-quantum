@@ -377,6 +377,26 @@ class PyKernelDecorator(object):
                         ]
         return value
 
+    def castPyPrimitiveType(self, toTy, value):
+        if F64Type.isinstance(toTy):
+            return float(value)
+
+        if F32Type.isinstance(toTy):
+            return np.float32(value)
+
+        if ComplexType.isinstance(toTy):
+            floatToType = ComplexType(toTy).element_type
+            if F64Type.isinstance(floatToType):
+                return complex(value)
+            return np.complex64(value)
+
+        return None
+
+    def castPyList(self, fromEleTy, toEleTy, list):
+        if self.isCastable(fromEleTy, toEleTy):
+            return [self.castPyPrimitiveType(toEleTy, i) for i in list]
+        return list
+
     def createStorage(self):
         ctx = None if self.module == None else self.module.context
         return CapturedDataStorage(ctx=ctx,
