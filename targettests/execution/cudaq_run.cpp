@@ -61,6 +61,16 @@ __qpu__ std::vector<float> vector_float_test() {
 //   return tup;
 // }
 
+struct MyTuple {
+  std::int64_t i64Val;
+  double f64Val;
+};
+
+__qpu__ MyTuple kernel() {
+  MyTuple t = {654, 9.123};
+  return t;
+}
+
 int main() {
   int c = 0;
   {
@@ -177,6 +187,20 @@ int main() {
       printf("success!\n");
     }
   }
+
+  /// NOTE: The following fails because the kernel name is incorrect in
+  /// `runTheKernel()`, hence layout info is not retrieved correctly.
+  // {
+  //   const auto results = cudaq::run(3, kernel);
+  //   if (results.size() != 3) {
+  //     printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
+  //   } else {
+  //     c = 0;
+  //     for (auto i : results)
+  //       printf("%d: {%ld, %f}\n", c++, i.i64Val, i.f64Val);
+  //     printf("success!\n");
+  //   }
+  // }
 
   return 0;
 }
