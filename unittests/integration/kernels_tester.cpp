@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+// #include "common/ExecutionContext.h"
+// #include "common/NoiseModel.h"
 #include "cudaq/builder/kernels.h"
 #include <iostream>
 
@@ -187,7 +189,8 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
 
 /// Helper function to transpose the PCM matrix.
 std::vector<std::string> transpose_pcm(const std::vector<std::string> &pcm) {
-  std::vector<std::string> transpose(pcm[0].size(), std::string(pcm.size(), '.'));
+  std::vector<std::string> transpose(pcm[0].size(),
+                                     std::string(pcm.size(), '.'));
   for (std::size_t r = 0; r < pcm.size(); r++)
     for (std::size_t c = 0; c < pcm[r].size(); c++)
       if (pcm[r][c] == '1')
@@ -340,16 +343,37 @@ CUDAQ_TEST(KernelsTester, pcmTester_mz_and_depol1) {
         << "Mismatch at index " << i;
 }
 
-CUDAQ_TEST(KernelsTester, pcmTester_mz_and_depol2) {
-  struct multi_round_ghz {
+/// This helper function is used in many tests below. It creates a simple kernel
+/// that applies a noise operation, depending on the template parameters, and it
+/// returns the PCM and the probabilities. NOTE: This is NOT intended to be a
+/// true QEC-like kernel
+template <typename NoiseType, int num_qubits>
+std::pair<std::vector<std::string>, std::vector<double>>
+get_pcm_test(double noise_probability) {
+  // This simple kernel just creates qubits and applies one noise operation,
+  // depending on the template parameters.
+  struct simple_test {
     void operator()(double noise_probability) __qpu__ {
-      cudaq::qvector q(2);
-      cudaq::apply_noise<cudaq::depolarization2>(noise_probability, q[0], q[1]);
+      cudaq::qvector q(num_qubits);
+      if constexpr (std::is_same_v<NoiseType, cudaq::pauli1>) {
+        cudaq::apply_noise<NoiseType>(noise_probability / 3,
+                                      noise_probability / 3,
+                                      noise_probability / 3, q[0]);
+      } else if constexpr (std::is_same_v<NoiseType, cudaq::pauli2>) {
+        double tmp_prob = noise_probability / 15;
+        cudaq::apply_noise<NoiseType>(tmp_prob, tmp_prob, tmp_prob, tmp_prob,
+                                      tmp_prob, tmp_prob, tmp_prob, tmp_prob,
+                                      tmp_prob, tmp_prob, tmp_prob, tmp_prob,
+                                      tmp_prob, tmp_prob, tmp_prob, q[0], q[1]);
+      } else if constexpr (num_qubits > 1) {
+        cudaq::apply_noise<NoiseType>(noise_probability, q[0], q[1]);
+      } else {
+        cudaq::apply_noise<NoiseType>(noise_probability, q[0]);
+      }
       mz(q);
     }
   };
 
-  double noise_probability = 0.0625;
   cudaq::noise_model noise;
   cudaq::set_noise(noise);
 
@@ -358,7 +382,7 @@ CUDAQ_TEST(KernelsTester, pcmTester_mz_and_depol2) {
   cudaq::ExecutionContext ctx_pcm_size("pcm_size");
   auto &platform = cudaq::get_platform();
   platform.set_exec_ctx(&ctx_pcm_size);
-  multi_round_ghz{}(noise_probability);
+  simple_test{}(noise_probability);
   platform.reset_exec_ctx();
 
   // Stage 2 - get the PCM using the ctx_pcm_size.shots value.
@@ -366,14 +390,17 @@ CUDAQ_TEST(KernelsTester, pcmTester_mz_and_depol2) {
   ctx_pcm.noiseModel = &noise;
   ctx_pcm.pcm_dimensions = ctx_pcm_size.pcm_dimensions;
   platform.set_exec_ctx(&ctx_pcm);
-  multi_round_ghz{}(noise_probability);
+  simple_test{}(noise_probability);
   platform.reset_exec_ctx();
 
-  // The PCM is now stored in ctx_pcm.result. More precisely, the unfiltered
-  // PCM is stored there, but some post-processing may be required to
-  // eliminate duplicate columns.
-  auto pcm_as_strings = ctx_pcm.result.sequential_data();
-  auto pcm_transpose = transpose_pcm(pcm_as_strings);
+  return {transpose_pcm(ctx_pcm.result.sequential_data()),
+          ctx_pcm.pcm_probabilities.value()};
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_depol2) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::depolarization2, 2>(noise_probability);
 
   const std::vector<std::string> expected = {"...11111111....",
                                              "11..11..11..11."};
@@ -382,8 +409,52 @@ CUDAQ_TEST(KernelsTester, pcmTester_mz_and_depol2) {
 
   std::vector<double> expected_probabilities(15, noise_probability / 15);
   for (std::size_t i = 0; i < expected_probabilities.size(); i++)
-    EXPECT_NEAR(expected_probabilities[i], ctx_pcm.pcm_probabilities.value()[i],
-                1e-5)
+    EXPECT_NEAR(expected_probabilities[i], pcm_probabilities[i], 1e-5)
         << "Mismatch at index " << i;
 }
+
+CUDAQ_TEST(KernelsTester, pcmTester_x) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::x_error, 1>(noise_probability);
+  EXPECT_EQ(pcm_transpose, std::vector<std::string>{"1"});
+  EXPECT_NEAR(pcm_probabilities[0], noise_probability, 1e-5);
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_y) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::y_error, 1>(noise_probability);
+  EXPECT_EQ(pcm_transpose, std::vector<std::string>{"1"});
+  EXPECT_NEAR(pcm_probabilities[0], noise_probability, 1e-5);
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_z) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::z_error, 1>(noise_probability);
+  EXPECT_EQ(pcm_transpose, std::vector<std::string>{"."});
+  EXPECT_NEAR(pcm_probabilities[0], noise_probability, 1e-5);
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_pauli1) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::pauli1, 1>(noise_probability);
+  EXPECT_EQ(pcm_transpose, std::vector<std::string>{"11."});
+  for (std::size_t i = 0; i < pcm_probabilities.size(); i++)
+    EXPECT_NEAR(pcm_probabilities[i], noise_probability / 3, 1e-5);
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_pauli2) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::pauli2, 2>(noise_probability);
+  const std::vector<std::string> expected = {"...11111111....",
+                                             "11..11..11..11."};
+  EXPECT_EQ(pcm_transpose, expected);
+  for (std::size_t i = 0; i < pcm_probabilities.size(); i++)
+    EXPECT_NEAR(pcm_probabilities[i], noise_probability / 15, 1e-5);
+}
+
 #endif
