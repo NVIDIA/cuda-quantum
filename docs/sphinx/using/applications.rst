@@ -10,7 +10,6 @@ CUDA-Q Applications
    :maxdepth: 1
    :hidden:
 
-
    /applications/python/qaoa
    /applications/python/digitized_counterdiabatic_qaoa
    /applications/python/krylov
@@ -35,8 +34,8 @@ CUDA-Q Applications
    /applications/python/edge_detection
    /applications/python/shors
    /applications/python/generate_fermionic_ham
+   /applications/python/grovers
    /applications/python/uccsd_wf_ansatz
-
 
 .. raw:: html
 
@@ -264,6 +263,13 @@ CUDA-Q Applications
         </div>
         <img src="../_static/app_title_images/electronic-ham.png" alt="Electronic Hamiltonian" class="notebook-image">
     </div> 
+    <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu,community">
+        <a href="../applications/python/grovers.html" class="notebook-title">Grover's Algorithm</a>
+        <div class="notebook-content">
+            Learn how quantum computers can quadratically speed up searching through an unstructured database by amplifying the probability of finding the desired item.
+        </div>
+        <img src="../_static/app_title_images/grovers_preview.png" alt="DJ Preview" class="notebook-image">
+    </div>
 
     <div class="notebook-entry" data-tags="chemistry,noisless">
         <a href="../applications/python/uccsd_wf_ansatz.html" class="notebook-title">UCCSD Wavefunction Ansatz</a>
