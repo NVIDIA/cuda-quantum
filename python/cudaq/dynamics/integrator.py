@@ -55,7 +55,7 @@ class BaseIntegrator(ABC, Generic[TState]):
                    schedule: Schedule,
                    hamiltonian: Operator,
                    collapse_operators: Sequence[Operator] = []):
-        self.dimensions = dimensions
+        self.dimensions = tuple(dimensions[d] for d in range(len(dimensions)))
         self.schedule = schedule
         self.hamiltonian = hamiltonian
         self.collapse_operators = collapse_operators
@@ -79,5 +79,11 @@ class BaseIntegrator(ABC, Generic[TState]):
     def support_distributed_state(self):
         """
         Returns true if the integrator supports distributed state else returns false. Default is set to false.
+        """
+        return False
+
+    def is_native(self):
+        """
+        Returns true if the integrator is a native C-API implementation. Default is set to false.
         """
         return False

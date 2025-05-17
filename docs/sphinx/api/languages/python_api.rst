@@ -150,7 +150,7 @@ Dynamics
 .. autoclass:: cudaq.dynamics.integrator.BaseIntegrator
 
 .. autoclass:: cudaq.dynamics.helpers.InitialState
-.. autofunction:: cudaq.dynamics.cudm_state.to_cupy_array
+.. autoclass:: cudaq.InitialStateType
 
 Operators
 =============================

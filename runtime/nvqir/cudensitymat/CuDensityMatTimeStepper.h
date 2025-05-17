@@ -18,9 +18,12 @@ public:
   explicit CuDensityMatTimeStepper(cudensitymatHandle_t handle,
                                    cudensitymatOperator_t liouvillian);
 
-  state compute(const state &inputState, double t, double step_size,
+  state compute(const state &inputState, double t,
                 const std::unordered_map<std::string, std::complex<double>>
                     &parameters) override;
+  void computeImpl(
+      cudensitymatState_t inState, cudensitymatState_t outState, double t,
+      const std::unordered_map<std::string, std::complex<double>> &parameters);
 
 private:
   cudensitymatHandle_t m_handle;
