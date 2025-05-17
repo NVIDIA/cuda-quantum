@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+// #include "common/ExecutionContext.h"
+// #include "common/NoiseModel.h"
 #include "cudaq/builder/kernels.h"
 #include <iostream>
 
@@ -179,6 +181,280 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
     for (std::size_t i = 0; i < (1u << numQubits); i++)
       EXPECT_NEAR(std::abs(globalPhase * ss[i] - expectedData[i]), 0.0, 1e-6);
   }
+}
+
+#endif
+
+#if defined(CUDAQ_BACKEND_STIM)
+
+/// Helper function to transpose the PCM matrix.
+std::vector<std::string> transpose_pcm(const std::vector<std::string> &pcm) {
+  std::vector<std::string> transpose(pcm[0].size(),
+                                     std::string(pcm.size(), '.'));
+  for (std::size_t r = 0; r < pcm.size(); r++)
+    for (std::size_t c = 0; c < pcm[r].size(); c++)
+      if (pcm[r][c] == '1')
+        transpose[c][r] = '1';
+  return transpose;
+}
+
+// This test tests the "pcm_size" and "pcm" execution contexts for Stim.
+CUDAQ_TEST(KernelsTester, pcmTester_mz_only) {
+  struct multi_round_ghz {
+    void operator()(int num_qubits, int num_rounds) __qpu__ {
+      cudaq::qvector q(num_qubits);
+      for (int round = 0; round < num_rounds; round++) {
+        h(q[0]);
+        for (int qi = 1; qi < num_qubits; qi++)
+          x<cudaq::ctrl>(q[qi - 1], q[qi]);
+        mz(q);
+        for (int qi = 0; qi < num_qubits; qi++)
+          reset(q[qi]);
+      }
+    }
+  };
+
+  int num_qubits = 5;
+  int num_rounds = 3;
+  double noise_bf_prob = 0.0625;
+
+  cudaq::noise_model noise;
+  cudaq::bit_flip_channel bf(noise_bf_prob);
+  for (std::size_t i = 0; i < num_qubits; i++)
+    noise.add_channel("mz", {i}, bf);
+  cudaq::set_noise(noise);
+
+  // Stage 1 - get the PCM size by running with "pcm_size". The
+  // result will be returned in ctx_pcm_size.shots.
+  cudaq::ExecutionContext ctx_pcm_size("pcm_size");
+  auto &platform = cudaq::get_platform();
+  platform.set_exec_ctx(&ctx_pcm_size);
+  multi_round_ghz{}(num_qubits, num_rounds);
+  platform.reset_exec_ctx();
+
+  // Stage 2 - get the PCM using the ctx_pcm_size.shots value.
+  cudaq::ExecutionContext ctx_pcm("pcm");
+  ctx_pcm.noiseModel = &noise;
+  ctx_pcm.pcm_dimensions = ctx_pcm_size.pcm_dimensions;
+  platform.set_exec_ctx(&ctx_pcm);
+  multi_round_ghz{}(num_qubits, num_rounds);
+  platform.reset_exec_ctx();
+
+  // The PCM is now stored in ctx_pcm.result. More precisely, the unfiltered
+  // PCM is stored there, but some post-processing may be required to
+  // eliminate duplicate columns.
+  auto pcm_as_strings = ctx_pcm.result.sequential_data();
+  printf("Columns of PCM:\n");
+  for (int col = 0; auto x : pcm_as_strings) {
+    // For this multi_round_ghz, we expect a 15x15 identity matrix.
+    std::string expected_string(num_qubits * num_rounds, '0');
+    expected_string[col] = '1';
+    EXPECT_EQ(expected_string, x);
+    auto p = ctx_pcm.pcm_probabilities.value()[col];
+    printf("Column %02d (Prob %.6f): %s\n", col, p, x.c_str());
+    EXPECT_EQ(p, noise_bf_prob);
+    col++;
+  }
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_mz_and_depol1) {
+  struct multi_round_ghz {
+    void operator()(int num_qubits, int num_rounds,
+                    double noise_probability) __qpu__ {
+      cudaq::qvector q(num_qubits);
+      for (int round = 0; round < num_rounds; round++) {
+        h(q[0]);
+        for (int qi = 0; qi < num_qubits; qi++)
+          cudaq::apply_noise<cudaq::depolarization_channel>(noise_probability,
+                                                            q[qi]);
+        for (int qi = 1; qi < num_qubits; qi++)
+          x<cudaq::ctrl>(q[qi - 1], q[qi]);
+        mz(q);
+        for (int qi = 0; qi < num_qubits; qi++)
+          reset(q[qi]);
+      }
+    }
+  };
+
+  int num_qubits = 5;
+  int num_rounds = 3;
+  double noise_bf_prob = 0.0625;
+
+  cudaq::noise_model noise;
+  cudaq::bit_flip_channel bf(noise_bf_prob);
+  for (std::size_t i = 0; i < num_qubits; i++)
+    noise.add_channel("mz", {i}, bf);
+  cudaq::set_noise(noise);
+
+  // Stage 1 - get the PCM size by running with "pcm_size". The
+  // result will be returned in ctx_pcm_size.shots.
+  cudaq::ExecutionContext ctx_pcm_size("pcm_size");
+  auto &platform = cudaq::get_platform();
+  platform.set_exec_ctx(&ctx_pcm_size);
+  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
+  platform.reset_exec_ctx();
+
+  // Stage 2 - get the PCM using the ctx_pcm_size.shots value.
+  cudaq::ExecutionContext ctx_pcm("pcm");
+  ctx_pcm.noiseModel = &noise;
+  ctx_pcm.pcm_dimensions = ctx_pcm_size.pcm_dimensions;
+  platform.set_exec_ctx(&ctx_pcm);
+  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
+  platform.reset_exec_ctx();
+
+  // The PCM is now stored in ctx_pcm.result. More precisely, the unfiltered
+  // PCM is stored there, but some post-processing may be required to
+  // eliminate duplicate columns.
+  auto pcm_as_strings = ctx_pcm.result.sequential_data();
+  auto pcm_transpose = transpose_pcm(pcm_as_strings);
+
+  const std::vector<std::string> expected = {
+      "11.............1............................................",
+      "11.11...........1...........................................",
+      "11.11.11.........1..........................................",
+      "11.11.11.11.......1.........................................",
+      "11.11.11.11.11.....1........................................",
+      ".11.11..............11.............1........................",
+      ".11.11..............11.11...........1.......................",
+      ".11.11..............11.11.11.........1......................",
+      ".11.11..............11.11.11.11.......1.....................",
+      ".11.11..............11.11.11.11.11.....1....................",
+      "....11.11............11.11..............11.............1....",
+      "....11.11............11.11..............11.11...........1...",
+      "....11.11............11.11..............11.11.11.........1..",
+      "....11.11............11.11..............11.11.11.11.......1.",
+      "....11.11............11.11..............11.11.11.11.11.....1"};
+
+  EXPECT_EQ(pcm_transpose, expected);
+
+  std::vector<double> expected_probabilities{
+      0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833,
+      0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833,
+      0.020833, 0.062500, 0.062500, 0.062500, 0.062500, 0.062500, 0.020833,
+      0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833,
+      0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833,
+      0.062500, 0.062500, 0.062500, 0.062500, 0.062500, 0.020833, 0.020833,
+      0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833,
+      0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.062500,
+      0.062500, 0.062500, 0.062500, 0.062500};
+  for (std::size_t i = 0; i < expected_probabilities.size(); i++)
+    EXPECT_NEAR(expected_probabilities[i], ctx_pcm.pcm_probabilities.value()[i],
+                1e-5)
+        << "Mismatch at index " << i;
+}
+
+/// This helper function is used in many tests below. It creates a simple kernel
+/// that applies a noise operation, depending on the template parameters, and it
+/// returns the PCM and the probabilities. NOTE: This is NOT intended to be a
+/// true QEC-like kernel
+template <typename NoiseType, int num_qubits>
+std::pair<std::vector<std::string>, std::vector<double>>
+get_pcm_test(double noise_probability) {
+  // This simple kernel just creates qubits and applies one noise operation,
+  // depending on the template parameters.
+  struct simple_test {
+    void operator()(double noise_probability) __qpu__ {
+      cudaq::qvector q(num_qubits);
+      if constexpr (std::is_same_v<NoiseType, cudaq::pauli1>) {
+        cudaq::apply_noise<NoiseType>(noise_probability / 3,
+                                      noise_probability / 3,
+                                      noise_probability / 3, q[0]);
+      } else if constexpr (std::is_same_v<NoiseType, cudaq::pauli2>) {
+        double tmp_prob = noise_probability / 15;
+        cudaq::apply_noise<NoiseType>(tmp_prob, tmp_prob, tmp_prob, tmp_prob,
+                                      tmp_prob, tmp_prob, tmp_prob, tmp_prob,
+                                      tmp_prob, tmp_prob, tmp_prob, tmp_prob,
+                                      tmp_prob, tmp_prob, tmp_prob, q[0], q[1]);
+      } else if constexpr (num_qubits > 1) {
+        cudaq::apply_noise<NoiseType>(noise_probability, q[0], q[1]);
+      } else {
+        cudaq::apply_noise<NoiseType>(noise_probability, q[0]);
+      }
+      mz(q);
+    }
+  };
+
+  cudaq::noise_model noise;
+  cudaq::set_noise(noise);
+
+  // Stage 1 - get the PCM size by running with "pcm_size". The
+  // result will be returned in ctx_pcm_size.shots.
+  cudaq::ExecutionContext ctx_pcm_size("pcm_size");
+  auto &platform = cudaq::get_platform();
+  platform.set_exec_ctx(&ctx_pcm_size);
+  simple_test{}(noise_probability);
+  platform.reset_exec_ctx();
+
+  // Stage 2 - get the PCM using the ctx_pcm_size.shots value.
+  cudaq::ExecutionContext ctx_pcm("pcm");
+  ctx_pcm.noiseModel = &noise;
+  ctx_pcm.pcm_dimensions = ctx_pcm_size.pcm_dimensions;
+  platform.set_exec_ctx(&ctx_pcm);
+  simple_test{}(noise_probability);
+  platform.reset_exec_ctx();
+
+  return {transpose_pcm(ctx_pcm.result.sequential_data()),
+          ctx_pcm.pcm_probabilities.value()};
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_depol2) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::depolarization2, 2>(noise_probability);
+
+  const std::vector<std::string> expected = {"...11111111....",
+                                             "11..11..11..11."};
+
+  EXPECT_EQ(pcm_transpose, expected);
+
+  std::vector<double> expected_probabilities(15, noise_probability / 15);
+  for (std::size_t i = 0; i < expected_probabilities.size(); i++)
+    EXPECT_NEAR(expected_probabilities[i], pcm_probabilities[i], 1e-5)
+        << "Mismatch at index " << i;
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_x) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::x_error, 1>(noise_probability);
+  EXPECT_EQ(pcm_transpose, std::vector<std::string>{"1"});
+  EXPECT_NEAR(pcm_probabilities[0], noise_probability, 1e-5);
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_y) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::y_error, 1>(noise_probability);
+  EXPECT_EQ(pcm_transpose, std::vector<std::string>{"1"});
+  EXPECT_NEAR(pcm_probabilities[0], noise_probability, 1e-5);
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_z) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::z_error, 1>(noise_probability);
+  EXPECT_EQ(pcm_transpose, std::vector<std::string>{"."});
+  EXPECT_NEAR(pcm_probabilities[0], noise_probability, 1e-5);
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_pauli1) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::pauli1, 1>(noise_probability);
+  EXPECT_EQ(pcm_transpose, std::vector<std::string>{"11."});
+  for (std::size_t i = 0; i < pcm_probabilities.size(); i++)
+    EXPECT_NEAR(pcm_probabilities[i], noise_probability / 3, 1e-5);
+}
+
+CUDAQ_TEST(KernelsTester, pcmTester_pauli2) {
+  double noise_probability = 0.0625;
+  auto [pcm_transpose, pcm_probabilities] =
+      get_pcm_test<cudaq::pauli2, 2>(noise_probability);
+  const std::vector<std::string> expected = {"...11111111....",
+                                             "11..11..11..11."};
+  EXPECT_EQ(pcm_transpose, expected);
+  for (std::size_t i = 0; i < pcm_probabilities.size(); i++)
+    EXPECT_NEAR(pcm_probabilities[i], noise_probability / 15, 1e-5);
 }
 
 #endif
