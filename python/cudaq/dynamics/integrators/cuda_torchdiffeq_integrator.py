@@ -7,17 +7,24 @@
 # ============================================================================ #
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
-from ..cudm_helpers import cudm, CudmStateType
-from ..cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from .builtin_integrators import cuDensityMatTimeStepper
+from ...mlir._mlir_libs._quakeDialects import cudaq_runtime
+import math
 
 has_cupy = True
 has_torch = True
 has_torchdiffeq = True
 has_torch_without_cuda = False
+has_dynamics = True
+
+try:
+    from .. import nvqir_dynamics_bindings as bindings
+except ImportError:
+    has_dynamics = False
 
 try:
     import cupy as cp
+    from cupy.cuda.memory import MemoryPointer, UnownedMemory
 except ImportError:
     has_cupy = False
 
@@ -36,14 +43,35 @@ except ImportError:
     has_torchdiffeq = False
 
 
-class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
+# Wrap state data (on device memory) as a `cupy` array.
+# Note: the `cupy` array only holds a reference to the GPU memory buffer, no copy.
+def to_cupy_array(state):
+    tensor = state.getTensor()
+    pDevice = tensor.data()
+    dtype = cp.complex128
+    sizeByte = tensor.get_num_elements() * tensor.get_element_size()
+    # Use `UnownedMemory` to wrap the device pointer
+    mem = UnownedMemory(pDevice, sizeByte, owner=state)
+    memptr = MemoryPointer(mem, 0)
+    cupy_array = cp.ndarray(tensor.get_num_elements(),
+                            dtype=dtype,
+                            memptr=memptr)
+    return cupy_array
+
+
+class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
     atol = 1e-8
     rtol = 1e-7
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType],
+                 stepper: BaseTimeStepper[cudaq_runtime.State],
                  solver: str = 'rk4',
                  **kwargs):
+        if not has_dynamics:
+            raise ImportError(
+                'CUDA-Q is missing dynamics support. Please check your installation'
+            )
+
         if not has_torch:
             # If users don't have torch (hence, no `torchdiffeq` as well), raise an error when they want to use it.
             raise ImportError(
@@ -66,18 +94,21 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         self.dm_shape = None
         self.n_steps = 10
         self.order = None
+        self.is_density_state = None
+        self.batchSize = None
 
     def compute_rhs(self, t, vec):
         t_scalar = t.item()
         # `vec` is a torch tensor on GPU
         # convert torch tensor to CuPy array without copying data
         vec_cupy = cp.from_dlpack(vec)
-        rho_data = cp.asfortranarray(
-            vec_cupy.reshape(*self.dm_shape, self.state.batch_size))
-        temp_state = self.state.clone(rho_data)
+        temp_state = cudaq_runtime.State.from_data(vec_cupy)
+        temp_state = bindings.initializeState(temp_state, list(self.dimensions),
+                                              self.is_density_state,
+                                              self.batchSize)
         result = self.stepper.compute(temp_state, t_scalar)
         # convert result back to torch tensor without copying data
-        result_vec = torch.from_dlpack(result.storage.ravel())
+        result_vec = torch.from_dlpack(to_cupy_array(result))
         return result_vec
 
     def __post_init__(self):
@@ -92,31 +123,25 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
                 raise ValueError(
                     "Hamiltonian and collapse operators are required for integrator if no stepper is provided"
                 )
+            self.schedule_ = bindings.Schedule(self.schedule._steps,
+                                               list(self.schedule._parameters))
+            if self.is_density_state is None:
+                self.is_density_state = (
+                    (math.prod(self.dimensions)**2 * self.batchSize
+                    ) == self.state.getTensor().get_num_elements())
 
-            hilbert_space_dims = tuple(
-                self.dimensions[d] for d in range(len(self.dimensions)))
-            ham_term = self.hamiltonian._transform(
-                CuDensityMatOpConversion(self.dimensions, self.schedule))
-            linblad_terms = []
-            for c_op in self.collapse_operators:
-                linblad_terms.append(
-                    c_op._transform(
-                        CuDensityMatOpConversion(self.dimensions,
-                                                 self.schedule)))
-            is_master_equation = True if type(
-                self.state) == cudm.DenseMixedState else False
-            liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
-                                               linblad_terms,
-                                               is_master_equation)
-            cudm_ctx = self.state._ctx
-            self.stepper = cuDensityMatTimeStepper(liouvillian, cudm_ctx)
+            self.stepper = cuDensityMatTimeStepper(self.schedule_,
+                                                   self.hamiltonian,
+                                                   self.collapse_operators,
+                                                   list(self.dimensions),
+                                                   self.is_density_state)
 
         if t <= self.t:
             raise ValueError(
                 "Integration time must be greater than current time")
 
         # Prepare initial state y0 as torch tensor
-        y0_cupy = self.state.storage.ravel()
+        y0_cupy = to_cupy_array(self.state)
         y0 = torch.from_dlpack(y0_cupy)
 
         # time span
@@ -137,26 +162,21 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[CudmStateType]):
         y_t_cupy = cp.from_dlpack(y_t)
 
         # Keep results in GPU memory
-        rho_data = cp.asfortranarray(
-            y_t_cupy.reshape(*self.dm_shape, self.state.batch_size))
-        self.state.inplace_scale(0.0)
-        self.state.inplace_accumulate(self.state.clone(rho_data))
+        self.state = cudaq_runtime.State.from_data(y_t_cupy)
+        self.state = bindings.initializeState(self.state, list(self.dimensions),
+                                              self.is_density_state,
+                                              self.batchSize)
         self.t = t
 
-    def set_state(self, state: CudmStateType, t: float = 0.0):
+    def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
         super().set_state(state, t)
-        if self.dm_shape is None:
-            self.dm_shape = self.state.storage.shape
-            self.hilbert_space_dims = self.state.hilbert_space_dims
-        else:
-            assert self.dm_shape == self.state.storage.shape, "State shape must remain constant"
-            assert self.hilbert_space_dims == self.state.hilbert_space_dims, "Hilbert space dimensions must remain constant"
+        self.batchSize = bindings.getBatchSize(state)
 
 
 class CUDATorchDiffEqRK4Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='rk4', **kwargs)
 
@@ -164,7 +184,7 @@ class CUDATorchDiffEqRK4Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqEulerIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='euler', **kwargs)
 
@@ -172,7 +192,7 @@ class CUDATorchDiffEqEulerIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqMidpointIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='midpoint', **kwargs)
 
@@ -180,7 +200,7 @@ class CUDATorchDiffEqMidpointIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqDopri5Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='dopri5', **kwargs)
 
@@ -188,7 +208,7 @@ class CUDATorchDiffEqDopri5Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqDopri8Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='dopri8', **kwargs)
 
@@ -196,7 +216,7 @@ class CUDATorchDiffEqDopri8Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqBosh3Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='bosh3', **kwargs)
 
@@ -204,7 +224,7 @@ class CUDATorchDiffEqBosh3Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqAdaptiveHeunIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='adaptive_heun', **kwargs)
 
@@ -212,7 +232,7 @@ class CUDATorchDiffEqAdaptiveHeunIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqExplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='explicit_adams', **kwargs)
 
@@ -220,7 +240,7 @@ class CUDATorchDiffEqExplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqFehlberg2Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='fehlberg2', **kwargs)
 
@@ -228,7 +248,7 @@ class CUDATorchDiffEqFehlberg2Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqHeun3Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='heun3', **kwargs)
 
@@ -236,7 +256,7 @@ class CUDATorchDiffEqHeun3Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqImplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='implicit_adams', **kwargs)
 
@@ -244,6 +264,6 @@ class CUDATorchDiffEqImplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqFixedAdamsIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[CudmStateType] = None,
+                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
                  **kwargs):
         super().__init__(stepper, solver='fixed_adams', **kwargs)

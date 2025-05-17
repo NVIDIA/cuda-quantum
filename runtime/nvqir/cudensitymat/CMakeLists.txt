@@ -66,6 +66,7 @@ add_library(${LIBRARY_NAME} SHARED
   CuDensityMatState.cpp
   CuDensityMatContext.cpp
   CuDensityMatOpConverter.cpp
+  CuDensityMatUtils.cpp
 )
 
 message("CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")
