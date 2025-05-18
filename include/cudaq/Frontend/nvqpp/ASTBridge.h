@@ -230,6 +230,8 @@ public:
   // Stmt nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
+  bool TraverseDeclStmt(clang::DeclStmt *x, DataRecursionQueue *q = nullptr);
+
   bool VisitBreakStmt(clang::BreakStmt *x);
   bool TraverseCompoundStmt(clang::CompoundStmt *x,
                             DataRecursionQueue *q = nullptr);
@@ -280,6 +282,8 @@ public:
 
   bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr *x);
   bool VisitBinaryOperator(clang::BinaryOperator *x);
+  bool visitMathLibFunc(clang::CallExpr *x, clang::FunctionDecl *func,
+                        mlir::Location loc, llvm::StringRef funcName);
   bool VisitCallExpr(clang::CallExpr *x);
   bool TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
                                 DataRecursionQueue *q = nullptr);
