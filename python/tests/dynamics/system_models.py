@@ -93,16 +93,16 @@ class TestCavityModelTimeDependentCollapseOp(TestSystem):
         psi0_[-1] = 1.0
         psi0 = cudaq.State.from_data(psi0_)
         decay_rate = 0.1
-        decay_op = ScalarOperator(lambda t: np.sqrt(decay_rate * np.exp(-t))
-                                 ) * annihilate(0)
+        decay_op = ScalarOperator(
+            lambda t: np.sqrt(decay_rate * np.exp(-t))) * annihilate(0)
         evolution_result = cudaq.evolve(hamiltonian,
-                                  dimensions,
-                                  schedule,
-                                  psi0,
-                                  observables=[hamiltonian],
-                                  collapse_operators=[decay_op],
-                                  store_intermediate_results=True,
-                                  integrator=integrator())
+                                        dimensions,
+                                        schedule,
+                                        psi0,
+                                        observables=[hamiltonian],
+                                        collapse_operators=[decay_op],
+                                        store_intermediate_results=True,
+                                        integrator=integrator())
         expt = []
         for exp_vals in evolution_result.expectation_values():
             expt.append(exp_vals[0].expectation())
@@ -118,9 +118,8 @@ class TestCompositeSystems(TestSystem):
     a_dag = create(1)
     sm = annihilate(0)
     sm_dag = create(0)
-    hamiltonian = 2 * np.pi * number(
-        1) + 2 * np.pi * number(0) + 2 * np.pi * 0.25 * (sm * a_dag +
-                                                                   sm_dag * a)
+    hamiltonian = 2 * np.pi * number(1) + 2 * np.pi * number(
+        0) + 2 * np.pi * 0.25 * (sm * a_dag + sm_dag * a)
     qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
     cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
     cavity_state[5][5] = 1.0
@@ -215,8 +214,7 @@ class TestCompositeSystems(TestSystem):
             self.dimensions,
             schedule,
             input_state,
-            observables=[number(1),
-                         number(0)],
+            observables=[number(1), number(0)],
             collapse_operators=[np.sqrt(0.1) * self.a],
             store_intermediate_results=True,
             integrator=integrator())
@@ -273,37 +271,37 @@ class TestCrossResonance(TestSystem):
         # Run the simulation.
         # Control bit = 0
         evolution_result_00 = cudaq.evolve(hamiltonian,
-                                     dimensions,
-                                     schedule,
-                                     psi_00,
-                                     observables=[
-                                         spin.x(0),
-                                         spin.y(0),
-                                         spin.z(0),
-                                         spin.x(1),
-                                         spin.y(1),
-                                         spin.z(1)
-                                     ],
-                                     collapse_operators=[],
-                                     store_intermediate_results=True,
-                                     integrator=integrator())
+                                           dimensions,
+                                           schedule,
+                                           psi_00,
+                                           observables=[
+                                               spin.x(0),
+                                               spin.y(0),
+                                               spin.z(0),
+                                               spin.x(1),
+                                               spin.y(1),
+                                               spin.z(1)
+                                           ],
+                                           collapse_operators=[],
+                                           store_intermediate_results=True,
+                                           integrator=integrator())
 
         # Control bit = 1
         evolution_result_10 = cudaq.evolve(hamiltonian,
-                                     dimensions,
-                                     schedule,
-                                     psi_10,
-                                     observables=[
-                                         spin.x(0),
-                                         spin.y(0),
-                                         spin.z(0),
-                                         spin.x(1),
-                                         spin.y(1),
-                                         spin.z(1)
-                                     ],
-                                     collapse_operators=[],
-                                     store_intermediate_results=True,
-                                     integrator=integrator())
+                                           dimensions,
+                                           schedule,
+                                           psi_10,
+                                           observables=[
+                                               spin.x(0),
+                                               spin.y(0),
+                                               spin.z(0),
+                                               spin.x(1),
+                                               spin.y(1),
+                                               spin.z(1)
+                                           ],
+                                           collapse_operators=[],
+                                           store_intermediate_results=True,
+                                           integrator=integrator())
 
         get_result = lambda idx, res: [
             exp_vals[idx].expectation()
@@ -379,16 +377,15 @@ class TestCallbackTensor(TestSystem):
 
         # Run the simulation.
         # First, we run the simulation without any collapse operators (no decoherence).
-        evolution_result = cudaq.evolve(hamiltonian,
-                                  dimensions,
-                                  schedule,
-                                  rho0,
-                                  observables=[spin.x(0),
-                                               spin.y(0),
-                                               spin.z(0)],
-                                  collapse_operators=[],
-                                  store_intermediate_results=True,
-                                  integrator=integrator())
+        evolution_result = cudaq.evolve(
+            hamiltonian,
+            dimensions,
+            schedule,
+            rho0,
+            observables=[spin.x(0), spin.y(0), spin.z(0)],
+            collapse_operators=[],
+            store_intermediate_results=True,
+            integrator=integrator())
 
         get_result = lambda idx, res: [
             exp_vals[idx].expectation()
