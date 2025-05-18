@@ -41,6 +41,8 @@ After making changes, you can rebuild specific components without rebuilding eve
 cd "$CUDAQ_REPO_ROOT/build"
 # Rebuild - faster than full build from scratch
 ninja
+# Rebuild specific component
+ninja <target>
 ```
 
 When working on compiler internals, it can be useful to look at intermediate
@@ -79,19 +81,23 @@ comments as well as a comment at the top of the file to indicating its purpose.
 ### C++ Formatting
 
 ```bash
-bash "$CUDAQ_REPO_ROOT/scripts/scripts/run_clang_format.sh"
+bash "$CUDAQ_REPO_ROOT/scripts/run_clang_format.sh"
 ```
 
 ### Python Formatting
 
 ```bash
 yapf -i <file_name>.py
+# To run recursively on a directory
+yapf -i --recursive <directory>
 ```
 
 ### Spell checker
 
 ```bash
 bash "$CUDAQ_REPO_ROOT/scripts/run_all_spelling.sh"
+# To only check the files that have changed from `main`
+bash "$CUDAQ_REPO_ROOT/scripts/run_all_spelling.sh" -d
 ```
 
 ## Testing and debugging
@@ -107,6 +113,8 @@ accompanying `FileCheck` test. These tests are located in the `test` folder.
 ```bash
 cd "$CUDAQ_REPO_ROOT/build"
 ctest
+# To run a specific test
+ctest -R <test-name>
 ```
 
 ### Python tests
