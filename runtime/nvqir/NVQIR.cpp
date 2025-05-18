@@ -540,11 +540,7 @@ void __quantum__qis__cphase(double d, Qubit *q, Qubit *r) {
 
 void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
   auto qI = qubitToSizeT(q);
-  std::complex<double> i(0, 1.);
-  std::vector<std::complex<double>> matrix{
-      std::cos(theta / 2.), -i * std::exp(-i * phi) * std::sin(theta / 2.),
-      -i * std::exp(i * phi) * std::sin(theta / 2.), std::cos(theta / 2.)};
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
+  nvqir::getCircuitSimulatorInternal()->phased_rx(theta, phi, qI);
 }
 
 void __quantum__qis__phased_rx__body(double theta, double phi, Qubit *q) {
@@ -682,6 +678,16 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   if (!arr)
     return {};
   return arrayToVectorSizeT(arr);
+}
+
+// It may not always be possible for the compiler to reduce a program fully to
+// QIR. In such cases, code generation may elect to produce a trap in the
+// kernel, which calls this function. The trap should explain the issue to the
+// user and about the kernel when executed.
+void __quantum__qis__trap(std::int64_t code) {
+  if (code == 0)
+    throw std::runtime_error("could not autogenerate the adjoint of a kernel");
+  throw std::runtime_error("code generation failure for target");
 }
 
 void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
