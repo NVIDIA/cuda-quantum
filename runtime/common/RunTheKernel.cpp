@@ -35,11 +35,11 @@ namespace details {
 /// Extracts data layout information from MLIR modules
 class LayoutExtractor {
 public:
-  std::pair<std::size_t, std::vector<std::size_t>>
+  static std::pair<std::size_t, std::vector<std::size_t>>
   extractLayout(const std::string &, const std::string &);
 
 private:
-  mlir::MLIRContext *createContext();
+  static mlir::MLIRContext *createContext();
 };
 } // namespace details
 } // namespace cudaq
@@ -141,10 +141,9 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   std::pair<std::size_t, std::vector<std::size_t>> layoutInfo = {0, {}};
   auto quakeCode =
       cudaq::get_quake_by_name(kernel_name, /*throwException=*/false);
-  if (!quakeCode.empty()) {
-    cudaq::details::LayoutExtractor extractor;
-    layoutInfo = extractor.extractLayout(kernel_name, quakeCode);
-  }
+  if (!quakeCode.empty())
+    layoutInfo =
+        cudaq::details::LayoutExtractor::extractLayout(kernel_name, quakeCode);
 
   // 3b. Pass the outputLog to the parser (target-specific?)
   cudaq::RecordLogParser parser(layoutInfo);
