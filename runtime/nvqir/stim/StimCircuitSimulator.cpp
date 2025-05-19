@@ -63,18 +63,28 @@ protected:
     switch (channel.noise_type) {
     case cudaq::noise_model_type::bit_flip_channel:
     case cudaq::noise_model_type::x_error:
-      return StimNoiseType{"X_ERROR", {true}, {false}, {channel.parameters[0]}};
+      return StimNoiseType{.stim_name = "X_ERROR",
+                           .flips_x = {true},
+                           .flips_z = {false},
+                           .params = {channel.parameters[0]}};
     case cudaq::noise_model_type::y_error:
-      return StimNoiseType{"Y_ERROR", {true}, {true}, {channel.parameters[0]}};
+      return StimNoiseType{.stim_name = "Y_ERROR",
+                           .flips_x = {true},
+                           .flips_z = {true},
+                           .params = {channel.parameters[0]}};
     case cudaq::noise_model_type::phase_flip_channel:
     case cudaq::noise_model_type::z_error:
-      return StimNoiseType{"Z_ERROR", {false}, {true}, {channel.parameters[0]}};
+      return StimNoiseType{.stim_name = "Z_ERROR",
+                           .flips_x = {false},
+                           .flips_z = {true},
+                           .params = {channel.parameters[0]}};
     case cudaq::noise_model_type::depolarization_channel:
     case cudaq::noise_model_type::depolarization1:
-      return StimNoiseType{"DEPOLARIZE1",
-                           {true, true, false},
-                           {false, true, true},
-                           std::vector<double>(3, channel.parameters[0] / 3.0)};
+      return StimNoiseType{
+          .stim_name = "DEPOLARIZE1",
+          .flips_x = {true, true, false},
+          .flips_z = {false, true, true},
+          .params = {std::vector<double>(3, channel.parameters[0] / 3.0)}};
     case cudaq::noise_model_type::depolarization2: {
       StimNoiseType ret{
           .stim_name = "DEPOLARIZE2",
@@ -145,13 +155,14 @@ protected:
   std::size_t getBatchSize() {
     // Default to single shot
     std::size_t batch_size = 1;
-    if (getExecutionContext() && getExecutionContext()->name == "sample" &&
-        !getExecutionContext()->hasConditionalsOnMeasureResults)
-      batch_size = getExecutionContext()->shots;
-    else if (getExecutionContext() && getExecutionContext()->name == "pcm")
-      batch_size = getExecutionContext()
-                       ->pcm_dimensions.value_or(std::make_pair(1, 1))
-                       .second;
+    auto *executionContext = getExecutionContext();
+    if (executionContext && executionContext->name == "sample" &&
+        !executionContext->hasConditionalsOnMeasureResults)
+      batch_size = executionContext->shots;
+    else if (executionContext && executionContext->name == "pcm")
+      batch_size =
+          executionContext->pcm_dimensions.value_or(std::make_pair(1, 1))
+              .second;
     return batch_size;
   }
 

@@ -7,8 +7,6 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-// #include "common/ExecutionContext.h"
-// #include "common/NoiseModel.h"
 #include "cudaq/builder/kernels.h"
 #include <iostream>
 
@@ -232,7 +230,8 @@ CUDAQ_TEST(KernelsTester, pcmTester_mz_only) {
   multi_round_ghz{}(num_qubits, num_rounds);
   platform.reset_exec_ctx();
 
-  // Stage 2 - get the PCM using the ctx_pcm_size.shots value.
+  // Stage 2 - get the PCM using the size calculated above
+  // (ctx_pcm_size.pcm_dimensions).
   cudaq::ExecutionContext ctx_pcm("pcm");
   ctx_pcm.noiseModel = &noise;
   ctx_pcm.pcm_dimensions = ctx_pcm_size.pcm_dimensions;
@@ -356,9 +355,10 @@ get_pcm_test(double noise_probability) {
     void operator()(double noise_probability) __qpu__ {
       cudaq::qvector q(num_qubits);
       if constexpr (std::is_same_v<NoiseType, cudaq::pauli1>) {
-        cudaq::apply_noise<NoiseType>(noise_probability / 3,
-                                      noise_probability / 3,
-                                      noise_probability / 3, q[0]);
+        double noise_prob_per_pauli = noise_probability / 3;
+        cudaq::apply_noise<NoiseType>(noise_prob_per_pauli,
+                                      noise_prob_per_pauli,
+                                      noise_prob_per_pauli, q[0]);
       } else if constexpr (std::is_same_v<NoiseType, cudaq::pauli2>) {
         double tmp_prob = noise_probability / 15;
         cudaq::apply_noise<NoiseType>(tmp_prob, tmp_prob, tmp_prob, tmp_prob,
