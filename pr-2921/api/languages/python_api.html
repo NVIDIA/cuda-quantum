@@ -580,6 +580,32 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Add a new Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#server-helper-class">Server Helper Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#target-configuration">Target Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#testing">Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#unit-tests">Unit Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#mock-server">Mock Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#integration-tests">Integration Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#code-review">Code Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
@@ -2071,7 +2097,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3288110592</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4179754924</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random spin operator with the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>) where each term acts on all targets in the open range [0, qubit_count). An optional seed value may also be provided.</p>

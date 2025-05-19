@@ -14,7 +14,7 @@ hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
 # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
 dimensions = {0: 2}
 
-# Initial states in the SIC-POVM set: https://en.wikipedia.org/wiki/SIC-POVM
+# Initial states in the `SIC-POVM` set: https://en.wikipedia.org/wiki/SIC-POVM
 psi_1 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
 psi_2 = cudaq.State.from_data(
     cp.array([1.0 / np.sqrt(3.0), np.sqrt(2.0 / 3.0)], dtype=cp.complex128))
@@ -60,10 +60,11 @@ tomography_results = [[
 
 fig = plt.figure(figsize=(18, 12))
 for i in range(len(tomography_results)):
-    plt.subplot(2, 2, i)
+    plt.subplot(2, 2, i + 1)
     plt.plot(steps, tomography_results[i][0])
     plt.plot(steps, tomography_results[i][1])
     plt.plot(steps, tomography_results[i][2])
+    plt.ylim(-1.0, 1.0)
     plt.ylabel("Expectation value")
     plt.xlabel("Time")
     plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
