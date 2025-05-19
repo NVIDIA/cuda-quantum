@@ -24,6 +24,7 @@ def test_list_int():
 
     print(oracle)
 
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__oracle(
 # CHECK-SAME:                      %[[VAL_0:.*]]: !quake.veq<?>,
 # CHECK-SAME:                      %[[VAL_1:.*]]: !quake.ref,
@@ -54,4 +55,3 @@ def test_list_int():
 # CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
-
