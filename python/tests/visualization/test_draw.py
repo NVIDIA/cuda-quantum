@@ -109,11 +109,11 @@ q3 : ┤ h ├──────────────────────
 # will be a GPU-accelerated simulator, but for machines without GPUs, it
 # will run on a CPU simulator.
 def test_draw_with_exp_pauli():
+
     @cudaq.kernel
     def kernel_exp_pauli():
         q = cudaq.qvector(2)
         exp_pauli(0.2, q, "ZZ")
-
 
     expected_str = R"""
                            
