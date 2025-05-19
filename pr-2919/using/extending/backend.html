@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>What is a CUDA-Q kernel? &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Extending CUDA-Q with a new Hardware Backend &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Building your first CUDA-Q Program" href="build_kernel.html" />
-    <link rel="prev" title="CUDA-Q Basics" href="basics.html" /> 
+    <link rel="next" title="Extending CUDA-Q with a new Simulator" href="nvqir_simulator.html" />
+    <link rel="prev" title="Extending CUDA-Q" href="extending.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -107,17 +107,17 @@
 <li class="toctree-l2"><a class="reference internal" href="../quick_start.html#cuda-q-academic">CUDA-Q Academic</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="basics.html">   Basics</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">   What is a CUDA-Q Kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="build_kernel.html">   Building your first CUDA-Q Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="run_kernel.html">   Running your first CUDA-Q Program</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="run_kernel.html#sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="run_kernel.html#observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html">   Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/troubleshooting.html">   Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 </ul>
 </li>
 </ul>
@@ -579,40 +579,40 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a new Hardware Backend</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#directory-structure">Directory Structure</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#server-helper-class">Server Helper Class</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="extending.html">   Extending</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Add a new Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#server-helper-implementation">Server Helper Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#directory-structure">Directory Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#server-helper-class">Server Helper Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#target-configuration">Target Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#target-configuration">Target Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#testing">Testing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#unit-tests">Unit Tests</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#mock-server">Mock Server</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#python-tests">Python Tests</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#integration-tests">Integration Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#testing">Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#unit-tests">Unit Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mock-server">Mock Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#integration-tests">Integration Tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#example-usage">Example Usage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#code-review">Code Review</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#conclusion">Conclusion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#code-review">Code Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#maintaining-a-backend">Maintaining a Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#conclusion">Conclusion</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../specification/index.html">   Specifications</a><ul>
@@ -830,49 +830,617 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="basics.html">CUDA-Q Basics</a></li>
-      <li class="breadcrumb-item active">What is a CUDA-Q kernel?</li>
+          <li class="breadcrumb-item"><a href="extending.html">Extending CUDA-Q</a></li>
+      <li class="breadcrumb-item active">Extending CUDA-Q with a new Hardware Backend</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/basics/kernel_intro.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/using/extending/backend.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="basics.html" class="btn btn-neutral float-left" title="CUDA-Q Basics" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="build_kernel.html" class="btn btn-neutral float-right" title="Building your first CUDA-Q Program" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="extending.html" class="btn btn-neutral float-left" title="Extending CUDA-Q" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nvqir_simulator.html" class="btn btn-neutral float-right" title="Extending CUDA-Q with a new Simulator" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="what-is-a-cuda-q-kernel">
-<h1>What is a CUDA-Q kernel?<a class="headerlink" href="#what-is-a-cuda-q-kernel" title="Permalink to this heading">¶</a></h1>
-<p>Quantum kernels are defined as functions that are executed on a quantum processing unit (QPU) or
-a simulated QPU. They generalize quantum circuits and provide a new abstraction for quantum programming.
-Quantum kernels can be combined with classical functions to create quantum-classical applications
-that can be executed on a heterogeneous system of QPUs, GPUs, and CPUs to solve real-world problems.</p>
-<p><strong>What’s the difference between a quantum kernel and a quantum circuit?</strong></p>
-<p>Every quantum circuit is a kernel, but not every quantum kernel is a circuit. For instance, a quantum
-kernel can be built up from other kernels, allowing us to interpret a large quantum program as a sequence
-of subroutines or subcircuits.</p>
-<p>Moreover, since quantum kernels are functions, there is more expressibility available compared to a
-standard quantum circuit. We can not only parameterize the kernel, but can also contain classical control
-flow statements (<code class="code docutils literal notranslate"><span class="pre">if</span></code>, <code class="code docutils literal notranslate"><span class="pre">for</span></code>, <code class="code docutils literal notranslate"><span class="pre">while</span></code>, etc.), and classical computations such as additions, multiplication, etc.
-Conditional statements on quantum memory and qubit measurements can be included in quantum kernels to enable
-dynamic circuits and fast feedback, particularly useful for quantum error correction. To learn more about what
-language constructs are supported within quantum kernels, take a look at the CUDA-Q
-<a class="reference internal" href="../../specification/cudaq/kernels.html"><span class="doc">specification</span></a>.</p>
-<p><strong>How do I build and run a quantum kernel?</strong></p>
-<p>Once a quantum kernel has been defined in a program, it may be called as a typical function, or can be executed
-using the <code class="code docutils literal notranslate"><span class="pre">sample</span></code> or <code class="code docutils literal notranslate"><span class="pre">observe</span></code> primitives.</p>
-<p>Let’s take a closer look at how to build and execute a quantum kernel with CUDA-Q.</p>
+  <section id="extending-cuda-q-with-a-new-hardware-backend">
+<h1>Extending CUDA-Q with a new Hardware Backend<a class="headerlink" href="#extending-cuda-q-with-a-new-hardware-backend" title="Permalink to this heading">¶</a></h1>
+<p>This guide explains how to integrate a new quantum hardware provider with CUDA-Q. The integration process involves creating a server helper that handles communication with the provider’s API, defining configuration files, and implementing necessary tests.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">¶</a></h2>
+<p>CUDA-Q supports various quantum hardware <a class="reference internal" href="../backends/hardware.html"><span class="doc">backends</span></a> through a REST-based architecture. To add a new backend, you’ll need to:</p>
+<ol class="arabic simple">
+<li><p>Create a server helper class that handles API communication</p></li>
+<li><p>Define configuration files for the target</p></li>
+<li><p>Implement tests to verify functionality</p></li>
+<li><p>Add documentation for users</p></li>
+</ol>
+<p>The following sections detail each step of this process.</p>
+</section>
+<section id="server-helper-implementation">
+<h2>Server Helper Implementation<a class="headerlink" href="#server-helper-implementation" title="Permalink to this heading">¶</a></h2>
+<p>The server helper is the core component that handles communication with the quantum hardware provider’s API. It extends the <code class="docutils literal notranslate"><span class="pre">ServerHelper</span></code> base class and implements methods for job submission, result retrieval, and other provider-specific functionality. The base class definition can be found in the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/runtime/common/ServerHelper.h">CUDA-Q repository</a>.</p>
+<section id="directory-structure">
+<h3>Directory Structure<a class="headerlink" href="#directory-structure" title="Permalink to this heading">¶</a></h3>
+<p>Create the following directory structure for your new backend (replace <code class="docutils literal notranslate"><span class="pre">&lt;provider_name&gt;</span></code> with your provider’s name):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>runtime/cudaq/platform/default/rest/helpers/&lt;provider_name&gt;/
+├── CMakeLists.txt
+├── ProviderNameServerHelper.cpp
+└── &lt;provider_name&gt;.yml
+</pre></div>
+</div>
+</section>
+<section id="server-helper-class">
+<h3>Server Helper Class<a class="headerlink" href="#server-helper-class" title="Permalink to this heading">¶</a></h3>
+<p>Here’s a template for implementing a server helper class:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// ProviderNameServerHelper.cpp</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;common/Logger.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;common/RestClient.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;common/ServerHelper.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Support/Version.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/utils/cudaq_utils.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;bitset&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;regex&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;sstream&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;thread&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;unordered_set&gt;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="n">json</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span><span class="p">;</span>
+
+<span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="p">{</span>
+
+<span class="c1">/// @brief The ProviderNameServerHelper class extends the ServerHelper class</span>
+<span class="c1">/// to handle interactions with the Provider Name server for submitting and</span>
+<span class="c1">/// retrieving quantum computation jobs.</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProviderNameServerHelper</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ServerHelper</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">DEFAULT_URL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;https://api.provider-name.com&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">DEFAULT_VERSION</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;v1.0&quot;</span><span class="p">;</span>
+
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;&lt;provider_name&gt;&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">/// @brief Example implementation of authentication headers.</span>
+<span class="w">  </span><span class="n">RestHeaders</span><span class="w"> </span><span class="n">getHeaders</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">RestHeaders</span><span class="w"> </span><span class="n">headers</span><span class="p">;</span>
+<span class="w">    </span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Content-Type&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;application/json&quot;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Add authentication headers if needed</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">backendConfig</span><span class="p">.</span><span class="n">count</span><span class="p">(</span><span class="s">&quot;api_key&quot;</span><span class="p">))</span>
+<span class="w">      </span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Authorization&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Bearer &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;api_key&quot;</span><span class="p">];</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">headers</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">/// @brief Example implementation of backend initialization.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">initialize</span><span class="p">(</span><span class="n">BackendConfig</span><span class="w"> </span><span class="n">config</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Initializing Provider Name Backend&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">backendConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">config</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">backendConfig</span><span class="p">.</span><span class="n">count</span><span class="p">(</span><span class="s">&quot;url&quot;</span><span class="p">))</span>
+<span class="w">      </span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;url&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DEFAULT_URL</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">backendConfig</span><span class="p">.</span><span class="n">count</span><span class="p">(</span><span class="s">&quot;version&quot;</span><span class="p">))</span>
+<span class="w">      </span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;version&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DEFAULT_VERSION</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Set shots if provided</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;shots&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">config</span><span class="p">.</span><span class="n">end</span><span class="p">())</span>
+<span class="w">      </span><span class="k">this</span><span class="o">-&gt;</span><span class="n">setShots</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">stoul</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;shots&quot;</span><span class="p">]));</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">/// @brief Example implementation of simple job creation.</span>
+<span class="w">  </span><span class="n">ServerJobPayload</span><span class="w"> </span><span class="n">createJob</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KernelExecution</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">circuitCodes</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">ServerMessage</span><span class="w"> </span><span class="n">job</span><span class="p">;</span>
+<span class="w">    </span><span class="n">job</span><span class="p">[</span><span class="s">&quot;content&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">circuitCodes</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">code</span><span class="p">;</span>
+<span class="w">    </span><span class="n">job</span><span class="p">[</span><span class="s">&quot;shots&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">shots</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">RestHeaders</span><span class="w"> </span><span class="n">headers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getHeaders</span><span class="p">();</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;/jobs&quot;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_tuple</span><span class="p">(</span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;url&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">path</span><span class="p">,</span><span class="w"> </span><span class="n">headers</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">ServerMessage</span><span class="o">&gt;</span><span class="p">{</span><span class="n">job</span><span class="p">});</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">/// @brief Example implementation of job ID tracking.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">extractJobId</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">postResponse</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">postResponse</span><span class="p">.</span><span class="n">contains</span><span class="p">(</span><span class="s">&quot;id&quot;</span><span class="p">))</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">postResponse</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;id&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">/// @brief Example implementation of job ID tracking.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">constructGetJobPath</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">postResponse</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">extractJobId</span><span class="p">(</span><span class="n">postResponse</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">/// @brief Example implementation of job ID tracking.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">constructGetJobPath</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">jobId</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;url&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;/jobs/&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jobId</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">/// @brief Example implementation of job status checking.</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">jobIsDone</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">getJobResponse</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">getJobResponse</span><span class="p">.</span><span class="n">contains</span><span class="p">(</span><span class="s">&quot;status&quot;</span><span class="p">))</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getJobResponse</span><span class="p">[</span><span class="s">&quot;status&quot;</span><span class="p">];</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;COMPLETED&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;FAILED&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">/// @brief Example implementation of result processing.</span>
+<span class="w">  </span><span class="c1">///</span>
+<span class="w">  </span><span class="c1">/// The raw results from quantum hardware often need post-processing (bit</span>
+<span class="w">  </span><span class="c1">/// reordering, normalization, etc.) to match CUDA-Q&#39;s expectations.</span>
+<span class="w">  </span><span class="c1">/// This is the place to do that.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="w"> </span><span class="n">processResults</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">getJobResponse</span><span class="p">,</span>
+<span class="w">                                     </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">jobId</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Processing results: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">getJobResponse</span><span class="p">.</span><span class="n">dump</span><span class="p">());</span>
+
+<span class="w">    </span><span class="c1">// Extract measurement results from the response</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">samplesJson</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getJobResponse</span><span class="p">[</span><span class="s">&quot;results&quot;</span><span class="p">][</span><span class="s">&quot;counts&quot;</span><span class="p">];</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">CountsDictionary</span><span class="w"> </span><span class="n">counts</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">item</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">samplesJson</span><span class="p">.</span><span class="n">items</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">bitstring</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">item</span><span class="p">.</span><span class="n">key</span><span class="p">();</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">item</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+<span class="w">      </span><span class="n">counts</span><span class="p">[</span><span class="n">bitstring</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">count</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Create an ExecutionResult</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ExecutionResult</span><span class="w"> </span><span class="n">execResult</span><span class="p">{</span><span class="n">counts</span><span class="p">};</span>
+
+<span class="w">    </span><span class="c1">// Return the sample_result</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="p">{</span><span class="n">execResult</span><span class="p">};</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">/// @brief Example implementation of polling configuration.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">microseconds</span>
+<span class="w">  </span><span class="n">nextResultPollingInterval</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">postResponse</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">seconds</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="p">}</span><span class="w"> </span><span class="c1">// namespace cudaq</span>
+
+<span class="c1">// Register the server helper in the CUDA-Q server helper factory</span>
+<span class="n">CUDAQ_REGISTER_TYPE</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ServerHelper</span><span class="p">,</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ProviderNameServerHelper</span><span class="p">,</span><span class="w"> </span><span class="o">&lt;</span><span class="n">provider_name</span><span class="o">&gt;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="cmakelists-txt">
+<h3><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code><a class="headerlink" href="#cmakelists-txt" title="Permalink to this heading">¶</a></h3>
+<p>You will need to configure CUDA-Q’s <code class="docutils literal notranslate"><span class="pre">cmake</span></code> system for your new server helper. By convention, you should setup your target as optional by adding a CMake flag in the <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> at the root of the CUDA-Q repository:</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="c"># Enable &lt;provider_name&gt; target by default</span>
+<span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">NOT</span><span class="w"> </span><span class="s">DEFINED</span><span class="w"> </span><span class="s">CUDAQ_ENABLE_PROVIDER_NAME_BACKEND</span><span class="p">)</span>
+<span class="w">  </span><span class="nb">set</span><span class="p">(</span><span class="s">CUDAQ_ENABLE_PROVIDER_NAME_BACKEND</span><span class="w"> </span><span class="s">ON</span><span class="w"> </span><span class="s">CACHE</span><span class="w"> </span><span class="s">BOOL</span><span class="w"> </span><span class="s2">&quot;Enable building the &lt;Provider Name&gt; target.&quot;</span><span class="p">)</span>
+<span class="nb">endif</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Then, create a <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> file in your server helper’s directory and check for this flag:</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">if</span><span class="p">(</span><span class="s">CUDAQ_ENABLE_PROVIDER_NAME_BACKEND</span><span class="p">)</span>
+<span class="w">  </span><span class="nb">target_sources</span><span class="p">(</span><span class="s">cudaq-rest-qpu</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="s">ProviderNameServerHelper.cpp</span><span class="p">)</span>
+<span class="w">  </span><span class="nb">add_target_config</span><span class="p">(</span><span class="s">&lt;provider_name&gt;</span><span class="p">)</span>
+
+<span class="w">  </span><span class="nb">add_library</span><span class="p">(</span><span class="s">cudaq-serverhelper-&lt;provider_name&gt;</span><span class="w"> </span><span class="s">SHARED</span><span class="w"> </span><span class="s">ProviderNameServerHelper.cpp</span><span class="p">)</span>
+<span class="w">  </span><span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">cudaq-serverhelper-&lt;provider_name&gt;</span>
+<span class="w">    </span><span class="s">PUBLIC</span>
+<span class="w">    </span><span class="s">cudaq-common</span>
+<span class="w">    </span><span class="s">fmt::fmt-header-only</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="w">  </span><span class="nb">install</span><span class="p">(</span><span class="s">TARGETS</span><span class="w"> </span><span class="s">cudaq-serverhelper-&lt;provider_name&gt;</span><span class="w"> </span><span class="s">DESTINATION</span><span class="w"> </span><span class="s">lib</span><span class="p">)</span>
+<span class="nb">endif</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="target-configuration">
+<h2>Target Configuration<a class="headerlink" href="#target-configuration" title="Permalink to this heading">¶</a></h2>
+<p>Create a <code class="docutils literal notranslate"><span class="pre">YAML</span></code> configuration file for your target:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># &lt;provider_name&gt;.yml</span>
+<span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;provider_name&gt;&quot;</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;CUDA-Q</span><span class="nv"> </span><span class="s">target</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">Provider</span><span class="nv"> </span><span class="s">Name.&quot;</span>
+
+<span class="nt">config</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># Tell DefaultQuantumPlatform what QPU subtype to use</span>
+<span class="w">  </span><span class="nt">platform-qpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remote_rest</span>
+<span class="w">  </span><span class="c1"># Add the rest-qpu library to the link list</span>
+<span class="w">  </span><span class="nt">link-libs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;-lcudaq-rest-qpu&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="c1"># Tell NVQ++ to generate glue code to set the target backend name</span>
+<span class="w">  </span><span class="nt">gen-target-backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="c1"># Add preprocessor defines to compilation</span>
+<span class="w">  </span><span class="nt">preprocessor-defines</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;-D</span><span class="nv"> </span><span class="s">CUDAQ_QUANTUM_DEVICE&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="c1"># Define the lowering pipeline</span>
+<span class="w">  </span><span class="c1"># This will cover applying hardware-specific constraints since each provider may have different native gate sets, requiring custom mappings and decompositions. You may need assistance from the CUDA-Q team to set this up correctly.</span>
+<span class="w">  </span><span class="nt">platform-lowering-config</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements),symbol-dce&quot;</span>
+<span class="w">  </span><span class="c1"># Tell the rest-qpu that we are generating QIR base profile.</span>
+<span class="w">  </span><span class="c1"># As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.</span>
+<span class="w">  </span><span class="nt">codegen-emission</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qir-base</span>
+<span class="w">  </span><span class="c1"># Library mode is only for simulators, physical backends must turn this off</span>
+<span class="w">  </span><span class="nt">library-mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+
+<span class="c1"># Some examples of target arguments are shown below.</span>
+<span class="c1"># You do not need to add any arguments for your backend if you do not need them.</span>
+<span class="nt">target-arguments</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-key</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">platform-arg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api_key</span>
+<span class="w">    </span><span class="nt">help-string</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;API</span><span class="nv"> </span><span class="s">key</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">Provider</span><span class="nv"> </span><span class="s">Name.&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">url</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">platform-arg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">url</span>
+<span class="w">    </span><span class="nt">help-string</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Specify</span><span class="nv"> </span><span class="s">Provider</span><span class="nv"> </span><span class="s">Name</span><span class="nv"> </span><span class="s">API</span><span class="nv"> </span><span class="s">server</span><span class="nv"> </span><span class="s">URL.&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">device</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">platform-arg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">device</span>
+<span class="w">    </span><span class="nt">help-string</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Specify</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">Provider</span><span class="nv"> </span><span class="s">Name</span><span class="nv"> </span><span class="s">quantum</span><span class="nv"> </span><span class="s">device</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">use.&quot;</span>
+</pre></div>
+</div>
+<section id="update-parent-cmakelists-txt">
+<h3>Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code><a class="headerlink" href="#update-parent-cmakelists-txt" title="Permalink to this heading">¶</a></h3>
+<p>Add your provider to the parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> file:</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="c"># runtime/cudaq/platform/default/rest/helpers/CMakeLists.txt</span>
+<span class="nb">add_subdirectory</span><span class="p">(</span><span class="s">&lt;provider_name&gt;</span><span class="p">)</span>
+<span class="nb">add_subdirectory</span><span class="p">(</span><span class="s">ionq</span><span class="p">)</span>
+<span class="nb">add_subdirectory</span><span class="p">(</span><span class="s">iqm</span><span class="p">)</span>
+<span class="c"># ... other providers</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="testing">
+<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading">¶</a></h2>
+<section id="unit-tests">
+<h3>Unit Tests<a class="headerlink" href="#unit-tests" title="Permalink to this heading">¶</a></h3>
+<p>Create unit tests for your server helper:</p>
+<ol class="arabic simple">
+<li><p>Create a directory structure:</p></li>
+</ol>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>unittests/backends/&lt;provider_name&gt;/
+├── CMakeLists.txt
+├── ProviderNameStartServerAndTest.sh.in
+└── ProviderNameTester.cpp
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Implement the test files:</p></li>
+</ol>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="c"># CMakeLists.txt</span>
+<span class="nb">add_executable</span><span class="p">(</span><span class="s">ProviderNameTester</span><span class="w"> </span><span class="s">ProviderNameTester.cpp</span><span class="p">)</span>
+<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">ProviderNameTester</span>
+<span class="w">  </span><span class="s">PRIVATE</span>
+<span class="w">  </span><span class="s">cudaq-common</span>
+<span class="w">  </span><span class="s">cudaq</span>
+<span class="w">  </span><span class="s">gtest_main</span>
+<span class="p">)</span>
+
+<span class="nb">configure_file</span><span class="p">(</span><span class="o">${</span><span class="nv">CMAKE_CURRENT_SOURCE_DIR</span><span class="o">}</span><span class="s">/ProviderNameStartServerAndTest.sh.in</span>
+<span class="w">              </span><span class="o">${</span><span class="nv">CMAKE_CURRENT_BINARY_DIR</span><span class="o">}</span><span class="s">/ProviderNameStartServerAndTest.sh</span><span class="w"> </span><span class="s">@ONLY</span><span class="p">)</span>
+
+<span class="nb">add_test</span><span class="p">(</span><span class="s">NAME</span><span class="w"> </span><span class="s">ProviderNameTester</span><span class="w"> </span><span class="s">COMMAND</span><span class="w"> </span><span class="o">${</span><span class="nv">CMAKE_CURRENT_BINARY_DIR</span><span class="o">}</span><span class="s">/ProviderNameStartServerAndTest.sh</span><span class="p">)</span>
+<span class="nb">set_tests_properties</span><span class="p">(</span><span class="s">ProviderNameTester</span><span class="w"> </span><span class="s">PROPERTIES</span><span class="w"> </span><span class="s">TIMEOUT</span><span class="w"> </span><span class="s">120</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Create a shell script to start the mock server and run tests:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+
+<span class="c1"># Start the mock server</span>
+python3<span class="w"> </span>-m<span class="w"> </span>utils.mock_qpu.&lt;provider_name&gt;<span class="w"> </span>@PORT@<span class="w"> </span><span class="p">&amp;</span>
+<span class="nv">SERVER_PID</span><span class="o">=</span><span class="nv">$!</span>
+
+<span class="c1"># Wait for server to start</span>
+sleep<span class="w"> </span><span class="m">2</span>
+
+<span class="c1"># Run the test</span>
+@CMAKE_CURRENT_BINARY_DIR@/ProviderNameTester
+<span class="nv">TEST_STATUS</span><span class="o">=</span><span class="nv">$?</span>
+
+<span class="c1"># Kill the server</span>
+<span class="nb">kill</span><span class="w"> </span><span class="nv">$SERVER_PID</span>
+
+<span class="c1"># Return the test status</span>
+<span class="nb">exit</span><span class="w"> </span><span class="nv">$TEST_STATUS</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Implement the C++ test:</p></li>
+</ol>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// ProviderNameTester.cpp</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;common/Logger.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;common/RestClient.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;common/ServerHelper.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/platform/quantum_platform.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;gtest/gtest.h&quot;</span>
+
+<span class="n">TEST</span><span class="p">(</span><span class="n">ProviderNameTester</span><span class="p">,</span><span class="w"> </span><span class="n">checkSimpleCircuit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Initialize the platform</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">platform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_platform</span><span class="p">();</span>
+<span class="w">  </span><span class="n">platform</span><span class="o">-&gt;</span><span class="n">setTargetBackend</span><span class="p">(</span><span class="s">&quot;&lt;provider_name&gt;&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Set configuration</span>
+<span class="w">  </span><span class="n">platform</span><span class="o">-&gt;</span><span class="n">setBackendParameter</span><span class="p">(</span><span class="s">&quot;url&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;http://localhost:PORT&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">platform</span><span class="o">-&gt;</span><span class="n">setBackendParameter</span><span class="p">(</span><span class="s">&quot;api_key&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;test_key&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Create a simple circuit</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">qubits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernel</span><span class="p">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">kernel</span><span class="p">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">kernel</span><span class="p">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">kernel</span><span class="p">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Execute the circuit</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Check results</span>
+<span class="w">  </span><span class="n">EXPECT_EQ</span><span class="p">(</span><span class="n">counts</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">EXPECT_TRUE</span><span class="p">(</span><span class="n">counts</span><span class="p">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&quot;00&quot;</span><span class="p">));</span>
+<span class="w">  </span><span class="n">EXPECT_TRUE</span><span class="p">(</span><span class="n">counts</span><span class="p">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&quot;11&quot;</span><span class="p">));</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To make sure the C++ tests don’t run if your target is not enabled, add the following to <code class="docutils literal notranslate"><span class="pre">targettests/lit.site.cfg.py.in</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="o">.</span><span class="n">cudaq_backends_provider</span> <span class="o">=</span> <span class="s2">&quot;@CUDAQ_ENABLE_PROVIDER_NAME_BACKEND@&quot;</span>
+<span class="k">if</span> <span class="n">cmake_boolvar_to_bool</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">cudaq_backends_provider</span><span class="p">):</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">available_features</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;provider&#39;</span><span class="p">)</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">substitutions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;%provider_avail&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">))</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">substitutions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;%provider_avail&#39;</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>And add the following to your <code class="docutils literal notranslate"><span class="pre">targettests</span></code> <code class="docutils literal notranslate"><span class="pre">.cpp</span></code> file:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// RUN: if %provider_avail; then nvq++ %cpp_std --target provider %s -o %t.x; fi</span>
+</pre></div>
+</div>
+</section>
+<section id="mock-server">
+<h3>Mock Server<a class="headerlink" href="#mock-server" title="Permalink to this heading">¶</a></h3>
+<p>Create a mock server for testing:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>utils/mock_qpu/&lt;provider_name&gt;/
+└── __init__.py
+</pre></div>
+</div>
+<p>Implement the mock server:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># __init__.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">http.server</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseHTTPRequestHandler</span><span class="p">,</span> <span class="n">HTTPServer</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ProviderNameMockServer</span><span class="p">(</span><span class="n">BaseHTTPRequestHandler</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_response</span><span class="p">(</span><span class="n">status_code</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_header</span><span class="p">(</span><span class="s1">&#39;Content-type&#39;</span><span class="p">,</span> <span class="s1">&#39;application/json&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_headers</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_POST</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">content_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Content-Length&#39;</span><span class="p">])</span>
+        <span class="n">post_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">content_length</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">post_data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">==</span> <span class="s1">&#39;/jobs&#39;</span><span class="p">:</span>
+            <span class="c1"># Create a job</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;job-123&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;QUEUED&#39;</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_headers</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">response</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_headers</span><span class="p">(</span><span class="mi">404</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;error&#39;</span><span class="p">:</span> <span class="s1">&#39;Not found&#39;</span><span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_GET</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;/jobs/job-123&#39;</span><span class="p">):</span>
+            <span class="c1"># Return job status and results</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;job-123&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;COMPLETED&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;counts&#39;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s1">&#39;00&#39;</span><span class="p">:</span> <span class="mi">500</span><span class="p">,</span>
+                        <span class="s1">&#39;11&#39;</span><span class="p">:</span> <span class="mi">500</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_headers</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">response</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_headers</span><span class="p">(</span><span class="mi">404</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;error&#39;</span><span class="p">:</span> <span class="s1">&#39;Not found&#39;</span><span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">startServer</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">8000</span><span class="p">):</span>
+    <span class="n">server_address</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+    <span class="n">httpd</span> <span class="o">=</span> <span class="n">HTTPServer</span><span class="p">(</span><span class="n">server_address</span><span class="p">,</span> <span class="n">ProviderNameMockServer</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Starting mock server on port </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s1">...&#39;</span><span class="p">)</span>
+    <span class="n">httpd</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">8000</span>
+    <span class="n">startServer</span><span class="p">(</span><span class="n">port</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="python-tests">
+<h3>Python Tests<a class="headerlink" href="#python-tests" title="Permalink to this heading">¶</a></h3>
+<p>Create Python tests for your backend:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># python/tests/backends/test_&lt;provider_name&gt;.py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Process</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
+
+<span class="n">skipIf</span><span class="o">&lt;</span><span class="n">provider_name</span><span class="o">&gt;</span><span class="n">NotInstalled</span> <span class="o">=</span> <span class="n">pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">skipif</span><span class="p">(</span>
+    <span class="ow">not</span> <span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;&lt;provider_name&gt;&quot;</span><span class="p">)),</span>
+    <span class="n">reason</span><span class="o">=</span><span class="s1">&#39;Could not find `&lt;provider_name&gt;` in installation&#39;</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">utils.mock_qpu.</span><span class="o">&lt;</span><span class="n">provider_name</span><span class="o">&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">startServer</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mock qpu not available, skipping Provider Name tests.&quot;</span><span class="p">)</span>
+    <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">&quot;Mock qpu not available.&quot;</span><span class="p">,</span> <span class="n">allow_module_level</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Define the port for the mock server - make sure this is unique</span>
+<span class="c1"># across all tests.</span>
+<span class="n">port</span> <span class="o">=</span> <span class="mi">62444</span>
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">,</span> <span class="n">autouse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">startUpMockServer</span><span class="p">():</span>
+    <span class="c1"># Set the targeted QPU</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;&lt;provider_name&gt;&#39;</span><span class="p">,</span>
+                    <span class="n">url</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;http://localhost:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;test_key&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Launch the Mock Server</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">startServer</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">port</span><span class="p">,))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">yield</span> <span class="s2">&quot;Running the tests.&quot;</span>
+
+    <span class="c1"># Kill the server</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_</span><span class="o">&lt;</span><span class="n">provider_name</span><span class="o">&gt;</span><span class="n">_sample</span><span class="p">():</span>
+    <span class="c1"># Create the kernel</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+    <span class="c1"># Run sample</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="k">assert</span> <span class="s1">&#39;00&#39;</span> <span class="ow">in</span> <span class="n">counts</span>
+    <span class="k">assert</span> <span class="s1">&#39;11&#39;</span> <span class="ow">in</span> <span class="n">counts</span>
+
+    <span class="c1"># Run sample asynchronously</span>
+    <span class="n">future</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="k">assert</span> <span class="s1">&#39;00&#39;</span> <span class="ow">in</span> <span class="n">counts</span>
+    <span class="k">assert</span> <span class="s1">&#39;11&#39;</span> <span class="ow">in</span> <span class="n">counts</span>
+</pre></div>
+</div>
+</section>
+<section id="integration-tests">
+<h3>Integration Tests<a class="headerlink" href="#integration-tests" title="Permalink to this heading">¶</a></h3>
+<p>To ensure proper execution on the hardware, a validation backend must be provided that:</p>
+<ol class="arabic simple">
+<li><p>Consumes the same format that your target will use</p></li>
+<li><p>Validates that circuits passing this validation will execute successfully on the actual hardware</p></li>
+<li><p>Can be accessed by CUDA-Q’s GitHub CI/CD pipelines</p></li>
+</ol>
+<p>Your validation backend doesn’t need to be publicly available, but it should:</p>
+<ul class="simple">
+<li><p>Accept the same input format as your actual quantum processor</p></li>
+<li><p>Return meaningful error messages for invalid circuits</p></li>
+<li><p>Provide an API endpoint that can be called from our integration tests</p></li>
+</ul>
+<p>If your validation backend is not publicly available, please coordinate the exchange of necessary credentials for CI/CD with the CUDA-Q team.</p>
+<p>Add your target to <code class="docutils literal notranslate"><span class="pre">.github/workflows/integration_tests.yml</span></code>:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Submit to &lt;provider_name&gt; test server</span>
+<span class="w">  </span><span class="nt">if</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">(success() || failure()) &amp;&amp; (inputs.target == &#39;&lt;provider_name&gt;&#39; || github.event_name == &#39;schedule&#39;)</span>
+<span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">    </span><span class="no">echo &quot;### Submit to &lt;provider_name&gt; server&quot; &gt;&gt; $GITHUB_STEP_SUMMARY</span>
+<span class="w">    </span><span class="no"># Set up any required dependencies</span>
+<span class="w">    </span><span class="no"># Set up environment variables for authentication</span>
+<span class="w">    </span><span class="no">export PROVIDER_API_KEY=&#39;${{ secrets.PROVIDER_API_KEY }}&#39;</span>
+
+<span class="w">    </span><span class="no"># Run the integration tests</span>
+<span class="w">    </span><span class="no">python_tests=&quot;docs/sphinx/targets/python/&lt;provider_name&gt;.py&quot;</span>
+<span class="w">    </span><span class="no">cpp_tests=&quot;docs/sphinx/targets/cpp/&lt;provider_name&gt;.cpp&quot;</span>
+
+<span class="w">    </span><span class="no"># Execute tests (see other provider examples for implementation details)</span>
+<span class="w">    </span><span class="no"># ...</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this heading">¶</a></h2>
+<p>Add documentation for your backend in the appropriate sections of the CUDA-Q documentation. This should include:</p>
+<ol class="arabic simple">
+<li><p>How to access your server (authentication set up, documentation etc.)</p></li>
+<li><p>How to configure and use the backend</p></li>
+<li><p>Any provider-specific parameters or features</p></li>
+<li><p>Examples of running circuits on the backend</p></li>
+<li><p>Adding your logo to the diagram on <a class="reference internal" href="../backends/hardware.html"><span class="doc">Quantum Hardware (QPU)</span></a></p></li>
+</ol>
+<p>More specifically, you will need to modify at least the following files:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/using/examples/hardware_providers.rst</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/using/backends/hardware.rst</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/using/backends/hardware/&lt;your-technology&gt;.rst</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/targets/python/&lt;provider_name&gt;.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/sphinx/targets/cpp/&lt;provider_name&gt;.cpp</span></code></p></li>
+</ul>
+</section>
+<section id="example-usage">
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Permalink to this heading">¶</a></h2>
+<p>Once your backend is implemented, users can use it as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="c1"># Set the target to your provider</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;&lt;provider_name&gt;&#39;</span><span class="p">,</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="s1">&#39;your_api_key&#39;</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="s1">&#39;your_device&#39;</span><span class="p">)</span>
+
+<span class="c1"># Create and run a circuit</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bell</span><span class="p">():</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+<span class="c1"># Run the circuit</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">bell</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="code-review">
+<h2>Code Review<a class="headerlink" href="#code-review" title="Permalink to this heading">¶</a></h2>
+<p>Once you have implemented a <code class="docutils literal notranslate"><span class="pre">ProviderNameServerHelper</span></code>, some basic tests, and documentation, please <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/pulls">create a PR</a> with your changes and tag the CUDA-Q team for review.</p>
+</section>
+<section id="maintaining-a-backend">
+<h2>Maintaining a Backend<a class="headerlink" href="#maintaining-a-backend" title="Permalink to this heading">¶</a></h2>
+<p>Once your backend is integrated, you will need to maintain it. This includes:</p>
+<ul class="simple">
+<li><p>Fixing bugs (in your integration, tests, or documentation)</p></li>
+<li><p>Adding new features</p></li>
+<li><p>Integrating with new CUDA-Q features (if additional integration is needed to use them)</p></li>
+</ul>
+<p>This is where having extensive tests against real hardware comes in handy. The benefits are two-fold:</p>
+<ul class="simple">
+<li><p>It allows the CUDA-Q team to roll out new features without breaking your backend integration</p></li>
+<li><p>It allows you to validate compatibility with CUDA-Q before rolling out a new version of your backend</p></li>
+</ul>
+</section>
+<section id="conclusion">
+<h2>Conclusion<a class="headerlink" href="#conclusion" title="Permalink to this heading">¶</a></h2>
+<p>By following this guide, you can integrate a new quantum hardware provider with CUDA-Q. The integration involves creating a server helper, defining configuration files, implementing tests, adding documentation, and going through a code review process. Once integrated, users can seamlessly run quantum circuits on your provider’s hardware using the CUDA-Q framework.</p>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="basics.html" class="btn btn-neutral float-left" title="CUDA-Q Basics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="build_kernel.html" class="btn btn-neutral float-right" title="Building your first CUDA-Q Program" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="extending.html" class="btn btn-neutral float-left" title="Extending CUDA-Q" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nvqir_simulator.html" class="btn btn-neutral float-right" title="Extending CUDA-Q with a new Simulator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
