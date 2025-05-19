@@ -106,4 +106,3 @@ def test_elif():
 # CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
-
