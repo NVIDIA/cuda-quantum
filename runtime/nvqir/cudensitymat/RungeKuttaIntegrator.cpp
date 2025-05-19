@@ -37,11 +37,11 @@ std::shared_ptr<base_integrator> runge_kutta::clone() {
 void runge_kutta::setState(const cudaq::state &initial_state, double t0) {
   auto *simState = cudaq::state_helper::getSimulationState(
       const_cast<cudaq::state *>(&initial_state));
-  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
-  if (!castSimState)
+  auto *cudmState = dynamic_cast<CuDensityMatState *>(simState);
+  if (!cudmState)
     throw std::runtime_error("Invalid state.");
   m_state = std::make_shared<cudaq::state>(
-      CuDensityMatState::clone(*castSimState).release());
+      CuDensityMatState::clone(*cudmState).release());
   m_t = t0;
 }
 
@@ -83,10 +83,6 @@ void runge_kutta::integrate(double targetTime) {
   while (m_t < targetTime) {
     const double step_size =
         std::min(m_dt.value_or(targetTime - m_t), targetTime - m_t);
-
-    // cudaq::debug("Runge-Kutta step at time {} with step size {}", m_t,
-    //              step_size);
-
     if (m_order == 1) {
       // Euler method (1st order)
       for (const auto &param : m_schedule.get_parameters()) {

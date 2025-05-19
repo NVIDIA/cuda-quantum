@@ -7,6 +7,7 @@
 # ============================================================================ #
 import pytest
 import cudaq
+import os
 
 torch = pytest.importorskip("torch")
 
@@ -42,6 +43,5 @@ def test_all(model, integrator):
 
 # leave for gdb debugging
 if __name__ == "__main__":
-    import os
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])

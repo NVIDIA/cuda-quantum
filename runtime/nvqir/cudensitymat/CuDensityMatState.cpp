@@ -306,6 +306,7 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
   }
   default:
     __builtin_unreachable();
+    break;
   }
   // Attach initialized GPU storage to the input quantum state
   HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
@@ -542,25 +543,15 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
                                    stateVolume * sizeof(std::complex<double>),
                                    cudaMemcpyDefault));
     }
-
-    // Attach initialized GPU storage to the input quantum state
-    HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
-        cudmHandle, cudmState,
-        1, // only one storage component (tensor)
-        std::vector<void *>({devicePtr})
-            .data(), // pointer to the GPU storage for the quantum state
-        std::vector<std::size_t>({storageSize})
-            .data())); // size of the GPU storage for the quantum state
-  } else {
-    // Attach initialized GPU storage to the input quantum state
-    HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
-        cudmHandle, cudmState,
-        1, // only one storage component (tensor)
-        std::vector<void *>({devicePtr})
-            .data(), // pointer to the GPU storage for the quantum state
-        std::vector<std::size_t>({storageSize})
-            .data())); // size of the GPU storage for the quantum state
   }
+  // Attach initialized GPU storage to the input quantum state
+  HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
+      cudmHandle, cudmState,
+      1, // only one storage component (tensor)
+      std::vector<void *>({devicePtr})
+          .data(), // pointer to the GPU storage for the quantum state
+      std::vector<std::size_t>({storageSize})
+          .data())); // size of the GPU storage for the quantum state
 }
 
 void CuDensityMatState::accumulate_inplace(const CuDensityMatState &other,

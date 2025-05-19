@@ -55,9 +55,10 @@ def evolve_dynamics(
     collapse_operators = [MatrixOperator(op) for op in collapse_operators]
     integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
                           collapse_operators)
+    hilbert_space_dims_list = list(hilbert_space_dims)
     expectation_op = [
         bindings.CuDensityMatExpectation(MatrixOperator(observable),
-                                         list(hilbert_space_dims))
+                                         hilbert_space_dims_list)
         for observable in observables
     ]
 
@@ -67,7 +68,7 @@ def evolve_dynamics(
                                                     has_collapse_operators)
     else:
         initial_state = bindings.initializeState(initial_state,
-                                                 list(hilbert_space_dims),
+                                                 hilbert_space_dims_list,
                                                  len(collapse_operators) > 0)
     integrator.set_state(initial_state, schedule._steps[0])
 

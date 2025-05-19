@@ -109,7 +109,7 @@ public:
         HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
             &supported, cudaDevAttrMemoryPoolsSupported, device));
         if (!supported) {
-          cudaq::info("Memory pools unsupported on this GPU");
+          cudaq::info("Memory pools are unsupported on this GPU");
         } else {
           cudaMemPool_t memPool;
           HANDLE_CUDA_ERROR(cudaDeviceGetDefaultMemPool(&memPool, device));

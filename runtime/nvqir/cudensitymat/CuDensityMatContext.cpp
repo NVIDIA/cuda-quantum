@@ -90,7 +90,8 @@ static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
     throw std::runtime_error("Failed to retrieve MPI plugin");
   cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
   if (!comm)
-    throw std::runtime_error("Invalid MPI distributed plugin encountered");
+    throw std::runtime_error(
+        "Invalid MPI distributed plugin communicator encountered");
   return comm;
 }
 
@@ -103,7 +104,6 @@ Context::Context(int deviceId) : m_deviceId(deviceId) {
   if (cudaq::mpi::is_initialized()) {
     cudaqDistributedInterface_t *mpiInterface = getMpiPluginInterface();
     cudaqDistributedCommunicator_t *comm = getMpiCommWrapper();
-    assert(mpiInterface && comm);
     cudaqDistributedCommunicator_t *dupComm = nullptr;
     const auto dupStatus = mpiInterface->CommDup(comm, &dupComm);
     if (dupStatus != 0 || dupComm == nullptr)

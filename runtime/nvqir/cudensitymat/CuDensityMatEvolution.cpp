@@ -119,14 +119,14 @@ evolve_result evolveSingle(
 
 /// @brief Evolve the system for a single time step.
 /// @param hamiltonian Hamiltonian operator.
-/// @param dimensionsMap Dimension of the system.
+/// @param dimensions Dimension of the system.
 /// @param schedule Time schedule.
-/// @param initialState Initial state enum.
-/// @param inIntegrator Integrator.
-/// @param collapseOperators Collapse operators.
+/// @param initial_state Initial state enum.
+/// @param integrator Integrator.
+/// @param collapse_operators Collapse operators.
 /// @param observables Observables.
-/// @param storeIntermediateResults Store intermediate results.
-/// @param shotsCount Number of shots.
+/// @param store_intermediate_results Store intermediate results.
+/// @param shots_count Number of shots.
 /// @return evolve_result Result of the evolution.
 evolve_result evolveSingle(
     const sum_op<cudaq::matrix_handler> &hamiltonian,

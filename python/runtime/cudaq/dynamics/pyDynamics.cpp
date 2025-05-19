@@ -21,10 +21,10 @@ namespace py = pybind11;
 namespace {
 cudaq::CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
   auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
-  auto *castSimState = dynamic_cast<cudaq::CuDensityMatState *>(simState);
-  if (!castSimState)
+  auto *cudmState = dynamic_cast<cudaq::CuDensityMatState *>(simState);
+  if (!cudmState)
     throw std::runtime_error("Invalid state.");
-  return castSimState;
+  return cudmState;
 }
 } // namespace
 

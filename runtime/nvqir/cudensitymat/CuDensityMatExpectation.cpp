@@ -41,8 +41,6 @@ std::complex<double> CuDensityMatExpectation::compute(cudensitymatState_t state,
 
   void *workspaceBuffer = nullptr;
   if (requiredBufferSize > 0) {
-    // cudaq::info("Required buffer size for expectation compute: {}",
-    //             requiredBufferSize);
     workspaceBuffer = dynamics::Context::getCurrentContext()->getScratchSpace(
         requiredBufferSize);
 
