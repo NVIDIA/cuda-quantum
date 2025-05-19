@@ -10,11 +10,11 @@
 
 #include "common/EvolveResult.h"
 #include "common/KernelWrapper.h"
+#include "cudaq/algorithms/base_integrator.h"
 #include "cudaq/algorithms/get_state.h"
-#include "cudaq/base_integrator.h"
-#include "cudaq/dynamics/operator_type.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
+#include "cudaq/operators/operator_type.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/schedule.h"
@@ -27,35 +27,35 @@ using async_evolve_result = std::future<evolve_result>;
 
 namespace __internal__ {
 template <typename OpTy>
-cudaq::operator_sum<cudaq::matrix_operator> convertOp(const OpTy &op) {
+cudaq::sum_op<cudaq::matrix_handler> convertOp(const OpTy &op) {
   if constexpr (std::is_convertible_v<
-                    OpTy, cudaq::product_operator<cudaq::matrix_operator>>) {
-    cudaq::operator_sum<cudaq::matrix_operator> convertedOp(op);
+                    OpTy, cudaq::product_op<cudaq::matrix_handler>>) {
+    cudaq::sum_op<cudaq::matrix_handler> convertedOp(op);
     return convertedOp;
   } else if constexpr (std::is_convertible_v<
-                           OpTy, cudaq::operator_sum<cudaq::matrix_operator>>) {
+                           OpTy, cudaq::sum_op<cudaq::matrix_handler>>) {
     return op;
   } else {
     throw std::invalid_argument("Invalid operator type: cannot convert type " +
                                 std::string(typeid(op).name()) +
-                                " to cudaq::product_operator or "
-                                "cudaq::operator_sum");
+                                " to cudaq::product_op or "
+                                "cudaq::sum_op");
   }
 }
 
 template <typename OpTy>
-std::vector<cudaq::operator_sum<cudaq::matrix_operator>>
+std::vector<cudaq::sum_op<cudaq::matrix_handler>>
 convertOps(const std::vector<OpTy> &ops) {
-  std::vector<cudaq::operator_sum<cudaq::matrix_operator>> converted;
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> converted;
   for (const auto &op : ops)
     converted.emplace_back(convertOp(op));
   return converted;
 }
 
 template <typename OpTy>
-std::vector<cudaq::operator_sum<cudaq::matrix_operator>>
+std::vector<cudaq::sum_op<cudaq::matrix_handler>>
 convertOps(const std::initializer_list<OpTy> &ops) {
-  std::vector<cudaq::operator_sum<cudaq::matrix_operator>> converted;
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> converted;
   for (const auto &op : ops)
     converted.emplace_back(convertOp(op));
   return converted;
@@ -63,14 +63,13 @@ convertOps(const std::initializer_list<OpTy> &ops) {
 } // namespace __internal__
 
 #if CUDAQ_USE_STD20
-template <
-    operator_type HamTy,
-    operator_type CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-    operator_type ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>>
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
 #else
 template <typename HamTy,
-          typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
+          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
@@ -83,7 +82,7 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        std::initializer_list<ObserveOpTy> observables = {},
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
+#if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
       cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
       initial_state, integrator,
@@ -113,7 +112,7 @@ evolve_result evolve(const HamTy &hamiltonian,
                      const std::vector<ObserveOpTy> &observables = {},
                      bool store_intermediate_results = false,
                      std::optional<int> shots_count = std::nullopt) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
+#if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
       cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
       initial_state, integrator,
@@ -127,14 +126,13 @@ evolve_result evolve(const HamTy &hamiltonian,
 }
 
 #if CUDAQ_USE_STD20
-template <
-    operator_type HamTy,
-    operator_type CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-    operator_type ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>>
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
 #else
 template <typename HamTy,
-          typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
+          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
@@ -147,7 +145,7 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        std::initializer_list<ObserveOpTy> observables = {},
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
+#if defined(CUDAQ_ANALOG_TARGET)
   std::vector<evolve_result> results;
   for (const auto &initial_state : initial_states)
     results.emplace_back(evolve(hamiltonian, dimensions, schedule,
@@ -163,14 +161,13 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 }
 
 #if CUDAQ_USE_STD20
-template <
-    operator_type HamTy,
-    operator_type CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-    operator_type ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>>
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
 #else
 template <typename HamTy,
-          typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
+          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
@@ -183,13 +180,13 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        const std::vector<ObserveOpTy> &observables = {},
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
+#if defined(CUDAQ_ANALOG_TARGET)
   std::vector<evolve_result> results;
   for (const auto &initial_state : initial_states)
-    results.emplace_back(evolve(hamiltonian, dimensions, schedule,
-                                initial_state, integrator, collapse_operators,
-                                observables, store_intermediate_results,
-                                shots_count));
+    results.emplace_back(evolve(
+        hamiltonian, dimensions, schedule, initial_states, integrator,
+        collapse_operators, initial_state, integrator, collapse_operators,
+        observables, store_intermediate_results, shots_count));
   return results;
 #else
   static_assert(
@@ -199,14 +196,13 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 }
 
 #if CUDAQ_USE_STD20
-template <
-    operator_type HamTy,
-    operator_type CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-    operator_type ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>>
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
 #else
 template <typename HamTy,
-          typename CollapseOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
-          typename ObserveOpTy = cudaq::operator_sum<cudaq::matrix_operator>,
+          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
                                       cudaq::operator_type<CollapseOpTy> &&
                                       cudaq::operator_type<ObserveOpTy>>>
@@ -219,7 +215,7 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              std::initializer_list<ObserveOpTy> observables = {},
              bool store_intermediate_results = false,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
+#if defined(CUDAQ_ANALOG_TARGET)
   // Clone the integrator to extend its lifetime.
   auto cloneIntegrator = integrator.clone();
   auto collapseOperators = cudaq::__internal__::convertOps(collapse_operators);
@@ -259,7 +255,7 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              const std::vector<ObserveOpTy> &observables = {},
              bool store_intermediate_results = false,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
-#if defined(CUDAQ_DYNAMICS_TARGET)
+#if defined(CUDAQ_ANALOG_TARGET)
   // Clone the integrator to extend its lifetime.
   auto cloneIntegrator = integrator.clone();
   return __internal__::evolve_async(
@@ -277,4 +273,25 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              "recompile your application with '--target dynamics' flag.");
 #endif
 }
+
+// Rydberg Hamiltonian
+evolve_result evolve(const cudaq::rydberg_hamiltonian &hamiltonian,
+                     const cudaq::schedule &schedule,
+                     std::optional<int> shots_count = std::nullopt) {
+  return cudaq::__internal__::evolveSingle(hamiltonian, schedule, shots_count);
+}
+
+async_evolve_result evolve_async(const cudaq::rydberg_hamiltonian &hamiltonian,
+                                 const cudaq::schedule &schedule,
+                                 std::optional<int> shots_count = std::nullopt,
+                                 int qpu_id = 0) {
+  return cudaq::__internal__::evolve_async(
+      [=]() {
+        ExecutionContext context("evolve");
+        cudaq::get_platform().set_exec_ctx(&context, qpu_id);
+        return evolve(hamiltonian, schedule, shots_count);
+      },
+      qpu_id);
+}
+
 } // namespace cudaq

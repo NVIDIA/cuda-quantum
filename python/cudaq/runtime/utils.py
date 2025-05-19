@@ -7,13 +7,12 @@
 # ============================================================================ #
 from __future__ import annotations
 
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from ..kernel.kernel_builder import PyKernel
-from ..kernel.kernel_decorator import PyKernelDecorator
-from ..mlir.dialects import quake, cc
+from cudaq.kernel.kernel_builder import PyKernel
+from cudaq.kernel.kernel_decorator import PyKernelDecorator
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import cc
 
 import numpy as np
-import sys
 from typing import List
 
 

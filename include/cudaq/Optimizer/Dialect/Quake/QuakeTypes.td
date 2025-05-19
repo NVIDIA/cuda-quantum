@@ -200,6 +200,19 @@ def StruqType : QuakeType<"Struq", "struq"> {
   ];
 }
 
+def CableType : QuakeType<"Cable", "cable"> {
+  let summary = "the type of a sequence of wires bound together";
+  let description = [{
+    This is the type of an aggregate of wire types. It is simply syntactic
+    sugar that allows a group of wires to be passed around as a single cable
+    value.
+  }];
+
+  let parameters = (ins "std::uint64_t":$size);
+
+  let assemblyFormat = "`<` $size `>`";
+}
+
 //===----------------------------------------------------------------------===//
 // MeasureType: classical data type
 //===----------------------------------------------------------------------===//
@@ -218,6 +231,28 @@ def MeasureType : QuakeType<"Measure", "measure"> {
     ```
   }];
 
+  let genStorageClass = 0;
+}
+
+//===----------------------------------------------------------------------===//
+// StateType
+//===----------------------------------------------------------------------===//
+
+def quake_StateType : QuakeType<"State", "state"> {
+  let summary = "Proxy for the cudaq::state class.";
+  let description = [{
+    The cudaq::state class is an abstraction for any data that may be used to
+    describe the initial state of a set of qubits. It would typically be used
+    in a simulation environment.
+
+    The CUDA-Q runtime will implement an ABI of intrinsic functions for the
+    compiler generated code to interface with this information in a generic
+    manner.
+
+    There are no legal operations in Quake/CC on a value of type `!quake.state`.
+    Only pointers to such values should exist in the IR for the purposes of
+    passing references to state objects to runtime functions at codegen.
+  }];
   let genStorageClass = 0;
 }
 
@@ -240,21 +275,21 @@ def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
 def AnyQLinearType : Type<WireType.predicate, "linear quantum value type">;
 
-def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
+def IsStdvecTypePred : CPred<"isa<::cudaq::cc::StdvecType>($_self)">;
 
 class StdvecOf<list<Type> allowedTypes> : Type<
     And<[IsStdvecTypePred, Concat<"[](::mlir::Type elementType) { return ",
       SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
-        "; }($_self.cast<::cudaq::cc::StdvecType>().getElementType())">]>,
+        "; }(cast<::cudaq::cc::StdvecType>($_self).getElementType())">]>,
     "stdvec of " # AnyTypeOf<allowedTypes>.summary # " values",
     "::cudaq::cc::StdvecType">;
 
-def IsPointerTypePred : CPred<"$_self.isa<::cudaq::cc::PointerType>()">;
+def IsPointerTypePred : CPred<"isa<::cudaq::cc::PointerType>($_self)">;
 
 class PointerOf<list<Type> allowedTypes> : Type<
     And<[IsPointerTypePred, Concat<"[](::mlir::Type elementType) { return ",
       SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
-        "; }($_self.cast<::cudaq::cc::PointerType>().getElementType())">]>,
+        "; }(cast<::cudaq::cc::PointerType>($_self).getElementType())">]>,
     "pointer of " # AnyTypeOf<allowedTypes>.summary # " values",
     "::cudaq::cc::PointerType">;
 

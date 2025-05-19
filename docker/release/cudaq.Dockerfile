@@ -99,7 +99,9 @@ Version: ${CUDA_QUANTUM_VERSION}\n\n\
 Copyright (c) 2025 NVIDIA Corporation & Affiliates \n\
 All rights reserved.\n\n\
 To run a command as administrator (user `root`), use `sudo <command>`.\n"
-RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"
+ARG deprecation_notice=""
+RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt" && \
+    echo -e "$deprecation_notice" >> "$CUDA_QUANTUM_PATH/Copyright.txt"
 RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
 
 # See also https://github.com/microsoft/vscode-remote-release/issues/4781

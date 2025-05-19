@@ -73,7 +73,7 @@ void registerQuakeDialectAndTypes(py::module &m) {
       .def_staticmethod(
           "hasSpecifiedSize",
           [](MlirType type) {
-            auto veqTy = unwrap(type).dyn_cast<quake::VeqType>();
+            auto veqTy = dyn_cast<quake::VeqType>(unwrap(type));
             if (!veqTy)
               throw std::runtime_error(
                   "Invalid type passed to VeqType.getSize()");
@@ -84,7 +84,7 @@ void registerQuakeDialectAndTypes(py::module &m) {
       .def_staticmethod(
           "getSize",
           [](MlirType type) {
-            auto veqTy = unwrap(type).dyn_cast<quake::VeqType>();
+            auto veqTy = dyn_cast<quake::VeqType>(unwrap(type));
             if (!veqTy)
               throw std::runtime_error(
                   "Invalid type passed to VeqType.getSize()");
@@ -160,9 +160,9 @@ void registerCCDialectAndTypes(py::module &m) {
   });
 
   mlir_type_subclass(ccMod, "StateType", [](MlirType type) {
-    return unwrap(type).isa<cudaq::cc::StateType>();
+    return unwrap(type).isa<quake::StateType>();
   }).def_classmethod("get", [](py::object cls, MlirContext ctx) {
-    return wrap(cudaq::cc::StateType::get(unwrap(ctx)));
+    return wrap(quake::StateType::get(unwrap(ctx)));
   });
 
   mlir_type_subclass(
@@ -172,7 +172,7 @@ void registerCCDialectAndTypes(py::module &m) {
           "getElementType",
           [](py::object cls, MlirType type) {
             auto ty = unwrap(type);
-            auto casted = ty.dyn_cast<cudaq::cc::PointerType>();
+            auto casted = dyn_cast<cudaq::cc::PointerType>(ty);
             if (!casted)
               throw std::runtime_error(
                   "invalid type passed to PointerType.getElementType(), must "
@@ -192,7 +192,7 @@ void registerCCDialectAndTypes(py::module &m) {
           "getElementType",
           [](py::object cls, MlirType type) {
             auto ty = unwrap(type);
-            auto casted = ty.dyn_cast<cudaq::cc::ArrayType>();
+            auto casted = dyn_cast<cudaq::cc::ArrayType>(ty);
             if (!casted)
               throw std::runtime_error(
                   "invalid type passed to ArrayType.getElementType(), must "
@@ -278,7 +278,7 @@ void registerCCDialectAndTypes(py::module &m) {
           "getElementType",
           [](py::object cls, MlirType type) {
             auto ty = unwrap(type);
-            auto casted = ty.dyn_cast<cudaq::cc::StdvecType>();
+            auto casted = dyn_cast<cudaq::cc::StdvecType>(ty);
             if (!casted)
               throw std::runtime_error(
                   "invalid type passed to StdvecType.getElementType(), must "

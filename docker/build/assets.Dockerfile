@@ -224,6 +224,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --plat ${MANYLINUX_PLATFORM} \
         --exclude libcublas.so.11 \
         --exclude libcublasLt.so.11 \
+        --exclude libcurand.so.10 \
         --exclude libcusolver.so.11 \
         --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
@@ -262,7 +263,7 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 
 ## [Python MLIR tests]
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest scipy cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)~=24.11 && \
+    python3 -m pip install lit pytest scipy cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)~=25.03 && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
@@ -306,7 +307,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
-    filtered=" --filter-out Kernel/inline-qpu-func" && \
+    filtered=" --filter-out Kernel/inline-qpu-func|execution/vector_bool_parameters" && \
     if [ ! -x "$(command -v nvcc)" ]; then \
         filtered+="|TargetConfig/check_compile"; \
     fi && \
@@ -322,7 +323,8 @@ RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
-        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) && \
+        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcurand-devel-$(echo ${CUDA_VERSION} | tr . -) && \
     if [ $(echo $CUDA_VERSION | cut -d "." -f1) -ge 12 ]; then \
         dnf install -y --nobest --setopt=install_weak_deps=False \
             libnvjitlink-$(echo ${CUDA_VERSION} | tr . -); \

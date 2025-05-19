@@ -71,12 +71,6 @@ Kernel Execution
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
 
-Dynamics
-=============================
-
-.. autofunction:: cudaq::evolve
-.. autofunction:: cudaq::evolve_async
-
 Backend Configuration
 =============================
 
@@ -87,9 +81,144 @@ Backend Configuration
 .. autofunction:: cudaq::reset_target
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
+
+.. function:: cudaq.apply_noise(error_type, parameters..., targets...)
+
+    This function is a type-safe injection of noise into a quantum kernel,
+    occurring precisely at the call site of the function invocation. The
+    function should be called inside CUDA-Q kernels (those annotated with
+    `@cudaq.kernel`). The functionality is only supported for simulation targets, so
+    it is automatically (and silently) stripped from any programs submitted to
+    hardware targets.
+
+    :param error_type: A subtype of :class:`cudaq.KrausChannel` that
+        implements/defines the desired noise mechanisms as Kraus channels (e.g.
+        :class:`cudaq.Depolarization2`). If you want to use a custom
+        :class:`cudaq.KrausChannel` (i.e. not built-in to CUDA-Q), it must
+        first be registered *outside the kernel* with `register_channel`, like
+        this:
+
+        .. code-block:: python
+
+            class CustomNoiseChannel(cudaq.KrausChannel):
+                num_parameters = 1
+                num_targets = 1
+
+            def __init__(self, params: list[float]):
+                cudaq.KrausChannel.__init__(self)
+                # Example: Create Kraus ops based on params
+                p = params[0]
+                k0 = np.array([[np.sqrt(1 - p), 0], [0, np.sqrt(1 - p)]],
+                            dtype=np.complex128)
+                k1 = np.array([[0, np.sqrt(p)], [np.sqrt(p), 0]],
+                            dtype=np.complex128)
+
+                # Create KrausOperators and add to channel
+                self.append(cudaq.KrausOperator(k0))
+                self.append(cudaq.KrausOperator(k1))
+
+                self.noise_type = cudaq.NoiseModelType.Unknown
+
+            noise = cudaq.NoiseModel()
+            noise.register_channel(CustomNoiseChannel)
+
+    :param parameters: The precise argument pack depend on the concrete
+        :class:`cudaq.KrausChannel` being used. The arguments are a concatenated
+        list of parameters and targets.  For example, to apply a 2-qubit
+        depolarization channel, which has `num_parameters = 1` and `num_targets =
+        2`, one would write the call like this:
+
+        .. code-block:: python
+
+            q, r = cudaq.qubit(), cudaq.qubit()
+            cudaq.apply_noise(cudaq.Depolarization2, 0.1, q, r)
+
+    :param targets: The target qubits on which to apply the noise
+
+
 .. automethod:: cudaq::initialize_cudaq
 .. automethod:: cudaq::num_available_gpus
 .. automethod:: cudaq::set_random_seed
+
+Dynamics
+=============================
+
+.. autofunction:: cudaq::evolve
+.. autofunction:: cudaq::evolve_async
+
+.. autoclass:: cudaq::Schedule
+.. autoclass:: cudaq.dynamics.integrator.BaseIntegrator
+
+.. autoclass:: cudaq.dynamics.helpers.InitialState
+.. autofunction:: cudaq.dynamics.cudm_state.to_cupy_array
+
+Operators
+=============================
+
+.. autoclass:: cudaq.operators.OperatorSum
+.. autoclass:: cudaq.operators.ProductOperator
+.. autoclass:: cudaq.operators.ElementaryOperator
+.. autoclass:: cudaq.operators.ScalarOperator
+   :members:
+
+.. autoclass:: cudaq.operators.RydbergHamiltonian
+    :members:
+    :special-members: __init__
+
+.. automethod:: cudaq.operators.define
+.. automethod:: cudaq.operators.instantiate
+
+Spin Operators
+-----------------------------
+.. autoclass:: cudaq.operators.spin.SpinOperator
+   :members:
+.. autoclass:: cudaq.operators.spin.SpinOperatorTerm
+   :members:
+.. autoclass:: cudaq.operators.spin.SpinOperatorElement
+   :members:
+
+.. automodule:: cudaq.spin
+    :imported-members:
+    :members:
+
+Fermion Operators
+-----------------------------
+.. autoclass:: cudaq.operators.fermion.FermionOperator
+   :members:
+.. autoclass:: cudaq.operators.fermion.FermionOperatorTerm
+   :members:
+.. autoclass:: cudaq.operators.fermion.FermionOperatorElement
+   :members:
+
+.. automodule:: cudaq.fermion
+    :imported-members:
+    :members:
+
+Boson Operators
+-----------------------------
+.. autoclass:: cudaq.operators.boson.BosonOperator
+   :members:
+.. autoclass:: cudaq.operators.boson.BosonOperatorTerm
+   :members:
+.. autoclass:: cudaq.operators.boson.BosonOperatorElement
+   :members:
+
+.. automodule:: cudaq.boson
+    :imported-members:
+    :members:
+
+General Operators
+-----------------------------
+.. autoclass:: cudaq.operators.MatrixOperator
+   :members:
+.. autoclass:: cudaq.operators.MatrixOperatorTerm
+   :members:
+.. autoclass:: cudaq.operators.MatrixOperatorElement
+   :members:
+
+.. automodule:: cudaq.operators.custom
+    :imported-members:
+    :members:
 
 Data Types
 =============================
@@ -125,42 +254,6 @@ Data Types
     :members:
     :special-members: __getitem__, __str__
 
-.. autoclass:: cudaq::Schedule
-.. autoclass:: cudaq.operator.integrator.BaseIntegrator
-.. autoclass:: cudaq::EvolveResult
-    :members:
-
-.. autoclass:: cudaq::AsyncEvolveResult
-    :members:
-
-.. autoclass:: cudaq::SpinOperator
-.. autoclass:: cudaq.operator.expressions.OperatorSum
-
-.. autoclass:: cudaq.operator.expressions.ElementaryOperator
-    
-    .. automethod:: define
-
-.. autoclass:: cudaq.operator.expressions.ProductOperator
-
-.. autoclass:: cudaq.operator.expressions.RydbergHamiltonian
-    :members:
-    :special-members: __init__
-
-.. autoclass:: cudaq.operator.expressions.ScalarOperator
-.. autoclass:: cudaq.operator.definitions.SpinOperator
-
-.. autofunction:: cudaq::spin.i
-.. autofunction:: cudaq::spin.x
-.. autofunction:: cudaq::spin.y
-.. autofunction:: cudaq::spin.z
-
-.. autoclass:: cudaq.operator.cudm_state.CuDensityMatState
-    :members:
-
-.. autoclass:: cudaq.operator.helpers.InitialState
-
-.. autofunction:: cudaq.operator.cudm_state.to_cupy_array
-
 .. autoclass:: cudaq::SampleResult
     :members:
     :special-members: __getitem__, __len__, __iter__
@@ -180,6 +273,11 @@ Data Types
 .. autoclass:: cudaq::OptimizationResult
     :members:
 
+.. autoclass:: cudaq::EvolveResult
+    :members:
+
+.. autoclass:: cudaq::AsyncEvolveResult
+    :members:
 
 Optimizers
 -----------------

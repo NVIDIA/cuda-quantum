@@ -130,7 +130,7 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
 # Install CUDA
 
-ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcusolver"
+ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcurand-dev libcusolver"
 RUN if [ -n "$cuda_packages" ]; then \
         arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
         && cuda_packages=`printf '%s\n' $cuda_packages | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | tr . -)` \
@@ -164,7 +164,7 @@ ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)~=24.11 && \
+    python3 -m pip install cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)~=25.03 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.10" ]; then \
         echo "expecting Python version 3.10"; \
     fi

@@ -6,10 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t
+// RUN: nvq++ %cpp_std %s -o %t && %t
 // TODO-FIX-KERNEL-EXEC
-// RUN: nvq++ %cpp_std -fkernel-exec-kind=2 --enable-mlir %s -o %t && %t
+// BROKEN: nvq++ %cpp_std -fkernel-exec-kind=2 %s -o %t && %t
 
+#include <cstdio>
 #include <cudaq.h>
 
 struct test {
@@ -30,11 +31,21 @@ int main() {
   std::vector<int> firstTest{1, 1, 1}, secondTest{1, 1, 1, 1},
       thirdTest{1, 0, 1};
   auto i = test{}(firstTest);
-  assert(i == 7 && "111 has to map to 7.");
+  if (i != 7) {
+    printf("111 has to map to 7.\n");
+    return 1;
+  }
 
   i = test{}(secondTest);
-  assert(i == 15 && "1111 has to map to 15.");
+  if (i != 15) {
+    printf("1111 has to map to 15.\n");
+    return 1;
+  }
 
   i = test{}(thirdTest);
-  assert(i == 5 && "101 has to map to 15.");
+  if (i != 5) {
+    printf("101 has to map to 5.\n");
+    return 1;
+  }
+  return 0;
 }

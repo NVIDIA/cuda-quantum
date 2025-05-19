@@ -125,15 +125,15 @@ LogicalResult quake::setQuantumOperands(Operation *op, ValueRange quantumVals) {
 Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
                                   OpResult result, ValueRange args) {
   auto newAlloca = [&]() {
-    if (result.getType().isa<quake::VeqType>() &&
-        result.getType().cast<quake::VeqType>().hasSpecifiedSize()) {
+    if (isa<quake::VeqType>(result.getType()) &&
+        cast<quake::VeqType>(result.getType()).hasSpecifiedSize()) {
       return builder.create<quake::AllocaOp>(
-          loc, result.getType().cast<quake::VeqType>().getSize());
+          loc, cast<quake::VeqType>(result.getType()).getSize());
     }
     auto constOp = cast<arith::ConstantOp>(args[0].getDefiningOp());
     return builder.create<quake::AllocaOp>(
         loc, static_cast<std::size_t>(
-                 constOp.getValue().cast<IntegerAttr>().getInt()));
+                 cast<IntegerAttr>(constOp.getValue()).getInt()));
   }();
   return builder.create<quake::RelaxSizeOp>(
       loc, quake::VeqType::getUnsized(builder.getContext()), newAlloca);
@@ -149,7 +149,7 @@ LogicalResult quake::AllocaOp::verify() {
       if (auto size = getSize()) {
         if (auto cnt =
                 dyn_cast_or_null<arith::ConstantOp>(size.getDefiningOp())) {
-          std::int64_t argSize = cnt.getValue().cast<IntegerAttr>().getInt();
+          std::int64_t argSize = cast<IntegerAttr>(cnt.getValue()).getInt();
           // TODO: This is a questionable check. We could have a very large
           // unsigned value that appears to be negative because of two's
           // complement. On the other hand, allocating 2^64 - 1 qubits isn't
@@ -565,7 +565,7 @@ LogicalResult quake::InitializeStateOp::verify() {
     }
     if (!isa<FloatType, ComplexType>(arrTy.getElementType()))
       return emitOpError("invalid data pointer type");
-  } else if (!isa<FloatType, ComplexType, cudaq::cc::StateType>(ty)) {
+  } else if (!isa<FloatType, ComplexType, quake::StateType>(ty)) {
     return emitOpError("invalid data pointer type");
   }
   return success();
@@ -723,6 +723,19 @@ LogicalResult quake::DiscriminateOp::verify() {
       return emitOpError(
           "must return integral type when discriminating exactly one qubit");
   }
+  return success();
+}
+
+LogicalResult quake::BundleCableOp::verify() {
+  auto ty = cast<quake::CableType>(getResult().getType());
+  if (getWires().size() != ty.getSize())
+    return emitOpError("the bundle type size must equal the arity.");
+  return success();
+}
+
+LogicalResult quake::TerminateCableOp::verify() {
+  if (getResults().size() != getCable().getType().getSize())
+    return emitOpError("the bundle type size must equal the coarity.");
   return success();
 }
 
@@ -934,6 +947,7 @@ void quake::U3Op::getOperatorMatrix(Matrix &matrix) {
     theta *= -1;
     phi *= -1;
     lambda *= -1;
+    std::swap(phi, lambda);
   }
 
   matrix.assign({std::cos(theta / 2.),

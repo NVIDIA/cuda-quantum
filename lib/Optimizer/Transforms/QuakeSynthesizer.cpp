@@ -350,12 +350,11 @@ static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
                          SmallVectorImpl<std::complex<float>> &vec) {
-  SmallVector<float> vec2;
-  for (auto c : vec) {
-    vec2.push_back(c.real());
-    vec2.push_back(c.imag());
-  }
-  auto arrayAttr = builder.getF32ArrayAttr(vec2);
+  SmallVector<Attribute> vec2;
+  for (auto c : vec)
+    vec2.push_back(builder.getF32ArrayAttr({c.real(), c.imag()}));
+
+  auto arrayAttr = builder.getArrayAttr(vec2);
   return synthesizeVectorArgument<ComplexType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeComplexElement<float>);
@@ -365,12 +364,11 @@ static LogicalResult
 synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
                          BlockArgument argument,
                          SmallVectorImpl<std::complex<double>> &vec) {
-  SmallVector<double> vec2;
-  for (auto c : vec) {
-    vec2.push_back(c.real());
-    vec2.push_back(c.imag());
-  }
-  auto arrayAttr = builder.getF64ArrayAttr(vec2);
+  SmallVector<Attribute> vec2;
+  for (auto c : vec)
+    vec2.push_back(builder.getF64ArrayAttr({c.real(), c.imag()}));
+
+  auto arrayAttr = builder.getArrayAttr(vec2);
   return synthesizeVectorArgument<ComplexType>(builder, module, counter,
                                                argument, vec, arrayAttr,
                                                makeComplexElement<double>);
@@ -538,7 +536,7 @@ public:
       }
 
       if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
-        if (isa<cudaq::cc::StateType>(ptrTy.getElementType())) {
+        if (isa<quake::StateType>(ptrTy.getElementType())) {
           // Special case of a `cudaq::state*` which must be in the same address
           // space. This references a container to a set of simulation
           // amplitudes.
@@ -549,8 +547,7 @@ public:
                   Value rawPtr = builder.create<arith::ConstantIntOp>(
                       loc, reinterpret_cast<std::intptr_t>(*concrete),
                       sizeof(void *) * 8);
-                  auto stateTy =
-                      cudaq::cc::StateType::get(builder.getContext());
+                  auto stateTy = quake::StateType::get(builder.getContext());
                   return builder.create<cudaq::cc::CastOp>(
                       loc, cudaq::cc::PointerType::get(stateTy), rawPtr);
                 });
@@ -705,10 +702,6 @@ public:
         auto ns = builder.create<arith::ConstantIntOp>(loc, numberSpans, 64);
         auto aos = builder.create<cudaq::cc::AllocaOp>(loc, charSpanTy, ns);
         auto pi8Ty = cudaq::cc::PointerType::get(charSpanTy.getElementType());
-        auto ppi8Ty = cudaq::cc::PointerType::get(pi8Ty);
-        auto ptrI64Ty = cudaq::cc::PointerType::get(builder.getI64Type());
-        auto iaTy = cudaq::cc::PointerType::get(
-            cudaq::cc::ArrayType::get(builder.getI64Type()));
         cudaq::IRBuilder irBuilder(module);
         for (decltype(numberSpans) i = 0; i < numberSpans; ++i) {
           std::size_t length = spanSizes[i];
@@ -723,12 +716,9 @@ public:
           auto spanp = builder.create<cudaq::cc::ComputePtrOp>(
               loc, ptrTy, aos,
               ArrayRef<cudaq::cc::ComputePtrArg>{static_cast<std::int32_t>(i)});
-          auto relocp = builder.create<cudaq::cc::CastOp>(loc, ppi8Ty, spanp);
-          builder.create<cudaq::cc::StoreOp>(loc, str, relocp);
-          auto lengthp = builder.create<cudaq::cc::CastOp>(loc, iaTy, spanp);
-          auto offsetp = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, ptrI64Ty, lengthp, ArrayRef<cudaq::cc::ComputePtrArg>{1});
-          builder.create<cudaq::cc::StoreOp>(loc, strLen, offsetp);
+          auto spanData = builder.create<cudaq::cc::StdvecInitOp>(
+              loc, charSpanTy, str, strLen);
+          builder.create<cudaq::cc::StoreOp>(loc, spanData, spanp);
           bufferAppendix += length;
         }
         auto svTy = cudaq::cc::StdvecType::get(ptrTy);

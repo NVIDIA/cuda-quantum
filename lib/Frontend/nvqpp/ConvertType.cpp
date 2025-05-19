@@ -282,11 +282,11 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
           auto name = ident->getName();
           if (isInNamespace(tyDecl, "cudaq")) {
             //  can be owning container; so can be qubit, qarray, or qvector
-            if ((name.equals("qudit") || name.equals("qubit") ||
-                 name.equals("qvector") || name.equals("qarray")))
+            if ((name == "qudit" || name == "qubit" || name == "qvector" ||
+                 name == "qarray"))
               continue;
             // must be qview or qview&
-            if (name.equals("qview"))
+            if (name == "qview")
               continue;
           }
         }
@@ -511,7 +511,7 @@ SmallVector<Type> QuakeBridgeVisitor::lastTypes(unsigned n) {
 
 static bool isReferenceToCudaqStateType(Type t) {
   if (auto ptrTy = dyn_cast<cc::PointerType>(t))
-    return isa<cc::StateType>(ptrTy.getElementType());
+    return isa<quake::StateType>(ptrTy.getElementType());
   return false;
 }
 

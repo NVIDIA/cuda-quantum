@@ -137,7 +137,7 @@ echo "============================="
 
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path "*/dynamics/*" | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -158,6 +158,15 @@ do
 
     for t in $requested_backends
     do
+        # Skipping dynamics examples if target is not dynamics and ex is dynamics
+        # or gpu is unavailable
+        if { [ "$t" != "dynamics" ] && [[ "$ex" == *"dynamics"* ]]; } || { [ "$t" == "dynamics" ] && [[ "$ex" != *"dynamics"* ]]; }; then
+            let "skipped+=1"
+            echo "Skipping $t target for $ex.";
+            echo ":white_flag: $filename: Not intended for this target. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
+        fi
+
         if [ "$t" == "default" ]; then target_flag=""
         else target_flag="--target $t"
         fi
@@ -207,25 +216,20 @@ do
                 # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
                 target_flag+=" --enable-mlir"
             fi
-        elif [ "$t" == "dynamics" ]; then
-            let "skipped+=1"
-            echo "Skipping $t target."
-            # These C++ tests are not intended for dynamics
-            echo ":white_flag: $filename: Not executed due to compatibility reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
-            continue
         fi
 
         echo "Testing on $t target..."
-        if [ "$t" == "nvidia" ]; then
-            # For the unified 'nvidia' target, we validate all target options as well.
-            # Note: this overlaps some legacy standalone targets (e.g., nvidia-mqpu, nvidia-mgpu, etc.),
-            # but we want to make sure all supported configurations in the unified 'nvidia' target are validated.
-            declare -a optionArray=("fp32" "fp64" "fp32,mqpu" "fp64,mqpu" "fp32,mgpu" "fp64,mgpu")
-            arraylength=${#optionArray[@]}
-            for (( i=0; i<${arraylength}; i++ ));
-            do
-                echo "  Testing nvidia target option: ${optionArray[$i]}"
-                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${optionArray[$i]}"
+        
+        # All target options to test for targets that support multiple configurations.
+        declare -A target_options=(
+            [nvidia]="fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu"
+            [tensornet]="fp32 fp64"
+            [tensornet-mps]="fp32 fp64"
+        )
+        if [[ -n "${target_options[$t]}" ]]; then
+            for opt in ${target_options[$t]}; do
+                echo "  Testing $t target option: ${opt}"
+                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${opt}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
                     echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
@@ -292,7 +296,6 @@ dynamics_backend_skipped_examples=(\
 # purposes of the container validation. The divisive_clustering_src Python
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
 # elsewhere and should be excluded from this test.
-# Same with afqmc.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 for ex in `find examples/ targets/ -name '*.py' | sort`;
 do 

@@ -78,4 +78,3 @@ if(CUDAQ_BUILD_TESTS)
 endif()
 
 add_subdirectory(runtime/interop)
-add_subdirectory(cudaq/operator)

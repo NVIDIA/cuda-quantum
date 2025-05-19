@@ -52,33 +52,34 @@ struct ansatz_z {
 
 int main() {
 
-  using namespace cudaq::spin;
   {
-    cudaq::spin_op h = x(0);
+    auto h = cudaq::spin_op::x(0);
     cudaq::set_random_seed(13);
 
     // Observe the kernel and make sure we get the expected energy
     // This tests implementation of observing X op.
     double energy = cudaq::observe(10000, ansatz_x{}, h);
-    printf("Energy is %d.\n", (int)(energy + 0.5));
-
-    assert(isClose(energy, 0.0) && "observe of X failed");
+    if (isClose(energy, 0.0))
+      printf("Energy is %d.\n", (int)(energy + 0.5));
+    else
+      printf("Observe of X failed. Energy is %.16lf\n", energy);
   }
 
   {
-    cudaq::spin_op h = y(3);
+    auto h = cudaq::spin_op::y(3);
     cudaq::set_random_seed(13);
 
     // Observe the kernel and make sure we get the expected energy
     // This tests implementation of observing Y op.
     double energy = cudaq::observe(10000, ansatz_y{}, h);
-    printf("Energy is %d.\n", (int)(energy + 0.5));
-
-    assert(isClose(energy, 0.0) && "observe of Y failed");
+    if (isClose(energy, 0.0))
+      printf("Energy is %d.\n", (int)(energy + 0.5));
+    else
+      printf("Observe of Y failed. Energy is %.16lf\n", energy);
   }
 
   {
-    cudaq::spin_op h = z(0) * z(1);
+    auto h = cudaq::spin_op::z(0) * cudaq::spin_op::z(1);
     cudaq::set_random_seed(13);
 
     // Observe the kernel and make sure we get the expected energy.
@@ -87,10 +88,13 @@ int main() {
     double energy = cudaq::observe(10000, ansatz_z{}, h);
     double expectation = cudaq::sample(10000, ansatz_z{}).expectation();
 
-    printf("Energy is %d.\n", (int)(energy + 0.5));
-    printf("Expectation is %d.\n", (int)(expectation + 0.5));
-
-    assert(isClose(energy, expectation) && "observe of Z failed");
+    if (isClose(energy, expectation)) {
+      printf("Energy is %d.\n", (int)(energy + 0.5));
+      printf("Expectation is %d.\n", (int)(expectation + 0.5));
+    } else
+      printf("Observe of Z failed. "
+             " Energy is %.16lf, expectation is %.16lf\n",
+             energy, expectation);
   }
 
   return 0;

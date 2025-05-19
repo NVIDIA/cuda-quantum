@@ -10,14 +10,16 @@
 #include "CuDensityMatErrorHandling.h"
 #include "common/Logger.h"
 #include <iostream>
+#include <map>
 #include <ranges>
 
 namespace {
-std::vector<int64_t> getSubspaceExtents(const std::vector<int64_t> &modeExtents,
-                                        const std::vector<int> &degrees) {
+std::vector<int64_t>
+getSubspaceExtents(const std::vector<int64_t> &modeExtents,
+                   const std::vector<std::size_t> &degrees) {
   std::vector<int64_t> subspaceExtents;
 
-  for (int degree : degrees) {
+  for (std::size_t degree : degrees) {
     if (degree >= modeExtents.size())
       throw std::out_of_range("Degree exceeds modeExtents size.");
 
@@ -27,29 +29,30 @@ std::vector<int64_t> getSubspaceExtents(const std::vector<int64_t> &modeExtents,
   return subspaceExtents;
 }
 
-std::unordered_map<int, int>
+cudaq::dimension_map
 convertDimensions(const std::vector<int64_t> &modeExtents) {
 
-  std::unordered_map<int, int> dimensions;
+  cudaq::dimension_map dimensions;
   for (size_t i = 0; i < modeExtents.size(); ++i)
-    dimensions[static_cast<int>(i)] = static_cast<int>(modeExtents[i]);
+    dimensions[i] = static_cast<std::size_t>(modeExtents[i]);
 
   return dimensions;
 }
 
 // Function to flatten a matrix into a 1D array (column major)
 std::vector<std::complex<double>>
-flattenMatrixColumnMajor(const cudaq::matrix_2 &matrix) {
+flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix) {
   std::vector<std::complex<double>> flatMatrix;
-  flatMatrix.reserve(matrix.get_size());
-  for (size_t col = 0; col < matrix.get_columns(); col++) {
-    for (size_t row = 0; row < matrix.get_rows(); row++) {
+  flatMatrix.reserve(matrix.size());
+  for (size_t col = 0; col < matrix.cols(); col++) {
+    for (size_t row = 0; row < matrix.rows(); row++) {
       flatMatrix.push_back(matrix[{row, col}]);
     }
   }
 
   return flatMatrix;
 }
+
 void *createArrayGpu(const std::vector<std::complex<double>> &cpuArray) {
   void *gpuArray{nullptr};
   const std::size_t array_size = cpuArray.size() * sizeof(std::complex<double>);
@@ -68,28 +71,28 @@ void destroyArrayGpu(void *gpuArray) {
     HANDLE_CUDA_ERROR(cudaFree(gpuArray));
 }
 
-cudaq::product_operator<cudaq::matrix_operator>
-computeDagger(const cudaq::matrix_operator &op) {
+cudaq::product_op<cudaq::matrix_handler>
+computeDagger(const cudaq::matrix_handler &op) {
   const std::string daggerOpName = op.to_string(false) + "_dagger";
   try {
-    auto func = [op](const std::vector<int> &dimensions,
+    auto func = [op](const std::vector<int64_t> &dimensions,
                      const std::unordered_map<std::string, std::complex<double>>
                          &params) {
-      std::unordered_map<int, int> dims;
+      cudaq::dimension_map dims;
       if (dimensions.size() != op.degrees().size())
         throw std::runtime_error("Dimension mismatched");
 
-      for (int i = 0; i < dimensions.size(); ++i) {
+      for (std::size_t i = 0; i < dimensions.size(); ++i) {
         dims[op.degrees()[i]] = dimensions[i];
       }
       auto originalMat = op.to_matrix(dims, params);
       return originalMat.adjoint();
     };
-    cudaq::matrix_operator::define(daggerOpName, {-1}, std::move(func));
+    cudaq::matrix_handler::define(daggerOpName, {-1}, std::move(func));
   } catch (...) {
     // Nothing, this has been define
   }
-  return cudaq::matrix_operator::instantiate(daggerOpName, op.degrees());
+  return cudaq::matrix_handler::instantiate(daggerOpName, op.degrees());
 }
 
 cudaq::scalar_operator computeDagger(const cudaq::scalar_operator &scalar) {
@@ -105,12 +108,12 @@ cudaq::scalar_operator computeDagger(const cudaq::scalar_operator &scalar) {
   }
 }
 
-cudaq::product_operator<cudaq::matrix_operator> computeDagger(
-    const cudaq::product_operator<cudaq::matrix_operator> &productOp) {
-  std::vector<cudaq::product_operator<cudaq::matrix_operator>> daggerOps;
-  for (const auto &component : productOp.get_terms()) {
+cudaq::product_op<cudaq::matrix_handler>
+computeDagger(const cudaq::product_op<cudaq::matrix_handler> &productOp) {
+  std::vector<cudaq::product_op<cudaq::matrix_handler>> daggerOps;
+  for (const auto &component : productOp) {
     if (const auto *elemOp =
-            dynamic_cast<const cudaq::matrix_operator *>(&component)) {
+            dynamic_cast<const cudaq::matrix_handler *>(&component)) {
       daggerOps.emplace_back(computeDagger(*elemOp));
     } else {
       throw std::runtime_error("Unhandled type!");
@@ -118,10 +121,9 @@ cudaq::product_operator<cudaq::matrix_operator> computeDagger(
   }
   std::reverse(daggerOps.begin(), daggerOps.end());
 
-  if (daggerOps.empty()) {
+  if (daggerOps.empty())
     throw std::runtime_error("Empty product operator");
-  }
-  cudaq::product_operator<cudaq::matrix_operator> daggerProduct = daggerOps[0];
+  cudaq::product_op<cudaq::matrix_handler> daggerProduct = daggerOps[0];
   for (std::size_t i = 1; i < daggerOps.size(); ++i) {
     daggerProduct *= daggerOps[i];
   }
@@ -132,8 +134,8 @@ cudaq::product_operator<cudaq::matrix_operator> computeDagger(
 
 cudensitymatOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
-    const operator_sum<cudaq::matrix_operator> &ham,
-    const std::vector<operator_sum<cudaq::matrix_operator>> &collapseOperators,
+    const sum_op<cudaq::matrix_handler> &ham,
+    const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
     const std::vector<int64_t> &modeExtents,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool isMasterEquation) {
@@ -155,7 +157,8 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     const std::vector<std::string> keys{ks.begin(), ks.end()};
     for (auto &[coeff, term] :
          convertToCudensitymat(ham, parameters, modeExtents)) {
-      cudensitymatWrappedScalarCallback_t wrappedCallback = {nullptr, nullptr};
+      cudensitymatWrappedScalarCallback_t wrappedCallback =
+          cudensitymatScalarCallbackNone;
       if (coeff.is_constant()) {
         const auto coeffVal = coeff.evaluate();
         const auto leftCoeff = std::complex<double>(0.0, -1.0) * coeffVal;
@@ -189,8 +192,8 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     for (auto &collapseOperator : collapseOperators) {
       for (auto &[coeff, term] :
            computeLindbladTerms(collapseOperator, modeExtents, parameters)) {
-        cudensitymatWrappedScalarCallback_t wrappedCallback = {nullptr,
-                                                               nullptr};
+        cudensitymatWrappedScalarCallback_t wrappedCallback =
+            cudensitymatScalarCallbackNone;
         if (coeff.is_constant()) {
           const auto coeffVal = coeff.evaluate();
           HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
@@ -223,40 +226,34 @@ cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
 
 cudensitymatElementaryOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
-    const cudaq::matrix_operator &elemOp,
+    const cudaq::matrix_handler &elemOp,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &modeExtents) {
   auto subspaceExtents = getSubspaceExtents(modeExtents, elemOp.degrees());
-  std::unordered_map<int, int> dimensions = convertDimensions(modeExtents);
-  cudensitymatWrappedTensorCallback_t wrappedTensorCallback = {nullptr,
-                                                               nullptr};
+  cudaq::dimension_map dimensions = convertDimensions(modeExtents);
+  cudensitymatWrappedTensorCallback_t wrappedTensorCallback =
+      cudensitymatTensorCallbackNone;
 
   static const std::vector<std::string> g_knownNonParametricOps = []() {
     std::vector<std::string> opNames;
     opNames.emplace_back(
-        cudaq::boson_operator::identity(0).get_terms()[0].to_string(false));
+        cudaq::boson_op::identity(0).begin()->to_string(false));
     // These are ops that we created during lindblad generation
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::boson_operator::create(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(cudaq::boson_op::create(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
     opNames.emplace_back(
-        cudaq::boson_operator::annihilate(0).get_terms()[0].to_string(false));
+        cudaq::boson_op::annihilate(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::boson_operator::number(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(cudaq::boson_op::number(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::spin_operator::i(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(cudaq::spin_op::i(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::spin_operator::x(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(cudaq::spin_op::x(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::spin_operator::y(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(cudaq::spin_op::y(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
-    opNames.emplace_back(
-        cudaq::spin_operator::z(0).get_terms()[0].to_string(false));
+    opNames.emplace_back(cudaq::spin_op::z(0).begin()->to_string(false));
     return opNames;
   }();
 
@@ -303,7 +300,7 @@ cudensitymatOperatorTerm_t
 cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
     const std::vector<cudensitymatElementaryOperator_t> &elemOps,
     const std::vector<int64_t> &modeExtents,
-    const std::vector<std::vector<int>> &degrees,
+    const std::vector<std::vector<std::size_t>> &degrees,
     const std::vector<std::vector<int>> &dualModalities) {
 
   cudensitymatOperatorTerm_t term;
@@ -343,12 +340,12 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
           "Elementary operator must act on a single degree.");
 
     for (size_t j = 0; j < sub_degrees.size(); j++) {
-      int degree = sub_degrees[j];
+      std::size_t degree = sub_degrees[j];
       int modality = modalities[j];
 
-      if (sub_degrees[i] < 0) {
+      if (sub_degrees[i] < 0)
         throw std::out_of_range("Degree cannot be negative!");
-      }
+
       allDegrees.emplace_back(degree);
       allModeActionDuality.emplace_back(modality);
     }
@@ -358,18 +355,17 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
   HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
       m_handle, term, static_cast<int32_t>(elemOps.size()), elemOps.data(),
       allDegrees.data(), allModeActionDuality.data(),
-      make_cuDoubleComplex(1.0, 0.0), {nullptr, nullptr}));
+      make_cuDoubleComplex(1.0, 0.0), cudensitymatScalarCallbackNone));
   return term;
 }
 
 cudensitymatOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
-    const operator_sum<cudaq::matrix_operator> &op,
+    const sum_op<cudaq::matrix_handler> &op,
     const std::vector<int64_t> &modeExtents) {
-  if (op.get_terms().empty()) {
+  if (op.num_terms() == 0)
     throw std::invalid_argument("Operator sum cannot be empty.");
-  }
 
   cudensitymatOperator_t cudmOperator;
   HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
@@ -382,7 +378,8 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
   const std::vector<std::string> keys{ks.begin(), ks.end()};
   for (auto &[coeff, term] :
        convertToCudensitymat(op, parameters, modeExtents)) {
-    cudensitymatWrappedScalarCallback_t wrappedCallback = {nullptr, nullptr};
+    cudensitymatWrappedScalarCallback_t wrappedCallback =
+        cudensitymatScalarCallbackNone;
 
     if (coeff.is_constant()) {
       const auto coeffVal = coeff.evaluate();
@@ -403,23 +400,23 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
 
 std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
 cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
-    const operator_sum<cudaq::matrix_operator> &op,
+    const sum_op<cudaq::matrix_handler> &op,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &modeExtents) {
-  if (op.get_terms().empty())
+  if (op.num_terms() == 0)
     throw std::invalid_argument("Operator sum cannot be empty.");
 
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
       result;
 
-  for (const auto &productOp : op.get_terms()) {
+  for (const auto &productOp : op) {
     std::vector<cudensitymatElementaryOperator_t> elemOps;
-    std::vector<std::vector<int>> allDegrees;
-    for (const auto &component : productOp.get_terms()) {
+    std::vector<std::vector<std::size_t>> allDegrees;
+    for (const auto &component : productOp) {
       // No need to check type
       // just call to_matrix on it
       if (const auto *elemOp =
-              dynamic_cast<const cudaq::matrix_operator *>(&component)) {
+              dynamic_cast<const cudaq::matrix_handler *>(&component)) {
         auto cudmElemOp =
             createElementaryOperator(*elemOp, parameters, modeExtents);
         elemOps.emplace_back(cudmElemOp);
@@ -442,26 +439,25 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
 
 std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
 cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
-    const operator_sum<cudaq::matrix_operator> &collapseOp,
+    const sum_op<cudaq::matrix_handler> &collapseOp,
     const std::vector<int64_t> &modeExtents,
     const std::unordered_map<std::string, std::complex<double>> &parameters) {
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
       lindbladTerms;
-  for (const product_operator<matrix_operator> &l_op : collapseOp.get_terms()) {
-    for (const product_operator<matrix_operator> &r_op :
-         collapseOp.get_terms()) {
+  for (const product_op<matrix_handler> &l_op : collapseOp) {
+    for (const product_op<matrix_handler> &r_op : collapseOp) {
       scalar_operator coeff =
           l_op.get_coefficient() * computeDagger(r_op.get_coefficient());
       auto ldag = computeDagger(r_op);
       {
         // L * rho * L_dag
         std::vector<cudensitymatElementaryOperator_t> elemOps;
-        std::vector<std::vector<int>> allDegrees;
+        std::vector<std::vector<std::size_t>> allDegrees;
         std::vector<std::vector<int>> all_action_dual_modalities;
 
-        for (const auto &component : l_op.get_terms()) {
+        for (const auto &component : l_op) {
           if (const auto *elemOp =
-                  dynamic_cast<const cudaq::matrix_operator *>(&component)) {
+                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
             auto cudmElemOp =
                 createElementaryOperator(*elemOp, parameters, modeExtents);
             elemOps.emplace_back(cudmElemOp);
@@ -474,9 +470,9 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
           }
         }
 
-        for (const auto &component : ldag.get_terms()) {
+        for (const auto &component : ldag) {
           if (const auto *elemOp =
-                  dynamic_cast<const cudaq::matrix_operator *>(&component)) {
+                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
             auto cudmElemOp =
                 createElementaryOperator(*elemOp, parameters, modeExtents);
             elemOps.emplace_back(cudmElemOp);
@@ -494,15 +490,15 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
         lindbladTerms.emplace_back(std::make_pair(coeff, D1_term));
       }
 
-      product_operator<matrix_operator> L_daggerTimesL = -0.5 * ldag * l_op;
+      product_op<matrix_handler> L_daggerTimesL = -0.5 * ldag * l_op;
       {
         std::vector<cudensitymatElementaryOperator_t> elemOps;
-        std::vector<std::vector<int>> allDegrees;
+        std::vector<std::vector<std::size_t>> allDegrees;
         std::vector<std::vector<int>> all_action_dual_modalities_left;
         std::vector<std::vector<int>> all_action_dual_modalities_right;
-        for (const auto &component : L_daggerTimesL.get_terms()) {
+        for (const auto &component : L_daggerTimesL) {
           if (const auto *elemOp =
-                  dynamic_cast<const cudaq::matrix_operator *>(&component)) {
+                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
             auto cudmElemOp =
                 createElementaryOperator(*elemOp, parameters, modeExtents);
             elemOps.emplace_back(cudmElemOp);
@@ -521,7 +517,7 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
           // For left side, we need to reverse the order
           std::vector<cudensitymatElementaryOperator_t> d2Ops(elemOps);
           std::reverse(d2Ops.begin(), d2Ops.end());
-          std::vector<std::vector<int>> d2Degrees(allDegrees);
+          std::vector<std::vector<std::size_t>> d2Degrees(allDegrees);
           std::reverse(d2Degrees.begin(), d2Degrees.end());
           cudensitymatOperatorTerm_t D2_term = createProductOperatorTerm(
               d2Ops, modeExtents, d2Degrees, all_action_dual_modalities_left);
@@ -552,11 +548,11 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
   m_scalarCallbacks.push_back(ScalarCallBackContext(scalarOp, paramNames));
   ScalarCallBackContext *storedCallbackContext = &m_scalarCallbacks.back();
   using WrapperFuncType =
-      int32_t (*)(cudensitymatScalarCallback_t, double, int32_t, const double[],
-                  cudaDataType_t, void *);
+      int32_t (*)(cudensitymatScalarCallback_t, double, int64_t, int32_t,
+                  const double[], cudaDataType_t, void *);
 
   auto wrapper = [](cudensitymatScalarCallback_t callback, double time,
-                    int32_t numParams, const double params[],
+                    int64_t batchSize, int32_t numParams, const double params[],
                     cudaDataType_t dataType, void *scalarStorage) -> int32_t {
     try {
       ScalarCallBackContext *context =
@@ -592,6 +588,7 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
   cudensitymatWrappedScalarCallback_t wrappedCallback;
   wrappedCallback.callback =
       reinterpret_cast<cudensitymatScalarCallback_t>(storedCallbackContext);
+  wrappedCallback.device = CUDENSITYMAT_CALLBACK_DEVICE_CPU;
   wrappedCallback.wrapper =
       reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
   return wrappedCallback;
@@ -599,25 +596,25 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
 
 cudensitymatWrappedTensorCallback_t
 cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
-    const matrix_operator &matrixOp,
+    const matrix_handler &matrixOp,
     const std::vector<std::string> &paramNames) {
   m_tensorCallbacks.push_back(TensorCallBackContext(matrixOp, paramNames));
   TensorCallBackContext *storedCallbackContext = &m_tensorCallbacks.back();
   using WrapperFuncType = int32_t (*)(
       cudensitymatTensorCallback_t, cudensitymatElementaryOperatorSparsity_t,
-      int32_t, const int64_t[], const int32_t[], double, int32_t,
+      int32_t, const int64_t[], const int32_t[], double, int64_t, int32_t,
       const double[], cudaDataType_t, void *, cudaStream_t);
 
   auto wrapper = [](cudensitymatTensorCallback_t callback,
                     cudensitymatElementaryOperatorSparsity_t sparsity,
                     int32_t num_modes, const int64_t modeExtents[],
                     const int32_t diagonal_offsets[], double time,
-                    int32_t num_params, const double params[],
-                    cudaDataType_t data_type, void *tensor_storage,
-                    cudaStream_t stream) -> int32_t {
+                    int64_t batchSize, int32_t num_params,
+                    const double params[], cudaDataType_t data_type,
+                    void *tensor_storage, cudaStream_t stream) -> int32_t {
     try {
       auto *context = reinterpret_cast<TensorCallBackContext *>(callback);
-      matrix_operator &storedOp = context->tensorOp;
+      matrix_handler &storedOp = context->tensorOp;
 
       if (num_modes <= 0) {
         std::cerr << "num_modes is invalid: " << num_modes << std::endl;
@@ -642,9 +639,9 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
                      context->paramNames[i], param_map[context->paramNames[i]]);
       }
 
-      std::unordered_map<int, int> dimensions;
-      for (int i = 0; i < num_modes; ++i) {
-        dimensions[i] = static_cast<int>(modeExtents[i]);
+      cudaq::dimension_map dimensions;
+      for (std::size_t i = 0; i < num_modes; ++i) {
+        dimensions[i] = modeExtents[i];
       }
 
       if (dimensions.empty()) {
@@ -652,10 +649,10 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
       }
 
-      matrix_2 matrix_data = storedOp.to_matrix(dimensions, param_map);
+      complex_matrix matrix_data = storedOp.to_matrix(dimensions, param_map);
 
-      std::size_t rows = matrix_data.get_rows();
-      std::size_t cols = matrix_data.get_columns();
+      std::size_t rows = matrix_data.rows();
+      std::size_t cols = matrix_data.cols();
 
       if (rows != cols) {
         std::cerr << "Non-square matrix encountered: " << rows << "x" << cols
@@ -690,6 +687,7 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
   cudensitymatWrappedTensorCallback_t wrappedCallback;
   wrappedCallback.callback =
       reinterpret_cast<cudensitymatTensorCallback_t>(storedCallbackContext);
+  wrappedCallback.device = CUDENSITYMAT_CALLBACK_DEVICE_CPU;
   wrappedCallback.wrapper =
       reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
 

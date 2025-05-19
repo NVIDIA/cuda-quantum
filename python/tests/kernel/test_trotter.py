@@ -48,31 +48,38 @@ def trotter():
         omega = 2 * np.pi
 
         def heisenbergModelHam(t: float) -> cudaq.SpinOperator:
-            tdOp = cudaq.SpinOperator(num_qubits=n_spins)
+            tdOp = cudaq.SpinOperator.empty()
             for i in range(0, n_spins - 1):
                 tdOp += (Jx * cudaq.spin.x(i) * cudaq.spin.x(i + 1))
                 tdOp += (Jy * cudaq.spin.y(i) * cudaq.spin.y(i + 1))
                 tdOp += (Jz * cudaq.spin.z(i) * cudaq.spin.z(i + 1))
             for i in range(0, n_spins):
                 tdOp += (np.cos(omega * t) * cudaq.spin.x(i))
+            print(tdOp)
             return tdOp
 
         def termCoefficients(op: cudaq.SpinOperator) -> list[complex]:
             result = []
-            ham.for_each_term(
-                lambda term: result.append(term.get_coefficient()))
+            for term in op:
+                result.append(term.get_coefficient())
             return result
 
         def termWords(op: cudaq.SpinOperator) -> list[str]:
             result = []
-            ham.for_each_term(lambda term: result.append(term.to_string(False)))
+            for term in op:
+                # The way the trotter kernel is written, it
+                # wants exp pauli to act on the entire state.
+                # That means we need to make it explicit that each term
+                # in this Hamiltonian indeed is supposed to act on each qubit.
+                for i in range(0, n_spins):
+                    term *= cudaq.spin.i(i)
+                result.append(term.get_pauli_word())
             return result
 
         # Observe the average magnetization of all spins (<Z>)
-        average_magnetization = cudaq.SpinOperator(num_qubits=n_spins)
+        average_magnetization = cudaq.SpinOperator.empty()
         for i in range(0, n_spins):
             average_magnetization += ((1.0 / n_spins) * cudaq.spin.z(i))
-        average_magnetization -= 1.0
 
         # Run loop
         state = cudaq.get_state(getInitState, n_spins)

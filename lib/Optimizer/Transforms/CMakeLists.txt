@@ -51,9 +51,12 @@ add_cudaq_library(OptTransforms
   PruneCtrlRelations.cpp
   PySynthCallableBlockArgs.cpp
   QuakeAddMetadata.cpp
+  QuakeSimplify.cpp
   QuakeSynthesizer.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
+  ReplaceStateWithKernel.cpp
+  SROA.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp

@@ -14,11 +14,10 @@
 #ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(AsyncTester, checkObserveAsync) {
 
-  using namespace cudaq::spin;
-
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
-  h.dump();
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
   auto params = cudaq::linspace(-M_PI, M_PI, 20);
 
@@ -98,6 +97,17 @@ CUDAQ_TEST(AsyncTester, checkGetStateAsync) {
 
   if (cc0State.get_precision() == cudaq::SimulationState::precision::fp32) {
     std::vector<std::complex<float>> expectedVec(1 << 5, 0.0);
+    expectedVec[0] = M_SQRT1_2;
+    expectedVec[expectedVec.size() - 1] = M_SQRT1_2;
+
+    auto expectedState = cudaq::state::from_data(expectedVec);
+
+    EXPECT_NEAR(cc0State.overlap(expectedState).real(), 1.0, 1e-3);
+    EXPECT_NEAR(cc1State.overlap(expectedState).real(), 1.0, 1e-3);
+    EXPECT_NEAR(cc2State.overlap(expectedState).real(), 1.0, 1e-3);
+    EXPECT_NEAR(cc3State.overlap(expectedState).real(), 1.0, 1e-3);
+  } else {
+    std::vector<std::complex<double>> expectedVec(1 << 5, 0.0);
     expectedVec[0] = M_SQRT1_2;
     expectedVec[expectedVec.size() - 1] = M_SQRT1_2;
 

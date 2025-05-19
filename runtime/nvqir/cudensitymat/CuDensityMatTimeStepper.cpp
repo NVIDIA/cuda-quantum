@@ -9,6 +9,9 @@
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
+#include <map>
+
 namespace cudaq {
 CuDensityMatTimeStepper::CuDensityMatTimeStepper(
     cudensitymatHandle_t handle, cudensitymatOperator_t liouvillian)
@@ -17,9 +20,8 @@ CuDensityMatTimeStepper::CuDensityMatTimeStepper(
 state CuDensityMatTimeStepper::compute(
     const state &inputState, double t, double step_size,
     const std::unordered_map<std::string, std::complex<double>> &parameters) {
-  if (step_size == 0.0) {
+  if (step_size == 0.0)
     throw std::runtime_error("Step size cannot be zero.");
-  }
 
   auto *simState =
       cudaq::state_helper::getSimulationState(const_cast<state *>(&inputState));
@@ -34,15 +36,13 @@ state CuDensityMatTimeStepper::compute(
   // Create a new state for the next step
   auto next_state = CuDensityMatState::zero_like(state);
 
-  if (!next_state.is_initialized()) {
+  if (!next_state.is_initialized())
     throw std::runtime_error("Next state failed to initialize.");
-  }
 
-  if (state.get_hilbert_space_dims() != next_state.get_hilbert_space_dims()) {
+  if (state.get_hilbert_space_dims() != next_state.get_hilbert_space_dims())
     throw std::runtime_error("As the dimensions of both the old and the new "
                              "state do no match, the "
                              "operator cannot act on the states.");
-  }
 
   // Prepare the operator for action
   HANDLE_CUDM_ERROR(cudensitymatOperatorPrepareAction(
@@ -70,18 +70,20 @@ state CuDensityMatTimeStepper::compute(
   // Apply the operator action
   std::map<std::string, std::complex<double>> sortedParameters(
       parameters.begin(), parameters.end());
-  std::vector<double> paramValues;
+  std::vector<std::complex<double>> paramValues;
   for (const auto &[k, v] : sortedParameters) {
-    paramValues.emplace_back(v.real());
-    paramValues.emplace_back(v.imag());
+    paramValues.emplace_back(v);
   }
+  double *param_d =
+      static_cast<double *>(cudaq::dynamics::createArrayGpu(paramValues));
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   HANDLE_CUDM_ERROR(cudensitymatOperatorComputeAction(
-      m_handle, m_liouvillian, t, paramValues.size(), paramValues.data(),
+      m_handle, m_liouvillian, t, 1, paramValues.size() * 2, param_d,
       state.get_impl(), next_state.get_impl(), workspace, 0x0));
   HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
 
   // Cleanup
+  cudaq::dynamics::destroyArrayGpu(param_d);
   HANDLE_CUDM_ERROR(cudensitymatDestroyWorkspace(workspace));
 
   return cudaq::state(

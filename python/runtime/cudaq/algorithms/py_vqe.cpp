@@ -139,7 +139,7 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
   auto [kernelName, kernelMod] = getKernelNameAndModule(kernel);
   auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
   ctx->kernelName = kernelName;
-  ctx->spin = &hamiltonian;
+  ctx->spin = cudaq::spin_op::canonicalize(hamiltonian);
   platform.set_exec_ctx(ctx.get());
 
   constexpr std::size_t startingArgIdx = 1;
@@ -165,8 +165,8 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
   std::vector<std::string> names;
   auto *wrapper = new cudaq::ArgWrapper{unwrap(kernelMod), names, kernelArgs};
 
-  platform.launchVQE(kernelName, wrapper, gradient, hamiltonian, optimizer,
-                     n_params, shots);
+  platform.launchVQE(kernelName, wrapper, gradient, ctx->spin.value(),
+                     optimizer, n_params, shots);
   platform.reset_exec_ctx();
   delete wrapper;
   if (kernelArgs)
@@ -210,7 +210,9 @@ pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
         VAR_NAME.get_type().attr("__name__").cast<std::string>())] =           \
         json.attr("loads")(VAR_NAME.attr("to_json")());                        \
   } while (0)
-  LOAD_VAR(hamiltonian);
+
+  auto spin = cudaq::spin_op::canonicalize(hamiltonian);
+  LOAD_VAR(spin);
   LOAD_VAR(optimizer);
   LOAD_VAR_NO_CAST(kernel);
   if (gradient)
@@ -236,7 +238,7 @@ pyVQE_remote(cudaq::quantum_platform &platform, py::object &kernel,
   os << "kernel=__kernel, ";
   if (gradient)
     os << "gradient_strategy=__gradient, ";
-  os << "spin_operator=__hamiltonian, ";
+  os << "spin_operator=__spin, ";
   os << "optimizer=__optimizer, ";
   os << "parameter_count=" << n_params << ", ";
   if (argumentMapper)

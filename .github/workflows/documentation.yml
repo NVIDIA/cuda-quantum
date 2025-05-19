@@ -17,6 +17,12 @@ on:
     workflows:
       - Deployments
       - CI
+    branches:
+      - 'main'
+      - 'releases/*'
+      - 'staging/*'
+      - 'experimental/*'
+      - 'pull-request/*'
     types:
       - completed
 

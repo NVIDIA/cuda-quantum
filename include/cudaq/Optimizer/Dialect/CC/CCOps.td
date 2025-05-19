@@ -17,14 +17,15 @@ include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
 
-def AnyPointerType : Type<CPred<"$_self.isa<mlir::LLVM::LLVMPointerType,"
-                          "cudaq::cc::PointerType>()">, "any pointer type">;
+def AnyPointerType : Type<CPred<"isa<mlir::LLVM::LLVMPointerType,"
+                          "cudaq::cc::PointerType>($_self)">,
+                          "any pointer type">;
 
-def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::CallableType, "
-                          "mlir::FunctionType>()">, "any callable type">;
+def AnyCallableType : Type<CPred<"isa<cudaq::cc::CallableType, "
+                          "mlir::FunctionType>($_self)">, "any callable type">;
 
-def AnyAggregateType : Type<CPred<"$_self.isa<cudaq::cc::StructType, "
-                            "cudaq::cc::ArrayType, mlir::ComplexType>()">,
+def AnyAggregateType : Type<CPred<"isa<cudaq::cc::StructType, "
+                            "cudaq::cc::ArrayType, mlir::ComplexType>($_self)">,
                             "any aggregate type">;
 
 //===----------------------------------------------------------------------===//
@@ -394,6 +395,7 @@ def cc_IfOp : CCOp<"if",
 
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let extraClassDeclaration = [{
     using RegionBuilderFn = llvm::function_ref<void(mlir::OpBuilder &,
@@ -825,7 +827,7 @@ def cc_AllocaOp : CCOp<"alloca", [
 def cc_LoadOp : CCOp<"load",
     [TypesMatchWith<"result type matches element type of pointer value",
         "ptrvalue", "result",
-        "$_self.cast<cudaq::cc::PointerType>().getElementType()">]> {
+        "cast<cudaq::cc::PointerType>($_self).getElementType()">]> {
   let summary = "Load a value from a pointer into a virtual register.";
   let description = [{
     A LoadOp is used to load a value from a memory location, specified by a
@@ -850,7 +852,7 @@ def cc_LoadOp : CCOp<"load",
 def cc_StoreOp : CCOp<"store",
     [TypesMatchWith<"type of value matches element type of pointer",
         "ptrvalue", "value",
-        "$_self.cast<cudaq::cc::PointerType>().getElementType()">]> {
+        "cast<cudaq::cc::PointerType>($_self).getElementType()">]> {
   let summary = "Store a virtual register value to a memory location.";
   let description = [{
     A StoreOp is used to store the value from a virtual register to a memory
@@ -1009,7 +1011,7 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
     Example:
 
     ```mlir
-      %s = cc.insert_value %i16, %r[1, 0] :
+      %s = cc.insert_value %r[1, 0], %i16 :
            (!cc.struct<{i32, !cc.struct<{i16, f32}>}>, i16) ->
            !cc.struct<{i32, !cc.struct<{i16, f32}>}>
     ```
@@ -1036,6 +1038,10 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
                    mlir::ArrayRef<std::int64_t>{index});
     }]>
   ];
+
+  let extraClassDeclaration = [{
+    std::size_t getNumIndices() { return getPosition().size(); }
+  }];
 }
 
 def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
@@ -1088,6 +1094,8 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
     bool llvmNormalForm();
 
     std::optional<std::int32_t> getConstantIndex(std::size_t arg);
+
+    std::size_t getNumIndices() { return getRawConstantIndices().size(); }
   }];
 }
 

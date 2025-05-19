@@ -14,6 +14,16 @@ import numpy as np
 from typing import List
 
 
+def requires_openfermion():
+    open_fermion_found = True
+    try:
+        import openfermion, openfermionpyscf
+    except:
+        open_fermion_found = False
+    return pytest.mark.skipif(not open_fermion_found,
+                              reason=f"openfermion is not installed")
+
+
 def assert_close(want, got, tolerance=1.0e-1) -> bool:
     return abs(want - got) < tolerance
 
@@ -179,7 +189,7 @@ def test_quantinuum_state_preparation():
     assert not '111' in counts
 
 
-def test_quantinuum_state_synthesis():
+def test_quantinuum_state_synthesis_from_simulator():
 
     @cudaq.kernel
     def kernel(state: cudaq.State):
@@ -188,9 +198,35 @@ def test_quantinuum_state_synthesis():
     state = cudaq.State.from_data(
         np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
 
-    with pytest.raises(RuntimeError) as e:
-        counts = cudaq.sample(kernel, state)
-    assert 'Could not successfully apply quake-synth.' in repr(e)
+    counts = cudaq.sample(kernel, state)
+    assert "00" in counts
+    assert "10" in counts
+    assert len(counts) == 2
+
+    synthesized = cudaq.synthesize(kernel, state)
+    counts = cudaq.sample(synthesized)
+    assert '00' in counts
+    assert '10' in counts
+    assert len(counts) == 2
+
+
+def test_quantinuum_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+
+    s = cudaq.get_state(init, 2)
+    s = cudaq.get_state(kernel, s)
+    counts = cudaq.sample(kernel, s)
+    assert '10' in counts
+    assert len(counts) == 1
 
 
 def test_exp_pauli():
@@ -217,6 +253,21 @@ def test_exp_pauli_param():
     counts = cudaq.sample(test_param, cudaq.pauli_word("XX"))
     assert '00' in counts
     assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
+def test_list_complex_param():
+
+    @cudaq.kernel
+    def kernel(coefficients: list[complex]):
+        q = cudaq.qvector(2)
+        for i in range(len(coefficients)):
+            exp_pauli(coefficients[i].real, q, "XX")
+
+    counts = cudaq.sample(kernel, [10. + 0.j, 30. + 0.j])
+    assert "00" in counts
+    assert "11" in counts
     assert not '01' in counts
     assert not '10' in counts
 
@@ -318,6 +369,61 @@ def test_3q_unitary_synthesis():
 
     with pytest.raises(RuntimeError):
         cudaq.sample(test_toffoli)
+
+
+@requires_openfermion()
+def test_observe_chemistry():
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
+    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
+        geometry, 'sto-3g', 1, 0)
+
+    qubit_count = data.n_orbitals * 2
+
+    @cudaq.kernel
+    def kernel(thetas: list[float]):
+        qubits = cudaq.qvector(qubit_count)
+
+    result = cudaq.observe(kernel, molecule, [.0, .0, .0, .0], shots_count=1000)
+
+    expectation = result.expectation()
+    assert_close(expectation, 0.707)
+
+
+def test_capture_array():
+    arr = np.array([1., 0], dtype=np.complex128)
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(arr)
+
+    counts = cudaq.sample(kernel)
+    assert len(counts) == 1
+    assert "0" in counts
+
+    arr = np.array([0., 1], dtype=np.complex128)
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(arr)
+
+    counts = cudaq.sample(kernel)
+    assert len(counts) == 1
+    assert "1" in counts
+
+
+def test_capture_state():
+    s = cudaq.State.from_data(np.array([1., 0], dtype=np.complex128))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(s)
+
+    with pytest.raises(
+            RuntimeError,
+            match=
+            "captured states are not supported on quantum hardware or remote simulators"
+    ):
+        counts = cudaq.sample(kernel)
 
 
 # leave for gdb debugging
