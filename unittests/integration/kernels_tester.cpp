@@ -293,7 +293,8 @@ CUDAQ_TEST(KernelsTester, pcmTester_mz_and_depol1) {
   multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
   platform.reset_exec_ctx();
 
-  // Stage 2 - get the PCM using the ctx_pcm_size.shots value.
+  // Stage 2 - get the PCM using the size calculated above
+  // (ctx_pcm_size.pcm_dimensions).
   cudaq::ExecutionContext ctx_pcm("pcm");
   ctx_pcm.noiseModel = &noise;
   ctx_pcm.pcm_dimensions = ctx_pcm_size.pcm_dimensions;
