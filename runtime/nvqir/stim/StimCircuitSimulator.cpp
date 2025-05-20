@@ -48,13 +48,13 @@ protected:
   /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
   std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
 
-  /// @brief Error counter for PCM matrix generation. This is only used for
-  /// "pcm" and "pcm_size" execution contexts.
-  std::size_t pcm_err_count = 0;
+  /// @brief Error counter for MSM generation. This is only used for "msm" and
+  /// "msm_size" execution contexts.
+  std::size_t msm_err_count = 0;
 
-  /// @brief Whether or not the execution context name is "pcm" (value is cached
+  /// @brief Whether or not the execution context name is "msm" (value is cached
   /// for speed)
-  bool is_pcm_mode = false;
+  bool is_msm_mode = false;
 
   std::optional<StimNoiseType>
   isValidStimNoiseChannel(const kraus_channel &channel) const {
@@ -159,9 +159,9 @@ protected:
     if (executionContext && executionContext->name == "sample" &&
         !executionContext->hasConditionalsOnMeasureResults)
       batch_size = executionContext->shots;
-    else if (executionContext && executionContext->name == "pcm")
+    else if (executionContext && executionContext->name == "msm")
       batch_size =
-          executionContext->pcm_dimensions.value_or(std::make_pair(1, 1))
+          executionContext->msm_dimensions.value_or(std::make_pair(1, 1))
               .second;
     return batch_size;
   }
@@ -169,27 +169,27 @@ protected:
   /// @brief Return the number of rows and columns needed for a Parity Check
   /// Matrix
   std::optional<std::pair<std::size_t, std::size_t>>
-  generatePCMSize() override {
-    return std::make_pair(num_measurements, pcm_err_count);
+  generateMSMSize() override {
+    return std::make_pair(num_measurements, msm_err_count);
   }
 
-  void generatePCM() override {
+  void generateMSM() override {
     const auto num_cols = getBatchSize();
-    stim::simd_bit_table<W> pcmSample = sampleSim->m_record.storage;
+    stim::simd_bit_table<W> msmSample = sampleSim->m_record.storage;
     // Disabled because it's too verbose, but left here as comments for
     // reference.
-    // cudaq::info("pcmSample is {} {}\n{}", pcm_err_count, num_cols,
-    //             pcmSample.str(num_measurements, num_cols).c_str());
+    // cudaq::info("msmSample is {} {}\n{}", msm_err_count, num_cols,
+    //             msmSample.str(num_measurements, num_cols).c_str());
 
-    // Now it's pcmSample[error_mechanism_index][measure_idx]
-    pcmSample = pcmSample.transposed();
+    // Now it's msmSample[error_mechanism_index][measure_idx]
+    msmSample = msmSample.transposed();
     CountsDictionary counts;
     std::vector<std::string> sequentialData;
     sequentialData.reserve(num_cols);
     for (std::size_t shot = 0; shot < num_cols; shot++) {
       std::string aShot(num_measurements, '0');
       for (std::size_t b = 0; b < num_measurements; b++)
-        aShot[b] = pcmSample[shot][b] ? '1' : '0';
+        aShot[b] = msmSample[shot][b] ? '1' : '0';
       counts[aShot]++;
       sequentialData.push_back(std::move(aShot));
     }
@@ -216,16 +216,16 @@ protected:
           std::mt19937_64(randomEngine), /*num_qubits=*/0, /*sign_bias=*/+0);
     }
     if (!sampleSim) {
-      is_pcm_mode = executionContext && executionContext->name == "pcm";
+      is_msm_mode = executionContext && executionContext->name == "msm";
       std::size_t anticipated_num_measurements = 0;
-      std::size_t num_pcm_cols = 0;
-      if (is_pcm_mode) {
+      std::size_t num_msm_cols = 0;
+      if (is_msm_mode) {
         auto dims =
-            executionContext->pcm_dimensions.value_or(std::make_pair(1, 1));
+            executionContext->msm_dimensions.value_or(std::make_pair(1, 1));
         anticipated_num_measurements = dims.first;
-        num_pcm_cols = dims.second;
-        executionContext->pcm_probabilities.emplace();
-        executionContext->pcm_probabilities->reserve(num_pcm_cols);
+        num_msm_cols = dims.second;
+        executionContext->msm_probabilities.emplace();
+        executionContext->msm_probabilities->reserve(num_msm_cols);
       }
 
       // If possible, provide a non-empty stim::CircuitStats in order to avoid
@@ -243,11 +243,11 @@ protected:
       sampleSim = std::make_unique<stim::FrameSimulator<W>>(
           circuit_stats, stim::FrameSimulatorMode::STORE_MEASUREMENTS_TO_MEMORY,
           batch_size, std::mt19937_64(randomEngine));
-      if (is_pcm_mode) {
+      if (is_msm_mode) {
         sampleSim->guarantee_anticommutation_via_frame_randomization = false;
       }
       sampleSim->reset_all();
-      pcm_err_count = 0;
+      msm_err_count = 0;
     }
   }
 
@@ -260,8 +260,8 @@ protected:
       randomEngine = std::move(sampleSim->rng);
     sampleSim.reset();
     num_measurements = 0;
-    pcm_err_count = 0;
-    is_pcm_mode = false;
+    msm_err_count = 0;
+    is_msm_mode = false;
   }
 
   /// @brief Apply operation to all Stim simulators.
@@ -330,12 +330,12 @@ protected:
 
   void applyNoise(const cudaq::kraus_channel &channel,
                   const std::vector<std::uint32_t> &qubits) {
-    cudaq::info("[stim] apply kraus channel {}, is_pcm_mode = {}",
-                channel.get_type_name(), is_pcm_mode);
+    cudaq::info("[stim] apply kraus channel {}, is_msm_mode = {}",
+                channel.get_type_name(), is_msm_mode);
 
     // If we have a valid operation, apply it
     if (auto res = isValidStimNoiseChannel(channel)) {
-      if (is_pcm_mode) {
+      if (is_msm_mode) {
         // If the noise operation is the first operation done to a qubit, the
         // x_table and z_table may not be sized for the qubits. If that is the
         // case, then we simply perform a reset on the qubit to essentially
@@ -352,15 +352,15 @@ protected:
         std::size_t num_mechanisms = res->params.size();
         std::size_t flip_ix = 0;
         for (std::size_t m = 0; m < num_mechanisms; m++) {
-          // In this mode, the "shot" is an alias for the PCM error count.
-          std::size_t shot = pcm_err_count;
-          if (pcm_err_count < sampleSim->batch_size) {
+          // In this mode, the "shot" is an alias for the MSM error count.
+          std::size_t shot = msm_err_count;
+          if (msm_err_count < sampleSim->batch_size) {
             for (std::size_t t = 0; t < res->num_targets; t++, flip_ix++) {
               sampleSim->x_table[qubits[t]][shot] ^= res->flips_x[flip_ix];
               sampleSim->z_table[qubits[t]][shot] ^= res->flips_z[flip_ix];
             }
-            executionContext->pcm_probabilities->push_back(res->params[m]);
-            pcm_err_count++;
+            executionContext->msm_probabilities->push_back(res->params[m]);
+            msm_err_count++;
           }
         }
       } else {
@@ -372,7 +372,7 @@ protected:
         sampleSim->safe_do_circuit(noiseOps);
 
         // Increment the error count by the number of mechanisms
-        pcm_err_count += res->params.size();
+        msm_err_count += res->params.size();
       }
     }
   }

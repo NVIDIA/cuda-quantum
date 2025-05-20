@@ -117,12 +117,14 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
-  /// @brief Probability of occurrence of each error mechanism (column) in PCM
-  /// matrix. (0-1 range)
-  std::optional<std::vector<double>> pcm_probabilities;
+  /// @brief Probability of occurrence of each error mechanism (column) in
+  /// Measurement Syndrome Matrix (0-1 range).
+  std::optional<std::vector<double>> msm_probabilities;
 
-  /// @brief The number of rows and columns of a Parity Check Matrix
-  std::optional<std::pair<std::size_t, std::size_t>> pcm_dimensions;
+  /// @brief The number of rows and columns of a Measurement Syndrome Matrix.
+  /// Note: Measurement Syndrome Matrix is defined in
+  /// https://arxiv.org/pdf/2407.13826.
+  std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
