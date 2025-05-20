@@ -88,6 +88,10 @@ protected:
   /// Internal - At qudit deallocation, return the qudit index
   void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
 
+  /// Internal - whether or not noise is globally disabled in this
+  /// ExecutionManager (i.e. via apply_noise<cudaq::global_disable>())
+  bool noiseDisabled = false;
+
 public:
   ExecutionManager() = default;
 
