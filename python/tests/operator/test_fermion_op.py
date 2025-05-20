@@ -9,7 +9,7 @@
 import numpy as np, pytest, random
 from cudaq import fermion
 from cudaq.operators.fermion import *
-from op_utils import * # test helpers
+from op_utils import *  # test helpers
 
 has_scipy = True
 try:
@@ -34,6 +34,7 @@ def test_definitions():
     assert np.allclose(annihilate(1).to_matrix(), annihilate_matrix(2))
     assert np.allclose(number(1).to_matrix(), number_matrix(2))
 
+
 def test_commutation_relations():
 
     ad_mat = create_matrix(2)
@@ -44,7 +45,7 @@ def test_commutation_relations():
     # Expected anti-commutation relations:
     # {a†(k), a(q)} = δkq
     # {a†(k), a†(q)} = {a(k), a(q)} = 0
-    def anticommutator(ad, a): 
+    def anticommutator(ad, a):
         return a * ad + ad * a
 
     # check {a†(q), a(q)} = 1
@@ -139,7 +140,7 @@ def test_iteration():
         term_id = ""
         for op in prod:
             prod_terms += 1
-            term_id += op.to_string(include_degrees = True)
+            term_id += op.to_string(include_degrees=True)
         assert term_id == prod.term_id
     assert sum_terms == 2
     assert prod_terms == 4
@@ -164,8 +165,10 @@ def test_properties():
     assert prod1.ops_count == 2
     sum += prod1
     assert sum.term_count == 2
-    prod1_mat = -(1. + 0.5j) * np.kron(identity_matrix(2), np.kron(create_matrix(2), annihilate_matrix(2)))
-    prod2_mat = np.kron(create_matrix(2), np.kron(number_matrix(2), identity_matrix(2)))
+    prod1_mat = -(1. + 0.5j) * np.kron(
+        identity_matrix(2), np.kron(create_matrix(2), annihilate_matrix(2)))
+    prod2_mat = np.kron(create_matrix(2),
+                        np.kron(number_matrix(2), identity_matrix(2)))
     assert np.allclose(sum.to_matrix(), prod1_mat + prod1_mat + prod2_mat)
     assert str(prod1) == "(-1-0.5i) * A0Ad1"
     assert str(sum) == "(-2-1i) * A0Ad1 + (1+0i) * N1Ad3"
@@ -184,7 +187,10 @@ def test_matrix_construction():
         assert np.isclose(mat[rows[i], cols[i]], value)
     if has_scipy:
         scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(4, 4))
-        scipyEv = scipy.sparse.linalg.eigs(scipyM, k=2, return_eigenvectors=False, sigma=ev[0] - 1e-2)
+        scipyEv = scipy.sparse.linalg.eigs(scipyM,
+                                           k=2,
+                                           return_eigenvectors=False,
+                                           sigma=ev[0] - 1e-2)
         assert np.allclose(ev[:2], sorted(scipyEv), rtol=1e-2)
 
 
@@ -222,8 +228,10 @@ def test_canonicalization():
     # sum operator
     previous = empty()
     expected = empty()
+
     def check_expansion(got, want_degrees):
-        canon = got.copy() # standard python behavior is for assignments not to copy
+        canon = got.copy(
+        )  # standard python behavior is for assignments not to copy
         term_with_missing_degrees = False
         for term in canon:
             if term.degrees != all_degrees:
@@ -260,7 +268,8 @@ def test_canonicalization():
         assert got.degrees == expected.degrees
         assert np.allclose(got.to_matrix(), expected.to_matrix())
         check_expansion(got, set(all_degrees))
-        if id_target > 0: check_expansion(got, set())
+        if id_target > 0:
+            check_expansion(got, set())
         with pytest.raises(Exception):
             got.canonicalize(got.degrees[1:])
 
@@ -317,11 +326,12 @@ def test_equality():
     assert sum == (prod3 + 2. * prod1)
     assert sum != sum + 1.
     assert sum != identity(2) * sum
-    assert np.allclose(np.kron(identity_matrix(2), sum.to_matrix()), (identity(2) * sum).to_matrix())
+    assert np.allclose(np.kron(identity_matrix(2), sum.to_matrix()),
+                       (identity(2) * sum).to_matrix())
 
 
 def test_arithmetics():
-    # basic tests for all arithmetic related bindings - 
+    # basic tests for all arithmetic related bindings -
     # more complex expressions are tested as part of the C++ tests
     dims = {0: 2, 1: 2}
     id = identity(0)
@@ -348,17 +358,25 @@ def test_arithmetics():
     assert np.allclose((sum * id).to_matrix(), sum_matrix)
     assert np.allclose((id * sum).to_matrix(), sum_matrix)
     assert np.allclose((id + 2.).to_matrix(), 3. * identity_matrix(2))
-    assert np.allclose((sum + 2.).to_matrix(), sum_matrix + 2. * identity_matrix(2 * 2))
+    assert np.allclose((sum + 2.).to_matrix(),
+                       sum_matrix + 2. * identity_matrix(2 * 2))
     assert np.allclose((id + 2.j).to_matrix(), (1. + 2.j) * identity_matrix(2))
-    assert np.allclose((sum + 2.j).to_matrix(), sum_matrix + 2.j * identity_matrix(2 * 2))
-    assert np.allclose((sum + id).to_matrix(), sum_matrix + identity_matrix(2 * 2))
-    assert np.allclose((id + sum).to_matrix(), sum_matrix + identity_matrix(2 * 2))
+    assert np.allclose((sum + 2.j).to_matrix(),
+                       sum_matrix + 2.j * identity_matrix(2 * 2))
+    assert np.allclose((sum + id).to_matrix(),
+                       sum_matrix + identity_matrix(2 * 2))
+    assert np.allclose((id + sum).to_matrix(),
+                       sum_matrix + identity_matrix(2 * 2))
     assert np.allclose((id - 2.).to_matrix(), -1. * identity_matrix(2))
-    assert np.allclose((sum - 2.).to_matrix(), sum_matrix - 2. * identity_matrix(2 * 2))
+    assert np.allclose((sum - 2.).to_matrix(),
+                       sum_matrix - 2. * identity_matrix(2 * 2))
     assert np.allclose((id - 2.j).to_matrix(), (1. - 2.j) * identity_matrix(2))
-    assert np.allclose((sum - 2.j).to_matrix(), sum_matrix - 2.j * identity_matrix(2 * 2))
-    assert np.allclose((sum - id).to_matrix(), sum_matrix - identity_matrix(2 * 2))
-    assert np.allclose((id - sum).to_matrix(), identity_matrix(2 * 2) - sum_matrix)
+    assert np.allclose((sum - 2.j).to_matrix(),
+                       sum_matrix - 2.j * identity_matrix(2 * 2))
+    assert np.allclose((sum - id).to_matrix(),
+                       sum_matrix - identity_matrix(2 * 2))
+    assert np.allclose((id - sum).to_matrix(),
+                       identity_matrix(2 * 2) - sum_matrix)
 
     # in-place arithmetics
     term = id.copy()
@@ -375,11 +393,14 @@ def test_arithmetics():
     assert np.allclose(op.to_matrix(), -1. * sum_matrix)
 
     op += 2.
-    assert np.allclose(op.to_matrix(), -1. * sum_matrix + 2. * identity_matrix(2 * 2))
+    assert np.allclose(op.to_matrix(),
+                       -1. * sum_matrix + 2. * identity_matrix(2 * 2))
     op += term
-    assert np.allclose(op.to_matrix(), -1. * sum_matrix + (2. + 1.j) * identity_matrix(2 * 2))
+    assert np.allclose(op.to_matrix(),
+                       -1. * sum_matrix + (2. + 1.j) * identity_matrix(2 * 2))
     op -= 2.
-    assert np.allclose(op.to_matrix(), -1. * sum_matrix + 1.j * identity_matrix(2 * 2))
+    assert np.allclose(op.to_matrix(),
+                       -1. * sum_matrix + 1.j * identity_matrix(2 * 2))
     op -= term
     assert np.allclose(op.to_matrix(), -1. * sum_matrix)
 
@@ -389,13 +410,17 @@ def test_arithmetics():
     assert np.allclose((2.j * id).to_matrix(), 2.j * identity_matrix(2))
     assert np.allclose((2.j * sum).to_matrix(), 2.j * sum_matrix)
     assert np.allclose((2. + id).to_matrix(), 3. * identity_matrix(2))
-    assert np.allclose((2. + sum).to_matrix(), sum_matrix + 2. * identity_matrix(2 * 2))
+    assert np.allclose((2. + sum).to_matrix(),
+                       sum_matrix + 2. * identity_matrix(2 * 2))
     assert np.allclose((2.j + id).to_matrix(), (1 + 2j) * identity_matrix(2))
-    assert np.allclose((2.j + sum).to_matrix(), sum_matrix + 2.j * identity_matrix(2 * 2))
+    assert np.allclose((2.j + sum).to_matrix(),
+                       sum_matrix + 2.j * identity_matrix(2 * 2))
     assert np.allclose((2. - id).to_matrix(), identity_matrix(2))
-    assert np.allclose((2. - sum).to_matrix(), 2. * identity_matrix(2 * 2) - sum_matrix)
+    assert np.allclose((2. - sum).to_matrix(),
+                       2. * identity_matrix(2 * 2) - sum_matrix)
     assert np.allclose((2.j - id).to_matrix(), (-1 + 2.j) * identity_matrix(2))
-    assert np.allclose((2.j - sum).to_matrix(), 2.j * identity_matrix(2 * 2) - sum_matrix)
+    assert np.allclose((2.j - sum).to_matrix(),
+                       2.j * identity_matrix(2 * 2) - sum_matrix)
 
 
 def test_term_distribution():

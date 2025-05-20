@@ -119,9 +119,10 @@ int main(int argc, char *argv[]) {
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_11]] : !cc.ptr<i64>
 // CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_13:.*]] = arith.xori %[[VAL_12]], %[[VAL_8]] : i32
-// CHECK:           %[[VAL_14:.*]] = call @{{.*}}(%[[VAL_13]]) : (i32) -> f64
+// CHECK:           %[[VAL_38:.*]] = cc.cast signed %[[VAL_13]] : (i32) -> f64
+// CHECK:           %[[VAL_14:.*]] = math.sqrt %[[VAL_38]] : f64
 // CHECK:           %[[VAL_15:.*]] = arith.mulf %[[VAL_14]], %[[VAL_3]] : f64
-// CHECK:           %[[VAL_16:.*]] = call @{{.*}}(%[[VAL_15]]) : (f64) -> f64
+// CHECK:           %[[VAL_16:.*]] = math.round %[[VAL_15]] : f64
 // CHECK:           %[[VAL_17:.*]] = cc.cast signed %[[VAL_16]] : (f64) -> i32
 // CHECK:           %[[VAL_18:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_17]], %[[VAL_18]] : !cc.ptr<i32>
