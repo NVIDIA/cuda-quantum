@@ -189,6 +189,30 @@ evolve_result evolve(const HamTy &hamiltonian,
 }
 
 #if CUDAQ_USE_STD20
+template <operator_type ObserveOpTy>
+#else
+template <typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
+#endif
+evolve_result evolve(const super_op &super_op,
+                     const cudaq::dimension_map &dimensions,
+                     const schedule &schedule, const state &initial_state,
+                     base_integrator &integrator,
+                     const std::initializer_list<ObserveOpTy> &observables = {},
+                     bool store_intermediate_results = false,
+                     std::optional<int> shots_count = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  return cudaq::__internal__::evolveSingle(
+      super_op, dimensions, schedule, initial_state, integrator,
+      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>

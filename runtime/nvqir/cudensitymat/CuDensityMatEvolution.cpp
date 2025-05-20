@@ -165,4 +165,80 @@ evolve_result evolveSingle(
       collapse_operators, observables, store_intermediate_results, shots_count);
 }
 
+
+evolve_result evolveSingle(
+    const super_op &superOp,
+    const cudaq::dimension_map &dimensionsMap, const schedule &schedule,
+    const state &initialState, base_integrator &integrator,
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables,
+    bool storeIntermediateResults, std::optional<int> shotsCount) {
+  LOG_API_TIME();
+  cudensitymatHandle_t handle =
+      dynamics::Context::getCurrentContext()->getHandle();
+  std::map<std::size_t, int64_t> dimensions =
+      convertToOrderedMap(dimensionsMap);
+  std::vector<int64_t> dims;
+  for (const auto &[id, dim] : dimensions)
+    dims.emplace_back(dim);
+  const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
+    auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
+    auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
+    if (!castSimState)
+      throw std::runtime_error("Invalid state.");
+    return castSimState;
+  };
+
+  auto *cudmState = asCudmState(const_cast<state &>(initialState));
+  if (!cudmState->is_initialized())
+    cudmState->initialize_cudm(handle, dims);
+
+  cudaq::integrator_helper::init_system_dynamics(integrator, superOp, dims,
+                                                 schedule);
+  integrator.setState(initialState, 0.0);
+  std::vector<CuDensityMatExpectation> expectations;
+  for (auto &obs : observables)
+    expectations.emplace_back(CuDensityMatExpectation(
+        handle, cudaq::dynamics::Context::getCurrentContext()
+                    ->getOpConverter()
+                    .convertToCudensitymatOperator({}, obs, dims)));
+
+  std::vector<std::vector<double>> expectationVals;
+  std::vector<cudaq::state> intermediateStates;
+  for (const auto &step : schedule) {
+    integrator.integrate(step.real());
+    auto [t, currentState] = integrator.getState();
+    if (storeIntermediateResults) {
+      std::vector<double> expVals;
+
+      for (auto &expectation : expectations) {
+        auto *cudmState = asCudmState(currentState);
+        expectation.prepare(cudmState->get_impl());
+        const auto expVal =
+            expectation.compute(cudmState->get_impl(), step.real());
+        expVals.emplace_back(expVal.real());
+      }
+      expectationVals.emplace_back(std::move(expVals));
+      intermediateStates.emplace_back(currentState);
+    }
+  }
+
+  if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
+    cudaq::dynamics::dumpPerfTrace();
+
+  if (storeIntermediateResults) {
+    return evolve_result(intermediateStates, expectationVals);
+  } else {
+    // Only final state is needed
+    auto [finalTime, finalState] = integrator.getState();
+    std::vector<double> expVals;
+    auto *cudmState = asCudmState(finalState);
+    for (auto &expectation : expectations) {
+      expectation.prepare(cudmState->get_impl());
+      const auto expVal = expectation.compute(cudmState->get_impl(), finalTime);
+      expVals.emplace_back(expVal.real());
+    }
+    return evolve_result(finalState, expVals);
+  }
+}
+
 } // namespace cudaq::__internal__

@@ -1714,6 +1714,119 @@ private:
   std::optional<std::pair<scalar_operator, std::vector<double>>> delta_local;
 };
 
+// https://en.wikipedia.org/wiki/Superoperator
+// 'super_op' is a linear operator acting on a vector space of linear
+// operators.
+class super_op {
+public:
+  // A super_op term is a pair of left/right multiplication operators.
+  using term =
+      std::pair<std::optional<cudaq::product_op<cudaq::matrix_handler>>,
+                std::optional<cudaq::product_op<cudaq::matrix_handler>>>;
+  super_op() = default;
+
+  super_op &operator+=(const super_op &superOp) {
+    m_terms.insert(m_terms.end(), superOp.m_terms.begin(),
+                   superOp.m_terms.end());
+    return *this;
+  }
+
+  template <typename T>
+  super_op &operator*=(T coeff) {
+    for (auto &[l_op, r_op] : m_terms) {
+      if (l_op.has_value())
+        l_op->operator*=(coeff);
+
+      assert(r_op.has_value());
+      r_op->operator*=(coeff);
+    }
+    return *this;
+  }
+
+  template <typename T>
+  super_op operator*(T coeff) const {
+    super_op result;
+    result.m_terms = this->m_terms;
+    for (auto &[l_op, r_op] : result.m_terms) {
+      if (l_op.has_value())
+        l_op->operator*=(coeff);
+
+      assert(r_op.has_value());
+      r_op->operator*=(coeff);
+    }
+    return result;
+  }
+
+  static super_op
+  left_multiply(const cudaq::product_op<cudaq::matrix_handler> &op) {
+    return super_op(std::make_pair(
+        op, std::optional<cudaq::product_op<cudaq::matrix_handler>>{}));
+  }
+
+  static super_op
+  right_multiply(const cudaq::product_op<cudaq::matrix_handler> &op) {
+    return super_op(std::make_pair(
+        std::optional<cudaq::product_op<cudaq::matrix_handler>>{}, op));
+  }
+
+  static super_op
+  left_right_multiply(const cudaq::product_op<cudaq::matrix_handler> &leftOp,
+                      const cudaq::product_op<cudaq::matrix_handler> &rightOp) {
+    return super_op(std::make_pair(leftOp, rightOp));
+  }
+
+  static super_op
+  left_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op) {
+    std::vector<term> productTerms;
+    productTerms.reserve(op.num_terms());
+    for (const cudaq::product_op<cudaq::matrix_handler> &prodOp : op) {
+      productTerms.emplace_back(std::make_pair(
+          prodOp, std::optional<cudaq::product_op<cudaq::matrix_handler>>{}));
+    }
+    return super_op(std::move(productTerms));
+  }
+
+  static super_op
+  right_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op) {
+    std::vector<term> productTerms;
+    productTerms.reserve(op.num_terms());
+    for (const cudaq::product_op<cudaq::matrix_handler> &prodOp : op) {
+      productTerms.emplace_back(std::make_pair(
+          std::optional<cudaq::product_op<cudaq::matrix_handler>>{}, prodOp));
+    }
+    return super_op(std::move(productTerms));
+  }
+
+  static super_op
+  left_right_multiply(const cudaq::sum_op<cudaq::matrix_handler> &leftOp,
+                      const cudaq::sum_op<cudaq::matrix_handler> &rightOp) {
+    std::vector<term> productTerms;
+    productTerms.reserve(leftOp.num_terms() * rightOp.num_terms());
+    for (const cudaq::product_op<cudaq::matrix_handler> &leftProdOp : leftOp) {
+      for (const cudaq::product_op<cudaq::matrix_handler> &rightProdOp :
+           rightOp) {
+        productTerms.emplace_back(std::make_pair(leftProdOp, rightProdOp));
+      }
+    }
+    return super_op(std::move(productTerms));
+  }
+
+  using const_iterator = std::vector<term>::const_iterator;
+
+  /// @brief Get iterator to beginning of operator terms
+  const_iterator begin() const { return m_terms.cbegin(); }
+
+  /// @brief Get iterator to end of operator terms
+  const_iterator end() const { return m_terms.cend(); }
+
+private:
+  super_op(term &&term) : m_terms({std::move(term)}) {}
+  super_op(std::vector<term> &&terms) : m_terms(std::move(terms)) {}
+
+private:
+  std::vector<term> m_terms;
+};
+
 // type aliases for convenience
 /// @brief Typedef for a map of parameters.
 /// This typedef defines `parameter_map` as a map of strings to complex
