@@ -319,6 +319,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
 
+    // This helper function copies a buffer off the stack to the heap. This is
+    // required when the data on the stack is about to go out of scope but is
+    // still live.
     {"__nvqpp_vectorCopyCtor", {cudaq::llvmMemCopyIntrinsic, "malloc"}, R"#(
   func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> {
     %size = arith.muli %arg1, %arg2 : i64
@@ -326,6 +329,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %false = arith.constant false
     call @llvm.memcpy.p0i8.p0i8.i64(%0, %arg0, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     return %0 : !cc.ptr<i8>
+  })#"},
+
+    // This helper function copies a buffer that is in the heap to a buffer on
+    // the stack. Both buffers must already exist. This helper matches
+    // __nvqpp_vectorCopyCtor and eliminates memory leaks.
+    {"__nvqpp_vectorCopyToStack", {cudaq::llvmMemCopyIntrinsic, "free"}, R"#(
+  func.func private @__nvqpp_vectorCopyToStack(%to: !cc.ptr<i8>, %from: !cc.ptr<i8>, %size: i64) {
+    %false = arith.constant false
+    call @llvm.memcpy.p0i8.p0i8.i64(%to, %from, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @free(%from) : (!cc.ptr<i8>) -> ()
+    return
   })#"},
 
     // __nvqpp_vector_bool_free_temporary_lists
