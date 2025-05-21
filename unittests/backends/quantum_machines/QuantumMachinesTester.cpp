@@ -13,25 +13,28 @@
 #include <gtest/gtest.h>
 #include <stdlib.h>
 
-// TODO: Implement proper test configuration
 std::string mockPort = "62448";
 std::string backendStringTemplate =
-    "quantum_machines;emulate;false;url;http://localhost:{}";
+    "quantum_machines;url;http://localhost:{}";
 
-CUDAQ_TEST(QuantumMachinesTester, checkSampleSync) {
-  // TODO: Implement synchronous sampling test
-  GTEST_SKIP() << "Test not implemented yet.";
+CUDAQ_TEST(QuantumMachinesTester, minimal3Hadamard) {
+  auto backendString =
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
+
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(backendString);
+
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(3);
+  kernel.h(qubit[0]);
+  kernel.h(qubit[1]);
+  kernel.h(qubit[2]);
+
+  auto counts = cudaq::sample(1000, kernel);
+  counts.dump();
+  EXPECT_EQ(counts.size(), 8);
 }
 
-CUDAQ_TEST(QuantumMachinesTester, checkSampleAsync) {
-  // TODO: Implement asynchronous sampling test
-  GTEST_SKIP() << "Test not implemented yet.";
-}
-
-CUDAQ_TEST(QuantumMachinesTester, checkSampleAsyncLoadFromFile) {
-  // TODO: Implement asynchronous sampling with file loading test
-  GTEST_SKIP() << "Test not implemented yet.";
-}
 
 int main(int argc, char **argv) {
   setenv("QUANTUM_MACHINES_API_KEY", "00000000000000000000000000000000", 0);

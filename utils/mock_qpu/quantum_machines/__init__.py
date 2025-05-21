@@ -29,7 +29,6 @@ class Job(BaseModel):
     method: str = None
 
 
-# TODO: Implement proper job tracking
 createdJobs = {}
 
 # Could how many times the client has requested the Job
@@ -43,27 +42,25 @@ server_exec_response = {
     "samples":{"000":19,"001":2,"010":27,"011":4,"100":11,"101":3,"110":30,"111":4},
     "status":"Done"}
 
-# Here we test that the login endpoint works
-@app.post("/v1/auth")
-async def login(token: Union[str, None] = Header(alias="Authorization",                                                 default=None)):
-    # TODO: Implement proper authentication
-    #if token == None:
-    #    raise HTTPException(status_code=401, detail="Credentials not provided")
-    return {"id-token": "mock-token", "refresh-token": "mock-refresh-token"}
-
 
 @app.post("/v1/execute")
 async def post_execute_job(job: Job,
                            token: Union[str, None] = Header(alias="Authorization",
                                                           default=None)):
-    return {"job_ids": ["mock-job-id"]}
-
+    jobID = uuid.uuid4()
+    response = server_exec_response.clone()
+    response['id'] = jobID
+    createdJobs[jobID] = response
+    return response
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
 @app.get("/v1/results/{id}")
-async def get_job(id: str):
-    # TODO: Implement job retrieval
+async def get_results(id: str):
+    if countJobGetRequests <= 3:
+        countJobGetRequests += 1
+        return {"status": "InProgress"}
+    countJobGetRequests = 0
     return createdJobs.get(id)
 
 
