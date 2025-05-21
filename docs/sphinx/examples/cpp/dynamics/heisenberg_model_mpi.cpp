@@ -144,12 +144,12 @@ int main() {
     //    - The time steps
     //    - The expectation values of the staggered magnetization for each g
     //    value (labeled g_0, g_0.25, g_4).
-    export_csv("heisenberg_model_result.csv", "time", steps, "g_0",
+    export_csv("heisenberg_model_mpi_result.csv", "time", steps, "g_0",
                observe_results[0].second, "g_0.25", observe_results[1].second,
                "g_4", observe_results[2].second);
 
     std::cout << "Simulation complete. The results are saved in "
-                 "heisenberg_model_result.csv file."
+                 "heisenberg_model_mpi_result.csv file."
               << std::endl;
   }
   cudaq::mpi::finalize();
