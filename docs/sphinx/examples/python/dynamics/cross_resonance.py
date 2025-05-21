@@ -30,16 +30,12 @@ hamiltonian = delta / 2 * spin.z(0) + J * (
 # Dimensions of sub-system
 dimensions = {0: 2, 1: 2}
 
-# Initial state of the system (ground state).
-rho0 = cudaq.State.from_data(
-    cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
-
 # Two initial states: |00> and |10>.
 # We show the 'conditional' evolution when controlled qubit is in |1> state.
 psi_00 = cudaq.State.from_data(
     cp.array([1.0, 0.0, 0.0, 0.0], dtype=cp.complex128))
 psi_10 = cudaq.State.from_data(
-    cp.array([0.0, 0.0, 1.0, 0.0], dtype=cp.complex128))
+    cp.array([0.0, 1.0, 0.0, 0.0], dtype=cp.complex128))
 
 # Schedule of time steps.
 steps = np.linspace(0.0, 1.0, 1001)
