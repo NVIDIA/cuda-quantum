@@ -35,7 +35,7 @@ qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
 # Cavity in a state which has 5 photons initially
 cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
 cavity_state[5][5] = 1.0
-rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
 
 steps = np.linspace(0, 10, 201)
 schedule = Schedule(steps, ["time"])
