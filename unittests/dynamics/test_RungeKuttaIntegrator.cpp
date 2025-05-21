@@ -8,6 +8,7 @@
 
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
+#include "CuDensityMatUtils.h"
 #include "cudaq/algorithms/integrator.h"
 #include "test_Mocks.h"
 #include <cmath>
@@ -32,7 +33,9 @@ protected:
 
     // Create initial state
     state_ = std::make_unique<CuDensityMatState>(
-        handle_, mock_initial_state_data(), mock_hilbert_space_dims());
+        mock_initial_state_data().size(),
+        cudaq::dynamics::createArrayGpu(mock_initial_state_data()));
+    state_->initialize_cudm(handle_, mock_hilbert_space_dims());
     ASSERT_NE(state_, nullptr);
     ASSERT_TRUE(state_->is_initialized());
 

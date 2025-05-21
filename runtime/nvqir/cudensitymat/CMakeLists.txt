@@ -11,6 +11,16 @@ find_package(CUDAToolkit REQUIRED)
 
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 set(LIBRARY_NAME nvqir-dynamics)
+message (STATUS "CUDENSITYMAT_ROOT and CUDA_FOUND - building dynamics NVQIR backend.")
+
+find_library(CUTENSOR_LIB
+    NAMES   cutensor libcutensor.so.2
+    HINTS   
+        ${CUTENSOR_ROOT}/lib64
+        ${CUTENSOR_ROOT}/lib
+        ${CUTENSOR_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
+        ${CUTENSOR_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
+)
 
 # Find cudensitymat header (for MPI plugin interface typedef)
 find_file(CUDENSITYMAT_INC
@@ -22,8 +32,29 @@ find_file(CUDENSITYMAT_INC
     REQUIRED
 )
 
-message(STATUS "cudensitymat header: ${CUDENSITYMAT_INC}")
+find_library(CUDENSITYMAT_LIB
+    NAMES cudensitymat libcudensitymat.so.0
+    HINTS
+    ${CUDENSITYMAT_ROOT}/lib64
+    ${CUDENSITYMAT_ROOT}/lib
+    ${CUDENSITYMAT_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
+    ${CUDENSITYMAT_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR})
+
+if(NOT CUTENSOR_LIB)
+  message(FATAL_ERROR "\nUnable to find cutensor installation. Please ensure it is correctly installed and set and define CUTENSOR_ROOT if necessary (currently set to: ${CUTENSOR_ROOT}).")
+endif()
+message(STATUS "CUTENSOR_LIB: ${CUTENSOR_LIB}")
+
+if(NOT CUDENSITYMAT_LIB OR NOT CUDENSITYMAT_INC)
+  message(FATAL_ERROR "\nUnable to find cudensitymat installation. Please ensure it is correctly installed and set and define CUDENSITYMAT_ROOT if necessary (currently set to: ${CUDENSITYMAT_ROOT}).")
+endif()
+message(STATUS "CUDENSITYMAT_INC: ${CUDENSITYMAT_INC}")
+message(STATUS "CUDENSITYMAT_LIB: ${CUDENSITYMAT_LIB}")
+
 get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
+get_filename_component(CUDENSITYMAT_LIB_DIR ${CUDENSITYMAT_LIB} DIRECTORY)
+get_filename_component(CUTENSOR_LIB_DIR ${CUTENSOR_LIB} DIRECTORY)
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUDENSITYMAT_LIB_DIR}:${CUTENSOR_LIB_DIR}")
 
 add_library(${LIBRARY_NAME} SHARED
   CuDensityMatSim.cpp
@@ -35,9 +66,10 @@ add_library(${LIBRARY_NAME} SHARED
   CuDensityMatState.cpp
   CuDensityMatContext.cpp
   CuDensityMatOpConverter.cpp
+  CuDensityMatUtils.cpp
 )
 
-message("CUDAToolkit_INCLUDE_DIRS = ${CUDAToolkit_INCLUDE_DIRS}")
+message("CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")
 target_include_directories(${LIBRARY_NAME}
   PRIVATE 
     . .. 
@@ -58,13 +90,14 @@ target_link_libraries(${LIBRARY_NAME}
                       PRIVATE
                         fmt::fmt-header-only
                         cudaq-common
-                        ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-                        CUDA::cudart
+                        ${CUDENSITYMAT_LIB}
+                        ${CUTENSOR_LIB}
+                        CUDA::cudart_static
                      )
 target_link_libraries(${LIBRARY_NAME}
                      PUBLIC
                        cudaq-operator
-                       ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+                       ${CUDENSITYMAT_LIB}
                     )
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-
+add_target_config(dynamics)

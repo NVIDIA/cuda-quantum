@@ -11,14 +11,26 @@
 #include <cudaq.h>
 
 CUDAQ_TEST(ParserTester, checkSingleBoolean) {
-  const std::string log = "OUTPUT\tBOOL\ttrue\ti1\n";
-  cudaq::RecordLogParser parser;
-  parser.parse(log);
-  auto *origBuffer = parser.getBufferPtr();
-  bool value;
-  std::memcpy(&value, origBuffer, sizeof(bool));
-  EXPECT_EQ(true, value);
-  origBuffer = nullptr;
+  {
+    const std::string log = "OUTPUT\tBOOL\ttrue\ti1\n";
+    cudaq::RecordLogParser parser;
+    parser.parse(log);
+    auto *origBuffer = parser.getBufferPtr();
+    bool value;
+    std::memcpy(&value, origBuffer, sizeof(bool));
+    EXPECT_EQ(true, value);
+    origBuffer = nullptr;
+  }
+  { // no label
+    const std::string log = "OUTPUT\tBOOL\tfalse\n";
+    cudaq::RecordLogParser parser;
+    parser.parse(log);
+    auto *origBuffer = parser.getBufferPtr();
+    bool value;
+    std::memcpy(&value, origBuffer, sizeof(bool));
+    EXPECT_EQ(false, value);
+    origBuffer = nullptr;
+  }
 }
 
 CUDAQ_TEST(ParserTester, checkMoreBoolean) {
@@ -39,21 +51,43 @@ CUDAQ_TEST(ParserTester, checkMoreBoolean) {
 }
 
 CUDAQ_TEST(ParserTester, checkIntegers) {
-  const std::string log = "OUTPUT\tINT\t0\ti32\n"
-                          "OUTPUT\tINT\t1\ti32\n"
-                          "OUTPUT\tINT\t2\ti32\n";
-  cudaq::RecordLogParser parser;
-  parser.parse(log);
-  auto *origBuffer = parser.getBufferPtr();
-  std::size_t bufferSize = parser.getBufferSize();
-  EXPECT_EQ(3, bufferSize / sizeof(int));
-  int *buffer = static_cast<int *>(malloc(bufferSize));
-  std::memcpy(buffer, origBuffer, bufferSize);
-  for (int i = 0; i < 3; ++i)
-    EXPECT_EQ(i, buffer[i]);
-  free(buffer);
-  buffer = nullptr;
-  origBuffer = nullptr;
+  {
+    const std::string log = "OUTPUT\tINT\t0\ti32\n"
+                            "OUTPUT\tINT\t1\ti32\n"
+                            "OUTPUT\tINT\t2\ti32\n";
+    cudaq::RecordLogParser parser;
+    parser.parse(log);
+    auto *origBuffer = parser.getBufferPtr();
+    std::size_t bufferSize = parser.getBufferSize();
+    EXPECT_EQ(3, bufferSize / sizeof(int));
+    int *buffer = static_cast<int *>(malloc(bufferSize));
+    std::memcpy(buffer, origBuffer, bufferSize);
+    for (int i = 0; i < 3; ++i)
+      EXPECT_EQ(i, buffer[i]);
+    free(buffer);
+    buffer = nullptr;
+    origBuffer = nullptr;
+  }
+  { // no label
+    const std::string log = "OUTPUT\tINT\t2147483647\n";
+    cudaq::RecordLogParser parser;
+    parser.parse(log);
+    auto *origBuffer = parser.getBufferPtr();
+    std::int32_t value;
+    std::memcpy(&value, origBuffer, sizeof(std::int32_t));
+    EXPECT_EQ(2147483647, value);
+    origBuffer = nullptr;
+  }
+  {
+    const std::string log = "OUTPUT\tINT\t127\ti8\n";
+    cudaq::RecordLogParser parser;
+    parser.parse(log);
+    auto *origBuffer = parser.getBufferPtr();
+    std::int8_t value;
+    std::memcpy(&value, origBuffer, sizeof(std::int8_t));
+    EXPECT_EQ(127, value);
+    origBuffer = nullptr;
+  }
 }
 
 CUDAQ_TEST(ParserTester, checkDoubles) {
@@ -239,16 +273,19 @@ CUDAQ_TEST(ParserTester, checkTupleLabeled) {
 CUDAQ_TEST(ParserTester, checkMultipleShots) {
   const std::string log = "HEADER\tschema_name\tlabeled\n"
                           "START\n"
+                          "METADATA\tqir_profiles\tbase_profile\n"
                           "OUTPUT\tARRAY\t2\tarray<i16 x 2>\n"
                           "OUTPUT\tINT\t2345\t[0]\n"
                           "OUTPUT\tINT\t4567\t[1]\n"
                           "END\t0\n"
                           "START\n"
+                          "METADATA\tqir_profiles\tbase_profile\n"
                           "OUTPUT\tARRAY\t2\tarray<i16 x 2>\n"
                           "OUTPUT\tINT\t7890\t[1]\n"
                           "OUTPUT\tINT\t5678\t[0]\n"
                           "END\t0\n"
                           "START\n"
+                          "METADATA\tqir_profiles\tbase_profile\n"
                           "OUTPUT\tARRAY\t2\tarray<i16 x 2>\n"
                           "OUTPUT\tINT\t1234\t[1]\n"
                           "OUTPUT\tINT\t6789\t[0]\n"
@@ -277,4 +314,170 @@ CUDAQ_TEST(ParserTester, checkMultipleShots) {
   free(buffer);
   buffer = nullptr;
   origBuffer = nullptr;
+}
+
+CUDAQ_TEST(ParserTester, checkTupleWithLayoutWithoutBool) {
+  const std::string log = "OUTPUT\tTUPLE\t2\ttuple<i64, f64>\n"
+                          "OUTPUT\tINT\t37\t.0\n"
+                          "OUTPUT\tDOUBLE\t3.1416\t.1\n";
+  std::pair<std::size_t, std::vector<std::size_t>> layout;
+  layout.first = 16;
+  layout.second = {0, 8};
+  cudaq::RecordLogParser parser(layout);
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  EXPECT_EQ(16, bufferSize);
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  struct MyTuple {
+    std::int64_t i64Val;
+    double f64Val;
+  };
+  MyTuple *tuplePtr = reinterpret_cast<MyTuple *>(buffer);
+  EXPECT_EQ(37, tuplePtr->i64Val);
+  EXPECT_EQ(3.1416, tuplePtr->f64Val);
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+
+  // incorrect layout
+  layout.first = 24;
+  layout.second = {0, 4, 8};
+  cudaq::RecordLogParser parser2(layout);
+  EXPECT_THROW(parser2.parse(log), std::runtime_error);
+}
+
+CUDAQ_TEST(ParserTester, checkTupleWithLayoutAndBool) {
+  const std::string log = "OUTPUT\tTUPLE\t3\ttuple<i1, i64, f64>\n"
+                          "OUTPUT\tBOOL\ttrue\t.0\n"
+                          "OUTPUT\tINT\t37\t.1\n"
+                          "OUTPUT\tDOUBLE\t3.1416\t.2\n"
+                          "OUTPUT\tTUPLE\t3\ttuple<i1, i64, f64>\n"
+                          "OUTPUT\tBOOL\tfalse\t.0\n"
+                          "OUTPUT\tINT\t42\t.1\n"
+                          "OUTPUT\tDOUBLE\t4.14\t.2\n";
+  std::pair<std::size_t, std::vector<std::size_t>> layout;
+  layout.first = 24;
+  layout.second = {0, 8, 16};
+  cudaq::RecordLogParser parser(layout);
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  EXPECT_EQ(24 * 2, bufferSize);
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  struct MyTuple {
+    bool boolVal;
+    std::int64_t i64Val;
+    double f64Val;
+  };
+  std::vector<MyTuple> results = {
+      reinterpret_cast<MyTuple *>(span.data),
+      reinterpret_cast<MyTuple *>(span.data + span.lengthInBytes)};
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ(true, results[0].boolVal);
+  EXPECT_EQ(37, results[0].i64Val);
+  EXPECT_EQ(3.1416, results[0].f64Val);
+  EXPECT_EQ(false, results[1].boolVal);
+  EXPECT_EQ(42, results[1].i64Val);
+  EXPECT_EQ(4.14, results[1].f64Val);
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
+CUDAQ_TEST(ParserTester, checkFailureCases) {
+  cudaq::RecordLogParser parser;
+  {
+    const std::string emptyLog = "";
+    cudaq::RecordLogParser parser;
+    parser.parse(emptyLog);
+    EXPECT_EQ(nullptr, parser.getBufferPtr());
+  }
+  {
+    const std::string invalidLog = "INVALID\tLOG\n";
+    EXPECT_THROW(parser.parse(invalidLog), std::runtime_error);
+  }
+  {
+    const std::string invalidLog = "OUTPUT\n";
+    EXPECT_THROW(parser.parse(invalidLog), std::runtime_error);
+  }
+  {
+    const std::string invalidBool = "OUTPUT\tBOOL\t1.0\ti1\n";
+    EXPECT_THROW(parser.parse(invalidBool), std::runtime_error);
+  }
+  {
+    const std::string invalidSchema =
+        "HEADER\tschema_name\tordered_and_labeled\n";
+    EXPECT_THROW(parser.parse(invalidSchema), std::runtime_error);
+  }
+  {
+    const std::string missingShotStatus = "START\n"
+                                          "OUTPUT\tDOUBLE\t3.14\tf64\n"
+                                          "END\n";
+    EXPECT_THROW(parser.parse(missingShotStatus), std::runtime_error);
+  }
+  {
+    const std::string failedShot = "START\n"
+                                   "OUTPUT\tDOUBLE\t0.00\tf64\n"
+                                   "END\t1\n";
+    EXPECT_THROW(parser.parse(failedShot), std::runtime_error);
+  }
+  {
+    const std::string insufficientData = "OUTPUT\tDOUBLE\n";
+    EXPECT_THROW(parser.parse(insufficientData), std::runtime_error);
+  }
+  {
+    const std::string missingLabel = "OUTPUT\tARRAY\t3\tarray<i32 x 2>\n"
+                                     "OUTPUT\tINT\t5\n"
+                                     "OUTPUT\tINT\t6\n";
+    EXPECT_THROW(parser.parse(missingLabel), std::runtime_error);
+  }
+  {
+    const std::string resultLog = "OUTPUT\tRESULT\t1\ti32\n";
+    EXPECT_THROW(parser.parse(resultLog), std::runtime_error);
+  }
+  {
+    const std::string invalidType = "OUTPUT\tFOO\t123456\ti32\n";
+    EXPECT_THROW(parser.parse(invalidType), std::runtime_error);
+  }
+  {
+    const std::string invalidType = "OUTPUT\tINT\t123456\ti128\n";
+    EXPECT_THROW(parser.parse(invalidType), std::runtime_error);
+  }
+  {
+    const std::string sizeMismatch = "OUTPUT\tARRAY\t3\tarray<i32 x 2>\n";
+    EXPECT_THROW(parser.parse(sizeMismatch), std::runtime_error);
+  }
+  {
+    const std::string invalidArrLabel = "OUTPUT\tARRAY\t3\tarray<3>\n";
+    EXPECT_THROW(parser.parse(invalidArrLabel), std::runtime_error);
+  }
+  {
+    const std::string invalidIndex = "OUTPUT\tARRAY\t2\tarray<i32 x 2>\n"
+                                     "OUTPUT\tINT\t5\t[0]\n"
+                                     "OUTPUT\tINT\t6\t[3]\n";
+    EXPECT_THROW(parser.parse(invalidIndex), std::runtime_error);
+  }
+  {
+    const std::string invalidTupleLabel = "OUTPUT\tTUPLE\t3\ttuple\n";
+    EXPECT_THROW(parser.parse(invalidTupleLabel), std::runtime_error);
+  }
+  {
+    const std::string sizeMismatch = "OUTPUT\tTUPLE\t3\ttuple<i32, f64>\n";
+    EXPECT_THROW(parser.parse(sizeMismatch), std::runtime_error);
+  }
+  {
+    const std::string invalidLabel = "OUTPUT\tTUPLE\t2\ttuple<i32, f64>\n"
+                                     "OUTPUT\tINT\t5\t.0\n"
+                                     "OUTPUT\tDOUBLE\t6.0\t[1]\n";
+    EXPECT_THROW(parser.parse(invalidLabel), std::runtime_error);
+  }
+  {
+    const std::string missingIndex = "OUTPUT\tTUPLE\t2\ttuple<i32, f64>\n"
+                                     "OUTPUT\tINT\t5\n";
+    EXPECT_THROW(parser.parse(missingIndex), std::runtime_error);
+  }
 }
