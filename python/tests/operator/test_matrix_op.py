@@ -9,7 +9,7 @@
 import cmath, numpy as np, pytest, random
 from cudaq import operators
 from cudaq.operators import *
-from op_utils import * # test helpers
+from op_utils import *  # test helpers
 
 
 @pytest.fixture(autouse=True)
@@ -22,27 +22,55 @@ def test_definitions():
     dims = {0: 2, 1: 3}
     assert np.allclose(operators.number(1).to_matrix(dims), number_matrix(3))
     assert np.allclose(operators.parity(1).to_matrix(dims), parity_matrix(3))
-    assert np.allclose(operators.position(1).to_matrix(dims), position_matrix(3))
-    assert np.allclose(operators.momentum(1).to_matrix(dims), momentum_matrix(3))
-    assert np.allclose(operators.squeeze(1).to_matrix(dims, squeezing = 0.5 + 1.2j, displacement = 0.5 + 1.2j), squeeze_matrix(3, 0.5 + 1.2j))
-    assert np.allclose(operators.displace(1).to_matrix(dims, squeezing = 0.5 + 1.2j, displacement = 0.5 + 1.2j), displace_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(
+        operators.position(1).to_matrix(dims), position_matrix(3))
+    assert np.allclose(
+        operators.momentum(1).to_matrix(dims), momentum_matrix(3))
+    assert np.allclose(
+        operators.squeeze(1).to_matrix(dims,
+                                       squeezing=0.5 + 1.2j,
+                                       displacement=0.5 + 1.2j),
+        squeeze_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(
+        operators.displace(1).to_matrix(dims,
+                                        squeezing=0.5 + 1.2j,
+                                        displacement=0.5 + 1.2j),
+        displace_matrix(3, 0.5 + 1.2j))
     params = {"squeezing": 0.5 + 1.2j, "displacement": 0.5 + 1.2j}
-    assert np.allclose(operators.squeeze(1).to_matrix(dims, params), squeeze_matrix(3, 0.5 + 1.2j))
-    assert np.allclose(operators.displace(1).to_matrix(dims, params), displace_matrix(3, 0.5 + 1.2j))
-    with pytest.raises(Exception): operators.squeeze(1).to_matrix(dims, displacement = 0.5 + 1.2j)
-    with pytest.raises(Exception): operators.displace(1).to_matrix(dims, squeeze = 0.5 + 1.2j)
+    assert np.allclose(
+        operators.squeeze(1).to_matrix(dims, params),
+        squeeze_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(
+        operators.displace(1).to_matrix(dims, params),
+        displace_matrix(3, 0.5 + 1.2j))
+    with pytest.raises(Exception):
+        operators.squeeze(1).to_matrix(dims, displacement=0.5 + 1.2j)
+    with pytest.raises(Exception):
+        operators.displace(1).to_matrix(dims, squeeze=0.5 + 1.2j)
 
     assert np.allclose(number(1).to_matrix(dims), number_matrix(3))
     assert np.allclose(parity(1).to_matrix(dims), parity_matrix(3))
     assert np.allclose(position(1).to_matrix(dims), position_matrix(3))
     assert np.allclose(momentum(1).to_matrix(dims), momentum_matrix(3))
-    assert np.allclose(squeeze(1).to_matrix(dims, squeezing = 0.5 + 1.2j, displacement = 0.5 + 1.2j), squeeze_matrix(3, 0.5 + 1.2j))
-    assert np.allclose(displace(1).to_matrix(dims, squeezing = 0.5 + 1.2j, displacement = 0.5 + 1.2j), displace_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(
+        squeeze(1).to_matrix(dims,
+                             squeezing=0.5 + 1.2j,
+                             displacement=0.5 + 1.2j),
+        squeeze_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(
+        displace(1).to_matrix(dims,
+                              squeezing=0.5 + 1.2j,
+                              displacement=0.5 + 1.2j),
+        displace_matrix(3, 0.5 + 1.2j))
     params = {"squeezing": 0.5 + 1.2j, "displacement": 0.5 + 1.2j}
-    assert np.allclose(squeeze(1).to_matrix(dims, params), squeeze_matrix(3, 0.5 + 1.2j))
-    assert np.allclose(displace(1).to_matrix(dims, params), displace_matrix(3, 0.5 + 1.2j))
-    with pytest.raises(Exception): squeeze(1).to_matrix(dims, displacement = 0.5 + 1.2j)
-    with pytest.raises(Exception): displace(1).to_matrix(dims, squeeze = 0.5 + 1.2j)
+    assert np.allclose(
+        squeeze(1).to_matrix(dims, params), squeeze_matrix(3, 0.5 + 1.2j))
+    assert np.allclose(
+        displace(1).to_matrix(dims, params), displace_matrix(3, 0.5 + 1.2j))
+    with pytest.raises(Exception):
+        squeeze(1).to_matrix(dims, displacement=0.5 + 1.2j)
+    with pytest.raises(Exception):
+        displace(1).to_matrix(dims, squeeze=0.5 + 1.2j)
 
     squeeze_params = squeeze(1).parameters
     print(squeeze_params)
@@ -98,7 +126,7 @@ def test_iteration():
         term_id = ""
         for op in prod:
             prod_terms += 1
-            term_id += op.to_string(include_degrees = True)
+            term_id += op.to_string(include_degrees=True)
         assert term_id == prod.term_id
     assert sum_terms == 2
     assert prod_terms == 4
@@ -124,14 +152,17 @@ def test_properties():
     assert prod1.ops_count == 2
     sum += prod1
     assert sum.term_count == 2
-    prod1_mat = np.kron(identity_matrix(4), np.kron(position_matrix(3), momentum_matrix(2)))
-    prod2_mat = np.kron(parity_matrix(4), np.kron(number_matrix(3), identity_matrix(2)))
+    prod1_mat = np.kron(identity_matrix(4),
+                        np.kron(position_matrix(3), momentum_matrix(2)))
+    prod2_mat = np.kron(parity_matrix(4),
+                        np.kron(number_matrix(3), identity_matrix(2)))
     assert np.allclose(sum.to_matrix(dims), prod1_mat + prod1_mat + prod2_mat)
 
     prod1.dump()
     sum.dump()
     assert str(prod1) == "(1+0i) * momentum(0)position(1)"
-    assert str(sum) == "(2+0i) * momentum(0)position(1) + (1+0i) * number(1)parity(3)"
+    assert str(
+        sum) == "(2+0i) * momentum(0)position(1) + (1+0i) * number(1)parity(3)"
     assert prod1.term_id == "momentum(0)position(1)"
 
 
@@ -170,8 +201,10 @@ def test_canonicalization():
     # sum operator
     previous = empty()
     expected = empty()
+
     def check_expansion(got, want_degrees):
-        canon = got.copy() # standard python behavior is for assignments not to copy
+        canon = got.copy(
+        )  # standard python behavior is for assignments not to copy
         term_with_missing_degrees = False
         for term in canon:
             if term.degrees != all_degrees:
@@ -208,7 +241,8 @@ def test_canonicalization():
         assert got.degrees == expected.degrees
         assert np.allclose(got.to_matrix(dims), expected.to_matrix(dims))
         check_expansion(got, set(all_degrees))
-        if id_target > 0: check_expansion(got, set())
+        if id_target > 0:
+            check_expansion(got, set())
         with pytest.raises(Exception):
             got.canonicalize(got.degrees[1:])
 
@@ -266,11 +300,12 @@ def test_equality():
     assert sum != sum + 1.
     assert sum != identity(2) * sum
     dims = {0: 2, 1: 3, 2: 2, 3: 4}
-    assert np.allclose(np.kron(identity_matrix(2), sum.to_matrix(dims)), (identity(2) * sum).to_matrix(dims))
+    assert np.allclose(np.kron(identity_matrix(2), sum.to_matrix(dims)),
+                       (identity(2) * sum).to_matrix(dims))
 
 
 def test_arithmetics():
-    # basic tests for all arithmetic related bindings - 
+    # basic tests for all arithmetic related bindings -
     # more complex expressions are tested as part of the C++ tests
     dims = {0: 3, 1: 2}
     id = identity(0)
@@ -280,7 +315,12 @@ def test_arithmetics():
     assert np.allclose(id.to_matrix(dims), identity_matrix(3))
     assert np.allclose(sum.to_matrix(dims), sum_matrix)
     assert np.allclose(
-        (squeeze(0) + displace(1)).to_matrix({0: 2, 1: 2}, displacement=0.5, squeezing=0.5),
+        (squeeze(0) + displace(1)).to_matrix({
+            0: 2,
+            1: 2
+        },
+                                             displacement=0.5,
+                                             squeezing=0.5),
         [[1.87758256, 0, -0.47942554, 0], [0, 1.87758256, 0, -0.47942554],
          [0.47942554, 0, 1.87758256, 0], [0, 0.47942554, 0, 1.87758256]])
 
@@ -301,17 +341,27 @@ def test_arithmetics():
     assert np.allclose((sum * id).to_matrix(dims), sum_matrix)
     assert np.allclose((id * sum).to_matrix(dims), sum_matrix)
     assert np.allclose((id + 2.).to_matrix(dims), 3. * identity_matrix(3))
-    assert np.allclose((sum + 2.).to_matrix(dims), sum_matrix + 2. * identity_matrix(2 * 3))
-    assert np.allclose((id + 2.j).to_matrix(dims), (1. + 2.j) * identity_matrix(3))
-    assert np.allclose((sum + 2.j).to_matrix(dims), sum_matrix + 2.j * identity_matrix(2 * 3))
-    assert np.allclose((sum + id).to_matrix(dims), sum_matrix + identity_matrix(2 * 3))
-    assert np.allclose((id + sum).to_matrix(dims), sum_matrix + identity_matrix(2 * 3))
+    assert np.allclose((sum + 2.).to_matrix(dims),
+                       sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose((id + 2.j).to_matrix(dims),
+                       (1. + 2.j) * identity_matrix(3))
+    assert np.allclose((sum + 2.j).to_matrix(dims),
+                       sum_matrix + 2.j * identity_matrix(2 * 3))
+    assert np.allclose((sum + id).to_matrix(dims),
+                       sum_matrix + identity_matrix(2 * 3))
+    assert np.allclose((id + sum).to_matrix(dims),
+                       sum_matrix + identity_matrix(2 * 3))
     assert np.allclose((id - 2.).to_matrix(dims), -1. * identity_matrix(3))
-    assert np.allclose((sum - 2.).to_matrix(dims), sum_matrix - 2. * identity_matrix(2 * 3))
-    assert np.allclose((id - 2.j).to_matrix(dims), (1. - 2.j) * identity_matrix(3))
-    assert np.allclose((sum - 2.j).to_matrix(dims), sum_matrix - 2.j * identity_matrix(2 * 3))
-    assert np.allclose((sum - id).to_matrix(dims), sum_matrix - identity_matrix(2 * 3))
-    assert np.allclose((id - sum).to_matrix(dims), identity_matrix(2 * 3) - sum_matrix)
+    assert np.allclose((sum - 2.).to_matrix(dims),
+                       sum_matrix - 2. * identity_matrix(2 * 3))
+    assert np.allclose((id - 2.j).to_matrix(dims),
+                       (1. - 2.j) * identity_matrix(3))
+    assert np.allclose((sum - 2.j).to_matrix(dims),
+                       sum_matrix - 2.j * identity_matrix(2 * 3))
+    assert np.allclose((sum - id).to_matrix(dims),
+                       sum_matrix - identity_matrix(2 * 3))
+    assert np.allclose((id - sum).to_matrix(dims),
+                       identity_matrix(2 * 3) - sum_matrix)
 
     # in-place arithmetics
     term = id.copy()
@@ -328,11 +378,14 @@ def test_arithmetics():
     assert np.allclose(op.to_matrix(dims), -1. * sum_matrix)
 
     op += 2.
-    assert np.allclose(op.to_matrix(dims), -1. * sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose(op.to_matrix(dims),
+                       -1. * sum_matrix + 2. * identity_matrix(2 * 3))
     op += term
-    assert np.allclose(op.to_matrix(dims), -1. * sum_matrix + (2. + 1.j) * identity_matrix(2 * 3))
+    assert np.allclose(op.to_matrix(dims),
+                       -1. * sum_matrix + (2. + 1.j) * identity_matrix(2 * 3))
     op -= 2.
-    assert np.allclose(op.to_matrix(dims), -1. * sum_matrix + 1.j * identity_matrix(2 * 3))
+    assert np.allclose(op.to_matrix(dims),
+                       -1. * sum_matrix + 1.j * identity_matrix(2 * 3))
     op -= term
     assert np.allclose(op.to_matrix(dims), -1. * sum_matrix)
 
@@ -342,13 +395,19 @@ def test_arithmetics():
     assert np.allclose((2.j * id).to_matrix(dims), 2.j * identity_matrix(3))
     assert np.allclose((2.j * sum).to_matrix(dims), 2.j * sum_matrix)
     assert np.allclose((2. + id).to_matrix(dims), 3. * identity_matrix(3))
-    assert np.allclose((2. + sum).to_matrix(dims), sum_matrix + 2. * identity_matrix(2 * 3))
-    assert np.allclose((2.j + id).to_matrix(dims), (1 + 2j) * identity_matrix(3))
-    assert np.allclose((2.j + sum).to_matrix(dims), sum_matrix + 2.j * identity_matrix(2 * 3))
+    assert np.allclose((2. + sum).to_matrix(dims),
+                       sum_matrix + 2. * identity_matrix(2 * 3))
+    assert np.allclose((2.j + id).to_matrix(dims),
+                       (1 + 2j) * identity_matrix(3))
+    assert np.allclose((2.j + sum).to_matrix(dims),
+                       sum_matrix + 2.j * identity_matrix(2 * 3))
     assert np.allclose((2. - id).to_matrix(dims), identity_matrix(3))
-    assert np.allclose((2. - sum).to_matrix(dims), 2. * identity_matrix(2 * 3) - sum_matrix)
-    assert np.allclose((2.j - id).to_matrix(dims), (-1 + 2.j) * identity_matrix(3))
-    assert np.allclose((2.j - sum).to_matrix(dims), 2.j * identity_matrix(2 * 3) - sum_matrix)
+    assert np.allclose((2. - sum).to_matrix(dims),
+                       2. * identity_matrix(2 * 3) - sum_matrix)
+    assert np.allclose((2.j - id).to_matrix(dims),
+                       (-1 + 2.j) * identity_matrix(3))
+    assert np.allclose((2.j - sum).to_matrix(dims),
+                       2.j * identity_matrix(2 * 3) - sum_matrix)
 
 
 def test_evaluation():
@@ -361,13 +420,35 @@ def test_evaluation():
 
     # test trivial evaluation
     get_op = lambda: create(0) + annihilate(1)
-    assert numpy.allclose(get_op().to_matrix({0: 2, 1: 3}), get_op().evaluate().to_matrix({0: 2, 1: 3}))
-    assert numpy.allclose(get_op().to_matrix({0: 2, 1: 3}), evaluate(get_op()).to_matrix({0: 2, 1: 3}))
+    assert numpy.allclose(get_op().to_matrix({
+        0: 2,
+        1: 3
+    }),
+                          get_op().evaluate().to_matrix({
+                              0: 2,
+                              1: 3
+                          }))
+    assert numpy.allclose(get_op().to_matrix({
+        0: 2,
+        1: 3
+    }),
+                          evaluate(get_op()).to_matrix({
+                              0: 2,
+                              1: 3
+                          }))
 
     # test non-trivial evaluation
-    def check_evaluation(composite_op): 
-        params1 = {"displacement": 0.05000126, "squeezing": 10.006008j, "lam": -0.51237 + 98.72035j}
-        params2 = {"squeezing": 10.006008j, "displacement": 0.05000126, "lam": -0.51237 + 98.72035j}
+    def check_evaluation(composite_op):
+        params1 = {
+            "displacement": 0.05000126,
+            "squeezing": 10.006008j,
+            "lam": -0.51237 + 98.72035j
+        }
+        params2 = {
+            "squeezing": 10.006008j,
+            "displacement": 0.05000126,
+            "lam": -0.51237 + 98.72035j
+        }
         assert params1 == params2
         assert [e for e in params1] != [e for e in params2]
 
@@ -376,27 +457,38 @@ def test_evaluation():
         eval2 = composite_op.evaluate(**params2)
         assert len(eval1.parameters) == 0
         assert eval1 == eval2
-        assert eval1 != composite_op.evaluate(squeezing = 0.05000126, displacement = 10.006008j, lam = -0.51237 + 98.72035j)
+        assert eval1 != composite_op.evaluate(squeezing=0.05000126,
+                                              displacement=10.006008j,
+                                              lam=-0.51237 + 98.72035j)
         assert eval1 == evaluate(composite_op, **params1)
 
         dims = {1: 3, 3: 4}
         assert numpy.allclose(eval1.to_matrix(dims), eval2.to_matrix(dims))
-        params3 = {"displacement": 1.05000126, "squeezing": 10.006008j, "lam": -0.51237 + 98.72035j}
+        params3 = {
+            "displacement": 1.05000126,
+            "squeezing": 10.006008j,
+            "lam": -0.51237 + 98.72035j
+        }
         eval3 = composite_op.evaluate(**params3)
         assert numpy.allclose(eval1.to_matrix(dims), eval2.to_matrix(dims))
         assert not numpy.allclose(eval1.to_matrix(dims), eval3.to_matrix(dims))
 
         # testing that we have a reasonable precision
-        params4 = {"displacement": 1.05000126000000006, "squeezing": 10.006008j, "lam": -0.51237 + 98.72035j}
+        params4 = {
+            "displacement": 1.05000126000000006,
+            "squeezing": 10.006008j,
+            "lam": -0.51237 + 98.72035j
+        }
         assert params3 != params4
         eval4 = composite_op.evaluate(**params4)
         assert eval3 != eval4
         if type(composite_op) == MatrixOperatorTerm:
             for op1, op2 in zip(eval3, eval4):
-                assert op1.id.startswith("displace") or op1.id.startswith("squeeze")
+                assert op1.id.startswith("displace") or op1.id.startswith(
+                    "squeeze")
                 if op1.id.startswith("squeeze"):
                     assert op1.id == op2.id
-                else: 
+                else:
                     assert op1.id != op2.id
 
     check_evaluation(coeff * displace_op * squeeze_op)
@@ -420,24 +512,27 @@ def test_term_distribution():
 
 
 # made a separate function just to check that this works
-def define_ops(): 
+def define_ops():
+
     def op_definition(dim):
         return np.diag([(-1. + 0j)**i for i in range(dim)])
 
-    define(
-        "custom_parity1", [0],
-        lambda dim: np.diag([(-1. + 0j)**i for i in range(dim)]))
-    operators.define(
-        "custom_parity2", [0],
-        op_definition)
+    define("custom_parity1", [0],
+           lambda dim: np.diag([(-1. + 0j)**i for i in range(dim)]))
+    operators.define("custom_parity2", [0], op_definition)
+
 
 def test_custom_operators():
 
-    define("custom", [0], lambda dim: np.diag(np.zeros(dim, dtype=np.complex128)))
-    with pytest.raises(Exception): 
+    define("custom", [0],
+           lambda dim: np.diag(np.zeros(dim, dtype=np.complex128)))
+    with pytest.raises(Exception):
         # redefinition of an operator with the same name should raise and exception by default
-        define("custom", [0], lambda dim: np.diag(np.zeros(dim, dtype=np.complex128)))
-    define("custom", [0], lambda dim: np.diag(np.ones(dim, dtype=np.complex128)), override=True)
+        define("custom", [0],
+               lambda dim: np.diag(np.zeros(dim, dtype=np.complex128)))
+    define("custom", [0],
+           lambda dim: np.diag(np.ones(dim, dtype=np.complex128)),
+           override=True)
     custom1 = instantiate("custom", 2)
     assert np.allclose(custom1.to_matrix({2: 3}), identity_matrix(3))
 
@@ -448,19 +543,24 @@ def test_custom_operators():
     assert np.allclose(custom3.to_matrix({1: 5}), parity_matrix(5))
 
     def phase(angle: float):
-        return np.array([[1, 0], [0, cmath.exp(1j * angle)]], dtype=np.complex128)
+        return np.array([[1, 0], [0, cmath.exp(1j * angle)]],
+                        dtype=np.complex128)
 
     define("custom_phase", [2], phase)
     custom_op = instantiate("custom_phase", [1])
-    with pytest.raises(Exception): custom_op.to_matrix() # missing parameter
-    assert np.allclose(custom_op.to_matrix(angle = np.pi), np.array([[1, 0], [0, -1]]))
+    with pytest.raises(Exception):
+        custom_op.to_matrix()  # missing parameter
+    assert np.allclose(custom_op.to_matrix(angle=np.pi),
+                       np.array([[1, 0], [0, -1]]))
 
     # matrix evaluation for custom operators with multiple degrees
 
     def func0(dims):
         return np.kron(momentum_matrix(dims[1]), position_matrix(dims[0]))
+
     def func1(dims):
         return np.kron(momentum_matrix(dims[1]), number_matrix(dims[0]))
+
     define("custom_op0", [-1, -1], func0)
     define("custom_op1", [-1, -1], func1)
     dims = {0: 3, 1: 4, 2: 2, 3: 5}
@@ -499,15 +599,19 @@ def test_custom_operators():
 
     def func0(dims):
         return np.kron(momentum_matrix(dims[1]), position_matrix(dims[0]))
+
     def func1(dims):
         return np.kron(parity_matrix(dims[1]), number_matrix(dims[0]))
+
     operators.define("custom_op0", [-1, -1], func0, override=True)
     operators.define("custom_op1", [-1, -1], func1, override=True)
 
     op0 = instantiate("custom_op0", [0, 1])
     op1 = instantiate("custom_op1", [1, 2])
-    matrix0 = np.kron(np.kron(identity_matrix(2), momentum_matrix(4)), position_matrix(3))
-    matrix1 = np.kron(np.kron(parity_matrix(2), number_matrix(4)), identity_matrix(3))
+    matrix0 = np.kron(np.kron(identity_matrix(2), momentum_matrix(4)),
+                      position_matrix(3))
+    matrix1 = np.kron(np.kron(parity_matrix(2), number_matrix(4)),
+                      identity_matrix(3))
 
     sum1 = op0 + op1
     sum2 = op1 + op0
@@ -521,8 +625,10 @@ def test_custom_operators():
 
     op0 = instantiate("custom_op0", [2, 3])
     op1 = instantiate("custom_op1", [0, 2])
-    matrix0 = np.kron(np.kron(momentum_matrix(5), position_matrix(2)), identity_matrix(3))
-    matrix1 = np.kron(np.kron(identity_matrix(5), parity_matrix(2)), number_matrix(3))
+    matrix0 = np.kron(np.kron(momentum_matrix(5), position_matrix(2)),
+                      identity_matrix(3))
+    matrix1 = np.kron(np.kron(identity_matrix(5), parity_matrix(2)),
+                      number_matrix(3))
 
     sum1 = op0 + op1
     sum2 = op1 + op0
@@ -560,12 +666,14 @@ def test_parameter_docs():
         """
         Single-qubit rotation about the Z axis.
         """
-        return np.array([[cmath.exp(-0.5j * angle), 0], [0, cmath.exp(0.5j * angle)]], dtype=np.complex128)
+        return np.array(
+            [[cmath.exp(-0.5j * angle), 0], [0, cmath.exp(0.5j * angle)]],
+            dtype=np.complex128)
 
     define("rz", [2], rz)
     rz_op = instantiate("rz", 0)
     assert 'angle' in rz_op.parameters
-    assert rz_op.parameters['angle'] == '' # no parameter docs
+    assert rz_op.parameters['angle'] == ''  # no parameter docs
 
     def phase(angle: float):
         """
@@ -574,14 +682,16 @@ def test_parameter_docs():
         Args:
         angle(float): exponent of the applied phase
         """
-        return np.array([[1, 0], [0, cmath.exp(1j * angle)]], dtype=np.complex128)
+        return np.array([[1, 0], [0, cmath.exp(1j * angle)]],
+                        dtype=np.complex128)
 
     define("phase", [2], phase)
     phase_op = instantiate("phase", [1])
     assert 'angle' in phase_op.parameters
     assert phase_op.parameters['angle'] == "exponent of the applied phase"
 
-    combined1 = MatrixOperatorTerm(rz_op) * MatrixOperatorTerm(phase_op) # FIXME: default to returning term op
+    combined1 = MatrixOperatorTerm(rz_op) * MatrixOperatorTerm(
+        phase_op)  # FIXME: default to returning term op
     assert 'angle' in combined1.parameters
     assert combined1.parameters['angle'] == "exponent of the applied phase"
     combined2 = MatrixOperatorTerm(phase_op) * MatrixOperatorTerm(rz_op)
@@ -598,7 +708,8 @@ def test_parameter_docs():
         """Args:
         angle(float): different docs for angle...
         """
-        return np.array([[1, 0], [0, cmath.exp(0.5j * angle)]], dtype=np.complex128)
+        return np.array([[1, 0], [0, cmath.exp(0.5j * angle)]],
+                        dtype=np.complex128)
 
     operators.define("phase2", [2], phase2)
     phase_op2 = instantiate("phase2", 1)
@@ -616,12 +727,14 @@ def test_parameter_docs():
     assert combined6.parameters['angle'] == "different docs for angle..."
 
 
-def test_backwards_compatibility(): 
+def test_backwards_compatibility():
     scalar = const(3)
     assert type(scalar) == ScalarOperator
     assert scalar.evaluate() == 3
-    with pytest.raises(ValueError): const(lambda: 5)
-    with pytest.raises(ValueError): const('c')
+    with pytest.raises(ValueError):
+        const(lambda: 5)
+    with pytest.raises(ValueError):
+        const('c')
 
     def check_composite(op_create, matrix_create, coeff_val):
         op1 = op_create(5)
@@ -634,12 +747,15 @@ def test_backwards_compatibility():
         assert np.allclose(op3.to_matrix({1: 2, 3: 2, 5: 2}), matrix_create(8))
         for element in op3:
             assert len(element.degrees) == 1
-            assert np.allclose(element.to_matrix({element.degrees[0]: 3}), matrix_create(3))
+            assert np.allclose(element.to_matrix({element.degrees[0]: 3}),
+                               matrix_create(3))
 
     check_composite(zero, zero_matrix, 0)
     check_composite(identity, identity_matrix, 1)
-    with pytest.warns(DeprecationWarning): create(5)
-    with pytest.warns(DeprecationWarning): annihilate(5)
+    with pytest.warns(DeprecationWarning):
+        create(5)
+    with pytest.warns(DeprecationWarning):
+        annihilate(5)
 
 
 # Run with: pytest -rP

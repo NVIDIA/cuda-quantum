@@ -8,6 +8,8 @@ The CUDA-Q platform is a powerful tool with many different backends for running 
 
 The figure below groups the backends into four categories, and described the general purpose for each.  See the following sections for a breakdown of the backends included in each section.
 
+To add a new hardware backend, please see :doc:`../extending/backend`
+
 .. image:: backends.png
    :width: 1000
 

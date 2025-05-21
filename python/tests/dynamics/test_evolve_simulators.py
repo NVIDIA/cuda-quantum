@@ -197,12 +197,13 @@ def test_evolve(init_state):
     # Run the simulation.
     # First, we run the simulation without any collapse operators (ideal).
     evolution_result = cudaq.evolve(hamiltonian,
-                              dimensions,
-                              schedule,
-                              rho0,
-                              observables=[spin.y(0), spin.z(0)],
-                              collapse_operators=[],
-                              store_intermediate_results=True)
+                                    dimensions,
+                                    schedule,
+                                    rho0,
+                                    observables=[spin.y(0),
+                                                 spin.z(0)],
+                                    collapse_operators=[],
+                                    store_intermediate_results=True)
 
     schedule.reset()
     # Now, run the simulation with qubit decaying due to the presence of a collapse operator.
@@ -232,14 +233,14 @@ def test_evolve(init_state):
     # Test for `shots_count`
     schedule.reset()
     evolution_result_shots = cudaq.evolve(hamiltonian,
-                                    dimensions,
-                                    schedule,
-                                    rho0,
-                                    observables=[spin.y(0),
-                                                 spin.z(0)],
-                                    collapse_operators=[],
-                                    store_intermediate_results=True,
-                                    shots_count=2000)
+                                          dimensions,
+                                          schedule,
+                                          rho0,
+                                          observables=[spin.y(0),
+                                                       spin.z(0)],
+                                          collapse_operators=[],
+                                          store_intermediate_results=True,
+                                          shots_count=2000)
     results_with_shots = [
         get_result(0, evolution_result_shots),
         get_result(1, evolution_result_shots)
@@ -269,14 +270,14 @@ def test_evolve_async():
 
     # Run the simulation.
     # First, we run the simulation without any collapse operators (ideal).
-    evolution_result = cudaq.evolve_async(hamiltonian,
-                                    dimensions,
-                                    schedule,
-                                    rho0,
-                                    observables=[spin.y(0),
-                                                 spin.z(0)],
-                                    collapse_operators=[],
-                                    store_intermediate_results=True).get()
+    evolution_result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0,
+        observables=[spin.y(0), spin.z(0)],
+        collapse_operators=[],
+        store_intermediate_results=True).get()
 
     get_result = lambda idx, res: [
         exp_vals[idx].expectation() for exp_vals in res.expectation_values()
@@ -306,15 +307,15 @@ def test_evolve_async():
 
     # Test for `shots_count`
     schedule.reset()
-    evolution_result_shots = cudaq.evolve_async(hamiltonian,
-                                          dimensions,
-                                          schedule,
-                                          rho0,
-                                          observables=[spin.y(0),
-                                                       spin.z(0)],
-                                          collapse_operators=[],
-                                          store_intermediate_results=True,
-                                          shots_count=2000).get()
+    evolution_result_shots = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0,
+        observables=[spin.y(0), spin.z(0)],
+        collapse_operators=[],
+        store_intermediate_results=True,
+        shots_count=2000).get()
     results_with_shots = [
         get_result(0, evolution_result_shots),
         get_result(1, evolution_result_shots)

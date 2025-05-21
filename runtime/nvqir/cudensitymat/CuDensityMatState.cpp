@@ -8,11 +8,23 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
 #include "common/EigenDense.h"
 #include "common/Logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-
 namespace cudaq {
+
+std::size_t CuDensityMatState::getNumQubits() const {
+  if (!is_initialized())
+    throw std::runtime_error("[CuDensityMatState] Get number of qubits for an "
+                             "uninitiated state is not supported.");
+
+  if (std::any_of(hilbertSpaceDims.begin(), hilbertSpaceDims.end(),
+                  [](auto dim) { return dim != 2; }))
+    throw std::runtime_error("[CuDensityMatState] Get number of qubits is only "
+                             "supported on qubit (2-level) systems");
+  return hilbertSpaceDims.size();
+}
 
 std::complex<double>
 CuDensityMatState::overlap(const cudaq::SimulationState &other) {
@@ -66,8 +78,10 @@ CuDensityMatState::getAmplitude(const std::vector<int> &basisState) {
 // Dump the state to the given output stream
 void CuDensityMatState::dump(std::ostream &os) const {
   // get state data from device to print
-  Eigen::MatrixXcd state(dimension, isDensityMatrix ? dimension : 1);
-  const auto size = isDensityMatrix ? dimension * dimension : dimension;
+  const auto dim =
+      isDensityMatrix ? std::size_t(std::sqrt(dimension)) : dimension;
+  Eigen::MatrixXcd state(dim, isDensityMatrix ? dim : 1);
+  const auto size = state.size();
   HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
                                size * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
@@ -95,16 +109,14 @@ CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
     size = std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
     dataPtr = const_cast<void *>(ptr);
   }
-
-  std::complex<double> *devicePtr = nullptr;
-
-  HANDLE_CUDA_ERROR(
-      cudaMalloc((void **)&devicePtr, size * sizeof(std::complex<double>)));
+  std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
+      cudaq::dynamics::DeviceAllocator::allocate(size *
+                                                 sizeof(std::complex<double>)));
   HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, dataPtr,
                                size * sizeof(std::complex<double>),
                                cudaMemcpyDefault));
   // printf("Created CuDensityMatState ptr %p\n", devicePtr);
-  return std::make_unique<CuDensityMatState>(size, devicePtr, isDm);
+  return std::make_unique<CuDensityMatState>(size, devicePtr);
 }
 
 // Return the tensor at the given index. Throws
@@ -115,9 +127,12 @@ CuDensityMatState::getTensor(std::size_t tensorIdx) const {
     throw std::runtime_error(
         "CuDensityMatState state only supports a single tensor");
 
+  const std::size_t dim = isDensityMatrix
+                              ? static_cast<std::size_t>(std::sqrt(dimension))
+                              : dimension;
   const std::vector<std::size_t> extents =
-      isDensityMatrix ? std::vector<std::size_t>{dimension, dimension}
-                      : std::vector<std::size_t>{dimension};
+      isDensityMatrix ? std::vector<std::size_t>{dim, dim}
+                      : std::vector<std::size_t>{dim};
   return Tensor{devicePtr, extents, precision::fp64};
 }
 
@@ -155,9 +170,11 @@ CuDensityMatState::operator()(std::size_t tensorIdx,
 // Copy the state device data to the user-provided host data pointer.
 void CuDensityMatState::toHost(std::complex<double> *userData,
                                std::size_t numElements) const {
-  if (numElements != dimension * (isDensityMatrix ? dimension : 1))
-    throw std::runtime_error("Number of elements in user data does not match "
-                             "the size of the state");
+  if (numElements != dimension)
+    throw std::runtime_error(
+        fmt::format("Number of elements in user data does not match "
+                    "the size of the state: provided {}, expected {}.",
+                    numElements, dimension));
 
   HANDLE_CUDA_ERROR(cudaMemcpy(userData, devicePtr,
                                numElements * sizeof(std::complex<double>),
@@ -179,7 +196,7 @@ void CuDensityMatState::destroyState() {
     cudmState = nullptr;
   }
   if (devicePtr != nullptr) {
-    HANDLE_CUDA_ERROR(cudaFree(devicePtr));
+    cudaq::dynamics::DeviceAllocator::free(devicePtr);
     devicePtr = nullptr;
     dimension = 0;
     isDensityMatrix = false;
@@ -198,124 +215,108 @@ calculate_density_matrix_size(const std::vector<int64_t> &hilbertSpaceDims) {
   return vectorSize * vectorSize;
 }
 
-CuDensityMatState::CuDensityMatState(
-    cudensitymatHandle_t handle,
-    const std::vector<std::complex<double>> &rawData,
-    const std::vector<int64_t> &dims)
-    : cudmHandle(handle), dimension(rawData.size()), cudmState(nullptr),
-      hilbertSpaceDims(dims) {
-  if (rawData.empty())
-    throw std::invalid_argument("Raw data cannot be empty.");
-
-  // Allocate device memory
-  size_t dataSize = rawData.size() * sizeof(std::complex<double>);
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(reinterpret_cast<void **>(&devicePtr), dataSize));
-
-  // Copy data from host to device
-  HANDLE_CUDA_ERROR(
-      cudaMemcpy(devicePtr, rawData.data(), dataSize, cudaMemcpyHostToDevice));
-
-  // Determine if this is a denisty matrix or state vector
-  size_t rawDataSize = rawData.size();
-  size_t expectedDensityMatrixSize =
-      calculate_density_matrix_size(hilbertSpaceDims);
-  size_t expectedStateVectorSize =
-      calculate_state_vector_size(hilbertSpaceDims);
-
-  if (rawDataSize != expectedDensityMatrixSize &&
-      rawDataSize != expectedStateVectorSize) {
-    throw std::invalid_argument(
-        "Invalid rawData size for the given Hilbert space dimensions.");
-  }
-
-  cudensitymatStatePurity_t purity;
-
-  if (rawDataSize == expectedDensityMatrixSize) {
-    purity = CUDENSITYMAT_STATE_PURITY_MIXED;
-  } else if (rawDataSize == expectedStateVectorSize) {
-    purity = CUDENSITYMAT_STATE_PURITY_PURE;
-  }
-
-  HANDLE_CUDM_ERROR(cudensitymatCreateState(
-      cudmHandle, purity, static_cast<int32_t>(hilbertSpaceDims.size()),
-      hilbertSpaceDims.data(), 1, CUDA_C_64F, &cudmState));
-
-  // Retrieve the number of state components
-  int32_t numStateComponents;
-  HANDLE_CUDM_ERROR(cudensitymatStateGetNumComponents(cudmHandle, cudmState,
-                                                      &numStateComponents));
-
-  // Retrieve the storage size for each component
-  std::vector<size_t> componentBufferSizes(numStateComponents);
-  HANDLE_CUDM_ERROR(cudensitymatStateGetComponentStorageSize(
-      cudmHandle, cudmState, numStateComponents, componentBufferSizes.data()));
-
-  // Validate device memory
-  size_t totalSize = std::accumulate(componentBufferSizes.begin(),
-                                     componentBufferSizes.end(), 0);
-  if (totalSize > rawData.size() * sizeof(std::complex<double>))
-    throw std::invalid_argument(
-        "Device memory size is insufficient to cover all components.");
-
-  // Attach storage for using device memory (devicePtr)
-  std::vector<void *> componentBuffers(numStateComponents);
-  size_t offset = 0;
-  for (int32_t i = 0; i < numStateComponents; i++) {
-    componentBuffers[i] = static_cast<void *>(
-        static_cast<std::complex<double> *>(devicePtr) + offset);
-    offset += componentBufferSizes[i] / sizeof(std::complex<double>);
-  }
-
-  HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
-      cudmHandle, cudmState, numStateComponents, componentBuffers.data(),
-      componentBufferSizes.data()));
+CuDensityMatState::CuDensityMatState(std::size_t size, void *ptr)
+    : devicePtr(ptr), dimension(size),
+      cudmHandle(dynamics::Context::getCurrentContext()->getHandle()) {
+  if (size == 0)
+    throw std::invalid_argument("Zero-length state is not allowed.");
 }
 
-CuDensityMatState::CuDensityMatState(cudensitymatHandle_t handle,
-                                     const CuDensityMatState &simState,
-                                     const std::vector<int64_t> &dims)
-    : cudmHandle(handle), hilbertSpaceDims(dims) {
-
-  const bool isDensityMat =
-      simState.dimension == calculate_density_matrix_size(hilbertSpaceDims);
-  dimension = simState.dimension;
-
-  const size_t dataSize = dimension * sizeof(std::complex<double>);
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(reinterpret_cast<void **>(&devicePtr), dataSize));
-
-  HANDLE_CUDA_ERROR(
-      cudaMemcpy(devicePtr, simState.devicePtr, dataSize, cudaMemcpyDefault));
-
-  const cudensitymatStatePurity_t purity = isDensityMat
+std::unique_ptr<CuDensityMatState> CuDensityMatState::createInitialState(
+    cudensitymatHandle_t handle, InitialState initial_state,
+    const cudaq::dimension_map &dimensions, bool createDensityMatrix) {
+  auto state = std::make_unique<CuDensityMatState>();
+  state->cudmHandle = handle;
+  std::size_t totalDim = 1;
+  for (std::size_t i = 0; i < dimensions.size(); ++i) {
+    const auto iter = dimensions.find(i);
+    if (iter == dimensions.end())
+      throw std::runtime_error(fmt::format(
+          "Unable to find dimension of sub-system {} in the dimension map {}",
+          i, dimensions));
+    state->hilbertSpaceDims.emplace_back(iter->second);
+    totalDim *= iter->second;
+  }
+  const cudensitymatStatePurity_t purity = createDensityMatrix
                                                ? CUDENSITYMAT_STATE_PURITY_MIXED
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
-  HANDLE_CUDM_ERROR(cudensitymatCreateState(
-      cudmHandle, purity, static_cast<int32_t>(hilbertSpaceDims.size()),
-      hilbertSpaceDims.data(), 1, CUDA_C_64F, &cudmState));
+  state->isDensityMatrix = createDensityMatrix;
 
-  // Query the size of the quantum state storage
-  std::size_t storageSize{0}; // only one storage component (tensor) is needed
+  HANDLE_CUDM_ERROR(cudensitymatCreateState(
+      state->cudmHandle, purity,
+      static_cast<int32_t>(state->hilbertSpaceDims.size()),
+      state->hilbertSpaceDims.data(), 1, CUDA_C_64F, &state->cudmState));
+
+  std::size_t storageSize;
   HANDLE_CUDM_ERROR(cudensitymatStateGetComponentStorageSize(
-      cudmHandle, cudmState,
+      state->cudmHandle, state->cudmState,
       1,              // only one storage component
       &storageSize)); // storage size in bytes
   const std::size_t stateVolume =
       storageSize / sizeof(std::complex<double>); // quantum state tensor volume
-                                                  // (number of elements)
-  assert(stateVolume == dimension);
-  // std::cout << "Quantum state storage size (bytes) = " << storageSize
-  //           << std::endl;
+  // (number of elements)
+  state->dimension = stateVolume;
+  switch (initial_state) {
+  case InitialState::ZERO: {
+    const bool isFirstStateSegment = [&]() {
+      if (stateVolume == totalDim || stateVolume == totalDim * totalDim)
+        return true;
 
+      int32_t numComponents = 0;
+      HANDLE_CUDM_ERROR(cudensitymatStateGetNumComponents(
+          state->cudmHandle, state->cudmState, &numComponents));
+      assert(numComponents == 1);
+      int32_t numModes{0};
+      int32_t stateComponentGlobalId{-1};
+      int32_t batchModeLocation{-1};
+      HANDLE_CUDM_ERROR(cudensitymatStateGetComponentNumModes(
+          state->cudmHandle, state->cudmState, /*stateComponentLocalId=*/0,
+          &stateComponentGlobalId, &numModes, &batchModeLocation));
+      std::vector<int64_t> stateComponentModeExtents(numModes);
+      std::vector<int64_t> stateComponentModeOffsets(numModes);
+
+      HANDLE_CUDM_ERROR(cudensitymatStateGetComponentInfo(
+          state->cudmHandle, state->cudmState, /*stateComponentLocalId=*/0,
+          &stateComponentGlobalId, &numModes, stateComponentModeExtents.data(),
+          stateComponentModeOffsets.data()));
+      // All the offsets are zero
+      return std::all_of(stateComponentModeOffsets.cbegin(),
+                         stateComponentModeOffsets.cend(),
+                         [](int64_t i) { return i == 0; });
+    }();
+
+    state->devicePtr = cudaq::dynamics::DeviceAllocator::allocate(storageSize);
+    HANDLE_CUDA_ERROR(cudaMemset(state->devicePtr, 0, storageSize));
+    if (isFirstStateSegment) {
+      // Set the first element to 1.0
+      constexpr std::complex<double> oneVal = 1.0;
+      HANDLE_CUDA_ERROR(cudaMemcpy(state->devicePtr, &oneVal,
+                                   sizeof(std::complex<double>),
+                                   cudaMemcpyDefault));
+    }
+    break;
+  }
+  case InitialState::UNIFORM: {
+    const double factor = createDensityMatrix
+                              ? static_cast<double>(totalDim)
+                              : std::sqrt(static_cast<double>(totalDim));
+    std::vector<std::complex<double>> uniformState(stateVolume, 1.0 / factor);
+    state->devicePtr = cudaq::dynamics::createArrayGpu(uniformState);
+    break;
+  }
+  default:
+    __builtin_unreachable();
+    break;
+  }
   // Attach initialized GPU storage to the input quantum state
   HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
-      cudmHandle, cudmState,
+      state->cudmHandle, state->cudmState,
       1, // only one storage component (tensor)
-      std::vector<void *>({devicePtr})
+      std::vector<void *>({state->devicePtr})
           .data(), // pointer to the GPU storage for the quantum state
       std::vector<std::size_t>({storageSize})
           .data())); // size of the GPU storage for the quantum state
+  return state;
 }
 
 CuDensityMatState CuDensityMatState::zero_like(const CuDensityMatState &other) {
@@ -323,15 +324,11 @@ CuDensityMatState CuDensityMatState::zero_like(const CuDensityMatState &other) {
   state.cudmHandle = other.cudmHandle;
   state.hilbertSpaceDims = other.hilbertSpaceDims;
   state.dimension = other.dimension;
+  state.isDensityMatrix = other.isDensityMatrix;
   const size_t dataSize = state.dimension * sizeof(std::complex<double>);
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(reinterpret_cast<void **>(&state.devicePtr), dataSize));
+  state.devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dataSize);
   HANDLE_CUDA_ERROR(cudaMemset(state.devicePtr, 0, dataSize));
-
-  const size_t expectedDensityMatrixSize =
-      calculate_density_matrix_size(state.hilbertSpaceDims);
-  const bool isDensityMat = expectedDensityMatrixSize == state.dimension;
-  const cudensitymatStatePurity_t purity = isDensityMat
+  const cudensitymatStatePurity_t purity = state.isDensityMatrix
                                                ? CUDENSITYMAT_STATE_PURITY_MIXED
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
@@ -339,72 +336,47 @@ CuDensityMatState CuDensityMatState::zero_like(const CuDensityMatState &other) {
       static_cast<int32_t>(state.hilbertSpaceDims.size()),
       state.hilbertSpaceDims.data(), 1, CUDA_C_64F, &state.cudmState));
 
-  // Query the size of the quantum state storage
-  std::size_t storageSize{0}; // only one storage component (tensor) is needed
-  HANDLE_CUDM_ERROR(cudensitymatStateGetComponentStorageSize(
-      state.cudmHandle, state.cudmState,
-      1,              // only one storage component
-      &storageSize)); // storage size in bytes
-  const std::size_t stateVolume =
-      storageSize / sizeof(std::complex<double>); // quantum state tensor volume
-                                                  // (number of elements)
-  assert(stateVolume == state.dimension);
-  // std::cout << "Quantum state storage size (bytes) = " << storageSize
-  //           << std::endl;
-
   // Attach initialized GPU storage to the input quantum state
   HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
       state.cudmHandle, state.cudmState,
       1, // only one storage component (tensor)
       std::vector<void *>({state.devicePtr})
           .data(), // pointer to the GPU storage for the quantum state
-      std::vector<std::size_t>({storageSize})
+      std::vector<std::size_t>({dataSize})
           .data())); // size of the GPU storage for the quantum state
   return state;
 }
 
-CuDensityMatState CuDensityMatState::clone(const CuDensityMatState &other) {
-  CuDensityMatState state;
-  state.cudmHandle = other.cudmHandle;
-  state.hilbertSpaceDims = other.hilbertSpaceDims;
-  state.dimension = other.dimension;
-  const size_t dataSize = state.dimension * sizeof(std::complex<double>);
-  HANDLE_CUDA_ERROR(
-      cudaMalloc(reinterpret_cast<void **>(&state.devicePtr), dataSize));
-  HANDLE_CUDA_ERROR(cudaMemcpy(state.devicePtr, other.devicePtr, dataSize,
+std::unique_ptr<CuDensityMatState>
+CuDensityMatState::clone(const CuDensityMatState &other) {
+  assert(other.is_initialized());
+  CuDensityMatState *state = new CuDensityMatState;
+  state->cudmHandle = other.cudmHandle;
+  state->hilbertSpaceDims = other.hilbertSpaceDims;
+  state->dimension = other.dimension;
+  state->isDensityMatrix = other.isDensityMatrix;
+  const size_t dataSize = state->dimension * sizeof(std::complex<double>);
+  state->devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dataSize);
+  HANDLE_CUDA_ERROR(cudaMemcpy(state->devicePtr, other.devicePtr, dataSize,
                                cudaMemcpyDefault));
-
-  const size_t expectedDensityMatrixSize =
-      calculate_density_matrix_size(state.hilbertSpaceDims);
-  const bool isDensityMat = expectedDensityMatrixSize == state.dimension;
-  const cudensitymatStatePurity_t purity = isDensityMat
+  const cudensitymatStatePurity_t purity = state->isDensityMatrix
                                                ? CUDENSITYMAT_STATE_PURITY_MIXED
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
-      state.cudmHandle, purity,
-      static_cast<int32_t>(state.hilbertSpaceDims.size()),
-      state.hilbertSpaceDims.data(), 1, CUDA_C_64F, &state.cudmState));
-
-  // Query the size of the quantum state storage
-  std::size_t storageSize{0}; // only one storage component (tensor) is needed
-  HANDLE_CUDM_ERROR(cudensitymatStateGetComponentStorageSize(
-      state.cudmHandle, state.cudmState,
-      1,              // only one storage component
-      &storageSize)); // storage size in bytes
-  const std::size_t stateVolume =
-      storageSize / sizeof(std::complex<double>); // quantum state tensor volume
-                                                  // (number of elements)
-  assert(stateVolume == state.dimension);
+      state->cudmHandle, purity,
+      static_cast<int32_t>(state->hilbertSpaceDims.size()),
+      state->hilbertSpaceDims.data(), /*batchSize=*/1, CUDA_C_64F,
+      &state->cudmState));
 
   // Attach initialized GPU storage to the input quantum state
   HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
-      state.cudmHandle, state.cudmState,
+      state->cudmHandle, state->cudmState,
       1, // only one storage component (tensor)
-      std::vector<void *>({state.devicePtr})
+      std::vector<void *>({state->devicePtr})
           .data(), // pointer to the GPU storage for the quantum state
-      std::vector<std::size_t>({storageSize})
+      std::vector<std::size_t>({dataSize})
           .data())); // size of the GPU storage for the quantum state
-  return state;
+  return std::unique_ptr<CuDensityMatState>(state);
 }
 
 CuDensityMatState::CuDensityMatState(CuDensityMatState &&other) noexcept
@@ -427,8 +399,9 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
     if (cudmState)
       cudensitymatDestroyState(cudmState);
 
-    if (devicePtr)
-      cudaFree(devicePtr);
+    if (devicePtr) {
+      cudaq::dynamics::DeviceAllocator::free(devicePtr);
+    }
 
     // Move data from other
     isDensityMatrix = other.isDensityMatrix;
@@ -456,7 +429,7 @@ bool cudaq::CuDensityMatState::is_density_matrix() const {
   if (!is_initialized())
     return false;
 
-  return dimension == calculate_density_matrix_size(hilbertSpaceDims);
+  return isDensityMatrix;
 }
 
 CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
@@ -466,22 +439,26 @@ CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
   if (is_density_matrix())
     throw std::runtime_error("State is already a density matrix.");
 
-  size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
-  std::vector<std::complex<double>> stateVecData(vectorSize);
-  HANDLE_CUDA_ERROR(cudaMemcpy(stateVecData.data(), devicePtr,
-                               dimension * sizeof(std::complex<double>),
-                               cudaMemcpyDeviceToHost));
-  size_t expectedDensityMatrixSize = vectorSize * vectorSize;
-  std::vector<std::complex<double>> densityMatrix(expectedDensityMatrixSize);
+  const std::size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
+  const std::size_t expectedDensityMatrixSize = vectorSize * vectorSize;
+  const std::size_t dmSizeBytes =
+      expectedDensityMatrixSize * sizeof(std::complex<double>);
 
-  for (size_t i = 0; i < vectorSize; i++) {
-    for (size_t j = 0; j < vectorSize; j++) {
-      densityMatrix[i * vectorSize + j] =
-          stateVecData[i] * std::conj(stateVecData[j]);
-    }
-  }
-
-  return CuDensityMatState(cudmHandle, densityMatrix, hilbertSpaceDims);
+  CuDensityMatState dmState;
+  dmState.devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dmSizeBytes);
+  dmState.isDensityMatrix = true;
+  HANDLE_CUDA_ERROR(cudaMemset(dmState.devicePtr, 0, dmSizeBytes));
+  dmState.dimension = expectedDensityMatrixSize;
+  cuDoubleComplex scalar{1.0, 0.0};
+  HANDLE_CUBLAS_ERROR(cublasZgerc(
+      dynamics::Context::getCurrentContext()->getCublasHandle(), vectorSize,
+      vectorSize, &scalar, reinterpret_cast<const cuDoubleComplex *>(devicePtr),
+      1, reinterpret_cast<const cuDoubleComplex *>(devicePtr), 1,
+      reinterpret_cast<cuDoubleComplex *>(dmState.devicePtr), vectorSize));
+  dmState.initialize_cudm(cudmHandle, hilbertSpaceDims);
+  assert(dmState.is_initialized());
+  assert(dmState.is_density_matrix());
+  return dmState;
 }
 
 cudensitymatState_t cudaq::CuDensityMatState::get_impl() const {
@@ -500,6 +477,7 @@ cudensitymatHandle_t cudaq::CuDensityMatState::get_handle() const {
 
 void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
                                         const std::vector<int64_t> &dims) {
+  assert(!is_initialized());
   cudmHandle = handleToSet;
   hilbertSpaceDims = dims;
   size_t expectedDensityMatrixSize =
@@ -508,14 +486,18 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
       calculate_state_vector_size(hilbertSpaceDims);
 
   if (dimension != expectedDensityMatrixSize &&
-      dimension != expectedStateVectorSize) {
+      dimension != expectedStateVectorSize &&
+      cudaq::dynamics::getNumRanks() * dimension != expectedDensityMatrixSize &&
+      cudaq::dynamics::getNumRanks() * dimension != expectedStateVectorSize) {
     throw std::invalid_argument("Invalid hilbertSpaceDims for the state data");
   }
 
-  const cudensitymatStatePurity_t purity =
-      dimension == expectedDensityMatrixSize ? CUDENSITYMAT_STATE_PURITY_MIXED
-                                             : CUDENSITYMAT_STATE_PURITY_PURE;
-
+  isDensityMatrix =
+      (dimension == expectedDensityMatrixSize ||
+       dimension * cudaq::dynamics::getNumRanks() == expectedDensityMatrixSize);
+  const cudensitymatStatePurity_t purity = isDensityMatrix
+                                               ? CUDENSITYMAT_STATE_PURITY_MIXED
+                                               : CUDENSITYMAT_STATE_PURITY_PURE;
   HANDLE_CUDM_ERROR(cudensitymatCreateState(
       cudmHandle, purity, static_cast<int32_t>(hilbertSpaceDims.size()),
       hilbertSpaceDims.data(), 1, CUDA_C_64F, &cudmState));
@@ -525,6 +507,43 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
       cudmHandle, cudmState,
       1,              // only one storage component
       &storageSize)); // storage size in bytes
+  const std::size_t stateVolume =
+      storageSize / sizeof(std::complex<double>); // quantum state tensor volume
+                                                  // (number of elements)
+  if (stateVolume < dimension) {
+    int32_t numComponents = 0;
+    HANDLE_CUDM_ERROR(cudensitymatStateGetNumComponents(cudmHandle, cudmState,
+                                                        &numComponents));
+    assert(numComponents == 1);
+    int32_t numModes{0};
+    int32_t stateComponentGlobalId{-1};
+    int32_t batchModeLocation{-1};
+    HANDLE_CUDM_ERROR(cudensitymatStateGetComponentNumModes(
+        cudmHandle, cudmState, /*stateComponentLocalId=*/0,
+        &stateComponentGlobalId, &numModes, &batchModeLocation));
+    std::vector<int64_t> stateComponentModeExtents(numModes);
+    std::vector<int64_t> stateComponentModeOffsets(numModes);
+
+    HANDLE_CUDM_ERROR(cudensitymatStateGetComponentInfo(
+        cudmHandle, cudmState, /*stateComponentLocalId=*/0,
+        &stateComponentGlobalId, &numModes, stateComponentModeExtents.data(),
+        stateComponentModeOffsets.data()));
+
+    dimension = stateVolume;
+    int64_t startIdx = 0;
+    int64_t accumulatedIdx = 1;
+    for (int32_t i = 0; i < numModes; ++i) {
+      accumulatedIdx *= stateComponentModeExtents[i];
+      startIdx += (stateComponentModeOffsets[i] * accumulatedIdx);
+    }
+    if (startIdx > 0) {
+      std::complex<double> *startPtr =
+          static_cast<std::complex<double> *>(devicePtr) + startIdx;
+      HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, startPtr,
+                                   stateVolume * sizeof(std::complex<double>),
+                                   cudaMemcpyDefault));
+    }
+  }
   // Attach initialized GPU storage to the input quantum state
   HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
       cudmHandle, cudmState,
@@ -535,16 +554,22 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
           .data())); // size of the GPU storage for the quantum state
 }
 
-CuDensityMatState
-cudaq::CuDensityMatState::operator+(const CuDensityMatState &other) const {
+void CuDensityMatState::accumulate_inplace(const CuDensityMatState &other,
+                                           const std::complex<double> &coeff) {
+
   if (dimension != other.dimension)
-    throw std::invalid_argument("State size mismatch for addition.");
+    throw std::invalid_argument(
+        fmt::format("State size mismatch for accumulate_inplace ({} vs {}).",
+                    dimension, other.dimension));
 
-  CuDensityMatState result = CuDensityMatState::clone(*this);
-
-  result += other;
-
-  return result;
+  {
+    cudaq::dynamics::PerfMetricScopeTimer metricTimer("cublasZaxpy");
+    cuDoubleComplex scalar{coeff.real(), coeff.imag()};
+    HANDLE_CUBLAS_ERROR(cublasZaxpy(
+        dynamics::Context::getCurrentContext()->getCublasHandle(), dimension,
+        &scalar, reinterpret_cast<const cuDoubleComplex *>(other.devicePtr), 1,
+        reinterpret_cast<cuDoubleComplex *>(devicePtr), 1));
+  }
 }
 
 CuDensityMatState &
@@ -554,37 +579,17 @@ cudaq::CuDensityMatState::operator+=(const CuDensityMatState &other) {
         fmt::format("State size mismatch for addition ({} vs {}).", dimension,
                     other.dimension));
 
-  cuDoubleComplex scalar{1.0, 0.0};
-  HANDLE_CUBLAS_ERROR(cublasZaxpy(
-      dynamics::Context::getCurrentContext()->getCublasHandle(), dimension,
-      &scalar, reinterpret_cast<const cuDoubleComplex *>(other.devicePtr), 1,
-      reinterpret_cast<cuDoubleComplex *>(devicePtr), 1));
+  accumulate_inplace(other);
   return *this;
 }
 
 CuDensityMatState &
 cudaq::CuDensityMatState::operator*=(const std::complex<double> &scalar) {
-  // void *gpuScalar;
-  // HANDLE_CUDA_ERROR(cudaMalloc(&gpuScalar, sizeof(std::complex<double>)));
-  // HANDLE_CUDA_ERROR(cudaMemcpy(gpuScalar, &scalar,
-  // sizeof(std::complex<double>),
-  //                              cudaMemcpyHostToDevice));
-
-  // HANDLE_CUDM_ERROR(
-  //     cudensitymatStateComputeScaling(cudmHandle, cudmState, gpuScalar, 0));
-
-  // HANDLE_CUDA_ERROR(cudaFree(gpuScalar));
   HANDLE_CUBLAS_ERROR(
       cublasZscal(dynamics::Context::getCurrentContext()->getCublasHandle(),
                   dimension, reinterpret_cast<const cuDoubleComplex *>(&scalar),
                   reinterpret_cast<cuDoubleComplex *>(devicePtr), 1));
 
   return *this;
-}
-
-CuDensityMatState cudaq::CuDensityMatState::operator*(double scalar) const {
-  CuDensityMatState result = CuDensityMatState::clone(*this);
-  result *= scalar;
-  return result;
 }
 } // namespace cudaq

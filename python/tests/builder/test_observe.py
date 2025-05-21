@@ -93,7 +93,8 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
         kernel.x(qubit)
 
     # Measuring in the Z-basis.
-    hamiltonian = cudaq.SpinOperator(spin.z(0)) # test is written assuming this is a sum
+    hamiltonian = cudaq.SpinOperator(
+        spin.z(0))  # test is written assuming this is a sum
 
     # Call `cudaq.observe()` at the specified number of shots.
     observe_result = cudaq.observe(kernel=kernel,

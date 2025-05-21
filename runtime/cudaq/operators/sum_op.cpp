@@ -36,12 +36,10 @@ namespace cudaq {
 template <typename HandlerTy>
 void sum_op<HandlerTy>::insert(const product_op<HandlerTy> &other) {
   assert(!this->is_default);
-  auto term_id = other.get_term_id();
-  auto it = this->term_map.find(term_id);
-  if (it == this->term_map.cend()) {
+  auto [it, inserted] =
+      this->term_map.try_emplace(other.get_term_id(), this->terms.size());
+  if (inserted) {
     this->coefficients.push_back(other.coefficient);
-    this->term_map.insert(
-        it, std::make_pair(std::move(term_id), this->terms.size()));
     this->terms.push_back(other.operators);
   } else {
     this->coefficients[it->second] += other.coefficient;
@@ -52,12 +50,10 @@ void sum_op<HandlerTy>::insert(const product_op<HandlerTy> &other) {
 template <typename HandlerTy>
 void sum_op<HandlerTy>::insert(product_op<HandlerTy> &&other) {
   assert(!this->is_default);
-  auto term_id = other.get_term_id();
-  auto it = this->term_map.find(term_id);
-  if (it == this->term_map.cend()) {
+  auto [it, inserted] =
+      this->term_map.try_emplace(other.get_term_id(), this->terms.size());
+  if (inserted) {
     this->coefficients.push_back(std::move(other.coefficient));
-    this->term_map.insert(
-        it, std::make_pair(std::move(term_id), this->terms.size()));
     this->terms.push_back(std::move(other.operators));
   } else {
     this->coefficients[it->second] += other.coefficient;
@@ -1756,22 +1752,23 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec) {
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
-  auto prod = sum_op<HandlerTy>::identity();
+  std::vector<HandlerTy> ops;
+  ops.reserve(word.length());
   for (std::size_t i = 0; i < word.length(); i++) {
     auto letter = word[i];
     if (letter == 'Y')
-      prod *= sum_op<HandlerTy>::y(i);
+      ops.push_back(HandlerTy::y(i));
     else if (letter == 'X')
-      prod *= sum_op<HandlerTy>::x(i);
+      ops.push_back(HandlerTy::x(i));
     else if (letter == 'Z')
-      prod *= sum_op<HandlerTy>::z(i);
+      ops.push_back(HandlerTy::z(i));
     else if (letter == 'I')
-      prod *= sum_op<HandlerTy>::i(i);
+      ops.push_back(HandlerTy(i));
     else
       throw std::runtime_error(
           "Invalid Pauli for spin_op::from_word, must be X, Y, Z, or I.");
   }
-  return prod;
+  return product_op<HandlerTy>(1., std::move(ops));
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)

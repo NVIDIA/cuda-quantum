@@ -429,13 +429,17 @@ CUDAQ_TEST(NoiseTest, checkApplySimplePauliErrors) {
 
 CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
   cudaq::set_random_seed(13);
-  cudaq::depolarization_channel depol(1.);
+  // Complete depolarizing channel
+  // (https://en.wikipedia.org/wiki/Quantum_depolarizing_channel) to produce a
+  // maximally-mixed state: lambda = 1.0 => p/3 == lambda/4 => p = 3/4 = 0.75
+  cudaq::depolarization_channel depol(0.75);
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, depol);
   cudaq::set_noise(noise);
   auto counts = cudaq::sample(xOp{});
   counts.dump();
   EXPECT_EQ(2, counts.size());
+  // maximally-mixed state (i.e., 50/50 distribution)
   EXPECT_NEAR(counts.probability("0"), .50, .2);
   EXPECT_NEAR(counts.probability("1"), .50, .2);
   cudaq::unset_noise(); // clear for subsequent tests

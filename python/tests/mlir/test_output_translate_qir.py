@@ -25,7 +25,7 @@ def test_synth_and_translate():
     print(cudaq.translate(ghz_synth, format='qir-base'))
 
 
-# CHECK-LABEL: define void @__nvqpp__mlirgen__ghz(i64 
+# CHECK-LABEL: define void @__nvqpp__mlirgen__ghz(i64
 # CHECK-SAME:                           %[[VAL_0:.*]]) local_unnamed_addr {
 # CHECK:         %[[VAL_1:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_0]])
 # CHECK:         %[[VAL_3:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_1]], i64 0)
@@ -89,4 +89,3 @@ def test_synth_and_translate():
 # CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* nonnull inttoptr (i64 3 to %[[VAL_0]]*), %[[VAL_0]]* nonnull inttoptr (i64 4 to %[[VAL_0]]*))
 # CHECK:         ret void
 # CHECK:       }
-

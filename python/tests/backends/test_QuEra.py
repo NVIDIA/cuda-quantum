@@ -104,11 +104,11 @@ def test_ahs_hello():
     schedule = Schedule(steps, ["t"])
 
     evolution_result = cudaq.evolve(RydbergHamiltonian(atom_sites=register,
-                                                 amplitude=omega,
-                                                 phase=phi,
-                                                 delta_global=delta),
-                              schedule=schedule,
-                              shots_count=2)
+                                                       amplitude=omega,
+                                                       phase=phi,
+                                                       delta_global=delta),
+                                    schedule=schedule,
+                                    shots_count=2)
     evolution_result.dump()
 
 

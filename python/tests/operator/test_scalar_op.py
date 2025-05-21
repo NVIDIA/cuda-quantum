@@ -42,28 +42,36 @@ def test_construction():
     assert np.allclose(const.to_matrix(), [5])
     assert str(const) == '(5+0i)'
 
-    def callback(x): return x * x
+    def callback(x):
+        return x * x
+
     fct = ScalarOperator(callback)
     assert not fct.is_constant()
-    with pytest.raises(Exception): fct.evaluate()
-    with pytest.raises(Exception): fct.evaluate(y = 3)
-    assert fct.evaluate(x = 3) == 9
-    assert fct.evaluate(x = 5) == 25
-    with pytest.raises(Exception): fct.to_matrix()
-    assert np.allclose(fct.to_matrix(x = 3), [9])
-    assert np.allclose(fct.to_matrix(x = 5), [25])
+    with pytest.raises(Exception):
+        fct.evaluate()
+    with pytest.raises(Exception):
+        fct.evaluate(y=3)
+    assert fct.evaluate(x=3) == 9
+    assert fct.evaluate(x=5) == 25
+    with pytest.raises(Exception):
+        fct.to_matrix()
+    assert np.allclose(fct.to_matrix(x=3), [9])
+    assert np.allclose(fct.to_matrix(x=5), [25])
     assert str(fct) == 'scalar(x)'
     assert 'x' in fct.parameters
 
     lam = ScalarOperator(lambda z: z - 1)
     assert not lam.is_constant()
-    with pytest.raises(Exception): lam.evaluate()
-    with pytest.raises(Exception): lam.evaluate(y = 3)
-    assert lam.evaluate(z = 3) == 2
-    assert lam.evaluate(z = 5) == 4
-    with pytest.raises(Exception): lam.to_matrix()
-    assert np.allclose(lam.to_matrix(z = 3), [2])
-    assert np.allclose(lam.to_matrix(z = 5), [4])
+    with pytest.raises(Exception):
+        lam.evaluate()
+    with pytest.raises(Exception):
+        lam.evaluate(y=3)
+    assert lam.evaluate(z=3) == 2
+    assert lam.evaluate(z=5) == 4
+    with pytest.raises(Exception):
+        lam.to_matrix()
+    assert np.allclose(lam.to_matrix(z=3), [2])
+    assert np.allclose(lam.to_matrix(z=5), [4])
     assert str(lam) == 'scalar(z)'
     assert 'z' in lam.parameters
 
@@ -77,14 +85,16 @@ def test_composition():
     sp1 = so1 * so2
     sp2 = so2 * so3
 
-    with pytest.raises(Exception): sp1.evaluate()
-    assert sp1.evaluate(t = 3) == 6
+    with pytest.raises(Exception):
+        sp1.evaluate()
+    assert sp1.evaluate(t=3) == 6
     assert len(sp1.parameters) == 1
     assert 't' in sp1.parameters
 
-    with pytest.raises(Exception): sp2.evaluate(t = 3)
-    assert sp2.evaluate(t = 3, p = 4) == 16
-    assert sp2.evaluate(p = 4, t = 3) == 16
+    with pytest.raises(Exception):
+        sp2.evaluate(t=3)
+    assert sp2.evaluate(t=3, p=4) == 16
+    assert sp2.evaluate(p=4, t=3) == 16
     assert len(sp2.parameters) == 2
     assert 't' in sp2.parameters
     assert 'p' in sp2.parameters
@@ -92,14 +102,16 @@ def test_composition():
     sd1 = so1 / so2
     sd2 = so2 / so3
 
-    with pytest.raises(Exception): sd1.evaluate()
-    assert sd1.evaluate(t = 3) == 1.5
+    with pytest.raises(Exception):
+        sd1.evaluate()
+    assert sd1.evaluate(t=3) == 1.5
     assert len(sd1.parameters) == 1
     assert 't' in sd1.parameters
 
-    with pytest.raises(Exception): sd2.evaluate(t = 3)
-    assert sd2.evaluate(t = 3, p = 4) == 0.25
-    assert sd2.evaluate(p = 4, t = 3) == 0.25
+    with pytest.raises(Exception):
+        sd2.evaluate(t=3)
+    assert sd2.evaluate(t=3, p=4) == 0.25
+    assert sd2.evaluate(p=4, t=3) == 0.25
     assert len(sd2.parameters) == 2
     assert 't' in sd2.parameters
     assert 'p' in sd2.parameters
@@ -107,14 +119,16 @@ def test_composition():
     sa1 = so1 + so2
     sa2 = so2 + so3
 
-    with pytest.raises(Exception): sa1.evaluate()
-    assert sa1.evaluate(t = 3) == 5
+    with pytest.raises(Exception):
+        sa1.evaluate()
+    assert sa1.evaluate(t=3) == 5
     assert len(sa1.parameters) == 1
     assert 't' in sa1.parameters
 
-    with pytest.raises(Exception): sa2.evaluate(t = 3)
-    assert sa2.evaluate(t = 3, p = 4) == 10
-    assert sa2.evaluate(p = 4, t = 3) == 10
+    with pytest.raises(Exception):
+        sa2.evaluate(t=3)
+    assert sa2.evaluate(t=3, p=4) == 10
+    assert sa2.evaluate(p=4, t=3) == 10
     assert len(sa2.parameters) == 2
     assert 't' in sa2.parameters
     assert 'p' in sa2.parameters
@@ -122,42 +136,47 @@ def test_composition():
     ss1 = so1 - so2
     ss2 = so2 - so3
 
-    with pytest.raises(Exception): ss1.evaluate()
-    assert ss1.evaluate(t = 3) == 1
+    with pytest.raises(Exception):
+        ss1.evaluate()
+    assert ss1.evaluate(t=3) == 1
     assert len(ss1.parameters) == 1
     assert 't' in ss1.parameters
 
-    with pytest.raises(Exception): ss2.evaluate(t = 3)
-    assert ss2.evaluate(t = 3, p = 4) == -6
-    assert ss2.evaluate(p = 4, t = 3) == -6
+    with pytest.raises(Exception):
+        ss2.evaluate(t=3)
+    assert ss2.evaluate(t=3, p=4) == -6
+    assert ss2.evaluate(p=4, t=3) == -6
     assert len(ss2.parameters) == 2
     assert 't' in ss2.parameters
     assert 'p' in ss2.parameters
 
-    se1 = so1 ** so2
-    se2 = so3 ** so2
+    se1 = so1**so2
+    se2 = so3**so2
 
-    with pytest.raises(Exception): se1.evaluate()
-    assert se1.evaluate(t = 3) == 9
+    with pytest.raises(Exception):
+        se1.evaluate()
+    assert se1.evaluate(t=3) == 9
     assert len(se1.parameters) == 1
     assert 't' in se1.parameters
 
-    with pytest.raises(Exception): se2.evaluate(t = 3)
-    assert se2.evaluate(t = 3, p = 4) == 64
-    assert se2.evaluate(p = 4, t = 3) == 64
+    with pytest.raises(Exception):
+        se2.evaluate(t=3)
+    assert se2.evaluate(t=3, p=4) == 64
+    assert se2.evaluate(p=4, t=3) == 64
     assert len(se2.parameters) == 2
     assert 't' in se2.parameters
     assert 'p' in se2.parameters
 
 
 def test_parameter_docs():
+
     def generator(t):
         """Time dependent operator where t is the time"""
         return t
 
     so = ScalarOperator(generator)
     assert 't' in so.parameters
-    assert so.parameters['t'] == "" # no docs for t
+    assert so.parameters['t'] == ""  # no docs for t
 
     def generator1(arg):
         """Scalar function with an arg parameter.
@@ -183,12 +202,15 @@ def test_parameter_docs():
 
     assert len(sp.parameters) == 2
     assert 'arg' in sp.parameters
-    assert sp.parameters['arg'] == "Description of `arg`. Multiple lines are supported."
+    assert sp.parameters[
+        'arg'] == "Description of `arg`. Multiple lines are supported."
     assert 'params' in sp.parameters
     assert sp.parameters['params'] == "Description of params"
     sp.parameters['arg'] = "New docs"
-    assert so1.parameters['arg'] == "Description of `arg`. Multiple lines are supported."
-    assert sp.parameters['arg'] == "Description of `arg`. Multiple lines are supported."
+    assert so1.parameters[
+        'arg'] == "Description of `arg`. Multiple lines are supported."
+    assert sp.parameters[
+        'arg'] == "Description of `arg`. Multiple lines are supported."
 
     # multiple parameters with docs
     def generator(param1, args):
@@ -207,10 +229,11 @@ def test_parameter_docs():
             return args
 
     op3 = ScalarOperator(generator)
-    assert 'param1' in op3.parameters 
+    assert 'param1' in op3.parameters
     assert op3.parameters['param1'] == 'my docs for param1'
     assert 'args' in op3.parameters
-    assert op3.parameters['args'] == 'Description of `args`. Multiple lines are supported.'
+    assert op3.parameters[
+        'args'] == 'Description of `args`. Multiple lines are supported.'
 
 
 def test_equality():
@@ -300,8 +323,7 @@ def test_arithmetics():
     assert np.allclose(operator.truediv(2j, scop).to_matrix(), [0 + 1j])
 
     assert np.allclose(operator.pow(scop, 2).to_matrix(), [4 + 0j])
-    assert np.allclose(
-        operator.pow(scop, 2.5).to_matrix(), [5.65685425 + 0j])
+    assert np.allclose(operator.pow(scop, 2.5).to_matrix(), [5.65685425 + 0j])
     assert np.allclose(
         operator.pow(scop, 2j).to_matrix(), [0.18345697 + 0.98302774j])
     assert np.allclose(operator.pow(2, scop).to_matrix(), [4 + 0j])

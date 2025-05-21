@@ -78,4 +78,7 @@ if(CUDAQ_BUILD_TESTS)
 endif()
 
 add_subdirectory(runtime/interop)
-add_subdirectory(cudaq/dynamics)
+
+if (CUDENSITYMAT_ROOT AND CUDA_FOUND)
+  add_subdirectory(runtime/cudaq/dynamics)
+endif()

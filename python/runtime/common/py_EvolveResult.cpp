@@ -50,7 +50,7 @@ void bindEvolveResult(py::module &mod) {
           ":func:`evolve`.\n")
       .def(
           "final_expectation_values",
-          [](evolve_result &self) { return self.expectation_values; },
+          [](evolve_result &self) { return self.expectation_values->back(); },
           "Stores the final expectation values, that is the results produced "
           "by "
           "calls to :func:`observe`, triggered by a call to :func:`evolve`. "

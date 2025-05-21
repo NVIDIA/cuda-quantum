@@ -18,6 +18,9 @@
 namespace cudaq {
 class SimulationState;
 
+/// Enum to specify the initial quantum state.
+enum class InitialState { ZERO, UNIFORM };
+
 /// @brief Encapsulates a list of tensors (data pointer and dimensions).
 // Note: tensor data is expected in column-major.
 using TensorStateData =

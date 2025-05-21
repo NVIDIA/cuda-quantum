@@ -366,7 +366,10 @@ bool sample_result::has_expectation(const std::string_view registerName) const {
 }
 
 double sample_result::expectation(const std::string_view registerName) const {
-  const auto &result = retrieve_result(registerName.data());
+  auto [found, result] = try_retrieve_result(registerName.data());
+  if (!found)
+    return 0.0;
+
   if (result.expectationValue.has_value())
     return result.expectationValue.value();
 

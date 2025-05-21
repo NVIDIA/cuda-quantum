@@ -8,7 +8,10 @@
 
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
 #include "common/Logger.h"
+#include "cudaq.h"
+#include "cudaq/distributed/mpi_plugin.h"
 #include <memory>
 #include <mutex>
 
@@ -44,13 +47,14 @@ Context *Context::getCurrentContext() {
 void *Context::getScratchSpace(std::size_t minSizeBytes) {
   if (minSizeBytes > m_scratchSpaceSizeBytes) {
     // Realloc
-    if (m_scratchSpace)
-      HANDLE_CUDA_ERROR(cudaFree(m_scratchSpace));
+    if (m_scratchSpace) {
+      cudaq::dynamics::DeviceAllocator::free(m_scratchSpace);
+    }
 
     cudaq::info("Allocate scratch buffer of size {} bytes on device {}",
                 minSizeBytes, m_deviceId);
 
-    HANDLE_CUDA_ERROR(cudaMalloc(&m_scratchSpace, minSizeBytes));
+    m_scratchSpace = cudaq::dynamics::DeviceAllocator::allocate(minSizeBytes);
     m_scratchSpaceSizeBytes = minSizeBytes;
   }
 
@@ -68,11 +72,49 @@ std::size_t Context::getRecommendedWorkSpaceLimit() {
   return freeMem;
 }
 
+/// @brief Retrieve the MPI plugin comm interface
+static cudaqDistributedInterface_t *getMpiPluginInterface() {
+  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
+  if (!mpiPlugin)
+    throw std::runtime_error("Failed to retrieve MPI plugin");
+  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  if (!mpiInterface)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered");
+  return mpiInterface;
+}
+
+/// @brief Retrieve the MPI plugin (type-erased) comm pointer
+static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
+  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
+  if (!mpiPlugin)
+    throw std::runtime_error("Failed to retrieve MPI plugin");
+  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
+  if (!comm)
+    throw std::runtime_error(
+        "Invalid MPI distributed plugin communicator encountered");
+  return comm;
+}
+
 /// @brief Construct a new Context object for a specific device.
 /// @arg deviceId ID of the CUDA device.
 Context::Context(int deviceId) : m_deviceId(deviceId) {
   HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
   HANDLE_CUDM_ERROR(cudensitymatCreate(&m_cudmHandle));
+
+  if (cudaq::mpi::is_initialized()) {
+    cudaqDistributedInterface_t *mpiInterface = getMpiPluginInterface();
+    cudaqDistributedCommunicator_t *comm = getMpiCommWrapper();
+    cudaqDistributedCommunicator_t *dupComm = nullptr;
+    const auto dupStatus = mpiInterface->CommDup(comm, &dupComm);
+    if (dupStatus != 0 || dupComm == nullptr)
+      throw std::runtime_error("Failed to duplicate the MPI communicator when "
+                               "initializing cuDensityMat MPI");
+    cudaq::info("cudensitymatResetDistributedConfiguration for handle {}\n",
+                m_cudmHandle);
+    HANDLE_CUDM_ERROR(cudensitymatResetDistributedConfiguration(
+        m_cudmHandle, CUDENSITYMAT_DISTRIBUTED_PROVIDER_MPI, dupComm->commPtr,
+        dupComm->commSize));
+  }
   HANDLE_CUBLAS_ERROR(cublasCreate(&m_cublasHandle));
   m_opConverter = std::make_unique<CuDensityMatOpConverter>(m_cudmHandle);
 }
@@ -82,7 +124,8 @@ Context::~Context() {
   m_opConverter.reset();
   cudensitymatDestroy(m_cudmHandle);
   cublasDestroy(m_cublasHandle);
-  if (m_scratchSpaceSizeBytes > 0)
-    cudaFree(m_scratchSpace);
+  if (m_scratchSpaceSizeBytes > 0) {
+    cudaq::dynamics::DeviceAllocator::free(m_scratchSpace);
+  }
 }
 } // namespace cudaq::dynamics

@@ -40,6 +40,17 @@ bool QuakeBridgeVisitor::VisitContinueStmt(clang::ContinueStmt *x) {
   return true;
 }
 
+bool QuakeBridgeVisitor::TraverseDeclStmt(clang::DeclStmt *x,
+                                          DataRecursionQueue *q) {
+  const auto depthBefore = valueStack.size();
+  auto result = Base::TraverseDeclStmt(x, q);
+  const auto depthAfter = valueStack.size();
+  if (result && depthAfter > depthBefore) {
+    [[maybe_unused]] auto unused = lastValues(depthAfter - depthBefore);
+  }
+  return result;
+}
+
 bool QuakeBridgeVisitor::VisitCompoundAssignOperator(
     clang::CompoundAssignOperator *x) {
   auto loc = toLocation(x->getSourceRange());
