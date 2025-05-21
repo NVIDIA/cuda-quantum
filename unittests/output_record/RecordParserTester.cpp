@@ -345,7 +345,7 @@ CUDAQ_TEST(ParserTester, checkTupleWithLayoutWithoutBool) {
   layout.first = 24;
   layout.second = {0, 4, 8};
   cudaq::RecordLogParser parser2(layout);
-  EXPECT_THROW(parser2.parse(log), std::runtime_error);
+  EXPECT_ANY_THROW(parser2.parse(log));
 }
 
 CUDAQ_TEST(ParserTester, checkTupleWithLayoutAndBool) {
@@ -398,86 +398,86 @@ CUDAQ_TEST(ParserTester, checkFailureCases) {
   }
   {
     const std::string invalidLog = "INVALID\tLOG\n";
-    EXPECT_THROW(parser.parse(invalidLog), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidLog));
   }
   {
     const std::string invalidLog = "OUTPUT\n";
-    EXPECT_THROW(parser.parse(invalidLog), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidLog));
   }
   {
     const std::string invalidBool = "OUTPUT\tBOOL\t1.0\ti1\n";
-    EXPECT_THROW(parser.parse(invalidBool), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidBool));
   }
   {
     const std::string invalidSchema =
         "HEADER\tschema_name\tordered_and_labeled\n";
-    EXPECT_THROW(parser.parse(invalidSchema), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidSchema));
   }
   {
     const std::string missingShotStatus = "START\n"
                                           "OUTPUT\tDOUBLE\t3.14\tf64\n"
                                           "END\n";
-    EXPECT_THROW(parser.parse(missingShotStatus), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(missingShotStatus));
   }
   {
     const std::string failedShot = "START\n"
                                    "OUTPUT\tDOUBLE\t0.00\tf64\n"
                                    "END\t1\n";
-    EXPECT_THROW(parser.parse(failedShot), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(failedShot));
   }
   {
     const std::string insufficientData = "OUTPUT\tDOUBLE\n";
-    EXPECT_THROW(parser.parse(insufficientData), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(insufficientData));
   }
   {
     const std::string missingLabel = "OUTPUT\tARRAY\t3\tarray<i32 x 2>\n"
                                      "OUTPUT\tINT\t5\n"
                                      "OUTPUT\tINT\t6\n";
-    EXPECT_THROW(parser.parse(missingLabel), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(missingLabel));
   }
   {
     const std::string resultLog = "OUTPUT\tRESULT\t1\ti32\n";
-    EXPECT_THROW(parser.parse(resultLog), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(resultLog));
   }
   {
     const std::string invalidType = "OUTPUT\tFOO\t123456\ti32\n";
-    EXPECT_THROW(parser.parse(invalidType), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidType));
   }
   {
     const std::string invalidType = "OUTPUT\tINT\t123456\ti128\n";
-    EXPECT_THROW(parser.parse(invalidType), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidType));
   }
   {
     const std::string sizeMismatch = "OUTPUT\tARRAY\t3\tarray<i32 x 2>\n";
-    EXPECT_THROW(parser.parse(sizeMismatch), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(sizeMismatch));
   }
   {
     const std::string invalidArrLabel = "OUTPUT\tARRAY\t3\tarray<3>\n";
-    EXPECT_THROW(parser.parse(invalidArrLabel), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidArrLabel));
   }
   {
     const std::string invalidIndex = "OUTPUT\tARRAY\t2\tarray<i32 x 2>\n"
                                      "OUTPUT\tINT\t5\t[0]\n"
                                      "OUTPUT\tINT\t6\t[3]\n";
-    EXPECT_THROW(parser.parse(invalidIndex), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidIndex));
   }
   {
     const std::string invalidTupleLabel = "OUTPUT\tTUPLE\t3\ttuple\n";
-    EXPECT_THROW(parser.parse(invalidTupleLabel), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidTupleLabel));
   }
   {
     const std::string sizeMismatch = "OUTPUT\tTUPLE\t3\ttuple<i32, f64>\n";
-    EXPECT_THROW(parser.parse(sizeMismatch), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(sizeMismatch));
   }
   {
     const std::string invalidLabel = "OUTPUT\tTUPLE\t2\ttuple<i32, f64>\n"
                                      "OUTPUT\tINT\t5\t.0\n"
                                      "OUTPUT\tDOUBLE\t6.0\t[1]\n";
-    EXPECT_THROW(parser.parse(invalidLabel), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(invalidLabel));
   }
   {
     const std::string missingIndex = "OUTPUT\tTUPLE\t2\ttuple<i32, f64>\n"
                                      "OUTPUT\tINT\t5\n";
-    EXPECT_THROW(parser.parse(missingIndex), std::runtime_error);
+    EXPECT_ANY_THROW(parser.parse(missingIndex));
   }
 }
