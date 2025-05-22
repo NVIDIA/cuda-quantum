@@ -168,7 +168,7 @@ module attributes {quake.mangled_name_map = {
 
 // ALT-LABEL:   func.func @ghz.thunk(
 // ALT-SAME:                         %[[VAL_0:.*]]: !cc.ptr<i8>,
-// ALT-SAME:                         %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {noinline, optnone} {
+// ALT-SAME:                         %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // ALT:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // ALT:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
 // ALT:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
@@ -404,7 +404,7 @@ module attributes {quake.mangled_name_map = {
 
 // HYBRID-LABEL:   func.func @ghz.thunk(
 // HYBRID-SAME:        %[[VAL_0:.*]]: !cc.ptr<i8>,
-// HYBRID-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {noinline, optnone} {
+// HYBRID-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // HYBRID:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // HYBRID:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
 // HYBRID:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>

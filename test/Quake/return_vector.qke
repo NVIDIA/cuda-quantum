@@ -265,7 +265,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 
 // CHECK-LABEL:   func.func @test_0.thunk(
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.ptr<i8>,
-// CHECK-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {noinline, optnone} {
+// CHECK-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>
 // CHECK:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}> : i64
 // CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
@@ -320,7 +320,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 
 // CHECK-LABEL:   func.func @test_1.thunk(
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.ptr<i8>,
-// CHECK-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {noinline, optnone} {
+// CHECK-SAME:        %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>
 // CHECK:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}> : i64
 // CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
