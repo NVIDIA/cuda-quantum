@@ -45,7 +45,8 @@ jobs:
       id-token: write
 
     environment:
-      name: production
+      # FIXME: should be name: production
+      name: ghcr-deployment
       url: ${{ vars.deployment_url }}
 
     steps:
