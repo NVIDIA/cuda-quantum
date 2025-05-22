@@ -383,6 +383,15 @@ LogicalResult cudaq::cc::CastOp::verify() {
   } else if (isa<FunctionType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
     // ok, type conversion of a function to an indirect callable
     // Folding will remove this.
+  } else if (isa<FunctionType>(inTy) && isa<cc::PointerType>(outTy)) {
+    auto ptrTy = cast<cc::PointerType>(outTy);
+    auto eleTy = ptrTy.getElementType();
+    auto *ctx = eleTy.getContext();
+    if (eleTy == NoneType::get(ctx) || eleTy == IntegerType::get(ctx, 8)) {
+      // ok, type conversion of a function to a pointer.
+    } else {
+      return emitOpError("invalid cast.");
+    }
   } else {
     // Could support a bitcast of a float with pointer size bits to/from a
     // pointer, but that doesn't seem like it would be very common.
