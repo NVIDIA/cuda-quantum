@@ -125,7 +125,7 @@ public:
     enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
 
-    if (cudaq::__internal__::isLibraryMode(name)) {
+    if (cudaq::detail::isLibraryMode(name)) {
       // Library mode: retrieve the embedded bitcode in the executable.
       const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
       // Load the object file
@@ -314,7 +314,7 @@ public:
     if (serializedCodeContext)
       request.serializedCodeExecutionContext = *serializedCodeContext;
     request.entryPoint = kernelName;
-    if (cudaq::__internal__::isLibraryMode(kernelName)) {
+    if (cudaq::detail::isLibraryMode(kernelName)) {
       request.format = cudaq::CodeFormat::LLVM;
       if (kernelArgs && argsSize > 0) {
         cudaq::info("Serialize {} bytes of args.", argsSize);

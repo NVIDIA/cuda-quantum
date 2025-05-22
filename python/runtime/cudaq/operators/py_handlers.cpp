@@ -72,7 +72,7 @@ void bindOperatorHandlers(py::module &mod) {
           [](const matrix_handler &self, dimension_map &dimensions,
              const parameter_map &params) {
             auto cmat = self.to_matrix(dimensions, params);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -81,9 +81,9 @@ void bindOperatorHandlers(py::module &mod) {
           "to_matrix",
           [](const matrix_handler &self, dimension_map &dimensions,
              const py::kwargs &kwargs) {
-            auto cmat = self.to_matrix(dimensions,
-                                       details::kwargs_to_param_map(kwargs));
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            auto cmat =
+                self.to_matrix(dimensions, detail::kwargs_to_param_map(kwargs));
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           "Returns the matrix representation of the operator.")
@@ -103,9 +103,9 @@ void bindOperatorHandlers(py::module &mod) {
             }));
             if (overwrite)
               matrix_handler::remove_definition(operator_id);
-            matrix_handler::define(
-                std::move(operator_id), std::move(expected_dimensions), func,
-                details::kwargs_to_param_description(kwargs));
+            matrix_handler::define(std::move(operator_id),
+                                   std::move(expected_dimensions), func,
+                                   detail::kwargs_to_param_description(kwargs));
           },
           py::arg("operator_id"), py::arg("expected_dimensions"),
           py::arg("callback"), py::arg("overwrite") = false,
@@ -131,7 +131,7 @@ void bindOperatorHandlers(py::module &mod) {
           [](const boson_handler &self, dimension_map &dimensions,
              const parameter_map &params) {
             auto cmat = self.to_matrix(dimensions, params);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -140,9 +140,9 @@ void bindOperatorHandlers(py::module &mod) {
           "to_matrix",
           [](const boson_handler &self, dimension_map &dimensions,
              const py::kwargs &kwargs) {
-            auto cmat = self.to_matrix(dimensions,
-                                       details::kwargs_to_param_map(kwargs));
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            auto cmat =
+                self.to_matrix(dimensions, detail::kwargs_to_param_map(kwargs));
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           "Returns the matrix representation of the operator.");
@@ -165,7 +165,7 @@ void bindOperatorHandlers(py::module &mod) {
           [](const fermion_handler &self, dimension_map &dimensions,
              const parameter_map &params) {
             auto cmat = self.to_matrix(dimensions, params);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -174,9 +174,9 @@ void bindOperatorHandlers(py::module &mod) {
           "to_matrix",
           [](const fermion_handler &self, dimension_map &dimensions,
              const py::kwargs &kwargs) {
-            auto cmat = self.to_matrix(dimensions,
-                                       details::kwargs_to_param_map(kwargs));
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            auto cmat =
+                self.to_matrix(dimensions, detail::kwargs_to_param_map(kwargs));
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           "Returns the matrix representation of the operator.");
@@ -201,7 +201,7 @@ void bindOperatorHandlers(py::module &mod) {
           [](const spin_handler &self, dimension_map &dimensions,
              const parameter_map &params) {
             auto cmat = self.to_matrix(dimensions, params);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -210,9 +210,9 @@ void bindOperatorHandlers(py::module &mod) {
           "to_matrix",
           [](const spin_handler &self, dimension_map &dimensions,
              const py::kwargs &kwargs) {
-            auto cmat = self.to_matrix(dimensions,
-                                       details::kwargs_to_param_map(kwargs));
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            auto cmat =
+                self.to_matrix(dimensions, detail::kwargs_to_param_map(kwargs));
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           "Returns the matrix representation of the operator.");

@@ -140,7 +140,7 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
     cudaq::dynamics::Context::getCurrentContext()
         ->getOpConverter()
         .clearCallbackContext();
-    if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
+    if (cudaq::detail::should_log(cudaq::detail::LogLevel::trace))
       cudaq::dynamics::dumpPerfTrace();
   });
 

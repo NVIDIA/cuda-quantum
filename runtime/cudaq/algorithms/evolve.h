@@ -25,7 +25,7 @@ namespace cudaq {
 /// @brief Return type for asynchronous `evolve_async`.
 using async_evolve_result = std::future<evolve_result>;
 
-namespace __internal__ {
+namespace detail {
 template <typename OpTy>
 cudaq::sum_op<cudaq::matrix_handler> convertOp(const OpTy &op) {
   if constexpr (std::is_convertible_v<
@@ -60,7 +60,7 @@ convertOps(const std::initializer_list<OpTy> &ops) {
     converted.emplace_back(convertOp(op));
   return converted;
 }
-} // namespace __internal__
+} // namespace detail
 
 #if CUDAQ_USE_STD20
 template <operator_type HamTy,
@@ -83,11 +83,10 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
-  return cudaq::__internal__::evolveSingle(
-      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
-      initial_state, integrator,
-      cudaq::__internal__::convertOps(collapse_operators),
-      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+  return cudaq::detail::evolveSingle(
+      cudaq::detail::convertOp(hamiltonian), dimensions, schedule,
+      initial_state, integrator, cudaq::detail::convertOps(collapse_operators),
+      cudaq::detail::convertOps(observables), store_intermediate_results);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -116,11 +115,10 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
-  return cudaq::__internal__::evolveSingle(
-      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
-      initial_state, integrator,
-      cudaq::__internal__::convertOps(collapse_operators),
-      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+  return cudaq::detail::evolveSingle(
+      cudaq::detail::convertOp(hamiltonian), dimensions, schedule,
+      initial_state, integrator, cudaq::detail::convertOps(collapse_operators),
+      cudaq::detail::convertOps(observables), store_intermediate_results);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -146,11 +144,10 @@ evolve_result evolve(const HamTy &hamiltonian,
                      bool store_intermediate_results = false,
                      std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
-  return cudaq::__internal__::evolveSingle(
-      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
-      initial_state, integrator,
-      cudaq::__internal__::convertOps(collapse_operators),
-      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+  return cudaq::detail::evolveSingle(
+      cudaq::detail::convertOp(hamiltonian), dimensions, schedule,
+      initial_state, integrator, cudaq::detail::convertOps(collapse_operators),
+      cudaq::detail::convertOps(observables), store_intermediate_results);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -176,11 +173,10 @@ evolve_result evolve(const HamTy &hamiltonian,
                      bool store_intermediate_results = false,
                      std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
-  return cudaq::__internal__::evolveSingle(
-      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
-      initial_state, integrator,
-      cudaq::__internal__::convertOps(collapse_operators),
-      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+  return cudaq::detail::evolveSingle(
+      cudaq::detail::convertOp(hamiltonian), dimensions, schedule,
+      initial_state, integrator, cudaq::detail::convertOps(collapse_operators),
+      cudaq::detail::convertOps(observables), store_intermediate_results);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -281,9 +277,9 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #if defined(CUDAQ_ANALOG_TARGET)
   // Clone the integrator to extend its lifetime.
   auto cloneIntegrator = integrator.clone();
-  auto collapseOperators = cudaq::__internal__::convertOps(collapse_operators);
-  auto observableOperators = cudaq::__internal__::convertOps(observables);
-  return __internal__::evolve_async(
+  auto collapseOperators = cudaq::detail::convertOps(collapse_operators);
+  auto observableOperators = cudaq::detail::convertOps(observables);
+  return detail::evolve_async(
       [=, cOps = std::move(collapseOperators),
        obs = std::move(observableOperators)]() {
         ExecutionContext context("evolve");
@@ -321,7 +317,7 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #if defined(CUDAQ_ANALOG_TARGET)
   // Clone the integrator to extend its lifetime.
   auto cloneIntegrator = integrator.clone();
-  return __internal__::evolve_async(
+  return detail::evolve_async(
       [=]() {
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
@@ -341,14 +337,14 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 evolve_result evolve(const cudaq::rydberg_hamiltonian &hamiltonian,
                      const cudaq::schedule &schedule,
                      std::optional<int> shots_count = std::nullopt) {
-  return cudaq::__internal__::evolveSingle(hamiltonian, schedule, shots_count);
+  return cudaq::detail::evolveSingle(hamiltonian, schedule, shots_count);
 }
 
 async_evolve_result evolve_async(const cudaq::rydberg_hamiltonian &hamiltonian,
                                  const cudaq::schedule &schedule,
                                  std::optional<int> shots_count = std::nullopt,
                                  int qpu_id = 0) {
-  return cudaq::__internal__::evolve_async(
+  return cudaq::detail::evolve_async(
       [=]() {
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);

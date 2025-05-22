@@ -64,7 +64,7 @@ concept KernelBuilderArgTypeIsValid =
     std::disjunction_v<std::is_same<T, Ts>...>;
 
 // If you want to add to the list of valid kernel argument types first add it
-// here, then add `details::convertArgumentTypeToMLIR()` function
+// here, then add `detail::convertArgumentTypeToMLIR()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
   requires(                                                                    \
       KernelBuilderArgTypeIsValid<                                             \
@@ -80,7 +80,7 @@ concept KernelBuilderArgTypeIsValid =
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()
 #endif
 
-namespace details {
+namespace detail {
 /// Use parametric type: `initializations` must be vectors of complex float or
 /// double. No other type is allowed.
 using StateVectorVariant = std::variant<std::vector<std::complex<float>> *,
@@ -372,7 +372,7 @@ public:
                                   const kernel_builder_base &builder);
 };
 
-} // namespace details
+} // namespace detail
 
 #if CUDAQ_USE_STD20
 template <class... Ts>
@@ -386,7 +386,7 @@ concept AllAreQuakeValues =
 #endif
 
 template <typename... Args>
-class kernel_builder : public details::kernel_builder_base {
+class kernel_builder : public detail::kernel_builder_base {
 private:
   /// @brief Handle to the MLIR Context, stored as a pointer here to keep
   /// implementation details out of CUDA-Q code
@@ -424,20 +424,20 @@ private:
   }
 
   /// @brief Storage for any user-provided state-vector data.
-  details::StateVectorStorage stateVectorStorage;
+  detail::StateVectorStorage stateVectorStorage;
 
 public:
   /// @brief The constructor, takes the input `KernelBuilderType`s which is
   /// used to create the MLIR function type
-  kernel_builder(std::vector<details::KernelBuilderType> &types)
-      : context(details::initializeContext(), details::deleteContext),
+  kernel_builder(std::vector<detail::KernelBuilderType> &types)
+      : context(detail::initializeContext(), detail::deleteContext),
         opBuilder(nullptr, [](mlir::ImplicitLocOpBuilder *) {}),
         jitEngine(nullptr, [](mlir::ExecutionEngine *) {}) {
     auto *ptr =
-        details::initializeBuilder(context.get(), types, arguments, kernelName);
+        detail::initializeBuilder(context.get(), types, arguments, kernelName);
     opBuilder = std::unique_ptr<mlir::ImplicitLocOpBuilder,
                                 void (*)(mlir::ImplicitLocOpBuilder *)>(
-        ptr, details::deleteBuilder);
+        ptr, detail::deleteBuilder);
   }
 
   /// @brief Return the `QuakeValue` arguments
@@ -446,28 +446,28 @@ public:
   /// @brief Return `true` if the argument to the kernel is a `std::vector`,
   /// `false` otherwise.
   bool isArgStdVec(std::size_t idx) {
-    return details::isArgStdVec(arguments, idx);
+    return detail::isArgStdVec(arguments, idx);
   }
 
   /// @brief Return the name of this kernel
-  std::string name() { return details::name(kernelName); }
+  std::string name() { return detail::name(kernelName); }
 
   /// @brief Return the number of function arguments.
   /// @return
   std::size_t getNumParams() { return arguments.size(); }
 
   /// @brief Return a `QuakeValue` representing the allocated qubit.
-  QuakeValue qalloc() { return details::qalloc(*opBuilder.get()); }
+  QuakeValue qalloc() { return detail::qalloc(*opBuilder.get()); }
 
   /// @brief Return a `QuakeValue` representing the allocated `QVec`.
   QuakeValue qalloc(const std::size_t nQubits) {
-    return details::qalloc(*opBuilder.get(), nQubits);
+    return detail::qalloc(*opBuilder.get(), nQubits);
   }
 
   /// @brief Return a `QuakeValue` representing the allocated `Veq`, size is
   /// from a pre-allocated size `QuakeValue` or `BlockArgument`.
   QuakeValue qalloc(QuakeValue size) {
-    return details::qalloc(*opBuilder.get(), size);
+    return detail::qalloc(*opBuilder.get(), size);
   }
 
   /// Return a `QuakeValue` representing the allocated quantum register,
@@ -481,27 +481,27 @@ public:
   /// reference may contain garbage. This behavior is identical to a C++ lambda
   /// capture by reference.
   QuakeValue qalloc(std::vector<std::complex<double>> &state) {
-    return details::qalloc(*opBuilder.get(), stateVectorStorage,
-                           details::StateVectorVariant{&state},
-                           simulation_precision::fp64);
+    return detail::qalloc(*opBuilder.get(), stateVectorStorage,
+                          detail::StateVectorVariant{&state},
+                          simulation_precision::fp64);
   }
   // Overload for complex<float> vector.
   QuakeValue qalloc(std::vector<std::complex<float>> &state) {
-    return details::qalloc(*opBuilder.get(), stateVectorStorage,
-                           details::StateVectorVariant{&state},
-                           simulation_precision::fp32);
+    return detail::qalloc(*opBuilder.get(), stateVectorStorage,
+                          detail::StateVectorVariant{&state},
+                          simulation_precision::fp32);
   }
 
   // Overload for `cudaq::state`
   QuakeValue qalloc(const cudaq::state &state) {
-    return details::qalloc(*opBuilder.get(), const_cast<cudaq::state *>(&state),
-                           stateVectorStorage);
+    return detail::qalloc(*opBuilder.get(), const_cast<cudaq::state *>(&state),
+                          stateVectorStorage);
   }
 
   /// @brief Return a `QuakeValue` representing the constant floating-point
   /// value.
   QuakeValue constantVal(double val) {
-    return details::constantVal(*opBuilder.get(), val);
+    return detail::constantVal(*opBuilder.get(), val);
   }
 
   // In the following macros + instantiations, we define the kernel_builder
@@ -510,7 +510,7 @@ public:
 #define CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(NAME)                                   \
   void NAME(QuakeValue &qubit) {                                               \
     std::vector<QuakeValue> empty;                                             \
-    details::NAME(*opBuilder, empty, qubit);                                   \
+    detail::NAME(*opBuilder, empty, qubit);                                    \
   }                                                                            \
   void NAME(QuakeValue &&qubit) { NAME(qubit); }                               \
   [[deprecated("In the future, passing `ctrls` to " #NAME                      \
@@ -519,13 +519,13 @@ public:
                "qubit gate broadcast across all input qubits, per the CUDA-Q " \
                "Specification.")]] void                                        \
   NAME(std::vector<QuakeValue> &ctrls, QuakeValue &target) {                   \
-    details::NAME(*opBuilder, ctrls, target);                                  \
+    detail::NAME(*opBuilder, ctrls, target);                                   \
   }                                                                            \
   template <typename mod,                                                      \
             typename =                                                         \
                 typename std::enable_if_t<std::is_same_v<mod, cudaq::ctrl>>>   \
   void NAME(std::vector<QuakeValue> &ctrls, QuakeValue &target) {              \
-    details::NAME(*opBuilder, ctrls, target);                                  \
+    detail::NAME(*opBuilder, ctrls, target);                                   \
   }                                                                            \
   template <typename mod, typename... QubitValues,                             \
             typename = typename std::enable_if_t<sizeof...(QubitValues) >= 2>, \
@@ -549,7 +549,7 @@ public:
                 typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>    \
   void NAME(const QuakeValue &qubit) {                                         \
     std::vector<QuakeValue> empty;                                             \
-    details::NAME(*opBuilder, empty, qubit, true);                             \
+    detail::NAME(*opBuilder, empty, qubit, true);                              \
   }
 
   CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(h)
@@ -562,7 +562,7 @@ public:
 #define CUDAQ_BUILDER_ADD_ONE_QUBIT_PARAM(NAME)                                \
   void NAME(QuakeValue parameter, QuakeValue qubit) {                          \
     std::vector<QuakeValue> empty;                                             \
-    details::NAME(*opBuilder, parameter, empty, qubit);                        \
+    detail::NAME(*opBuilder, parameter, empty, qubit);                         \
   }                                                                            \
   [[deprecated("In the future, passing `ctrls` to " #NAME                      \
                " will require an explicit `<cudaq::ctrl>` template argument. " \
@@ -571,14 +571,14 @@ public:
                "Specification.")]] void                                        \
   NAME(QuakeValue parameter, std::vector<QuakeValue> &ctrls,                   \
        QuakeValue &target) {                                                   \
-    details::NAME(*opBuilder, parameter, ctrls, target);                       \
+    detail::NAME(*opBuilder, parameter, ctrls, target);                        \
   }                                                                            \
   template <typename mod,                                                      \
             typename =                                                         \
                 typename std::enable_if_t<std::is_same_v<mod, cudaq::ctrl>>>   \
   void NAME(QuakeValue parameter, std::vector<QuakeValue> &ctrls,              \
             QuakeValue &target) {                                              \
-    details::NAME(*opBuilder, parameter, ctrls, target);                       \
+    detail::NAME(*opBuilder, parameter, ctrls, target);                        \
   }                                                                            \
   [[deprecated("In the future, passing `ctrls` to " #NAME                      \
                " will require an explicit `<cudaq::ctrl>` template argument. " \
@@ -587,7 +587,7 @@ public:
                "Specification.")]] void                                        \
   NAME(double parameter, std::vector<QuakeValue> &ctrls, QuakeValue &target) { \
     QuakeValue v(*opBuilder, parameter);                                       \
-    details::NAME(*opBuilder, v, ctrls, target);                               \
+    detail::NAME(*opBuilder, v, ctrls, target);                                \
   }                                                                            \
   template <typename mod,                                                      \
             typename =                                                         \
@@ -595,12 +595,12 @@ public:
   void NAME(double parameter, std::vector<QuakeValue> &ctrls,                  \
             QuakeValue &target) {                                              \
     QuakeValue v(*opBuilder, parameter);                                       \
-    details::NAME(*opBuilder, v, ctrls, target);                               \
+    detail::NAME(*opBuilder, v, ctrls, target);                                \
   }                                                                            \
   void NAME(double param, QuakeValue qubit) {                                  \
     std::vector<QuakeValue> empty;                                             \
     QuakeValue v(*opBuilder, param);                                           \
-    details::NAME(*opBuilder, v, empty, qubit);                                \
+    detail::NAME(*opBuilder, v, empty, qubit);                                 \
   }                                                                            \
   template <typename mod, QuakeValueOrNumericType ParamT,                      \
             typename =                                                         \
@@ -634,10 +634,10 @@ public:
 
 #define CUDAQ_BUILDER_ADD_MEASURE(NAME)                                        \
   QuakeValue NAME(QuakeValue qubitOrQvec) {                                    \
-    return details::NAME(*opBuilder, qubitOrQvec);                             \
+    return detail::NAME(*opBuilder, qubitOrQvec);                              \
   }                                                                            \
   auto NAME(QuakeValue qubit, const std::string &regName) {                    \
-    return details::NAME(*opBuilder, qubit, regName);                          \
+    return detail::NAME(*opBuilder, qubit, regName);                           \
   }                                                                            \
   auto NAME(QuakeValue qubit, const std::string &&regName) {                   \
     return NAME(qubit, regName);                                               \
@@ -663,7 +663,7 @@ public:
   void swap(const QuakeValue &first, const QuakeValue &second) {
     const std::vector<QuakeValue> empty;
     const std::vector<QuakeValue> &qubits{first, second};
-    details::swap(*opBuilder, empty, qubits);
+    detail::swap(*opBuilder, empty, qubits);
   }
 
   /// @brief SWAP operation for performing a Fredkin gate between two qubits,
@@ -674,7 +674,7 @@ public:
             const QuakeValue &second) {
     const std::vector<QuakeValue> ctrl{control};
     const std::vector<QuakeValue> targets{first, second};
-    details::swap(*opBuilder, ctrl, targets);
+    detail::swap(*opBuilder, ctrl, targets);
   }
 
   /// @brief SWAP operation for performing a Fredkin gate between two qubits,
@@ -684,7 +684,7 @@ public:
   void swap(const std::vector<QuakeValue> &controls, const QuakeValue &first,
             const QuakeValue &second) {
     const std::vector<QuakeValue> targets{first, second};
-    details::swap(*opBuilder, controls, targets);
+    detail::swap(*opBuilder, controls, targets);
   }
 
   /// @brief SWAP operation for performing a Fredkin gate between two qubits,
@@ -701,16 +701,16 @@ public:
     const std::vector<QuakeValue> controls(values.begin(), values.end() - 2);
     // The last two args will be the two qubits to swap.
     const std::vector<QuakeValue> targets(values.end() - 2, values.end());
-    details::swap(*opBuilder, controls, targets);
+    detail::swap(*opBuilder, controls, targets);
   }
 
   /// @brief Reset the given qubit or qubits.
-  void reset(const QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
+  void reset(const QuakeValue &qubit) { detail::reset(*opBuilder, qubit); }
 
   /// @brief Apply a conditional statement on a measure result, if true apply
   /// the `thenFunctor`.
   void c_if(QuakeValue result, std::function<void()> &&thenFunctor) {
-    details::c_if(*opBuilder, result, thenFunctor);
+    detail::c_if(*opBuilder, result, thenFunctor);
   }
 
   /// @brief Apply a general Pauli rotation, exp(i theta P), takes a QuakeValue
@@ -723,10 +723,10 @@ public:
     auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
-      details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
-                         pauliWord);
+      detail::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
+                        pauliWord);
     else
-      details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
+      detail::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
   }
 
   /// @brief Apply a general Pauli rotation, exp(i theta P), takes a variadic
@@ -740,10 +740,10 @@ public:
     auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits...};
     if constexpr (std::is_floating_point_v<ParamT>)
-      details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
-                         pauliWord);
+      detail::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
+                        pauliWord);
     else
-      details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
+      detail::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
   }
 
   /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
@@ -753,7 +753,7 @@ public:
     // This should work for regular c++ kernels too
     std::string name = "", quake = "";
     if constexpr (std::is_base_of_v<
-                      details::kernel_builder_base,
+                      detail::kernel_builder_base,
                       std::remove_reference_t<OtherKernelBuilder>>) {
       name = kernel.name();
       quake = kernel.to_quake();
@@ -761,7 +761,7 @@ public:
       name = cudaq::getKernelName(kernel);
       quake = cudaq::get_quake_by_name(name);
     }
-    details::call(*opBuilder, name, quake, values);
+    detail::call(*opBuilder, name, quake, values);
   }
 
   /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
@@ -788,7 +788,7 @@ public:
                std::vector<QuakeValue> &args) {
     std::string name = "", quake = "";
     if constexpr (std::is_base_of_v<
-                      details::kernel_builder_base,
+                      detail::kernel_builder_base,
                       std::remove_reference_t<OtherKernelBuilder>>) {
       name = kernel.name();
       quake = kernel.to_quake();
@@ -797,7 +797,7 @@ public:
       quake = cudaq::get_quake_by_name(name);
     }
 
-    details::control(*opBuilder, name, quake, control, args);
+    detail::control(*opBuilder, name, quake, control, args);
   }
 
   /// @brief Apply the given kernel controlled on the provided qubit value.
@@ -821,7 +821,7 @@ public:
   void adjoint(OtherKernelBuilder &kernel, std::vector<QuakeValue> &args) {
     std::string name = "", quake = "";
     if constexpr (std::is_base_of_v<
-                      details::kernel_builder_base,
+                      detail::kernel_builder_base,
                       std::remove_reference_t<OtherKernelBuilder>>) {
       name = kernel.name();
       quake = kernel.to_quake();
@@ -830,7 +830,7 @@ public:
       quake = cudaq::get_quake_by_name(name);
     }
 
-    details::adjoint(*opBuilder, name, quake, args);
+    detail::adjoint(*opBuilder, name, quake, args);
   }
 
   /// @brief Apply the adjoint of the given kernel.
@@ -852,28 +852,26 @@ public:
   template <typename StartType, typename EndType>
   void for_loop(StartType &&start, EndType &&end,
                 std::function<void(QuakeValue &)> &&body) {
-    details::forLoop(*opBuilder, start, end, body);
+    detail::forLoop(*opBuilder, start, end, body);
   }
 
   /// @brief Return the string representation of the quake code.
-  std::string to_quake() const override {
-    return details::to_quake(*opBuilder);
-  }
+  std::string to_quake() const override { return detail::to_quake(*opBuilder); }
 
   /// @brief Lower the Quake code to the LLVM Dialect, call `PassManager`.
   void jitCode(std::vector<std::string> extraLibPaths = {}) override {
     auto [wasChanged, ptr] =
-        details::jitCode(*opBuilder, jitEngine.get(), jitEngineToModuleHash,
-                         kernelName, extraLibPaths, stateVectorStorage);
+        detail::jitCode(*opBuilder, jitEngine.get(), jitEngineToModuleHash,
+                        kernelName, extraLibPaths, stateVectorStorage);
     // If we had a jitEngine, but the code changed, delete the one we had.
     if (jitEngine && wasChanged)
-      details::deleteJitEngine(jitEngine.release());
+      detail::deleteJitEngine(jitEngine.release());
 
     // Store for the next time if we haven't already
     if (!jitEngine)
       jitEngine = std::unique_ptr<mlir::ExecutionEngine,
                                   void (*)(mlir::ExecutionEngine *)>(
-          ptr, details::deleteJitEngine);
+          ptr, detail::deleteJitEngine);
   }
 
   /// @brief Invoke JIT compilation and extract a function pointer and execute.
@@ -887,17 +885,17 @@ public:
       // multi-threaded context.
       jitCode(extraLibPaths);
     }
-    details::invokeCode(*opBuilder, jitEngine.get(), kernelName, argsArray,
-                        extraLibPaths, stateVectorStorage);
+    detail::invokeCode(*opBuilder, jitEngine.get(), kernelName, argsArray,
+                       extraLibPaths, stateVectorStorage);
   }
 
   /// @brief The call operator for the kernel_builder, takes as input the
   /// constructed function arguments.
   void operator()(Args... args) {
     [[maybe_unused]] std::size_t argCounter = 0;
-    (details::ArgumentValidator<Args>::validate(argCounter, arguments, args),
+    (detail::ArgumentValidator<Args>::validate(argCounter, arguments, args),
      ...);
-    void *argsArr[sizeof...(Args)] = {details::getArgPointer(&args)...};
+    void *argsArr[sizeof...(Args)] = {detail::getArgPointer(&args)...};
     return operator()(argsArr);
   }
 
@@ -938,7 +936,7 @@ namespace cudaq {
 
 /// @brief Return a new kernel_builder that takes no arguments
 inline auto make_kernel() {
-  std::vector<details::KernelBuilderType> empty;
+  std::vector<detail::KernelBuilderType> empty;
   return kernel_builder<>(empty);
 }
 
@@ -950,9 +948,9 @@ inline auto make_kernel() {
 template <typename... Args>
 CUDAQ_VALID_BUILDER_ARGS_FOLD()
 auto make_kernel() {
-  std::vector<details::KernelBuilderType> types;
+  std::vector<detail::KernelBuilderType> types;
   cudaq::tuple_for_each(std::tuple<Args...>(), [&](auto &&el) {
-    types.push_back(details::convertArgumentTypeToMLIR(el));
+    types.push_back(detail::convertArgumentTypeToMLIR(el));
   });
   return kernel_builder<Args...>(types);
 }

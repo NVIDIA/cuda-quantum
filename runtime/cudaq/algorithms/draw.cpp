@@ -666,12 +666,12 @@ std::string latex_diagram_from_trace(const Trace &trace,
 
 } // namespace
 
-std::string cudaq::__internal__::getLaTeXString(const Trace &trace) {
+std::string cudaq::detail::getLaTeXString(const Trace &trace) {
   const auto layers = layers_from_trace(trace);
   return latex_diagram_from_trace(trace, layers);
 }
 
-std::string cudaq::__internal__::draw(const Trace &trace) {
+std::string cudaq::detail::draw(const Trace &trace) {
   if (trace.begin() == trace.end()) {
     return "";
   }

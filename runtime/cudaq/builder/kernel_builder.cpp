@@ -40,7 +40,7 @@ void altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
                      void *kernelArgs, std::uint64_t argsSize);
 }
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
@@ -1144,4 +1144,4 @@ std::ostream &operator<<(std::ostream &stream,
   return stream << builder.to_quake();
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

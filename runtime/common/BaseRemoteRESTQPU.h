@@ -689,14 +689,14 @@ public:
 
     // If emulation requested, then just grab the function
     // and invoke it with the simulator
-    cudaq::details::future future;
+    cudaq::detail::future future;
     if (emulate) {
 
       // Fetch the thread-specific seed outside and then pass it inside.
       std::size_t seed = cudaq::get_random_seed();
 
       // Launch the execution of the simulated jobs asynchronously
-      future = cudaq::details::future(std::async(
+      future = cudaq::detail::future(std::async(
           std::launch::async,
           [&, codes, localShots, kernelName, seed, isObserve,
            reorderIdx = executionContext->reorderIdx,

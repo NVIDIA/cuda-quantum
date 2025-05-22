@@ -17,7 +17,7 @@
 
 using namespace mlir;
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 bool QuakeBridgeVisitor::hasTerminator(Block &block) {
   return !block.empty() && block.back().hasTrait<OpTrait::IsTerminator>();
@@ -594,4 +594,4 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
   return result;
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

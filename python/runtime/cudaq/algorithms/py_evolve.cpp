@@ -44,7 +44,7 @@ pyEvolve(state initial_state, py::object kernel,
     spin_ops.push_back(observable(params));
   }
 
-  auto res = __internal__::evolve(
+  auto res = detail::evolve(
       initial_state,
       [kernelMod, kernelName](state state) mutable {
         auto *argData = new cudaq::OpaqueArguments();
@@ -87,7 +87,7 @@ pyEvolve(state initial_state, std::vector<py::object> kernels,
     spin_ops.push_back(std::move(ops));
   }
 
-  return __internal__::evolve(initial_state, launchFcts, spin_ops, shots_count);
+  return detail::evolve(initial_state, launchFcts, spin_ops, shots_count);
 }
 
 template <typename numeric_type>
@@ -111,7 +111,7 @@ pyEvolveAsync(state initial_state, py::object kernel,
   }
 
   py::gil_scoped_release release;
-  return __internal__::evolve_async(
+  return detail::evolve_async(
       initial_state,
       [kernelMod, kernelName](state state) mutable {
         auto *argData = new cudaq::OpaqueArguments();
@@ -158,8 +158,8 @@ pyEvolveAsync(state initial_state, std::vector<py::object> kernels,
   }
 
   py::gil_scoped_release release;
-  return __internal__::evolve_async(initial_state, launchFcts, spin_ops, qpu_id,
-                                    noise_model, shots_count);
+  return detail::evolve_async(initial_state, launchFcts, spin_ops, qpu_id,
+                              noise_model, shots_count);
 }
 
 /// @brief Bind the get_state cudaq function
@@ -344,7 +344,7 @@ void bindPyEvolve(py::module &mod) {
       "evolve_async",
       [](std::function<evolve_result()> evolveFunctor, std::size_t qpu_id = 0) {
         py::gil_scoped_release release;
-        return __internal__::evolve_async(evolveFunctor, qpu_id);
+        return detail::evolve_async(evolveFunctor, qpu_id);
       },
       py::arg("evolve_function"), py::arg("qpu_id") = 0);
 }

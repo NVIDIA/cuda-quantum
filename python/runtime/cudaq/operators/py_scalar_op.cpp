@@ -45,7 +45,7 @@ void bindScalarOperator(py::module &mod) {
            "Creates a scalar operator with the given constant value.")
       .def(py::init([](const scalar_callback &func, const py::kwargs &kwargs) {
              return scalar_operator(
-                 func, details::kwargs_to_param_description(kwargs));
+                 func, detail::kwargs_to_param_description(kwargs));
            }),
            py::arg("callback"),
            "Creates a scalar operator where the given callback function is "
@@ -57,7 +57,7 @@ void bindScalarOperator(py::module &mod) {
       .def(
           "evaluate",
           [](const scalar_operator &self, const py::kwargs &kwargs) {
-            return self.evaluate(details::kwargs_to_param_map(kwargs));
+            return self.evaluate(detail::kwargs_to_param_map(kwargs));
           },
           "Evaluated value of the operator.")
 

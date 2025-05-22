@@ -13,7 +13,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 cudaq::parameter_map kwargs_to_param_map(const py::kwargs &kwargs) {
   cudaq::parameter_map params;
@@ -51,4 +51,4 @@ cmat_to_numpy(std::size_t rows, std::size_t cols,
   return py::array_t<std::complex<double>>(shape, strides, data);
 };
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

@@ -54,7 +54,7 @@ state pyGetState(py::object kernel, py::args args) {
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
 
-  return details::extractState([&]() mutable {
+  return detail::extractState([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
   });
@@ -170,7 +170,7 @@ state pyGetStateQPU(py::object kernel, py::args args) {
 }
 
 state pyGetStateLibraryMode(py::object kernel, py::args args) {
-  return details::extractState([&]() mutable {
+  return detail::extractState([&]() mutable {
     if (0 == args.size())
       cudaq::invokeKernel(std::forward<py::object>(kernel));
     else {
@@ -761,7 +761,7 @@ for more information on this programming pattern.)#")
         // Launch the asynchronous execution.
         auto &platform = cudaq::get_platform();
         py::gil_scoped_release release;
-        return details::runGetStateAsync(
+        return detail::runGetStateAsync(
             [kernelMod, argData, kernelName]() mutable {
               pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
               delete argData;

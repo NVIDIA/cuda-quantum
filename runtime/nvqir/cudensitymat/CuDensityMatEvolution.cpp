@@ -17,7 +17,7 @@
 #include <iterator>
 #include <random>
 #include <stdexcept>
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 template <typename Key, typename Value>
 std::map<Key, Value>
 convertToOrderedMap(const std::unordered_map<Key, Value> &unorderedMap) {
@@ -98,7 +98,7 @@ evolve_result evolveSingle(
     }
   }
 
-  if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
+  if (cudaq::detail::should_log(cudaq::detail::LogLevel::trace))
     cudaq::dynamics::dumpPerfTrace();
 
   if (storeIntermediateResults) {
@@ -144,4 +144,4 @@ evolve_result evolveSingle(
       collapse_operators, observables, store_intermediate_results, shots_count);
 }
 
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail

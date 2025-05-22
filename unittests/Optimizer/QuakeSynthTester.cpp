@@ -91,7 +91,7 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
 cudaq::sample_result sampleJitCode(ExecutionEngine *jit,
                                    const std::string &kernelName) {
   auto &p = cudaq::get_platform();
-  return cudaq::details::runSampling(
+  return cudaq::detail::runSampling(
              [&]() {
                auto err = jit->invokePacked(cudaq::runtime::cudaqGenPrefixName +
                                             kernelName);
@@ -105,7 +105,7 @@ cudaq::sample_result sampleJitCode(ExecutionEngine *jit,
 cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                      const std::string &kernelName) {
   auto &p = cudaq::get_platform();
-  return cudaq::details::runObservation(
+  return cudaq::detail::runObservation(
              [&]() {
                auto err = jit->invokePacked(cudaq::runtime::cudaqGenPrefixName +
                                             kernelName);

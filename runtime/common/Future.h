@@ -15,7 +15,7 @@
 #include <map>
 
 namespace cudaq {
-namespace details {
+namespace detail {
 /// @brief The future type models the expected result of a
 /// CUDA-Q kernel execution under a specific execution context.
 /// This type is returned from asynchronous execution calls. It
@@ -88,18 +88,18 @@ public:
 
 std::ostream &operator<<(std::ostream &os, future &f);
 std::istream &operator>>(std::istream &os, future &f);
-} // namespace details
+} // namespace detail
 
 /// @brief the async_result type is a user facing, future-like
 /// type that is returned from CUDA-Q public asynchronous
-/// API functions. It wraps a details::future type, which can
+/// API functions. It wraps a detail::future type, which can
 /// itself be constructed from a std::future or a collection of
 /// data pertinent to remote QPU REST invocation.
 template <typename T>
 class async_result {
 protected:
   /// @brief The future holding data required to get the results later.
-  details::future result;
+  detail::future result;
 
   /// @brief A spin operator, used for observe future tasks
   std::optional<spin_op> spinOp;
@@ -112,7 +112,7 @@ public:
       spinOp.value().canonicalize();
     }
   }
-  async_result(details::future &&f, const spin_op *op = nullptr)
+  async_result(detail::future &&f, const spin_op *op = nullptr)
       : result(std::move(f)) {
     if (op) {
       spinOp = *op;

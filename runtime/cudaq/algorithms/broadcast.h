@@ -30,7 +30,7 @@ auto make_argset(const std::vector<Args> &...args) {
   return std::make_tuple(args...);
 }
 
-namespace details {
+namespace detail {
 template <typename ReturnType, typename... Args>
 using BroadcastFunctorType = const std::function<ReturnType(
     std::size_t, std::size_t, std::size_t, Args &...)>;
@@ -135,5 +135,5 @@ broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &platform,
 
   return allResults;
 }
-} // namespace details
+} // namespace detail
 } // namespace cudaq

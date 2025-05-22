@@ -36,7 +36,7 @@ async_sample_result runAsyncSampling(TBIParameters &parameters,
   auto ctx = std::make_unique<cudaq::ExecutionContext>("sample", shots);
 
   // Indicate that this is an async exec
-  cudaq::details::future futureResult;
+  cudaq::detail::future futureResult;
   ctx->asyncExec = true;
 
   auto &platform = get_platform();

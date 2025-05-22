@@ -38,7 +38,7 @@ void *__cudaq_getLinkableKernelDeviceFunction(std::intptr_t);
 const char *getLinkableKernelNameOrNull(std::intptr_t);
 } // namespace cudaq::registry
 
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 /// Is the kernel `kernelName` registered?
 bool isKernelGenerated(const std::string &kernelName);
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail

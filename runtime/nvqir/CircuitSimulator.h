@@ -1261,7 +1261,7 @@ public:
                        }
                      });
     }
-    if (cudaq::details::should_log(cudaq::details::LogLevel::info))
+    if (cudaq::detail::should_log(cudaq::detail::LogLevel::info))
       cudaq::info(gateToString(customName.empty() ? "unknown op" : customName,
                                controls, {}, targets) +
                       " = {}",
@@ -1278,7 +1278,7 @@ public:
     QuantumOperation gate;
     // This is a very hot section of code. Don't form the log string unless
     // we're actually going to use it.
-    if (cudaq::details::should_log(cudaq::details::LogLevel::info))
+    if (cudaq::detail::should_log(cudaq::detail::LogLevel::info))
       cudaq::info(gateToString(gate.name(), controls, angles, targets));
     enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
   }

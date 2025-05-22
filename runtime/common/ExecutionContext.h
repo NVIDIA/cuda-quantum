@@ -60,7 +60,7 @@ public:
 
   /// @brief When execution asynchronously, store
   /// the expected results as a cudaq::future here.
-  details::future futureResult;
+  detail::future futureResult;
 
   /// @brief Construct a `async_sample_result` so as to pass across Python
   /// boundary

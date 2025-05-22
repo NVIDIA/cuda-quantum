@@ -70,7 +70,7 @@ public:
   RemoteSimulationState(QuantumKernel &&kernel, Args &&...args) {
     if constexpr (has_name<QuantumKernel>::value) {
       // kernel_builder kernel: need to JIT code to get it registered.
-      static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+      static_cast<cudaq::detail::kernel_builder_base &>(kernel).jitCode();
       kernelName = kernel.name();
     } else {
       kernelName = cudaq::getKernelName(kernel);

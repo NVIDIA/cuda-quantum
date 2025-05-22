@@ -23,11 +23,11 @@
 namespace cudaq {
 
 #if CUDAQ_USE_STD20
-namespace details {
+namespace detail {
 /// `qreg<N>` for N < 1 should be a compile error
 template <std::size_t N>
 concept ValidQregSize = N > 0;
-} // namespace details
+} // namespace detail
 #endif
 
 /// @brief A `qreg` is a container for qudits. This container can be dynamic or
@@ -36,7 +36,7 @@ concept ValidQregSize = N > 0;
 /// the `qreg` type template parameters.
 #if CUDAQ_USE_STD20
 template <std::size_t N = dyn, std::size_t Levels = 2>
-  requires(details::ValidQregSize<N>)
+  requires(detail::ValidQregSize<N>)
 #else
 template <std::size_t N = dyn, std::size_t Levels = 2,
           typename = std::enable_if_t<(N > 0)>>

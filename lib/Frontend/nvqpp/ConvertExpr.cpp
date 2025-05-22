@@ -441,7 +441,7 @@ static bool isCudaQType(StringRef tn) {
          tn == "qvector";
 }
 
-namespace cudaq::details {
+namespace cudaq::detail {
 /// Is \p x the `operator()` function?
 static bool isCallOperator(clang::CXXOperatorCallExpr *x) {
   return cudaq::isCallOperator(x->getOperator());
@@ -3169,4 +3169,4 @@ bool QuakeBridgeVisitor::VisitStringLiteral(clang::StringLiteral *x) {
       toLocation(x), strLitTy, builder.getStringAttr(x->getString())));
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

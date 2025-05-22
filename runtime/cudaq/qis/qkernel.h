@@ -27,7 +27,7 @@ using qkernel = std::function<Sig>;
 
 namespace cudaq {
 
-namespace details {
+namespace detail {
 class QKernelDummy;
 
 template <typename R, typename... As>
@@ -90,7 +90,7 @@ public:
   F callable;
 };
 
-} // namespace details
+} // namespace detail
 
 #if CUDAQ_USE_STD20
 template <typename A>
@@ -136,10 +136,9 @@ public:
     if constexpr (std::is_same_v<PS, R (*)(As...)> ||
                   std::is_same_v<PS, R(As...)>) {
       kernelCallable =
-          std::make_unique<details::QKernelHolder<R, R (*)(As...), As...>>(f);
+          std::make_unique<detail::QKernelHolder<R, R (*)(As...), As...>>(f);
     } else {
-      kernelCallable =
-          std::make_unique<details::QKernelHolder<R, PS, As...>>(f);
+      kernelCallable = std::make_unique<detail::QKernelHolder<R, PS, As...>>(f);
     }
   }
 
@@ -155,7 +154,7 @@ public:
   }
 
 private:
-  std::unique_ptr<details::QKernelInterface<R, As...>> kernelCallable;
+  std::unique_ptr<detail::QKernelInterface<R, As...>> kernelCallable;
 };
 
 template <typename>

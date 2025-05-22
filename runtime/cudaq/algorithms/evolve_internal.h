@@ -23,7 +23,7 @@ class base_integrator;
 /// @brief Return type for asynchronous `evolve_async`.
 using async_evolve_result = std::future<evolve_result>;
 
-namespace __internal__ {
+namespace detail {
 // Internal methods for evolve implementation on circuit simulators.
 
 /// @brief Evolve from an initial state to the final state, no intermediate
@@ -179,5 +179,5 @@ evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
                            const cudaq::schedule &schedule,
                            std::optional<int> shots_count = std::nullopt);
 
-} // namespace __internal__
+} // namespace detail
 } // namespace cudaq

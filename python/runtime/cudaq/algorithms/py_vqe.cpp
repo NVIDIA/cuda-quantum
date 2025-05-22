@@ -102,7 +102,7 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
         "single `list[float]` argument.");
 
   // Launch the observation task
-  return details::runObservation(
+  return detail::runObservation(
              [&]() mutable {
                pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
                delete argData;

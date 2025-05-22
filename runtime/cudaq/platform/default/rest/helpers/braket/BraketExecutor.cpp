@@ -185,7 +185,7 @@ void BraketExecutor::setOutputNames(const KernelExecution &codeToExecute,
   braketServerHelper->setOutputNames(taskId, output_names);
 }
 
-details::future
+detail::future
 BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
                         bool isObserve) {
   auto [dummy1, dummy2, messages] = checkHelperAndCreateJob(codesToExecute);
