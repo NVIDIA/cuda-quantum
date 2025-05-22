@@ -23,6 +23,14 @@ namespace py = pybind11;
 
 namespace cudaq {
 
+/// @brief Set current architecture's data layout attribute on a module.
+void setDataLayout(MlirModule module);
+
+/// @brief Create a new OpaqueArguments pointer and pack the
+/// python arguments in it. Clients must delete the memory.
+OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
+                              const std::string &name);
+
 inline std::size_t byteSize(mlir::Type ty) {
   if (isa<mlir::ComplexType>(ty)) {
     auto eleTy = cast<mlir::ComplexType>(ty).getElementType();

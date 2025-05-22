@@ -28,7 +28,11 @@
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
+#include "llvm/MC/SubtargetFeature.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Target/TargetMachine.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -69,6 +73,53 @@ static std::unique_ptr<PyStateVectorStorage> stateStorage =
 
 static std::unique_ptr<PyStateStorage> cudaqStateStorage =
     std::make_unique<PyStateStorage>();
+
+static std::string createDataLayout() {
+  // Setup the machine properties from the current architecture.
+  auto targetTriple = llvm::sys::getDefaultTargetTriple();
+  std::string errorMessage;
+  const auto *target =
+      llvm::TargetRegistry::lookupTarget(targetTriple, errorMessage);
+  if (!target)
+    throw std::runtime_error("Cannot create target");
+
+  std::string cpu(llvm::sys::getHostCPUName());
+  llvm::SubtargetFeatures features;
+  llvm::StringMap<bool> hostFeatures;
+
+  if (llvm::sys::getHostCPUFeatures(hostFeatures))
+    for (auto &f : hostFeatures)
+      features.AddFeature(f.first(), f.second);
+
+  std::unique_ptr<llvm::TargetMachine> machine(target->createTargetMachine(
+      targetTriple, cpu, features.getString(), {}, {}));
+  if (!machine)
+    throw std::runtime_error("Cannot create target machine");
+
+  return machine->createDataLayout().getStringRepresentation();
+}
+
+void setDataLayout(MlirModule module) {
+  auto mod = unwrap(module);
+  if (!mod->hasAttr(opt::factory::targetDataLayoutAttrName)) {
+    auto dataLayout = createDataLayout();
+    mod->setAttr(opt::factory::targetDataLayoutAttrName,
+                 StringAttr::get(mod->getContext(), dataLayout));
+  }
+}
+
+/// @brief Create a new OpaqueArguments pointer and pack the
+/// python arguments in it. Clients must delete the memory.
+OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
+                              const std::string &name) {
+  auto kernelFunc = getKernelFuncOp(mod, name);
+  auto *argData = new cudaq::OpaqueArguments();
+  args = simplifiedValidateInputArguments(args);
+  setDataLayout(mod);
+  cudaq::packArgs(*argData, args, kernelFunc,
+                  [](OpaqueArguments &, py::object &) { return false; });
+  return argData;
+}
 
 std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
@@ -516,6 +567,10 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
       .Case([&](IntegerType ty) -> py::object {
         if (ty.getIntOrFloatBitWidth() == 1)
           return readPyObject<bool>(ty, data);
+        if (ty.getIntOrFloatBitWidth() == 8)
+          return readPyObject<std::int8_t>(ty, data);
+        if (ty.getIntOrFloatBitWidth() == 16)
+          return readPyObject<std::int16_t>(ty, data);
         if (ty.getIntOrFloatBitWidth() == 32)
           return readPyObject<std::int32_t>(ty, data);
         return readPyObject<std::int64_t>(ty, data);
@@ -891,6 +946,7 @@ void bindAltLaunchKernel(py::module &mod) {
         auto kernelFunc = getKernelFuncOp(module, kernelName);
 
         cudaq::OpaqueArguments args;
+        setDataLayout(module);
         cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
         pyAltLaunchKernel(kernelName, module, args, callable_names);
       },
@@ -904,6 +960,7 @@ void bindAltLaunchKernel(py::module &mod) {
         auto kernelFunc = getKernelFuncOp(module, kernelName);
 
         cudaq::OpaqueArguments args;
+        setDataLayout(module);
         cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
         return pyAltLaunchKernelR(kernelName, module, returnType, args,
                                   callable_names);
@@ -926,6 +983,7 @@ void bindAltLaunchKernel(py::module &mod) {
     auto name = kernel.attr("name").cast<std::string>();
     auto kernelFuncOp = getKernelFuncOp(module, name);
     cudaq::OpaqueArguments args;
+    setDataLayout(module);
     cudaq::packArgs(args, runtimeArgs, kernelFuncOp,
                     [](OpaqueArguments &, py::object &) { return false; });
     return synthesizeKernel(name, module, args);

@@ -207,11 +207,44 @@ def test_return_list_int32():
         qubits = cudaq.qvector(n)
         return t
 
-    # FIXME: support np.intXXX types
-    # RuntimeError: kernel argument's element type is 'long' but argument provided is not (argument 1, element 0, value=-13, type=<class 'numpy.int32'>).
-    # https://github.com/NVIDIA/cuda-quantum/pull/2894
-    # result = simple_list_int32(2, [-13, 5, 42])
-    # assert result == [-13, 5, 42]
+    result = simple_list_int32(2, [-13, 5, 42])
+    assert result == [-13, 5, 42]
+
+
+def test_return_list_int16():
+
+    @cudaq.kernel
+    def simple_list_int16_no_args() -> list[np.int16]:
+        return [-13, 5, 42]
+
+    result = simple_list_int16_no_args()
+    assert result == [-13, 5, 42]
+
+    @cudaq.kernel
+    def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    result = simple_list_int16(2, [-13, 5, 42])
+    assert result == [-13, 5, 42]
+
+
+def test_return_list_int8():
+
+    @cudaq.kernel
+    def simple_list_int8_no_args() -> list[np.int8]:
+        return [-13, 5, 42]
+
+    result = simple_list_int8_no_args()
+    assert result == [-13, 5, 42]
+
+    @cudaq.kernel
+    def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    result = simple_list_int8(2, [-13, 5, 42])
+    assert result == [-13, 5, 42]
 
 
 def test_return_list_int64():
@@ -332,8 +365,7 @@ def test_return_tuple_bool_int():
         return (True, 13)
 
     result = simple_tuple_bool_int_no_args()
-    # FIXME: struct layout has second element at offset 4, but actual result has it at 8
-    # assert result == (True, 13)
+    assert result == (True, 13)
 
     @cudaq.kernel
     def simple_tuple_bool_int(n: int, t: tuple[bool, int]) -> tuple[bool, int]:
@@ -341,8 +373,7 @@ def test_return_tuple_bool_int():
         return t
 
     result = simple_tuple_bool_int(2, (True, 13))
-    # FIXME: struct layout has second element at offset 4, but actual result has it at 8
-    # assert result == (True, 13)
+    assert result == (True, 13)
 
 
 def test_return_tuple_int_bool():
@@ -370,8 +401,7 @@ def test_return_tuple_bool_int_float():
         return (True, 13, 42.3)
 
     result = simple_tuple_bool_int_float_no_args()
-    # FIXME: struct layout has second element at offset 4, but actual result has it at 8
-    # assert result == (True, 13, 42.3)
+    assert result == (True, 13, 42.3)
 
     @cudaq.kernel
     def simple_tuple_bool_int_float(
@@ -380,8 +410,7 @@ def test_return_tuple_bool_int_float():
         return t
 
     result = simple_tuple_bool_int_float(2, (True, 13, 42.3))
-    # FIXME: struct layout has second element at offset 4, but actual result has it at 8
-    # assert result == (True, 13, 42.3)
+    assert result == (True, 13, 42.3)
 
 
 def test_return_dataclass_int_bool():
@@ -419,8 +448,7 @@ def test_return_dataclass_bool_int():
         return MyClass2(True, 17)
 
     result = simple_dataclass_bool_int_no_args()
-    # FIXME: struct layout has second element at offset 4, but actual result has it at 8
-    # assert result == MyClass2(True, 17)
+    assert result == MyClass2(True, 17)
 
     @cudaq.kernel
     def test_return_dataclass(n: int, t: MyClass2) -> MyClass2:
@@ -428,8 +456,7 @@ def test_return_dataclass_bool_int():
         return t
 
     result = test_return_dataclass(2, MyClass2(True, 17))
-    # FIXME: struct layout has second element at offset 4, but actual result has it at 8
-    # assert result == MyClass2(True, 17)
+    assert result == MyClass2(True, 17)
 
 
 def test_return_dataclass_float_int():
@@ -469,7 +496,7 @@ def test_return_dataclass_list_int_bool():
         return t
 
     # TODO: RuntimeError: Tuple size mismatch in value and label
-    # result =test_return_dataclass(2, MyClass([0,1], 18))
+    # result = test_return_dataclass(2, MyClass([0,1], 18))
     #
     # assert result == MyClass([0,1], 18)
 
@@ -487,7 +514,7 @@ def test_return_dataclass_tuple_bool():
         return t
 
     # TODO: error: recursive struct types are not allowed in kernels.
-    # result =test_return_dataclass(2, MyClass((0, True), 19))
+    # result = test_return_dataclass(2, MyClass((0, True), 19))
     #
     # assert result == MyClass((0, True), 19)
 
@@ -510,7 +537,7 @@ def test_return_dataclass_dataclass_bool():
         return t
 
     # TODO: error: recursive struct types are not allowed in kernels.
-    # result =test_return_dataclass(2, MyClass2(MyClass1(0,True), 20))
+    # result = test_return_dataclass(2, MyClass2(MyClass1(0,True), 20))
     #
     # assert result == MyClass2(MyClass1(0,True), 20)
 

@@ -285,6 +285,10 @@ def pyInstanceFromName(name: str):
         return bool(False)
     if name == 'int':
         return int(0)
+    if name in ['numpy.int8', 'np.int8']:
+        return np.int8(0)
+    if name in ['numpy.int16', 'np.int16']:
+        return np.int16(0)
     if name in ['numpy.int32', 'np.int32']:
         return np.int32(0)
     if name in ['numpy.int64', 'np.int64']:
@@ -365,6 +369,10 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
         if isinstance(argInstance[0], np.int32):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int32, ctx))
+        if isinstance(argInstance[0], np.int16):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int16, ctx))
+        if isinstance(argInstance[0], np.int8):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int8, ctx))
 
         if isinstance(argInstance[0], (float, np.float64)):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
@@ -392,20 +400,6 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
         return cc.StdvecType.get(ctx,
                                  mlirTypeFromPyType(type(argInstance[0]), ctx))
-
-    if get_origin(argType) == tuple:
-        result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
-        eleTyNames = result.group('names')
-        eleTypes = []
-        while eleTyNames != None:
-            result = re.search(r'(?P<names>.*),\s*(?P<name>.*)', eleTyNames)
-            eleTyName = result.group('name') if result != None else eleTyNames
-            eleTyNames = result.group('names') if result != None else None
-            pyInstance = pyInstanceFromName(eleTyName)
-            if pyInstance == None:
-                emitFatalError(f'Invalid tuple element type ({eleTyName})')
-            eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
-        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
     if get_origin(argType) == tuple:
         result = re.search(r'uple\[(?P<names>.*)\]', str(argType))

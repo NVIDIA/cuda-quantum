@@ -171,6 +171,50 @@ def test_return_int():
     assert results[1] == 3
 
 
+def test_return_int8():
+
+    @cudaq.kernel
+    def simple_int8_no_args() -> np.int8:
+        return -43
+
+    results = cudaq.run(simple_int8_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -43
+    assert results[1] == -43
+
+    @cudaq.kernel
+    def simple_int8(numQubits: int) -> np.int8:
+        qubits = cudaq.qvector(numQubits)
+        return numQubits + 1
+
+    results = cudaq.run(simple_int8, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 3
+    assert results[1] == 3
+
+
+def test_return_int16():
+
+    @cudaq.kernel
+    def simple_int16_no_args() -> np.int16:
+        return -43
+
+    results = cudaq.run(simple_int16_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -43
+    assert results[1] == -43
+
+    @cudaq.kernel
+    def simple_int16(numQubits: int) -> np.int16:
+        qubits = cudaq.qvector(numQubits)
+        return numQubits + 1
+
+    results = cudaq.run(simple_int16, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 3
+    assert results[1] == 3
+
+
 def test_return_int32():
 
     @cudaq.kernel
@@ -320,6 +364,52 @@ def test_return_list_int():
         return t
 
     results = cudaq.run(simple_list_int, 2, [-13, 5, 42], shots_count=2)
+    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    # assert len(results) == 2
+    # assert results[0] == [-13, 5, 42]
+    # assert results[1] == [-13, 5, 42]
+
+
+def test_return_list_int8():
+
+    @cudaq.kernel
+    def simple_list_int8_no_args() -> list[np.int8]:
+        return [-13, 5, 42]
+
+    results = cudaq.run(simple_list_int8_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
+
+    @cudaq.kernel
+    def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(simple_list_int8, 2, [-13, 5, 42], shots_count=2)
+    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    # assert len(results) == 2
+    # assert results[0] == [-13, 5, 42]
+    # assert results[1] == [-13, 5, 42]
+
+
+def test_return_list_int16():
+
+    @cudaq.kernel
+    def simple_list_int16_no_args() -> list[np.int16]:
+        return [-13, 5, 42]
+
+    results = cudaq.run(simple_list_int16_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
+
+    @cudaq.kernel
+    def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(simple_list_int16, 2, [-13, 5, 42], shots_count=2)
     # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
     # assert len(results) == 2
     # assert results[0] == [-13, 5, 42]
@@ -501,9 +591,8 @@ def test_return_tuple_bool_int():
 
     results = cudaq.run(simple_tuple_bool_int_no_args, shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    #assert results[0] == (True, 13)
-    #assert results[1] == (True, 13)
+    assert results[0] == (True, 13)
+    assert results[1] == (True, 13)
 
     @cudaq.kernel
     def simple_tuple_bool_int(n: int, t: tuple[bool, int]) -> tuple[bool, int]:
@@ -511,19 +600,9 @@ def test_return_tuple_bool_int():
         return t
 
     results = cudaq.run(simple_tuple_bool_int, 2, (True, 13), shots_count=2)
-    ## DEBUG NOTE - input log to `cudaq::RecordLogParser::parse()` function
-    '''
-    OUTPUT  TUPLE   2       tuple<i1, i64>
-    OUTPUT  BOOL    true    .0
-    OUTPUT  INT     0       .1
-    OUTPUT  TUPLE   2       tuple<i1, i64>
-    OUTPUT  BOOL    true    .0
-    OUTPUT  INT     0       .1
-    '''
     assert len(results) == 2
-    # TODO: fix alignment
-    #assert results[0] == (True, 13)
-    #assert results[1] == (True, 13)
+    assert results[0] == (True, 13)
+    assert results[1] == (True, 13)
 
 
 def test_return_tuple_int_bool():
@@ -544,19 +623,9 @@ def test_return_tuple_int_bool():
         return t
 
     results = cudaq.run(simple_tuple_int_bool, 2, (13, True), shots_count=2)
-    ## DEBUG NOTE - input log to `cudaq::RecordLogParser::parse()` function
-    '''
-    OUTPUT  TUPLE   2       tuple<i64, i1>
-    OUTPUT  INT     13      .0
-    OUTPUT  BOOL    true    .1
-    OUTPUT  TUPLE   2       tuple<i64, i1>
-    OUTPUT  INT     13      .0
-    OUTPUT  BOOL    true    .1
-    '''
     assert len(results) == 2
-    ## FIXME: Fails on arm64 in CI
-    # assert results[0] == (13, True)
-    # assert results[1] == (13, True)
+    assert results[0] == (13, True)
+    assert results[1] == (13, True)
 
 
 def test_return_tuple_bool_int_float():
@@ -567,9 +636,8 @@ def test_return_tuple_bool_int_float():
 
     results = cudaq.run(simple_tuple_bool_int_float_no_args, shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    #assert results[0] == (True, 13, 42.3)
-    #assert results[1] == (True, 13, 42.3)
+    assert results[0] == (True, 13, 42.3)
+    assert results[1] == (True, 13, 42.3)
 
     @cudaq.kernel
     def simple_tuple_bool_int_float(
@@ -580,21 +648,9 @@ def test_return_tuple_bool_int_float():
     results = cudaq.run(simple_tuple_bool_int_float,
                         2, (True, 13, 42.3),
                         shots_count=2)
-    ## DEBUG NOTE - input log to `cudaq::RecordLogParser::parse()` function
-    '''
-    OUTPUT  TUPLE   3       tuple<i1, i64, f64>
-    OUTPUT  BOOL    true    .0
-    OUTPUT  INT     0       .1
-    OUTPUT  DOUBLE  42.3    .2
-    OUTPUT  TUPLE   3       tuple<i1, i64, f64>
-    OUTPUT  BOOL    true    .0
-    OUTPUT  INT     0       .1
-    OUTPUT  DOUBLE  42.3    .2
-    '''
     assert len(results) == 2
-    # TODO: fix alignment
-    #assert results[0] == (True, 13, 42.3)
-    #assert results[1] == (True, 13, 42.3)
+    assert results[0] == (True, 13, 42.3)
+    assert results[1] == (True, 13, 42.3)
 
 
 def test_return_dataclass_int_bool():
@@ -610,9 +666,8 @@ def test_return_dataclass_int_bool():
 
     results = cudaq.run(simple_dataclass_int_bool_no_args, shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    #assert results[0] == MyClass(16, True)
-    #assert results[1] == MyClass(16, True)
+    assert results[0] == MyClass(16, True)
+    assert results[1] == MyClass(16, True)
 
     @cudaq.kernel
     def test_return_dataclass(n: int, t: MyClass) -> MyClass:
@@ -624,9 +679,8 @@ def test_return_dataclass_int_bool():
                         MyClass(16, True),
                         shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    # assert results[0] == MyClass(16, True)
-    # assert results[1] == MyClass(16, True)
+    assert results[0] == MyClass(16, True)
+    assert results[1] == MyClass(16, True)
 
 
 def test_return_dataclass_bool_int():
@@ -642,9 +696,8 @@ def test_return_dataclass_bool_int():
 
     results = cudaq.run(simple_dataclass_bool_int_no_args, shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    #assert results[0] == MyClass(True, 17)
-    #assert results[1] == MyClass(True, 17)
+    assert results[0] == MyClass(True, 17)
+    assert results[1] == MyClass(True, 17)
 
     @cudaq.kernel
     def test_return_dataclass(n: int, t: MyClass) -> MyClass:
@@ -656,9 +709,8 @@ def test_return_dataclass_bool_int():
                         MyClass(True, 17),
                         shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    # assert results[0] == MyClass(True, 17)
-    # assert results[1] == MyClass(True, 17)
+    assert results[0] == MyClass(True, 17)
+    assert results[1] == MyClass(True, 17)
 
 
 def test_return_dataclass_float_int():
@@ -674,9 +726,8 @@ def test_return_dataclass_float_int():
 
     results = cudaq.run(simple_dataclass_float_int_no_args, shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    #assert results[0] == MyClass(42.5, 17)
-    #assert results[1] == MyClass(42.5, 17)
+    assert results[0] == MyClass(42.5, 17)
+    assert results[1] == MyClass(42.5, 17)
 
     @cudaq.kernel
     def test_return_dataclass(n: int, t: MyClass) -> MyClass:
