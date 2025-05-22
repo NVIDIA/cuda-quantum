@@ -513,12 +513,6 @@ class PyKernelDecorator(object):
                 mlirType = self.argTypes[i]
                 continue
 
-            if cc.StructType.isinstance(mlirType):
-                if cc.StructType.isinstance(self.argTypes[i]):
-                    memberTys = cc.StructType.getTypes(mlirType)
-                    if len(memberTys) == 0:
-                        mlirType = self.argTypes[i]
-
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:
                 emitFatalError(

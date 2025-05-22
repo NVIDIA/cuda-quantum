@@ -363,31 +363,6 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
             return cc.StdvecType.get(ctx, eleTy)
 
-        if isinstance(argInstance[0], bool):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
-        if isinstance(argInstance[0], (int, np.int64)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
-        if isinstance(argInstance[0], np.int32):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int32, ctx))
-        if isinstance(argInstance[0], np.int16):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int16, ctx))
-        if isinstance(argInstance[0], np.int8):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int8, ctx))
-
-        if isinstance(argInstance[0], (float, np.float64)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
-        if isinstance(argInstance[0], np.float32):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.float32, ctx))
-
-        if isinstance(argInstance[0], (complex, np.complex128)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
-
-        if isinstance(argInstance[0], np.complex64):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.complex64, ctx))
-
-        if isinstance(argInstance[0], pauli_word):
-            return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
-
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
                 ctx,
@@ -417,7 +392,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
     if (argType == tuple):
-        return cc.StructType.getNamed(ctx, "tuple", [])
+        argInstance = kwargs['argInstance']
+        if argInstance == None or (len(argInstance) == 0):
+            emitFatalError(f'Cannot infer runtime argument type for {argType}')
+        eleTypes = [mlirTypeFromPyType(type(ele), ctx) for ele in argInstance]
+        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
     if argType == qvector or argType == qreg or argType == qview:
         return quake.VeqType.get(ctx)
