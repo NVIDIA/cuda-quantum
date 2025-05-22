@@ -148,7 +148,7 @@ struct short_test {
 // CHECK:           call @_Z3fooii(%[[VAL_41]], %[[VAL_42]]) : (i32, i32) -> ()
 // CHECK:           %[[VAL_43:.*]] = cc.load %[[VAL_40]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_44:.*]] = cc.alloca i32
-// CHECK:           cc.store  %[[VAL_43]], %[[VAL_44]] : !cc.ptr<i32>
+// CHECK:           cc.store %[[VAL_43]], %[[VAL_44]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_45:.*]] = cc.load %[[VAL_44]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_46:.*]] = arith.shrui %[[VAL_45]], %[[VAL_4]] : i32
 // CHECK:           %[[VAL_47:.*]] = cc.alloca i32

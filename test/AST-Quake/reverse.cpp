@@ -26,16 +26,15 @@ __qpu__ int std_reverse_std_vector_int() {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i32 x 10>
-// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<i32 x 10>>) -> !cc.ptr<i32>
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca !cc.array<i32 x 10>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] :
 // CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_5]][10] : (!cc.ptr<!cc.array<i32 x 10>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<i32>) -> i64
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<i32>) -> i64
 // CHECK:           %[[VAL_10:.*]] = arith.subi %[[VAL_8]], %[[VAL_9]] : i64
 // CHECK:           %[[VAL_11:.*]] = arith.divsi %[[VAL_10]], %[[VAL_4]] : i64
-// CHECK:           %[[VAL_12:.*]] = cc.cast unsigned %[[VAL_11]] : (i64) -> i64
 // CHECK:           %[[VAL_14:.*]] = cc.loop while ((%[[VAL_15:.*]] = %[[VAL_3]]) -> (i64)) {
-// CHECK:             %[[VAL_16:.*]] = arith.cmpi slt, %[[VAL_15]], %[[VAL_12]] : i64
+// CHECK:             %[[VAL_16:.*]] = arith.cmpi slt, %[[VAL_15]], %[[VAL_11]] : i64
 // CHECK:             cc.condition %[[VAL_16]](%[[VAL_15]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_17:.*]]: i64):
@@ -89,16 +88,15 @@ __qpu__ double std_reverse_std_vector_double() {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 16 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 7>
-// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 7>>) -> !cc.ptr<f64>
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 7>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] :
 // CHECK:           %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_5]][7] : (!cc.ptr<!cc.array<f64 x 7>>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<f64>) -> i64
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<f64>) -> i64
 // CHECK:           %[[VAL_10:.*]] = arith.subi %[[VAL_8]], %[[VAL_9]] : i64
 // CHECK:           %[[VAL_11:.*]] = arith.divsi %[[VAL_10]], %[[VAL_4]] : i64
-// CHECK:           %[[VAL_12:.*]] = cc.cast unsigned %[[VAL_11]] : (i64) -> i64
 // CHECK:           %[[VAL_14:.*]] = cc.loop while ((%[[VAL_15:.*]] = %[[VAL_3]]) -> (i64)) {
-// CHECK:             %[[VAL_16:.*]] = arith.cmpi slt, %[[VAL_15]], %[[VAL_12]] : i64
+// CHECK:             %[[VAL_16:.*]] = arith.cmpi slt, %[[VAL_15]], %[[VAL_11]] : i64
 // CHECK:             cc.condition %[[VAL_16]](%[[VAL_15]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_17:.*]]: i64):

@@ -292,9 +292,9 @@ struct FreeRange {
 // CHECK-DAG:       %[[VAL_4:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_7:.*]] = cc.cast unsigned %[[VAL_5]] : (i32) -> i64
+// CHECK:           %[[VAL_6:.*]] = cc.cast unsigned %[[VAL_5]] : (i32) -> i64
 // CHECK:           %[[VAL_8:.*]] = cc.loop while ((%[[VAL_9:.*]] = %[[VAL_3]]) -> (i64)) {
-// CHECK:             %[[VAL_10:.*]] = arith.cmpi slt, %[[VAL_9]], %[[VAL_7]] : i64
+// CHECK:             %[[VAL_10:.*]] = arith.cmpi slt, %[[VAL_9]], %[[VAL_6]] : i64
 // CHECK:             cc.condition %[[VAL_10]](%[[VAL_9]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_11:.*]]: i64):
@@ -332,9 +332,9 @@ struct FreeRangeChicken {
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_12:.*]] = cc.cast signed %[[VAL_9]] : (i32) -> i64
-// CHECK:           %[[VAL_13:.*]] = cc.cast signed %[[VAL_11]] : (i32) -> i64
-// CHECK:           %[[VAL_14:.*]] = cc.cast signed %[[VAL_10]] : (i32) -> i64
-// CHECK:           %[[VAL_16:.*]] = call @__nvqpp_CudaqSizeFromTriple(%[[VAL_12]], %[[VAL_14]], %[[VAL_13]]) : (i64, i64, i64) -> i64
+// CHECK:           %[[VAL_13:.*]] = cc.cast signed %[[VAL_10]] : (i32) -> i64
+// CHECK:           %[[VAL_14:.*]] = cc.cast signed %[[VAL_11]] : (i32) -> i64
+// CHECK:           %[[VAL_16:.*]] = call @__nvqpp_CudaqSizeFromTriple(%[[VAL_12]], %[[VAL_13]], %[[VAL_14]]) : (i64, i64, i64) -> i64
 // CHECK:           %[[VAL_17:.*]]:2 = cc.loop while ((%[[VAL_18:.*]] = %[[VAL_5]], %[[VAL_19:.*]] = %[[VAL_12]]) -> (i64, i64)) {
 // CHECK:             %[[VAL_20:.*]] = arith.cmpi slt, %[[VAL_18]], %[[VAL_16]] : i64
 // CHECK:             cc.condition %[[VAL_20]](%[[VAL_18]], %[[VAL_19]] : i64, i64)
@@ -346,7 +346,7 @@ struct FreeRangeChicken {
 // CHECK:           } step {
 // CHECK:           ^bb0(%[[VAL_24:.*]]: i64, %[[VAL_25:.*]]: i64):
 // CHECK:             %[[VAL_26:.*]] = arith.addi %[[VAL_24]], %[[VAL_4]] : i64
-// CHECK:             %[[VAL_27:.*]] = arith.addi %[[VAL_25]], %[[VAL_13]] : i64
+// CHECK:             %[[VAL_27:.*]] = arith.addi %[[VAL_25]], %[[VAL_14]] : i64
 // CHECK:             cc.continue %[[VAL_26]], %[[VAL_27]] : i64, i64
 // CHECK:           } {invariant}
 // CHECK:           return

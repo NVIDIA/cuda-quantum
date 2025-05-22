@@ -200,30 +200,9 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
 //===----------------------------------------------------------------------===//
 
 OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
-  // Replace unnecessary casts.
-  if (getType() == getValue().getType()) {
-    auto val = getValue();
-    auto ty = getType();
-
-    // Cast is a nop, just forward the argument to the uses.
-    if (!isa<IntegerType>(ty))
-      return val;
-
-    // Cast that does not change the type or the sign.
-    if (!getZint() && !getSint())
-      return val;
-
-    // Cast of a boolean to a boolean.
-    if (ty.getIntOrFloatBitWidth() == 1)
-      return val;
-
-    // Cast of a known unsigned value to an unsigned value.
-    if (val.getDefiningOp<cc::StdvecSizeOp>() ||
-        val.getDefiningOp<quake::VeqSizeOp>())
-      if (getZint())
-        return val;
-  }
-
+  // If cast is a nop, just forward the argument to the uses.
+  if (getType() == getValue().getType())
+    return getValue();
   if (auto optConst = adaptor.getValue()) {
     // Replace a constant + cast with a new constant of an updated type.
     auto ty = getType();
@@ -414,14 +393,13 @@ LogicalResult cudaq::cc::CastOp::verify() {
 
 namespace {
 // There are a number of series of casts that can be fused. For now, fuse
-// pointer cast chains and some integer cast chains.
+// pointer cast chains.
 struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::CastOp castOp,
                                 PatternRewriter &rewriter) const override {
-    if (auto castToCast =
-            castOp.getValue().getDefiningOp<cudaq::cc::CastOp>()) {
+    if (auto castToCast = castOp.getValue().getDefiningOp<cudaq::cc::CastOp>())
       if (isa<cudaq::cc::PointerType>(castOp.getType()) &&
           isa<cudaq::cc::PointerType>(castToCast.getType())) {
         // %4 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<U>
@@ -432,19 +410,6 @@ struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
                                                        castToCast.getValue());
         return success();
       }
-      if (isa<IntegerType>(castOp.getType()) &&
-          (castOp.getType() == castToCast.getType())) {
-        // %4 = cc.cast %3 : (i64) -> i64
-        // %5 = cc.cast unsigned %4 : (i64) -> i64
-        // ────────────────────────────────────────────
-        // %5 = cc.cast unsigned %3 : (i64) -> i64
-
-        rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
-            castOp, castOp.getType(), castToCast.getValue(),
-            castOp.getSintAttr(), castOp.getZintAttr());
-        return success();
-      }
-    }
     return failure();
   }
 };
