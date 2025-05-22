@@ -580,6 +580,32 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a new Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#server-helper-class">Server Helper Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#target-configuration">Target Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#testing">Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#unit-tests">Unit Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#mock-server">Mock Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#integration-tests">Integration Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#code-review">Code Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
@@ -695,7 +721,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
@@ -821,6 +847,7 @@
 <h1>CUDA-Q Backends<a class="headerlink" href="#cuda-q-backends" title="Permalink to this heading">¶</a></h1>
 <p id="backends">The CUDA-Q platform is a powerful tool with many different backends for running hybrid quantum applications and other simulations.  This page will help you understand what backends are available and what the best choices are for your purpose.</p>
 <p>The figure below groups the backends into four categories, and described the general purpose for each.  See the following sections for a breakdown of the backends included in each section.</p>
+<p>To add a new hardware backend, please see <a class="reference internal" href="../extending/backend.html"><span class="doc">Extending CUDA-Q with a new Hardware Backend</span></a></p>
 <a class="reference internal image-reference" href="../../_images/backends.png"><img alt="../../_images/backends.png" src="../../_images/backends.png" style="width: 1000px;" /></a>
 <p>Click on the links below for each category to learn more about the backends it contains.  the list below also covers all of the backends available in CUDA-Q.</p>
 <div class="toctree-wrapper compound">
