@@ -19,6 +19,13 @@
 #include <cudaq.h>
 
 int main() {
+  if (!cudaq::mpi::available()) {
+    std::cout << "MPI support is not available. Please refer to the "
+                 "documentation for instructions to activate MPI support in "
+                 "order to run this example.\n";
+    return 0;
+  }
+
   cudaq::mpi::initialize();
   std::cout << "Number of ranks = " << cudaq::mpi::num_ranks() << "\n";
   // Set up a 15-spin chain, where each spin is a two-level system.
