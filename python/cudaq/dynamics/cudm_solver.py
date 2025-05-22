@@ -52,6 +52,10 @@ def evolve_dynamics(
             f"Integrator {type(integrator).__name__} does not support distributed state."
         )
 
+    if integrator is None:
+        # Default integrator if not provided.
+        integrator = RungeKuttaIntegrator()
+
     collapse_operators = [MatrixOperator(op) for op in collapse_operators]
     integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
                           collapse_operators)

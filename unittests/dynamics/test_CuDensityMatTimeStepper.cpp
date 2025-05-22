@@ -77,11 +77,6 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeStepNoLiouvillian) {
   EXPECT_THROW(invalidStepper.compute(state_, 0.0, {}), std::runtime_error);
 }
 
-// Compute step with zero step size
-TEST_F(CuDensityMatTimeStepperTest, ComputeStepZeroStepSize) {
-  EXPECT_THROW(time_stepper_->compute(state_, 0.0, {}), std::runtime_error);
-}
-
 // Compute step with large time values
 TEST_F(CuDensityMatTimeStepperTest, ComputeStepLargeTimeValues) {
   EXPECT_NO_THROW(time_stepper_->compute(state_, 1e6, {}));

@@ -420,9 +420,20 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
     // i.e., ABC means C to be applied first.
     std::reverse(elemOps.begin(), elemOps.end());
     std::reverse(allDegrees.begin(), allDegrees.end());
-    result.emplace_back(std::make_pair(
-        productOp.get_coefficient(),
-        createProductOperatorTerm(elemOps, modeExtents, allDegrees, {})));
+    if (elemOps.empty()) {
+      // Constant term (no operator)
+      cudaq::product_op<cudaq::matrix_handler> constantTerm =
+          cudaq::sum_op<cudaq::matrix_handler>::identity(0);
+      cudensitymatElementaryOperator_t cudmElemOp = createElementaryOperator(
+          *constantTerm.begin(), parameters, modeExtents);
+      result.emplace_back(std::make_pair(
+          productOp.get_coefficient(),
+          createProductOperatorTerm({cudmElemOp}, modeExtents, {{0}}, {})));
+    } else {
+      result.emplace_back(std::make_pair(
+          productOp.get_coefficient(),
+          createProductOperatorTerm(elemOps, modeExtents, allDegrees, {})));
+    }
   }
   return result;
 }
