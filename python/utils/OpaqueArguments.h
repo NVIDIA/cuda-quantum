@@ -199,6 +199,8 @@ getTargetLayout(func::FuncOp func, cudaq::cc::StructType structTy) {
   StringRef dataLayoutSpec = "";
   if (auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
     dataLayoutSpec = cast<StringAttr>(attr);
+  else
+    throw std::runtime_error("No data layout attribute is set on the module.");
   auto dataLayout = llvm::DataLayout(dataLayoutSpec);
   // Convert bufferTy to llvm.
   llvm::LLVMContext context;
@@ -293,7 +295,25 @@ inline void *handleVectorElements(Type eleTy, py::list list) {
                 checkListElementType<py::bool_>(v, i);
                 return v.cast<bool>();
               });
-        return appendValue.template operator()<std::size_t>(
+        if (ty.getIntOrFloatBitWidth() == 8)
+          return appendValue.template operator()<std::int8_t>(
+              list, [](py::handle v, std::size_t i) {
+                checkListElementType<py_ext::Int>(v, i);
+                return v.cast<std::int8_t>();
+              });
+        if (ty.getIntOrFloatBitWidth() == 16)
+          return appendValue.template operator()<std::int16_t>(
+              list, [](py::handle v, std::size_t i) {
+                checkListElementType<py_ext::Int>(v, i);
+                return v.cast<std::int16_t>();
+              });
+        if (ty.getIntOrFloatBitWidth() == 32)
+          return appendValue.template operator()<std::int32_t>(
+              list, [](py::handle v, std::size_t i) {
+                checkListElementType<py_ext::Int>(v, i);
+                return v.cast<std::int32_t>();
+              });
+        return appendValue.template operator()<std::int64_t>(
             list, [](py::handle v, std::size_t i) {
               checkListElementType<py_ext::Int>(v, i);
               return v.cast<std::int64_t>();
@@ -471,12 +491,13 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           auto list = py::cast<py::list>(arg);
           auto eleTy = ty.getElementType();
 
-          if (eleTy.isInteger(1))
+          if (eleTy.isInteger(1)) {
             // Special case for a `std::vector<bool>`.
             appendVectorValue.template operator()<bool>(eleTy, list);
-          else
-            // All other `std::Vector<T>` types, including nested vectors.
-            appendVectorValue.template operator()<std::size_t>(eleTy, list);
+            return;
+          }
+          // All other `std::vector<T>` types, including nested vectors.
+          appendVectorValue.template operator()<std::int64_t>(eleTy, list);
         })
         .Default([&](Type ty) {
           // See if we have a backup type handler.
@@ -516,18 +537,6 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   }
 
   return false;
-}
-
-/// @brief Create a new OpaqueArguments pointer and pack the
-/// python arguments in it. Clients must delete the memory.
-inline OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
-                                     const std::string &name) {
-  auto kernelFunc = getKernelFuncOp(mod, name);
-  auto *argData = new cudaq::OpaqueArguments();
-  args = simplifiedValidateInputArguments(args);
-  cudaq::packArgs(*argData, args, kernelFunc,
-                  [](OpaqueArguments &, py::object &) { return false; });
-  return argData;
 }
 
 } // namespace cudaq

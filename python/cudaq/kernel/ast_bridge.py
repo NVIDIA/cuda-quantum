@@ -412,6 +412,8 @@ class PyASTBridge(ast.NodeVisitor):
                 operand = arith.SIToFPOp(ty, operand).result
 
         if IntegerType.isinstance(ty):
+            if F64Type.isinstance(operand.type):
+                operand = arith.FPToSIOp(self.getIntegerType(), operand).result
             if IntegerType.isinstance(operand.type):
                 if IntegerType(ty).width < IntegerType(operand.type).width:
                     operand = arith.TruncIOp(ty, operand).result
@@ -2045,16 +2047,12 @@ class PyASTBridge(ast.NodeVisitor):
             elif node.func.id == 'int':
                 # cast operation
                 value = self.popValue()
-                if IntegerType.isinstance(value.type):
-                    self.pushValue(value)
-                    return
-
-                if F64Type.isinstance(value.type):
-                    self.pushValue(
-                        arith.FPToSIOp(self.getIntegerType(), value).result)
-                    return
-
-                self.emitFatalError("Invalid cast to integer.", node)
+                casted = self.promoteOperandType(IntegerType.get_signless(64),
+                                                 value)
+                self.pushValue(casted)
+                if not IntegerType.isinstance(casted.type):
+                    self.emitFatalError(
+                        f'Invalid cast to integer: {value.type}', node)
 
             elif node.func.id == 'list':
                 if len(self.valueStack) == 2:

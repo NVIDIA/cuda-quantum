@@ -305,14 +305,18 @@ class PyKernelDecorator(object):
             return None
 
     def isCastablePyType(self, fromTy, toTy):
-        if IntegerType.isinstance(toTy):
-            return IntegerType.isinstance(fromTy)
+        if IntegerType.isinstance(toTy) and IntegerType(toTy).width != 1:
+            return IntegerType.isinstance(fromTy) and IntegerType(
+                fromTy).width != 1
 
         if F64Type.isinstance(toTy):
             return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
         if F32Type.isinstance(toTy):
             return F64Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
+
+        if F64Type.isinstance(toTy):
+            return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
         if ComplexType.isinstance(toTy):
             floatToType = ComplexType(toTy).element_type
@@ -378,6 +382,11 @@ class PyKernelDecorator(object):
         return value
 
     def castPyPrimitiveType(self, toTy, value):
+        if IntegerType.isinstance(toTy):
+            if IntegerType(toTy).width == 32:
+                return np.int32(value)
+            return int(value)
+
         if F64Type.isinstance(toTy):
             return float(value)
 
