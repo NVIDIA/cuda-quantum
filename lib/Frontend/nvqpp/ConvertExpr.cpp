@@ -1148,19 +1148,9 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
   return true;
 }
 
-bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
-  auto loc = toLocation(x->getSourceRange());
-  // The called function is reified as a Value in the IR.
-  auto *callee = x->getCalleeDecl();
-  auto *func = dyn_cast<clang::FunctionDecl>(callee);
-  if (!func)
-    TODO_loc(loc, "call doesn't have function decl");
-  assert(valueStack.size() >= x->getNumArgs() + 1 &&
-         "stack must contain all arguments plus the expression to call");
-  StringRef funcName;
-  if (auto *id = func->getIdentifier())
-    funcName = id->getName();
-
+bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
+                                          clang::FunctionDecl *func,
+                                          Location loc, StringRef funcName) {
   // Handle any std::pow(N,M)
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
       funcName == "pow") {
@@ -1197,6 +1187,66 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
+
+  // Handle std::sqrt
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      funcName == "sqrt") {
+    assert(func->getNumParams() == 1 && "must be unary");
+    Value arg = popValue();
+    [[maybe_unused]] auto funcConst = popValue();
+    if (isa<IntegerType>(arg.getType()))
+      arg = builder.create<cudaq::cc::CastOp>(
+          loc, builder.getF64Type(), arg,
+          x->getArg(0)->getType()->isUnsignedIntegerOrEnumerationType()
+              ? cudaq::cc::CastOpMode::Unsigned
+              : cudaq::cc::CastOpMode::Signed);
+    return pushValue(builder.create<math::SqrtOp>(loc, arg));
+  }
+
+  // Handle std::round
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      funcName == "round") {
+    assert(func->getNumParams() == 1 && "must be unary");
+    Value arg = popValue();
+    [[maybe_unused]] auto funcConst = popValue();
+    if (isa<IntegerType>(arg.getType()))
+      arg = builder.create<cudaq::cc::CastOp>(
+          loc, builder.getF64Type(), arg,
+          x->getArg(0)->getType()->isUnsignedIntegerOrEnumerationType()
+              ? cudaq::cc::CastOpMode::Unsigned
+              : cudaq::cc::CastOpMode::Signed);
+    return pushValue(builder.create<math::RoundOp>(loc, arg));
+  }
+
+  // Handle std::abs
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      funcName == "abs") {
+    assert(func->getNumParams() == 1 && "must be unary");
+    Value arg = popValue();
+    [[maybe_unused]] auto funcConst = popValue();
+    if (isa<IntegerType>(arg.getType()))
+      return pushValue(builder.create<math::AbsIOp>(loc, arg));
+    return pushValue(builder.create<math::AbsFOp>(loc, arg));
+  }
+
+  return false;
+}
+
+bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
+  auto loc = toLocation(x->getSourceRange());
+  // The called function is reified as a Value in the IR.
+  auto *callee = x->getCalleeDecl();
+  auto *func = dyn_cast<clang::FunctionDecl>(callee);
+  if (!func)
+    TODO_loc(loc, "call doesn't have function decl");
+  assert(valueStack.size() >= x->getNumArgs() + 1 &&
+         "stack must contain all arguments plus the expression to call");
+  StringRef funcName;
+  if (auto *id = func->getIdentifier())
+    funcName = id->getName();
+
+  if (visitMathLibFunc(x, func, loc, funcName))
+    return true;
 
   // Handle std::complex member functions
   if (isInClassInNamespace(func, "complex", "std")) {
@@ -2232,8 +2282,42 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       convertKernelArgs(builder, loc, 0, args, mlirFuncTy.getInputs());
   auto call = builder.create<func::CallIndirectOp>(loc, funcResults, calleeOp,
                                                    convertedArgs);
-  if (call.getNumResults() > 0)
+  if (call.getNumResults() > 0) {
+    if (call.getNumResults() != 1) {
+      reportClangError(x, mangler, "expect exactly one return value");
+      return false;
+    }
+    if (auto vecTy =
+            dyn_cast<cudaq::cc::StdvecType>(call.getResult(0).getType())) {
+      auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
+      if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyToStack")))
+        module.emitError("failed to load intrinsic");
+      auto eleTy = [&]() -> Type {
+        auto et = vecTy.getElementType();
+        if (et == builder.getI1Type())
+          return builder.getI8Type();
+        return et;
+      }();
+      auto data = builder.create<cudaq::cc::StdvecDataOp>(
+          loc, cudaq::cc::PointerType::get(eleTy), call.getResult(0));
+      auto i64Ty = builder.getI64Type();
+      auto len = builder.create<cudaq::cc::StdvecSizeOp>(loc, i64Ty,
+                                                         call.getResult(0));
+      auto eleSize = builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, eleTy);
+      auto size = builder.create<arith::MulIOp>(loc, len, eleSize);
+      auto buffer = builder.create<cudaq::cc::AllocaOp>(loc, eleTy, size);
+      auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
+      auto cbuffer = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
+      auto cdata = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, data);
+      builder.create<func::CallOp>(loc, TypeRange{},
+                                   "__nvqpp_vectorCopyToStack",
+                                   ValueRange{cbuffer, cdata, size});
+      Value newSpan =
+          builder.create<cudaq::cc::StdvecInitOp>(loc, vecTy, buffer, len);
+      return pushValue(newSpan);
+    }
     return pushValue(call.getResult(0));
+  }
   return true;
 }
 

@@ -635,6 +635,16 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   return arrayToVectorSizeT(arr);
 }
 
+// It may not always be possible for the compiler to reduce a program fully to
+// QIR. In such cases, code generation may elect to produce a trap in the
+// kernel, which calls this function. The trap should explain the issue to the
+// user and about the kernel when executed.
+void __quantum__qis__trap(std::int64_t code) {
+  if (code == 0)
+    throw std::runtime_error("could not autogenerate the adjoint of a kernel");
+  throw std::runtime_error("code generation failure for target");
+}
+
 void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
                                                 double *params,
                                                 std::size_t numParams,

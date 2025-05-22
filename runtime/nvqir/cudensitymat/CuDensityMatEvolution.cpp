@@ -11,6 +11,7 @@
 #include "CuDensityMatExpectation.h"
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
+#include "CuDensityMatUtils.h"
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/algorithms/integrator.h"
 #include <iterator>
@@ -41,6 +42,7 @@ evolve_result evolveSingle(
     const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
     const std::vector<sum_op<cudaq::matrix_handler>> &observables,
     bool storeIntermediateResults, std::optional<int> shotsCount) {
+  LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
   std::map<std::size_t, int64_t> dimensions =
@@ -57,7 +59,8 @@ evolve_result evolveSingle(
   };
 
   auto *cudmState = asCudmState(const_cast<state &>(initialState));
-  cudmState->initialize_cudm(handle, dims);
+  if (!cudmState->is_initialized())
+    cudmState->initialize_cudm(handle, dims);
 
   state initial_State = [&]() {
     if (!collapseOperators.empty() && !cudmState->is_density_matrix())
@@ -95,6 +98,9 @@ evolve_result evolveSingle(
     }
   }
 
+  if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
+    cudaq::dynamics::dumpPerfTrace();
+
   if (storeIntermediateResults) {
     return evolve_result(intermediateStates, expectationVals);
   } else {
@@ -110,4 +116,32 @@ evolve_result evolveSingle(
     return evolve_result(finalState, expVals);
   }
 }
+
+/// @brief Evolve the system for a single time step.
+/// @param hamiltonian Hamiltonian operator.
+/// @param dimensions Dimension of the system.
+/// @param schedule Time schedule.
+/// @param initial_state Initial state enum.
+/// @param integrator Integrator.
+/// @param collapse_operators Collapse operators.
+/// @param observables Observables.
+/// @param store_intermediate_results Store intermediate results.
+/// @param shots_count Number of shots.
+/// @return evolve_result Result of the evolution.
+evolve_result evolveSingle(
+    const sum_op<cudaq::matrix_handler> &hamiltonian,
+    const cudaq::dimension_map &dimensions, const schedule &schedule,
+    InitialState initial_state, base_integrator &integrator,
+    const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators,
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables,
+    bool store_intermediate_results, std::optional<int> shots_count) {
+  cudensitymatHandle_t handle =
+      dynamics::Context::getCurrentContext()->getHandle();
+  auto cudmState = CuDensityMatState::createInitialState(
+      handle, initial_state, dimensions, collapse_operators.size() > 0);
+  return evolveSingle(
+      hamiltonian, dimensions, schedule, state(cudmState.release()), integrator,
+      collapse_operators, observables, store_intermediate_results, shots_count);
+}
+
 } // namespace cudaq::__internal__
