@@ -34,6 +34,45 @@ struct AdjustAdjointExpPauliPattern : OpRewritePattern<quake::ExpPauliOp> {
   }
 };
 
+// Bind an exp_pauli operation to its constant pauli word.
+//
+//   %a = cc.string_literal "IZ" : !cc.ptr<!cc.array<i8 x 3>>
+//   %4 = cc.stdvec_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
+//           !cc.charspan
+//   quake.exp_pauli (%c) %q to %4 : (f64, !quake.ref, !cc.charspan) -> ()
+//   ─────────────────────────────────────────────────────────────────────────
+//   %a = cc.string_literal "IZ" : !cc.ptr<!cc.array<i8 x 3>>
+//   %4 = cc.stdvec_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
+//           !cc.charspan
+//   quake.exp_pauli (%c) %q to "IZ" : (f64, !quake.ref) -> ()
+//
+class BindExpPauliWord : public OpRewritePattern<quake::ExpPauliOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ExpPauliOp pauli,
+                                PatternRewriter &rewriter) const override {
+    auto pauliWord = pauli.getPauli();
+    if (!pauliWord)
+      return failure();
+    auto vecInit = pauliWord.getDefiningOp<cudaq::cc::StdvecInitOp>();
+    if (!vecInit)
+      return failure();
+    auto buffer =
+        vecInit.getBuffer().getDefiningOp<cudaq::cc::CreateStringLiteralOp>();
+    if (!buffer)
+      return failure();
+    // The size of the span ought to be the same as the length of the Pauli word
+    // here.
+    rewriter.replaceOpWithNewOp<quake::ExpPauliOp>(
+        pauli, pauli.getResultTypes(), UnitAttr{}, pauli.getParameters(),
+        pauli.getControls(), pauli.getTargets(),
+        pauli.getNegatedQubitControlsAttr(), Value{},
+        buffer.getStringLiteralAttr());
+    return success();
+  }
+};
+
 // %4 = quake.veq_size %3 : (!quake.veq<10>) -> 164
 // ────────────────────────────────────────────────
 // %4 = constant 10 : i64

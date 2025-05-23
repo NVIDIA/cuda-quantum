@@ -213,6 +213,16 @@ def CombineQuantumAllocations :
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
+def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
+  let summary = "Propagate constants to their uses.";
+  let description = [{
+    This is a greedy pass that will push constants from single and
+    multidimensional array constants to their ultimate uses.
+
+    TODO: Merge const-prop-complex into this pass.
+  }];
+}
+
 def ConstPropComplex : Pass<"const-prop-complex", "mlir::func::FuncOp"> {
   let summary = "Create and propagate complex constants.";
   let description = [{
