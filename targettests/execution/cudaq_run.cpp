@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ -fenable-cudaq-run %cpp_std %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -fenable-cudaq-run --library-mode %cpp_std %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 
