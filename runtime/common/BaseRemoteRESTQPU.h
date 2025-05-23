@@ -93,21 +93,18 @@ protected:
   /// specific JSON payloads and POST/GET URL paths.
   std::unique_ptr<cudaq::ServerHelper> serverHelper;
 
-  /// @brief Mapping of general key-values for backend
-  /// configuration.
+  /// @brief Mapping of general key-values for backend configuration.
   std::map<std::string, std::string> backendConfig;
 
-  /// @brief Flag indicating whether we should emulate
-  /// execution locally.
+  /// @brief Flag indicating whether we should emulate execution locally.
   bool emulate = false;
 
-  /// @brief to indicate the backend support QIR integer computation extension.
-  // Applicable to `qir-adaptive` codegenTranslation only.
+  /// @brief Flag indicating the backend support QIR integer computation
+  /// extension. Applicable to `qir-adaptive` codegenTranslation only.
   bool qirIntegerExtension = false;
 
-  /// @brief to indicate the backend support QIR floating point computation
-  /// extension.
-  // Applicable to `qir-adaptive` codegenTranslation only.
+  /// @brief Flag indicating the backend support QIR floating point computation
+  /// extension. Applicable to `qir-adaptive` codegenTranslation only.
   bool qirFloatExtension = false;
 
   /// @brief Flag indicating whether we should print the IR.

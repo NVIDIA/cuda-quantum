@@ -403,20 +403,6 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
         return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
-    if get_origin(argType) == tuple:
-        result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
-        eleTyNames = result.group('names')
-        eleTypes = []
-        while eleTyNames != None:
-            result = re.search(r'(?P<names>.*),\s*(?P<name>.*)', eleTyNames)
-            eleTyName = result.group('name') if result != None else eleTyNames
-            eleTyNames = result.group('names') if result != None else None
-            pyInstance = pyInstanceFromName(eleTyName)
-            if pyInstance == None:
-                emitFatalError(f'Invalid tuple element type ({eleTyName})')
-            eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
-        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
-
     if argType == qvector or argType == qreg or argType == qview:
         return quake.VeqType.get(ctx)
     if argType == qubit:
