@@ -17,7 +17,7 @@
 
 using namespace mlir;
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 // FIXME: ignoring these allocator classes rather than traversing them. It would
 // be better add them to the list of intercepted classes, but that code is
@@ -818,4 +818,4 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   return pushValue(alloca);
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

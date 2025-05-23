@@ -16,20 +16,18 @@
 #include <type_traits>
 
 namespace cudaq {
-namespace details {
+namespace detail {
 // Test std::tuple layout.
 constexpr bool isTupleRecursivelyDefined() {
   std::tuple<double, int, char> t;
   return static_cast<void *>(&std::get<double>(t)) != static_cast<void *>(&t);
 }
 [[maybe_unused]] static bool TupleIsReverse = isTupleRecursivelyDefined();
-} // namespace details
 
-namespace __internal__ {
 std::string demangle_kernel(const char *);
 bool isLibraryMode(const std::string &);
 extern bool globalFalse;
-} // namespace __internal__
+} // namespace detail
 
 /// @brief Given a string kernel name, return the corresponding Quake code
 /// This will throw if the kernel name is unknown to the quake code registry.
@@ -152,7 +150,7 @@ template <typename MemberArg0, typename... MemberArgs, typename QuantumKernel,
 #endif
 std::string get_quake(QuantumKernel &&kernel) {
   // See comment below.
-  if (__internal__::globalFalse) {
+  if (detail::globalFalse) {
     using ArgsTuple = typename internal::KernelCallArgs<
         decltype(&std::remove_reference_t<QuantumKernel>::template
                  operator()<MemberArg0, MemberArgs...>)>::ArgsTuple;
@@ -183,7 +181,7 @@ std::string get_quake(QuantumKernel &&kernel) {
     // template class instantiation. The globalFalse flag, ensures this code
     // does not execute. However the compiler will respect the template
     // specialization and not optimize it away.
-    if (__internal__::globalFalse) {
+    if (detail::globalFalse) {
       using ArgsTuple = typename internal::KernelCallArgs<
           decltype(&std::remove_reference_t<QuantumKernel>::operator())>::
           ArgsTuple;
@@ -269,7 +267,7 @@ int num_ranks();
 /// @brief Return true if MPI is already initialized, false otherwise.
 bool is_initialized();
 
-namespace details {
+namespace detail {
 #define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
   TYPE allReduce(const TYPE &, const BINARY<TYPE> &);
 
@@ -279,12 +277,12 @@ CUDAQ_ALL_REDUCE_DEF(float, std::multiplies)
 CUDAQ_ALL_REDUCE_DEF(double, std::plus)
 CUDAQ_ALL_REDUCE_DEF(double, std::multiplies)
 
-} // namespace details
+} // namespace detail
 
 /// @brief Reduce all values across ranks with the specified binary function.
 template <typename T, typename BinaryFunction>
 T all_reduce(const T &localValue, const BinaryFunction &function) {
-  return details::allReduce(localValue, function);
+  return detail::allReduce(localValue, function);
 }
 
 /// @brief Gather all vector data (floating point numbers) locally into the

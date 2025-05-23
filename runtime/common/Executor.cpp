@@ -10,8 +10,8 @@
 #include "common/Logger.h"
 
 namespace cudaq {
-details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
-                                  bool isObserve) {
+detail::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
+                                 bool isObserve) {
 
   serverHelper->setShots(shots);
 
@@ -24,7 +24,7 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
 
   auto config = serverHelper->getConfig();
 
-  std::vector<details::future::Job> ids;
+  std::vector<detail::future::Job> ids;
   for (std::size_t i = 0; auto &job : jobs) {
     cudaq::info("Job (name={}) created, posting to {}", codesToExecute[i].name,
                 jobPostPath);
@@ -53,7 +53,7 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
 
   config.insert({"shots", std::to_string(shots)});
   std::string name = serverHelper->name();
-  return details::future(ids, name, config, isObserve);
+  return detail::future(ids, name, config, isObserve);
 }
 } // namespace cudaq
 

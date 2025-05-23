@@ -164,7 +164,7 @@ static bool isReferenceToCallableRecord(Type t, clang::ParmVarDecl *arg) {
   return isa<cudaq::cc::StructType>(t);
 }
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 clang::FunctionDecl *
 QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
@@ -551,4 +551,4 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   return true;
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

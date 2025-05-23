@@ -62,7 +62,7 @@ public:
 
     if (executionContext) {
       executor->setShots(executionContext->shots);
-      cudaq::details::future future;
+      cudaq::detail::future future;
       future = executor->execute(codes);
       // Keep this asynchronous if requested
       if (executionContext->asyncExec) {

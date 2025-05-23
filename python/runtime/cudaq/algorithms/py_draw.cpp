@@ -45,7 +45,7 @@ std::string pyDraw(py::object &kernel, py::args args) {
   auto [kernelName, kernelMod, argData] =
       getKernelLaunchParameters(kernel, args);
 
-  return details::extractTrace([&]() mutable {
+  return detail::extractTrace([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
   });
@@ -59,7 +59,7 @@ std::string pyDraw(std::string format, py::object &kernel, py::args args) {
     auto [kernelName, kernelMod, argData] =
         getKernelLaunchParameters(kernel, args);
 
-    return details::extractTraceLatex([&]() mutable {
+    return detail::extractTraceLatex([&]() mutable {
       pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
       delete argData;
     });

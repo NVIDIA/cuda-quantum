@@ -15,15 +15,15 @@
 
 namespace cudaq {
 
-namespace __internal__ {
+namespace detail {
 
 std::string draw(const Trace &trace);
 
 std::string getLaTeXString(const Trace &trace);
 
-} // namespace __internal__
+} // namespace detail
 
-namespace details {
+namespace detail {
 
 /// @brief execute the kernel functor (with optional arguments) and return the
 /// trace of the execution path.
@@ -52,17 +52,17 @@ cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
 /// state representation.
 template <typename KernelFunctor>
 std::string extractTrace(KernelFunctor &&kernel) {
-  return __internal__::draw(traceFromKernel(kernel));
+  return detail::draw(traceFromKernel(kernel));
 }
 
 /// @brief Execute the given kernel functor and extract the
 /// state representation as LaTeX.
 template <typename KernelFunctor>
 std::string extractTraceLatex(KernelFunctor &&kernel) {
-  return __internal__::getLaTeXString(traceFromKernel(kernel));
+  return detail::getLaTeXString(traceFromKernel(kernel));
 }
 
-} // namespace details
+} // namespace detail
 
 // clang-format off
 ///
@@ -120,8 +120,8 @@ template <
     typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
 #endif
 std::string draw(QuantumKernel &&kernel, Args &&...args) {
-  return __internal__::draw(
-      details::traceFromKernel(kernel, std::forward<Args>(args)...));
+  return detail::draw(
+      detail::traceFromKernel(kernel, std::forward<Args>(args)...));
 }
 
 #if CUDAQ_USE_STD20
@@ -136,8 +136,8 @@ std::string draw(std::string format, QuantumKernel &&kernel, Args &&...args) {
   if (format == "ascii") {
     return draw(kernel, std::forward<Args>(args)...);
   } else if (format == "latex") {
-    return __internal__::getLaTeXString(
-        details::traceFromKernel(kernel, std::forward<Args>(args)...));
+    return detail::getLaTeXString(
+        detail::traceFromKernel(kernel, std::forward<Args>(args)...));
   } else {
     throw std::runtime_error(
         "Invalid format. Supported formats are 'ascii' and 'latex'.");

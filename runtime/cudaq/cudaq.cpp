@@ -132,7 +132,7 @@ bool is_initialized() {
   return commPlugin->is_initialized();
 }
 
-namespace details {
+namespace detail {
 
 #define CUDAQ_ALL_REDUCE_IMPL(TYPE, BINARY, REDUCE_OP)                         \
   TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
@@ -151,7 +151,7 @@ CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies, PROD)
 CUDAQ_ALL_REDUCE_IMPL(double, std::plus, SUM)
 CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies, PROD)
 
-} // namespace details
+} // namespace detail
 
 #define CUDAQ_ALL_GATHER_IMPL(TYPE)                                            \
   void all_gather(std::vector<TYPE> &global, const std::vector<TYPE> &local) { \
@@ -196,13 +196,13 @@ void finalize() {
 
 } // namespace cudaq::mpi
 
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 std::map<std::string, std::string> runtime_registered_mlir;
 std::string demangle_kernel(const char *name) {
   return quantum_platform::demangle(name);
 }
 bool globalFalse = false;
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail
 
 // Shared mutex to guard concurrent access to global kernel data (e.g.,
 // `quakeRegistry`, `kernelRegistry`, `argsCreators`, `lambdaNames`).
@@ -302,13 +302,13 @@ void cudaq::registry::cudaqRegisterLambdaName(const char *name,
   lambdaNames.insert({std::string(name), std::string(value)});
 }
 
-bool cudaq::__internal__::isKernelGenerated(const std::string &kernelName) {
+bool cudaq::detail::isKernelGenerated(const std::string &kernelName) {
   std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
   return std::find(kernelRegistry.begin(), kernelRegistry.end(), kernelName) !=
          kernelRegistry.end();
 }
 
-bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
+bool cudaq::detail::isLibraryMode(const std::string &kernelname) {
   return !isKernelGenerated(kernelname);
 }
 
@@ -441,7 +441,7 @@ int num_available_gpus() {
   return nDevices;
 }
 
-namespace __internal__ {
+namespace detail {
 void cudaqCtrlCHandler(int signal) {
   printf(" CTRL-C caught in cudaq runtime.\n");
   std::exit(1);
@@ -454,7 +454,7 @@ __attribute__((constructor)) void startSigIntHandler() {
   sigIntHandler.sa_flags = 0;
   sigaction(SIGINT, &sigIntHandler, NULL);
 }
-} // namespace __internal__
+} // namespace detail
 
 } // namespace cudaq
 

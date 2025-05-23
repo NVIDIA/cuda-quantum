@@ -20,7 +20,7 @@ namespace cudaq {
 bool isTimingTagEnabled(int tag);
 
 // Keep all spdlog headers hidden in the implementation file
-namespace details {
+namespace detail {
 // This enum must match spdlog::level enums. This is checked via static_assert
 // in Logger.cpp.
 enum class LogLevel { trace, debug, info, warn };
@@ -30,7 +30,7 @@ void info(const std::string_view msg);
 void debug(const std::string_view msg);
 void warn(const std::string_view msg);
 std::string pathToFileName(const std::string_view fullFilePath);
-} // namespace details
+} // namespace detail
 
 /// This type seeks to enable automated injection of the
 /// source location of the `cudaq::info()` or `debug()` call.
@@ -49,14 +49,14 @@ std::string pathToFileName(const std::string_view fullFilePath);
          const char *funcName = __builtin_FUNCTION(),                          \
          const char *fileName = __builtin_FILE(),                              \
          int lineNo = __builtin_LINE()) {                                      \
-      if (details::should_log(details::LogLevel::NAME)) {                      \
+      if (detail::should_log(detail::LogLevel::NAME)) {                        \
         auto msg = fmt::format(fmt::runtime(message), args...);                \
         std::string name = funcName;                                           \
         auto start = name.find_first_of(" ");                                  \
         name = name.substr(start + 1, name.find_first_of("(") - start - 1);    \
-        msg = "[" + details::pathToFileName(fileName) + ":" +                  \
+        msg = "[" + detail::pathToFileName(fileName) + ":" +                   \
               std::to_string(lineNo) + "] " + msg;                             \
-        details::NAME(msg);                                                    \
+        detail::NAME(msg);                                                     \
       }                                                                        \
     }                                                                          \
   };                                                                           \
@@ -152,7 +152,7 @@ private:
   /// @brief Constructor with name only. This is private because you should
   /// probably be using ScopedTraceWithContext() instead.
   ScopedTrace(const std::string &name) {
-    if (details::should_log(details::LogLevel::trace)) {
+    if (detail::should_log(detail::LogLevel::trace)) {
       startTime = std::chrono::system_clock::now();
       traceName = name;
       globalTraceStack++;
@@ -164,7 +164,7 @@ private:
   /// instead.
   template <typename... Args>
   ScopedTrace(const std::string &name, Args &&...args) {
-    if (details::should_log(details::LogLevel::trace)) {
+    if (detail::should_log(detail::LogLevel::trace)) {
       startTime = std::chrono::system_clock::now();
       traceName = name;
       argsMsg = " (args = {{";
@@ -186,7 +186,7 @@ private:
   ScopedTrace(const int tag, const std::string &name, Args &&...args)
       : tag(tag) {
     tagFound = cudaq::isTimingTagEnabled(tag);
-    if (tagFound || details::should_log(details::LogLevel::trace)) {
+    if (tagFound || detail::should_log(detail::LogLevel::trace)) {
       startTime = std::chrono::system_clock::now();
       traceName = name;
       if (tagFound) {
@@ -220,7 +220,7 @@ private:
               int lineNo = __builtin_LINE())
       : tag(tag), context(funcName, fileName, lineNo) {
     tagFound = cudaq::isTimingTagEnabled(tag);
-    if (tagFound || details::should_log(details::LogLevel::trace)) {
+    if (tagFound || detail::should_log(detail::LogLevel::trace)) {
       startTime = std::chrono::system_clock::now();
       traceName = name;
       globalTraceStack++;
@@ -245,7 +245,7 @@ public:
 
   /// The destructor, get the elapsed time and trace.
   ~ScopedTrace() {
-    if (tagFound || details::should_log(details::LogLevel::trace)) {
+    if (tagFound || detail::should_log(detail::LogLevel::trace)) {
       auto duration = static_cast<double>(
           std::chrono::duration_cast<std::chrono::microseconds>(
               std::chrono::system_clock::now() - startTime)
@@ -256,7 +256,7 @@ public:
       std::string sourceInfo =
           context.fileName
               ? fmt::format("[{}:{}] ",
-                            details::pathToFileName(context.fileName),
+                            detail::pathToFileName(context.fileName),
                             context.lineNo)
               : "";
       auto str = fmt::format(
@@ -266,7 +266,7 @@ public:
       if (tagFound)
         cudaq::log(str);
       else
-        details::trace(str);
+        detail::trace(str);
       globalTraceStack--;
     }
   }
@@ -296,6 +296,6 @@ public:
 //     std::filesystem::path file = loc.file_name();
 //     msg = "[" + file.filename().string() + ":" + std::to_string(loc.line()) +
 //           "] " + msg;
-//     details::info(msg);
+//     detail::info(msg);
 //   }
 // };

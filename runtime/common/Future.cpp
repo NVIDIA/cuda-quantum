@@ -13,7 +13,7 @@
 #include "ServerHelper.h"
 #include <thread>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 sample_result future::get() {
   if (wrapsFutureSampling)
@@ -64,7 +64,7 @@ sample_result future::get() {
 
   return sample_result(results);
 #else
-  throw std::runtime_error("cudaq::details::future::get() requires REST Client "
+  throw std::runtime_error("cudaq::detail::future::get() requires REST Client "
                            "but CUDA-Q was built without it.");
   return sample_result();
 #endif
@@ -123,4 +123,4 @@ std::istream &operator>>(std::istream &is, future &f) {
   return is;
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

@@ -15,7 +15,7 @@
 
 namespace cudaq {
 
-namespace __internal__ {
+namespace detail {
 /// \brief This is an internal helper function to reduce duplicated code in the
 /// user-facing `vqe()` functions below. Users should not directly call this
 /// function.
@@ -47,7 +47,7 @@ static inline void print_arg_mapper_warning() {
       "the non-variational arguments.\n");
 }
 
-} // namespace __internal__
+} // namespace detail
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE.
@@ -108,9 +108,9 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 
   auto &platform = cudaq::get_platform();
   if (platform.get_remote_capabilities().vqe)
-    return __internal__::remote_vqe(platform, kernel, H, optimizer,
-                                    /*gradient=*/nullptr, n_params, /*shots=*/0,
-                                    args...);
+    return detail::remote_vqe(platform, kernel, H, optimizer,
+                              /*gradient=*/nullptr, n_params, /*shots=*/0,
+                              args...);
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -179,9 +179,8 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
 
   auto &platform = cudaq::get_platform();
   if (platform.get_remote_capabilities().vqe)
-    return __internal__::remote_vqe(platform, kernel, H, optimizer,
-                                    /*gradient=*/nullptr, n_params, shots,
-                                    args...);
+    return detail::remote_vqe(platform, kernel, H, optimizer,
+                              /*gradient=*/nullptr, n_params, shots, args...);
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -250,9 +249,9 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
 
   auto &platform = cudaq::get_platform();
   if (platform.get_remote_capabilities().vqe)
-    return __internal__::remote_vqe(platform, kernel, H, optimizer, &gradient,
-                                    n_params,
-                                    /*shots=*/0, args...);
+    return detail::remote_vqe(platform, kernel, H, optimizer, &gradient,
+                              n_params,
+                              /*shots=*/0, args...);
 
   auto requires_grad = optimizer.requiresGradients();
   // If there are additional arguments, we need to clone the gradient and
@@ -345,7 +344,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
         "aware of the ArgMapper.");
   }
   if (cudaq::get_platform().get_remote_capabilities().vqe)
-    __internal__::print_arg_mapper_warning();
+    detail::print_arg_mapper_warning();
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -427,7 +426,7 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
         "aware of the ArgMapper.");
   }
   if (cudaq::get_platform().get_remote_capabilities().vqe)
-    __internal__::print_arg_mapper_warning();
+    detail::print_arg_mapper_warning();
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -479,7 +478,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
                         const int n_params, ArgMapper &&argsMapper) {
   bool requiresGrad = optimizer.requiresGradients();
   if (cudaq::get_platform().get_remote_capabilities().vqe)
-    __internal__::print_arg_mapper_warning();
+    detail::print_arg_mapper_warning();
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {

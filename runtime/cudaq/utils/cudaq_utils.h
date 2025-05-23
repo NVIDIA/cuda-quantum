@@ -22,7 +22,7 @@
 #else
 #include <link.h>
 #endif
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 
 struct CUDAQLibraryData {
   std::string path;
@@ -53,17 +53,17 @@ inline static int getCUDAQLibraryPath(struct dl_phdr_info *info, size_t size,
 #endif
 
 extern std::string demangle_kernel(const char *);
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail
 
 namespace cudaq {
 class sample_result;
 
 inline static std::string getCUDAQLibraryPath() {
-  __internal__::CUDAQLibraryData data;
+  detail::CUDAQLibraryData data;
 #if defined(__APPLE__) && defined(__MACH__)
   getCUDAQLibraryPath(&data);
 #else
-  dl_iterate_phdr(__internal__::getCUDAQLibraryPath, &data);
+  dl_iterate_phdr(detail::getCUDAQLibraryPath, &data);
 #endif
   return data.path;
 }
@@ -149,7 +149,7 @@ std::string getKernelName(QuantumKernel &kernel) {
   if constexpr (has_name<QuantumKernel>::value) {
     kernel_name = kernel.name();
   } else {
-    kernel_name = __internal__::demangle_kernel(typeid(kernel).name());
+    kernel_name = detail::demangle_kernel(typeid(kernel).name());
   }
   return kernel_name;
 }

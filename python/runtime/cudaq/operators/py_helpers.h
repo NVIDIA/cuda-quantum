@@ -12,11 +12,11 @@
 
 namespace py = pybind11;
 
-namespace cudaq::details {
+namespace cudaq::detail {
 cudaq::parameter_map kwargs_to_param_map(const py::kwargs &kwargs);
 std::unordered_map<std::string, std::string>
 kwargs_to_param_description(const py::kwargs &kwargs);
 py::array_t<std::complex<double>>
 cmat_to_numpy(std::size_t rows, std::size_t cols,
               complex_matrix::value_type const *const data);
-} // namespace cudaq::details
+} // namespace cudaq::detail

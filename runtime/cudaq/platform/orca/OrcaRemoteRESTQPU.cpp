@@ -81,7 +81,7 @@ KernelThunkResultType OrcaRemoteRESTQPU::launchKernel(
 
   ctx->shots = shots;
 
-  cudaq::details::future future;
+  cudaq::detail::future future;
   future = executor->execute(params, kernelName);
 
   // Keep this asynchronous if requested

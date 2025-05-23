@@ -113,7 +113,7 @@ for more information on this programming pattern.)#")
         // Should only have C++ going on here, safe to release the GIL
         py::gil_scoped_release release;
         return py_async_sample_result(
-            cudaq::details::runSamplingAsync(
+            cudaq::detail::runSamplingAsync(
                 // Notes:
                 // (1) no Python data access is allowed in this lambda body.
                 // (2) This lambda might be executed multiple times, e.g, when

@@ -14,11 +14,11 @@
 namespace cudaq {
 
 #if CUDAQ_USE_STD20
-namespace details {
+namespace detail {
 /// `qarray`<N> for N < 1 should be a compile error
 template <std::size_t N>
 concept ValidQArraySize = N > 0;
-} // namespace details
+} // namespace detail
 #endif
 
 /// @brief Provide a base type so we can
@@ -32,7 +32,7 @@ class qarray_base {};
 /// the held qudits.
 template <std::size_t N, std::size_t Levels = 2>
 #if CUDAQ_USE_STD20
-  requires(details::ValidQArraySize<N>)
+  requires(detail::ValidQArraySize<N>)
 #endif
 class qarray : public qarray_base {
 public:

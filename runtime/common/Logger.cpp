@@ -88,7 +88,7 @@ __attribute__((constructor)) void initializeLogger() {
   }
 }
 
-namespace details {
+namespace detail {
 void trace(const std::string_view msg) { spdlog::trace(msg); }
 void info(const std::string_view msg) { spdlog::info(msg); }
 void warn(const std::string_view msg) { spdlog::warn(msg); }
@@ -117,5 +117,5 @@ std::string pathToFileName(const std::string_view fullFilePath) {
   const std::filesystem::path file(fullFilePath);
   return file.filename().string();
 }
-} // namespace details
+} // namespace detail
 } // namespace cudaq

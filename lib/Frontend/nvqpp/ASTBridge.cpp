@@ -78,7 +78,7 @@ static bool hasAnyQubitTypes(FunctionType funcTy) {
 static std::string
 trimmedMangledTypeName(clang::QualType ty,
                        clang::ItaniumMangleContext *mangler) {
-  auto s = cudaq::details::getCxxMangledTypeName(ty, mangler);
+  auto s = cudaq::detail::getCxxMangledTypeName(ty, mangler);
   // Strip off the prefix.
   constexpr char prefix[] = "_ZTS";
   constexpr auto prefixLength = sizeof(prefix) - 1;
@@ -98,8 +98,8 @@ trimmedMangledTypeName(const clang::Type *ty,
 }
 
 std::string
-cudaq::details::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
-                                         clang::ItaniumMangleContext *mangler) {
+cudaq::detail::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
+                                        clang::ItaniumMangleContext *mangler) {
   if (auto *cxxMethod = dyn_cast<clang::CXXMethodDecl>(func)) {
     auto *cxxCls = cast<clang::CXXRecordDecl>(func->getParent());
     if (cxxMethod->isFunctionTemplateSpecialization()) {
@@ -114,7 +114,7 @@ cudaq::details::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
       for (auto &templArg :
            cxxMethod->getTemplateSpecializationArgs()->asArray())
         name += trimmedMangledTypeName(templArg.getAsType(), mangler);
-      name += '.' + cudaq::details::getCxxMangledDeclName(func, mangler);
+      name += '.' + cudaq::detail::getCxxMangledDeclName(func, mangler);
       LLVM_DEBUG(llvm::dbgs() << "template member name is: " << name << '\n');
       return name;
     }
@@ -131,7 +131,7 @@ cudaq::details::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
     auto name = "instance_function_" + func->getName().str();
     for (auto templArg : func->getTemplateSpecializationArgs()->asArray())
       name += trimmedMangledTypeName(templArg.getAsType(), mangler);
-    name += '.' + cudaq::details::getCxxMangledDeclName(func, mangler);
+    name += '.' + cudaq::detail::getCxxMangledDeclName(func, mangler);
     LLVM_DEBUG(llvm::dbgs() << "template function name is: " << name << '\n');
     return name;
   }
@@ -139,7 +139,7 @@ cudaq::details::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
   // __qpu__ T func(args ...);
   // cudaq::get_function_kernel_name("func");
   auto name = "function_" + func->getName().str();
-  name += '.' + cudaq::details::getCxxMangledDeclName(func, mangler);
+  name += '.' + cudaq::detail::getCxxMangledDeclName(func, mangler);
   LLVM_DEBUG(llvm::dbgs() << "function name is: " << name << '\n');
   return name;
 }
@@ -241,7 +241,7 @@ public:
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
               func)) {
         customOperationNames[func->getName().str()] =
-            cudaq::details::getTagNameOfFunctionDecl(func, mangler);
+            cudaq::detail::getTagNameOfFunctionDecl(func, mangler);
         runChecks = true;
       }
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(func))
@@ -256,13 +256,13 @@ public:
           auto *cxxClass = cast<clang::CXXRecordDecl>(func->getParent());
           check(cxxClass);
         }
-        processQpu(cudaq::details::getTagNameOfFunctionDecl(func, mangler),
+        processQpu(cudaq::detail::getTagNameOfFunctionDecl(func, mangler),
                    func);
       }
     } else if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(x)) {
       // Add declarations to support separate compilation.
       processQpu</*replace=*/false>(
-          cudaq::details::getTagNameOfFunctionDecl(x, mangler), x);
+          cudaq::detail::getTagNameOfFunctionDecl(x, mangler), x);
     }
     return true;
   }
@@ -285,7 +285,7 @@ public:
     if (const auto *cxxMethodDecl = lambda->getCallOperator())
       if (const auto *f = cxxMethodDecl->getAsFunction()->getDefinition())
         if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(f))
-          processQpu(cudaq::details::getTagNameOfFunctionDecl(f, mangler), f);
+          processQpu(cudaq::detail::getTagNameOfFunctionDecl(f, mangler), f);
     return true;
   }
 
@@ -332,8 +332,8 @@ public:
         tuplesAreReversed = !opt->isZero();
       }
     }
-    if (cudaq::isInNamespace(x, "cudaq") &&
-        cudaq::isInNamespace(x, "details") && x->getName() == "_nvqpp_sizeof") {
+    if (cudaq::isInNamespace(x, "cudaq") && cudaq::isInNamespace(x, "detail") &&
+        x->getName() == "_nvqpp_sizeof") {
       // This constexpr is the sizeof a pauli_word and a std::string.
       auto loc = x->getLocation();
       auto opt = x->getAnyInitializer()->getIntegerConstantExpr(
@@ -361,7 +361,7 @@ public:
             if (name == "qubit" || name == "qudit" || name == "qspan" ||
                 name.startswith("qreg") || name.startswith("qvector") ||
                 name.startswith("qarray") || name.startswith("qview"))
-              cudaq::details::reportClangError(
+              cudaq::detail::reportClangError(
                   x, mangler,
                   "may not use quantum types in non-kernel functions");
           }
@@ -386,7 +386,7 @@ private:
 } // namespace
 
 #ifndef NDEBUG
-namespace cudaq::details {
+namespace cudaq::detail {
 bool QuakeBridgeVisitor::pushValue(Value v) {
   LLVM_DEBUG(llvm::dbgs() << std::string(valueStack.size(), ' ')
                           << "+push value: ";
@@ -421,10 +421,10 @@ SmallVector<Value> QuakeBridgeVisitor::lastValues(unsigned n) {
   valueStack.pop_back_n(n);
   return result;
 }
-} // namespace cudaq::details
+} // namespace cudaq::detail
 #endif
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 bool QuakeBridgeVisitor::generateFunctionDeclaration(
     StringRef funcName, const clang::FunctionDecl *x) {
@@ -454,7 +454,7 @@ bool QuakeBridgeVisitor::isItaniumCXXABI() {
   return clang::TargetCXXABI{astContext->getCXXABIKind()}.isItaniumFamily();
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail
 
 namespace cudaq {
 bool ASTBridgeAction::ASTBridgeConsumer::isQuantum(
@@ -495,7 +495,7 @@ static bool isX86_64(clang::ASTContext &astContext) {
 }
 
 void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
-    const clang::FunctionDecl *funcDecl, details::QuakeBridgeVisitor &visitor,
+    const clang::FunctionDecl *funcDecl, detail::QuakeBridgeVisitor &visitor,
     FunctionType funcTy, StringRef devFuncName) {
   auto funcName = visitor.cxxMangledDeclName(funcDecl);
   if (module->lookupSymbol(funcName))
@@ -595,7 +595,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
   llvm::SmallVector<clang::Decl *> reachableFuncs =
       listReachableFunctions(callGraphBuilder.getRoot());
   auto *ctx = module->getContext();
-  details::QuakeBridgeVisitor visitor(
+  detail::QuakeBridgeVisitor visitor(
       &astContext, ctx, builder, module.get(), symbol_table, functionsToEmit,
       reachableFuncs, cxx_mangled_kernel_names, ci, mangler,
       customOperationNames, tuplesAreReversed);
@@ -700,7 +700,7 @@ bool isInExternC(const clang::GlobalDecl &x) {
 
 } // namespace cudaq
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler) {
@@ -726,4 +726,4 @@ std::string getCxxMangledDeclName(clang::GlobalDecl decl,
   return s;
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

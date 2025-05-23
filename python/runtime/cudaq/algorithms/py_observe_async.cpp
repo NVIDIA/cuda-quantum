@@ -90,7 +90,7 @@ async_observe_result pyObserveAsync(py::object &kernel,
 
   // Launch the asynchronous execution.
   py::gil_scoped_release release;
-  return details::runObservationAsync(
+  return detail::runObservationAsync(
       [argData, kernelName, kernelMod]() mutable {
         pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
         delete argData;
@@ -142,7 +142,7 @@ observe_result pyObservePar(const PyParType &type, py::object &kernel,
       printf(
           "[cudaq::observe warning] distributed observe requested but only 1 "
           "QPU available. no speedup expected.\n");
-    return details::distributeComputations(
+    return detail::distributeComputations(
         [&](std::size_t i, const spin_op &op) {
           return pyObserveAsync(kernel, op, args, i, shots);
         },
@@ -165,7 +165,7 @@ observe_result pyObservePar(const PyParType &type, py::object &kernel,
   auto localH = spins[rank];
 
   // Distribute locally, i.e. to the local nodes QPUs
-  auto localRankResult = details::distributeComputations(
+  auto localRankResult = detail::distributeComputations(
       [&](std::size_t i, const spin_op &op) {
         return pyObserveAsync(kernel, op, args, i, shots);
       },

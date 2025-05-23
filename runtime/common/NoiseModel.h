@@ -18,7 +18,7 @@
 #include <variant>
 #include <vector>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 void warn(const std::string_view msg);
 
 /// @brief Typedef for a matrix wrapper using std::vector<cudaq::complex>
@@ -56,7 +56,7 @@ inline matrix_wrapper scale(const cudaq::real s, const matrix_wrapper &A) {
     result.push_back(s * a);
   return result;
 }
-} // namespace cudaq::details
+} // namespace cudaq::detail
 
 namespace cudaq {
 
@@ -454,8 +454,8 @@ public:
     // per spec - caller provides noise model, but channel not registered,
     // warning generated, no channel application.
     if (iter == registeredChannels.end()) {
-      details::warn("requested kraus channel not registered with this "
-                    "noise_model. skipping channel application.");
+      detail::warn("requested kraus channel not registered with this "
+                   "noise_model. skipping channel application.");
       return kraus_channel();
     }
 
@@ -817,20 +817,20 @@ public:
       throw std::runtime_error("Sum of pauli1 parameters is >1. Must be <= 1.");
 
     std::complex<cudaq::real> i{0, 1};
-    cudaq::details::matrix_wrapper I({1, 0, 0, 1});
-    cudaq::details::matrix_wrapper X({0, 1, 1, 0});
-    cudaq::details::matrix_wrapper Y({0, -i, i, 0});
-    cudaq::details::matrix_wrapper Z({1, 0, 0, -1});
+    cudaq::detail::matrix_wrapper I({1, 0, 0, 1});
+    cudaq::detail::matrix_wrapper X({0, 1, 1, 0});
+    cudaq::detail::matrix_wrapper Y({0, -i, i, 0});
+    cudaq::detail::matrix_wrapper Z({1, 0, 0, -1});
     cudaq::real p0 =
         std::sqrt(std::max(static_cast<cudaq::real>(1.0 - p[0] - p[1] - p[2]),
                            static_cast<cudaq::real>(0)));
     cudaq::real px = std::sqrt(p[0]);
     cudaq::real py = std::sqrt(p[1]);
     cudaq::real pz = std::sqrt(p[2]);
-    std::vector<cudaq::complex> k0v = details::scale(p0, I);
-    std::vector<cudaq::complex> k1v = details::scale(px, X);
-    std::vector<cudaq::complex> k2v = details::scale(py, Y);
-    std::vector<cudaq::complex> k3v = details::scale(pz, Z);
+    std::vector<cudaq::complex> k0v = detail::scale(p0, I);
+    std::vector<cudaq::complex> k1v = detail::scale(px, X);
+    std::vector<cudaq::complex> k2v = detail::scale(py, Y);
+    std::vector<cudaq::complex> k3v = detail::scale(pz, Z);
     ops = {k0v, k1v, k2v, k3v};
     this->parameters.reserve(p.size());
     for (auto pp : p)
@@ -875,20 +875,19 @@ public:
       throw std::runtime_error("Sum of pauli2 parameters is >1. Must be <= 1.");
 
     std::complex<cudaq::real> i{0, 1};
-    cudaq::details::matrix_wrapper I({1, 0, 0, 1});
-    cudaq::details::matrix_wrapper X({0, 1, 1, 0});
-    cudaq::details::matrix_wrapper Y({0, -i, i, 0});
-    cudaq::details::matrix_wrapper Z({1, 0, 0, -1});
+    cudaq::detail::matrix_wrapper I({1, 0, 0, 1});
+    cudaq::detail::matrix_wrapper X({0, 1, 1, 0});
+    cudaq::detail::matrix_wrapper Y({0, -i, i, 0});
+    cudaq::detail::matrix_wrapper Z({1, 0, 0, -1});
     cudaq::real pii = std::max(static_cast<cudaq::real>(1.0 - sum),
                                static_cast<cudaq::real>(0));
 
     ops.reserve(16);
     // Use a lambda to avoid excessive line wrapping below
-    auto define_op = [this](double _p,
-                            const cudaq::details::matrix_wrapper &_m1,
-                            const cudaq::details::matrix_wrapper &_m2) {
+    auto define_op = [this](double _p, const cudaq::detail::matrix_wrapper &_m1,
+                            const cudaq::detail::matrix_wrapper &_m2) {
       ops.push_back(
-          details::scale(std::sqrt(_p), details::kron(_m1, 2, 2, _m2, 2, 2)));
+          detail::scale(std::sqrt(_p), detail::kron(_m1, 2, 2, _m2, 2, 2)));
     };
     define_op(pii, I, I);
     define_op(p[0], I, X);
@@ -960,7 +959,7 @@ public:
     ops.reserve(singleQubitKraus.size() * singleQubitKraus.size());
     for (const auto &k1 : singleQubitKraus) {
       for (const auto &k2 : singleQubitKraus) {
-        ops.push_back(details::kron(k1, 2, 2, k2, 2, 2));
+        ops.push_back(detail::kron(k1, 2, 2, k2, 2, 2));
       }
     }
     this->parameters.push_back(probability);

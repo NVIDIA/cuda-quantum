@@ -13,7 +13,7 @@
 
 namespace cudaq {
 
-namespace details {
+namespace detail {
 
 /// @brief Convert the provided angles to those rotation angles
 /// used for the gray code implementation.
@@ -35,7 +35,7 @@ void applyRotation(Kernel &&kernel, RotationFunctor &&rotationFunctor,
     return;
   }
 
-  auto ctrlIds = details::getControlIndices(gcRank);
+  auto ctrlIds = detail::getControlIndices(gcRank);
   for (auto [i, ctrlIdx] : cudaq::enumerate(ctrlIds)) {
     rotationFunctor(kernel, thetas[i], qubits[target]);
     kernel.template x<cudaq::ctrl>(qubits[controls[ctrlIdx]], qubits[target]);
@@ -51,7 +51,7 @@ std::vector<double> getAlphaZ(const std::span<double> data,
 /// the `kth` qubit.
 std::vector<double> getAlphaY(const std::span<double> data,
                               std::size_t numQubits, std::size_t k);
-} // namespace details
+} // namespace detail
 
 /// @brief Decompose the input state vector data to a set of
 /// controlled operations and rotations. This function takes as input
@@ -81,11 +81,11 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
   }
 
   for (std::size_t k = mutableQubits.size(); k > 0; k--) {
-    auto alphaYk = details::getAlphaY(stateAbs, mutableQubits.size(), k);
+    auto alphaYk = detail::getAlphaY(stateAbs, mutableQubits.size(), k);
     std::vector<std::size_t> controls(mutableQubits.begin() + k,
                                       mutableQubits.end());
     auto target = mutableQubits[k - 1];
-    details::applyRotation(
+    detail::applyRotation(
         kernel,
         [](auto &&kernel, auto &&theta, auto &&qubit) {
           kernel.ry(theta, qubit);
@@ -95,12 +95,12 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
 
   if (omegaNonZero) {
     for (std::size_t k = mutableQubits.size(); k > 0; k--) {
-      auto alphaZk = details::getAlphaZ(omega, mutableQubits.size(), k);
+      auto alphaZk = detail::getAlphaZ(omega, mutableQubits.size(), k);
       std::vector<std::size_t> controls(mutableQubits.begin() + k,
                                         mutableQubits.end());
       auto target = mutableQubits[k - 1];
       if (!alphaZk.empty())
-        details::applyRotation(
+        detail::applyRotation(
             kernel,
             [](auto &&kernel, auto &&theta, auto &&qubit) {
               kernel.rz(theta, qubit);
@@ -115,7 +115,7 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
 /// `unique_ptr`.
 auto from_state(const std::span<std::complex<double>> data) {
   auto numQubits = std::log2(data.size());
-  std::vector<details::KernelBuilderType> empty;
+  std::vector<detail::KernelBuilderType> empty;
   auto kernel = std::make_unique<kernel_builder<>>(empty);
   auto qubits = kernel->qalloc(numQubits);
   from_state(*kernel.get(), qubits, data);

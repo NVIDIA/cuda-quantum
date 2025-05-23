@@ -69,7 +69,7 @@ struct observe_options {
   std::optional<std::size_t> num_trajectories;
 };
 
-namespace details {
+namespace detail {
 
 /// @brief Take the input KernelFunctor (a lambda that captures runtime
 /// arguments and invokes the quantum kernel) and invoke the `spin_op`
@@ -79,7 +79,7 @@ std::optional<observe_result>
 runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
                quantum_platform &platform, int shots,
                const std::string &kernelName, std::size_t qpu_id = 0,
-               details::future *futureResult = nullptr,
+               detail::future *futureResult = nullptr,
                std::size_t batchIteration = 0, std::size_t totalBatchIters = 0,
                std::optional<std::size_t> numTrajectories = {}) {
   auto ctx = std::make_unique<ExecutionContext>("observe", shots);
@@ -103,7 +103,7 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
   k();
 
   // If this is an asynchronous execution, we need
-  // to store the `cudaq::details::future`
+  // to store the `cudaq::detail::future`
   if (futureResult) {
     *futureResult = ctx->futureResult;
     return std::nullopt;
@@ -156,11 +156,11 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, const spin_op &H,
   // remotely hosted, if so, we can't do asynchronous execution with a
   // separate thread, the separate thread is the remote server invocation
   if (platform.is_remote(qpu_id)) {
-    // In this case, everything we need can be dumped into a details::future
+    // In this case, everything we need can be dumped into a detail::future
     // type. Just return that wrapped in an async_result
-    details::future futureResult;
-    details::runObservation(std::forward<KernelFunctor>(wrappedKernel), H,
-                            platform, shots, kernelName, qpu_id, &futureResult);
+    detail::future futureResult;
+    detail::runObservation(std::forward<KernelFunctor>(wrappedKernel), H,
+                           platform, shots, kernelName, qpu_id, &futureResult);
     return async_observe_result(std::move(futureResult), &H);
   }
 
@@ -169,14 +169,14 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, const spin_op &H,
   KernelExecutionTask task(
       [&, H, qpu_id, shots, kernelName,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
-        return details::runObservation(kernel, H, platform, shots, kernelName,
-                                       qpu_id)
+        return detail::runObservation(kernel, H, platform, shots, kernelName,
+                                      qpu_id)
             .value()
             .raw_data();
       });
 
   return async_observe_result(
-      details::future(platform.enqueueAsyncTask(qpu_id, task)), &H);
+      detail::future(platform.enqueueAsyncTask(qpu_id, task)), &H);
 }
 
 /// @brief Distribute the expectation value computations among the
@@ -217,7 +217,7 @@ inline auto distributeComputations(
   return observe_result(result, op, data);
 }
 
-} // namespace details
+} // namespace detail
 
 /// \overload
 /// \brief Compute the expected value of `H` with respect to `kernel(Args...)`.
@@ -235,7 +235,7 @@ observe_result observe(QuantumKernel &&kernel, const spin_op &H,
   auto &platform = cudaq::get_platform();
   auto shots = platform.get_shots().value_or(-1);
   auto kernelName = cudaq::getKernelName(kernel);
-  return details::runObservation(
+  return detail::runObservation(
              [&kernel, &args...]() mutable {
                cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                    std::forward<Args>(args)...);
@@ -276,7 +276,7 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
     op += cudaq::spin_op_term::canonicalize(o);
 
   // Run the observation
-  auto result = details::runObservation(
+  auto result = detail::runObservation(
                     [&kernel, &args...]() mutable {
                       cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                           std::forward<Args>(args)...);
@@ -327,7 +327,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel,
           "QPU available. no speedup expected.\n");
 #if CUDAQ_USE_STD20
     // Let's distribute the work among the QPUs on this node.
-    return details::distributeComputations(
+    return detail::distributeComputations(
         [&kernel, shots, ... args = std::forward<Args>(args)](
             std::size_t i, const spin_op &op) mutable {
           return observe_async(shots, i, std::forward<QuantumKernel>(kernel),
@@ -335,7 +335,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel,
         },
         H, nQpus);
 #else
-    return details::distributeComputations(
+    return detail::distributeComputations(
         [&kernel, shots,
          args = std::forward_as_tuple(std::forward<Args>(args)...)](
             std::size_t i, const spin_op &op) mutable {
@@ -372,7 +372,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel,
     auto localH = spins[rank].canonicalize();
 
     // Distribute locally, i.e. to the local nodes QPUs
-    auto localRankResult = details::distributeComputations(
+    auto localRankResult = detail::distributeComputations(
 #if CUDAQ_USE_STD20
         [&kernel, shots, ... args = std::forward<Args>(args)](
             std::size_t i, const spin_op &op) mutable {
@@ -444,7 +444,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel,
   // Does this platform expose more than 1 QPU
   // If so, let's distribute the work among the QPUs
   if (auto nQpus = platform.num_qpus(); nQpus > 1)
-    return details::distributeComputations(
+    return detail::distributeComputations(
 #if CUDAQ_USE_STD20
         [&kernel, shots, ... args = std::forward<Args>(args)](
             std::size_t i, const spin_op &op) mutable {
@@ -465,7 +465,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel,
 #endif
         H, nQpus);
 
-  return details::runObservation(
+  return detail::runObservation(
              [&kernel, &args...]() mutable {
                cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                    std::forward<Args>(args)...);
@@ -492,7 +492,7 @@ observe_result observe(const observe_options &options, QuantumKernel &&kernel,
 
   platform.set_noise(&options.noise);
 
-  auto ret = details::runObservation(
+  auto ret = detail::runObservation(
                  [&kernel, &args...]() mutable {
                    cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                        std::forward<Args>(args)...);
@@ -525,14 +525,14 @@ auto observe_async(const std::size_t qpu_id, QuantumKernel &&kernel,
   auto kernelName = cudaq::getKernelName(kernel);
 
 #if CUDAQ_USE_STD20
-  return details::runObservationAsync(
+  return detail::runObservationAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
         cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                             std::forward<Args>(args)...);
       },
       H, platform, shots, kernelName, qpu_id);
 #else
-  return details::runObservationAsync(
+  return detail::runObservationAsync(
       detail::make_copyable_function([&kernel,
                                       args = std::make_tuple(std::forward<Args>(
                                           args)...)]() mutable {
@@ -564,14 +564,14 @@ auto observe_async(std::size_t shots, std::size_t qpu_id,
   auto kernelName = cudaq::getKernelName(kernel);
 
 #if CUDAQ_USE_STD20
-  return details::runObservationAsync(
+  return detail::runObservationAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
         cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                             std::forward<Args>(args)...);
       },
       H, platform, shots, kernelName, qpu_id);
 #else
-  return details::runObservationAsync(
+  return detail::runObservationAsync(
       detail::make_copyable_function([&kernel,
                                       args = std::make_tuple(std::forward<Args>(
                                           args)...)]() mutable {
@@ -625,12 +625,12 @@ std::vector<observe_result> observe(QuantumKernel &&kernel, const spin_op &H,
 
   // Create the functor that will broadcast the observations across
   // all requested argument sets provided.
-  details::BroadcastFunctorType<observe_result, Args...> functor =
+  detail::BroadcastFunctorType<observe_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> observe_result {
     auto shots = platform.get_shots().value_or(-1);
     auto kernelName = cudaq::getKernelName(kernel);
-    auto ret = details::runObservation(
+    auto ret = detail::runObservation(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
@@ -640,7 +640,7 @@ std::vector<observe_result> observe(QuantumKernel &&kernel, const spin_op &H,
   };
 
   // Broadcast the executions and return the results.
-  return details::broadcastFunctionOverArguments<observe_result, Args...>(
+  return detail::broadcastFunctionOverArguments<observe_result, Args...>(
       numQpus, platform, functor, params);
 }
 
@@ -670,11 +670,11 @@ std::vector<observe_result> observe(std::size_t shots, QuantumKernel &&kernel,
 
   // Create the functor that will broadcast the observations across
   // all requested argument sets provided.
-  details::BroadcastFunctorType<observe_result, Args...> functor =
+  detail::BroadcastFunctorType<observe_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> observe_result {
     auto kernelName = cudaq::getKernelName(kernel);
-    auto ret = details::runObservation(
+    auto ret = detail::runObservation(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
@@ -684,7 +684,7 @@ std::vector<observe_result> observe(std::size_t shots, QuantumKernel &&kernel,
   };
 
   // Broadcast the executions and return the results.
-  return details::broadcastFunctionOverArguments<observe_result, Args...>(
+  return detail::broadcastFunctionOverArguments<observe_result, Args...>(
       numQpus, platform, functor, params);
 }
 
@@ -716,11 +716,11 @@ std::vector<observe_result> observe(cudaq::observe_options &options,
 
   // Create the functor that will broadcast the observations across
   // all requested argument sets provided.
-  details::BroadcastFunctorType<observe_result, Args...> functor =
+  detail::BroadcastFunctorType<observe_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> observe_result {
     auto kernelName = cudaq::getKernelName(kernel);
-    auto ret = details::runObservation(
+    auto ret = detail::runObservation(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
@@ -731,7 +731,7 @@ std::vector<observe_result> observe(cudaq::observe_options &options,
   };
 
   // Broadcast the executions and return the results.
-  auto ret = details::broadcastFunctionOverArguments<observe_result, Args...>(
+  auto ret = detail::broadcastFunctionOverArguments<observe_result, Args...>(
       numQpus, platform, functor, params);
 
   platform.reset_noise();

@@ -157,7 +157,7 @@ void bindMatrixOperator(py::module &mod) {
           [](const matrix_op &self, dimension_map &dimensions,
              const parameter_map &params, bool invert_order) {
             auto cmat = self.to_matrix(dimensions, params, invert_order);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -174,8 +174,8 @@ void bindMatrixOperator(py::module &mod) {
           [](const matrix_op &self, dimension_map &dimensions,
              bool invert_order, const py::kwargs &kwargs) {
             auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+                dimensions, detail::kwargs_to_param_map(kwargs), invert_order);
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("invert_order") = false,
@@ -316,7 +316,7 @@ void bindMatrixOperator(py::module &mod) {
       .def(
           "trim",
           [](matrix_op &self, double tol, const py::kwargs &kwargs) {
-            return self.trim(tol, details::kwargs_to_param_map(kwargs));
+            return self.trim(tol, detail::kwargs_to_param_map(kwargs));
           },
           py::arg("tol") = 0.0,
           "Removes all terms from the sum for which the absolute value of the "
@@ -431,7 +431,7 @@ void bindMatrixOperator(py::module &mod) {
           [](const matrix_op_term &self, dimension_map &dimensions,
              const parameter_map &params, bool invert_order) {
             auto cmat = self.to_matrix(dimensions, params, invert_order);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -447,8 +447,8 @@ void bindMatrixOperator(py::module &mod) {
           [](const matrix_op_term &self, dimension_map &dimensions,
              bool invert_order, const py::kwargs &kwargs) {
             auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+                dimensions, detail::kwargs_to_param_map(kwargs), invert_order);
+            return detail::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("invert_order") = false,

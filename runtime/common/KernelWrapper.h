@@ -518,7 +518,7 @@ std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
     // kernel_builder kernel: it always has quake representation; hence, no need
     // to wrap the kernel (run as MLIR mode).
     // Just need to JIT code to get it registered.
-    static_cast<cudaq::details::kernel_builder_base &>(fn).jitCode();
+    static_cast<cudaq::detail::kernel_builder_base &>(fn).jitCode();
     auto serializedArgsBuffer = serializeArgs(std::forward<Args>(args)...);
     [[maybe_unused]] auto result = cudaq::get_platform().launchKernel(
         fn.name(), nullptr, (void *)serializedArgsBuffer.data(),

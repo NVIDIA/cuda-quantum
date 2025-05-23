@@ -29,7 +29,7 @@
 
 namespace cudaq {
 
-namespace details {
+namespace detail {
 void warn(const std::string_view msg);
 }
 
@@ -1028,7 +1028,7 @@ std::vector<T> slice_vector(std::vector<T> &original, std::size_t start,
 #define CUDAQ_MOD_TEMPLATE template <typename... Args>
 #endif
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 // --------------------------
 // Useful C++17 compliant concept checks (note we re-implement
@@ -1116,9 +1116,9 @@ struct is_fixed_size_container<cudaq::qarray_base> : std::true_type {};
 // 2. Compile-time qubit counting logic
 template <typename T>
 constexpr std::size_t count_qubits_compile_time() {
-  if constexpr (details::IsQubitType<T>::value) {
+  if constexpr (detail::IsQubitType<T>::value) {
     return 1;
-  } else if constexpr (details::IsQarrayType<T>::value) {
+  } else if constexpr (detail::IsQarrayType<T>::value) {
     return std::tuple_size<std::decay_t<T>>::value;
   } else {
     return 0; // Dynamic containers handled at runtime
@@ -1237,7 +1237,7 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
 
   // per-spec, no noise model provided, emit warning, no application
   if (!noiseModel)
-    return details::warn("apply_noise called without a noise model provided.");
+    return detail::warn("apply_noise called without a noise model provided.");
 
   std::vector<double> parameters;
   cudaq::tuple_for_each(paramTuple,
@@ -1245,7 +1245,7 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
   std::vector<QuditInfo> qubits;
   // auto argTuple = std::forward_as_tuple(args...);
   cudaq::tuple_for_each(quantumTuple, [&qubits](auto &&element) {
-    if constexpr (details::IsQubitType<decltype(element)>::value) {
+    if constexpr (detail::IsQubitType<decltype(element)>::value) {
       qubits.push_back(qubitToQuditInfo(element));
     } else {
       for (auto &qq : element) {
@@ -1268,7 +1268,7 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
 
   getExecutionManager()->applyNoise(channel, qubits);
 }
-} // namespace cudaq::details
+} // namespace cudaq::detail
 
 namespace cudaq {
 
@@ -1311,13 +1311,13 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
 
   // per-spec, no noise model provided, emit warning, no application
   if (!noiseModel)
-    return details::warn("apply_noise called without a noise model provided. "
-                         "skipping kraus channel application.");
+    return detail::warn("apply_noise called without a noise model provided. "
+                        "skipping kraus channel application.");
 
   std::vector<QuditInfo> qubits;
   auto argTuple = std::forward_as_tuple(args...);
   cudaq::tuple_for_each(argTuple, [&qubits](auto &&element) {
-    if constexpr (details::IsQubitType<decltype(element)>::value) {
+    if constexpr (detail::IsQubitType<decltype(element)>::value) {
       qubits.push_back(qubitToQuditInfo(element));
     } else {
       for (auto &qq : element) {
@@ -1371,9 +1371,9 @@ void apply_noise(Args &&...args) {
   constexpr auto ctor_arity = count_leading_floats<0, Args...>();
   constexpr auto qubit_arity = sizeof...(args) - ctor_arity;
 
-  details::applyNoiseImpl<T>(
-      details::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
-      details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
+  detail::applyNoiseImpl<T>(
+      detail::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
+      detail::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
 }
 
 } // namespace cudaq
@@ -1405,8 +1405,8 @@ void apply_noise(Args &&...args) {
      * execution.*/                                                            \
     cudaq::customOpRegistry::getInstance()                                     \
         .registerOperation<CONCAT(NAME, _operation)>(#NAME);                   \
-    details::genericApplicator<mod, NUMT, NUMP>(#NAME,                         \
-                                                std::forward<Args>(args)...);  \
+    detail::genericApplicator<mod, NUMT, NUMP>(#NAME,                          \
+                                               std::forward<Args>(args)...);   \
   }                                                                            \
   }                                                                            \
   __qop__ std::vector<std::complex<double>> CONCAT(NAME,                       \

@@ -76,13 +76,13 @@ public:
     }
 
     // We don't want to modify the platform, indicate so
-    cudaq::__internal__::disableTargetModification();
+    cudaq::detail::disableTargetModification();
 
     // Import the cudaq python chemistry module
     auto cudaqModule = py::module_::import(ChemistryModuleName);
 
     // Reset it
-    cudaq::__internal__::enableTargetModification();
+    cudaq::detail::enableTargetModification();
 
     // Setup the active space if requested.
     py::object nElectrons = py::none();
