@@ -15,7 +15,7 @@ from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
-                           SymbolTable)
+                           SymbolTable, UnitAttr)
 from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage
@@ -94,7 +94,7 @@ class PyKernelDecorator(object):
         # in the kernel definition
         for name, var in self.globalScopedVars.items():
             if isinstance(var, type) and hasattr(var, '__annotations__'):
-                globalRegisteredTypes[name] = (var, var.__annotations__)
+                globalRegisteredTypes.registerClass(name, var)
 
         # Once the kernel is compiled to MLIR, we
         # want to know what capture variables, if any, were
@@ -273,6 +273,14 @@ class PyKernelDecorator(object):
         self.compile()
         return str(self.module)
 
+    def enable_return_to_log(self):
+        """
+        Enable translation from `return` statements to QIR output log
+        """
+        self.compile()
+        self.module.operation.attributes.__setitem__(
+            'quake.cudaq_run', UnitAttr.get(context=self.module.context))
+
     def _repr_svg_(self):
         """
         Return the SVG representation of `self` (:class:`PyKernelDecorator`).
@@ -368,6 +376,26 @@ class PyKernelDecorator(object):
                             for element in value
                         ]
         return value
+
+    def castPyPrimitiveType(self, toTy, value):
+        if F64Type.isinstance(toTy):
+            return float(value)
+
+        if F32Type.isinstance(toTy):
+            return np.float32(value)
+
+        if ComplexType.isinstance(toTy):
+            floatToType = ComplexType(toTy).element_type
+            if F64Type.isinstance(floatToType):
+                return complex(value)
+            return np.complex64(value)
+
+        return None
+
+    def castPyList(self, fromEleTy, toEleTy, list):
+        if self.isCastable(fromEleTy, toEleTy):
+            return [self.castPyPrimitiveType(toEleTy, i) for i in list]
+        return list
 
     def createStorage(self):
         ctx = None if self.module == None else self.module.context

@@ -10,6 +10,7 @@
 #include "common/ArgumentWrapper.h"
 #include "common/Logger.h"
 #include "cudaq/algorithms/get_state.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
@@ -33,9 +34,6 @@ std::vector<int> bitStringToIntVec(const std::string &bitString) {
 } // namespace
 
 namespace cudaq {
-
-void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
-                       const std::vector<std::string> &);
 
 cudaq::KernelArgsHolder pyCreateNativeKernel(const std::string &, MlirModule,
                                              cudaq::OpaqueArguments &);

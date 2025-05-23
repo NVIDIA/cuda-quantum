@@ -42,7 +42,7 @@ globalAstRegistry = {}
 globalRegisteredOperations = {}
 
 # Keep a global registry of any custom data types
-globalRegisteredTypes = {}
+globalRegisteredTypes = cudaq_runtime.DataClassRegistry
 
 
 class Color:
@@ -181,6 +181,26 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
         return cc.StdvecType.get(ctx, listEleTy)
 
+    if isinstance(annotation,
+                  ast.Subscript) and (annotation.value.id == 'tuple' or
+                                      annotation.value.id == 'Tuple'):
+        if not hasattr(annotation, 'slice'):
+            localEmitFatalError(
+                f"tuple subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+            )
+
+        # slice is an `ast.Tuple` of type annotations
+        elements = None
+        if hasattr(annotation.slice, 'elts'):
+            elements = annotation.slice.elts
+        else:
+            localEmitFatalError(
+                f"Unable to get tuple elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+            )
+
+        eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in elements]
+        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
+
     if hasattr(annotation, 'id'):
         id = annotation.id
     elif hasattr(annotation, 'value'):
@@ -221,8 +241,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         id = annotation.attr
 
     # One final check to see if this is a custom data type.
-    if id in globalRegisteredTypes:
-        pyType, memberTys = globalRegisteredTypes[id]
+    if id in globalRegisteredTypes.classes:
+        pyType, memberTys = globalRegisteredTypes.getClassAttributes(id)
         structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
         for ty in structTys:
             if cc.StructType.isinstance(ty):
@@ -260,6 +280,29 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     )
 
 
+def pyInstanceFromName(name: str):
+    if name == 'bool':
+        return bool(False)
+    if name == 'int':
+        return int(0)
+    if name in ['numpy.int32', 'np.int32']:
+        return np.int32(0)
+    if name in ['numpy.int64', 'np.int64']:
+        return np.int64(0)
+    if name == 'int':
+        return int(0)
+    if name == 'float':
+        return float(0.0)
+    if name == 'complex':
+        return 0j
+    if name == 'pauli_word':
+        return pauli_word('')
+    if name in ['numpy.complex128', 'np.complex128']:
+        return np.complex128(0.0)
+    if name in ['numpy.complex64', 'np.complex64']:
+        return np.complex64(0.0)
+
+
 def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType in [int, np.int64]:
         return IntegerType.get_signless(64, ctx)
@@ -290,20 +333,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         result = re.search(r'ist\[(.*)\]', str(argType))
         eleTyName = result.group(1)
         argType = list
-        if eleTyName == 'int':
-            kwargs['argInstance'] = [int(0)]
-        elif eleTyName == 'float':
-            kwargs['argInstance'] = [float(0.0)]
-        elif eleTyName == 'bool':
-            kwargs['argInstance'] = [bool(False)]
-        elif eleTyName == 'complex':
-            kwargs['argInstance'] = [0j]
-        elif eleTyName == 'pauli_word':
-            kwargs['argInstance'] = [pauli_word('')]
-        elif eleTyName == 'numpy.complex128':
-            kwargs['argInstance'] = [np.complex128(0.0)]
-        elif eleTyName == 'numpy.complex64':
-            kwargs['argInstance'] = [np.complex64(0.0)]
+        inst = pyInstanceFromName(eleTyName)
+        if (inst != None):
+            kwargs['argInstance'] = [inst]
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
@@ -323,6 +355,27 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
             return cc.StdvecType.get(ctx, eleTy)
 
+        if isinstance(argInstance[0], bool):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
+        if isinstance(argInstance[0], (int, np.int64)):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
+        if isinstance(argInstance[0], np.int32):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int32, ctx))
+
+        if isinstance(argInstance[0], (float, np.float64)):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+        if isinstance(argInstance[0], np.float32):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.float32, ctx))
+
+        if isinstance(argInstance[0], (complex, np.complex128)):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
+
+        if isinstance(argInstance[0], np.complex64):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.complex64, ctx))
+
+        if isinstance(argInstance[0], pauli_word):
+            return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
+
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
                 ctx,
@@ -336,6 +389,20 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return cc.StdvecType.get(ctx,
                                  mlirTypeFromPyType(type(argInstance[0]), ctx))
 
+    if get_origin(argType) == tuple:
+        result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
+        eleTyNames = result.group('names')
+        eleTypes = []
+        while eleTyNames != None:
+            result = re.search(r'(?P<names>.*),\s*(?P<name>.*)', eleTyNames)
+            eleTyName = result.group('name') if result != None else eleTyNames
+            eleTyNames = result.group('names') if result != None else None
+            pyInstance = pyInstanceFromName(eleTyName)
+            if pyInstance == None:
+                emitFatalError(f'Invalid tuple element type ({eleTyName})')
+            eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
+        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
+
     if argType == qvector or argType == qreg or argType == qview:
         return quake.VeqType.get(ctx)
     if argType == qubit:
@@ -348,8 +415,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         if isinstance(argInstance, Callable):
             return cc.CallableType.get(ctx, argInstance.argTypes)
 
-    for name, (customTys, memberTys) in globalRegisteredTypes.items():
-        if argType == customTys:
+    for name in globalRegisteredTypes.classes:
+        customTy, memberTys = globalRegisteredTypes.getClassAttributes(name)
+        if argType == customTy:
             structTys = [
                 mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
             ]
@@ -429,6 +497,17 @@ def mlirTypeToPyType(argType):
         valueTy = cc.PointerType.getElementType(argType)
         if cc.StateType.isinstance(valueTy):
             return State
+
+    if cc.StructType.isinstance(argType):
+        if (cc.StructType.getName(argType) == "tuple"):
+            elements = [
+                mlirTypeToPyType(v)() for v in cc.StructType.getTypes(argType)
+            ]
+            return type(tuple(elements))
+        clsName = cc.StructType.getName(argType)
+        if globalRegisteredTypes.isRegisteredClass(clsName):
+            pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
+            return pyType
 
     emitFatalError(
         f"Cannot infer python type from provided CUDA-Q type ({argType})")

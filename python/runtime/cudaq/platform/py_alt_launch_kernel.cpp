@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "py_alt_launch_kernel.h"
 #include "JITExecutionCache.h"
 #include "common/AnalogHamiltonian.h"
 #include "common/ArgumentConversion.h"
@@ -24,6 +25,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "runtime/cudaq/algorithms/py_utils.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
 #include "llvm/Support/Error.h"
@@ -466,14 +468,6 @@ void *pyGetKernelArgs(const std::string &name, MlirModule module,
   return rawArgs;
 }
 
-inline unsigned int byteSize(mlir::Type ty) {
-  if (isa<ComplexType>(ty)) {
-    auto eleTy = cast<ComplexType>(ty).getElementType();
-    return 2 * cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
-  }
-  return cudaq::opt::convertBitsToBytes(ty.getIntOrFloatBitWidth());
-}
-
 template <typename T>
 py::object readPyObject(mlir::Type ty, char *arg) {
   unsigned int bytes = byteSize(ty);
@@ -489,6 +483,131 @@ py::object readPyObject(mlir::Type ty, char *arg) {
   return py_ext::convert<T>(concrete);
 }
 
+py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
+                         char *data, std::size_t size) {
+  return llvm::TypeSwitch<mlir::Type, py::object>(ty)
+      .Case([&](IntegerType ty) -> py::object {
+        if (ty.getIntOrFloatBitWidth() == 1)
+          return readPyObject<bool>(ty, data);
+        if (ty.getIntOrFloatBitWidth() == 32)
+          return readPyObject<std::int32_t>(ty, data);
+        return readPyObject<std::int64_t>(ty, data);
+      })
+      .Case([&](mlir::ComplexType ty) -> py::object {
+        auto eleTy = ty.getElementType();
+        return llvm::TypeSwitch<mlir::Type, py::object>(eleTy)
+            .Case([&](mlir::Float64Type eTy) -> py::object {
+              return readPyObject<std::complex<double>>(ty, data);
+            })
+            .Case([&](mlir::Float32Type eTy) -> py::object {
+              return readPyObject<std::complex<float>>(ty, data);
+            })
+            .Default([](mlir::Type eTy) -> py::object {
+              eTy.dump();
+              throw std::runtime_error(
+                  "Unsupported float element type for complex type return.");
+            });
+      })
+      .Case([&](Float64Type ty) -> py::object {
+        return readPyObject<double>(ty, data);
+      })
+      .Case([&](Float32Type ty) -> py::object {
+        return readPyObject<float>(ty, data);
+      })
+      .Case([&](cudaq::cc::StdvecType ty) -> py::object {
+        auto eleTy = ty.getElementType();
+        auto eleByteSize = byteSize(eleTy);
+
+        // Vector of booleans has a special layout.
+        // Read the vector and create a list of booleans.
+        if (eleTy.getIntOrFloatBitWidth() == 1) {
+          auto v = reinterpret_cast<std::vector<bool> *>(data);
+          py::list list;
+          for (auto const bit : *v)
+            list.append(py::bool_(bit));
+          return list;
+        }
+
+        // Vector is a triple of pointers: `{ begin, end, end }`.
+        // Read `begin` and `end` pointers from the buffer.
+        struct vec {
+          char *begin;
+          char *end;
+          char *end2;
+        };
+        auto v = reinterpret_cast<vec *>(data);
+
+        // Read vector elements.
+        py::list list;
+        for (char *i = v->begin; i < v->end; i += eleByteSize)
+          list.append(convertResult(kernelFuncOp, eleTy, i, eleByteSize));
+        return list;
+      })
+      .Case([&](cudaq::cc::StructType ty) -> py::object {
+        auto name = ty.getName().str();
+        // Handle tuples.
+        if (name == "tuple") {
+          auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+          auto memberTys = ty.getMembers();
+          py::list list;
+          for (std::size_t i = 0; i < offsets.size(); i++) {
+            auto eleTy = memberTys[i];
+            if (!eleTy.isIntOrFloat()) {
+              // TODO: support nested aggregate types.
+              eleTy.dump();
+              throw std::runtime_error(
+                  "Unsupported element type in struct type.");
+            }
+            auto eleByteSize = byteSize(eleTy);
+            list.append(convertResult(kernelFuncOp, eleTy, data + offsets[i],
+                                      eleByteSize));
+          }
+          return py::tuple(list);
+        }
+
+        // Handle data class objects.
+        if (!DataClassRegistry::isRegisteredClass(name))
+          throw std::runtime_error("Dataclass is not registered: " + name);
+
+        // Find class information.
+        auto [cls, attributes] = DataClassRegistry::getClassAttributes(name);
+
+        // Collect field names.
+        std::vector<py::str> fieldNames;
+        for (const auto &[attr_name, unused] : attributes)
+          fieldNames.emplace_back(py::str(attr_name));
+
+        // Read field values and create the constructor `kwargs`
+        auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
+        auto memberTys = ty.getMembers();
+        py::dict kwargs;
+        for (std::size_t i = 0; i < offsets.size(); i++) {
+          auto eleTy = memberTys[i];
+          if (!eleTy.isIntOrFloat()) {
+            // TODO: support nested aggregate types.
+            eleTy.dump();
+            throw std::runtime_error(
+                "Unsupported element type in struct type.");
+          }
+          auto eleByteSize = byteSize(eleTy);
+          if (i < fieldNames.size())
+            kwargs[fieldNames[i]] = convertResult(
+                kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
+          else
+            throw std::runtime_error("Field name and value mismatch when "
+                                     "returning an object of dataclass " +
+                                     name);
+        }
+
+        // Create python object of class `cls` with the collected args.
+        return cls(**kwargs);
+      })
+      .Default([](Type ty) -> py::object {
+        ty.dump();
+        throw std::runtime_error("Unsupported return type.");
+      });
+}
+
 py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
@@ -500,42 +619,10 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   auto rawReturn = ((char *)rawArgs) + returnOffset;
 
   // Extract the return value from the rawReturn pointer.
-  py::object returnValue =
-      llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
-          .Case([&](IntegerType ty) -> py::object {
-            if (ty.getIntOrFloatBitWidth() == 1) {
-              return readPyObject<bool>(ty, rawReturn);
-            }
-            return readPyObject<long>(ty, rawReturn);
-          })
-          .Case([&](ComplexType ty) -> py::object {
-            auto eleTy = ty.getElementType();
-            return llvm::TypeSwitch<mlir::Type, py::object>(eleTy)
-                .Case([&](Float64Type eTy) -> py::object {
-                  return readPyObject<std::complex<double>>(ty, rawReturn);
-                })
-                .Case([&](Float32Type eTy) -> py::object {
-                  return readPyObject<std::complex<float>>(ty, rawReturn);
-                })
-                .Default([](Type eTy) -> py::object {
-                  eTy.dump();
-                  throw std::runtime_error(
-                      "Invalid float element type for return "
-                      "complex type for pyAltLaunchKernel.");
-                });
-          })
-          .Case([&](Float64Type ty) -> py::object {
-            return readPyObject<double>(ty, rawReturn);
-          })
-          .Case([&](Float32Type ty) -> py::object {
-            return readPyObject<float>(ty, rawReturn);
-          })
-          .Default([](Type ty) -> py::object {
-            ty.dump();
-            throw std::runtime_error(
-                "Invalid return type for pyAltLaunchKernel.");
-          });
-
+  // FIXME: pass the funcOp to support returning aggregate types in direct
+  // calls.
+  auto returnValue =
+      convertResult(nullptr, unwrapped, rawReturn, size - returnOffset);
   std::free(rawArgs);
   return returnValue;
 }
@@ -902,7 +989,8 @@ void bindAltLaunchKernel(py::module &mod) {
         if (attr)
           m->setAttr("quake.mangled_name_map", attr);
       },
-      "Synthesize away the callable block argument from the entrypoint in modA "
+      "Synthesize away the callable block argument from the entrypoint in "
+      "modA "
       "with the FuncOp of given name.");
 
   mod.def(
