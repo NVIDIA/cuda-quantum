@@ -94,7 +94,8 @@ jobs:
           create_output cxx '*.cpp *.h *.hpp :!:test :!:targettests :!:tpls :!:**/nlopt-src/*'
           create_output cxx_headers '*.h *.hpp :!:test :!:targettests :!:tpls :!:**/nlopt-src/*'
           create_output cxx_examples 'docs/sphinx/examples/**/*.cpp' 'docs/sphinx/applications/cpp/*.cpp' 'docs/sphinx/targets/cpp/*.cpp'
-          create_output python '*.py :!:python/tests :!:test :!:targettests :!:tpls :!:docs/sphinx/conf.py'
+          create_output python '*.py :!:test :!:targettests :!:tpls :!:docs/sphinx/conf.py'
+          create_output python_spell '*.py :!:python/tests :!:test :!:targettests :!:tpls :!:docs/sphinx/conf.py'
           create_output markdown '*.md :!:tpls'
           create_output rst '*.rst :!:tpls :!:docs/sphinx/_templates/**/*.rst'
           echo "json=$(echo $json)" >> $GITHUB_OUTPUT
@@ -226,7 +227,7 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: python_spellcheck.txt
           task_name: python
-          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.python, ' ') || '*.nonexistent' }}
+          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.python_spell, ' ') || '*.nonexistent' }}
 
       - name: Create summary
         run: |
