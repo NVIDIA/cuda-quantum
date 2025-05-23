@@ -95,6 +95,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         self.n_steps = 10
         self.order = None
         self.is_density_state = None
+        self.batchSize = None
 
     def compute_rhs(self, t, vec):
         t_scalar = t.item()
@@ -103,7 +104,8 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         vec_cupy = cp.from_dlpack(vec)
         temp_state = cudaq_runtime.State.from_data(vec_cupy)
         temp_state = bindings.initializeState(temp_state, list(self.dimensions),
-                                              self.is_density_state)
+                                              self.is_density_state,
+                                              self.batchSize)
         result = self.stepper.compute(temp_state, t_scalar)
         # convert result back to torch tensor without copying data
         result_vec = torch.from_dlpack(to_cupy_array(result))
@@ -124,9 +126,9 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
             self.schedule_ = bindings.Schedule(self.schedule._steps,
                                                list(self.schedule._parameters))
             if self.is_density_state is None:
-                self.is_density_state = math.prod(
-                    self.dimensions)**2 == self.state.getTensor(
-                    ).get_num_elements()
+                self.is_density_state = (
+                    (math.prod(self.dimensions)**2 * self.batchSize
+                    ) == self.state.getTensor().get_num_elements())
 
             self.stepper = cuDensityMatTimeStepper(self.schedule_,
                                                    self.hamiltonian,
@@ -162,11 +164,13 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         # Keep results in GPU memory
         self.state = cudaq_runtime.State.from_data(y_t_cupy)
         self.state = bindings.initializeState(self.state, list(self.dimensions),
-                                              self.is_density_state)
+                                              self.is_density_state,
+                                              self.batchSize)
         self.t = t
 
     def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
         super().set_state(state, t)
+        self.batchSize = bindings.getBatchSize(state)
 
 
 class CUDATorchDiffEqRK4Integrator(CUDATorchDiffEqIntegrator):

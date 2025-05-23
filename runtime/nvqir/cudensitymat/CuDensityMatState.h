@@ -24,6 +24,7 @@ private:
   cudensitymatState_t cudmState = nullptr;
   cudensitymatHandle_t cudmHandle = nullptr;
   std::vector<int64_t> hilbertSpaceDims;
+  std::size_t batchSize = 1;
 
 public:
   // Create a state with a size and data pointer.
@@ -39,6 +40,19 @@ public:
       cudensitymatHandle_t handle, cudaq::InitialState initial_state,
       const std::unordered_map<std::size_t, std::int64_t> &dimensions,
       bool createDensityMatrix);
+
+  // Create a batched state
+  static std::unique_ptr<CuDensityMatState>
+  createBatchedState(cudensitymatHandle_t handle,
+                     const std::vector<CuDensityMatState *> initial_states,
+                     const std::vector<int64_t> &dimensions,
+                     bool createDensityState);
+
+  // Split a batched state into individual states.
+  // The caller assumes the ownership of the state pointers, e.g., wrap them
+  // under `cudaq::state`.
+  static std::vector<CuDensityMatState *>
+  splitBatchedState(CuDensityMatState &batchedState);
 
   // Return the number of qubits
   std::size_t getNumQubits() const override;
@@ -138,9 +152,13 @@ public:
   /// @return The handle associated with the state
   cudensitymatHandle_t get_handle() const;
 
+  // Returns the batch size
+  std::size_t getBatchSize() const { return batchSize; }
+
   // Initialize a state with cudensitymat
   void initialize_cudm(cudensitymatHandle_t handleToSet,
-                       const std::vector<int64_t> &hilbertSpaceDims);
+                       const std::vector<int64_t> &hilbertSpaceDims,
+                       int64_t batchSize);
 
   /// @brief Accumulation in-place with a coefficient
   void accumulate_inplace(const CuDensityMatState &other,
