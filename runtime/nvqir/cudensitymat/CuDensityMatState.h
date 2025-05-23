@@ -9,6 +9,7 @@
 
 #include "common/SimulationState.h"
 #include <cudensitymat.h>
+#include <unordered_map>
 
 namespace cudaq {
 /// @cond
