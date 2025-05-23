@@ -86,6 +86,26 @@ convertArrayAttrToGlobalConstant(MLIRContext *ctx, Location loc,
   return success();
 }
 
+/// Determine if this type, \p ty, a multidimensional array.
+static bool multidimensionalArray(Type ty) {
+  if (auto t0 = dyn_cast<cudaq::cc::ArrayType>(ty))
+    return isa<cudaq::cc::ArrayType>(t0.getElementType());
+  return false;
+}
+
+static bool useIsReifySpans(cudaq::cc::ConstantArrayOp conarr) {
+  return (std::distance(conarr->user_begin(), conarr->user_end()) == 1) &&
+         isa<cudaq::cc::ReifySpanOp>(*conarr->user_begin());
+}
+
+static bool useDataToInitState(cudaq::cc::ReifySpanOp reify) {
+  for (auto *user : reify->getUsers())
+    if (auto data = dyn_cast<cudaq::cc::StdvecDataOp>(user))
+      if (std::distance(data->user_begin(), data->user_end()) == 1)
+        return isa<quake::InitializeStateOp>(*data->user_begin());
+  return false;
+}
+
 namespace {
 
 // This pattern replaces a cc.const_array with a global constant. It can
@@ -114,6 +134,8 @@ struct ConstantArrayPattern
                                 PatternRewriter &rewriter) const override {
     auto func = conarr->getParentOfType<func::FuncOp>();
     if (!func)
+      return failure();
+    if (useIsReifySpans(conarr) || multidimensionalArray(conarr.getType()))
       return failure();
 
     SmallVector<cudaq::cc::AllocaOp> allocas;
@@ -184,6 +206,96 @@ struct ConstantArrayPattern
   unsigned &counter;
 };
 
+/// This pattern converts a (possibly) multidimensional (and possibly ragged)
+/// tree of constants into a collection of one-dimensional global constant
+/// arrays and generates the boilerplate to construct a tree of spans around
+/// those globals. The expansion of the tree of spans may involve a significant
+/// number of more primitive operations. Ideally, the constant propagation pass
+/// will have already eliminated the cc.reify_span operations.
+struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
+  explicit ReifySpanPattern(MLIRContext *ctx, ModuleOp module,
+                            unsigned &counter)
+      : OpRewritePattern{ctx}, module{module}, counter{counter} {}
+
+  LogicalResult matchAndRewrite(cudaq::cc::ReifySpanOp reify,
+                                PatternRewriter &rewriter) const override {
+    auto conArr =
+        reify.getElements().getDefiningOp<cudaq::cc::ConstantArrayOp>();
+    if (!conArr)
+      return failure();
+    if (!multidimensionalArray(conArr.getType())) {
+      if (useDataToInitState(reify)) {
+        auto loc = reify.getLoc();
+        auto eleTy =
+            cast<cudaq::cc::StdvecType>(reify.getType()).getElementType();
+        auto numEle = rewriter.create<arith::ConstantIntOp>(
+            loc, conArr.getConstantValues().size(), 64);
+        Value buff = rewriter.create<cudaq::cc::AllocaOp>(loc, eleTy, numEle);
+        rewriter.create<cudaq::cc::StoreOp>(loc, conArr, buff);
+        rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+            reify, reify.getType(), buff, numEle);
+        return success();
+      }
+    }
+
+    Value replacementSpan = buildSpans(
+        reify.getLoc(), cast<cudaq::cc::SpanLikeType>(reify.getType()),
+        rewriter, conArr.getConstantValues());
+    rewriter.replaceOp(reify, replacementSpan);
+    return success();
+  }
+
+  Value buildSpans(Location loc, cudaq::cc::SpanLikeType ty,
+                   PatternRewriter &rewriter, ArrayAttr arrAttr) const {
+    SmallVector<Value> members;
+    auto eleTy = ty.getElementType();
+    for (auto attr : arrAttr) {
+      if (auto a = dyn_cast<ArrayAttr>(attr)) {
+        // Recursive case.
+        members.push_back(
+            buildSpans(loc, cast<cudaq::cc::SpanLikeType>(eleTy), rewriter, a));
+      } else if (auto stringAttr = dyn_cast<StringAttr>(attr)) {
+        // Strings require some special handling to build a proper span.
+        auto *ctx = rewriter.getContext();
+        std::int64_t len = stringAttr.getValue().size() + 1;
+        Type litTy = cudaq::cc::PointerType::get(
+            cudaq::cc::ArrayType::get(ctx, rewriter.getI8Type(), len));
+        auto strLit = rewriter.create<cudaq::cc::CreateStringLiteralOp>(
+            loc, litTy, stringAttr);
+        auto size = rewriter.create<arith::ConstantIntOp>(loc, len, 64);
+        members.push_back(rewriter.create<cudaq::cc::StdvecInitOp>(
+            loc, cudaq::cc::CharspanType::get(ctx), strLit, size));
+      } else if (auto a = dyn_cast<IntegerAttr>(attr)) {
+        members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
+      } else if (auto a = dyn_cast<FloatAttr>(attr)) {
+        members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
+      } else {
+        // Unexpected attribute.
+        LLVM_DEBUG(llvm::dbgs() << "unexpected attribute: " << attr << '\n');
+        members.push_back(rewriter.create<cudaq::cc::PoisonOp>(loc, eleTy));
+      }
+    }
+    auto size = rewriter.create<arith::ConstantIntOp>(loc, members.size(), 64);
+    auto buff = rewriter.create<cudaq::cc::AllocaOp>(loc, eleTy, size);
+    for (auto iter : llvm::enumerate(members)) {
+      auto idx = iter.index();
+      auto m = iter.value();
+      auto ptrEleTy = cudaq::cc::PointerType::get(eleTy);
+      auto ptr = rewriter.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrEleTy, buff, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+      rewriter.create<cudaq::cc::StoreOp>(loc, m, ptr);
+    }
+    Value result =
+        rewriter.create<cudaq::cc::StdvecInitOp>(loc, ty, buff, size);
+    return result;
+  }
+
+  ModuleOp module;
+  unsigned &counter;
+};
+
+/// This is a `ModuleOp` pass since it adds the arrays as global objects to the
+/// `.rodata` section.
 class GlobalizeArrayValuesPass
     : public cudaq::opt::impl::GlobalizeArrayValuesBase<
           GlobalizeArrayValuesPass> {
@@ -199,11 +311,14 @@ public:
     // ConstArrayOp has been checked that it is never written to.
     RewritePatternSet patterns(ctx);
     unsigned counter = 0;
-    patterns.insert<ConstantArrayPattern>(ctx, module, counter);
+    patterns.insert<ReifySpanPattern, ConstantArrayPattern>(ctx, module,
+                                                            counter);
     LLVM_DEBUG(llvm::dbgs() << "Before globalizing array values:\n"
                             << module << '\n');
-    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns)))) {
       signalPassFailure();
+      return;
+    }
     LLVM_DEBUG(llvm::dbgs() << "After globalizing array values:\n"
                             << module << '\n');
   }
