@@ -49,7 +49,7 @@ void bindRunAsync(py::module &mod) {
         auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
         // Note: we only pass the underlying buffer pointer to the async.
         // functor to load the result data. i.e., no Python object is accessed
-        // during the async. execution.
+        // during the asynchronous execution.
         void *bufferPtr = resultBuffer.request().ptr;
         async_run_result result;
         result.buffer = resultBuffer;
