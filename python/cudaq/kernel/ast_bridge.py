@@ -8,6 +8,7 @@
 import ast
 import importlib
 import graphlib
+import textwrap
 import numpy as np
 import os
 import sys
@@ -179,7 +180,8 @@ class PyASTBridge(ast.NodeVisitor):
         self.disableNvqppPrefix = kwargs[
             'disableNvqppPrefix'] if 'disableNvqppPrefix' in kwargs else False
         self.symbolTable = PyScopedSymbolTable()
-        self.increment = 0
+        self.indent_level = 0
+        self.indent = 4 * " "
         self.buildingEntryPoint = False
         self.inForBodyStack = deque()
         self.inIfStmtBlockStack = deque()
@@ -189,6 +191,14 @@ class PyASTBridge(ast.NodeVisitor):
         self.subscriptPushPointerValue = False
         self.verbose = 'verbose' in kwargs and kwargs['verbose']
         self.currentNode = None
+
+    def debug_msg(self, msg, node=None):
+        if self.verbose:
+            print(f'{self.indent * self.indent_level}{msg()}')
+            if node is not None:
+                print(
+                    textwrap.indent(ast.unparse(node),
+                                    (self.indent * (self.indent_level + 1))))
 
     def emitWarning(self, msg, astNode=None):
         """
@@ -443,9 +453,7 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Push an MLIR Value onto the stack for usage in a subsequent AST node visit method.
         """
-        if self.verbose:
-            print('{}push {}'.format(self.increment * ' ', value))
-        self.increment += 2
+        self.debug_msg(lambda: f'push {value}')
         self.valueStack.append(value)
 
     def popValue(self):
@@ -453,9 +461,7 @@ class PyASTBridge(ast.NodeVisitor):
         Pop an MLIR Value from the stack. 
         """
         val = self.valueStack.pop()
-        self.increment -= 2
-        if self.verbose:
-            print('{}pop {}'.format(self.increment * ' ', val))
+        self.debug_msg(lambda: f'pop {val}')
         return val
 
     def pushForBodyStack(self, bodyBlockArgs):
@@ -901,8 +907,12 @@ class PyASTBridge(ast.NodeVisitor):
             # can be incrementing or decrementing
             stepVal = self.popValue()
             if isinstance(argumentNodes[2], ast.UnaryOp):
+                self.debug_msg(lambda: f'[(Inline) Visit UnaryOp]',
+                               argumentNodes[2])
                 if isinstance(argumentNodes[2].op, ast.USub):
                     if isinstance(argumentNodes[2].operand, ast.Constant):
+                        self.debug_msg(lambda: f'[(Inline) Visit Constant]',
+                                       argumentNodes[2].operand)
                         if argumentNodes[2].operand.value > 0:
                             isDecrementing = True
                     else:
@@ -952,7 +962,14 @@ class PyASTBridge(ast.NodeVisitor):
             type) or F32Type.isinstance(type) or IntegerType.isinstance(
                 type) or cc.StructType.isinstance(type)
 
+    def visit(self, node):
+        self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
+        self.indent_level += 1
+        super().visit(node)
+        self.indent_level -= 1
+
     def generic_visit(self, node):
+        self.debug_msg(lambda: f'[Generic Visit]', node)
         for field, value in reversed(list(ast.iter_fields(node))):
             if isinstance(value, list):
                 for item in value:
@@ -1067,9 +1084,13 @@ class PyASTBridge(ast.NodeVisitor):
                 # Search for the potential documentation string, and
                 # if found, start the body visitation after it.
                 if len(node.body) and isinstance(node.body[0], ast.Expr):
+                    self.debug_msg(lambda: f'[(Inline) Visit Expr]',
+                                   node.body[0])
                     expr = node.body[0]
                     if hasattr(expr, 'value') and isinstance(
                             expr.value, ast.Constant):
+                        self.debug_msg(lambda: f'[(Inline) Visit Constant]',
+                                       expr.value)
                         constant = expr.value
                         if isinstance(constant.value, str):
                             startIdx = 1
@@ -1107,6 +1128,7 @@ class PyASTBridge(ast.NodeVisitor):
         as standalone expressions with no uses.
         """
         if hasattr(node, 'value') and isinstance(node.value, ast.Constant):
+            self.debug_msg(lambda: f'[(Inline) Visit Constant]', node.value)
             constant = node.value
             if isinstance(constant.value, str):
                 return
@@ -1129,10 +1151,6 @@ class PyASTBridge(ast.NodeVisitor):
                 ry(np.pi, qubits)
         ```
         """
-        if self.verbose:
-            print('[Visit Lambda {}]'.format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
-
         self.currentNode = node
 
         arguments = node.args.args
@@ -1147,6 +1165,7 @@ class PyASTBridge(ast.NodeVisitor):
             # Here we will enhance our language by processing a single Tuple statement
             # as a set of statements for each element of the tuple
             if isinstance(node.body, ast.Tuple):
+                self.debug_msg(lambda: f'[(Inline) Visit Tuple]', node.body)
                 [self.visit(element) for element in node.body.elts]
             else:
                 self.visit(
@@ -1167,10 +1186,6 @@ class PyASTBridge(ast.NodeVisitor):
         will be allocated with a `cc.alloca` op, and the loaded value will be stored in the 
         symbol table.
         """
-        if self.verbose:
-            print('[Visit Assign {}]'.format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
-
         self.currentNode = node
 
         # CUDA-Q does not yet support dynamic memory allocation
@@ -1184,6 +1199,8 @@ class PyASTBridge(ast.NodeVisitor):
                                                      ast.Tuple):
             # Handle simple `var = expr`
             if isinstance(node.targets[0], ast.Name):
+                self.debug_msg(lambda: f'[(Inline) Visit Name]',
+                               node.targets[0])
                 self.currentAssignVariableName = str(node.targets[0].id)
                 self.visit(node.value)
                 self.currentAssignVariableName = None
@@ -1220,7 +1237,6 @@ class PyASTBridge(ast.NodeVisitor):
                 # Store the value
                 cc.StoreOp(valueToStore, ptrVal)
                 return
-
         else:
             if isinstance(node.value, ast.Tuple):
                 for ele in node.value.elts:
@@ -1237,6 +1253,7 @@ class PyASTBridge(ast.NodeVisitor):
         # Can assign a, b, c, = Tuple...
         # or single assign a = something
         if isinstance(node.targets[0], ast.Tuple):
+            self.debug_msg(lambda: f'[(Inline) Visit Tuple]', node.targets[0])
             assert len(self.valueStack) == len(node.targets[0].elts)
             varValues = [
                 self.popValue() for _ in range(len(node.targets[0].elts))
@@ -1244,6 +1261,7 @@ class PyASTBridge(ast.NodeVisitor):
             varValues.reverse()
             varNames = [name.id for name in node.targets[0].elts]
         else:
+            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.targets[0])
             varValues = [self.popValue()]
             varNames = [node.targets[0].id]
 
@@ -1286,13 +1304,11 @@ class PyASTBridge(ast.NodeVisitor):
         looks for attributes like method calls, or common attributes we'll 
         see from ubiquitous external modules like `numpy`.
         """
-        if self.verbose:
-            print(f'[Visit Attribute {node.attr} on {ast.unparse(node)}]')
-
         self.currentNode = node
         # Disallow list.append since we don't do dynamic memory allocation
         if isinstance(node.value,
                       ast.Name) and node.value.id in self.symbolTable:
+            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.value)
             value = self.symbolTable[node.value.id]
             if self.isQuantumStructType(value.type):
                 # Here we have a quantum struct, need to use extract value instead
@@ -1340,6 +1356,7 @@ class PyASTBridge(ast.NodeVisitor):
         if node.attr in ['imag', 'real']:
             if isinstance(node.value,
                           ast.Name) and node.value.id in self.symbolTable:
+                self.debug_msg(lambda: f'[(Inline) Visit Name]', node.value)
                 value = self.symbolTable[node.value.id]
             else:
                 self.visit(node.value)
@@ -1357,6 +1374,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
         if isinstance(node.value, ast.Name):
+            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.value)
             if node.value.id in ['np', 'numpy', 'math']:
                 if node.attr == 'complex64':
                     self.pushValue(self.getComplexType(width=32))
@@ -1431,14 +1449,11 @@ class PyASTBridge(ast.NodeVisitor):
         """
         global globalRegisteredOperations
 
-        if self.verbose:
-            print("[Visit Call] {}".format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
-
         self.currentNode = node
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
+            self.debug_msg(lambda: f'[(Inline) Visit Attribute]', node.func)
             if hasattr(
                     node.func.value, 'id'
             ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
@@ -1454,12 +1469,15 @@ class PyASTBridge(ast.NodeVisitor):
             cppDevModNames = []
             value = node.func.value
             if isinstance(value, ast.Name) and value.id != 'cudaq':
+                self.debug_msg(lambda: f'[(Inline) Visit Name]', value)
                 cppDevModNames = [node.func.attr, value.id]
             else:
+                self.debug_msg(lambda: f'[(Inline) Visit Attribute]', value)
                 while isinstance(value, ast.Attribute):
                     cppDevModNames.append(value.attr)
                     value = value.value
                     if isinstance(value, ast.Name):
+                        self.debug_msg(lambda: f'[(Inline) Visit Name]', value)
                         cppDevModNames.append(value.id)
                         break
 
@@ -1507,9 +1525,11 @@ class PyASTBridge(ast.NodeVisitor):
             moduleNames = []
             value = node.func.value
             while isinstance(value, ast.Attribute):
+                self.debug_msg(lambda: f'[(Inline) Visit Attribute]', value)
                 moduleNames.append(value.attr)
                 value = value.value
                 if isinstance(value, ast.Name):
+                    self.debug_msg(lambda: f'[(Inline) Visit Name]', value)
                     moduleNames.append(value.id)
                     break
 
@@ -1559,6 +1579,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(keyword.value)
                 namedArgs[keyword.arg] = self.popValue()
 
+            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.func)
             if node.func.id == 'len':
                 listVal = self.ifPointerThenLoad(self.popValue())
                 if cc.StdvecType.isinstance(listVal.type):
@@ -1864,6 +1885,8 @@ class PyASTBridge(ast.NodeVisitor):
                             self.emitFatalError(
                                 "measurement register_name keyword must be a constant string literal.",
                                 node)
+                        self.debug_msg(lambda: f'[(Inline) Visit Constant]',
+                                       userProvidedRegName.value)
                         registerName = userProvidedRegName.value.value
                 qubits = [self.popValue() for _ in range(len(self.valueStack))]
                 self.checkControlAndTargetTypes([], qubits)
@@ -2160,6 +2183,8 @@ class PyASTBridge(ast.NodeVisitor):
                         node.func.id, globalKernelRegistry.keys()), node)
 
         elif isinstance(node.func, ast.Attribute):
+            self.debug_msg(lambda: f'[(Inline) Visit Attribute]', node.func)
+            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.func.value)
             if node.func.value.id in ['numpy', 'np']:
                 [self.visit(arg) for arg in node.args]
 
@@ -2923,6 +2948,8 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(
                 node.generators[0].iter,
                 ast.Name) and node.generators[0].iter.id in self.symbolTable:
+            self.debug_msg(lambda: f'[(Inline) Visit Name]',
+                           node.generators[0].iter)
             if quake.VeqType.isinstance(
                     self.symbolTable[node.generators[0].iter.id].type):
                 # now we know we have `[expr(r) for r in iterable]`
@@ -3014,9 +3041,6 @@ class PyASTBridge(ast.NodeVisitor):
         quantum typed values as a concatenated `quake.ConcatOp` producing a 
         single `veq` instances. 
         """
-        if self.verbose:
-            print('[Visit List] {}',
-                  ast.unparse(node) if hasattr(ast, 'unparse') else node)
         self.generic_visit(node)
 
         self.currentNode = node
@@ -3095,8 +3119,6 @@ class PyASTBridge(ast.NodeVisitor):
         Convert constant values in the code to constant values in the MLIR. 
         """
         self.currentNode = node
-        if self.verbose:
-            print("[Visit Constant {}]".format(node.value))
         if isinstance(node.value, bool):
             self.pushValue(self.getConstantInt(node.value, 1))
             return
@@ -3139,14 +3161,11 @@ class PyASTBridge(ast.NodeVisitor):
         corresponding extraction or slice code in the MLIR. This method handles 
         extraction for `veq` types and `stdvec` types. 
         """
-        if self.verbose:
-            print("[Visit Subscript]")
-
         self.currentNode = node
 
         # handle complex slice, VAR[lower:upper]
         if isinstance(node.slice, ast.Slice):
-
+            self.debug_msg(lambda: f'[(Inline) Visit Slice]', node.slice)
             self.visit(node.value)
             var = self.ifPointerThenLoad(self.popValue())
 
@@ -3320,16 +3339,13 @@ class PyASTBridge(ast.NodeVisitor):
         ITERABLEs are the `veq` type, the `stdvec` type, and the result of 
         range() and enumerate(). 
         """
-
-        if self.verbose:
-            print('[Visit For]')
-
         self.currentNode = node
 
         # We can simplify `for i in range(N)` MLIR code immensely
         # by just building a for loop with N as the upper value,
         # no need to generate an array from the `range` call.
         if isinstance(node.iter, ast.Call):
+            self.debug_msg(lambda: f'[(Inline) Visit Call]', node.iter)
             if node.iter.func.id == 'range':
                 # This is a range(N) for loop, we just need
                 # the upper bound N for this loop
@@ -3354,6 +3370,7 @@ class PyASTBridge(ast.NodeVisitor):
         # by just building a for loop over the iterable object L and using
         # the index into that iterable and the element.
         if isinstance(node.iter, ast.Call):
+            self.debug_msg(lambda: f'[(Inline) Visit Call]', node.iter)
             if node.iter.func.id == 'enumerate':
                 [self.visit(arg) for arg in node.iter.args]
                 if len(self.valueStack) == 2:
@@ -3510,9 +3527,11 @@ class PyASTBridge(ast.NodeVisitor):
         # could be a tuple of names too
         varNames = []
         if isinstance(node.target, ast.Name):
+            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.target)
             varNames.append(node.target.id)
         else:
             # has to be a `ast.Tuple`
+            self.debug_msg(lambda: f'[(Inline) Visit Tuple]', node.target)
             for elt in node.target.elts:
                 varNames.append(elt.id)
 
@@ -3536,9 +3555,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
-        if self.verbose:
-            print("[Visit While = {}]".format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -3623,7 +3639,6 @@ class PyASTBridge(ast.NodeVisitor):
         Note, Python lets you construct expressions with multiple comparators, 
         here we limit ourselves to just a single comparator. 
         """
-
         if len(node.ops) > 1:
             self.emitFatalError("only single comparators are supported.", node)
 
@@ -3632,6 +3647,7 @@ class PyASTBridge(ast.NodeVisitor):
         iTy = self.getIntegerType()
 
         if isinstance(node.left, ast.Name):
+            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.left)
             if node.left.id not in self.symbolTable:
                 self.emitFatalError(
                     f"{node.left.id} was not initialized before use in compare expression.",
@@ -3785,6 +3801,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         if isinstance(node.target,
                       ast.Name) and node.target.id in self.symbolTable:
+            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.target)
             target = self.symbolTable[node.target.id]
         else:
             self.emitFatalError(
@@ -3840,9 +3857,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Map a Python `ast.If` node to an if statement operation in the CC dialect. 
         """
-        if self.verbose:
-            print("[Visit If = {}]".format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -3884,9 +3898,6 @@ class PyASTBridge(ast.NodeVisitor):
                 self.symbolTable.popScope()
 
     def visit_Return(self, node):
-        if self.verbose:
-            print("[Visit Return] = {}]".format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         if node.value == None:
             return
@@ -3975,9 +3986,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Map unary operations in the Python AST to equivalents in MLIR.
         """
-        if self.verbose:
-            print("[Visit Unary = {}]".format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -4025,8 +4033,6 @@ class PyASTBridge(ast.NodeVisitor):
         self.emitFatalError("unhandled UnaryOp.", node)
 
     def visit_Break(self, node):
-        if self.verbose:
-            print("[Visit Break]")
 
         self.currentNode = node
 
@@ -4044,8 +4050,6 @@ class PyASTBridge(ast.NodeVisitor):
         return
 
     def visit_Continue(self, node):
-        if self.verbose:
-            print("[Visit Continue]")
 
         self.currentNode = node
 
@@ -4065,10 +4069,6 @@ class PyASTBridge(ast.NodeVisitor):
         Visit binary operation nodes in the AST and map them to equivalents in the 
         MLIR. This method handles arithmetic operations between values. 
         """
-
-        if self.verbose:
-            print("[Visit BinaryOp = {}]".format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -4190,9 +4190,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Visit `ast.Name` nodes and extract the correct value from the symbol table.
         """
-        if self.verbose:
-            print("[Visit Name {}]".format(node.id))
-
         self.currentNode = node
 
         if node.id in globalKernelRegistry:
