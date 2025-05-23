@@ -460,7 +460,7 @@ while [ $# -ne 0 ]; do
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
 		;;
-	--disable-cudaq-lib-linking | -disable-cudaq-lib-linking)
+	--disable-cudaq-links | -disable-cudaq-links)
 		ENABLE_CUDAQ_LIB_LINKING=false
 		;;
 	--disable-mlir-links | -disable-mlir-links)
