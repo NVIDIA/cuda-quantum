@@ -285,6 +285,10 @@ def pyInstanceFromName(name: str):
         return bool(False)
     if name == 'int':
         return int(0)
+    if name in ['numpy.int8', 'np.int8']:
+        return np.int8(0)
+    if name in ['numpy.int16', 'np.int16']:
+        return np.int16(0)
     if name in ['numpy.int32', 'np.int32']:
         return np.int32(0)
     if name in ['numpy.int64', 'np.int64']:
@@ -293,6 +297,10 @@ def pyInstanceFromName(name: str):
         return int(0)
     if name == 'float':
         return float(0.0)
+    if name in ['numpy.float32', 'np.float32']:
+        return np.float32(0.0)
+    if name in ['numpy.float64', 'np.float64']:
+        return np.float64(0.0)
     if name == 'complex':
         return 0j
     if name == 'pauli_word':
@@ -355,27 +363,6 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
             return cc.StdvecType.get(ctx, eleTy)
 
-        if isinstance(argInstance[0], bool):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
-        if isinstance(argInstance[0], (int, np.int64)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
-        if isinstance(argInstance[0], np.int32):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.int32, ctx))
-
-        if isinstance(argInstance[0], (float, np.float64)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
-        if isinstance(argInstance[0], np.float32):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.float32, ctx))
-
-        if isinstance(argInstance[0], (complex, np.complex128)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
-
-        if isinstance(argInstance[0], np.complex64):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.complex64, ctx))
-
-        if isinstance(argInstance[0], pauli_word):
-            return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
-
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
                 ctx,
@@ -401,20 +388,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             if pyInstance == None:
                 emitFatalError(f'Invalid tuple element type ({eleTyName})')
             eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
-        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
-
-    if get_origin(argType) == tuple:
-        result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
-        eleTyNames = result.group('names')
-        eleTypes = []
-        while eleTyNames != None:
-            result = re.search(r'(?P<names>.*),\s*(?P<name>.*)', eleTyNames)
-            eleTyName = result.group('name') if result != None else eleTyNames
-            eleTyNames = result.group('names') if result != None else None
-            pyInstance = pyInstanceFromName(eleTyName)
-            if pyInstance == None:
-                emitFatalError(f'Invalid tuple element type ({eleTyName})')
-            eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
+        eleTypes.reverse()
         return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
     if argType == qvector or argType == qreg or argType == qview:
