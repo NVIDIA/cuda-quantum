@@ -46,14 +46,13 @@ if [ -z "${CXX}" ]; then
     fi
 fi
 
-echo "Using $CXX to build the MPI plugin for MPI installation in $MPI_PATH."
-lib_mpi_plugin="$this_file_dir/libcudaq_distributed_interface_mpi.so"
-
 extra_flags=""
 if [[ "$CXX" == *nvq++* ]]; then
-    extra_flags="--disable-mlir-links"
+    extra_flags="--disable-cudaq-links"
 fi
 
+echo "Using $CXX to build the MPI plugin for MPI installation in $MPI_PATH."
+lib_mpi_plugin="$this_file_dir/libcudaq_distributed_interface_mpi.so"
 $CXX -shared -std=c++17 -fPIC \
     $extra_flags \
     -I"${MPI_PATH}/include" \

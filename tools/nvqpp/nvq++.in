@@ -158,6 +158,9 @@ function show_help {
 --execution-manager=<mgr> | -em=<mgr> | -execution-manager=<mgr>
 	Set the execution manager to <mgr>.
 
+--disable-cudaq-links
+	Disable linking to cudaq libraries.
+
 --disable-mlir-links
     Disable linking to cudaq-mlir-runtime and cudaq-builder. 
 
@@ -303,7 +306,7 @@ LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
 LLVM_QUANTUM_TARGET="qir"
 LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
-LINKLIBS="-lcudaq -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator"
+CUDAQ_LINKLIBS="-lcudaq -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator"
 
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
@@ -313,7 +316,7 @@ if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]; then
     PLUGIN_NAME=$(basename $entry)
     PLUGIN_NAME=${PLUGIN_NAME#lib}
     PLUGIN_NAME=${PLUGIN_NAME%@CMAKE_SHARED_LIBRARY_SUFFIX@}
-    LINKLIBS="$LINKLIBS -l$PLUGIN_NAME"
+    CUDAQ_LINKLIBS="$CUDAQ_LINKLIBS -l$PLUGIN_NAME"
   done
 fi
 
@@ -339,6 +342,7 @@ ENABLE_AGGRESSIVE_EARLY_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
+ENABLE_CUDAQ_LIB_LINKING=true
 ENABLE_MLIR_LIB_LINKING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
@@ -456,6 +460,9 @@ while [ $# -ne 0 ]; do
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
 		;;
+	--disable-cudaq-lib-linking | -disable-cudaq-lib-linking)
+		ENABLE_CUDAQ_LIB_LINKING=false
+		;;
 	--disable-mlir-links | -disable-mlir-links)
 	    ENABLE_MLIR_LIB_LINKING=false 
 		;;
@@ -483,11 +490,11 @@ while [ $# -ne 0 ]; do
 		PLATFORM_LIBRARY="${arg#*=}"
 		;;
 	--load | -load)
-		LINKLIBS="${LINKLIBS} -lcudaq-$2"
+		CUDAQ_LINKLIBS="${CUDAQ_LINKLIBS} -lcudaq-$2"
 		shift
 		;;
 	--load=* | -load=*)
-		LINKLIBS="${LINKLIBS} -lcudaq-${arg#*=}"
+		CUDAQ_LINKLIBS="${CUDAQ_LINKLIBS} -lcudaq-${arg#*=}"
 		;;
 	-g)
 		COMPILER_FLAGS="${COMPILER_FLAGS} -g"
@@ -666,14 +673,18 @@ NVQIR_LIBS="${NVQIR_LIBS}${NVQIR_SIMULATION_BACKEND}"
 
 # Add the MLIR-related libraries if requested. 
 if ${ENABLE_MLIR_LIB_LINKING}; then 
-    LINKLIBS="${LINKLIBS} -lcudaq-mlir-runtime -lcudaq-builder"
+    CUDAQ_LINKLIBS="${CUDAQ_LINKLIBS} -lcudaq-mlir-runtime -lcudaq-builder"
 fi
 
 # Set the execution manager and the platform
-LINKLIBS="${LINKLIBS} -lcudaq-em-${LIBRARY_MODE_EXECUTION_MANAGER}"
-LINKLIBS="${LINKLIBS} -lcudaq-platform-${PLATFORM_LIBRARY}"
-LINKLIBS="${LINKLIBS} ${NVQIR_LIBS}"
+CUDAQ_LINKLIBS="${CUDAQ_LINKLIBS} -lcudaq-em-${LIBRARY_MODE_EXECUTION_MANAGER}"
+CUDAQ_LINKLIBS="${CUDAQ_LINKLIBS} -lcudaq-platform-${PLATFORM_LIBRARY}"
+CUDAQ_LINKLIBS="${CUDAQ_LINKLIBS} ${NVQIR_LIBS}"
 LLC=${LLVMBIN}llc${llvm_suffix}
+
+if ${ENABLE_CUDAQ_LIB_LINKING}; then
+	LINKLIBS="${LINKLIBS} ${CUDAQ_LINKLIBS}"
+fi
 
 if ${LIBRARY_MODE}; then
 	PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_LIBRARY_MODE"
