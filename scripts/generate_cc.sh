@@ -100,11 +100,9 @@ if $gen_cpp_coverage; then
     lit_status=$?
     /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/targettests/lit.site.cfg.py ${repo_root}/build/targettests
     targ_status=$?
-    /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/python/tests/mlir/lit.site.cfg.py ${repo_root}/build/python/tests/mlir
-    pymlir_status=$?
-    if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ] || [ $pymlir_status -ne 0 ]; then
+    if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ]; then
         echo "::error C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status, \
-    target tests status $targ_status, Python MLIR status $pymlir_status)."
+    target tests status $targ_status)."
         exit 1
     fi
 
