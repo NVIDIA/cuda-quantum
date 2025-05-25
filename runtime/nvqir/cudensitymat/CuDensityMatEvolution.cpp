@@ -24,6 +24,27 @@ convertToOrderedMap(const std::unordered_map<Key, Value> &unorderedMap) {
   return std::map<Key, Value>(unorderedMap.begin(), unorderedMap.end());
 }
 
+state migrateState(const state &inputState) {
+  const auto currentDeviceId =
+      dynamics::Context::getCurrentContext()->getDeviceId();
+  cudaPointerAttributes attributes;
+  HANDLE_CUDA_ERROR(
+      cudaPointerGetAttributes(&attributes, inputState.get_tensor().data));
+  const auto stateDeviceId = attributes.device;
+  if (currentDeviceId == stateDeviceId)
+    return inputState;
+
+  cudaq::info("Migrate state data from device {} to {}\n", stateDeviceId,
+              currentDeviceId);
+  const int64_t dim = inputState.get_tensor().get_num_elements();
+  const int64_t arraySizeBytes = dim * sizeof(std::complex<double>);
+  auto localizedState =
+      cudaq::dynamics::DeviceAllocator::allocate(arraySizeBytes);
+  HANDLE_CUDA_ERROR(cudaMemcpy(localizedState, inputState.get_tensor().data,
+                               arraySizeBytes, cudaMemcpyDefault));
+  return state(new CuDensityMatState(dim, localizedState));
+}
+
 /// @brief Evolve the system for a single time step.
 /// @param hamiltonian Hamiltonian operator.
 /// @param dimensionsMap Dimension of the system.

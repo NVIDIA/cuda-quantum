@@ -286,7 +286,8 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        obs = std::move(observableOperators)]() {
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
-        return evolve(hamiltonian, dimensions, schedule, initial_state,
+        state localizedState = cudaq::__internal__::migrateState(initial_state);
+        return evolve(hamiltonian, dimensions, schedule, localizedState,
                       *cloneIntegrator, cOps, obs, store_intermediate_results,
                       shots_count);
       },
@@ -323,7 +324,8 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
       [=]() {
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
-        return evolve(hamiltonian, dimensions, schedule, initial_state,
+        state localizedState = cudaq::__internal__::migrateState(initial_state);
+        return evolve(hamiltonian, dimensions, schedule, localizedState,
                       *cloneIntegrator, collapse_operators, observables,
                       store_intermediate_results, shots_count);
       },
