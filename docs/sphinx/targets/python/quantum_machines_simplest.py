@@ -19,5 +19,4 @@ def simplest():
         h(qvector[i])
 
 
-
 cudaq.sample(simplest, shots_count=100)
