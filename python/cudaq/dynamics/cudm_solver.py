@@ -96,8 +96,8 @@ def evolve_dynamics(
         # Otherwise, just for the last step.
         if store_intermediate_results or step_idx == (len(schedule) - 1):
             step_exp_vals = [[] for _ in range(batch_size)]
+            _, state = integrator.get_state()
             for obs_idx, obs in enumerate(expectation_op):
-                _, state = integrator.get_state()
                 obs.prepare(state)
                 exp_val = obs.compute(state, schedule.current_step)
                 for i in range(batch_size):
