@@ -554,29 +554,29 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-  clean_up:
-    name: Prepare cache clean-up
-    needs: [build_installer, validation]
-    # We need to clean up even if the workflow is cancelled or fails.
-    if: always()
-    runs-on: ubuntu-latest
+  # clean_up:
+  #   name: Prepare cache clean-up
+  #   needs: [build_installer, validation]
+  #   # We need to clean up even if the workflow is cancelled or fails.
+  #   if: always()
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Delete artifacts
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const res = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            })
+  #   steps:
+  #     - name: Delete artifacts
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           const res = await github.rest.actions.listArtifactsForRepo({
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #           })
 
-            res.data.artifacts
-              .filter(({ name }) => name === '${{ needs.build_installer.outputs.artifact_name }}')
-              .forEach(({ id }) => {
-                github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id: id,
-                })
-              })
+  #           res.data.artifacts
+  #             .filter(({ name }) => name === '${{ needs.build_installer.outputs.artifact_name }}')
+  #             .forEach(({ id }) => {
+  #               github.rest.actions.deleteArtifact({
+  #                 owner: context.repo.owner,
+  #                 repo: context.repo.repo,
+  #                 artifact_id: id,
+  #               })
+  #             })
