@@ -56,6 +56,44 @@ flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix) {
 
 cudaq::product_op<cudaq::matrix_handler>
 computeDagger(const cudaq::matrix_handler &op) {
+  const auto getAdjointOp = [](const cudaq::matrix_handler &op)
+      -> std::optional<cudaq::product_op<cudaq::matrix_handler>> {
+    static const std::vector<std::string> g_knownSelfAdjointOps = []() {
+      std::vector<std::string> opNames;
+      opNames.emplace_back(
+          cudaq::boson_op::identity(0).begin()->to_string(false));
+      opNames.emplace_back(
+          cudaq::boson_op::number(0).begin()->to_string(false));
+      opNames.emplace_back(cudaq::spin_op::i(0).begin()->to_string(false));
+      opNames.emplace_back(cudaq::spin_op::x(0).begin()->to_string(false));
+      opNames.emplace_back(cudaq::spin_op::y(0).begin()->to_string(false));
+      opNames.emplace_back(cudaq::spin_op::z(0).begin()->to_string(false));
+      return opNames;
+    }();
+    if (std::find(g_knownSelfAdjointOps.begin(), g_knownSelfAdjointOps.end(),
+                  op.to_string(false)) != g_knownSelfAdjointOps.end()) {
+      return cudaq::product_op<cudaq::matrix_handler>(
+          cudaq::matrix_handler(op));
+    }
+
+    if (op.to_string(false) ==
+        cudaq::boson_op::create(0).begin()->to_string(false)) {
+      assert(op.degrees().size() == 1);
+      return cudaq::boson_op::annihilate(op.degrees()[0]);
+    }
+
+    if (op.to_string(false) ==
+        cudaq::boson_op::annihilate(0).begin()->to_string(false)) {
+      assert(op.degrees().size() == 1);
+      return cudaq::boson_op::create(op.degrees()[0]);
+    }
+    return std::nullopt;
+  };
+
+  const auto knownAdjointConvert = getAdjointOp(op);
+  if (knownAdjointConvert.has_value())
+    return knownAdjointConvert.value();
+
   const std::string daggerOpName = op.to_string(false) + "_dagger";
   try {
     auto func = [op](const std::vector<int64_t> &dimensions,
@@ -247,6 +285,19 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     return opNames;
   }();
 
+  static const std::vector<std::string> g_knownMultiDiagonalOp = []() {
+    std::vector<std::string> opNames;
+    opNames.emplace_back(
+        cudaq::boson_op::identity(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::boson_op::create(0).begin()->to_string(false));
+    opNames.emplace_back(
+        cudaq::boson_op::annihilate(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::boson_op::number(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::spin_op::i(0).begin()->to_string(false));
+    opNames.emplace_back(cudaq::spin_op::z(0).begin()->to_string(false));
+    return opNames;
+  }();
+
   // This is a callback
   if (!parameters.empty() &&
       std::find(g_knownNonParametricOps.begin(), g_knownNonParametricOps.end(),
@@ -258,8 +309,50 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     wrappedTensorCallback = wrapTensorCallback(elemOp, keys);
   }
 
-  auto flatMatrix =
-      flattenMatrixColumnMajor(elemOp.to_matrix(dimensions, parameters));
+  const bool isKnownMultiDiagonalOp =
+      std::find(g_knownMultiDiagonalOp.begin(), g_knownMultiDiagonalOp.end(),
+                elemOp.to_string(false)) != g_knownMultiDiagonalOp.end();
+  cudensitymatElementaryOperatorSparsity_t sparsity =
+      isKnownMultiDiagonalOp ? CUDENSITYMAT_OPERATOR_SPARSITY_MULTIDIAGONAL
+                             : CUDENSITYMAT_OPERATOR_SPARSITY_NONE;
+  std::vector<int32_t> diagonalOffsets;
+
+  auto flatMatrix = [&]() {
+    const auto opMat = elemOp.to_matrix(dimensions, parameters);
+    if (!isKnownMultiDiagonalOp)
+      return flattenMatrixColumnMajor(opMat);
+
+    // Note: for all current ops, we know that it could only be single diagonal
+    // or +1/-1 shift.
+    assert(elemOp.degrees().size() == 1);
+    const auto dim = modeExtents[elemOp.degrees()[0]];
+    if (opMat.is_diagonal()) {
+      auto result = opMat.diagonal_elements();
+      assert(result.size() == dim);
+      diagonalOffsets.emplace_back(0);
+      return result;
+    }
+
+    if (elemOp.to_string(false) ==
+        cudaq::boson_op::create(0).begin()->to_string(false)) {
+      auto lowerDiagonals = opMat.diagonal_elements(-1);
+      assert(lowerDiagonals.size() == (dim - 1));
+      lowerDiagonals.resize(dim);
+      diagonalOffsets.emplace_back(-1);
+      return lowerDiagonals;
+    }
+    if (elemOp.to_string(false) ==
+        cudaq::boson_op::annihilate(0).begin()->to_string(false)) {
+      auto upperDiagonals = opMat.diagonal_elements(1);
+      assert(upperDiagonals.size() == (dim - 1));
+      upperDiagonals.resize(dim);
+      diagonalOffsets.emplace_back(1);
+      return upperDiagonals;
+    }
+    throw std::runtime_error(
+        fmt::format("Unknown operator '{}' encountered during conversion",
+                    elemOp.to_string(false)));
+  }();
 
   if (flatMatrix.empty())
     throw std::invalid_argument("Input matrix (flat matrix) cannot be empty.");
@@ -269,11 +362,15 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
 
   auto *elementaryMat_d = cudaq::dynamics::createArrayGpu(flatMatrix);
   cudensitymatElementaryOperator_t cudmElemOp = nullptr;
-
+  // If it's not a 'NONE' sparsity, the diagonalOffsets vector must contain
+  // data.
+  assert(sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE ||
+         !diagonalOffsets.empty());
   HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
       m_handle, static_cast<int32_t>(subspaceExtents.size()),
-      subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
-      CUDA_C_64F, elementaryMat_d, wrappedTensorCallback, &cudmElemOp));
+      subspaceExtents.data(), sparsity, diagonalOffsets.size(),
+      diagonalOffsets.data(), CUDA_C_64F, elementaryMat_d,
+      wrappedTensorCallback, &cudmElemOp));
 
   if (!cudmElemOp) {
     std::cerr << "[ERROR] cudmElemOp is NULL in createElementaryOperator !"
