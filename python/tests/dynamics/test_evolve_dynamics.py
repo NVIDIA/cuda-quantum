@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import pytest
+import os, pytest
 import cudaq
 from cudaq import operators
 
@@ -28,7 +28,8 @@ all_integrator_classes = [RungeKuttaIntegrator, ScipyZvodeIntegrator]
 all_models = [
     TestCavityModel, TestCavityModelTimeDependentHam,
     TestCavityModelTimeDependentCollapseOp, TestCompositeSystems,
-    TestCrossResonance, TestCallbackTensor
+    TestCrossResonance, TestCallbackTensor, TestInitialStateEnum,
+    TestCavityModelBatchedInputState
 ]
 
 
@@ -60,7 +61,7 @@ def test_euler_integrator():
         observables=[hamiltonian],
         collapse_operators=[np.sqrt(decay_rate) * operators.annihilate(0)],
         store_intermediate_results=True,
-        integrator=RungeKuttaIntegrator(order=1))
+        integrator=RungeKuttaIntegrator(order=1, max_step_size=0.01))
     expt = []
     for exp_vals in evolution_result.expectation_values():
         expt.append(exp_vals[0].expectation())

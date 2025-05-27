@@ -9,7 +9,7 @@
 import numpy as np, os, pytest, random
 from cudaq import spin
 from cudaq.operators.spin import *
-from op_utils import * # test helpers
+from op_utils import *  # test helpers
 
 has_scipy = True
 try:
@@ -30,15 +30,21 @@ def test_definitions():
     assert np.allclose(spin.x(1).to_matrix(), paulix_matrix())
     assert np.allclose(spin.y(1).to_matrix(), pauliy_matrix())
     assert np.allclose(spin.z(1).to_matrix(), pauliz_matrix())
-    assert np.allclose(spin.plus(1).to_matrix(), 0.5 * paulix_matrix() + 0.5j * pauliy_matrix())
-    assert np.allclose(spin.minus(1).to_matrix(), 0.5 * paulix_matrix() - 0.5j * pauliy_matrix())
+    assert np.allclose(
+        spin.plus(1).to_matrix(),
+        0.5 * paulix_matrix() + 0.5j * pauliy_matrix())
+    assert np.allclose(
+        spin.minus(1).to_matrix(),
+        0.5 * paulix_matrix() - 0.5j * pauliy_matrix())
 
     assert np.allclose(i(1).to_matrix(), identity_matrix(2))
     assert np.allclose(x(1).to_matrix(), paulix_matrix())
     assert np.allclose(y(1).to_matrix(), pauliy_matrix())
     assert np.allclose(z(1).to_matrix(), pauliz_matrix())
-    assert np.allclose(plus(1).to_matrix(), 0.5 * paulix_matrix() + 0.5j * pauliy_matrix())
-    assert np.allclose(minus(1).to_matrix(), 0.5 * paulix_matrix() - 0.5j * pauliy_matrix())
+    assert np.allclose(
+        plus(1).to_matrix(), 0.5 * paulix_matrix() + 0.5j * pauliy_matrix())
+    assert np.allclose(
+        minus(1).to_matrix(), 0.5 * paulix_matrix() - 0.5j * pauliy_matrix())
 
     # legacy test cases
 
@@ -174,12 +180,13 @@ def test_iteration():
         term_id = ""
         for op in prod:
             prod_terms += 1
-            term_id += op.to_string(include_degrees = True)
+            term_id += op.to_string(include_degrees=True)
         assert term_id == prod.term_id
     assert sum_terms == 2
     assert prod_terms == 4
 
-    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) - 6.125 * z(1)
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(
+        1) + .21829 * z(0) - 6.125 * z(1)
     count = 0
     for _ in hamiltonian:
         count += 1
@@ -205,8 +212,10 @@ def test_properties():
     assert prod1.ops_count == 2
     sum += prod1
     assert sum.term_count == 2
-    prod1_mat = (1. + 0.5j) * np.kron(identity_matrix(2), np.kron(paulix_matrix(), pauliy_matrix()))
-    prod2_mat = np.kron(paulix_matrix(), np.kron(pauliz_matrix(), identity_matrix(2)))
+    prod1_mat = (1. + 0.5j) * np.kron(identity_matrix(2),
+                                      np.kron(paulix_matrix(), pauliy_matrix()))
+    prod2_mat = np.kron(paulix_matrix(),
+                        np.kron(pauliz_matrix(), identity_matrix(2)))
     assert np.allclose(sum.to_matrix(), prod1_mat + prod1_mat + prod2_mat)
     assert str(prod1) == "(1+0.5i) * Y0X1"
     assert str(sum) == "(2+1i) * Y0X1 + (1+0i) * Z1X3"
@@ -227,11 +236,13 @@ def test_properties():
     # Term should have a coefficient -1
     term, *_ = spin_operator
     assert term.evaluate_coefficient() == -1.0
-    assert term.get_coefficient() == -1.0 # deprecated function replaced by evaluate_coefficient
+    assert term.get_coefficient(
+    ) == -1.0  # deprecated function replaced by evaluate_coefficient
 
 
 def test_matrix_construction():
-    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) - 6.125 * z(1)
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(
+        1) + .21829 * z(0) - 6.125 * z(1)
 
     # dense matrix
     mat = hamiltonian.to_matrix()
@@ -250,7 +261,8 @@ def test_matrix_construction():
         print(rows[i], cols[i], value)
         assert np.isclose(mat[rows[i], cols[i]], value)
     if has_scipy:
-        scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(2**numQubits,2**numQubits))
+        scipyM = scipy.sparse.csr_array((data, (rows, cols)),
+                                        shape=(2**numQubits, 2**numQubits))
         E, ev = scipy.sparse.linalg.eigsh(scipyM, k=1, which='SA')
         assert np.isclose(E[0], -1.7488, 1e-2)
 
@@ -289,8 +301,10 @@ def test_canonicalization():
     # sum operator
     previous = empty()
     expected = empty()
+
     def check_expansion(got, want_degrees):
-        canon = got.copy() # standard python behavior is for assignments not to copy
+        canon = got.copy(
+        )  # standard python behavior is for assignments not to copy
         term_with_missing_degrees = False
         for term in canon:
             if term.degrees != all_degrees:
@@ -327,7 +341,8 @@ def test_canonicalization():
         assert got.degrees == expected.degrees
         assert np.allclose(got.to_matrix(), expected.to_matrix())
         check_expansion(got, set(all_degrees))
-        if id_target > 0: check_expansion(got, set())
+        if id_target > 0:
+            check_expansion(got, set())
         with pytest.raises(Exception):
             got.canonicalize(got.degrees[1:])
 
@@ -383,7 +398,8 @@ def test_equality():
     assert sum == (prod3 + 2. * prod1)
     assert sum != sum + 1.
     assert sum != i(2) * sum
-    assert np.allclose(np.kron(identity_matrix(2), sum.to_matrix()), (i(2) * sum).to_matrix())
+    assert np.allclose(np.kron(identity_matrix(2), sum.to_matrix()),
+                       (i(2) * sum).to_matrix())
 
     assert (x(1) + y(1)) == ((y(1) + x(1)))
     assert (x(1) * y(1)) != ((y(1) * x(1)))
@@ -400,14 +416,15 @@ def test_equality():
     op1 = 5.907 - 2.1433 * x(0) * x(1) + y(0) * y(1)
     op2 = 3.1433 * y(1) * y(0) + 6.125 * z(1) - .21829 * z(0)
     op = op1 - op2
-    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) - 6.125 * z(1)
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(
+        1) + .21829 * z(0) - 6.125 * z(1)
     assert hamiltonian == op
 
 
 def test_arithmetics():
-    # basic tests for all arithmetic related bindings - 
+    # basic tests for all arithmetic related bindings -
     # more complex expressions are tested as part of the C++ tests
-    
+
     dims = {0: 2, 1: 2}
     id = i(0)
     sum = y(0) + z(1)
@@ -450,17 +467,25 @@ def test_arithmetics():
     assert np.allclose((sum * id).to_matrix(), sum_matrix)
     assert np.allclose((id * sum).to_matrix(), sum_matrix)
     assert np.allclose((id + 2.).to_matrix(), 3. * identity_matrix(2))
-    assert np.allclose((sum + 2.).to_matrix(), sum_matrix + 2. * identity_matrix(2 * 2))
+    assert np.allclose((sum + 2.).to_matrix(),
+                       sum_matrix + 2. * identity_matrix(2 * 2))
     assert np.allclose((id + 2.j).to_matrix(), (1. + 2.j) * identity_matrix(2))
-    assert np.allclose((sum + 2.j).to_matrix(), sum_matrix + 2.j * identity_matrix(2 * 2))
-    assert np.allclose((sum + id).to_matrix(), sum_matrix + identity_matrix(2 * 2))
-    assert np.allclose((id + sum).to_matrix(), sum_matrix + identity_matrix(2 * 2))
+    assert np.allclose((sum + 2.j).to_matrix(),
+                       sum_matrix + 2.j * identity_matrix(2 * 2))
+    assert np.allclose((sum + id).to_matrix(),
+                       sum_matrix + identity_matrix(2 * 2))
+    assert np.allclose((id + sum).to_matrix(),
+                       sum_matrix + identity_matrix(2 * 2))
     assert np.allclose((id - 2.).to_matrix(), -1. * identity_matrix(2))
-    assert np.allclose((sum - 2.).to_matrix(), sum_matrix - 2. * identity_matrix(2 * 2))
+    assert np.allclose((sum - 2.).to_matrix(),
+                       sum_matrix - 2. * identity_matrix(2 * 2))
     assert np.allclose((id - 2.j).to_matrix(), (1. - 2.j) * identity_matrix(2))
-    assert np.allclose((sum - 2.j).to_matrix(), sum_matrix - 2.j * identity_matrix(2 * 2))
-    assert np.allclose((sum - id).to_matrix(), sum_matrix - identity_matrix(2 * 2))
-    assert np.allclose((id - sum).to_matrix(), identity_matrix(2 * 2) - sum_matrix)
+    assert np.allclose((sum - 2.j).to_matrix(),
+                       sum_matrix - 2.j * identity_matrix(2 * 2))
+    assert np.allclose((sum - id).to_matrix(),
+                       sum_matrix - identity_matrix(2 * 2))
+    assert np.allclose((id - sum).to_matrix(),
+                       identity_matrix(2 * 2) - sum_matrix)
 
     # in-place arithmetics
     term = id.copy()
@@ -477,11 +502,14 @@ def test_arithmetics():
     assert np.allclose(op.to_matrix(), -1. * sum_matrix)
 
     op += 2.
-    assert np.allclose(op.to_matrix(), -1. * sum_matrix + 2. * identity_matrix(2 * 2))
+    assert np.allclose(op.to_matrix(),
+                       -1. * sum_matrix + 2. * identity_matrix(2 * 2))
     op += term
-    assert np.allclose(op.to_matrix(), -1. * sum_matrix + (2. + 1.j) * identity_matrix(2 * 2))
+    assert np.allclose(op.to_matrix(),
+                       -1. * sum_matrix + (2. + 1.j) * identity_matrix(2 * 2))
     op -= 2.
-    assert np.allclose(op.to_matrix(), -1. * sum_matrix + 1.j * identity_matrix(2 * 2))
+    assert np.allclose(op.to_matrix(),
+                       -1. * sum_matrix + 1.j * identity_matrix(2 * 2))
     op -= term
     assert np.allclose(op.to_matrix(), -1. * sum_matrix)
 
@@ -491,13 +519,17 @@ def test_arithmetics():
     assert np.allclose((2.j * id).to_matrix(), 2.j * identity_matrix(2))
     assert np.allclose((2.j * sum).to_matrix(), 2.j * sum_matrix)
     assert np.allclose((2. + id).to_matrix(), 3. * identity_matrix(2))
-    assert np.allclose((2. + sum).to_matrix(), sum_matrix + 2. * identity_matrix(2 * 2))
+    assert np.allclose((2. + sum).to_matrix(),
+                       sum_matrix + 2. * identity_matrix(2 * 2))
     assert np.allclose((2.j + id).to_matrix(), (1 + 2j) * identity_matrix(2))
-    assert np.allclose((2.j + sum).to_matrix(), sum_matrix + 2.j * identity_matrix(2 * 2))
+    assert np.allclose((2.j + sum).to_matrix(),
+                       sum_matrix + 2.j * identity_matrix(2 * 2))
     assert np.allclose((2. - id).to_matrix(), identity_matrix(2))
-    assert np.allclose((2. - sum).to_matrix(), 2. * identity_matrix(2 * 2) - sum_matrix)
+    assert np.allclose((2. - sum).to_matrix(),
+                       2. * identity_matrix(2 * 2) - sum_matrix)
     assert np.allclose((2.j - id).to_matrix(), (-1 + 2.j) * identity_matrix(2))
-    assert np.allclose((2.j - sum).to_matrix(), 2.j * identity_matrix(2 * 2) - sum_matrix)
+    assert np.allclose((2.j - sum).to_matrix(),
+                       2.j * identity_matrix(2 * 2) - sum_matrix)
 
     # legacy tests
 
@@ -720,20 +752,18 @@ def test_serialization():
         check_op_serialization(op)
         # check serialization also for non-consecutive degrees
         canon = canonicalized(op)
-        if canon.degrees != [target for target in range(canon.qubit_count)]: 
+        if canon.degrees != [target for target in range(canon.qubit_count)]:
             check_op_serialization(canon)
             return 1
         return 0
-        
+
     non_consecutive_sum = 0
     non_consecutive_prod = 0
     for nq in range(1, 31):
         for nt in range(1, nq + 1):
             # random will product terms that each act on all
             # qubits in the range [0, nq)
-            h = SpinOperator.random(qubit_count=nq,
-                                           term_count=nt,
-                                           seed=13)
+            h = SpinOperator.random(qubit_count=nq, term_count=nt, seed=13)
 
             non_consecutive_sum += check_serialization(h)
             for term in h:
@@ -747,8 +777,8 @@ def test_vqe():
     """
     Test the `cudaq.SpinOperator` class on a simple VQE Hamiltonian.
     """
-    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(
-        0) * y(1) + .21829 * z(0) - 6.125 * z(1)
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(
+        1) + .21829 * z(0) - 6.125 * z(1)
     print(hamiltonian)
     # Checking equality operators.
     assert x(2) != hamiltonian
@@ -767,11 +797,12 @@ def test_vqe():
 
 # deprecated functionality - replaced by iteration
 def test_legacy_foreach():
-    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(
-        0) * y(1) + .21829 * z(0) - 6.125 * z(1)
+    hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(
+        1) + .21829 * z(0) - 6.125 * z(1)
     print(hamiltonian)
 
     counter = 0
+
     def doSomethingWithTerm(term):
         nonlocal counter
         print(term)
@@ -782,12 +813,15 @@ def test_legacy_foreach():
 
     counter = 0
     xSupports = []
+
     def doSomethingWithTerm(term):
+
         def doSomethingWithPauli(pauli: Pauli, idx: int):
             nonlocal counter, xSupports
             if pauli == Pauli.X:
                 counter = counter + 1
                 xSupports.append(idx)
+
         term.for_each_pauli(doSomethingWithPauli)
 
     hamiltonian.for_each_term(doSomethingWithTerm)

@@ -157,10 +157,31 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
   return f;
 }
 
+// Helper to migrate an input state to the current device if necessary
+state migrateState(const state &inputState);
+
 evolve_result evolveSingle(
     const sum_op<cudaq::matrix_handler> &hamiltonian,
     const cudaq::dimension_map &dimensions, const schedule &schedule,
     const state &initial_state, base_integrator &integrator,
+    const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
+    bool store_intermediate_results = false,
+    std::optional<int> shots_count = std::nullopt);
+
+evolve_result evolveSingle(
+    const sum_op<cudaq::matrix_handler> &hamiltonian,
+    const cudaq::dimension_map &dimensions, const schedule &schedule,
+    InitialState initial_state, base_integrator &integrator,
+    const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
+    bool store_intermediate_results = false,
+    std::optional<int> shots_count = std::nullopt);
+
+std::vector<evolve_result> evolveBatched(
+    const sum_op<cudaq::matrix_handler> &hamiltonian,
+    const cudaq::dimension_map &dimensions, const schedule &schedule,
+    const std::vector<state> &initial_states, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
     bool store_intermediate_results = false,

@@ -6,17 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from enum import Enum
-
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
-
-class InitialState(Enum):
-    """
-    Enum to specify the initial quantum state.
-    """
-    ZERO = 1
-    UNIFORM = 2
-
+# Enum to specify the initial quantum state.
+InitialState = cudaq_runtime.InitialStateType
 
 InitialStateArgT = cudaq_runtime.State | InitialState

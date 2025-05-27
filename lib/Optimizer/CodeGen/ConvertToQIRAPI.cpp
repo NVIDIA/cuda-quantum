@@ -1188,6 +1188,29 @@ struct ResetOpPattern : public OpConversionPattern<quake::ResetOp> {
   }
 };
 
+struct ApplyOpTrap : public OpConversionPattern<quake::ApplyOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  // If we see a `quake.apply` operation at this point, something has gone wrong
+  // and we were unable to autogenerate the function that we should be calling.
+  // So we replace the apply with a trap and the results with poison values.
+  LogicalResult
+  matchAndRewrite(quake::ApplyOp apply, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = apply.getLoc();
+    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
+                                  ValueRange{zero});
+    SmallVector<Value> values;
+    for (auto r : apply.getResults()) {
+      Value v = rewriter.create<cudaq::cc::PoisonOp>(loc, r.getType());
+      values.push_back(v);
+    }
+    rewriter.replaceOp(apply, values);
+    return success();
+  }
+};
+
 struct AnnotateKernelsWithMeasurementStringsPattern
     : public OpConversionPattern<func::FuncOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1701,8 +1724,8 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<GetMemberOpRewrite, MakeStruqOpRewrite, RelaxSizeOpErase,
-                  VeqSizeOpRewrite>(typeConverter, ctx);
+  patterns.insert<ApplyOpTrap, GetMemberOpRewrite, MakeStruqOpRewrite,
+                  RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
