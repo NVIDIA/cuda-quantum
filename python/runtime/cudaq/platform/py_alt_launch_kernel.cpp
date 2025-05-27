@@ -107,8 +107,8 @@ void setDataLayout(MlirModule module) {
   }
 }
 
-/// @brief Create a new OpaqueArguments pointer and pack the
-/// python arguments in it. Clients must delete the memory.
+/// @brief Create a new OpaqueArguments pointer and pack the python arguments
+/// in it. Clients must delete the memory.
 OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
                               const std::string &name) {
   auto kernelFunc = getKernelFuncOp(mod, name);
