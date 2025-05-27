@@ -177,14 +177,24 @@ evolve_result evolveSingle(
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
     bool store_intermediate_results = false,
     std::optional<int> shots_count = std::nullopt);
+
+std::vector<evolve_result> evolveBatched(
+    const sum_op<cudaq::matrix_handler> &hamiltonian,
+    const cudaq::dimension_map &dimensions, const schedule &schedule,
+    const std::vector<state> &initial_states, base_integrator &integrator,
+    const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
+    bool store_intermediate_results = false,
+    std::optional<int> shots_count = std::nullopt);
+
 evolve_result
-evolveSingle(const super_op &superOp,
-             const cudaq::dimension_map &dimensionsMap,
+evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
              const schedule &schedule, const state &initialState,
              base_integrator &integrator,
              const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
              bool storeIntermediateResults = false,
              std::optional<int> shotsCount = std::nullopt);
+
 evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
                            const cudaq::schedule &schedule,
                            std::optional<int> shots_count = std::nullopt);

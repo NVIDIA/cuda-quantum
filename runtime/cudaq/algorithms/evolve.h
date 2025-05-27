@@ -233,13 +233,12 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
-  std::vector<evolve_result> results;
-  for (const auto &initial_state : initial_states)
-    results.emplace_back(evolve(hamiltonian, dimensions, schedule,
-                                initial_state, integrator, collapse_operators,
-                                observables, store_intermediate_results,
-                                shots_count));
-  return results;
+  return cudaq::__internal__::evolveBatched(
+      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
+      initial_states, integrator,
+      cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results,
+      shots_count);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -268,13 +267,12 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        bool store_intermediate_results = false,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
-  std::vector<evolve_result> results;
-  for (const auto &initial_state : initial_states)
-    results.emplace_back(evolve(
-        hamiltonian, dimensions, schedule, initial_states, integrator,
-        collapse_operators, initial_state, integrator, collapse_operators,
-        observables, store_intermediate_results, shots_count));
-  return results;
+  return cudaq::__internal__::evolveBatched(
+      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
+      initial_states, integrator,
+      cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results,
+      shots_count);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "

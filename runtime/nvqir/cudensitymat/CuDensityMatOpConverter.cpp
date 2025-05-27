@@ -582,7 +582,8 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Callback param name {}, value {}", context->paramNames[i],
+        cudaq::debug("Callback param name {}, batch size {}, value {}",
+                     context->paramNames[i], batchSize,
                      param_map[context->paramNames[i]]);
       }
 
