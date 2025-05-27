@@ -172,6 +172,19 @@ public:
   /// @brief Scalar multiplication operator
   /// @return The new state after multiplying scalar with the current state.
   CuDensityMatState &operator*=(const std::complex<double> &scalar);
+
+private:
+  /// Helper method to transform a state vector states to density matrix states.
+  // The caller takes ownership of the returned states.
+  static std::vector<CuDensityMatState *> convertStateVecToDensityMatrix(
+      const std::vector<CuDensityMatState *> svStates, int64_t dmSize);
+
+  /// Helper to aggregate multiple input states into a distributed batched
+  /// state.
+  static void
+  distributeBatchedStateData(CuDensityMatState &batchedState,
+                             const std::vector<CuDensityMatState *> inputStates,
+                             int64_t singleStateDimension);
 };
 /// @endcond
 } // namespace cudaq

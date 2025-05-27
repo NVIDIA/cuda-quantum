@@ -150,11 +150,11 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
         });
 
   m.def("getBatchSize", [](cudaq::state &state) {
-    auto &castSimState = *asCudmState(state);
-    if (!castSimState.is_initialized())
+    auto &cudmSimState = *asCudmState(state);
+    if (!cudmSimState.is_initialized())
       throw std::runtime_error(
           "Cannot query batch size of an uninitialized state");
-    return castSimState.getBatchSize();
+    return cudmSimState.getBatchSize();
   });
   m.def("splitBatchedState",
         [](cudaq::state &state) -> std::vector<cudaq::state> {

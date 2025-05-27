@@ -200,11 +200,12 @@ std::vector<evolve_result> evolveBatched(
   cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);
   integrator.setState(cudaq::state(batchedState.release()), 0.0);
   std::vector<CuDensityMatExpectation> expectations;
-  for (auto &obs : observables)
-    expectations.emplace_back(CuDensityMatExpectation(
-        handle, cudaq::dynamics::Context::getCurrentContext()
-                    ->getOpConverter()
-                    .convertToCudensitymatOperator({}, obs, dims)));
+  auto &opConverter =
+      cudaq::dynamics::Context::getCurrentContext()->getOpConverter();
+  for (auto &obs : observables) {
+    auto cudmObsOp = opConverter.convertToCudensitymatOperator({}, obs, dims);
+    expectations.emplace_back(CuDensityMatExpectation(handle, cudmObsOp));
+  }
 
   std::vector<std::vector<std::vector<double>>> expectationVals(
       initialStates.size());

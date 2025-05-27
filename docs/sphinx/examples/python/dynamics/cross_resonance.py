@@ -60,22 +60,8 @@ evolution_results = cudaq.evolve(hamiltonian,
 get_result = lambda idx, res: [
     exp_vals[idx].expectation() for exp_vals in res.expectation_values()
 ]
-results_00 = [
-    get_result(0, evolution_results[0]),
-    get_result(1, evolution_results[0]),
-    get_result(2, evolution_results[0]),
-    get_result(3, evolution_results[0]),
-    get_result(4, evolution_results[0]),
-    get_result(5, evolution_results[0])
-]
-results_10 = [
-    get_result(0, evolution_results[1]),
-    get_result(1, evolution_results[1]),
-    get_result(2, evolution_results[1]),
-    get_result(3, evolution_results[1]),
-    get_result(4, evolution_results[1]),
-    get_result(5, evolution_results[1])
-]
+results_00 = [get_result(i, evolution_results[0]) for i in range(6)]
+results_10 = [get_result(i, evolution_results[1]) for i in range(6)]
 
 # The changes in recession frequencies of the target qubit when control qubit is in |1> state allow us to implement two-qubit conditional gates.
 fig = plt.figure(figsize=(18, 6))
