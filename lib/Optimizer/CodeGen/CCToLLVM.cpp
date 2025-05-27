@@ -295,6 +295,9 @@ public:
               .Case([&](LLVM::LLVMPointerType) {
                 boilerplate((LLVM::BitcastOp *)nullptr);
               })
+              .Case([&](LLVM::LLVMFunctionType) {
+                boilerplate((LLVM::BitcastOp *)nullptr);
+              })
               .Case([&](IntegerType) {
                 boilerplate((LLVM::IntToPtrOp *)nullptr);
               });

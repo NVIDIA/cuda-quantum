@@ -77,27 +77,27 @@ public:
                                         cudaq::opt::QIRIntegerRecordOutput,
                                         ArrayRef<Value>{castVal, label});
         })
-        .Case([&](FloatType fltTy) {
-          int width = fltTy.getWidth();
+        .Case([&](FloatType floatTy) {
+          int width = floatTy.getWidth();
           std::string labelStr = std::string("f") + std::to_string(width);
           if (prefix)
             labelStr = prefix->str();
           Value label = makeLabel(loc, rewriter, labelStr);
           // Floating point: convert it to double, whatever it actually is.
           Value castVal = val;
-          if (fltTy != rewriter.getF64Type())
+          if (floatTy != rewriter.getF64Type())
             castVal = rewriter.create<cudaq::cc::CastOp>(
                 loc, rewriter.getF64Type(), val);
           rewriter.create<func::CallOp>(loc, TypeRange{},
                                         cudaq::opt::QIRDoubleRecordOutput,
                                         ArrayRef<Value>{castVal, label});
         })
-        .Case([&](cudaq::cc::StructType strTy) {
-          auto labelStr = translateType(strTy);
+        .Case([&](cudaq::cc::StructType structTy) {
+          auto labelStr = translateType(structTy);
           if (prefix)
             labelStr = prefix->str();
           Value label = makeLabel(loc, rewriter, labelStr);
-          std::int32_t sz = strTy.getNumMembers();
+          std::int32_t sz = structTy.getNumMembers();
           Value size = rewriter.create<arith::ConstantIntOp>(loc, sz, 64);
           rewriter.create<func::CallOp>(loc, TypeRange{},
                                         cudaq::opt::QIRTupleRecordOutput,
@@ -106,7 +106,7 @@ public:
           for (std::int32_t i = 0; i < sz; ++i) {
             std::string offset = preStr + std::string(".") + std::to_string(i);
             Value w = rewriter.create<cudaq::cc::ExtractValueOp>(
-                loc, strTy.getMember(i), val,
+                loc, structTy.getMember(i), val,
                 ArrayRef<cudaq::cc::ExtractValueArg>{i});
             genOutputLog(loc, rewriter, w, offset);
           }
@@ -170,16 +170,16 @@ public:
       int width = intTy.getWidth();
       return {std::string("i") + std::to_string(width)};
     }
-    if (auto fltTy = dyn_cast<FloatType>(ty)) {
-      int width = fltTy.getWidth();
+    if (auto floatTy = dyn_cast<FloatType>(ty)) {
+      int width = floatTy.getWidth();
       return {std::string("f") + std::to_string(width)};
     }
-    if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty)) {
+    if (auto structTy = dyn_cast<cudaq::cc::StructType>(ty)) {
       std::string result = "tuple<";
-      if (strTy.getMembers().empty())
+      if (structTy.getMembers().empty())
         return {result + std::string(">")};
-      result += translateType(strTy.getMembers().front());
-      for (auto memTy : strTy.getMembers().drop_front())
+      result += translateType(structTy.getMembers().front());
+      for (auto memTy : structTy.getMembers().drop_front())
         result += std::string(", ") + translateType(memTy);
       return {result + std::string(">")};
     }
