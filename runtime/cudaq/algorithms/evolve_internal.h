@@ -157,6 +157,9 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
   return f;
 }
 
+// Helper to migrate an input state to the current device if necessary
+state migrateState(const state &inputState);
+
 evolve_result evolveSingle(
     const sum_op<cudaq::matrix_handler> &hamiltonian,
     const cudaq::dimension_map &dimensions, const schedule &schedule,

@@ -1179,64 +1179,23 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
   }];
 }
 
-//===----------------------------------------------------------------------===//
-// Cast operation.
-//===----------------------------------------------------------------------===//
-
-def cc_CastOp : CCOp<"cast", [Pure]> {
-  let summary = "Overloads LLVM's casting instructions.";
+def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
+  let summary = "Create a constant string literal.";
   let description = [{
-    A CastOp can be used to create one of LLVM's cast instructions. The signed
-    (unsigned) keyword can/must be used with otherwise sign agnostic integer
-    conversions to distinguish between sext (zext).
-
-    Example:
+    This operation creates a ASCIIZ string literal value. It's argument is a
+    constant MLIR String Attribute. The literal will have a null character
+    appended automatically.
 
     ```mlir
-      %11 = cc.cast %10 : (!cc.ptr<i8>) -> i64           // ptrtoint
-      %12 = cc.cast %11 : (i64) -> !cc.ptr<i32>          // inttoptr
-      %13 = cc.cast %12 : (!cc.ptr<i32>) -> !cc.ptr<f64> // bitcast
-      %14 = cc.cast %11 : (i64) -> f64                   // bitcast
-      %15 = cc.cast signed %11 : (i64) -> f64            // sitofp
-      %16 = cc.cast unsigned %11 : (i64) -> f64          // uitofp
-      %17 = cc.cast signed %15 : (f64) -> i32            // fptosi
-      %18 = cc.cast unsigned %16 : (f64) -> i16          // fptoui
-      %21 = cc.cast signed %20 : (i8) -> i32             // sext
-      %22 = cc.cast unsigned %20 : (i8) -> i32           // zext
-      %23 = cc.cast %22 : (i32) -> i16                   // trunc
-      %24 = cc.cast %16 : (f64) -> f32                   // fptrunc
-      %25 = cc.cast %24 : (f32) -> f64                   // fpext
+      %0 = cc.string_literal "Quantum Computing" : !cc.ptr<!cc.array<i8 x 18>>
     ```
   }];
 
-  let arguments = (ins
-    AnyType:$value,
-    OptionalAttr<UnitAttr>:$sint,
-    OptionalAttr<UnitAttr>:$zint
-  );
-  let results = (outs AnyType:$result);
-
-  let hasFolder = 1;
-  let hasCanonicalizer = 1;
-  let hasVerifier = 1;
-  
+  let arguments = (ins StrAttr:$stringLiteral);
+  let results = (outs cc_PointerType:$result);
   let assemblyFormat = [{
-    ( `signed` $sint^ ):( ( `unsigned` $zint^ )? )? $value `:`
-      functional-type(operands, results) attr-dict
+     $stringLiteral `:` qualified(type(results)) attr-dict
   }];
-
-  let builders = [
-    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value), [{
-      return build($_builder, $_state, resTy, value, {}, {});
-    }]>,
-    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value,
-        "CastOpMode":$mode), [{
-      auto unitAttr = mlir::UnitAttr::get($_builder.getContext());
-      if (mode == CastOpMode::Signed)
-        return build($_builder, $_state, resTy, value, /*signed=*/unitAttr, {});
-      return build($_builder, $_state, resTy, value, {}, /*unsigned=*/unitAttr);
-    }]>
-  ];
 }
 
 //===----------------------------------------------------------------------===//
@@ -1321,6 +1280,62 @@ def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
 // Type conversions.
 //===----------------------------------------------------------------------===//
 
+def cc_CastOp : CCOp<"cast", [Pure]> {
+  let summary = "Overloads LLVM's casting instructions.";
+  let description = [{
+    A CastOp can be used to create one of LLVM's cast instructions. The signed
+    (unsigned) keyword can/must be used with otherwise sign agnostic integer
+    conversions to distinguish between sext (zext).
+
+    Example:
+
+    ```mlir
+      %11 = cc.cast %10 : (!cc.ptr<i8>) -> i64           // ptrtoint
+      %12 = cc.cast %11 : (i64) -> !cc.ptr<i32>          // inttoptr
+      %13 = cc.cast %12 : (!cc.ptr<i32>) -> !cc.ptr<f64> // bitcast
+      %14 = cc.cast %11 : (i64) -> f64                   // bitcast
+      %15 = cc.cast signed %11 : (i64) -> f64            // sitofp
+      %16 = cc.cast unsigned %11 : (i64) -> f64          // uitofp
+      %17 = cc.cast signed %15 : (f64) -> i32            // fptosi
+      %18 = cc.cast unsigned %16 : (f64) -> i16          // fptoui
+      %21 = cc.cast signed %20 : (i8) -> i32             // sext
+      %22 = cc.cast unsigned %20 : (i8) -> i32           // zext
+      %23 = cc.cast %22 : (i32) -> i16                   // trunc
+      %24 = cc.cast %16 : (f64) -> f32                   // fptrunc
+      %25 = cc.cast %24 : (f32) -> f64                   // fpext
+    ```
+  }];
+
+  let arguments = (ins
+    AnyType:$value,
+    OptionalAttr<UnitAttr>:$sint,
+    OptionalAttr<UnitAttr>:$zint
+  );
+  let results = (outs AnyType:$result);
+
+  let hasFolder = 1;
+  let hasCanonicalizer = 1;
+  let hasVerifier = 1;
+  
+  let assemblyFormat = [{
+    ( `signed` $sint^ ):( ( `unsigned` $zint^ )? )? $value `:`
+      functional-type(operands, results) attr-dict
+  }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value), [{
+      return build($_builder, $_state, resTy, value, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value,
+        "CastOpMode":$mode), [{
+      auto unitAttr = mlir::UnitAttr::get($_builder.getContext());
+      if (mode == CastOpMode::Signed)
+        return build($_builder, $_state, resTy, value, /*signed=*/unitAttr, {});
+      return build($_builder, $_state, resTy, value, {}, /*unsigned=*/unitAttr);
+    }]>
+  ];
+}
+
 def cc_FuncToPtrOp : CCOp<"func_ptr", [Pure]> {
   let summary = "Cast a function to a pointer.";
   let description = [{
@@ -1344,7 +1359,7 @@ def cc_FuncToPtrOp : CCOp<"func_ptr", [Pure]> {
 }
 
 //===----------------------------------------------------------------------===//
-// Lambda (λ) expressions.
+// Lambda (λ) expressions and other calls.
 //===----------------------------------------------------------------------===//
 
 def cc_CreateLambdaOp : CCOp<"create_lambda",
@@ -1665,6 +1680,9 @@ def cc_VarargCallOp :
     arguments without the restriction that all the arguments have to be
     converted to LLVMIR types first. These conversions are just code bloat and
     make the code harder to read.
+
+    The use of LLVMIR dialect for varargs functions is required as MLIR's Func
+    dialect does not support varargs calls.
   }];
 
   let arguments = (ins
@@ -1694,24 +1712,9 @@ def cc_VarargCallOp :
   }];
 }
 
-def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
-  let summary = "Create a constant string literal.";
-  let description = [{
-    This operation creates a ASCIIZ string literal value. It's argument is a
-    constant MLIR String Attribute. The literal will have a null character
-    appended automatically.
-
-    ```mlir
-      %0 = cc.string_literal "Quantum Computing" : !cc.ptr<!cc.array<i8 x 18>>
-    ```
-  }];
-
-  let arguments = (ins StrAttr:$stringLiteral);
-  let results = (outs cc_PointerType:$result);
-  let assemblyFormat = [{
-     $stringLiteral `:` qualified(type(results)) attr-dict
-  }];
-}
+//===----------------------------------------------------------------------===//
+// Argument synthesis support
+//===----------------------------------------------------------------------===//
 
 def cc_ArgumentSubstitutionOp : CCOp<"arg_subst",
   [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {

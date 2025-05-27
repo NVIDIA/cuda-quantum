@@ -89,7 +89,7 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
 
 /// @brief Run a kernel \p shots number of times and return a `std::vector` of
 /// results.
-/// @tparam QuantumKernel  Quantum kernel type (must return a non-void result)
+/// @tparam QuantumKernel Quantum kernel type (must return a non-void result)
 /// @tparam ...ARGS Quantum kernel argument types
 /// @param shots Number of shots to run
 /// @param kernel Quantum kernel

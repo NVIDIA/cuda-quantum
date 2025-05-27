@@ -579,7 +579,7 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
         // Collect field names.
         std::vector<py::str> fieldNames;
         for (const auto &[attr_name, unused] : attributes)
-          fieldNames.push_back(py::str(attr_name));
+          fieldNames.emplace_back(py::str(attr_name));
 
         // Read field values and create the constructor `kwargs`
         auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);
