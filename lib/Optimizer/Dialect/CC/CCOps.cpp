@@ -214,8 +214,23 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
       auto val = attr.getInt();
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
+        auto srcTy = getValue().getType();
+        auto srcWidth = srcTy.getIntOrFloatBitWidth();
+
+        if (getZint()) {
+          // Zero-extend to get the original integer value.
+          if (srcWidth < 64)
+            val &= ((1UL << srcWidth) - 1);
+        }
+
+        if (width == 1) {
+          bool v = val != 0;
+          return builder.create<arith::ConstantIntOp>(loc, v, width)
+              .getResult();
+        }
         return builder.create<arith::ConstantIntOp>(loc, val, width)
             .getResult();
+
       } else if (ty == fltTy) {
         if (getZint()) {
           APFloat fval(static_cast<float>(static_cast<std::uint64_t>(val)));
@@ -368,6 +383,15 @@ LogicalResult cudaq::cc::CastOp::verify() {
   } else if (isa<FunctionType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
     // ok, type conversion of a function to an indirect callable
     // Folding will remove this.
+  } else if (isa<FunctionType>(inTy) && isa<cc::PointerType>(outTy)) {
+    auto ptrTy = cast<cc::PointerType>(outTy);
+    auto eleTy = ptrTy.getElementType();
+    auto *ctx = eleTy.getContext();
+    if (eleTy == NoneType::get(ctx) || eleTy == IntegerType::get(ctx, 8)) {
+      // ok, type conversion of a function to a pointer.
+    } else {
+      return emitOpError("invalid cast.");
+    }
   } else {
     // Could support a bitcast of a float with pointer size bits to/from a
     // pointer, but that doesn't seem like it would be very common.

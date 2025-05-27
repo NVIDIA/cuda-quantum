@@ -42,11 +42,11 @@ class TestCavityModel(TestSystem):
             collapse_operators=[np.sqrt(decay_rate) * annihilate(0)],
             store_intermediate_results=True,
             integrator=integrator())
-        expt = []
+        expectation_values = []
         for exp_vals in evolution_result.expectation_values():
-            expt.append(exp_vals[0].expectation())
+            expectation_values.append(exp_vals[0].expectation())
         expected_answer = (N - 1) * np.exp(-decay_rate * steps)
-        np.testing.assert_allclose(expected_answer, expt, 1e-3)
+        np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
 
 
 class TestCavityModelTimeDependentHam(TestSystem):
@@ -72,11 +72,11 @@ class TestCavityModelTimeDependentHam(TestSystem):
             collapse_operators=[np.sqrt(decay_rate) * annihilate(0)],
             store_intermediate_results=True,
             integrator=integrator())
-        expt = []
+        expectation_values = []
         for exp_vals in evolution_result.expectation_values():
-            expt.append(exp_vals[0].expectation())
+            expectation_values.append(exp_vals[0].expectation())
         expected_answer = (N - 1) * np.exp(-decay_rate * steps)
-        np.testing.assert_allclose(expected_answer, expt, 1e-3)
+        np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
 
 
 class TestCavityModelTimeDependentCollapseOp(TestSystem):
@@ -103,13 +103,13 @@ class TestCavityModelTimeDependentCollapseOp(TestSystem):
                                         collapse_operators=[decay_op],
                                         store_intermediate_results=True,
                                         integrator=integrator())
-        expt = []
+        expectation_values = []
         for exp_vals in evolution_result.expectation_values():
-            expt.append(exp_vals[0].expectation())
+            expectation_values.append(exp_vals[0].expectation())
         expected_answer = [
             (N - 1) * np.exp(-decay_rate * (1.0 - np.exp(-t))) for t in steps
         ]
-        np.testing.assert_allclose(expected_answer, expt, 1e-3)
+        np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
 
 
 class TestCompositeSystems(TestSystem):
@@ -123,11 +123,11 @@ class TestCompositeSystems(TestSystem):
     qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
     cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
     cavity_state[5][5] = 1.0
-    rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
     qubit_state = cp.array([1.0, 0.0], dtype=cp.complex128)
     cavity_state = cp.zeros(10, dtype=cp.complex128)
     cavity_state[5] = 1.0
-    psi0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+    psi0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
     steps = np.linspace(0, 10, 201)
     tol = 0.1
     # Expected results (from qutips)
@@ -262,7 +262,7 @@ class TestCrossResonance(TestSystem):
         psi_00 = cudaq.State.from_data(
             cp.array([1.0, 0.0, 0.0, 0.0], dtype=cp.complex128))
         psi_10 = cudaq.State.from_data(
-            cp.array([0.0, 0.0, 1.0, 0.0], dtype=cp.complex128))
+            cp.array([0.0, 1.0, 0.0, 0.0], dtype=cp.complex128))
 
         # Schedule of time steps.
         steps = np.linspace(0.0, 1.0, 1001)
@@ -399,3 +399,62 @@ class TestCallbackTensor(TestSystem):
         np.testing.assert_allclose(ideal_results[0][-1], 0, atol=0.1)
         np.testing.assert_allclose(ideal_results[1][-1], 0, atol=0.1)
         np.testing.assert_allclose(ideal_results[2][-1], -1, atol=0.1)
+
+
+class TestInitialStateEnum(TestSystem):
+
+    def run_tests(self, integrator):
+        hamiltonian = 2.0 * np.pi * 0.1 * spin.x(0)
+        steps = np.linspace(0, 1, 10)
+        schedule = Schedule(steps, ["t"])
+        dimensions = {0: 2}
+        # initial state
+        psi0 = cudaq.dynamics.InitialState.ZERO
+        evolution_result = cudaq.evolve(hamiltonian,
+                                        dimensions,
+                                        schedule,
+                                        psi0,
+                                        observables=[spin.z(0)],
+                                        collapse_operators=[],
+                                        store_intermediate_results=True,
+                                        integrator=integrator())
+        expectation_values = []
+        for exp_vals in evolution_result.expectation_values():
+            expectation_values.append(exp_vals[0].expectation())
+        expected_answer = np.cos(4.0 * np.pi * 0.1 * steps)
+        np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
+
+
+class TestCavityModelBatchedInputState(TestSystem):
+
+    def run_tests(self, integrator):
+        hamiltonian = ScalarOperator(lambda t: 1.0) * number(0)
+        N = 10
+        steps = np.linspace(0, 10, 101)
+        schedule = Schedule(steps, ["t"])
+        hamiltonian = number(0)
+        dimensions = {0: N}
+        # initial states
+        num_states = 4
+        initial_states = []
+        for i in range(num_states):
+            psi0_ = cp.zeros(N, dtype=cp.complex128)
+            psi0_[-(i + 1)] = 1.0
+            initial_states.append(cudaq.State.from_data(psi0_))
+        decay_rate = 0.1
+        evolution_results = cudaq.evolve(
+            hamiltonian,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[hamiltonian],
+            collapse_operators=[np.sqrt(decay_rate) * annihilate(0)],
+            store_intermediate_results=True,
+            integrator=integrator())
+        for i in range(num_states):
+            expectation_values = []
+            for exp_vals in evolution_results[i].expectation_values():
+                expectation_values.append(exp_vals[0].expectation())
+            expected_answer = (N - 1 - i) * np.exp(-decay_rate * steps)
+            np.testing.assert_allclose(expected_answer, expectation_values,
+                                       1e-3)
