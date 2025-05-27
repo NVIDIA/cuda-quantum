@@ -26,15 +26,15 @@ from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator
 
 # Master-equation solver using `CuDensityMatState`
 def evolve_dynamics(
-        hamiltonian: Operator,
-        dimensions: Mapping[int, int],
-        schedule: Schedule,
-        initial_state: InitialStateArgT,
-        collapse_operators: Sequence[Operator] = [],
-        observables: Sequence[Operator] = [],
-        store_intermediate_results=False,
-        integrator: Optional[BaseIntegrator] = None
-) -> cudaq_runtime.EvolveResult:
+    hamiltonian: Operator,
+    dimensions: Mapping[int, int],
+    schedule: Schedule,
+    initial_state: InitialStateArgT | Sequence[cudaq_runtime.State],
+    collapse_operators: Sequence[Operator] = [],
+    observables: Sequence[Operator] = [],
+    store_intermediate_results=False,
+    integrator: Optional[BaseIntegrator] = None
+) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     if cudm is None:
         raise ImportError(
             "[dynamics target] Failed to import cuquantum density module. Please check your installation."
@@ -66,18 +66,28 @@ def evolve_dynamics(
         for observable in observables
     ]
 
-    if isinstance(initial_state, InitialState):
-        has_collapse_operators = len(collapse_operators) > 0
-        initial_state = bindings.createInitialState(initial_state, dimensions,
-                                                    has_collapse_operators)
+    batch_size = 1
+    is_batched_evolve = False
+    if isinstance(initial_state, Sequence):
+        batch_size = len(initial_state)
+        initial_state = bindings.createBatchedState(initial_state,
+                                                    hilbert_space_dims_list,
+                                                    len(collapse_operators) > 0)
+        is_batched_evolve = True
     else:
-        initial_state = bindings.initializeState(initial_state,
-                                                 hilbert_space_dims_list,
-                                                 len(collapse_operators) > 0)
+        if isinstance(initial_state, InitialState):
+            has_collapse_operators = len(collapse_operators) > 0
+            initial_state = bindings.createInitialState(initial_state,
+                                                        dimensions,
+                                                        has_collapse_operators)
+        else:
+            initial_state = bindings.initializeState(
+                initial_state, hilbert_space_dims_list,
+                len(collapse_operators) > 0, 1)
     integrator.set_state(initial_state, schedule._steps[0])
 
-    exp_vals = []
-    intermediate_states = []
+    exp_vals = [[] for _ in range(batch_size)]
+    intermediate_states = [[] for _ in range(batch_size)]
     for step_idx, parameters in enumerate(schedule):
         if step_idx > 0:
             with ScopeTimer("evolve.integrator.integrate") as timer:
@@ -85,22 +95,28 @@ def evolve_dynamics(
         # If we store intermediate values, compute them for each step.
         # Otherwise, just for the last step.
         if store_intermediate_results or step_idx == (len(schedule) - 1):
-            step_exp_vals = []
-            for obs_idx, obs in enumerate(expectation_op):
-                _, state = integrator.get_state()
-                with ScopeTimer("evolve.prepare_expectation") as timer:
-                    obs.prepare(state)
-                with ScopeTimer("evolve.compute_expectation") as timer:
-                    exp_val = obs.compute(state, schedule.current_step)
-                step_exp_vals.append(exp_val)
-            exp_vals.append(step_exp_vals)
-        if store_intermediate_results:
+            step_exp_vals = [[] for _ in range(batch_size)]
             _, state = integrator.get_state()
-            intermediate_states.append(state)
+            for obs_idx, obs in enumerate(expectation_op):
+                obs.prepare(state)
+                exp_val = obs.compute(state, schedule.current_step)
+                for i in range(batch_size):
+                    step_exp_vals[i].append(exp_val[i])
+            split_states = bindings.splitBatchedState(state)
+            for i in range(batch_size):
+                exp_vals[i].append(step_exp_vals[i])
+                intermediate_states[i].append(split_states[i])
 
     bindings.clearContext()
-    if store_intermediate_results:
-        return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)
+    results = [
+        cudaq_runtime.EvolveResult(state, exp_val)
+        for state, exp_val in zip(intermediate_states, exp_vals)
+    ] if store_intermediate_results else [
+        cudaq_runtime.EvolveResult(state[-1], exp_val[-1])
+        for state, exp_val in zip(intermediate_states, exp_vals)
+    ]
+
+    if is_batched_evolve:
+        return results
     else:
-        _, state = integrator.get_state()
-        return cudaq_runtime.EvolveResult(state, exp_vals[-1])
+        return results[0]

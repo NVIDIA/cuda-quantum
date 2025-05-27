@@ -29,15 +29,17 @@ state CuDensityMatTimeStepper::compute(
 
   // Create a new state for the next step
   auto next_state = CuDensityMatState::zero_like(state);
-
-  computeImpl(state.get_impl(), next_state.get_impl(), t, parameters);
+  assert(next_state.getBatchSize() == state.getBatchSize());
+  computeImpl(state.get_impl(), next_state.get_impl(), t, parameters,
+              state.getBatchSize());
   return cudaq::state(
       std::make_unique<CuDensityMatState>(std::move(next_state)).release());
 }
 
 void CuDensityMatTimeStepper::computeImpl(
     cudensitymatState_t inState, cudensitymatState_t outState, double t,
-    const std::unordered_map<std::string, std::complex<double>> &parameters) {
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    int64_t batchSize) {
   // Prepare workspace
   cudensitymatWorkspaceDescriptor_t workspace;
   HANDLE_CUDM_ERROR(cudensitymatCreateWorkspace(m_handle, &workspace));
@@ -71,9 +73,15 @@ void CuDensityMatTimeStepper::computeImpl(
   // Apply the operator action
   std::map<std::string, std::complex<double>> sortedParameters(
       parameters.begin(), parameters.end());
+  const auto numComplexParams = sortedParameters.size();
   std::vector<std::complex<double>> paramValues;
-  for (const auto &[k, v] : sortedParameters) {
-    paramValues.emplace_back(v);
+  paramValues.reserve(numComplexParams * batchSize);
+  // Note: for batch, params is F-order 2d-array of user-defined real parameter
+  // values: params[numParams, batchSize].
+  for (int i = 0; i < batchSize; ++i) {
+    for (const auto &[k, v] : sortedParameters) {
+      paramValues.emplace_back(v);
+    }
   }
   double *param_d =
       static_cast<double *>(cudaq::dynamics::createArrayGpu(paramValues));
@@ -82,8 +90,8 @@ void CuDensityMatTimeStepper::computeImpl(
     cudaq::dynamics::PerfMetricScopeTimer metricTimer(
         "cudensitymatOperatorComputeAction");
     HANDLE_CUDM_ERROR(cudensitymatOperatorComputeAction(
-        m_handle, m_liouvillian, t, 1, paramValues.size() * 2, param_d, inState,
-        outState, workspace, 0x0));
+        m_handle, m_liouvillian, t, batchSize, numComplexParams * 2, param_d,
+        inState, outState, workspace, 0x0));
     HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   }
 
