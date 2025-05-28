@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import h, cx, mz
 
 # [Begin Bell Kernel Python]
 @cudaq.kernel()
