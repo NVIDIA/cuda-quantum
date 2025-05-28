@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import spin, x, y, z, ry, cx
 
 # [Begin Kernel Python]
 # Define a simple kernel for demonstration
