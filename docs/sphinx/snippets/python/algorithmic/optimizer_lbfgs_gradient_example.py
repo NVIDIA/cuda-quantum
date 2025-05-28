@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import spin, x, y, z, ry, cx # Ensure all ops are imported
 from cudaq.optimizers import LBFGS
 from cudaq.gradients import CentralDifference
 
