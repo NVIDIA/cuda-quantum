@@ -110,6 +110,7 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
   std::vector<ResultTy> results;
+  results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i)
     results.emplace_back(cudaq::invokeKernel(
         std::forward<QuantumKernel>(kernel), std::forward<ARGS>(args)...));
@@ -160,6 +161,7 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
   platform.set_noise(&noise_model);
   auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
   std::vector<ResultTy> results;
+  results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
     platform.set_exec_ctx(ctx.get());
     results.emplace_back(cudaq::invokeKernel(
@@ -224,6 +226,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         std::vector<ResultTy> res;
+        res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i)
           res.emplace_back(
               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
@@ -256,6 +259,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         std::vector<ResultTy> res;
+        res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
           res.emplace_back(std::apply(
               [&kernel](ARGS &&...args) {
@@ -339,6 +343,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
         platform.set_noise(&noise_model);
         auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
         std::vector<ResultTy> res;
+        res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
           platform.set_exec_ctx(ctx.get());
           res.emplace_back(
@@ -380,6 +385,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
         platform.set_noise(&noise_model);
         auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
         std::vector<ResultTy> res;
+        res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
           platform.set_exec_ctx(ctx.get());
           res.emplace_back(std::apply(
