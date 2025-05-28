@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import h, ry, mz # Import necessary operations
 
 # [Begin Kernel Types Python]
 @cudaq.kernel()
