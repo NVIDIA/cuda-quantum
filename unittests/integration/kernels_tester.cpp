@@ -232,7 +232,7 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_only) {
 
   // Stage 2 - get the MSM using the size calculated above
   // (ctx_msm_size.msm_dimensions).
-  cudaq::ExecutionContext ctx_msm("MSM");
+  cudaq::ExecutionContext ctx_msm("msm");
   ctx_msm.noiseModel = &noise;
   ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
   platform.set_exec_ctx(&ctx_msm);
