@@ -182,26 +182,9 @@ Noise Modeling
         first be registered *outside the kernel* with
         :cpp:func:`cudaq::noise_model::register_channel`, like this:
 
-        .. code-block:: cpp
-
-            struct my_custom_kraus_channel_subtype : public ::cudaq::kraus_channel {
-              static constexpr std::size_t num_parameters = 1;
-              static constexpr std::size_t num_targets = 1;
-
-              my_custom_kraus_channel_subtype(const std::vector<cudaq::real> &params) {
-                  std::vector<cudaq::complex> k0v{std::sqrt(1 - params[0]), 0, 0,
-                                                  std::sqrt(1 - params[0])},
-                      k1v{0, std::sqrt(params[0]), std::sqrt(params[0]), 0};
-                  push_back(cudaq::kraus_op(k0v));
-                  push_back(cudaq::kraus_op(k1v));
-                  validateCompleteness();
-                  generateUnitaryParameters();
-              }
-              REGISTER_KRAUS_CHANNEL("my_custom_kraus_channel_subtype");
-            };
-
-            cudaq::noise_model noise;
-            noise.register_channel<my_custom_kraus_channel_subtype>();
+        .. literalinclude:: /../sphinx/snippets/cpp/noise/custom_kraus_channel.cpp
+           :language: cpp
+           :lines: 3-21
 
     :param args: The precise argument pack depend on the concrete `Channel` being
         used. The arguments are a concatenated list of parameters and targets.
@@ -209,11 +192,10 @@ Noise Modeling
         `num_parameters = 1` and `num_targets = 2`, one would write the call
         like this:
 
-        .. code-block:: cpp
-
-            cudaq::qubit q, r;
-            cudaq::apply_noise<cudaq::depolarization2>(/*probability=*/0.1, q, r);
-
+        .. literalinclude:: /../sphinx/snippets/cpp/noise/apply_noise_example.cpp
+           :language: cpp
+           :lines: 5-6
+           
 .. doxygenstruct:: cudaq::kraus_op
     :members:
 
