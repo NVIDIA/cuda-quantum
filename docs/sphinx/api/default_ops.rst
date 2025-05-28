@@ -29,25 +29,15 @@ This operation implements the transformation defined by the Pauli-X matrix. It i
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # X = | 0  1 |
-        #     | 1  0 |
-        x(qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/x_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // X = | 0  1 |
-        //     | 1  0 |
-        x(qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/x_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`y`
 ---------------------
@@ -56,25 +46,15 @@ This operation implements the transformation defined by the Pauli-Y matrix.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # Y = | 0  -i |
-        #     | i   0 |
-        y(qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/y_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // Y = | 0  -i |
-        //     | i   0 |
-        y(qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/y_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`z`
 ---------------------
@@ -83,54 +63,33 @@ This operation implements the transformation defined by the Pauli-Z matrix.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # Z = | 1   0 |
-        #     | 0  -1 |
-        z(qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/z_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // Z = | 1   0 |
-        //     | 0  -1 |
-        z(qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/z_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`h`
 ---------------------
 
-This operation is a rotation by π about the X+Z axis, and 
-enables one to create a superposition of computational basis states.
+This operation is a rotation by π about the X+Z axis, and enables one to create a superposition of computational basis states.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # H = (1 / sqrt(2)) * | 1   1 |
-        #                     | 1  -1 |
-        h(qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/h_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // H = (1 / sqrt(2)) * | 1   1 |
-        //                     | 1  -1 |
-        h(qubit);
-
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/h_op.cpp
+       :language: cpp
+       :lines: 5-11
+       
 :code:`r1`
 ---------------------
 
@@ -138,25 +97,15 @@ This operation is an arbitrary rotation about the :code:`|1>` state.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # R1(λ) = | 1     0    |
-        #         | 0  exp(iλ) |
-        r1(math.pi, qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/r1_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // R1(λ) = | 1     0    |
-        //         | 0  exp(iλ) |
-        r1(std::numbers::pi, qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/r1_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`rx`
 ---------------------
@@ -165,25 +114,15 @@ This operation is an arbitrary rotation about the X axis.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
-        #         | -isin(θ/2)  cos(θ/2)  |
-        rx(math.pi, qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/rx_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
-        //         | -isin(θ/2)  cos(θ/2)  |
-        rx(std::numbers::pi, qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/rx_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`ry`
 ---------------------
@@ -192,25 +131,15 @@ This operation is an arbitrary rotation about the Y axis.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # Ry(θ) = | cos(θ/2)  -sin(θ/2) |
-        #         | sin(θ/2)   cos(θ/2) |
-        ry(math.pi, qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/ry_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // Ry(θ) = | cos(θ/2)  -sin(θ/2) |
-        //         | sin(θ/2)   cos(θ/2) |
-        ry(std::numbers::pi, qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/ry_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`rz`
 ---------------------
@@ -219,25 +148,15 @@ This operation is an arbitrary rotation about the Z axis.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # Rz(λ) = | exp(-iλ/2)      0     |
-        #         |     0       exp(iλ/2) |
-        rz(math.pi, qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/rz_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // Rz(λ) = | exp(-iλ/2)      0     |
-        //         |     0       exp(iλ/2) |
-        rz(std::numbers::pi, qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/rz_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`s`
 ---------------------
@@ -246,25 +165,15 @@ This operation applies to its target a rotation by π/2 about the Z axis.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # S = | 1   0 |
-        #     | 0   i |
-        s(qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/s_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // S = | 1   0 |
-        //     | 0   i |
-        s(qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/s_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`t`
 ---------------------
@@ -273,25 +182,15 @@ This operation applies to its target a π/4 rotation about the Z axis.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # T = | 1      0     |
-        #     | 0  exp(iπ/4) |
-        t(qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/t_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // T = | 1      0     |
-        //     | 0  exp(iπ/4) |
-        t(qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/t_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`swap`
 ---------------------
@@ -300,29 +199,15 @@ This operation swaps the states of two qubits.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit_1, qubit_2 = cudaq.qubit(), cudaq.qubit()
-
-        # Apply the unitary transformation
-        # Swap = | 1 0 0 0 |
-        #        | 0 0 1 0 |
-        #        | 0 1 0 0 |
-        #        | 0 0 0 1 |
-        swap(qubit_1, qubit_2)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/swap_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit_1, qubit_2;
-
-        // Apply the unitary transformation
-        // Swap = | 1 0 0 0 |
-        //        | 0 0 1 0 |
-        //        | 0 1 0 0 |
-        //        | 0 0 0 1 |
-        swap(qubit_1, qubit_2);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/swap_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 :code:`u3`
 ---------------------
@@ -331,26 +216,15 @@ This operation applies the universal three-parameters operator to target qubit. 
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation
-        # U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
-        #             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
-        u3(np.pi, np.pi, np.pi / 2, q)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/u3_op.py
+       :language: python
+       :lines: 4-9
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-
-        // Apply the unitary transformation
-        // U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
-        //             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
-        u3(M_PI, M_PI, M_PI_2, q);
-
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/u3_op.cpp
+       :language: cpp
+       :lines: 5-11
 
 Adjoint and Controlled Operations
 ==================================
@@ -360,101 +234,38 @@ Adjoint and Controlled Operations
     The :code:`adj` method of any gate can be used to invoke the 
     `adjoint <https://en.wikipedia.org/wiki/Conjugate_transpose>`__ transformation:
 
-    .. code-block:: python
-
-        # Create a kernel and allocate a qubit in a |0> state.
-        qubit = cudaq.qubit()
-
-        # Apply the unitary transformation defined by the matrix
-        # T = | 1      0     |
-        #     | 0  exp(iπ/4) |
-        # to the state of the qubit `q`:
-        t(qubit)
-
-        # Apply its adjoint transformation defined by the matrix
-        # T† = | 1      0     |
-        #      | 0  exp(-iπ/4) |
-        t.adj(qubit)
-        # `qubit` is now again in the initial state |0>.
-
-    The :code:`ctrl` method of any gate can be used to apply the transformation
-    conditional on the state of one or more control qubits, see also this 
-    `Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
-
-    .. code-block:: python
-
-        # Create a kernel and allocate qubits in a |0> state.
-        ctrl_1, ctrl_2, target = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
-        # Create a superposition.
-        h(ctrl_1)
-        # `ctrl_1` is now in a state (|0> + |1>) / √2.
-
-        # Apply the unitary transformation
-        # | 1  0  0  0 |
-        # | 0  1  0  0 |
-        # | 0  0  0  1 |
-        # | 0  0  1  0 |
-        x.ctrl(ctrl_1, ctrl_2)
-        # `ctrl_1` and `ctrl_2` are in a state (|00> + |11>) / √2.
-
-        # Set the state of `target` to |1>:
-        x(target)
-        # Apply the transformation T only if both 
-        # control qubits are in a |1> state:
-        t.ctrl([ctrl_1, ctrl_2], target)
-        # The qubits ctrl_1, ctrl_2, and target are now in a state
-        # (|000> + exp(iπ/4)|111>) / √2.
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/adjoint_op.py
+       :language: python
+       :lines: 4-14
 
 .. tab:: C++
 
     The template argument :code:`cudaq::adj` can be used to invoke the 
     `adjoint <https://en.wikipedia.org/wiki/Conjugate_transpose>`__ transformation:
 
-    .. code-block:: cpp
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/adjoint_op.cpp
+       :language: cpp
+       :lines: 5-17
 
-        // Allocate a qubit in a |0> state.
-        cudaq::qubit qubit;
+.. tab:: Python
 
-        // Apply the unitary transformation defined by the matrix
-        // T = | 1      0     |
-        //     | 0  exp(iπ/4) |
-        // to the state of the qubit `q`:
-        t(qubit);
+    The :code:`ctrl` method of any gate can be used to apply the transformation
+    conditional on the state of one or more control qubits, see also this 
+    `Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
 
-        // Apply its adjoint transformation defined by the matrix
-        // T† = | 1      0     |
-        //      | 0  exp(-iπ/4) |
-        t<cudaq::adj>(qubit);
-        // Qubit `q` is now again in the initial state |0>.
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/controlled_op.py
+       :language: python
+       :lines: 4-21
+
+.. tab:: C++
 
     The template argument :code:`cudaq::ctrl` can be used to apply the transformation
     conditional on the state of one or more control qubits, see also this 
     `Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
 
-    .. code-block:: cpp
-
-        // Allocate qubits in a |0> state.
-        cudaq::qubit ctrl_1, ctrl_2, target;
-        // Create a superposition.
-        h(ctrl_1);
-        // Qubit ctrl_1 is now in a state (|0> + |1>) / √2.
-
-        // Apply the unitary transformation
-        // | 1  0  0  0 |
-        // | 0  1  0  0 |
-        // | 0  0  0  1 |
-        // | 0  0  1  0 |
-        x<cudaq::ctrl>(ctrl_1, ctrl_2);
-        // The qubits ctrl_1 and ctrl_2 are in a state (|00> + |11>) / √2.
-
-        // Set the state of `target` to |1>:
-        x(target);
-        // Apply the transformation T only if both 
-        // control qubits are in a |1> state:
-        t<cudaq::ctrl>(ctrl_1, ctrl_2, target);
-        // The qubits ctrl_1, ctrl_2, and target are now in a state
-        // (|000> + exp(iπ/4)|111>) / √2.
-
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/controlled_op.cpp
+       :language: cpp
+       :lines: 5-25
 
 Following common convention, by default the transformation is applied to the target qubit(s)
 if all control qubits are in a :code:`|1>` state. 
@@ -465,17 +276,13 @@ control qubit:
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit c, q;
-        h(c);
-        x<cudaq::ctrl>(!c, q);
-        // The qubits c and q are in a state (|01> + |10>) / √2.
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/negated_control.cpp
+       :language: cpp
+       :lines: 4-9
 
 This notation is only supported in the context of applying a controlled operation and is only valid for control qubits. For example, negating either of the target qubits in the
 :code:`swap` operation is not allowed.
 Negating the polarity of control qubits is similarly supported when using :code:`cudaq::control` to conditionally apply a custom quantum kernel.
-
 
 Measurements on Qubits
 =============================
@@ -489,17 +296,15 @@ This is a non-linear transformation, and no template overloads are available.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-        mz(qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/mz_op.py
+       :language: python
+       :lines: 4-7
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-        mz(qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/mz_op.cpp
+       :language: cpp
+       :lines: 5-8
 
 :code:`mx`
 ---------------------
@@ -510,17 +315,15 @@ This is a non-linear transformation, and no template overloads are available.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-        mx(qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/mx_op.py
+       :language: python
+       :lines: 4-7
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-        mx(qubit);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/mx_op.cpp
+       :language: cpp
+       :lines: 5-8
 
 :code:`my`
 ---------------------
@@ -531,18 +334,15 @@ This is a non-linear transformation, and no template overloads are available.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qubit = cudaq.qubit()
-        kernel.my(qubit)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/my_op.py
+       :language: python
+       :lines: 4-7
         
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qubit qubit;
-        my(qubit);
-
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/my_op.cpp
+       :language: cpp
+       :lines: 5-8
 
 User-Defined Custom Operations
 ==============================
@@ -560,23 +360,9 @@ Custom operations are supported on qubits only (`qudit` with `level = 2`).
     `numpy` array of complex numbers. A 1D matrix is interpreted as row-major.
     
 
-    .. code-block:: python
-
-        import cudaq
-        import numpy as np
-
-        cudaq.register_operation("custom_h", 1. / np.sqrt(2.) * np.array([1, 1, 1, -1]))
-
-        cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
-
-        @cudaq.kernel
-        def bell():
-            qubits = cudaq.qvector(2)
-            custom_h(qubits[0])
-            custom_x.ctrl(qubits[0], qubits[1])
-
-        cudaq.sample(bell).dump()
-
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/custom_op.py
+       :language: python
+       :lines: 4-17
         
 .. tab:: C++
 
@@ -585,33 +371,13 @@ Custom operations are supported on qubits only (`qudit` with `level = 2`).
     (can be 0), and the unitary matrix as a 1D row-major `std::vector<complex>` 
     representation.
     
-    .. code-block:: cpp
-
-        #include <cudaq.h>
-
-        CUDAQ_REGISTER_OPERATION(custom_h, 1, 0,
-                                {M_SQRT1_2, M_SQRT1_2, M_SQRT1_2, -M_SQRT1_2})
-
-        CUDAQ_REGISTER_OPERATION(custom_x, 1, 0, {0, 1, 1, 0})
-
-        __qpu__ void bell_pair() {
-            cudaq::qubit q, r;
-            custom_h(q);
-            custom_x<cudaq::ctrl>(q, r);
-        }
-
-        int main() {
-            auto counts = cudaq::sample(bell_pair);
-            for (auto &[bits, count] : counts) {
-                printf("%s\n", bits.data());
-            }
-        }
-
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/custom_op.cpp
+       :language: cpp
+       :lines: 5-23
 
 For multi-qubit operations, the matrix is interpreted with MSB qubit ordering,
 i.e. big-endian convention. The following example shows two different custom
 operations, each operating on 2 qubits.
-
 
 .. tab:: Python
 
@@ -620,7 +386,6 @@ operations, each operating on 2 qubits.
       :start-after: [Begin Docs]
       :end-before: [End Docs]
 
-
 .. tab:: C++
 
     .. literalinclude:: ../snippets/cpp/using/two_qubit_custom_op.cpp
@@ -628,13 +393,11 @@ operations, each operating on 2 qubits.
       :start-after: [Begin Docs]
       :end-before: [End Docs]
 
-
 .. note:: 
 
   When a custom operation is used on hardware backends, it is synthesized to a
   set of native quantum operations. Currently, only 1-qubit and 2-qubit custom 
   operations are supported on hardware backends.
-
 
 Photonic Operations on Qudits
 =============================
@@ -655,17 +418,15 @@ where :math:`d` is the qudit level.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        q = qudit(3)
-        create(q)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/create_op.py
+       :language: python
+       :lines: 4-7
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qvector<3> q(1);
-        create(q[0]);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/create_op.cpp
+       :language: cpp
+       :lines: 5-8
 
 :code:`annihilate`
 ---------------------
@@ -679,17 +440,15 @@ where :math:`d` is the qudit level.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        q = qudit(3)
-        annihilate(q)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/annihilate_op.py
+       :language: python
+       :lines: 4-7
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qvector<3> q(1);
-        annihilate(q[0]);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/annihilate_op.cpp
+       :language: cpp
+       :lines: 5-8
 
 :code:`phase_shift`
 ---------------------
@@ -703,17 +462,15 @@ is defined  by
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        q = qudit(4)
-        phase_shift(q, 0.17)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/phase_shift_op.py
+       :language: python
+       :lines: 4-7
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qvector<4> q(1);
-        phase_shift(q[0], 0.17);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/phase_shift_op.cpp
+       :language: cpp
+       :lines: 5-8
 
 :code:`beam_splitter`
 ---------------------
@@ -728,17 +485,15 @@ and :math:`a_2^\dagger`) of two qumodes, the beam splitter operator is defined b
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        q = [qudit(3) for _ in range(2)]
-        beam_splitter(q[0], q[1], 0.34)
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/beam_splitter_op.py
+       :language: python
+       :lines: 4-7
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qvector<3> q(2);
-        beam_splitter(q[0], q[1], 0.34);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/beam_splitter_op.cpp
+       :language: cpp
+       :lines: 5-8
 
 :code:`mz`
 ---------------------
@@ -747,15 +502,12 @@ This operation returns the measurement results of the input qumode(s).
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        qumodes = [qudit(3) for _ in range(2)]
-        mz(qumodes)
-
+    .. literalinclude:: /../sphinx/snippets/python/default_ops/mz_qumode_op.py
+       :language: python
+       :lines: 4-7
 
 .. tab:: C++
 
-    .. code-block:: cpp
-
-        cudaq::qvector<3> qumodes(2);
-        mz(qumodes);
+    .. literalinclude:: /../sphinx/snippets/cpp/default_ops/mz_qumode_op.cpp
+       :language: cpp
+       :lines: 5-8
