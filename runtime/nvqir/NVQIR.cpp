@@ -619,7 +619,7 @@ Result *__quantum__qis__mz__body(Qubit *q, Result *r) {
   return b ? ResultOne : ResultZero;
 }
 
-bool __quantum__qis__read_result__body(Result *result) {
+bool __quantum__rt__read_result(Result *result) {
   ScopedTraceWithContext("NVQIR::read_result");
   auto iter = measRes2Val.find(result);
   if (iter != measRes2Val.end())
