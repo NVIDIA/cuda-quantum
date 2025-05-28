@@ -18,8 +18,8 @@ static constexpr const char QIRProfilesAttrName[] = "qir_profiles";
 static constexpr const char QIROutputLabelingSchemaAttrName[] =
     "output_labeling_schema";
 static constexpr const char QIROutputNamesAttrName[] = "output_names";
-static constexpr const char QIRRequiredQubitsAttrName[] = "requiredQubits";
-static constexpr const char QIRRequiredResultsAttrName[] = "requiredResults";
+static constexpr const char QIRRequiredQubitsAttrName[] = "required_num_qubits";
+static constexpr const char QIRRequiredResultsAttrName[] = "required_num_results";
 static constexpr const char QIRIrreversibleFlagName[] = "irreversible";
 
 static constexpr const char StartingOffsetAttrName[] = "StartingOffset";

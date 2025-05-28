@@ -44,6 +44,8 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/ParseUtilities.h"
+#include "llvm/IR/Operator.h"
+#include "llvm/IR/InstIterator.h"
 
 namespace cudaq {
 
@@ -351,6 +353,43 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
   return mlir::success();
 }
 
+bool isIntOrFloatArithmeticOperation(llvm::Instruction &I) {
+  if (llvm::isa<llvm::BinaryOperator>(I)) {
+        auto op = I.getOpcode();
+        switch (op) {
+          case  llvm::Instruction::Add:
+          case  llvm::Instruction::Sub:
+          case  llvm::Instruction::Mul:
+          case  llvm::Instruction::UDiv:
+          case  llvm::Instruction::SDiv:
+          case  llvm::Instruction::URem:
+          case  llvm::Instruction::SRem:
+          case  llvm::Instruction::And:
+          case  llvm::Instruction::Or:
+          case  llvm::Instruction::Xor:
+          case  llvm::Instruction::Shl:
+          case  llvm::Instruction::AShr:
+          case  llvm::Instruction::LShr:
+          return true;
+          default: return false;
+        }
+    }
+  if (llvm::isa<llvm::FPMathOperator>(I)) {
+        auto op = I->getOpcode();
+        switch (op) {
+          case  llvm::Instruction::FAdd:
+          case  llvm::Instruction::FSub:
+          case  llvm::Instruction::FMul:
+          case  llvm::Instruction::FDiv:
+          case  llvm::Instruction::FRem:
+          case  llvm::Instruction::FCmp:
+          return true;
+          default: return false;
+        }
+    }
+    return false;
+}
+
 /// @brief Function to lower MLIR to a specific QIR profile
 /// @param op MLIR operation
 /// @param output Output stream
@@ -419,24 +458,63 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                             "dynamic_result_management", falseValue);
   if (isAdaptiveProfile) {
-    auto trueValue =
-        llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
+    llvm::DenseMap<std::size_t, bool> intPrecisions;
+    llvm::DenseMap<std::size_t, bool> floatPrecisions;
+    op->walk<mlir::WalkOrder::PreOrder>([&intPrecisions, &floatPrecisions](llvm::Function* func) {
+      for (llvm::inst_iterator I = inst_begin(func), E = inst_end(func); I != E; ++I) {
+        if (isIntOrFloatArithmeticOperation(*I))
+          for(std::size_t i = 0; i < I->getNumOperands(); i++) {
+            auto ty = I->getOperand(i)->getType();
+            if (ty->isIntegerTy())
+              intPrecisions[ty->getScalarSizeInBits()] = true;
+            else if (ty->isFloatingPointTy())
+              floatPrecisions[ty->getScalarSizeInBits()] = true;
+          }
+      }
+    });
+    std::string intPrecisionStr;
+    for(auto &[k,v]: intPrecisions) {
+      if (v) {
+        if (intPrecisionStr.empty())
+          intPrecisionStr += ",";
+        intPrecisionStr += "i" + std::to_string(k);
+      }
+    }
+    std::string floatPrecisionStr;
+    for(auto &[k,v]: floatPrecisions) {
+      if (v) {
+        if (floatPrecisionStr.empty())
+          floatPrecisionStr += ",";
+        floatPrecisionStr += "f" + std::to_string(k);
+      }
+    }
+    llvm::Constant* intPrecisionStrConst = llvm::ConstantDataArray::getString(*llvmContext, intPrecisionStr, true);
+    llvm::Constant* floatPrecisionStrConst = llvm::ConstantDataArray::getString(*llvmContext, floatPrecisionStr, true);
+    //auto trueValue =
+    //    llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
+    auto zeroInt2Value =
+        llvm::ConstantInt::getTrue(llvm::Type::getIntNTy(*llvmContext, 2));
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "qubit_resetting", trueValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "classical_ints", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "classical_floats", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "classical_fixed_points", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "user_functions", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "dynamic_float_args", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "extern_functions", falseValue);
+
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "qubit_resetting", trueValue);
+                               "int_computations", intPrecisionStrConst);
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_ints", falseValue);
+                               "float_computations", floatPrecisionStrConst);
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_floats", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_fixed_points", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "user_functions", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "dynamic_float_args", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "extern_functions", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "backwards_branching", falseValue);
+                              "backwards_branching", zeroInt2Value);
   }
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on
