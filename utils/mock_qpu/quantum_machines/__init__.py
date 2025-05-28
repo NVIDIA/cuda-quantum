@@ -11,6 +11,8 @@ from fastapi import FastAPI, HTTPException, Header
 from typing import Union
 import uvicorn, uuid
 from pydantic import BaseModel
+import logging
+import copy
 
 # Define the REST Server App
 app = FastAPI()
@@ -23,10 +25,12 @@ class Input(BaseModel):
 
 # Jobs look like the following type
 class Job(BaseModel):
-    qasm_strs: str
     shots: int
-    target: str
-    method: str = None
+    content: str
+    executor: str
+    qubit_mapping: str = None
+    api_key: str = None
+    source:str = "oq2"
 
 
 createdJobs = {}
@@ -47,21 +51,30 @@ server_exec_response = {
 async def post_execute_job(job: Job,
                            token: Union[str, None] = Header(alias="Authorization",
                                                           default=None)):
+    global createdJobs
+    logging.info("In /v1/execute. code: {}", job);
     jobID = uuid.uuid4()
-    response = server_exec_response.clone()
+    response = copy.deepcopy(server_exec_response)
     response['id'] = jobID
     createdJobs[jobID] = response
+    logging.info("In /v1/execute. response: {}", response);
     return response
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
 @app.get("/v1/results/{id}")
 async def get_results(id: str):
+    global countJobGetRequests, createdJobs
     if countJobGetRequests <= 3:
         countJobGetRequests += 1
+        logging.info("In /v1/results/{}. countJobGetRequests: {}", id, countJobGetRequests)
         return {"status": "InProgress"}
     countJobGetRequests = 0
-    return createdJobs.get(id)
+    response = copy.deepcopy(server_exec_response)
+    response['id'] = id
+    logging.info("In /v1/results/{}. returning job results: {}", id, response)
+    assert response 
+    return response
 
 
 def start_server(port):
