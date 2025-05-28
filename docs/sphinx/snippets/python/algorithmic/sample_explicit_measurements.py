@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import h, mz, reset, x
 
 # [Begin Kernel Python]
 @cudaq.kernel()
