@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import h, x, mz 
 
 # [Begin GHZ State Python]
 @cudaq.kernel
