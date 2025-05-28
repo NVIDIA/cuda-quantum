@@ -420,9 +420,20 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
     // i.e., ABC means C to be applied first.
     std::reverse(elemOps.begin(), elemOps.end());
     std::reverse(allDegrees.begin(), allDegrees.end());
-    result.emplace_back(std::make_pair(
-        productOp.get_coefficient(),
-        createProductOperatorTerm(elemOps, modeExtents, allDegrees, {})));
+    if (elemOps.empty()) {
+      // Constant term (no operator)
+      cudaq::product_op<cudaq::matrix_handler> constantTerm =
+          cudaq::sum_op<cudaq::matrix_handler>::identity(0);
+      cudensitymatElementaryOperator_t cudmElemOp = createElementaryOperator(
+          *constantTerm.begin(), parameters, modeExtents);
+      result.emplace_back(std::make_pair(
+          productOp.get_coefficient(),
+          createProductOperatorTerm({cudmElemOp}, modeExtents, {{0}}, {})));
+    } else {
+      result.emplace_back(std::make_pair(
+          productOp.get_coefficient(),
+          createProductOperatorTerm(elemOps, modeExtents, allDegrees, {})));
+    }
   }
   return result;
 }
@@ -560,7 +571,8 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Callback param name {}, value {}", context->paramNames[i],
+        cudaq::debug("Callback param name {}, batch size {}, value {}",
+                     context->paramNames[i], batchSize,
                      param_map[context->paramNames[i]]);
       }
 
