@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import ry, h, mz 
 from dataclasses import dataclass
 import numpy as np
 from typing import List 
