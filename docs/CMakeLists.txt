@@ -112,6 +112,8 @@ add_nvqpp_test(kernels_pass_by_value_cpp sphinx/snippets/cpp/kernels/kernels_pas
 add_nvqpp_test(kernels_variable_capture_cpp sphinx/snippets/cpp/kernels/kernels_variable_capture.cpp)
 add_nvqpp_test(kernels_composition_templates_cpp sphinx/snippets/cpp/kernels/kernels_composition_templates.cpp)
 add_nvqpp_test(kernels_composition_constraints_cpp sphinx/snippets/cpp/kernels/kernels_composition_constraints.cpp)
+add_nvqpp_test(intrinsic_modifiers_example_cpp sphinx/snippets/cpp/operations/intrinsic_modifiers_example.cpp)
+add_nvqpp_test(negative_polarity_control_example_cpp sphinx/snippets/cpp/operations/negative_polarity_control_example.cpp)
 
 
 set(NGPUS 0)
@@ -243,4 +245,6 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(kernels_pass_by_value_py kernels/kernels_pass_by_value.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   add_pycudaq_test(kernels_variable_capture_py kernels/kernels_variable_capture.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   add_pycudaq_test(kernels_composition_callable_py kernels/kernels_composition_callable.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  add_pycudaq_test(intrinsic_modifiers_example_py operations/intrinsic_modifiers_example.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  add_pycudaq_test(negative_polarity_control_example_py operations/negative_polarity_control_example.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
 endif()
