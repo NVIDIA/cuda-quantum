@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import h, x, z, mz # Import necessary operations
 from typing import Callable
 
 # [Begin Grover Python]
