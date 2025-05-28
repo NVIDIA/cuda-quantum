@@ -119,6 +119,7 @@ add_nvqpp_test(patterns_compute_action_cpp sphinx/snippets/cpp/patterns/compute_
 add_nvqpp_test(synthesis_examples_cpp sphinx/snippets/cpp/synthesis/synthesis_examples.cpp)
 add_nvqpp_test(types_qubit_example_cpp sphinx/snippets/cpp/types/types_qubit_example.cpp)
 add_nvqpp_test(types_qvector_example_cpp sphinx/snippets/cpp/types/types_qvector_example.cpp)
+add_nvqpp_test(noise_model_examples_cpp sphinx/snippets/cpp/noise/noise_model_examples.cpp)
 
 set(NGPUS 0)
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
@@ -256,4 +257,5 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(synthesis_examples_py synthesis/synthesis_examples.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   add_pycudaq_test(types_qubit_example_py types/types_qubit_example.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   add_pycudaq_test(types_qvector_example_py types/types_qvector_example.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  add_pycudaq_test(noise_model_examples_py noise/noise_model_examples.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
 endif()
