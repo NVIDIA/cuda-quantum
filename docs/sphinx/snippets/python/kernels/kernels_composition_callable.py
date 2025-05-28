@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import h, mz 
 from typing import Callable
 
 # [Begin Kernel Composition Callable Python]
