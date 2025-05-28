@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import ry, mz 
 import numpy as np
 
 # [Begin Variable Capture Python]
