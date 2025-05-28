@@ -1,5 +1,6 @@
 import cudaq
 
+
 def main():
     # Create a kernel and allocate a qubit in a |0> state.
     qubit = cudaq.qubit()
