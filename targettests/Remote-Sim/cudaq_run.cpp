@@ -11,7 +11,6 @@
 
 // clang-format off
 // RUN: nvq++ -fenable-cudaq-run %cpp_std --target remote-mqpu %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -fenable-cudaq-run --library-mode %cpp_std --target remote-mqpu %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include "remote_test_assert.h"

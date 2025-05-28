@@ -158,10 +158,14 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
   platform.set_noise(&noise_model);
+  auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
   std::vector<ResultTy> results;
-  for (std::size_t i = 0; i < shots; ++i)
+  for (std::size_t i = 0; i < shots; ++i) {
+    platform.set_exec_ctx(ctx.get());
     results.emplace_back(cudaq::invokeKernel(
         std::forward<QuantumKernel>(kernel), std::forward<ARGS>(args)...));
+    platform.reset_exec_ctx();
+  }
   platform.reset_noise();
   return results;
 #endif
@@ -333,11 +337,15 @@ run_async(std::size_t qpu_id, std::size_t shots,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         platform.set_noise(&noise_model);
+        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
         std::vector<ResultTy> res;
-        for (std::size_t i = 0; i < shots; ++i)
+        for (std::size_t i = 0; i < shots; ++i) {
+          platform.set_exec_ctx(ctx.get());
           res.emplace_back(
               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                   std::forward<ARGS>(args)...));
+          platform.reset_exec_ctx();
+        }
         platform.reset_noise();
         p.set_value(std::move(res));
         return;
@@ -370,14 +378,17 @@ run_async(std::size_t qpu_id, std::size_t shots,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         platform.set_noise(&noise_model);
+        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
         std::vector<ResultTy> res;
         for (std::size_t i = 0; i < shots; ++i) {
+          platform.set_exec_ctx(ctx.get());
           res.emplace_back(std::apply(
               [&kernel](ARGS &&...args) {
                 return cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                                            std::forward<ARGS>(args)...);
               },
               std::move(args)));
+          platform.reset_exec_ctx();
         }
         platform.reset_noise();
         p.set_value(std::move(res));
