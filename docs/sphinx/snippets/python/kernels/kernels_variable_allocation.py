@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import h, mz 
 
 # [Begin Variable Allocation Python]
 @cudaq.kernel
