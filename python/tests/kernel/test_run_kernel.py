@@ -458,7 +458,7 @@ def test_return_dataclass_dataclass_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: error: recursive struct types are not allowed in kernels.
+    # TODO: error: recursive struct types are not allowed in kernels
     # results = cudaq.run(test_return_dataclass, 2, MyClass2(MyClass1(0,True), 20), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass2(MyClass1(0,True), 20)
