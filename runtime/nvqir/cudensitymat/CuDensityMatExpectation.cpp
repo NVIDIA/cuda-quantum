@@ -32,8 +32,9 @@ void CuDensityMatExpectation::prepare(cudensitymatState_t state) {
       m_handle, m_expectation, state, CUDENSITYMAT_COMPUTE_64F,
       dynamics::Context::getRecommendedWorkSpaceLimit(), m_workspace, 0x0));
 }
-std::complex<double> CuDensityMatExpectation::compute(cudensitymatState_t state,
-                                                      double time) {
+std::vector<std::complex<double>>
+CuDensityMatExpectation::compute(cudensitymatState_t state, double time,
+                                 int64_t batchSize) {
   std::size_t requiredBufferSize = 0;
   HANDLE_CUDM_ERROR(cudensitymatWorkspaceGetMemorySize(
       m_handle, m_workspace, CUDENSITYMAT_MEMSPACE_DEVICE,
@@ -41,9 +42,6 @@ std::complex<double> CuDensityMatExpectation::compute(cudensitymatState_t state,
 
   void *workspaceBuffer = nullptr;
   if (requiredBufferSize > 0) {
-    cudaq::info("Required buffer size for expectation compute: {}",
-                requiredBufferSize);
-
     workspaceBuffer = dynamics::Context::getCurrentContext()->getScratchSpace(
         requiredBufferSize);
 
@@ -54,13 +52,17 @@ std::complex<double> CuDensityMatExpectation::compute(cudensitymatState_t state,
   }
 
   auto *expectationValue_d = cudaq::dynamics::createArrayGpu(
-      std::vector<std::complex<double>>(1, {0.0, 0.0}));
-  HANDLE_CUDM_ERROR(cudensitymatExpectationCompute(
-      m_handle, m_expectation, time, 1, 0, nullptr, state, expectationValue_d,
-      m_workspace, 0x0));
-  std::complex<double> result;
-  HANDLE_CUDA_ERROR(cudaMemcpy(&result, expectationValue_d,
-                               sizeof(std::complex<double>),
+      std::vector<std::complex<double>>(batchSize, {0.0, 0.0}));
+  {
+    cudaq::dynamics::PerfMetricScopeTimer metricTimer(
+        "cudensitymatExpectationCompute");
+    HANDLE_CUDM_ERROR(cudensitymatExpectationCompute(
+        m_handle, m_expectation, time, batchSize, 0, nullptr, state,
+        expectationValue_d, m_workspace, 0x0));
+  }
+  std::vector<std::complex<double>> result(batchSize);
+  HANDLE_CUDA_ERROR(cudaMemcpy(result.data(), expectationValue_d,
+                               batchSize * sizeof(std::complex<double>),
                                cudaMemcpyDefault));
   cudaq::dynamics::destroyArrayGpu(expectationValue_d);
   return result;
