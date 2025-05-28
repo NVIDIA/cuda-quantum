@@ -273,6 +273,33 @@ public:
 };
 } // namespace cudaq
 
+// The following macros avoid the unnecessary processing cost of argument
+// evaluation and string formation until after the log level check is done.
+#define CUDAQ_WARN(...)                                                        \
+  do {                                                                         \
+    if (::cudaq::details::should_log(::cudaq::details::LogLevel::warn)) {      \
+      ::cudaq::warn(__VA_ARGS__);                                              \
+    }                                                                          \
+  } while (false)
+
+#define CUDAQ_INFO(...)                                                        \
+  do {                                                                         \
+    if (::cudaq::details::should_log(::cudaq::details::LogLevel::info)) {      \
+      ::cudaq::info(__VA_ARGS__);                                              \
+    }                                                                          \
+  } while (false)
+
+#ifdef CUDAQ_DEBUG
+#define CUDAQ_DEBUG(...)                                                       \
+  do {                                                                         \
+    if (::cudaq::details::should_log(::cudaq::details::LogLevel::debug)) {     \
+      ::cudaq::debug(__VA_ARGS__);                                             \
+    }                                                                          \
+  } while (false)
+#else
+#define CUDAQ_DEBUG(...)
+#endif
+
 #define ScopedTraceWithContext(...)                                            \
   cudaq::ScopedTrace trace(cudaq::TraceContext(__builtin_FUNCTION(),           \
                                                __builtin_FILE(),               \
