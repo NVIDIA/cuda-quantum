@@ -290,14 +290,14 @@ public:
   } while (false)
 
 #ifdef CUDAQ_DEBUG
-#define CUDAQ_DEBUG(...)                                                       \
+#define CUDAQ_DBG(...)                                                       \
   do {                                                                         \
     if (::cudaq::details::should_log(::cudaq::details::LogLevel::debug)) {     \
       ::cudaq::debug(__VA_ARGS__);                                             \
     }                                                                          \
   } while (false)
 #else
-#define CUDAQ_DEBUG(...)
+#define CUDAQ_DBG(...)
 #endif
 
 #define ScopedTraceWithContext(...)                                            \
