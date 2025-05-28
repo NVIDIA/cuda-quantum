@@ -117,6 +117,10 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
+  /// @brief Whether or not to de-correlate X and Z errors in the noise model
+  /// that is used to generate the MSM.
+  bool msm_decorrelate_xz_errors = false;
+
   /// @brief Probability of occurrence of each error mechanism (column) in
   /// Measurement Syndrome Matrix (0-1 range).
   std::optional<std::vector<double>> msm_probabilities;

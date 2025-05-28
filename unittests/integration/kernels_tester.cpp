@@ -256,7 +256,7 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_only) {
   }
 }
 
-CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1) {
+CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1_corr) {
   struct multi_round_ghz {
     void operator()(int num_qubits, int num_rounds,
                     double noise_probability) __qpu__ {
@@ -337,6 +337,93 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1) {
       0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833,
       0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.062500,
       0.062500, 0.062500, 0.062500, 0.062500};
+  for (std::size_t i = 0; i < expected_probabilities.size(); i++)
+    EXPECT_NEAR(expected_probabilities[i], ctx_msm.msm_probabilities.value()[i],
+                1e-5)
+        << "Mismatch at index " << i;
+}
+
+CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1_decorrelate) {
+  struct multi_round_ghz {
+    void operator()(int num_qubits, int num_rounds,
+                    double noise_probability) __qpu__ {
+      cudaq::qvector q(num_qubits);
+      for (int round = 0; round < num_rounds; round++) {
+        h(q[0]);
+        for (int qi = 0; qi < num_qubits; qi++)
+          cudaq::apply_noise<cudaq::depolarization_channel>(noise_probability,
+                                                            q[qi]);
+        for (int qi = 1; qi < num_qubits; qi++)
+          x<cudaq::ctrl>(q[qi - 1], q[qi]);
+        mz(q);
+        for (int qi = 0; qi < num_qubits; qi++)
+          reset(q[qi]);
+      }
+    }
+  };
+
+  int num_qubits = 5;
+  int num_rounds = 3;
+  double noise_bf_prob = 0.0625;
+
+  cudaq::noise_model noise;
+  cudaq::bit_flip_channel bf(noise_bf_prob);
+  for (std::size_t i = 0; i < num_qubits; i++)
+    noise.add_channel("mz", {i}, bf);
+  cudaq::set_noise(noise);
+
+  // Stage 1 - get the MSM size by running with "msm_size". The
+  // result will be returned in ctx_msm_size.shots.
+  cudaq::ExecutionContext ctx_msm_size("msm_size");
+  ctx_msm_size.msm_decorrelate_xz_errors = true;
+  auto &platform = cudaq::get_platform();
+  platform.set_exec_ctx(&ctx_msm_size);
+  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
+  platform.reset_exec_ctx();
+
+  // Stage 2 - get the MSM using the size calculated above
+  // (ctx_msm_size.msm_dimensions).
+  cudaq::ExecutionContext ctx_msm("msm");
+  ctx_msm.msm_decorrelate_xz_errors = true;
+  ctx_msm.noiseModel = &noise;
+  ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
+  platform.set_exec_ctx(&ctx_msm);
+  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
+  platform.reset_exec_ctx();
+
+  // The MSM is now stored in ctx_msm.result. More precisely, the unfiltered
+  // MSM is stored there, but some post-processing may be required to
+  // eliminate duplicate columns.
+  auto msm_as_strings = ctx_msm.result.sequential_data();
+  auto msm_transpose = transpose_msm(msm_as_strings);
+
+  const std::vector<std::string> expected = {
+      "1.........1..................................",
+      "1.1........1.................................",
+      "1.1.1.......1................................",
+      "1.1.1.1......1...............................",
+      "1.1.1.1.1.....1..............................",
+      ".1.1...........1.........1...................",
+      ".1.1...........1.1........1..................",
+      ".1.1...........1.1.1.......1.................",
+      ".1.1...........1.1.1.1......1................",
+      ".1.1...........1.1.1.1.1.....1...............",
+      "...1.1..........1.1...........1.........1....",
+      "...1.1..........1.1...........1.1........1...",
+      "...1.1..........1.1...........1.1.1.......1..",
+      "...1.1..........1.1...........1.1.1.1......1.",
+      "...1.1..........1.1...........1.1.1.1.1.....1"};
+
+  EXPECT_EQ(msm_transpose, expected);
+
+  std::vector<double> expected_probabilities{
+      0.041667, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667,
+      0.041667, 0.041667, 0.041667, 0.062500, 0.062500, 0.062500, 0.062500,
+      0.062500, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667,
+      0.041667, 0.041667, 0.041667, 0.041667, 0.062500, 0.062500, 0.062500,
+      0.062500, 0.062500, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667,
+      0.041667, 0.041667, 0.041667, 0.041667, 0.041667, 0.062500, 0.062500,
+      0.062500, 0.062500, 0.062500};
   for (std::size_t i = 0; i < expected_probabilities.size(); i++)
     EXPECT_NEAR(expected_probabilities[i], ctx_msm.msm_probabilities.value()[i],
                 1e-5)
