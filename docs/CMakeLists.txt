@@ -116,6 +116,7 @@ add_nvqpp_test(intrinsic_modifiers_example_cpp sphinx/snippets/cpp/operations/in
 add_nvqpp_test(negative_polarity_control_example_cpp sphinx/snippets/cpp/operations/negative_polarity_control_example.cpp)
 add_nvqpp_test(spin_op_creation_cpp sphinx/snippets/cpp/operators/spin_op_creation.cpp)
 add_nvqpp_test(patterns_compute_action_cpp sphinx/snippets/cpp/patterns/compute_action_example.cpp)
+add_nvqpp_test(synthesis_examples_cpp sphinx/snippets/cpp/synthesis/synthesis_examples.cpp)
 
 set(NGPUS 0)
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
@@ -250,4 +251,5 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(negative_polarity_control_example_py operations/negative_polarity_control_example.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   add_pycudaq_test(spin_op_creation_py operators/spin_op_creation.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   add_pycudaq_test(patterns_compute_action_py patterns/compute_action_example.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  add_pycudaq_test(synthesis_examples_py synthesis/synthesis_examples.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
 endif()
