@@ -199,6 +199,9 @@ getTargetLayout(func::FuncOp func, cudaq::cc::StructType structTy) {
   StringRef dataLayoutSpec = "";
   if (auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
     dataLayoutSpec = cast<StringAttr>(attr);
+  else
+    throw std::runtime_error("No data layout attribute is set on the module.");
+
   auto dataLayout = llvm::DataLayout(dataLayoutSpec);
   // Convert bufferTy to llvm.
   llvm::LLVMContext context;
@@ -534,18 +537,6 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   }
 
   return false;
-}
-
-/// @brief Create a new OpaqueArguments pointer and pack the
-/// python arguments in it. Clients must delete the memory.
-inline OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
-                                     const std::string &name) {
-  auto kernelFunc = getKernelFuncOp(mod, name);
-  auto *argData = new cudaq::OpaqueArguments();
-  args = simplifiedValidateInputArguments(args);
-  cudaq::packArgs(*argData, args, kernelFunc,
-                  [](OpaqueArguments &, py::object &) { return false; });
-  return argData;
 }
 
 } // namespace cudaq

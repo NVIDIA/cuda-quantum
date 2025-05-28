@@ -621,10 +621,9 @@ def test_return_tuple_bool_int():
         return t
 
     results = cudaq.run(simple_tuple_bool_int, 2, (True, 13), shots_count=2)
-    # TODO: fix alignment
-    # assert len(results) == 2
-    # assert results[0] == (True, 13)
-    # assert results[1] == (True, 13)
+    assert len(results) == 2
+    assert results[0] == (True, 13)
+    assert results[1] == (True, 13)
 
 
 def test_return_tuple_int_bool():
@@ -636,7 +635,6 @@ def test_return_tuple_int_bool():
     # TODO: seg fault on running any kernel with no args
     # results = cudaq.run(simple_tuple_int_bool_no_args, shots_count=2)
     # assert len(results) == 2
-    # TODO: fix alignment
     #assert results[0] == (13, True)
     #assert results[1] == (13, True)
 
@@ -672,10 +670,9 @@ def test_return_tuple_bool_int_float():
     results = cudaq.run(simple_tuple_bool_int_float,
                         2, (True, 13, 42.3),
                         shots_count=2)
-    # TODO: fix alignment
-    # assert len(results) == 2
-    # assert results[0] == (True, 13, 42.3)
-    # assert results[1] == (True, 13, 42.3)
+    assert len(results) == 2
+    assert results[0] == (True, 13, 42.3)
+    assert results[1] == (True, 13, 42.3)
 
 
 def test_return_dataclass_int_bool():
@@ -735,10 +732,9 @@ def test_return_dataclass_bool_int():
                         2,
                         MyClass(True, 17),
                         shots_count=2)
-    # TODO: fix alignment
-    # assert len(results) == 2
-    # assert results[0] == MyClass(True, 17)
-    # assert results[1] == MyClass(True, 17)
+    assert len(results) == 2
+    assert results[0] == MyClass(True, 17)
+    assert results[1] == MyClass(True, 17)
 
 
 def test_return_dataclass_float_int():
