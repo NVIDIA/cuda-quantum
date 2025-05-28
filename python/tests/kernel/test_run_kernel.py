@@ -311,41 +311,20 @@ def test_return_tuple():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: fix alignment
     results = cudaq.run(simple_tuple_bool_int, 2, (True, 13), shots_count=2)
-    ## DEBUG NOTE - input log to `cudaq::RecordLogParser::parse()` function
-    '''
-    OUTPUT  TUPLE   2       tuple<i1, i64>
-    OUTPUT  BOOL    true    .0
-    OUTPUT  INT     0       .1
-    OUTPUT  TUPLE   2       tuple<i1, i64>
-    OUTPUT  BOOL    true    .0
-    OUTPUT  INT     0       .1
-    '''
     assert len(results) == 2
-    # assert results[0] == (True, 13)
-    # assert results[1] == (True, 13)
+    assert results[0] == (True, 13)
+    assert results[1] == (True, 13)
 
     @cudaq.kernel
     def simple_tuple_int_bool(n: int, t: tuple[int, bool]) -> tuple[int, bool]:
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: fix alignment
     results = cudaq.run(simple_tuple_int_bool, 2, (13, True), shots_count=2)
-    ## DEBUG NOTE - input log to `cudaq::RecordLogParser::parse()` function
-    '''
-    OUTPUT  TUPLE   2       tuple<i64, i1>
-    OUTPUT  INT     13      .0
-    OUTPUT  BOOL    true    .1
-    OUTPUT  TUPLE   2       tuple<i64, i1>
-    OUTPUT  INT     13      .0
-    OUTPUT  BOOL    true    .1
-    '''
     assert len(results) == 2
-    ## FIXME: Fails on arm64 in CI
-    # assert results[0] == (13, True)
-    # assert results[1] == (13, True)
+    assert results[0] == (13, True)
+    assert results[1] == (13, True)
 
     @cudaq.kernel
     def simple_tuple_bool_int_float(
@@ -353,24 +332,12 @@ def test_return_tuple():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: fix alignment
     results = cudaq.run(simple_tuple_bool_int_float,
                         2, (True, 13, 42.3),
                         shots_count=2)
-    ## DEBUG NOTE - input log to `cudaq::RecordLogParser::parse()` function
-    '''
-    OUTPUT  TUPLE   3       tuple<i1, i64, f64>
-    OUTPUT  BOOL    true    .0
-    OUTPUT  INT     0       .1
-    OUTPUT  DOUBLE  42.3    .2
-    OUTPUT  TUPLE   3       tuple<i1, i64, f64>
-    OUTPUT  BOOL    true    .0
-    OUTPUT  INT     0       .1
-    OUTPUT  DOUBLE  42.3    .2
-    '''
     assert len(results) == 2
-    # assert results[0] == (True, 13, 42.3)
-    # assert results[1] == (True, 13, 42.3)
+    assert results[0] == (True, 13, 42.3)
+    assert results[1] == (True, 13, 42.3)
 
 
 def test_return_dataclass_int_bool():
@@ -390,9 +357,8 @@ def test_return_dataclass_int_bool():
                         MyClass(16, True),
                         shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    # assert results[0] == MyClass(16, True)
-    # assert results[1] == MyClass(16, True)
+    assert results[0] == MyClass(16, True)
+    assert results[1] == MyClass(16, True)
 
 
 def test_return_dataclass_bool_int():
@@ -412,9 +378,8 @@ def test_return_dataclass_bool_int():
                         MyClass(True, 17),
                         shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    # assert results[0] == MyClass(True, 17)
-    # assert results[1] == MyClass(True, 17)
+    assert results[0] == MyClass(True, 17)
+    assert results[1] == MyClass(True, 17)
 
 
 def test_return_dataclass_float_int():
@@ -493,7 +458,7 @@ def test_return_dataclass_dataclass_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: error: recursive struct types are not allowed in kernels.
+    # TODO: error: recursive struct types are not allowed in kernels
     # results = cudaq.run(test_return_dataclass, 2, MyClass2(MyClass1(0,True), 20), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass2(MyClass1(0,True), 20)
