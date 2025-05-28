@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import spin, x, y, z, ry, rx, cx
 from cudaq.optimizers import COBYLA
 
 # [Begin COBYLA Example Python]
