@@ -201,6 +201,7 @@ getTargetLayout(func::FuncOp func, cudaq::cc::StructType structTy) {
     dataLayoutSpec = cast<StringAttr>(attr);
   else
     throw std::runtime_error("No data layout attribute is set on the module.");
+
   auto dataLayout = llvm::DataLayout(dataLayoutSpec);
   // Convert bufferTy to llvm.
   llvm::LLVMContext context;

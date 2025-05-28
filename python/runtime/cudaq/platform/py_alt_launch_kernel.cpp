@@ -108,8 +108,8 @@ void setDataLayout(MlirModule module) {
   }
 }
 
-/// @brief Create a new OpaqueArguments pointer and pack the
-/// python arguments in it. Clients must delete the memory.
+/// @brief Create a new OpaqueArguments pointer and pack the python arguments
+/// in it. Clients must delete the memory.
 OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
                               const std::string &name) {
   auto kernelFunc = getKernelFuncOp(mod, name);
@@ -681,7 +681,7 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
         // Collect field names.
         std::vector<py::str> fieldNames;
         for (const auto &[attr_name, unused] : attributes)
-          fieldNames.push_back(py::str(attr_name));
+          fieldNames.emplace_back(py::str(attr_name));
 
         // Read field values and create the constructor `kwargs`
         auto [size, offsets] = getTargetLayout(kernelFuncOp, ty);

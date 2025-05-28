@@ -613,9 +613,8 @@ def test_return_tuple_int_bool():
 
     results = cudaq.run(simple_tuple_int_bool_no_args, shots_count=2)
     assert len(results) == 2
-    # TODO: fix alignment
-    #assert results[0] == (13, True)
-    #assert results[1] == (13, True)
+    assert results[0] == (13, True)
+    assert results[1] == (13, True)
 
     @cudaq.kernel
     def simple_tuple_int_bool(n: int, t: tuple[int, bool]) -> tuple[int, bool]:
@@ -798,7 +797,7 @@ def test_return_dataclass_dataclass_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: error: recursive struct types are not allowed in kernels.
+    # TODO: error: recursive struct types are not allowed in kernels
     # results = cudaq.run(test_return_dataclass, 2, MyClass2(MyClass1(0,True), 20), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass2(MyClass1(0,True), 20)

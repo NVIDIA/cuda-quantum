@@ -152,7 +152,7 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
     // Serialize arguments (all concrete parameters except for the first one)
     // into kernelArgs buffer space.
     auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
-    cudaq::setDataLayout(kernelMod);
+    setDataLayout(kernelMod);
     cudaq::packArgs(
         args, runtimeArgs, kernelFunc,
         [](OpaqueArguments &, py::object &) { return false; }, startingArgIdx);
