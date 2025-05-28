@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import spin, x, ry 
 import numpy as np 
 
 # [Begin Deuteron Sweep Python]
