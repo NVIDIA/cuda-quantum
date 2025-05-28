@@ -1,5 +1,4 @@
 import cudaq
-from cudaq import h, x, mz, reset 
 
 # [Begin Bell State Python]
 @cudaq.kernel()
