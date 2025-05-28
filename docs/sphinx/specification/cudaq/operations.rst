@@ -43,31 +43,19 @@ Here is an example of how one might modify an intrinsic operation for multi-cont
 
 .. tab:: C++ 
   
-  .. code-block:: cpp 
-
-    cudaq::qubit q, r, s;
-    // Apply T operation
-    t(q);
-    // Apply Tdg operation
-    t<cudaq::adj>(q);
-    // Apply control Hadamard operation
-    h<cudaq::ctrl>(q,r,s);
-    // Error, ctrl requires > 1 qubit operands
-    // h<cudaq::ctrl>(r);
+  .. literalinclude:: /../snippets/cpp/operations/intrinsic_modifiers_example.cpp
+     :language: cpp
+     :start-after: [Begin Intrinsic Modifiers C++]
+     :end-before: [End Intrinsic Modifiers C++]
+     :dedent: 2 
 
 .. tab:: Python 
 
-  .. code-block:: python 
-
-    q, r, s = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
-    # Apply T operation
-    t(q)
-    # Apply Tdg operation
-    t.adj(q)
-    # Apply control Hadamard operation
-    h.ctrl(q,r,s)
-    # Error, ctrl requires > 1 qubit operands
-    # h.ctrl(r);
+  .. literalinclude:: /../snippets/python/operations/intrinsic_modifiers_example.py
+     :language: python
+     :start-after: [Begin Intrinsic Modifiers Python]
+     :end-before: [End Intrinsic Modifiers Python]
+     :dedent: 4
 
 Operations on :code:`cudaq::qubit`
 ----------------------------------
@@ -114,14 +102,18 @@ qubit
 
 .. tab:: C++ 
 
-  .. code-block:: cpp 
-
-    x<cudaq::ctrl>(!q, r);
+  .. literalinclude:: /../snippets/cpp/operations/negative_polarity_control_example.cpp
+     :language: cpp
+     :start-after: [Begin Negative Polarity C++]
+     :end-before: [End Negative Polarity C++]
+     :dedent: 2
 
 .. tab:: Python 
 
-  .. code-block:: python 
-
-    x.ctrl(~q, r)
+  .. literalinclude:: /../snippets/python/operations/negative_polarity_control_example.py
+     :language: python
+     :start-after: [Begin Negative Polarity Python]
+     :end-before: [End Negative Polarity Python]
+     :dedent: 4
   
 The set of gates that the official CUDA-Q implementation supports can be found in the :doc:`API documentation </api/api>`.
