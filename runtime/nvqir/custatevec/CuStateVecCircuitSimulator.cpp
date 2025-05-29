@@ -430,7 +430,7 @@ public:
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
         &parity, basisBits, /*N Bits*/ 1, rand,
         CUSTATEVEC_COLLAPSE_NORMALIZE_AND_ZERO));
-    cudaq::info("Measured qubit {} -> {}", qubitIdx, parity);
+    CUDAQ_INFO("Measured qubit {} -> {}", qubitIdx, parity);
     return parity == 1 ? true : false;
   }
 
@@ -461,8 +461,8 @@ public:
       return;
     }
     flushGateQueue();
-    cudaq::info(" [cusv decomposing] exp_pauli({}, {})", theta,
-                term.to_string());
+    CUDAQ_INFO(" [cusv decomposing] exp_pauli({}, {})", theta,
+               term.to_string());
     std::vector<int> controls, targets;
     for (const auto &bit : controlIds)
       controls.emplace_back(static_cast<int>(bit));
@@ -667,7 +667,7 @@ public:
           handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
           expectationValues, pauliArray, 1, basisBitsArray, nBasisBitsArray));
       expVal = expectationValues[0];
-      cudaq::info("Computed expectation value = {}", expVal);
+      CUDAQ_INFO("Computed expectation value = {}", expVal);
       return cudaq::ExecutionResult{expVal};
     }
 
