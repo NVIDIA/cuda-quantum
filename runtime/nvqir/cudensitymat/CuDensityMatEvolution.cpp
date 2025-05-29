@@ -81,7 +81,7 @@ evolve_result evolveSingle(
 
   auto *cudmState = asCudmState(const_cast<state &>(initialState));
   if (!cudmState->is_initialized())
-    cudmState->initialize_cudm(handle, dims);
+    cudmState->initialize_cudm(handle, dims, /*batchSize=*/1);
 
   state initial_State = [&]() {
     if (!collapseOperators.empty() && !cudmState->is_density_matrix())
@@ -110,9 +110,10 @@ evolve_result evolveSingle(
       for (auto &expectation : expectations) {
         auto *cudmState = asCudmState(currentState);
         expectation.prepare(cudmState->get_impl());
-        const auto expVal =
-            expectation.compute(cudmState->get_impl(), step.real());
-        expVals.emplace_back(expVal.real());
+        const auto expVal = expectation.compute(cudmState->get_impl(),
+                                                step.real(), /*batchSize=*/1);
+        assert(expVal.size() == 1);
+        expVals.emplace_back(expVal.front().real());
       }
       expectationVals.emplace_back(std::move(expVals));
       intermediateStates.emplace_back(currentState);
@@ -131,8 +132,10 @@ evolve_result evolveSingle(
     auto *cudmState = asCudmState(finalState);
     for (auto &expectation : expectations) {
       expectation.prepare(cudmState->get_impl());
-      const auto expVal = expectation.compute(cudmState->get_impl(), finalTime);
-      expVals.emplace_back(expVal.real());
+      const auto expVal = expectation.compute(cudmState->get_impl(), finalTime,
+                                              /*batchSize=*/1);
+      assert(expVal.size() == 1);
+      expVals.emplace_back(expVal.front().real());
     }
     return evolve_result(finalState, expVals);
   }
@@ -163,6 +166,104 @@ evolve_result evolveSingle(
   return evolveSingle(
       hamiltonian, dimensions, schedule, state(cudmState.release()), integrator,
       collapse_operators, observables, store_intermediate_results, shots_count);
+}
+
+std::vector<evolve_result> evolveBatched(
+    const sum_op<cudaq::matrix_handler> &hamiltonian,
+    const cudaq::dimension_map &dimensionsMap, const schedule &schedule,
+    const std::vector<state> &initialStates, base_integrator &integrator,
+    const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables,
+    bool storeIntermediateResults, std::optional<int> shotsCount) {
+  LOG_API_TIME();
+  cudensitymatHandle_t handle =
+      dynamics::Context::getCurrentContext()->getHandle();
+  std::map<std::size_t, int64_t> dimensions =
+      convertToOrderedMap(dimensionsMap);
+  std::vector<int64_t> dims;
+  for (const auto &[id, dim] : dimensions)
+    dims.emplace_back(dim);
+  const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
+    auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
+    auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
+    if (!castSimState)
+      throw std::runtime_error("Invalid state.");
+    return castSimState;
+  };
+  std::vector<CuDensityMatState *> states;
+  for (auto &initialState : initialStates) {
+    states.emplace_back(asCudmState(const_cast<state &>(initialState)));
+  }
+  auto batchedState = CuDensityMatState::createBatchedState(
+      handle, states, dims, !collapseOperators.empty());
+  SystemDynamics system(dims, hamiltonian, collapseOperators);
+  cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);
+  integrator.setState(cudaq::state(batchedState.release()), 0.0);
+  std::vector<CuDensityMatExpectation> expectations;
+  auto &opConverter =
+      cudaq::dynamics::Context::getCurrentContext()->getOpConverter();
+  for (auto &obs : observables) {
+    auto cudmObsOp = opConverter.convertToCudensitymatOperator({}, obs, dims);
+    expectations.emplace_back(CuDensityMatExpectation(handle, cudmObsOp));
+  }
+
+  std::vector<std::vector<std::vector<double>>> expectationVals(
+      initialStates.size());
+  std::vector<std::vector<cudaq::state>> intermediateStates(
+      initialStates.size());
+  for (const auto &step : schedule) {
+    integrator.integrate(step.real());
+    auto [t, currentState] = integrator.getState();
+    if (storeIntermediateResults) {
+      auto *cudmState = asCudmState(currentState);
+      std::vector<std::vector<double>> expVals(initialStates.size());
+      for (auto &expectation : expectations) {
+        expectation.prepare(cudmState->get_impl());
+        const auto expVal = expectation.compute(
+            cudmState->get_impl(), step.real(), initialStates.size());
+        assert(expVal.size() == initialStates.size());
+        for (int i = 0; i < expVal.size(); ++i) {
+          expVals[i].emplace_back(expVal[i].real());
+        }
+      }
+      auto states = CuDensityMatState::splitBatchedState(*cudmState);
+      assert(states.size() == initialStates.size());
+      for (int i = 0; i < initialStates.size(); ++i) {
+        expectationVals[i].emplace_back(expVals[i]);
+        intermediateStates[i].emplace_back(cudaq::state(states[i]));
+      }
+    }
+  }
+
+  if (storeIntermediateResults) {
+    std::vector<evolve_result> results;
+    for (int i = 0; i < initialStates.size(); ++i) {
+      results.emplace_back(
+          evolve_result(intermediateStates[i], expectationVals[i]));
+    }
+    return results;
+  } else {
+    // Only final state is needed
+    auto [finalTime, finalState] = integrator.getState();
+    auto *cudmState = asCudmState(finalState);
+    std::vector<std::vector<double>> expVals(initialStates.size());
+    for (auto &expectation : expectations) {
+      expectation.prepare(cudmState->get_impl());
+      const auto expVal = expectation.compute(cudmState->get_impl(), finalTime,
+                                              initialStates.size());
+      assert(expVal.size() == initialStates.size());
+      for (int i = 0; i < expVal.size(); ++i) {
+        expVals[i].emplace_back(expVal[i].real());
+      }
+    }
+    auto states = CuDensityMatState::splitBatchedState(*cudmState);
+    assert(states.size() == initialStates.size());
+    std::vector<evolve_result> results;
+    for (int i = 0; i < initialStates.size(); ++i) {
+      results.emplace_back(evolve_result(cudaq::state(states[i]), expVals[i]));
+    }
+    return results;
+  }
 }
 
 } // namespace cudaq::__internal__

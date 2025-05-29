@@ -209,17 +209,6 @@ def evolve_single(
         integrator: Optional[BaseIntegrator] = None,
         shots_count: Optional[int] = None) -> cudaq_runtime.EvolveResult:
     target_name = cudaq_runtime.get_target().name
-    if target_name == "dynamics":
-        try:
-            from .cudm_solver import evolve_dynamics
-        except:
-            raise ImportError(
-                "Failed to load dynamics solver. Please check your installation"
-            )
-        return evolve_dynamics(hamiltonian, dimensions, schedule, initial_state,
-                               collapse_operators, observables,
-                               store_intermediate_results, integrator)
-
     if target_name in analog_targets:
         ## TODO: Convert result from `sample_result` to `evolve_result`
         return _launch_analog_hamiltonian_kernel(target_name, hamiltonian,
@@ -404,18 +393,29 @@ def evolve(
     if target_name == "dynamics" and shots_count is not None:
         warnings.warn(f"`shots_count` will be ignored on target {target_name}")
 
-    if isinstance(initial_state, Sequence):
-        return [
-            evolve_single(hamiltonian, dimensions, schedule, state,
-                          collapse_operators, observables,
-                          store_intermediate_results, integrator, shots_count)
-            for state in initial_state
-        ]
+    if target_name == "dynamics":
+        try:
+            from .cudm_solver import evolve_dynamics
+        except:
+            raise ImportError(
+                "Failed to load dynamics solver. Please check your installation"
+            )
+        return evolve_dynamics(hamiltonian, dimensions, schedule, initial_state,
+                               collapse_operators, observables,
+                               store_intermediate_results, integrator)
     else:
-        return evolve_single(hamiltonian, dimensions, schedule, initial_state,
-                             collapse_operators, observables,
-                             store_intermediate_results, integrator,
-                             shots_count)
+        if isinstance(initial_state, Sequence):
+            return [
+                evolve_single(hamiltonian, dimensions, schedule, state,
+                              collapse_operators, observables,
+                              store_intermediate_results, integrator,
+                              shots_count) for state in initial_state
+            ]
+        else:
+            return evolve_single(hamiltonian, dimensions, schedule,
+                                 initial_state, collapse_operators, observables,
+                                 store_intermediate_results, integrator,
+                                 shots_count)
 
 
 def evolve_single_async(

@@ -88,6 +88,22 @@ public:
     expectation_values = result;
   }
 
+  // Construct result with a final state and intermediate expectations
+  evolve_result(state finalState,
+                const std::vector<std::vector<double>> &expectations)
+      : states(std::make_optional<std::vector<cudaq::state>>(
+            std::vector<cudaq::state>{std::move(finalState)})) {
+    std::vector<std::vector<observe_result>> result;
+    const spin_op emptyOp = spin_op::empty();
+    for (const auto &vec : expectations) {
+      std::vector<observe_result> subResult;
+      for (auto e : vec) {
+        subResult.push_back(observe_result(e, emptyOp));
+      }
+      result.push_back(subResult);
+    }
+    expectation_values = result;
+  }
   evolve_result(const sample_result &sr) : sampling_result(sr) {}
 };
 } // namespace cudaq
