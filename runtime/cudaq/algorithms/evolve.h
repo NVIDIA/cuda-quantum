@@ -9,7 +9,6 @@
 #pragma once
 
 #include "common/EvolveResult.h"
-#include "common/KernelWrapper.h"
 #include "cudaq/algorithms/base_integrator.h"
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/host_config.h"
