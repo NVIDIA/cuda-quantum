@@ -508,70 +508,10 @@ void invokeCallableWithSerializedArgs_vec(const std::vector<double> &vec_parms,
 }
 
 // Wrapper for quantum kernel invocation, i.e., `kernel(args...)`.
-// In library mode, if the remote platform is used, we redirect it to the
-// platform's `launchKernel` instead of invoking it.
 template <typename QuantumKernel, typename... Args>
 std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
                                                           Args &&...args) {
-#if defined(CUDAQ_REMOTE_SIM) && defined(CUDAQ_LIBRARY_MODE)
-  if constexpr (has_name<QuantumKernel>::value) {
-    // kernel_builder kernel: it always has quake representation; hence, no need
-    // to wrap the kernel (run as MLIR mode).
-    // Just need to JIT code to get it registered.
-    static_cast<cudaq::details::kernel_builder_base &>(fn).jitCode();
-    auto serializedArgsBuffer = serializeArgs(std::forward<Args>(args)...);
-    [[maybe_unused]] auto result = cudaq::get_platform().launchKernel(
-        fn.name(), nullptr, (void *)serializedArgsBuffer.data(),
-        serializedArgsBuffer.size(), 0, {});
-  } else {
-    // In library mode, to use the remote simulator platform, we need to pack
-    // the argument and delegate to the platform's launchKernel rather than
-    // invoking the kernel function directly.
-    auto serializedArgsBuffer = serializeArgs(std::forward<Args>(args)...);
-    // Note: we explicitly instantiate this wrapper so that the symbol is
-    // present in the IR.
-    auto *wrappedKernel = reinterpret_cast<void (*)(void *)>(
-        invokeCallableWithSerializedArgs<QuantumKernel, std::decay_t<Args>...>);
-
-    // In the remote execution mode, we don't need the function pointer.
-    // For raw function pointers, i.e., kernels described as free functions, we
-    // send on the function pointer to the platform to retrieve the symbol name
-    // since the typeid of a function only contains signature info.
-    if constexpr (std::is_class_v<std::decay_t<QuantumKernel>>) {
-      // FIXME: this shouldn't use the serialization code any longer. It should
-      // build a vector of void* and pass that instead.
-      [[maybe_unused]] auto result = cudaq::get_platform().launchKernel(
-          cudaq::getKernelName(fn), nullptr,
-          (void *)serializedArgsBuffer.data(), serializedArgsBuffer.size(), 0,
-          {});
-    } else {
-      [[maybe_unused]] auto result = cudaq::get_platform().launchKernel(
-          cudaq::getKernelName(fn),
-          reinterpret_cast<cudaq::KernelThunkType>(&fn),
-          (void *)serializedArgsBuffer.data(), serializedArgsBuffer.size(), 0,
-          {});
-    }
-  }
-#else
-  return fn(std::forward<Args>(args)...);
-#endif
-}
-
-// `invokeKernel` specialization for `std::function` wrapped quantum kernels.
-// If a `__qpu__` kernel is wrapped inside a function, to make it worked with
-// `CUDAQ_REMOTE_SIM` in **library** mode, the `__qpu__` kernel invocation
-// should already have been wrapped with `invokeKernel`. Hence, we just invoke
-// it. For example,
-// ```
-// __qpu__ void kernel() {}
-// auto wrapped = [&](){invokeKernel(kernel);};
-// cudaq::observe(H, wrapped);
-// ```
-// Since `cudaq::observe` again uses `invokeKernel` to execute the callable (a
-// `std::function`), we want to pass it through.
-template <typename Signature, typename... Args>
-std::invoke_result_t<std::function<Signature>, Args...>
-invokeKernel(std::function<Signature> &fn, Args &&...args) {
   return fn(std::forward<Args>(args)...);
 }
+
 } // namespace cudaq
