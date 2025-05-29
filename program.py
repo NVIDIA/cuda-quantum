@@ -7,20 +7,29 @@
 # ============================================================================ #
 
 import cudaq
+import numpy as np
 
 cudaq.set_target("quantinuum", emulate=True)
 def test():
     @cudaq.kernel
-    def kernel(n: int):
+    def kernel(n: int, m: np.int32):
         q = cudaq.qvector(n)
-        for i in range(n):
-            x(q[i])
-        if mz(q[0]):
-            return n + 1
-        else:
-            return n + 2
-
+        j = 0
+        jf = 1.2
+        for i in range(10):
+            k = 0 
+            if i > 5:
+                k = 1
+            x(q[k])
+            if mz(q[k]):
+                j = j+ 1
+                m = m + m
+                jf = jf + jf
     
-    print(cudaq.run(kernel, 2))
+        if jf + 2 > n:
+            x(q[0])
+    
+    
+    print(cudaq.sample(kernel, 2, 134))
 
 test()
