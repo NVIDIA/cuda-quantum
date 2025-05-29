@@ -96,8 +96,12 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
       .def("compute", [](cudaq::CuDensityMatExpectation &self,
                          cudaq::state &state, double t) {
         auto *cudmState = asCudmState(state);
-        assert(cudmState->is_initialized());
-        return self.compute(cudmState->get_impl(), t).real();
+        std::vector<double> expVals;
+        const auto results =
+            self.compute(cudmState->get_impl(), t, cudmState->getBatchSize());
+        for (const auto &result : results)
+          expVals.emplace_back(result.real());
+        return expVals;
       });
 
   // Schedule class
@@ -108,12 +112,12 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
   // Helper to initialize a data buffer state
   m.def("initializeState",
         [](cudaq::state &state, const std::vector<int64_t> &modeExtents,
-           bool asDensityMat) {
+           bool asDensityMat, int64_t batchSize) {
           auto &castSimState = *asCudmState(state);
           if (!castSimState.is_initialized())
             castSimState.initialize_cudm(
                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-                modeExtents);
+                modeExtents, batchSize);
           if (asDensityMat && !castSimState.is_density_matrix()) {
             return cudaq::state(
                 new cudaq::CuDensityMatState(castSimState.to_density_matrix()));
@@ -131,6 +135,42 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
               initialStateType, dimensions, createDensityMatrix);
           assert(state->is_initialized());
           return cudaq::state(state.release());
+        });
+  m.def("createBatchedState",
+        [](std::vector<cudaq::state> &states,
+           const std::vector<int64_t> &modeExtents, bool asDensityMat) {
+          std::vector<cudaq::CuDensityMatState *> statePtrs;
+          for (auto &state : states) {
+            statePtrs.emplace_back(asCudmState(state));
+          }
+          auto batchedState = cudaq::CuDensityMatState::createBatchedState(
+              cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+              statePtrs, modeExtents, asDensityMat);
+          return cudaq::state(batchedState.release());
+        });
+
+  m.def("getBatchSize", [](cudaq::state &state) {
+    auto &cudmSimState = *asCudmState(state);
+    if (!cudmSimState.is_initialized())
+      throw std::runtime_error(
+          "Cannot query batch size of an uninitialized state");
+    return cudmSimState.getBatchSize();
+  });
+  m.def("splitBatchedState",
+        [](cudaq::state &state) -> std::vector<cudaq::state> {
+          auto &castSimState = *asCudmState(state);
+          if (!castSimState.is_initialized())
+            throw std::runtime_error("Cannot split of an uninitialized state");
+          if (castSimState.getBatchSize() == 1)
+            return {state};
+          std::vector<cudaq::state> splitStates;
+          auto states =
+              cudaq::CuDensityMatState::splitBatchedState(castSimState);
+
+          for (auto *state : states) {
+            splitStates.emplace_back(cudaq::state(state));
+          }
+          return splitStates;
         });
 
   // Helper to clear context (performance/callback) after an evolve simulation.
