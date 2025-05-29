@@ -156,8 +156,8 @@ public:
       }
     }
     flushGateQueue();
-    cudaq::info(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
-                term.to_string());
+    CUDAQ_INFO(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
+               term.to_string());
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
     if (term.num_ops() != qubitIds.size())
@@ -249,8 +249,8 @@ public:
   /// Only supported for noise backends. By default do nothing
   virtual void applyNoise(const cudaq::kraus_channel &channel,
                           const std::vector<std::size_t> &targets) {
-    cudaq::warn("kraus_channel application not supported on {} simulator.",
-                name());
+    CUDAQ_WARN("kraus_channel application not supported on {} simulator.",
+               name());
   }
 
   /// @brief Apply a custom operation described by a matrix of data
@@ -1261,11 +1261,10 @@ public:
                        }
                      });
     }
-    if (cudaq::details::should_log(cudaq::details::LogLevel::info))
-      cudaq::info(gateToString(customName.empty() ? "unknown op" : customName,
-                               controls, {}, targets) +
-                      " = {}",
-                  matrix);
+    CUDAQ_INFO(gateToString(customName.empty() ? "unknown op" : customName,
+                            controls, {}, targets) +
+                   " = {}",
+               matrix);
     enqueueGate(customName.empty() ? "unknown op" : customName.data(), actual,
                 controls, targets, {});
   }
@@ -1276,10 +1275,7 @@ public:
                                const std::vector<std::size_t> &targets) {
     flushAnySamplingTasks();
     QuantumOperation gate;
-    // This is a very hot section of code. Don't form the log string unless
-    // we're actually going to use it.
-    if (cudaq::details::should_log(cudaq::details::LogLevel::info))
-      cudaq::info(gateToString(gate.name(), controls, angles, targets));
+    CUDAQ_INFO(gateToString(gate.name(), controls, angles, targets));
     enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
   }
 
