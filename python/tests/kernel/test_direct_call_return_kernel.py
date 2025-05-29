@@ -70,6 +70,42 @@ def test_return_int():
     assert result == 3
 
 
+def test_return_int8():
+
+    @cudaq.kernel
+    def simple_int8_no_args() -> np.int8:
+        return -43
+
+    result = simple_int8_no_args()
+    assert result == -43
+
+    @cudaq.kernel
+    def simple_int8(numQubits: int) -> np.int8:
+        qubits = cudaq.qvector(numQubits)
+        return numQubits + 1
+
+    result = simple_int8(2)
+    assert result == 3
+
+
+def test_return_int16():
+
+    @cudaq.kernel
+    def simple_int16_no_args() -> np.int16:
+        return -43
+
+    result = simple_int16_no_args()
+    assert result == -43
+
+    @cudaq.kernel
+    def simple_int16(numQubits: int) -> np.int16:
+        qubits = cudaq.qvector(numQubits)
+        return numQubits + 1
+
+    result = simple_int16(2)
+    assert result == 3
+
+
 def test_return_int32():
 
     @cudaq.kernel
@@ -324,10 +360,10 @@ def test_return_tuple_int_float():
 
     @cudaq.kernel
     def simple_tuple_int_float_no_args() -> tuple[int, float]:
-        return (13, 42.3)
+        return (-13, 42.3)
 
     result = simple_tuple_int_float_no_args()
-    assert result == (13, 42.3)
+    assert result == (-13, 42.3)
 
     @cudaq.kernel
     def simple_tuple_int_float(n: int, t: tuple[int,
@@ -335,8 +371,8 @@ def test_return_tuple_int_float():
         qubits = cudaq.qvector(n)
         return t
 
-    result = simple_tuple_int_float(2, (13, 42.3))
-    assert result == (13, 42.3)
+    result = simple_tuple_int_float(2, (-13, 42.3))
+    assert result == (-13, 42.3)
 
 
 def test_return_tuple_float_int():

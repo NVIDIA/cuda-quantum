@@ -609,22 +609,50 @@ def test_return_tuple_int_bool():
 
     @cudaq.kernel
     def simple_tuple_int_bool_no_args() -> tuple[int, bool]:
-        return (13, True)
+        return (-13, True)
 
     results = cudaq.run(simple_tuple_int_bool_no_args, shots_count=2)
     assert len(results) == 2
-    assert results[0] == (13, True)
-    assert results[1] == (13, True)
+    assert results[0] == (-13, True)
+    assert results[1] == (-13, True)
 
     @cudaq.kernel
     def simple_tuple_int_bool(n: int, t: tuple[int, bool]) -> tuple[int, bool]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_tuple_int_bool, 2, (13, True), shots_count=2)
+    results = cudaq.run(simple_tuple_int_bool, 2, (-13, True), shots_count=2)
     assert len(results) == 2
-    assert results[0] == (13, True)
-    assert results[1] == (13, True)
+    assert results[0] == (-13, True)
+    assert results[1] == (-13, True)
+
+
+def test_return_tuple_int32_bool():
+
+    @cudaq.kernel
+    def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
+        return (-13, True)
+
+    # FIXME: CompilerError: test_run_kernel.py:634: error:
+    # Invalid return type, function was defined to return a <class 'tuple'>
+    # but the value being returned is of type <class 'tuple'>
+    # results = cudaq.run(simple_tuple_int32_bool_no_args, shots_count=2)
+    # assert len(results) == 2
+    # assert results[0] == (np.int32(-13), True)
+    # assert results[1] == (np.int32(-13), True)
+
+    @cudaq.kernel
+    def simple_tuple_int32_bool(
+            n: int, t: tuple[np.int32, bool]) -> tuple[np.int32, bool]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(simple_tuple_int32_bool,
+                        2, (np.int32(-13), True),
+                        shots_count=2)
+    assert len(results) == 2
+    assert results[0] == (-13, True)
+    assert results[1] == (-13, True)
 
 
 def test_return_tuple_bool_int_float():
