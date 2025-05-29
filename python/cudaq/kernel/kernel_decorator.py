@@ -305,8 +305,9 @@ class PyKernelDecorator(object):
             return None
 
     def isCastablePyType(self, fromTy, toTy):
-        if IntegerType.isinstance(toTy):
-            return IntegerType.isinstance(fromTy)
+        if IntegerType.isinstance(toTy) and IntegerType(toTy).width != 1:
+            return IntegerType.isinstance(fromTy) and IntegerType(
+                fromTy).width != 1
 
         if F64Type.isinstance(toTy):
             return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
@@ -376,26 +377,6 @@ class PyKernelDecorator(object):
                             for element in value
                         ]
         return value
-
-    def castPyPrimitiveType(self, toTy, value):
-        if F64Type.isinstance(toTy):
-            return float(value)
-
-        if F32Type.isinstance(toTy):
-            return np.float32(value)
-
-        if ComplexType.isinstance(toTy):
-            floatToType = ComplexType(toTy).element_type
-            if F64Type.isinstance(floatToType):
-                return complex(value)
-            return np.complex64(value)
-
-        return None
-
-    def castPyList(self, fromEleTy, toEleTy, list):
-        if self.isCastable(fromEleTy, toEleTy):
-            return [self.castPyPrimitiveType(toEleTy, i) for i in list]
-        return list
 
     def createStorage(self):
         ctx = None if self.module == None else self.module.context

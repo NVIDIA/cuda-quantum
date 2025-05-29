@@ -224,12 +224,22 @@ inline pybind11::object convert(bool value) {
 }
 
 template <>
-inline pybind11::object convert(int value) {
+inline pybind11::object convert(std::int8_t value) {
   return pybind11::int_(value);
 }
 
 template <>
-inline pybind11::object convert(long value) {
+inline pybind11::object convert(std::int16_t value) {
+  return pybind11::int_(value);
+}
+
+template <>
+inline pybind11::object convert(std::int32_t value) {
+  return pybind11::int_(value);
+}
+
+template <>
+inline pybind11::object convert(std::int64_t value) {
   return pybind11::int_(value);
 }
 

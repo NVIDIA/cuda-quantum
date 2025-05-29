@@ -288,6 +288,10 @@ def pyInstanceFromName(name: str):
         return bool(False)
     if name == 'int':
         return int(0)
+    if name in ['numpy.int8', 'np.int8']:
+        return np.int8(0)
+    if name in ['numpy.int16', 'np.int16']:
+        return np.int16(0)
     if name in ['numpy.int32', 'np.int32']:
         return np.int32(0)
     if name in ['numpy.int64', 'np.int64']:
@@ -296,6 +300,10 @@ def pyInstanceFromName(name: str):
         return int(0)
     if name == 'float':
         return float(0.0)
+    if name in ['numpy.float32', 'np.float32']:
+        return np.float32(0.0)
+    if name in ['numpy.float64', 'np.float64']:
+        return np.float64(0.0)
     if name == 'complex':
         return 0j
     if name == 'pauli_word':
@@ -386,6 +394,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             if pyInstance == None:
                 emitFatalError(f'Invalid tuple element type ({eleTyName})')
             eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
+        eleTypes.reverse()
         return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
     if argType == qvector or argType == qreg or argType == qview:

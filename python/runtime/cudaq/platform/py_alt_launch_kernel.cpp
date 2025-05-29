@@ -540,6 +540,10 @@ py::object convertResult(mlir::func::FuncOp kernelFuncOp, mlir::Type ty,
       .Case([&](IntegerType ty) -> py::object {
         if (ty.getIntOrFloatBitWidth() == 1)
           return readPyObject<bool>(ty, data);
+        if (ty.getIntOrFloatBitWidth() == 8)
+          return readPyObject<std::int8_t>(ty, data);
+        if (ty.getIntOrFloatBitWidth() == 16)
+          return readPyObject<std::int16_t>(ty, data);
         if (ty.getIntOrFloatBitWidth() == 32)
           return readPyObject<std::int32_t>(ty, data);
         return readPyObject<std::int64_t>(ty, data);
