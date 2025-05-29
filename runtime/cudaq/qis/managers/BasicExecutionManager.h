@@ -218,8 +218,17 @@ public:
     //
     bool evenAdjointStack = (adjointQueueStack.size() % 2) == 0;
     if (isAdjoint != !evenAdjointStack) {
-      for (std::size_t i = 0; i < params.size(); i++)
-        mutable_params[i] = -1.0 * params[i];
+      if (gateName == "u3") {
+        mutable_params[0] = -1.0 * params[0];
+        mutable_params[1] = -1.0 * params[2];
+        mutable_params[2] = -1.0 * params[1];
+      } else if (gateName == "u2") {
+        mutable_params[0] = -1.0 * params[1] - M_PI;
+        mutable_params[1] = -1.0 * params[0] + M_PI;
+      } else {
+        for (std::size_t i = 0; i < params.size(); i++)
+          mutable_params[i] = -1.0 * params[i];
+      }
       if (gateName == "t")
         mutable_name = "tdg";
       else if (gateName == "s")

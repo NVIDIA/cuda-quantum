@@ -1188,6 +1188,29 @@ struct ResetOpPattern : public OpConversionPattern<quake::ResetOp> {
   }
 };
 
+struct ApplyOpTrap : public OpConversionPattern<quake::ApplyOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  // If we see a `quake.apply` operation at this point, something has gone wrong
+  // and we were unable to autogenerate the function that we should be calling.
+  // So we replace the apply with a trap and the results with poison values.
+  LogicalResult
+  matchAndRewrite(quake::ApplyOp apply, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = apply.getLoc();
+    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
+                                  ValueRange{zero});
+    SmallVector<Value> values;
+    for (auto r : apply.getResults()) {
+      Value v = rewriter.create<cudaq::cc::PoisonOp>(loc, r.getType());
+      values.push_back(v);
+    }
+    rewriter.replaceOp(apply, values);
+    return success();
+  }
+};
+
 struct AnnotateKernelsWithMeasurementStringsPattern
     : public OpConversionPattern<func::FuncOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1298,9 +1321,21 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     SmallVector<Value> opParams = adaptor.getParameters();
     if (!opParams.empty()) {
       // If this is adjoint, each parameter is negated.
-      if (op.getIsAdj())
+      if (op.getIsAdj()) {
         for (std::size_t i = 0; i < opParams.size(); ++i)
           opParams[i] = rewriter.create<arith::NegFOp>(loc, opParams[i]);
+        if constexpr (std::is_same_v<OP, quake::U2Op>) {
+          std::swap(opParams[0], opParams[1]);
+          auto fltTy = cast<FloatType>(opParams[0].getType());
+          Value pi = rewriter.create<arith::ConstantFloatOp>(
+              loc, llvm::APFloat{M_PI}, fltTy);
+          opParams[0] = rewriter.create<arith::SubFOp>(loc, opParams[0], pi);
+          opParams[1] = rewriter.create<arith::AddFOp>(loc, opParams[1], pi);
+        } else if constexpr (std::is_same_v<OP, quake::U3Op>) {
+          // swap the 2nd and 3rd parameter for correctness
+          std::swap(opParams[1], opParams[2]);
+        }
+      }
 
       // Each parameter must be converted to double-precision.
       auto f64Ty = rewriter.getF64Type();
@@ -1689,8 +1724,8 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<GetMemberOpRewrite, MakeStruqOpRewrite, RelaxSizeOpErase,
-                  VeqSizeOpRewrite>(typeConverter, ctx);
+  patterns.insert<ApplyOpTrap, GetMemberOpRewrite, MakeStruqOpRewrite,
+                  RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//

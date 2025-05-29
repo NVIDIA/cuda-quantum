@@ -186,39 +186,44 @@ void bindBosonOperator(py::module &mod) {
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
-      /* FIXME: uncomment once corresponding PR is merged
-      .def("to_sparse_matrix", [](const boson_op &self,
-                                  dimension_map &dimensions,
-                                  const parameter_map &params,
-                                  bool invert_order) {
-          return self.to_sparse_matrix(dimensions, params, invert_order);
-        },
-        py::arg("dimensions") = dimension_map(), py::arg("parameters") =
-      parameter_map(), py::arg("invert_order") = false, "Return the sparse
-      matrix representation of the operator. This representation is a "
-        "`Tuple[list[complex], list[int], list[int]]`, encoding the "
-        "non-zero values, rows, and columns of the matrix. "
-        "This format is supported by `scipy.sparse.csr_array`."
-        "The matrix is ordered according to the convention (endianness) "
-        "used in CUDA-Q, and the ordering returned by `degrees`. This order "
-        "can be inverted by setting the optional `invert_order` argument to
-      `True`. " "See also the documentation for `degrees` for more detail.")
-      .def("to_sparse_matrix", [, &kwargs_to_param_map](const
-      boson_op &self, dimension_map &dimensions, bool invert_order, const
-      py::kwargs &kwargs) { return self.to_sparse_matrix(dimensions,
-      kwargs_to_param_map(kwargs), invert_order);
-        },
-        py::arg("dimensions") = dimension_map(), py::arg("invert_order") =
-      false, "Return the sparse matrix representation of the operator. This
-      representation is a "
-        "`Tuple[list[complex], list[int], list[int]]`, encoding the "
-        "non-zero values, rows, and columns of the matrix. "
-        "This format is supported by `scipy.sparse.csr_array`."
-        "The matrix is ordered according to the convention (endianness) "
-        "used in CUDA-Q, and the ordering returned by `degrees`. This order "
-        "can be inverted by setting the optional `invert_order` argument to
-      `True`. " "See also the documentation for `degrees` for more detail.")
-      */
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op &self, dimension_map &dimensions,
+             const parameter_map &params, bool invert_order) {
+            return self.to_sparse_matrix(dimensions, params, invert_order);
+          },
+          py::arg("dimensions") = dimension_map(),
+          py::arg("parameters") = parameter_map(),
+          py::arg("invert_order") = false,
+          "Return the sparse matrix representation of the operator. This "
+          "representation is a "
+          "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+          "non-zero values, rows, and columns of the matrix. "
+          "This format is supported by `scipy.sparse.csr_array`."
+          "The matrix is ordered according to the convention (endianness) "
+          "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+          "can be inverted by setting the optional `invert_order` argument to "
+          "`True`. "
+          "See also the documentation for `degrees` for more detail.")
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op &self, dimension_map &dimensions, bool invert_order,
+             const py::kwargs &kwargs) {
+            return self.to_sparse_matrix(
+                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          },
+          py::arg("dimensions") = dimension_map(),
+          py::arg("invert_order") = false,
+          "Return the sparse matrix representation of the operator. This "
+          "representation is a "
+          "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+          "non-zero values, rows, and columns of the matrix. "
+          "This format is supported by `scipy.sparse.csr_array`."
+          "The matrix is ordered according to the convention (endianness) "
+          "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+          "can be inverted by setting the optional `invert_order` argument to "
+          "`True`. "
+          "See also the documentation for `degrees` for more detail.")
 
       // comparisons
 
@@ -238,260 +243,87 @@ void bindBosonOperator(py::module &mod) {
 
       // unary operators
 
-      .def(
-          "__neg__", [](const boson_op &self) { return -self; },
-          py::is_operator())
-      .def(
-          "__pos__", [](const boson_op &self) { return +self; },
-          py::is_operator())
+      .def(-py::self, py::is_operator())
+      .def(+py::self, py::is_operator())
 
       // in-place arithmetics
 
-      .def(
-          "__itruediv__",
-          [](boson_op &self, int other) { return self /= other; },
-          py::is_operator())
-      .def(
-          "__imul__", [](boson_op &self, int other) { return self *= other; },
-          py::is_operator())
-      .def(
-          "__iadd__", [](boson_op &self, int other) { return self += other; },
-          py::is_operator())
-      .def(
-          "__isub__", [](boson_op &self, int other) { return self -= other; },
-          py::is_operator())
-      .def(
-          "__itruediv__",
-          [](boson_op &self, const scalar_operator &other) {
-            return self /= other;
-          },
-          py::is_operator())
-      .def(
-          "__imul__",
-          [](boson_op &self, const scalar_operator &other) {
-            return self *= other;
-          },
-          py::is_operator())
-      .def(
-          "__iadd__",
-          [](boson_op &self, const scalar_operator &other) {
-            return self += other;
-          },
-          py::is_operator())
-      .def(
-          "__isub__",
-          [](boson_op &self, const scalar_operator &other) {
-            return self -= other;
-          },
-          py::is_operator())
-      .def(
-          "__imul__",
-          [](boson_op &self, const boson_op_term &other) {
-            return self *= other;
-          },
-          py::is_operator())
-      .def(
-          "__iadd__",
-          [](boson_op &self, const boson_op_term &other) {
-            return self += other;
-          },
-          py::is_operator())
-      .def(
-          "__isub__",
-          [](boson_op &self, const boson_op_term &other) {
-            return self -= other;
-          },
-          py::is_operator())
-      .def(
-          "__imul__",
-          [](boson_op &self, const boson_op &other) { return self *= other; },
-          py::is_operator())
-      .def(
-          "__iadd__",
-          [](boson_op &self, const boson_op &other) { return self += other; },
-          py::is_operator())
-      .def(
-          "__isub__",
-          [](boson_op &self, const boson_op &other) { return self -= other; },
-          py::is_operator())
+      .def(py::self /= int(), py::is_operator())
+      .def(py::self *= int(), py::is_operator())
+      .def(py::self += int(), py::is_operator())
+      .def(py::self -= int(), py::is_operator())
+      .def(py::self /= double(), py::is_operator())
+      .def(py::self *= double(), py::is_operator())
+      .def(py::self += double(), py::is_operator())
+      .def(py::self -= double(), py::is_operator())
+      .def(py::self /= std::complex<double>(), py::is_operator())
+      .def(py::self *= std::complex<double>(), py::is_operator())
+      .def(py::self += std::complex<double>(), py::is_operator())
+      .def(py::self -= std::complex<double>(), py::is_operator())
+      .def(py::self /= scalar_operator(), py::is_operator())
+      .def(py::self *= scalar_operator(), py::is_operator())
+      .def(py::self += scalar_operator(), py::is_operator())
+      .def(py::self -= scalar_operator(), py::is_operator())
+      .def(py::self *= boson_op_term(), py::is_operator())
+      .def(py::self += boson_op_term(), py::is_operator())
+      .def(py::self -= boson_op_term(), py::is_operator())
+      .def(py::self *= py::self, py::is_operator())
+      .def(py::self += py::self, py::is_operator())
+// see issue https://github.com/pybind/pybind11/issues/1893
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
+      .def(py::self -= py::self, py::is_operator())
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
       // right-hand arithmetics
 
-      .def(
-          "__truediv__",
-          [](const boson_op &self, int other) { return self / other; },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op &self, int other) { return self * other; },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op &self, int other) { return self + other; },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op &self, int other) { return self - other; },
-          py::is_operator())
-      .def(
-          "__truediv__",
-          [](const boson_op &self, const scalar_operator &other) {
-            return self / other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op &self, const scalar_operator &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op &self, const scalar_operator &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op &self, const scalar_operator &other) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op &self, const boson_op_term &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op &self, const boson_op_term &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op &self, const boson_op_term &other) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op &self, const boson_op &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op &self, const boson_op &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op &self, const boson_op &other) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op &self, const matrix_op_term &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op &self, const matrix_op_term &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op &self, const matrix_op_term &other) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op &self, const matrix_op &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op &self, const matrix_op &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op &self, const matrix_op &other) {
-            return self - other;
-          },
-          py::is_operator())
+      .def(py::self / int(), py::is_operator())
+      .def(py::self * int(), py::is_operator())
+      .def(py::self + int(), py::is_operator())
+      .def(py::self - int(), py::is_operator())
+      .def(py::self / double(), py::is_operator())
+      .def(py::self * double(), py::is_operator())
+      .def(py::self + double(), py::is_operator())
+      .def(py::self - double(), py::is_operator())
+      .def(py::self / std::complex<double>(), py::is_operator())
+      .def(py::self * std::complex<double>(), py::is_operator())
+      .def(py::self + std::complex<double>(), py::is_operator())
+      .def(py::self - std::complex<double>(), py::is_operator())
+      .def(py::self / scalar_operator(), py::is_operator())
+      .def(py::self * scalar_operator(), py::is_operator())
+      .def(py::self + scalar_operator(), py::is_operator())
+      .def(py::self - scalar_operator(), py::is_operator())
+      .def(py::self * boson_op_term(), py::is_operator())
+      .def(py::self + boson_op_term(), py::is_operator())
+      .def(py::self - boson_op_term(), py::is_operator())
+      .def(py::self * py::self, py::is_operator())
+      .def(py::self + py::self, py::is_operator())
+      .def(py::self - py::self, py::is_operator())
+      .def(py::self * matrix_op_term(), py::is_operator())
+      .def(py::self + matrix_op_term(), py::is_operator())
+      .def(py::self - matrix_op_term(), py::is_operator())
+      .def(py::self * matrix_op(), py::is_operator())
+      .def(py::self + matrix_op(), py::is_operator())
+      .def(py::self - matrix_op(), py::is_operator())
 
       // left-hand arithmetics
 
-      .def(
-          "__rmul__",
-          [](const boson_op &other, int self) { return self * other; },
-          py::is_operator())
-      .def(
-          "__radd__",
-          [](const boson_op &other, int self) { return self + other; },
-          py::is_operator())
-      .def(
-          "__rsub__",
-          [](const boson_op &other, int self) { return self - other; },
-          py::is_operator())
-      .def(
-          "__rmul__",
-          [](const boson_op &other, double self) { return self * other; },
-          py::is_operator())
-      .def(
-          "__radd__",
-          [](const boson_op &other, double self) { return self + other; },
-          py::is_operator())
-      .def(
-          "__rsub__",
-          [](const boson_op &other, double self) { return self - other; },
-          py::is_operator())
-      .def(
-          "__rmul__",
-          [](const boson_op &other, std::complex<double> self) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__radd__",
-          [](const boson_op &other, std::complex<double> self) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__rsub__",
-          [](const boson_op &other, std::complex<double> self) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__rmul__",
-          [](const boson_op &other, const scalar_operator &self) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__radd__",
-          [](const boson_op &other, const scalar_operator &self) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__rsub__",
-          [](const boson_op &other, const scalar_operator &self) {
-            return self - other;
-          },
-          py::is_operator())
+      .def(int() * py::self, py::is_operator())
+      .def(int() + py::self, py::is_operator())
+      .def(int() - py::self, py::is_operator())
+      .def(double() * py::self, py::is_operator())
+      .def(double() + py::self, py::is_operator())
+      .def(double() - py::self, py::is_operator())
+      .def(std::complex<double>() * py::self, py::is_operator())
+      .def(std::complex<double>() + py::self, py::is_operator())
+      .def(std::complex<double>() - py::self, py::is_operator())
+      .def(scalar_operator() * py::self, py::is_operator())
+      .def(scalar_operator() + py::self, py::is_operator())
+      .def(scalar_operator() - py::self, py::is_operator())
 
       // common operators
 
@@ -665,39 +497,44 @@ void bindBosonOperator(py::module &mod) {
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
-      /* FIXME: uncomment once corresponding PR is merged
-      .def("to_sparse_matrix", [](const boson_op_term &self,
-                                  dimension_map &dimensions,
-                                  const parameter_map &params,
-                                  bool invert_order) {
-          return self.to_sparse_matrix(dimensions, params, invert_order);
-        },
-        py::arg("dimensions") = dimension_map(), py::arg("parameters") =
-      parameter_map(), py::arg("invert_order") = false, "Return the sparse
-      matrix representation of the operator. This representation is a "
-        "`Tuple[list[complex], list[int], list[int]]`, encoding the "
-        "non-zero values, rows, and columns of the matrix. "
-        "This format is supported by `scipy.sparse.csr_array`."
-        "The matrix is ordered according to the convention (endianness) "
-        "used in CUDA-Q, and the ordering returned by `degrees`. This order "
-        "can be inverted by setting the optional `invert_order` argument to
-      `True`. " "See also the documentation for `degrees` for more detail.")
-      .def("to_sparse_matrix", [, &kwargs_to_param_map](const
-      boson_op_term &self, dimension_map &dimensions, bool invert_order, const
-      py::kwargs &kwargs) { return self.to_sparse_matrix(dimensions,
-      kwargs_to_param_map(kwargs), invert_order);
-        },
-        py::arg("dimensions") = dimension_map(), py::arg("invert_order") =
-      false, "Return the sparse matrix representation of the operator. This
-      representation is a "
-        "`Tuple[list[complex], list[int], list[int]]`, encoding the "
-        "non-zero values, rows, and columns of the matrix. "
-        "This format is supported by `scipy.sparse.csr_array`."
-        "The matrix is ordered according to the convention (endianness) "
-        "used in CUDA-Q, and the ordering returned by `degrees`. This order "
-        "can be inverted by setting the optional `invert_order` argument to
-      `True`. " "See also the documentation for `degrees` for more detail.")
-      */
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op_term &self, dimension_map &dimensions,
+             const parameter_map &params, bool invert_order) {
+            return self.to_sparse_matrix(dimensions, params, invert_order);
+          },
+          py::arg("dimensions") = dimension_map(),
+          py::arg("parameters") = parameter_map(),
+          py::arg("invert_order") = false,
+          "Return the sparse matrix representation of the operator. This "
+          "representation is a "
+          "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+          "non-zero values, rows, and columns of the matrix. "
+          "This format is supported by `scipy.sparse.csr_array`."
+          "The matrix is ordered according to the convention (endianness) "
+          "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+          "can be inverted by setting the optional `invert_order` argument to "
+          "`True`. "
+          "See also the documentation for `degrees` for more detail.")
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op_term &self, dimension_map &dimensions,
+             bool invert_order, const py::kwargs &kwargs) {
+            return self.to_sparse_matrix(
+                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          },
+          py::arg("dimensions") = dimension_map(),
+          py::arg("invert_order") = false,
+          "Return the sparse matrix representation of the operator. This "
+          "representation is a "
+          "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+          "non-zero values, rows, and columns of the matrix. "
+          "This format is supported by `scipy.sparse.csr_array`."
+          "The matrix is ordered according to the convention (endianness) "
+          "used in CUDA-Q, and the ordering returned by `degrees`. This order "
+          "can be inverted by setting the optional `invert_order` argument to "
+          "`True`. "
+          "See also the documentation for `degrees` for more detail.")
 
       // comparisons
 
@@ -717,219 +554,66 @@ void bindBosonOperator(py::module &mod) {
 
       // unary operators
 
-      .def(
-          "__neg__", [](const boson_op_term &self) { return -self; },
-          py::is_operator())
-      .def(
-          "__pos__", [](const boson_op_term &self) { return +self; },
-          py::is_operator())
+      .def(-py::self, py::is_operator())
+      .def(+py::self, py::is_operator())
 
       // in-place arithmetics
 
-      .def(
-          "__itruediv__",
-          [](boson_op_term &self, int other) { return self /= other; },
-          py::is_operator())
-      .def(
-          "__imul__",
-          [](boson_op_term &self, int other) { return self *= other; },
-          py::is_operator())
-      .def(
-          "__itruediv__",
-          [](boson_op_term &self, const scalar_operator &other) {
-            return self /= other;
-          },
-          py::is_operator())
-      .def(
-          "__imul__",
-          [](boson_op_term &self, const scalar_operator &other) {
-            return self *= other;
-          },
-          py::is_operator())
-      .def(
-          "__imul__",
-          [](boson_op_term &self, const boson_op_term &other) {
-            return self *= other;
-          },
-          py::is_operator())
+      .def(py::self /= int(), py::is_operator())
+      .def(py::self *= int(), py::is_operator())
+      .def(py::self /= double(), py::is_operator())
+      .def(py::self *= double(), py::is_operator())
+      .def(py::self /= std::complex<double>(), py::is_operator())
+      .def(py::self *= std::complex<double>(), py::is_operator())
+      .def(py::self /= scalar_operator(), py::is_operator())
+      .def(py::self *= scalar_operator(), py::is_operator())
+      .def(py::self *= py::self, py::is_operator())
 
       // right-hand arithmetics
 
-      .def(
-          "__truediv__",
-          [](const boson_op_term &self, int other) { return self / other; },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op_term &self, int other) { return self * other; },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op_term &self, int other) { return self + other; },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op_term &self, int other) { return self - other; },
-          py::is_operator())
-      .def(
-          "__truediv__",
-          [](const boson_op_term &self, const scalar_operator &other) {
-            return self / other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op_term &self, const scalar_operator &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op_term &self, const scalar_operator &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op_term &self, const scalar_operator &other) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op_term &self, const boson_op_term &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op_term &self, const boson_op_term &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op_term &self, const boson_op_term &other) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op_term &self, const boson_op &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op_term &self, const boson_op &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op_term &self, const boson_op &other) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op_term &self, const matrix_op_term &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op_term &self, const matrix_op_term &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op_term &self, const matrix_op_term &other) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__mul__",
-          [](const boson_op_term &self, const matrix_op &other) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__add__",
-          [](const boson_op_term &self, const matrix_op &other) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__sub__",
-          [](const boson_op_term &self, const matrix_op &other) {
-            return self - other;
-          },
-          py::is_operator())
+      .def(py::self / int(), py::is_operator())
+      .def(py::self * int(), py::is_operator())
+      .def(py::self + int(), py::is_operator())
+      .def(py::self - int(), py::is_operator())
+      .def(py::self / double(), py::is_operator())
+      .def(py::self * double(), py::is_operator())
+      .def(py::self + double(), py::is_operator())
+      .def(py::self - double(), py::is_operator())
+      .def(py::self / std::complex<double>(), py::is_operator())
+      .def(py::self * std::complex<double>(), py::is_operator())
+      .def(py::self + std::complex<double>(), py::is_operator())
+      .def(py::self - std::complex<double>(), py::is_operator())
+      .def(py::self / scalar_operator(), py::is_operator())
+      .def(py::self * scalar_operator(), py::is_operator())
+      .def(py::self + scalar_operator(), py::is_operator())
+      .def(py::self - scalar_operator(), py::is_operator())
+      .def(py::self * py::self, py::is_operator())
+      .def(py::self + py::self, py::is_operator())
+      .def(py::self - py::self, py::is_operator())
+      .def(py::self * boson_op(), py::is_operator())
+      .def(py::self + boson_op(), py::is_operator())
+      .def(py::self - boson_op(), py::is_operator())
+      .def(py::self * matrix_op_term(), py::is_operator())
+      .def(py::self + matrix_op_term(), py::is_operator())
+      .def(py::self - matrix_op_term(), py::is_operator())
+      .def(py::self * matrix_op(), py::is_operator())
+      .def(py::self + matrix_op(), py::is_operator())
+      .def(py::self - matrix_op(), py::is_operator())
 
       // left-hand arithmetics
 
-      .def(
-          "__rmul__",
-          [](const boson_op_term &other, int self) { return self * other; },
-          py::is_operator())
-      .def(
-          "__radd__",
-          [](const boson_op_term &other, int self) { return self + other; },
-          py::is_operator())
-      .def(
-          "__rsub__",
-          [](const boson_op_term &other, int self) { return self - other; },
-          py::is_operator())
-      .def(
-          "__rmul__",
-          [](const boson_op_term &other, double self) { return self * other; },
-          py::is_operator())
-      .def(
-          "__radd__",
-          [](const boson_op_term &other, double self) { return self + other; },
-          py::is_operator())
-      .def(
-          "__rsub__",
-          [](const boson_op_term &other, double self) { return self - other; },
-          py::is_operator())
-      .def(
-          "__rmul__",
-          [](const boson_op_term &other, std::complex<double> self) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__radd__",
-          [](const boson_op_term &other, std::complex<double> self) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__rsub__",
-          [](const boson_op_term &other, std::complex<double> self) {
-            return self - other;
-          },
-          py::is_operator())
-      .def(
-          "__rmul__",
-          [](const boson_op_term &other, const scalar_operator &self) {
-            return self * other;
-          },
-          py::is_operator())
-      .def(
-          "__radd__",
-          [](const boson_op_term &other, const scalar_operator &self) {
-            return self + other;
-          },
-          py::is_operator())
-      .def(
-          "__rsub__",
-          [](const boson_op_term &other, const scalar_operator &self) {
-            return self - other;
-          },
-          py::is_operator())
+      .def(int() * py::self, py::is_operator())
+      .def(int() + py::self, py::is_operator())
+      .def(int() - py::self, py::is_operator())
+      .def(double() * py::self, py::is_operator())
+      .def(double() + py::self, py::is_operator())
+      .def(double() - py::self, py::is_operator())
+      .def(std::complex<double>() * py::self, py::is_operator())
+      .def(std::complex<double>() + py::self, py::is_operator())
+      .def(std::complex<double>() - py::self, py::is_operator())
+      .def(scalar_operator() * py::self, py::is_operator())
+      .def(scalar_operator() + py::self, py::is_operator())
+      .def(scalar_operator() - py::self, py::is_operator())
 
       // general utility functions
 
