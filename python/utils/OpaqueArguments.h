@@ -290,13 +290,31 @@ inline void *handleVectorElements(Type eleTy, py::list list) {
 
   return llvm::TypeSwitch<Type, void *>(eleTy)
       .Case([&](IntegerType ty) {
-        if (ty.isInteger(1))
+        if (ty.getIntOrFloatBitWidth() == 1)
           return appendValue.template operator()<bool>(
               list, [](py::handle v, std::size_t i) {
                 checkListElementType<py::bool_>(v, i);
                 return v.cast<bool>();
               });
-        return appendValue.template operator()<std::size_t>(
+        if (ty.getIntOrFloatBitWidth() == 8)
+          return appendValue.template operator()<std::int8_t>(
+              list, [](py::handle v, std::size_t i) {
+                checkListElementType<py_ext::Int>(v, i);
+                return v.cast<std::int8_t>();
+              });
+        if (ty.getIntOrFloatBitWidth() == 16)
+          return appendValue.template operator()<std::int16_t>(
+              list, [](py::handle v, std::size_t i) {
+                checkListElementType<py_ext::Int>(v, i);
+                return v.cast<std::int16_t>();
+              });
+        if (ty.getIntOrFloatBitWidth() == 32)
+          return appendValue.template operator()<std::int32_t>(
+              list, [](py::handle v, std::size_t i) {
+                checkListElementType<py_ext::Int>(v, i);
+                return v.cast<std::int32_t>();
+              });
+        return appendValue.template operator()<std::int64_t>(
             list, [](py::handle v, std::size_t i) {
               checkListElementType<py_ext::Int>(v, i);
               return v.cast<std::int64_t>();
@@ -473,13 +491,13 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           checkArgumentType<py::list>(arg, i);
           auto list = py::cast<py::list>(arg);
           auto eleTy = ty.getElementType();
-
-          if (eleTy.isInteger(1))
+          if (eleTy.isInteger(1)) {
             // Special case for a `std::vector<bool>`.
             appendVectorValue.template operator()<bool>(eleTy, list);
-          else
-            // All other `std::Vector<T>` types, including nested vectors.
-            appendVectorValue.template operator()<std::size_t>(eleTy, list);
+            return;
+          }
+          // All other `std::vector<T>` types, including nested vectors.
+          appendVectorValue.template operator()<std::int64_t>(eleTy, list);
         })
         .Default([&](Type ty) {
           // See if we have a backup type handler.
