@@ -17,15 +17,14 @@
 #include <vector>
 
 /*! \file KernelWrapper.h
-    \brief Utility classes to support library-mode kernel launch.
+    \brief Utility classes to support kernel launch on remote platforms.
 
-  This header file defines classes supporting launching quantum kernels in
-  library mode (without the bridge) when using the remote platform.
-  Specifically, it provides a layer of indirection, `cudaq::invokeKernel`,
-  similar to the `altLaunchKernel` function when using the bridge. In addition,
-  argument packing (for serialization) is handled by C++ templates in lieu of
-  bridge-generated functions. These utilities will only be used for the remote
-  platform target in library-mode (guarded by pre-defined macros).
+  This header file defines classes supporting launching quantum kernels when
+  using the remote platform. It provides serialization utilities for kernel
+  arguments. The argument packing (for serialization) is handled by C++
+  templates in lieu of bridge-generated functions. These utilities will only be
+  used for the remote platform target in library-mode (guarded by pre-defined
+  macros).
 */
 
 namespace cudaq {
@@ -505,13 +504,6 @@ void invokeCallableWithSerializedArgs_vec(const std::vector<double> &vec_parms,
       std::remove_reference_t<CallableT>,
       InvokeArgTs...>::invoke(std::forward<CallableT>(func), vec_parms, argData,
                               argSize);
-}
-
-// Wrapper for quantum kernel invocation, i.e., `kernel(args...)`.
-template <typename QuantumKernel, typename... Args>
-std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
-                                                          Args &&...args) {
-  return fn(std::forward<Args>(args)...);
 }
 
 } // namespace cudaq
