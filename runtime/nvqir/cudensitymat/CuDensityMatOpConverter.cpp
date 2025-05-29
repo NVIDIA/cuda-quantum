@@ -56,6 +56,7 @@ flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix) {
 
 cudaq::product_op<cudaq::matrix_handler>
 computeDagger(const cudaq::matrix_handler &op) {
+  std::cout << "Compute dagger: " << op.to_string(false) << "\n";
   const auto getAdjointOp = [](const cudaq::matrix_handler &op)
       -> std::optional<cudaq::product_op<cudaq::matrix_handler>> {
     static const std::vector<std::string> g_knownSelfAdjointOps = []() {
@@ -257,6 +258,8 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     const cudaq::matrix_handler &elemOp,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &modeExtents) {
+
+  std::cout << "createElementaryOperator: " << elemOp.to_string(true) << "\n";
   auto subspaceExtents = getSubspaceExtents(modeExtents, elemOp.degrees());
   cudaq::dimension_map dimensions = convertDimensions(modeExtents);
   cudensitymatWrappedTensorCallback_t wrappedTensorCallback =

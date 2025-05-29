@@ -202,6 +202,36 @@ complex_matrix spin_handler::to_matrix(
   return spin_handler::to_matrix(this->canonical_form(dimensions, rel_dims));
 }
 
+dia_spmatrix spin_handler::to_diagonal_matrix(
+    const std::string &pauli_word, const std::vector<std::int64_t> &dimensions,
+    std::complex<double> coeff, bool invert_order) {
+  printf("spin_handler::to_diagonal_matrix: %s\n", pauli_word.c_str());
+  if (pauli_word.size() == 1) {
+    if (pauli_word[0] == 'I') {
+      return std::make_pair(std::vector<std::complex<double>>{coeff, coeff},
+                            std::vector<int64_t>{0});
+    } else if (pauli_word[0] == 'X') {
+      return std::make_pair(
+          std::vector<std::complex<double>>{coeff, 0.0, coeff, 0.0},
+          std::vector<int64_t>{-1, 1});
+    } else if (pauli_word[0] == 'Y') {
+      return std::make_pair(
+          std::vector<std::complex<double>>{
+              std::complex<double>(0.0, 1.0) * coeff, 0.0,
+              std::complex<double>(0.0, -1.0) * coeff, 0.0},
+          std::vector<int64_t>{-1, 1});
+    } else if (pauli_word[0] == 'Z') {
+      return std::make_pair(std::vector<std::complex<double>>{coeff, -coeff},
+                            std::vector<int64_t>{0});
+    }
+    throw std::runtime_error("Invalid pauli operator string encountered.");
+
+    return dia_spmatrix();
+  }
+
+  return to_matrix(pauli_word, coeff, invert_order).as_dia_matrix();
+}
+
 std::string spin_handler::to_string(bool include_degrees) const {
   if (include_degrees)
     return this->unique_id(); // unique id for consistency with keys in some

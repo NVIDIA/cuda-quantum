@@ -286,6 +286,12 @@ complex_matrix boson_handler::to_matrix(
   return boson_handler::to_matrix(boson_word, relevant_dims);
 }
 
+dia_spmatrix boson_handler::to_diagonal_matrix(
+    const std::string &fermi_word, const std::vector<std::int64_t> &dimensions,
+    std::complex<double> coeff, bool invert_order) {
+  return dia_spmatrix();
+}
+
 std::string boson_handler::to_string(bool include_degrees) const {
   if (include_degrees)
     return this->unique_id(); // unique id for consistency with keys in some

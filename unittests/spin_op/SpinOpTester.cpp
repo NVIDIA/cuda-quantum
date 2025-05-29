@@ -224,6 +224,57 @@ TEST(SpinOpTester, checkGetSparseMatrix) {
   }
 }
 
+TEST(SpinOpTester, checkGetDiagMatrix) {
+  auto compareDenseDiag = [](const cudaq::complex_matrix &denseMat,
+                             const cudaq::dia_spmatrix &diaMat) {
+    int64_t dim = denseMat.rows();
+    const auto &[buffer, offsets] = diaMat;
+    for (int64_t i = -(dim - 1); i < dim; ++i) {
+      const auto iter = std::find(offsets.begin(), offsets.end(), i);
+      if (iter != offsets.end()) {
+        const auto idx = std::distance(offsets.begin(), iter);
+        const auto diags = denseMat.diagonal_elements(i);
+        for (std::size_t j = 0; j < diags.size(); ++j) {
+          EXPECT_NEAR(std::abs(diags[j] - buffer[dim * idx + j]), 0.0, 1e-12);
+        }
+        for (std::size_t j = diags.size(); j < dim; ++j) {
+          EXPECT_NEAR(std::abs(buffer[dim * idx + j]), 0.0, 1e-12);
+        }
+      } else {
+        const auto diags = denseMat.diagonal_elements(i);
+        for (std::size_t j = 0; j < diags.size(); ++j) {
+          EXPECT_NEAR(std::abs(diags[j]), 0.0, 1e-12);
+        }
+      }
+    }
+  };
+
+  for (auto &H : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                  cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+    compareDenseDiag(H.to_matrix(), H.to_diagonal_matrix());
+  }
+
+  for (auto &H1 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                   cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+    for (auto &H2 : {cudaq::spin_op::i(1), cudaq::spin_op::x(1),
+                     cudaq::spin_op::y(1), cudaq::spin_op::z(1)}) {
+      auto H = H1 * H2;
+      std::cout << "Testing " << H.to_string() << "\n";
+      compareDenseDiag(H.to_matrix(), H.to_diagonal_matrix());
+    }
+  }
+
+  for (auto &H1 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                   cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+    for (auto &H2 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                     cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+      auto H = H1 * H2;
+      std::cout << "Testing " << H.to_string() << "\n";
+      compareDenseDiag(H.to_matrix(), H.to_diagonal_matrix());
+    }
+  }
+}
+
 TEST(SpinOpTester, checkGetMatrix) {
   auto H = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
            2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +

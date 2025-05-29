@@ -372,3 +372,26 @@ cudaq::complex_matrix::diagonal_elements(int index) const {
                                                         diag.end());
   return result;
 }
+
+cudaq::dia_spmatrix cudaq::complex_matrix::as_dia_matrix() const {
+  if (rows() != cols())
+    throw std::runtime_error(
+        "as_dia_matrix is only supported on squared matrices.");
+  std::vector<std::complex<double>> buffer;
+  std::vector<int64_t> index;
+  const int64_t rows = this->rows();
+  Eigen::Map<cudaq::complex_matrix::EigenMatrix> map(data, rows, rows);
+
+  for (int64_t i = (-rows + 1); i < rows; i++) {
+    auto diag = map.diagonal(i);
+    if (!diag.isZero(1e-12)) {
+      assert(diag.size() == (rows - std::abs(i)));
+      buffer.insert(buffer.end(), diag.begin(), diag.end());
+      index.emplace_back(i);
+      buffer.resize(index.size() * rows);
+    }
+  }
+  assert(buffer.size() == rows * index.size());
+
+  return std::make_pair(buffer, index);
+}

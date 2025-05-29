@@ -29,6 +29,23 @@ class module_;
 
 namespace cudaq {
 
+// Multi-diagonal sparse format:
+// - Data buffer for diagonal elements (type std::vector<std::complex<double>>),
+// of size `dimension * num_diagonals`
+// - offsets: The diagonal offsets (std::vector<std::size_t>) of length
+// `num_diagonals`. Note: if the number of elements is less than `dimension`,
+// e.g., for offset value != 0, the array should be padded with zero to make
+// sure access to buffer in constant stride.
+// For example,
+// buffer = {1, sqrt(2), 0}, offset = {-1} represents a sparse matrix with a
+// single lower diagonal line (just below the matrix diagonal), hence the offset
+// {-1}. The last element 0 in the array is irrelevant, just for padding
+// purposes.
+// This is equivalent to scipy's DIA format
+// (https://scipy-lectures.org/advanced/scipy_sparse/dia_matrix.html)
+using dia_spmatrix =
+    std::pair<std::vector<std::complex<double>>, std::vector<int64_t>>;
+
 class complex_matrix;
 
 complex_matrix operator*(const complex_matrix &, const complex_matrix &);
@@ -202,7 +219,7 @@ public:
   std::size_t size() const { return get_size(dimensions); }
 
   const EigenMatrix as_eigen() const;
-
+  dia_spmatrix as_dia_matrix() const;
   friend void bindComplexMatrix(pybind11::module_ &mod);
   friend void bindMatrixOperator(pybind11::module_ &mod);
   friend void bindBosonOperator(pybind11::module_ &mod);
