@@ -290,7 +290,7 @@ inline void *handleVectorElements(Type eleTy, py::list list) {
 
   return llvm::TypeSwitch<Type, void *>(eleTy)
       .Case([&](IntegerType ty) {
-        if (ty.isInteger(1))
+        if (ty.getIntOrFloatBitWidth() == 1)
           return appendValue.template operator()<bool>(
               list, [](py::handle v, std::size_t i) {
                 checkListElementType<py::bool_>(v, i);
@@ -491,7 +491,6 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           checkArgumentType<py::list>(arg, i);
           auto list = py::cast<py::list>(arg);
           auto eleTy = ty.getElementType();
-
           if (eleTy.isInteger(1)) {
             // Special case for a `std::vector<bool>`.
             appendVectorValue.template operator()<bool>(eleTy, list);
