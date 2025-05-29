@@ -125,141 +125,120 @@ public:
     enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
 
-    if (cudaq::__internal__::isLibraryMode(name)) {
-      // Library mode: retrieve the embedded bitcode in the executable.
-      const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
-      // Load the object file
-      auto [objBin, objBuffer] =
-          llvm::cantFail(llvm::object::ObjectFile::createObjectFile(path))
-              .takeBinary();
-      if (!objBin)
-        throw std::runtime_error("Failed to load binary object file");
-      for (const auto &section : objBin->sections()) {
-        // Get the bitcode section
-        if (section.isBitcode()) {
-          llvm::MemoryBufferRef llvmBc(llvm::cantFail(section.getContents()),
-                                       "Bitcode");
-          return llvm::encodeBase64(llvmBc.getBuffer());
-        }
+    // Get the quake representation of the kernel
+    auto quakeCode = cudaq::get_quake_by_name(name);
+    auto module = parseSourceString<mlir::ModuleOp>(quakeCode, &mlirContext);
+    if (!module)
+      throw std::runtime_error("module cannot be parsed");
+
+    // Extract the kernel name
+    auto func = module->lookupSymbol<mlir::func::FuncOp>(
+        std::string("__nvqpp__mlirgen__") + name);
+
+    // Create a new Module to clone the function into
+    auto location = mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
+    mlir::ImplicitLocOpBuilder builder(location, &mlirContext);
+    // Add CUDA-Q kernel attribute if not already set.
+    if (!func->hasAttr(cudaq::kernelAttrName))
+      func->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
+    // Add entry-point attribute if not already set.
+    if (!func->hasAttr(cudaq::entryPointAttrName))
+      func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
+    auto moduleOp = builder.create<mlir::ModuleOp>();
+    moduleOp->setAttrs((*module)->getAttrDictionary());
+    for (auto &op : *module) {
+      if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
+        // Add quantum kernels defined in the module.
+        if (funcOp->hasAttr(cudaq::kernelAttrName) ||
+            funcOp.getName().startswith("__nvqpp__mlirgen__") ||
+            funcOp.getBody().empty())
+          moduleOp.push_back(funcOp.clone());
       }
-      return "";
-    } else {
-      // Get the quake representation of the kernel
-      auto quakeCode = cudaq::get_quake_by_name(name);
-      auto module = parseSourceString<mlir::ModuleOp>(quakeCode, &mlirContext);
-      if (!module)
-        throw std::runtime_error("module cannot be parsed");
+      // Add globals defined in the module.
+      if (auto globalOp = dyn_cast<cc::GlobalOp>(op))
+        moduleOp.push_back(globalOp.clone());
+    }
 
-      // Extract the kernel name
-      auto func = module->lookupSymbol<mlir::func::FuncOp>(
-          std::string("__nvqpp__mlirgen__") + name);
-
-      // Create a new Module to clone the function into
-      auto location =
-          mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
-      mlir::ImplicitLocOpBuilder builder(location, &mlirContext);
-      // Add CUDA-Q kernel attribute if not already set.
-      if (!func->hasAttr(cudaq::kernelAttrName))
-        func->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
-      // Add entry-point attribute if not already set.
-      if (!func->hasAttr(cudaq::entryPointAttrName))
-        func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-      auto moduleOp = builder.create<mlir::ModuleOp>();
-      moduleOp->setAttrs((*module)->getAttrDictionary());
-      for (auto &op : *module) {
-        if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
-          // Add quantum kernels defined in the module.
-          if (funcOp->hasAttr(cudaq::kernelAttrName) ||
-              funcOp.getName().startswith("__nvqpp__mlirgen__") ||
-              funcOp.getBody().empty())
-            moduleOp.push_back(funcOp.clone());
-        }
-        // Add globals defined in the module.
-        if (auto globalOp = dyn_cast<cc::GlobalOp>(op))
-          moduleOp.push_back(globalOp.clone());
-      }
-
-      if (rawArgs || args) {
-        mlir::PassManager pm(&mlirContext);
-        if (rawArgs && !rawArgs->empty()) {
-          cudaq::info("Run Argument Synth.\n");
-          opt::ArgumentConverter argCon(name, moduleOp);
-          argCon.gen_drop_front(*rawArgs, startingArgIdx);
-
-          // Store kernel and substitution strings on the stack.
-          // We pass string references to the `createArgumentSynthesisPass`.
-          mlir::SmallVector<std::string> kernels;
-          mlir::SmallVector<std::string> substs;
-          for (auto *kInfo : argCon.getKernelSubstitutions()) {
-            std::string kernName = cudaq::runtime::cudaqGenPrefixName +
-                                   kInfo->getKernelName().str();
-            kernels.emplace_back(kernName);
-            std::string substBuff;
-            llvm::raw_string_ostream ss(substBuff);
-            ss << kInfo->getSubstitutionModule();
-            substs.emplace_back(substBuff);
-          }
-
-          // Collect references for the argument synthesis.
-          mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
-                                                        kernels.end()};
-          mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
-                                                       substs.end()};
-          pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
-          pm.addPass(mlir::createCanonicalizerPass());
-          pm.addPass(opt::createDeleteStates());
-          pm.addNestedPass<mlir::func::FuncOp>(
-              opt::createReplaceStateWithKernel());
-          pm.addPass(mlir::createSymbolDCEPass());
-        } else if (args) {
-          cudaq::info("Run Quake Synth.\n");
-          pm.addPass(opt::createQuakeSynthesizer(name, args, startingArgIdx));
-        }
-        pm.addPass(mlir::createCanonicalizerPass());
-        if (enablePrintMLIREachPass) {
-          moduleOp.getContext()->disableMultithreading();
-          pm.enableIRPrinting();
-        }
-        if (failed(pm.run(moduleOp)))
-          throw std::runtime_error("Could not successfully apply quake-synth.");
-      }
-
-      // Note: do not run state preparation pass here since we are always
-      // using simulators.
-
-      // Run client-side passes. `clientPasses` is empty right now, but the code
-      // below accommodates putting passes into it.
+    if (rawArgs || args) {
       mlir::PassManager pm(&mlirContext);
-      std::string errMsg;
-      llvm::raw_string_ostream os(errMsg);
-      const std::string pipeline =
-          std::accumulate(clientPasses.begin(), clientPasses.end(),
-                          std::string(), [](const auto &ss, const auto &s) {
-                            return ss.empty() ? s : ss + "," + s;
-                          });
+      if (rawArgs && !rawArgs->empty()) {
+        cudaq::info("Run Argument Synth.\n");
+        opt::ArgumentConverter argCon(name, moduleOp);
+        argCon.gen_drop_front(*rawArgs, startingArgIdx);
+
+        // Store kernel and substitution strings on the stack.
+        // We pass string references to the `createArgumentSynthesisPass`.
+        mlir::SmallVector<std::string> kernels;
+        mlir::SmallVector<std::string> substs;
+        for (auto *kInfo : argCon.getKernelSubstitutions()) {
+          std::string kernName =
+              cudaq::runtime::cudaqGenPrefixName + kInfo->getKernelName().str();
+          kernels.emplace_back(kernName);
+          std::string substBuff;
+          llvm::raw_string_ostream ss(substBuff);
+          ss << kInfo->getSubstitutionModule();
+          substs.emplace_back(substBuff);
+        }
+
+        // Collect references for the argument synthesis.
+        mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
+                                                      kernels.end()};
+        mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
+                                                     substs.end()};
+        pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
+        pm.addPass(mlir::createCanonicalizerPass());
+        pm.addPass(opt::createDeleteStates());
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createReplaceStateWithKernel());
+        pm.addPass(mlir::createSymbolDCEPass());
+      } else if (args) {
+        cudaq::info("Run Quake Synth.\n");
+        pm.addPass(opt::createQuakeSynthesizer(name, args, startingArgIdx));
+      }
+      pm.addPass(mlir::createCanonicalizerPass());
       if (enablePrintMLIREachPass) {
         moduleOp.getContext()->disableMultithreading();
         pm.enableIRPrinting();
       }
-      if (failed(parsePassPipeline(pipeline, pm, os)))
-        throw std::runtime_error(
-            "Remote rest platform failed to add passes to pipeline (" + errMsg +
-            ").");
-
-      opt::addPipelineConvertToQIR(pm);
-
       if (failed(pm.run(moduleOp)))
-        throw std::runtime_error(
-            "Remote rest platform: applying IR passes failed.");
-
-      std::string mlirCode;
-      llvm::raw_string_ostream outStr(mlirCode);
-      mlir::OpPrintingFlags opf;
-      opf.enableDebugInfo(/*enable=*/true,
-                          /*pretty=*/false);
-      moduleOp.print(outStr, opf);
-      return llvm::encodeBase64(mlirCode);
+        throw std::runtime_error("Could not successfully apply quake-synth.");
     }
+
+    // Note: do not run state preparation pass here since we are always
+    // using simulators.
+
+    // Run client-side passes. `clientPasses` is empty right now, but the code
+    // below accommodates putting passes into it.
+    mlir::PassManager pm(&mlirContext);
+    std::string errMsg;
+    llvm::raw_string_ostream os(errMsg);
+    const std::string pipeline =
+        std::accumulate(clientPasses.begin(), clientPasses.end(), std::string(),
+                        [](const auto &ss, const auto &s) {
+                          return ss.empty() ? s : ss + "," + s;
+                        });
+    if (enablePrintMLIREachPass) {
+      moduleOp.getContext()->disableMultithreading();
+      pm.enableIRPrinting();
+    }
+    if (failed(parsePassPipeline(pipeline, pm, os)))
+      throw std::runtime_error(
+          "Remote rest platform failed to add passes to pipeline (" + errMsg +
+          ").");
+
+    opt::addPipelineConvertToQIR(pm);
+
+    if (failed(pm.run(moduleOp)))
+      throw std::runtime_error(
+          "Remote rest platform: applying IR passes failed.");
+
+    std::string mlirCode;
+    llvm::raw_string_ostream outStr(mlirCode);
+    mlir::OpPrintingFlags opf;
+    opf.enableDebugInfo(/*enable=*/true,
+                        /*pretty=*/false);
+    moduleOp.print(outStr, opf);
+    return llvm::encodeBase64(mlirCode);
   }
   cudaq::RestRequest constructVQEJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
@@ -314,26 +293,8 @@ public:
     if (serializedCodeContext)
       request.serializedCodeExecutionContext = *serializedCodeContext;
     request.entryPoint = kernelName;
-    if (cudaq::__internal__::isLibraryMode(kernelName)) {
-      request.format = cudaq::CodeFormat::LLVM;
-      if (kernelArgs && argsSize > 0) {
-        cudaq::info("Serialize {} bytes of args.", argsSize);
-        request.args.resize(argsSize);
-        std::memcpy(request.args.data(), kernelArgs, argsSize);
-      }
-
-      if (kernelFunc) {
-        ::Dl_info info;
-        ::dladdr(reinterpret_cast<void *>(kernelFunc), &info);
-        const auto funcName = cudaq::quantum_platform::demangle(info.dli_sname);
-        cudaq::info("RemoteSimulatorQPU: retrieve name '{}' for kernel {}",
-                    funcName, kernelName);
-        request.entryPoint = funcName;
-      }
-    } else {
-      request.passes = serverPasses;
-      request.format = cudaq::CodeFormat::MLIR;
-    }
+    request.passes = serverPasses;
+    request.format = cudaq::CodeFormat::MLIR;
 
     if (io_context.name == "state-overlap") {
       if (!io_context.overlapComputeStates.has_value())
