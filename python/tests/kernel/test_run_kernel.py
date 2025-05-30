@@ -782,7 +782,7 @@ def test_return_dataclass_list_int_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: RuntimeError: Tuple size mismatch in value and label
+    # TODO: Support recursive aggregate types in kernels.
     # results = cudaq.run(simple_return_dataclass, 2, MyClass([0,1], 18), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass([0,1], 18)
@@ -801,7 +801,7 @@ def test_return_dataclass_tuple_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: error: recursive struct types are not allowed in kernels.
+    # TODO: Support recursive aggregate types in kernels.
     # results = cudaq.run(simple_return_dataclass, 2, MyClass((0, True), 19), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass((0, True), 19)
@@ -825,7 +825,7 @@ def test_return_dataclass_dataclass_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: error: recursive struct types are not allowed in kernels.
+    # TODO: Support recursive aggregate types in kernels.
     # results = cudaq.run(simple_return_dataclass, 2, MyClass2(MyClass1(0,True), 20), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass2(MyClass1(0,True), 20)
