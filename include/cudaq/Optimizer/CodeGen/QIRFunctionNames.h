@@ -26,7 +26,7 @@ static constexpr const char QIRCnot[] = "__quantum__qis__cnot__body";
 static constexpr const char QIRCphase[] = "__quantum__qis__cphase";
 static constexpr const char QIRCZ[] = "__quantum__qis__cz__body";
 static constexpr const char QIRReadResultBody[] =
-    "__quantum__qis__read_result__body";
+    "__quantum__qis__read_result";
 
 static constexpr const char QIRCustomOp[] = "__quantum__qis__custom_unitary";
 static constexpr const char QIRCustomAdjOp[] =

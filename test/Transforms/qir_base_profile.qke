@@ -212,7 +212,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:         func.func private @__quantum__rt__result_record_output(!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>)
 // CHECK:         func.func private @__quantum__qis__cnot__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__cz__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>)
-// CHECK:         func.func private @__quantum__qis__read_result__body(!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
+// CHECK:         func.func private @__quantum__qis__read_result(!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
 // CHECK:         llvm.mlir.global private constant @cstr.72303030303000("r00000\00") {addr_space = 0 : i32}
 // CHECK:         llvm.mlir.global private constant @cstr.72303030303100("r00001\00") {addr_space = 0 : i32}
 // CHECK:         llvm.mlir.global private constant @cstr.72303030303200("r00002\00") {addr_space = 0 : i32}

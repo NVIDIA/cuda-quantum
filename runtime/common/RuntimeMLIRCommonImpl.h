@@ -210,25 +210,10 @@ void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule) {
         floatPrecisionStr += "f" + std::to_string(k);
     }
 
-    // auto trueValue =
-    //     llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "qubit_resetting", trueValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "classical_ints", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "classical_floats", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "classical_fixed_points", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "user_functions", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "dynamic_float_args", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "extern_functions", falseValue);
-
     auto &llvmContext = llvmModule->getContext();
     auto falseValue = llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(llvmContext));
+    auto trueValue = llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
+
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                                cudaq::opt::QIRIrFunctionsFlagName, falseValue);
 
@@ -243,16 +228,18 @@ void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule) {
                                 cudaq::opt::QIRFloatComputationsFlagName, floatPrecisionStrConst);
     }
 
-    //auto zeroInt2Value =
-    //    llvm::ConstantInt::getTrue(llvm::Type::getIntNTy(*llvmContext, 2));
-    //llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                          "backwards_branching", zeroInt2Value);
+    auto zeroInt2Value =
+       llvm::ConstantInt::getIntegerValue(llvm::Type::getIntNTy(llvmContext, 2), llvm::APInt(2, 0));
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                             cudaq::opt::QIRBackwardsBranchingFlagName, zeroInt2Value);
 
-    auto trueValue = llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                               cudaq::opt::QIRMultipleTargetBranchingFlagName, hasMultipleTargetBranching? trueValue: falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                               cudaq::opt::QIRMultipleReturnPointsFlagName, retCount > 0? trueValue: falseValue);
+    if (hasMultipleTargetBranching)
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::QIRMultipleTargetBranchingFlagName, trueValue);
+
+    if (retCount > 0)
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                               cudaq::opt::QIRMultipleReturnPointsFlagName, trueValue);
 }
 
 // Once a call to a function with irreversible attribute is seen, no more calls

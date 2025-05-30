@@ -32,7 +32,7 @@ def test_computations():
     
     print(cudaq.sample(kernel, 2, 134))
 
-#test_computations()
+test_computations()
 
 def test_return():
     @cudaq.kernel
@@ -45,19 +45,19 @@ def test_return():
     
     print(cudaq.sample(kernel, 2))
 
-#test_return()
+test_return()
 
-def test_branching():
-    @cudaq.kernel
-    def kernel(n: int) -> int:
-        q = cudaq.qvector(n)
-        match n:
-            case 0: return 1
-            case 1: return 2
-            case 0: return 3
-            case 1: return 4
-        return 5
+# def test_branching():
+#     @cudaq.kernel
+#     def kernel(n: int) -> int:
+#         q = cudaq.qvector(n)
+#         match n:
+#             case 0: return 1
+#             case 1: return 2
+#             case 0: return 3
+#             case 1: return 4
+#         return 5
     
-    print(cudaq.sample(kernel, 2))
+#     print(cudaq.sample(kernel, 2))
 
-test_branching()
+# test_branching()
