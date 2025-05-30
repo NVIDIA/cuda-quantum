@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/algorithms/sample.h"
+#include "cudaq/utils/registry.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
