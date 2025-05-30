@@ -633,10 +633,21 @@ def test_return_tuple_int32_bool():
     def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
         return (-13, True)
 
-    # FIXME: CompilerError: test_run_kernel.py:634: error:
-    # Invalid return type, function was defined to return a <class 'tuple'>
+    # TODO: allow type promotion for tuple elements (from int to np.int32)
+    # error: Invalid return type, function was defined to return a <class 'tuple'>
     # but the value being returned is of type <class 'tuple'>
     # results = cudaq.run(simple_tuple_int32_bool_no_args, shots_count=2)
+    # assert len(results) == 2
+    # assert results[0] == (np.int32(-13), True)
+    # assert results[1] == (np.int32(-13), True)
+
+    @cudaq.kernel
+    def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
+        return (np.int32(-13), True)
+
+    # TODO: support explicit casts
+    # error: unsupported NumPy call (int32)
+    # results = cudaq.run(simple_tuple_int32_bool_no_args1, shots_count=2)
     # assert len(results) == 2
     # assert results[0] == (np.int32(-13), True)
     # assert results[1] == (np.int32(-13), True)

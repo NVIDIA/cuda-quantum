@@ -416,18 +416,49 @@ def test_return_tuple_int_bool():
 
     @cudaq.kernel
     def simple_tuple_int_bool_no_args() -> tuple[int, bool]:
-        return (13, True)
+        return (-13, True)
 
     result = simple_tuple_int_bool_no_args()
-    assert result == (13, True)
+    assert result == (-13, True)
 
     @cudaq.kernel
     def simple_tuple_int_bool(n: int, t: tuple[int, bool]) -> tuple[int, bool]:
         qubits = cudaq.qvector(n)
         return t
 
-    result = simple_tuple_int_bool(2, (13, True))
-    assert result == (13, True)
+    result = simple_tuple_int_bool(2, (-13, True))
+    assert result == (-13, True)
+
+
+def test_return_tuple_int32_bool():
+
+    @cudaq.kernel
+    def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
+        return (-13, True)
+
+    # TODO: allow type promotion for tuple elements (from int to np.int32)
+    # error: Invalid return type, function was defined to return a <class 'tuple'>
+    # but the value being returned is of type <class 'tuple'>
+    # result = simple_tuple_int32_bool_no_args()
+    # assert result == (-13, True)
+
+    @cudaq.kernel
+    def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:
+        return (np.int32(-13), True)
+
+    # TODO: support explicit casts
+    # error: unsupported NumPy call (int32)
+    # result = simple_tuple_int32_bool_no_args1()
+    # assert result == (-13, True)
+
+    @cudaq.kernel
+    def simple_tuple_int32_bool(
+            n: int, t: tuple[np.int32, bool]) -> tuple[np.int32, bool]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    result = simple_tuple_int32_bool(2, (np.int32(-13), True))
+    assert result == (-13, True)
 
 
 def test_return_tuple_bool_int_float():
