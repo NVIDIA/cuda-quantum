@@ -12,6 +12,7 @@ import sys
 import traceback
 import numpy as np
 from typing import get_origin, Callable, List
+import types
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
@@ -496,9 +497,10 @@ def mlirTypeToPyType(argType):
     if cc.StructType.isinstance(argType):
         if (cc.StructType.getName(argType) == "tuple"):
             elements = [
-                mlirTypeToPyType(v)() for v in cc.StructType.getTypes(argType)
+                mlirTypeToPyType(v) for v in cc.StructType.getTypes(argType)
             ]
-            return type(tuple(elements))
+            return types.GenericAlias(tuple, tuple(elements))
+
         clsName = cc.StructType.getName(argType)
         if globalRegisteredTypes.isRegisteredClass(clsName):
             pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)

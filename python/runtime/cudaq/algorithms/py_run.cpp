@@ -87,6 +87,9 @@ std::vector<py::object> pyRunTheKernel(const std::string &name,
 std::vector<py::object> pyRun(py::object &kernel, py::args args,
                               std::size_t shots_count,
                               std::optional<noise_model> noise_model) {
+  if (shots_count == 0)
+    return {};
+
   auto [name, module, argData, func] =
       details::getKernelLaunchParameters(kernel, args);
 
@@ -98,14 +101,9 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
     if (platform.is_remote())
       throw std::runtime_error(
           "Noise model is not supported on remote platforms.");
-  }
-
-  if (shots_count == 0)
-    return {};
-
-  // Launch the kernel in the appropriate context.
-  if (noise_model.has_value())
+    // Launch the kernel in the appropriate context.
     platform.set_noise(&noise_model.value());
+  }
 
   auto results = details::pyRunTheKernel(name, module, func, *argData, platform,
                                          shots_count);
