@@ -410,6 +410,13 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/uccsd_wf_ansatz.html#Run-VQE">Run VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/backends/backends.html">   Backends</a><ul>
@@ -570,6 +577,32 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/extending/backend.html">Add a new Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/backend.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/backend.html#server-helper-class">Server Helper Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/backend.html#target-configuration">Target Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/backend.html#testing">Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/backend.html#unit-tests">Unit Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/backend.html#mock-server">Mock Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/backend.html#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/backend.html#integration-tests">Integration Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/backend.html#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/backend.html#code-review">Code Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/backend.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="using/extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
@@ -685,7 +718,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#operators">Operators</a><ul>
@@ -1093,6 +1126,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq25amplitude_damping_channel14num_parametersE">cudaq::amplitude_damping_channel::num_parameters (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq25amplitude_damping_channel11num_targetsE">cudaq::amplitude_damping_channel::num_targets (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq19AnalogRemoteRESTQPUE">cudaq::AnalogRemoteRESTQPU (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq11apply_noiseEvDpRR4Args">cudaq::apply_noise (C++ function)</a>
 </li>
@@ -1540,14 +1575,12 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17OrcaRemoteRESTQPUE">cudaq::OrcaRemoteRESTQPU (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13PasqalBaseQPUE">cudaq::PasqalBaseQPU (C++ class)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli111num_targetsE">cudaq::pauli1::num_targets (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli16pauli1ERKNSt6vectorIN5cudaq4realEEE">cudaq::pauli1::pauli1 (C++ function)</a>
@@ -1799,8 +1832,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq5quditE">cudaq::qudit (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qudit5quditEv">cudaq::qudit::qudit (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq12QuEraBaseQPUE">cudaq::QuEraBaseQPU (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE">cudaq::qvector (C++ class)</a>
 </li>
@@ -2454,7 +2485,9 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.initialize_cudaq">initialize_cudaq() (in module cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.dynamics.helpers.InitialState">InitialState (class in cudaq.dynamics.helpers)</a>
+      <li><a href="api/languages/python_api.html#cudaq.dynamics.helpers.InitialState">InitialState (in module cudaq.dynamics.helpers)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.InitialStateType">InitialStateType (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.instantiate">instantiate() (cudaq.operators method)</a>
 
@@ -2907,8 +2940,6 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.term_id">(cudaq.operators.spin.SpinOperatorTerm property)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array">to_cupy_array() (in module cudaq.dynamics.cudm_state)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.CentralDifference.to_json">to_json() (cudaq.gradients.CentralDifference method)</a>
 
       <ul>
@@ -2963,9 +2994,17 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.to_numpy">to_numpy() (cudaq.ComplexMatrix method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.to_sparse_matrix">to_sparse_matrix() (cudaq.operators.spin.SpinOperator method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.to_sparse_matrix">to_sparse_matrix() (cudaq.operators.boson.BosonOperator method)</a>
 
       <ul>
+        <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperatorTerm.to_sparse_matrix">(cudaq.operators.boson.BosonOperatorTerm method)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.operators.fermion.FermionOperator.to_sparse_matrix">(cudaq.operators.fermion.FermionOperator method)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.operators.fermion.FermionOperatorTerm.to_sparse_matrix">(cudaq.operators.fermion.FermionOperatorTerm method)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.to_sparse_matrix">(cudaq.operators.spin.SpinOperator method)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.to_sparse_matrix">(cudaq.operators.spin.SpinOperatorTerm method)</a>
 </li>
       </ul></li>

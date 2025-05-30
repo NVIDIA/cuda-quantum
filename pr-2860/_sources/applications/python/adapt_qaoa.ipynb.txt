@@ -36,12 +36,13 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 41,
+   "execution_count": 1,
    "metadata": {},
    "outputs": [],
    "source": [
     "import numpy as np\n",
     "import cudaq\n",
+    "from cudaq import spin\n",
     "from scipy.optimize import minimize\n",
     "import random\n",
     "\n",
@@ -59,7 +60,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 42,
+   "execution_count": 12,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -102,7 +103,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 43,
+   "execution_count": 13,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -126,17 +127,17 @@
     "def term_coefficients(ham: cudaq.SpinOperator) -> list[complex]:\n",
     "    result = []\n",
     "    for term in ham:\n",
-    "        result.append(term.get_coefficient())\n",
+    "        result.append(term.evaluate_coefficient())\n",
     "    return result\n",
     "\n",
     "# Collect Pauli words from a spin operator so we can pass them to a kernel\n",
     "def term_words(ham: cudaq.SpinOperator) -> list[str]:\n",
     "    # Our kernel uses these words to apply exp_pauli to the entire state.\n",
     "    # we hence ensure that each pauli word covers the entire space.\n",
-    "    n_spins = ham.get_qubit_count()\n",
+    "    \n",
     "    result = []\n",
     "    for term in ham:\n",
-    "        result.append(term.get_pauli_word(n_spins))\n",
+    "        result.append(term.get_pauli_word(qubits_num))\n",
     "    return result\n",
     "\n",
     "# Generate the Spin Hamiltonian:\n",
@@ -157,16 +158,16 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 44,
+   "execution_count": 14,
    "metadata": {},
    "outputs": [],
    "source": [
     "def qaoa_mixer(n):\n",
     "\n",
-    "    term = cudaq.spin.x(0)\n",
+    "    term = spin.x(0)\n",
     "\n",
     "    for i in range(1, n):\n",
-    "        term = term + cudaq.spin.x(i)\n",
+    "        term = term + spin.x(i)\n",
     "\n",
     "    pool = [term]\n",
     "    return pool\n",
@@ -176,7 +177,7 @@
     "    pool = []\n",
     "\n",
     "    for i in range(n):\n",
-    "        pool.append(cudaq.spin.x(i))\n",
+    "        pool.append(cudaq.SpinOperator(spin.x(i)))\n",
     "\n",
     "    return pool\n",
     "\n",
@@ -186,10 +187,10 @@
     "\n",
     "    for i in range(n-1):\n",
     "        for j in range(i+1, n):\n",
-    "            pool.append(cudaq.spin.x(i) * cudaq.spin.x(j))\n",
-    "            pool.append(cudaq.spin.y(i) * cudaq.spin.y(j))\n",
-    "            pool.append(cudaq.spin.y(i) * cudaq.spin.z(j))\n",
-    "            pool.append(cudaq.spin.z(i) * cudaq.spin.y(j))\n",
+    "            pool.append(cudaq.SpinOperator(spin.x(i)) * cudaq.SpinOperator(spin.x(j)))\n",
+    "            pool.append(cudaq.SpinOperator(spin.y(i)) * cudaq.SpinOperator(spin.y(j)))\n",
+    "            pool.append(cudaq.SpinOperator(spin.y(i)) * cudaq.SpinOperator(spin.z(j)))\n",
+    "            pool.append(cudaq.SpinOperator(spin.z(i)) * cudaq.SpinOperator(spin.y(j)))\n",
     "\n",
     "    return pool\n",
     "\n",
@@ -203,7 +204,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 45,
+   "execution_count": 15,
    "metadata": {},
    "outputs": [
     {
@@ -230,7 +231,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 46,
+   "execution_count": 16,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -251,7 +252,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 47,
+   "execution_count": 17,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -303,12 +304,12 @@
    "source": [
     "### Beginning of ADAPT-QAOA iteration:\n",
     "\n",
-    "Note that, here in this tutorial, we set the seed for the random number generator. This ensures that the random choices are reproducible in each step of iteration when choosing operator pools if more than one operator pool has the same value. "
+    "Note that, here in this tutorial, we set the seed for the random number generator. This ensures that the random choices are reproducible in each step of iteration when choosing operator pools if more than one operator pool has the same value. For production, users need to change that."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 48,
+   "execution_count": 18,
    "metadata": {},
    "outputs": [
     {
@@ -423,7 +424,12 @@
     "        layer.append(1) \n",
     "        random_mixer = random.choice(temp_pool)\n",
     "        \n",
-    "        mixer_pool = mixer_pool + [random_mixer.get_pauli_word(qubits_num)]\n",
+    "        pool_added = []\n",
+    "        for term in random_mixer:\n",
+    "            pool_added.append(term.get_pauli_word(qubits_num))\n",
+    "            \n",
+    "        mixer_pool = mixer_pool + pool_added\n",
+    "        \n",
     "    \n",
     "        print('Mixer pool at step', istep)\n",
     "        print(mixer_pool)\n",
@@ -484,7 +490,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 49,
+   "execution_count": 19,
    "metadata": {},
    "outputs": [
     {
@@ -494,8 +500,8 @@
       "\n",
       " Sampling the Final ADAPT QAOA circuit \n",
       "\n",
-      "The most probable max cut:  01011\n",
-      "All bitstring from circuit sampling:  { 01011:2507 10100:2493 }\n",
+      "The most probable max cut:  10100\n",
+      "All bitstring from circuit sampling:  { 01011:2499 10100:2501 }\n",
       "\n"
      ]
     }
@@ -510,14 +516,14 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 50,
+   "execution_count": 20,
    "metadata": {},
    "outputs": [
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 3d04e4a243907104fcc7da2b0fb01f8a06d5c69d)\n"
+      "CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 974716fa2024267f7c12a2ed86ffbfe314d37a36)\n"
      ]
     }
    ],

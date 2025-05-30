@@ -416,6 +416,13 @@
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#Run-VQE">Run VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -576,6 +583,32 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Add a new Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#server-helper-class">Server Helper Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#target-configuration">Target Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#testing">Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#unit-tests">Unit Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#mock-server">Mock Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#integration-tests">Integration Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#code-review">Code Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
@@ -691,7 +724,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
@@ -871,7 +904,7 @@
 <section id="Quantum-Probability-Image-Encoding-(QPIE):">
 <h2>Quantum Probability Image Encoding (QPIE):<a class="headerlink" href="#Quantum-Probability-Image-Encoding-(QPIE):" title="Permalink to this heading">¶</a></h2>
 <p>Lets take as an example a classical 2x2 image (4 pixels). We can label each pixel with its position</p>
-<div><p><img alt="088411f7f1a94ca0a07cdec9f96e4544" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
+<div><p><img alt="be59e026dfcb46b6abe860e9da9fcea0" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
 </div><p>Each pixel will have its own color intensity represented along with its position label as an 8-bit black and white color. To convert the pixel intensity to probability amplitudes of a quantum state</p>
 <div class="math notranslate nohighlight">
 \[c_i = \frac{I_{yx}}{\sqrt(\sum I^2_{yx})}\]</div>

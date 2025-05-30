@@ -413,6 +413,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html#Run-VQE">Run VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../backends.html">   Backends</a><ul class="current">
@@ -573,6 +580,32 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../extending/backend.html">Add a new Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/backend.html#server-helper-class">Server Helper Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#target-configuration">Target Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#testing">Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/backend.html#unit-tests">Unit Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/backend.html#mock-server">Mock Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/backend.html#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/backend.html#integration-tests">Integration Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#code-review">Code Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
@@ -688,7 +721,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#operators">Operators</a><ul>
@@ -916,6 +949,10 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_ALLOW_FP32_EMULATED</span></code></p></td>
 <td><p><code class="code docutils literal notranslate"><span class="pre">TRUE</span></code> (<code class="code docutils literal notranslate"><span class="pre">1</span></code>, <code class="code docutils literal notranslate"><span class="pre">ON</span></code>) or <code class="code docutils literal notranslate"><span class="pre">FALSE</span></code> (<code class="code docutils literal notranslate"><span class="pre">0</span></code>, <code class="code docutils literal notranslate"><span class="pre">OFF</span></code>)</p></td>
 <td><p>[Blackwell (compute capability 10.0+) only] Enable or disable floating point math emulation. If enabled, allows <code class="code docutils literal notranslate"><span class="pre">FP32</span></code> emulation kernels using <code class="code docutils literal notranslate"><span class="pre">BFloat16</span></code> (<code class="code docutils literal notranslate"><span class="pre">BF16</span></code>) whenever possible. Enabled by default.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_ENABLE_MEMPOOL</span></code></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">TRUE</span></code> (<code class="code docutils literal notranslate"><span class="pre">1</span></code>, <code class="code docutils literal notranslate"><span class="pre">ON</span></code>) or <code class="code docutils literal notranslate"><span class="pre">FALSE</span></code> (<code class="code docutils literal notranslate"><span class="pre">0</span></code>, <code class="code docutils literal notranslate"><span class="pre">OFF</span></code>)</p></td>
+<td><p>Enable or disable <a class="reference external" href="https://developer.nvidia.com/blog/using-cuda-stream-ordered-memory-allocator-part-1/#memory_pools">CUDA memory pool</a> for state vector allocation/deallocation. Enabled by default.</p></td>
 </tr>
 </tbody>
 </table>
