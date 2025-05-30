@@ -373,6 +373,9 @@ class PyASTBridge(ast.NodeVisitor):
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
 
     def promoteOperandType(self, ty, operand):
+        if ty == operand.type:
+            return operand
+
         if ComplexType.isinstance(ty):
             complexType = ComplexType(ty)
             floatType = complexType.element_type
@@ -390,6 +393,12 @@ class PyASTBridge(ast.NodeVisitor):
                 imag = self.getConstantFloatWithType(0.0, floatType)
                 operand = complex.CreateOp(complexType, real, imag).result
 
+        if (cc.StdvecType.isinstance(ty)):
+            eleTy = cc.StdvecType.getElementType(ty)
+            if cc.StdvecType.isinstance(operand.type):
+                operand = self.__copyVectorAndCastElements(operand, eleTy)
+
+        #FIXME: use cc.cast for all below
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
                 operand = arith.ExtFOp(ty, operand).result
@@ -401,6 +410,15 @@ class PyASTBridge(ast.NodeVisitor):
                 operand = arith.TruncFOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
                 operand = arith.SIToFPOp(ty, operand).result
+
+        if IntegerType.isinstance(ty):
+            if F64Type.isinstance(operand.type):
+                operand = arith.FPToSIOp(self.getIntegerType(), operand).result
+            if IntegerType.isinstance(operand.type):
+                if IntegerType(ty).width < IntegerType(operand.type).width:
+                    operand = arith.TruncIOp(ty, operand).result
+                else:
+                    operand = arith.ExtSIOp(ty, operand).result
 
         return operand
 
@@ -552,7 +570,10 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             structName = quake.StruqType.getName(structTy)
         structIdx = None
-        _, userType = globalRegisteredTypes[structName]
+        if not globalRegisteredTypes.isRegisteredClass(structName):
+            self.emitFatalError(f'Dataclass is not registered: {structName})')
+
+        _, userType = globalRegisteredTypes.getClassAttributes(structName)
         for i, (k, _) in enumerate(userType.items()):
             if k == memberName:
                 structIdx = i
@@ -1201,7 +1222,11 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
         else:
-            self.visit(node.value)
+            if isinstance(node.value, ast.Tuple):
+                for ele in node.value.elts:
+                    self.visit(ele)
+            else:
+                self.visit(node.value)
 
         if len(self.valueStack) == 0:
             self.emitFatalError("invalid assignment detected.", node)
@@ -2023,16 +2048,12 @@ class PyASTBridge(ast.NodeVisitor):
             elif node.func.id == 'int':
                 # cast operation
                 value = self.popValue()
-                if IntegerType.isinstance(value.type):
-                    self.pushValue(value)
-                    return
-
-                if F64Type.isinstance(value.type):
-                    self.pushValue(
-                        arith.FPToSIOp(self.getIntegerType(), value).result)
-                    return
-
-                self.emitFatalError("Invalid cast to integer.", node)
+                casted = self.promoteOperandType(IntegerType.get_signless(64),
+                                                 value)
+                self.pushValue(casted)
+                if not IntegerType.isinstance(casted.type):
+                    self.emitFatalError(
+                        f'Invalid cast to integer: {value.type}', node)
 
             elif node.func.id == 'list':
                 if len(self.valueStack) == 2:
@@ -2064,9 +2085,10 @@ class PyASTBridge(ast.NodeVisitor):
                 self.__insertDbgStmt(self.popValue(), node.func.id)
                 return
 
-            elif node.func.id in globalRegisteredTypes:
+            elif node.func.id in globalRegisteredTypes.classes:
                 # Handle User-Custom Struct Constructor
-                cls, annotations = globalRegisteredTypes[node.func.id]
+                cls, annotations = globalRegisteredTypes.getClassAttributes(
+                    node.func.id)
                 # Alloca the struct
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
@@ -3258,6 +3280,37 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(cc.LoadOp(eleAddr).result)
                 return
 
+        if cc.StructType.isinstance(var.type):
+            # Handle the case where we have a tuple member extraction, memory semantics
+            idxValue = None
+            if hasattr(idx.owner, 'opview') and isinstance(
+                    idx.owner.opview, arith.ConstantOp):
+                if 'value' in idx.owner.attributes:
+                    attr = IntegerAttr(idx.owner.attributes['value'])
+                    idxValue = attr.value
+
+            if idxValue == None:
+                self.emitFatalError(
+                    "non-constant subscript value on a tuple is not supported",
+                    node)
+
+            memberTys = cc.StructType.getTypes(var.type)
+            if idxValue >= len(memberTys):
+                self.emitFatalError(f'tuple index is out of range: {idxValue}',
+                                    node)
+
+            structPtr = self.ifNotPointerThenStore(var)
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, memberTys[idxValue]), structPtr,
+                [], DenseI32ArrayAttr.get([idxValue], context=self.ctx)).result
+
+            # Return the pointer if someone asked for it
+            if self.subscriptPushPointerValue:
+                self.pushValue(eleAddr)
+                return
+            self.pushValue(cc.LoadOp(eleAddr).result)
+            return
+
         self.emitFatalError("unhandled subscript", node)
 
     def visit_For(self, node):
@@ -3846,6 +3899,16 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         result = self.ifPointerThenLoad(self.popValue())
+        result = self.ifPointerThenLoad(result)
+        if result.type != self.knownResultType:
+            # FIXME consider more auto-casting where possible
+            result = self.promoteOperandType(self.knownResultType, result)
+
+        if result.type != self.knownResultType:
+            self.emitFatalError(
+                f"Invalid return type, function was defined to return a {mlirTypeToPyType(self.knownResultType)} but the value being returned is of type {mlirTypeToPyType(result.type)}",
+                node)
+
         if cc.StdvecType.isinstance(result.type):
             symName = '__nvqpp_vectorCopyCtor'
             load_intrinsic(self.module, symName)
@@ -3865,23 +3928,48 @@ class PyASTBridge(ast.NodeVisitor):
             func.ReturnOp([res])
             return
 
-        result = self.ifPointerThenLoad(result)
-
         if self.symbolTable.numLevels() > 1:
             # We are in an inner scope, release all scopes before returning
             cc.UnwindReturnOp([result])
             return
 
-        if result.type != self.knownResultType:
-            # FIXME consider more auto-casting where possible
-            result = self.promoteOperandType(self.knownResultType, result)
-
-        if result.type != self.knownResultType:
-            self.emitFatalError(
-                f"Invalid return type, function was defined to return a {mlirTypeToPyType(self.knownResultType)} but the value being returned is of type {mlirTypeToPyType(result.type)}",
-                node)
-
         func.ReturnOp([result])
+
+    def visit_Tuple(self, node):
+        """
+        Map tuples in the Python AST to equivalents in MLIR.
+        """
+        if self.verbose:
+            print("[Visit Tuple = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
+
+        self.generic_visit(node)
+        self.currentNode = node
+
+        elementValues = [self.popValue() for _ in range(len(node.elts))]
+        elementValues.reverse()
+
+        # We do not store structs of pointers
+        elementValues = [
+            cc.LoadOp(ele).result
+            if cc.PointerType.isinstance(ele.type) else ele
+            for ele in elementValues
+        ]
+
+        structTys = [v.type for v in elementValues]
+        structTy = cc.StructType.getNamed(self.ctx, "tuple", structTys)
+        stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
+                                TypeAttr.get(structTy)).result
+
+        # loop over each type and `compute_ptr` / store
+
+        for i, ty in enumerate(structTys):
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, ty), stackSlot, [],
+                DenseI32ArrayAttr.get([i], context=self.ctx)).result
+            cc.StoreOp(elementValues[i], eleAddr)
+        self.pushValue(stackSlot)
+        return
 
     def visit_UnaryOp(self, node):
         """
