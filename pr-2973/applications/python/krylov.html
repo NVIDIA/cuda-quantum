@@ -880,7 +880,7 @@ state vector.</p>
 <h2>Setup<a class="headerlink" href="#Setup" title="Permalink to this heading">¶</a></h2>
 <p>This cell installs the necessary packages.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -896,7 +896,7 @@ state vector.</p>
 </div>
 <p>The molecule is defined below and its Hamiltonian is extracted as a matrix. The matrix is diagonalized to produce the ground state. The corresponding state vector will be used as the initial state to ensure good results for this demonstration.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.classical_pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_mol_hamiltonian</span>
@@ -952,13 +952,13 @@ overwrite output file: H 0-pyscf.log
 [pyscf] Total number of orbitals =  2
 [pyscf] Total number of electrons =  2
 [pyscf] HF energy =  -1.116325564486115
-[pyscf] Total R-CCSD energy =  -1.1371758844013342
+[pyscf] Total R-CCSD energy =  -1.1371758844013329
 Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  3
 </pre></div></div>
 </div>
 <p>The functions below take the original Hamiltonian defined above, and strip it into a list of Pauli words and a list of coefficients which will be uses later.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
@@ -992,13 +992,13 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[(-0.10647701149300526+0j), (0.17028010135220517+0j), (0.17028010135220514+0j), (-0.22004130022421745+0j), (-0.22004130022421745+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
+[(-0.10647701149300504+0j), (0.17028010135220506+0j), (0.17028010135220503+0j), (-0.2200413002242175+0j), (-0.2200413002242175+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
 [&#39;IIII&#39;, &#39;ZIII&#39;, &#39;IZII&#39;, &#39;IIZI&#39;, &#39;IIIZ&#39;, &#39;ZZII&#39;, &#39;ZIZI&#39;, &#39;ZIIZ&#39;, &#39;IZZI&#39;, &#39;IZIZ&#39;, &#39;IIZZ&#39;, &#39;XXYY&#39;, &#39;XYYX&#39;, &#39;YXXY&#39;, &#39;YYXX&#39;]
 </pre></div></div>
 </div>
 <p>In this example, the unitary operators that build the Krylov subspace are first-order Trotter operations at different time steps. The performance here could potentially be improved by increasing the size of the time step, using a higher order Trotter approximation, or using other sorts of approximations. The CUDA-Q kernels below define the unitary operations that construct the <span class="math notranslate nohighlight">\(\psi\)</span> basis. Each receives the target qubits, the time step, and components of the Hamiltonian.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Applies Unitary operation corresponding to Um</span>
@@ -1060,7 +1060,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </div>
 <p>The auxillary function below takes a Pauli word, and converts it to a list of integers which informs applications of this word to a circuit with the <code class="docutils literal notranslate"><span class="pre">apply_pauli</span></code> kernel.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">pauli_str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">):</span>
@@ -1081,7 +1081,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </div>
 <p>The spin operators necessary for the Hadamard test are defined below.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the spin-op x for real component and y for the imaginary component.</span>
@@ -1092,7 +1092,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </div>
 <p>Finally, the time step for the unitary operations that build the Krylov space is defined as well as the dimension of the Krylov space.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#Define parameters for the quantum Krylov space</span>
@@ -1111,7 +1111,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 <p>The observe function broadcasts over the two provided operators <span class="math notranslate nohighlight">\(X\)</span> and <span class="math notranslate nohighlight">\(Y\)</span> and returns a list of results. The <code class="docutils literal notranslate"><span class="pre">expectation</span></code> function returns the expectation values which are summed and stored in the matrix.</p>
 <p>The multi-gpu case completes the same steps, except the <code class="docutils literal notranslate"><span class="pre">observe_async</span></code> command is used. This allows for the <span class="math notranslate nohighlight">\(X\)</span> and <span class="math notranslate nohighlight">\(Y\)</span> observables to be evaluated at the same time on two different simulated QPUs. In this case, the results are stored in lists corresponding to the real and imaginary parts. These are then accessed later with the <code class="docutils literal notranslate"><span class="pre">get</span></code> command to build <span class="math notranslate nohighlight">\(S\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Create the identity operator</span>
@@ -1140,7 +1140,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </div>
 <p>The Hamiltonian matrix elements are computed in the same way, except this time the Hamiltonian is applied as part of the circuit. This is accomplished with the extra for loop, which iterates through the terms in the Hamiltonian, computing an expectation value for each one and then summing the results to produce one matrix element.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Single GPU:</span>
@@ -1163,10 +1163,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 
         <span class="c1"># Loops over the terms in the Hamiltonian, computing expectation values</span>
         <span class="k">for</span> <span class="n">coef</span><span class="p">,</span> <span class="n">word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">):</span>
-            <span class="c1">#print(coef,word)</span>
-
             <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
-            <span class="c1">#print(pauli_list)</span>
 
             <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
                                         <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span>
@@ -1203,7 +1200,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 \[X'^{\dagger}HX' = ES^{\frac{1}{2}}C.\]</div>
 <p>Using the eigenvectors of <span class="math notranslate nohighlight">\(H'\)</span>, (<span class="math notranslate nohighlight">\(^{\frac{1}{2}}C\)</span>), the original eigenvectors to the problem can be found by left multiplying by <span class="math notranslate nohighlight">\(S^{\frac{-1}{2}}C.\)</span></p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">eig</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
@@ -1235,7 +1232,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eigen_value</span><span class="p">,</span> <span class="n">eigen_vect</span> <span class="o">=</span> <span class="n">eig</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">],</span> <span class="n">wf_overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span>
@@ -1251,7 +1248,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Energy from QFD:
-(-1.1371766607537792-1.6945688990771778e-07j)
+(-1.137176660753775-1.6945689273261445e-07j)
 </pre></div></div>
 </div>
 </section>
