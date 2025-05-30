@@ -42,7 +42,7 @@ inline std::size_t byteSize(mlir::Type ty) {
   throw std::runtime_error("Expected a complex, floating, or integral type");
 }
 
-/// @brief Convert raw data to python object.
+/// @brief Convert raw return of kernel to python object.
 py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
                          mlir::Type ty, char *data, std::size_t size);
 

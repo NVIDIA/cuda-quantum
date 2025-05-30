@@ -559,6 +559,7 @@ py::object readPyObject(mlir::Type ty, char *arg) {
   return py_ext::convert<T>(concrete);
 }
 
+/// @brief Convert raw return of kernel to python object.
 py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
                          mlir::Type ty, char *data, std::size_t size) {
   auto isRunContext = module->hasAttr(runtime::enableCudaqRun);
