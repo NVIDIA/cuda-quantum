@@ -1503,14 +1503,12 @@ dia_spmatrix product_op<HandlerTy>::to_diagonal_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
-  printf("product_op<HandlerTy>::to_diagonal_matrix\n");
   auto terms = std::move(
       this->transform(
               operator_arithmetics<operator_handler::canonical_evaluation>(
                   dimensions, parameters))
           .terms);
   assert(terms.size() == 1);
-
   auto matrix = HandlerTy::to_diagonal_matrix(
       terms[0].encoding, terms[0].relevant_dimensions, terms[0].coefficient,
       invert_order);

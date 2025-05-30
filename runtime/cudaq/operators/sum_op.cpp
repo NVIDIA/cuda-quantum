@@ -1862,11 +1862,18 @@ dia_spmatrix sum_op<HandlerTy>::to_diagonal_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
-  printf("sum_op<HandlerTy>::to_diagonal_matrix\n");
-
-  // TODO
-  return std::make_pair(std::vector<std::complex<double>>{},
-                        std::vector<int64_t>{});
+  // For a full sum_op, we convert to sparse matrix then to the DIA format.
+  // Note: converting a full `sum_op` to DIA is not being used by the internal
+  // dynamics solver, which always process the underlying terms within the
+  // product_op.
+  int64_t totalDim = 1;
+  for (const auto degree : degrees()) {
+    const auto iter = dimensions.find(degree);
+    const auto degreeDim = iter != dimensions.end() ? iter->second : 2;
+    totalDim *= degreeDim;
+  }
+  return cudaq::detail::to_dia_spmatrix(
+      to_sparse_matrix(dimensions, parameters, invert_order), totalDim);
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)

@@ -224,6 +224,18 @@ TEST(SpinOpTester, checkGetSparseMatrix) {
   }
 }
 
+TEST(SpinOpTester, checkGetSparseMatrix2) {
+  auto H = cudaq::spin_op::z(0) * cudaq::spin_op::y(1);
+  auto matrix = H.to_matrix();
+  matrix.dump();
+  auto [values, rows, cols] = H.to_sparse_matrix();
+  for (std::size_t i = 0; auto &el : values) {
+    std::cout << rows[i] << ", " << cols[i] << ", " << el << "\n";
+    // EXPECT_NEAR(matrix(rows[i], cols[i]).real(), el.real(), 1e-3);
+    i++;
+  }
+}
+
 TEST(SpinOpTester, checkGetDiagMatrix) {
   auto compareDenseDiag = [](const cudaq::complex_matrix &denseMat,
                              const cudaq::dia_spmatrix &diaMat) {
@@ -254,6 +266,7 @@ TEST(SpinOpTester, checkGetDiagMatrix) {
     compareDenseDiag(H.to_matrix(), H.to_diagonal_matrix());
   }
 
+  // Product ops testing
   for (auto &H1 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
                    cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
     for (auto &H2 : {cudaq::spin_op::i(1), cudaq::spin_op::x(1),
@@ -271,6 +284,23 @@ TEST(SpinOpTester, checkGetDiagMatrix) {
       auto H = H1 * H2;
       std::cout << "Testing " << H.to_string() << "\n";
       compareDenseDiag(H.to_matrix(), H.to_diagonal_matrix());
+    }
+  }
+
+  // Sum ops testing
+  for (auto &H1 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                   cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+    for (auto &H2 : {cudaq::spin_op::i(1), cudaq::spin_op::x(1),
+                     cudaq::spin_op::y(1), cudaq::spin_op::z(1)}) {
+      for (auto &H3 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                       cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+        for (auto &H4 : {cudaq::spin_op::i(1), cudaq::spin_op::x(1),
+                         cudaq::spin_op::y(1), cudaq::spin_op::z(1)}) {
+          auto H = H1 * H2 + H3 * H4;
+          std::cout << "Testing " << H.to_string() << "\n";
+          compareDenseDiag(H.to_matrix(), H.to_diagonal_matrix());
+        }
+      }
     }
   }
 }

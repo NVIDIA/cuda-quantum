@@ -229,7 +229,11 @@ dia_spmatrix spin_handler::to_diagonal_matrix(
     return dia_spmatrix();
   }
 
-  return to_matrix(pauli_word, coeff, invert_order).as_dia_matrix();
+  const std::int64_t dim = 1ll << pauli_word.size();
+  return cudaq::detail::to_dia_spmatrix(
+      cudaq::detail::to_csr_spmatrix(
+          to_sparse_matrix(pauli_word, coeff, invert_order), dim),
+      dim);
 }
 
 std::string spin_handler::to_string(bool include_degrees) const {

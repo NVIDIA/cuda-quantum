@@ -85,5 +85,8 @@ EigenSparseMatrix create_sparse_matrix(
 csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
                              std::size_t estimated_num_entries);
 
+/// Converts a `csr_spmatrix` to a multi-diagonal matrix
+dia_spmatrix to_dia_spmatrix(const csr_spmatrix &csr_matrix, std::size_t dim);
+
 } // namespace detail
 } // namespace cudaq
