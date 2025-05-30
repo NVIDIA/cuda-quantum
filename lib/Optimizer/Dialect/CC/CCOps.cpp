@@ -210,18 +210,22 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
     auto fltTy = builder.getF32Type();
     auto dblTy = builder.getF64Type();
     auto loc = getLoc();
+    auto truncate = [&](std::int64_t val) -> std::int64_t {
+      auto srcTy = getValue().getType();
+      auto srcWidth = srcTy.getIntOrFloatBitWidth();
+      // Zero-extend to get the original integer value.
+      if (srcWidth < 64)
+        val &= ((1UL << srcWidth) - 1);
+      return val;
+    };
+
     if (auto attr = dyn_cast<IntegerAttr>(optConst)) {
       auto val = attr.getInt();
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
-        auto srcTy = getValue().getType();
-        auto srcWidth = srcTy.getIntOrFloatBitWidth();
 
-        if (getZint()) {
-          // Zero-extend to get the original integer value.
-          if (srcWidth < 64)
-            val &= ((1UL << srcWidth) - 1);
-        }
+        if (getZint())
+          val = truncate(val);
 
         if (width == 1) {
           bool v = val != 0;
@@ -233,6 +237,7 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
 
       } else if (ty == fltTy) {
         if (getZint()) {
+          val = truncate(val);
           APFloat fval(static_cast<float>(static_cast<std::uint64_t>(val)));
           return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
               .getResult();
@@ -244,6 +249,7 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
         }
       } else if (ty == dblTy) {
         if (getZint()) {
+          val = truncate(val);
           APFloat fval(static_cast<double>(static_cast<std::uint64_t>(val)));
           return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
               .getResult();
