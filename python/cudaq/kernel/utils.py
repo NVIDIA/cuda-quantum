@@ -397,6 +397,13 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         eleTypes.reverse()
         return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
+    if (argType == tuple):
+        argInstance = kwargs['argInstance']
+        if argInstance == None or (len(argInstance) == 0):
+            emitFatalError(f'Cannot infer runtime argument type for {argType}')
+        eleTypes = [mlirTypeFromPyType(type(ele), ctx) for ele in argInstance]
+        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
+
     if argType == qvector or argType == qreg or argType == qview:
         return quake.VeqType.get(ctx)
     if argType == qubit:

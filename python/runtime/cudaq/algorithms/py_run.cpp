@@ -19,14 +19,15 @@
 namespace cudaq {
 namespace details {
 
-std::vector<py::object> readRunResults(mlir::func::FuncOp kernelFuncOp,
+std::vector<py::object> readRunResults(mlir::ModuleOp module,
+                                       mlir::func::FuncOp kernelFuncOp,
                                        mlir::Type ty, RunResultSpan &results,
                                        std::size_t count) {
   std::vector<py::object> ret;
   std::size_t byteSize = results.lengthInBytes / count;
   for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize) {
     py::object obj =
-        convertResult(kernelFuncOp, ty, results.data + i, byteSize);
+        convertResult(module, kernelFuncOp, ty, results.data + i, byteSize);
     ret.push_back(obj);
   }
   return ret;
@@ -51,22 +52,45 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
   auto funcOp = getKernelFuncOp(kernelMod, kernelName);
   return {kernelName, kernelMod, argData, funcOp};
 }
+
+std::vector<py::object> pyRunTheKernel(const std::string &name,
+                                       MlirModule module, func::FuncOp funcOp,
+                                       cudaq::OpaqueArguments &runtimeArgs,
+                                       cudaq::quantum_platform &platform,
+                                       std::size_t shots_count) {
+
+  auto returnTypes = funcOp.getResultTypes();
+  if (returnTypes.empty() || returnTypes.size() > 1)
+    throw std::runtime_error(
+        "cudaq.run only supports kernels that return a value.");
+
+  auto returnTy = returnTypes[0];
+  auto mod = unwrap(module);
+
+  auto [rawArgs, size, returnOffset, thunk] =
+      pyAltLaunchKernelBase(name, module, returnTy, runtimeArgs, {}, 0, false);
+
+  auto results = details::runTheKernel(
+      [&]() mutable {
+        pyLaunchKernel(name, thunk, mod, runtimeArgs, rawArgs, size,
+                       returnOffset, {});
+      },
+      platform, name, shots_count);
+
+  std::free(rawArgs);
+  return readRunResults(mod, funcOp, returnTy, results, shots_count);
+}
+
 } // namespace details
 
 /// @brief Run `cudaq::run` on the provided kernel.
 std::vector<py::object> pyRun(py::object &kernel, py::args args,
                               std::size_t shots_count,
                               std::optional<noise_model> noise_model) {
-  auto [kernelName, kernelMod, argData, kernelFuncOp] =
+  auto [name, module, argData, func] =
       details::getKernelLaunchParameters(kernel, args);
 
-  auto returnTypes = kernelFuncOp.getResultTypes();
-  if (returnTypes.empty() || returnTypes.size() > 1)
-    throw std::runtime_error(
-        "cudaq.run only supports kernels that return a value.");
-
-  auto returnTy = returnTypes[0];
-  auto mod = unwrap(kernelMod);
+  auto mod = unwrap(module);
   mod->setAttr(runtime::enableCudaqRun, mlir::UnitAttr::get(mod->getContext()));
 
   auto &platform = get_platform();
@@ -83,16 +107,15 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
   if (noise_model.has_value())
     platform.set_noise(&noise_model.value());
 
-  auto results = details::runTheKernel(
-      [&]() mutable { pyAltLaunchKernel(kernelName, kernelMod, *argData, {}); },
-      platform, kernelName, shots_count);
+  auto results = details::pyRunTheKernel(name, module, func, *argData, platform,
+                                         shots_count);
   delete argData;
 
   if (noise_model.has_value())
     platform.reset_noise();
 
   mod->removeAttr(runtime::enableCudaqRun);
-  return details::readRunResults(kernelFuncOp, returnTy, results, shots_count);
+  return results;
 }
 
 /// @brief Bind the run cudaq function.
