@@ -555,8 +555,9 @@ class PyASTBridge(ast.NodeVisitor):
         if cc.PointerType.isinstance(vecTy):
             vecTy = cc.PointerType.getElementType(vecTy)
 
-        return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
-                               arrSize).result
+        return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy),
+                               alloca,
+                               length=arrSize).result
 
     def getStructMemberIdx(self, memberName, structTy):
         """
@@ -633,7 +634,7 @@ class PyASTBridge(ast.NodeVisitor):
             cc.StoreOp(castedEle, targetEleAddr)
 
         self.createInvariantForLoop(sourceSize, bodyBuilder)
-        return cc.StdvecInitOp(targetVecTy, targetPtr, sourceSize).result
+        return cc.StdvecInitOp(targetVecTy, targetPtr, length=sourceSize).result
 
     def __insertDbgStmt(self, value, dbgStmt):
         """
@@ -3003,7 +3004,8 @@ class PyASTBridge(ast.NodeVisitor):
         self.createInvariantForLoop(iterableSize, bodyBuilder)
         self.pushValue(
             cc.StdvecInitOp(cc.StdvecType.get(self.ctx, listComputePtrTy),
-                            listValue, iterableSize).result)
+                            listValue,
+                            length=iterableSize).result)
         return
 
     def visit_List(self, node):
@@ -3198,7 +3200,7 @@ class PyASTBridge(ast.NodeVisitor):
                     DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 self.pushValue(
-                    cc.StdvecInitOp(var.type, ptr, nElementsVal).result)
+                    cc.StdvecInitOp(var.type, ptr, length=nElementsVal).result)
             else:
                 self.emitFatalError(
                     f"unhandled slice operation, cannot handle type {var.type}",
@@ -3922,7 +3924,7 @@ class PyASTBridge(ast.NodeVisitor):
             resBuf = cc.CastOp(ptrTy, resBuf)
             heapCopy = func.CallOp([ptrTy], symName,
                                    [resBuf, dynSize, eleSize]).result
-            res = cc.StdvecInitOp(result.type, heapCopy, dynSize).result
+            res = cc.StdvecInitOp(result.type, heapCopy, length=dynSize).result
             func.ReturnOp([res])
             return
 
