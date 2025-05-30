@@ -1,0 +1,37 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --argument-synthesis=functions=testfun:%S/reify_span-0.txt -canonicalize %s | FileCheck %s
+
+func.func @testfun(%arg : !cc.stdvec<!cc.stdvec<!cc.charspan>>, %i : i64) {
+  %0 = cc.stdvec_data %arg : (!cc.stdvec<!cc.stdvec<!cc.charspan>>) -> !cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>
+  %1 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>) -> !cc.ptr<!cc.stdvec<!cc.charspan>>
+  %2 = cc.load %1 : !cc.ptr<!cc.stdvec<!cc.charspan>>
+  %3 = cc.stdvec_data %2 : (!cc.stdvec<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+  %4 = cc.cast %3 : (!cc.ptr<!cc.array<!cc.charspan x ?>>) -> !cc.ptr<!cc.charspan>
+  %5 = quake.alloca !quake.ref
+  %6 = cc.load %4 : !cc.ptr<!cc.charspan>
+  %c = arith.constant 3.3 : f64
+  quake.exp_pauli (%c) %5 to %6 : (f64, !quake.ref, !cc.charspan) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @testfun() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 3.300000e+00 : f64
+// CHECK:           %[[VAL_1:.*]] = cc.const_array {{\[\[}}"XY", "ZI"], ["IZ", "YX"]] : !cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>
+// CHECK:           %[[VAL_2:.*]] = cc.reify_span %[[VAL_1]] : (!cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>) -> !cc.stdvec<!cc.stdvec<!cc.charspan>>
+// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<!cc.stdvec<!cc.charspan>>) -> !cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>
+// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>) -> !cc.ptr<!cc.stdvec<!cc.charspan>>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<!cc.stdvec<!cc.charspan>>
+// CHECK:           %[[VAL_6:.*]] = cc.stdvec_data %[[VAL_5]] : (!cc.stdvec<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<!cc.charspan x ?>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_9:.*]] = cc.load %[[VAL_7]] : !cc.ptr<!cc.charspan>
+// CHECK:           quake.exp_pauli (%[[VAL_0]]) %[[VAL_8]] to %[[VAL_9]] : (f64, !quake.ref, !cc.charspan) -> ()
+// CHECK:           return
+// CHECK:         }
