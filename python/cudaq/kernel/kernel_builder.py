@@ -549,8 +549,9 @@ class PyKernel(object):
 
             body.counter = 0
             self.createInvariantForLoop(size, body)
-            return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, eleTy), alloca,
-                                   size).result
+            return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, eleTy),
+                                   alloca,
+                                   length=size).result
 
         emitFatalError(
             "CUDA-Q kernel builder could not translate runtime argument of type {pyType} to internal IR value."

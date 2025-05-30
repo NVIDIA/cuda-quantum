@@ -13,7 +13,6 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Dominance.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -173,7 +172,6 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto func = getOperation();
-    DominanceInfo domInfo(func);
     RewritePatternSet patterns(ctx);
     patterns.insert<ComplexCreatePattern, FloatCastPattern, FloatExtendPattern,
                     FloatTruncatePattern, ComplexRePattern, ComplexImPattern>(
@@ -183,8 +181,10 @@ public:
                             << func << '\n');
 
     if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                            std::move(patterns))))
+                                            std::move(patterns)))) {
       signalPassFailure();
+      return;
+    }
 
     LLVM_DEBUG(llvm::dbgs() << "After constant propagation of complex values: "
                             << func << '\n');
