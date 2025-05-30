@@ -233,7 +233,7 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
           appendValue(data, (bool)value.cast<py::bool_>(), offset);
           return;
         }
-        appendValue(data, (std::size_t)value.cast<py::int_>(), offset);
+        appendValue(data, (std::int64_t)value.cast<py::int_>(), offset);
       })
       .Case([&](mlir::Float64Type ty) {
         appendValue(data, (double)value.cast<py::float_>(), offset);

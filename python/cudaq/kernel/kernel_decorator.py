@@ -315,6 +315,9 @@ class PyKernelDecorator(object):
         if F32Type.isinstance(toTy):
             return F64Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
+        if F64Type.isinstance(toTy):
+            return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
+
         if ComplexType.isinstance(toTy):
             floatToType = ComplexType(toTy).element_type
             if ComplexType.isinstance(fromTy):

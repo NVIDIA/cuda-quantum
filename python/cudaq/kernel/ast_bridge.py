@@ -3279,11 +3279,6 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
         if cc.StructType.isinstance(var.type):
-            # Return the pointer if someone asked for it
-            if self.subscriptPushPointerValue:
-                self.pushValue(var)
-                return
-
             # Handle the case where we have a tuple member extraction, memory semantics
             idxValue = None
             if hasattr(idx.owner, 'opview') and isinstance(
@@ -3307,6 +3302,10 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.PointerType.get(self.ctx, memberTys[idxValue]), structPtr,
                 [], DenseI32ArrayAttr.get([idxValue], context=self.ctx)).result
 
+            # Return the pointer if someone asked for it
+            if self.subscriptPushPointerValue:
+                self.pushValue(eleAddr)
+                return
             self.pushValue(cc.LoadOp(eleAddr).result)
             return
 

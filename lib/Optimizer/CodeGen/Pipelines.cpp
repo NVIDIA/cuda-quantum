@@ -14,7 +14,6 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
                                             StringRef codeGenFor,
                                             StringRef passConfigAs) {
   pm.addNestedPass<func::FuncOp>(createApplyControlNegations());
-  addAggressiveEarlyInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createUnwindLoweringPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());

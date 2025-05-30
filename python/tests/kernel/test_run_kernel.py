@@ -133,11 +133,10 @@ def test_return_bool():
     def simple_bool_no_args() -> bool:
         return True
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_bool_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == True
-    # assert results[1] == True
+    results = cudaq.run(simple_bool_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == True
+    assert results[1] == True
 
     @cudaq.kernel
     def simple_bool(numQubits: int) -> bool:
@@ -156,11 +155,10 @@ def test_return_int():
     def simple_int_no_args() -> int:
         return -43
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_int_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == -43
-    # assert results[1] == -43
+    results = cudaq.run(simple_int_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -43
+    assert results[1] == -43
 
     @cudaq.kernel
     def simple_int(numQubits: int) -> int:
@@ -179,11 +177,10 @@ def test_return_int8():
     def simple_int8_no_args() -> np.int8:
         return -43
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_int8_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == -43
-    # assert results[1] == -43
+    results = cudaq.run(simple_int8_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -43
+    assert results[1] == -43
 
     @cudaq.kernel
     def simple_int8(numQubits: int) -> np.int8:
@@ -202,11 +199,10 @@ def test_return_int16():
     def simple_int16_no_args() -> np.int16:
         return -43
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_int16_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == -43
-    # assert results[1] == -43
+    results = cudaq.run(simple_int16_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -43
+    assert results[1] == -43
 
     @cudaq.kernel
     def simple_int16(numQubits: int) -> np.int16:
@@ -225,11 +221,10 @@ def test_return_int32():
     def simple_int32_no_args() -> np.int32:
         return -43
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_int32_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == -43
-    # assert results[1] == -43
+    results = cudaq.run(simple_int32_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -43
+    assert results[1] == -43
 
     @cudaq.kernel
     def simple_int32(numQubits: int) -> np.int32:
@@ -248,11 +243,10 @@ def test_return_int64():
     def simple_int64_no_args() -> np.int64:
         return -43
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_int64_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == -43
-    # assert results[1] == -43
+    results = cudaq.run(simple_int64_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -43
+    assert results[1] == -43
 
     @cudaq.kernel
     def simple_int64(numQubits: int) -> np.int64:
@@ -271,11 +265,10 @@ def test_return_float():
     def simple_float_no_args() -> float:
         return -43.2
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_float_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == -43.2
-    # assert results[1] == -43.2
+    results = cudaq.run(simple_float_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -43.2
+    assert results[1] == -43.2
 
     @cudaq.kernel()
     def simple_float(numQubits: int) -> float:
@@ -293,14 +286,13 @@ def test_return_float32():
     def simple_float32_no_args() -> np.float32:
         return -43.2
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_float32_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert is_close(results[0], -43.2)
-    # assert is_close(
-    #     results[1],
-    #     -43.2,
-    # )
+    results = cudaq.run(simple_float32_no_args, shots_count=2)
+    assert len(results) == 2
+    assert is_close(results[0], -43.2)
+    assert is_close(
+        results[1],
+        -43.2,
+    )
 
     @cudaq.kernel
     def simple_float32(numQubits: int) -> np.float32:
@@ -318,11 +310,10 @@ def test_return_float64():
     def simple_float64_no_args() -> np.float64:
         return -43.2
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_float64_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == -43.2
-    # assert results[1] == -43.2
+    results = cudaq.run(simple_float64_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -43.2
+    assert results[1] == -43.2
 
     @cudaq.kernel
     def simple_float64(numQubits: int) -> np.float64:
@@ -340,11 +331,10 @@ def test_return_list_bool():
     def simple_list_bool_no_args() -> list[bool]:
         return [True, False, True]
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_list_bool_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == [True, False, True]
-    # assert results[1] == [True, False, True]
+    results = cudaq.run(simple_list_bool_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [True, False, True]
+    assert results[1] == [True, False, True]
 
     @cudaq.kernel
     def simple_list_bool(n: int) -> list[bool]:
@@ -363,11 +353,10 @@ def test_return_list_int():
     def simple_list_int_no_args() -> list[int]:
         return [-13, 5, 42]
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_list_int_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    results = cudaq.run(simple_list_int_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int(n: int, t: list[int]) -> list[int]:
@@ -387,11 +376,10 @@ def test_return_list_int8():
     def simple_list_int8_no_args() -> list[np.int8]:
         return [-13, 5, 42]
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_list_int8_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    results = cudaq.run(simple_list_int8_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
@@ -411,11 +399,10 @@ def test_return_list_int16():
     def simple_list_int16_no_args() -> list[np.int16]:
         return [-13, 5, 42]
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_list_int16_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    results = cudaq.run(simple_list_int16_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
@@ -435,11 +422,10 @@ def test_return_list_int32():
     def simple_list_int32_no_args() -> list[np.int32]:
         return [-13, 5, 42]
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_list_int32_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    results = cudaq.run(simple_list_int32_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int32(n: int, t: list[np.int32]) -> list[np.int32]:
@@ -459,11 +445,10 @@ def test_return_list_int64():
     def simple_list_int64_no_args() -> list[np.int64]:
         return [-13, 5, 42]
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_list_int64_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    results = cudaq.run(simple_list_int64_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int64(n: int, t: list[np.int64]) -> list[np.int64]:
@@ -483,11 +468,10 @@ def test_return_list_float():
     def simple_list_float_no_args() -> list[float]:
         return [-13.2, 5., 42.99]
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_list_float_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == [-13.2, 5.0, 42.99]
-    # assert results[1] == [-13.2, 5.0, 42.99]
+    results = cudaq.run(simple_list_float_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13.2, 5.0, 42.99]
+    assert results[1] == [-13.2, 5.0, 42.99]
 
     @cudaq.kernel
     def simple_list_float(n: int, t: list[float]) -> list[float]:
@@ -509,11 +493,10 @@ def test_return_list_float32():
     def simple_list_float32_no_args() -> list[np.float32]:
         return [-13.2, 5., 42.99]
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_list_float32_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert is_close_array(results[0], [-13.2, 5.0, 42.99])
-    # assert is_close_array(results[1], [-13.2, 5.0, 42.99])
+    results = cudaq.run(simple_list_float32_no_args, shots_count=2)
+    assert len(results) == 2
+    assert is_close_array(results[0], [-13.2, 5.0, 42.99])
+    assert is_close_array(results[1], [-13.2, 5.0, 42.99])
 
     @cudaq.kernel
     def simple_list_float32(n: int, t: list[np.float32]) -> list[np.float32]:
@@ -535,11 +518,10 @@ def test_return_list_float64():
     def simple_list_float64_no_args() -> list[np.float64]:
         return [-13.2, 5., 42.99]
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_list_float64_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == [-13.2, 5.0, 42.99]
-    # assert results[1] == [-13.2, 5.0, 42.99]
+    results = cudaq.run(simple_list_float64_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13.2, 5.0, 42.99]
+    assert results[1] == [-13.2, 5.0, 42.99]
 
     @cudaq.kernel
     def simple_list_float64(n: int, t: list[np.float64]) -> list[np.float64]:
@@ -561,11 +543,10 @@ def test_return_tuple_int_float():
     def simple_tuple_int_float_no_args() -> tuple[int, float]:
         return (13, 42.3)
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_tuple_int_float_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == (13, 42.3)
-    # assert results[1] == (13, 42.3)
+    results = cudaq.run(simple_tuple_int_float_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == (13, 42.3)
+    assert results[1] == (13, 42.3)
 
     @cudaq.kernel
     def simple_tuple_int_float(n: int, t: tuple[int,
@@ -585,11 +566,10 @@ def test_return_tuple_float_int():
     def simple_tuple_float_int_no_args() -> tuple[float, int]:
         return (42.3, 13)
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_tuple_float_int_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == (42.3, 13)
-    # assert results[1] == (42.3, 13)
+    results = cudaq.run(simple_tuple_float_int_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == (42.3, 13)
+    assert results[1] == (42.3, 13)
 
     @cudaq.kernel
     def simple_tuple_float_int(n: int, t: tuple[float,
@@ -609,11 +589,10 @@ def test_return_tuple_bool_int():
     def simple_tuple_bool_int_no_args() -> tuple[bool, int]:
         return (True, 13)
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_tuple_bool_int_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == (True, 13)
-    # assert results[1] == (True, 13)
+    results = cudaq.run(simple_tuple_bool_int_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == (True, 13)
+    assert results[1] == (True, 13)
 
     @cudaq.kernel
     def simple_tuple_bool_int(n: int, t: tuple[bool, int]) -> tuple[bool, int]:
@@ -630,23 +609,61 @@ def test_return_tuple_int_bool():
 
     @cudaq.kernel
     def simple_tuple_int_bool_no_args() -> tuple[int, bool]:
-        return (13, True)
+        return (-13, True)
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_tuple_int_bool_no_args, shots_count=2)
-    # assert len(results) == 2
-    #assert results[0] == (13, True)
-    #assert results[1] == (13, True)
+    results = cudaq.run(simple_tuple_int_bool_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == (-13, True)
+    assert results[1] == (-13, True)
 
     @cudaq.kernel
     def simple_tuple_int_bool(n: int, t: tuple[int, bool]) -> tuple[int, bool]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_tuple_int_bool, 2, (13, True), shots_count=2)
+    results = cudaq.run(simple_tuple_int_bool, 2, (-13, True), shots_count=2)
     assert len(results) == 2
-    assert results[0] == (13, True)
-    assert results[1] == (13, True)
+    assert results[0] == (-13, True)
+    assert results[1] == (-13, True)
+
+
+def test_return_tuple_int32_bool():
+
+    @cudaq.kernel
+    def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
+        return (-13, True)
+
+    # TODO: allow type promotion for tuple elements (from int to np.int32)
+    # error: Invalid return type, function was defined to return a <class 'tuple'>
+    # but the value being returned is of type <class 'tuple'>
+    # results = cudaq.run(simple_tuple_int32_bool_no_args, shots_count=2)
+    # assert len(results) == 2
+    # assert results[0] == (np.int32(-13), True)
+    # assert results[1] == (np.int32(-13), True)
+
+    @cudaq.kernel
+    def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
+        return (np.int32(-13), True)
+
+    # TODO: support explicit casts
+    # error: unsupported NumPy call (int32)
+    # results = cudaq.run(simple_tuple_int32_bool_no_args1, shots_count=2)
+    # assert len(results) == 2
+    # assert results[0] == (np.int32(-13), True)
+    # assert results[1] == (np.int32(-13), True)
+
+    @cudaq.kernel
+    def simple_tuple_int32_bool(
+            n: int, t: tuple[np.int32, bool]) -> tuple[np.int32, bool]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(simple_tuple_int32_bool,
+                        2, (np.int32(-13), True),
+                        shots_count=2)
+    assert len(results) == 2
+    assert results[0] == (-13, True)
+    assert results[1] == (-13, True)
 
 
 def test_return_tuple_bool_int_float():
@@ -655,11 +672,10 @@ def test_return_tuple_bool_int_float():
     def simple_tuple_bool_int_float_no_args() -> tuple[bool, int, float]:
         return (True, 13, 42.3)
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_tuple_bool_int_float_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == (True, 13, 42.3)
-    # assert results[1] == (True, 13, 42.3)
+    results = cudaq.run(simple_tuple_bool_int_float_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == (True, 13, 42.3)
+    assert results[1] == (True, 13, 42.3)
 
     @cudaq.kernel
     def simple_tuple_bool_int_float(
@@ -686,11 +702,10 @@ def test_return_dataclass_int_bool():
     def simple_dataclass_int_bool_no_args() -> MyClass:
         return MyClass(16, True)
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_dataclass_int_bool_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == MyClass(16, True)
-    # assert results[1] == MyClass(16, True)
+    results = cudaq.run(simple_dataclass_int_bool_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == MyClass(16, True)
+    assert results[1] == MyClass(16, True)
 
     @cudaq.kernel
     def simple_return_dataclass_int_bool(n: int, t: MyClass) -> MyClass:
@@ -717,11 +732,10 @@ def test_return_dataclass_bool_int():
     def simple_dataclass_bool_int_no_args() -> MyClass:
         return MyClass(True, 17)
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_dataclass_bool_int_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == MyClass(True, 17)
-    # assert results[1] == MyClass(True, 17)
+    results = cudaq.run(simple_dataclass_bool_int_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == MyClass(True, 17)
+    assert results[1] == MyClass(True, 17)
 
     @cudaq.kernel
     def simple_return_dataclass_bool_int(n: int, t: MyClass) -> MyClass:
@@ -748,11 +762,10 @@ def test_return_dataclass_float_int():
     def simple_dataclass_float_int_no_args() -> MyClass:
         return MyClass(42.5, 17)
 
-    # TODO: seg fault on running any kernel with no args
-    # results = cudaq.run(simple_dataclass_float_int_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == MyClass(42.5, 17)
-    # assert results[1] == MyClass(42.5, 17)
+    results = cudaq.run(simple_dataclass_float_int_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == MyClass(42.5, 17)
+    assert results[1] == MyClass(42.5, 17)
 
     @cudaq.kernel
     def simple_dataclass_float_int(n: int, t: MyClass) -> MyClass:
@@ -780,7 +793,7 @@ def test_return_dataclass_list_int_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: RuntimeError: Tuple size mismatch in value and label
+    # TODO: Support recursive aggregate types in kernels.
     # results = cudaq.run(simple_return_dataclass, 2, MyClass([0,1], 18), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass([0,1], 18)
@@ -799,7 +812,7 @@ def test_return_dataclass_tuple_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: error: recursive struct types are not allowed in kernels.
+    # TODO: Support recursive aggregate types in kernels.
     # results = cudaq.run(simple_return_dataclass, 2, MyClass((0, True), 19), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass((0, True), 19)
@@ -823,7 +836,7 @@ def test_return_dataclass_dataclass_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    # TODO: error: recursive struct types are not allowed in kernels.
+    # TODO: Support recursive aggregate types in kernels.
     # results = cudaq.run(simple_return_dataclass, 2, MyClass2(MyClass1(0,True), 20), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass2(MyClass1(0,True), 20)
