@@ -374,6 +374,19 @@ def test_return_tuple_int_float():
     result = simple_tuple_int_float(2, (-13, 42.3))
     assert result == (-13, 42.3)
 
+    @cudaq.kernel
+    def simple_tuple_int_float_assign(
+            n: int, t: tuple[int, float]) -> tuple[int, float]:
+        qubits = cudaq.qvector(n)
+        t[0] = -14
+        t[1] = 11.5
+        return t
+
+    # TODO: Fix incorrect IR generation for tuple element assignment
+    # https://github.com/NVIDIA/cuda-quantum/issues/2965
+    result = simple_tuple_int_float_assign(2, (-13, 42.3))
+    # assert result == (-14, 11.5)
+
 
 def test_return_tuple_float_int():
 
@@ -489,18 +502,22 @@ def test_return_dataclass_int_bool():
 
     @cudaq.kernel
     def simple_dataclass_int_bool_no_args() -> MyClass:
-        return MyClass(16, True)
+        return MyClass(-16, True)
 
     result = simple_dataclass_int_bool_no_args()
-    assert result == MyClass(16, True)
+    assert result == MyClass(-16, True)
+    assert result.x == -16
+    assert result.y == True
 
     @cudaq.kernel
     def test_return_dataclass(n: int, t: MyClass) -> MyClass:
         qubits = cudaq.qvector(n)
         return t
 
-    result = test_return_dataclass(2, MyClass(16, True))
-    assert result == MyClass(16, True)
+    result = test_return_dataclass(2, MyClass(-16, True))
+    assert result == MyClass(-16, True)
+    assert result.x == -16
+    assert result.y == True
 
 
 def test_return_dataclass_bool_int():
@@ -516,6 +533,8 @@ def test_return_dataclass_bool_int():
 
     result = simple_dataclass_bool_int_no_args()
     assert result == MyClass2(True, 17)
+    assert result.x == True
+    assert result.y == 17
 
     @cudaq.kernel
     def test_return_dataclass(n: int, t: MyClass2) -> MyClass2:
@@ -524,6 +543,8 @@ def test_return_dataclass_bool_int():
 
     result = test_return_dataclass(2, MyClass2(True, 17))
     assert result == MyClass2(True, 17)
+    assert result.x == True
+    assert result.y == 17
 
 
 def test_return_dataclass_float_int():
@@ -539,6 +560,8 @@ def test_return_dataclass_float_int():
 
     result = simple_dataclass_float_int_no_args()
     assert result == MyClass(42.5, 17)
+    assert result.x == 42.5
+    assert result.y == 17
 
     @cudaq.kernel
     def test_return_dataclass(n: int, t: MyClass) -> MyClass:
@@ -548,6 +571,8 @@ def test_return_dataclass_float_int():
     result = test_return_dataclass(2, MyClass(42.5, 17))
 
     assert result == MyClass(42.5, 17)
+    assert result.x == 42.5
+    assert result.y == 17
 
 
 def test_return_dataclass_list_int_bool():

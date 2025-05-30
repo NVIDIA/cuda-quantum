@@ -559,6 +559,34 @@ def test_return_tuple_int_float():
     assert results[0] == (13, 42.3)
     assert results[1] == (13, 42.3)
 
+    @cudaq.kernel
+    def simple_tuple_int_float_assign(
+            n: int, t: tuple[int, float]) -> tuple[int, float]:
+        qubits = cudaq.qvector(n)
+        t[0] = -14
+        t[1] = 11.5
+        return t
+
+    # TODO: Fix incorrect IR generation for tuple element assignment
+    # https://github.com/NVIDIA/cuda-quantum/issues/2965
+    results = cudaq.run(simple_tuple_int_float_assign,
+                        2, (13, 42.3),
+                        shots_count=2)
+    # assert len(results) == 2
+    # assert results[0] == (-14, 11.5)
+    # assert results[1] == (-14, 11.5)
+
+    @cudaq.kernel
+    def simple_tuple_int_float_error(
+            n: int, t: tuple[int, float]) -> tuple[bool, float]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int_float_error, 2, (-13, 11.5))
+    assert 'Invalid return type, function was defined to return a tuple[bool, float] but the value being returned is of type tuple[int, float]' in str(
+        e.value)
+
 
 def test_return_tuple_float_int():
 
@@ -700,12 +728,14 @@ def test_return_dataclass_int_bool():
 
     @cudaq.kernel
     def simple_dataclass_int_bool_no_args() -> MyClass:
-        return MyClass(16, True)
+        return MyClass(-16, True)
 
     results = cudaq.run(simple_dataclass_int_bool_no_args, shots_count=2)
     assert len(results) == 2
-    assert results[0] == MyClass(16, True)
-    assert results[1] == MyClass(16, True)
+    assert results[0] == MyClass(-16, True)
+    assert results[1] == MyClass(-16, True)
+    assert results[0].x == -16
+    assert results[0].y == True
 
     @cudaq.kernel
     def simple_return_dataclass_int_bool(n: int, t: MyClass) -> MyClass:
@@ -714,11 +744,13 @@ def test_return_dataclass_int_bool():
 
     results = cudaq.run(simple_return_dataclass_int_bool,
                         2,
-                        MyClass(16, True),
+                        MyClass(-16, True),
                         shots_count=2)
     assert len(results) == 2
-    assert results[0] == MyClass(16, True)
-    assert results[1] == MyClass(16, True)
+    assert results[0] == MyClass(-16, True)
+    assert results[1] == MyClass(-16, True)
+    assert results[0].x == -16
+    assert results[0].y == True
 
 
 def test_return_dataclass_bool_int():
@@ -736,6 +768,8 @@ def test_return_dataclass_bool_int():
     assert len(results) == 2
     assert results[0] == MyClass(True, 17)
     assert results[1] == MyClass(True, 17)
+    assert results[0].x == True
+    assert results[0].y == 17
 
     @cudaq.kernel
     def simple_return_dataclass_bool_int(n: int, t: MyClass) -> MyClass:
@@ -749,6 +783,8 @@ def test_return_dataclass_bool_int():
     assert len(results) == 2
     assert results[0] == MyClass(True, 17)
     assert results[1] == MyClass(True, 17)
+    assert results[0].x == True
+    assert results[0].y == 17
 
 
 def test_return_dataclass_float_int():
@@ -766,6 +802,8 @@ def test_return_dataclass_float_int():
     assert len(results) == 2
     assert results[0] == MyClass(42.5, 17)
     assert results[1] == MyClass(42.5, 17)
+    assert results[0].x == 42.5
+    assert results[0].y == 17
 
     @cudaq.kernel
     def simple_dataclass_float_int(n: int, t: MyClass) -> MyClass:
@@ -779,6 +817,8 @@ def test_return_dataclass_float_int():
     assert len(results) == 2
     assert results[0] == MyClass(42.5, 17)
     assert results[1] == MyClass(42.5, 17)
+    assert results[0].x == 42.5
+    assert results[0].y == 17
 
 
 def test_return_dataclass_list_int_bool():
