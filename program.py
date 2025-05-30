@@ -10,7 +10,7 @@ import cudaq
 import numpy as np
 
 cudaq.set_target("quantinuum", emulate=True)
-def test():
+def test_computations():
     @cudaq.kernel
     def kernel(n: int, m: np.int32):
         q = cudaq.qvector(n)
@@ -26,10 +26,38 @@ def test():
                 m = m + m
                 jf = jf + jf
     
-        if jf + 2 > n:
+        if jf > 3 and j > 5:
             x(q[0])
     
     
     print(cudaq.sample(kernel, 2, 134))
 
-test()
+#test_computations()
+
+def test_return():
+    @cudaq.kernel
+    def kernel(n: int) -> int:
+        q = cudaq.qvector(n)
+        if mz(q[0]):
+            x(q[0])
+            return 1
+        return 0
+    
+    print(cudaq.sample(kernel, 2))
+
+#test_return()
+
+def test_branching():
+    @cudaq.kernel
+    def kernel(n: int) -> int:
+        q = cudaq.qvector(n)
+        match n:
+            case 0: return 1
+            case 1: return 2
+            case 0: return 3
+            case 1: return 4
+        return 5
+    
+    print(cudaq.sample(kernel, 2))
+
+test_branching()

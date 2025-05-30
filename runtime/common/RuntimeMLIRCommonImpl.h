@@ -88,7 +88,7 @@ void optimizeLLVM(llvm::Module *module) {
   // sometimes applies it to degenerate cases (empty programs), and IonQ cannot
   // support that.
   for (llvm::Function &func : *module)
-    if (func.hasFnAttribute("entry_point"))
+    if (func.hasFnAttribute(cudaq::opt::QIREntryPointAttrName))
       func.removeFnAttr(llvm::Attribute::Memory);
 }
 
@@ -117,6 +117,144 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
       }
 }
 
+bool isTargetBranchingOperation(llvm::Instruction &I) {
+    auto op = I.getOpcode();
+    switch (op) {
+      case llvm::Instruction::Select:
+      case llvm::Instruction::PHI:
+      case llvm::Instruction::Switch:
+      return true;
+      default: return false;
+    }
+  }
+
+bool isIntOrFloatArithmeticOperation(llvm::Instruction &I) {
+    auto op = I.getOpcode();
+    switch (op) {
+      case llvm::Instruction::ZExt:
+      case llvm::Instruction::SExt:
+      case llvm::Instruction::Trunc:
+      case  llvm::Instruction::Add:
+      case  llvm::Instruction::Sub:
+      case  llvm::Instruction::Mul:
+      case  llvm::Instruction::UDiv:
+      case  llvm::Instruction::SDiv:
+      case  llvm::Instruction::URem:
+      case  llvm::Instruction::SRem:
+      case  llvm::Instruction::And:
+      case  llvm::Instruction::Or:
+      case  llvm::Instruction::Xor:
+      case  llvm::Instruction::Shl:
+      case  llvm::Instruction::AShr:
+      case  llvm::Instruction::LShr:
+      case  llvm::Instruction::ICmp:
+
+      case  llvm::Instruction::FAdd:
+      case  llvm::Instruction::FSub:
+      case  llvm::Instruction::FMul:
+      case  llvm::Instruction::FDiv:
+      case  llvm::Instruction::FPExt:
+      case  llvm::Instruction::FPTrunc:
+      case  llvm::Instruction::FRem:
+      case  llvm::Instruction::FCmp:
+        return true;
+      default: return false;
+    }
+}
+
+void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule) {
+    llvm::DenseMap<std::size_t, bool> intPrecisions;
+    llvm::DenseMap<std::size_t, bool> floatPrecisions;
+    std::size_t retCount = 1;
+    bool hasMultipleTargetBranching = false;
+
+    for (llvm::Function &func : *llvmModule)
+      for (llvm::BasicBlock &block : func)
+        for (llvm::Instruction &inst : block) {
+          if (inst.getOpcode() == llvm::Instruction::Ret)
+            retCount++;
+          if (inst.getOpcode() == llvm::Instruction::Switch)
+            hasMultipleTargetBranching = true;
+
+          if (isIntOrFloatArithmeticOperation(inst))
+            for(std::size_t i = 0; i < inst.getNumOperands(); i++) {
+              auto ty = inst.getOperand(i)->getType();
+              if (ty->isIntegerTy())
+                intPrecisions[ty->getScalarSizeInBits()] = true;
+              else if (ty->isFloatingPointTy())
+                floatPrecisions[ty->getScalarSizeInBits()] = true;
+            }
+          }
+
+    std::string intPrecisionStr;
+    llvm::SmallVector<std::size_t> intPrecisionsVec;
+    for(auto &[k,v]: intPrecisions)
+      if (v) 
+        intPrecisionsVec.push_back(k);
+    std::sort(intPrecisionsVec.begin(), intPrecisionsVec.end());
+    for(auto k: intPrecisionsVec) {
+        if (!intPrecisionStr.empty())
+          intPrecisionStr += ",";
+        intPrecisionStr += "i" + std::to_string(k);
+    }
+
+    std::string floatPrecisionStr;
+    llvm::SmallVector<std::size_t> floatPrecisionsVec;
+    for(auto &[k,v]: floatPrecisions)
+      if (v) 
+        floatPrecisionsVec.push_back(k);
+    std::sort(floatPrecisionsVec.begin(), floatPrecisionsVec.end());
+    for(auto k: floatPrecisionsVec) {
+        if (!floatPrecisionStr.empty())
+          floatPrecisionStr += ",";
+        floatPrecisionStr += "f" + std::to_string(k);
+    }
+
+    // auto trueValue =
+    //     llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "qubit_resetting", trueValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "classical_ints", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "classical_floats", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "classical_fixed_points", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "user_functions", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "dynamic_float_args", falseValue);
+    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                           "extern_functions", falseValue);
+
+    auto &llvmContext = llvmModule->getContext();
+    auto falseValue = llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(llvmContext));
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                               cudaq::opt::QIRIrFunctionsFlagName, falseValue);
+
+    if (!intPrecisionStr.empty()) {
+      llvm::Constant* intPrecisionStrConst = llvm::ConstantDataArray::getString(llvmContext, intPrecisionStr, false);
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                               cudaq::opt::QIRIntComputationsFlagName, intPrecisionStrConst);
+    }
+    if (!floatPrecisionStr.empty()) {
+      llvm::Constant* floatPrecisionStrConst = llvm::ConstantDataArray::getString(llvmContext, floatPrecisionStr, false);
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::QIRFloatComputationsFlagName, floatPrecisionStrConst);
+    }
+
+    //auto zeroInt2Value =
+    //    llvm::ConstantInt::getTrue(llvm::Type::getIntNTy(*llvmContext, 2));
+    //llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+    //                          "backwards_branching", zeroInt2Value);
+
+    auto trueValue = llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                               cudaq::opt::QIRMultipleTargetBranchingFlagName, hasMultipleTargetBranching? trueValue: falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                               cudaq::opt::QIRMultipleReturnPointsFlagName, retCount > 0? trueValue: falseValue);
+}
+
 // Once a call to a function with irreversible attribute is seen, no more calls
 // to reversible functions are allowed. This is somewhat of an implied
 // specification because the specification describes the program in terms of 4
@@ -136,7 +274,7 @@ verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
         if (callInst && callInst->getCalledFunction()) {
           auto calledFunc = callInst->getCalledFunction();
           auto funcName = calledFunc->getName();
-          bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
+          bool isIrreversible = calledFunc->hasFnAttribute(cudaq::opt::QIRIrreversibleFlagName);
           bool isReversible = !isIrreversible;
           bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
@@ -271,7 +409,7 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
   std::size_t required_num_qubits = 0;
   std::size_t required_num_results = 0;
   for (llvm::Function &func : *llvmModule) {
-    if (func.hasFnAttribute("entry_point")) {
+    if (func.hasFnAttribute(cudaq::opt::QIREntryPointAttrName)) {
       required_num_qubits = func.getFnAttributeAsParsedInteger(
           cudaq::opt::QIRRequiredQubitsAttrName, required_num_qubits);
       required_num_results = func.getFnAttributeAsParsedInteger(
@@ -317,16 +455,7 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
             llvm::isa<llvm::CallBase>(inst) ||
             llvm::isa<llvm::BranchInst>(inst) ||
             llvm::isa<llvm::ReturnInst>(inst);
-        // Note: there is an outstanding question about the adaptive profile
-        // with respect to `switch` and `select` instructions. They are
-        // currently described as "optional" in the spec, but there is no way to
-        // specify their presence via module flags. So to be cautious, for now
-        // we will assume they are not allowed in cuda-quantum programs.
-        bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
-        // bool isValidAdaptiveProfileInstruction =
-        //     isValidBaseProfileInstruction ||
-        //     llvm::isa<llvm::SwitchInst>(inst) ||
-        //     llvm::isa<llvm::SelectInst>(inst);
+        bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction || isIntOrFloatArithmeticOperation(inst) || isTargetBranchingOperation(inst);
         if (isBaseProfile && !isValidBaseProfileInstruction) {
           llvm::errs() << "error - invalid instruction found: " << inst << '\n';
           return mlir::failure();
@@ -351,35 +480,6 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
           }
       }
   return mlir::success();
-}
-
-bool isIntOrFloatArithmeticOperation(llvm::Instruction &I) {
-    auto op = I.getOpcode();
-    switch (op) {
-      case llvm::Instruction::ZExt:
-      case llvm::Instruction::SExt:
-      case  llvm::Instruction::Add:
-      case  llvm::Instruction::Sub:
-      case  llvm::Instruction::Mul:
-      case  llvm::Instruction::UDiv:
-      case  llvm::Instruction::SDiv:
-      case  llvm::Instruction::URem:
-      case  llvm::Instruction::SRem:
-      case  llvm::Instruction::And:
-      case  llvm::Instruction::Or:
-      case  llvm::Instruction::Xor:
-      case  llvm::Instruction::Shl:
-      case  llvm::Instruction::AShr:
-      case  llvm::Instruction::LShr:
-      case  llvm::Instruction::FAdd:
-      case  llvm::Instruction::FSub:
-      case  llvm::Instruction::FMul:
-      case  llvm::Instruction::FDiv:
-      case  llvm::Instruction::FRem:
-      case  llvm::Instruction::FCmp:
-        return true;
-      default: return false;
-    }
 }
 
 /// @brief Function to lower MLIR to a specific QIR profile
@@ -440,15 +540,15 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
 
   // Add required module flags for the Base Profile
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            "qir_major_version", qir_major_version);
+                            cudaq::opt::QIRMajorVersionFlagName, qir_major_version);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Max,
-                            "qir_minor_version", qir_minor_version);
+                            cudaq::opt::QIRMinorVersionFlagName, qir_minor_version);
   auto falseValue =
       llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(*llvmContext));
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            "dynamic_qubit_management", falseValue);
+                            cudaq::opt::QIRDynamicQubitsManagementFlagName, falseValue);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            "dynamic_result_management", falseValue);
+                            cudaq::opt::QIRDynamicResultManagementFlagName, falseValue);
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on
   // the @__quantum__rt__result_record_output calls.
@@ -456,90 +556,8 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   if (!cudaq::setupTargetTriple(llvmModule.get()))
     throw std::runtime_error("Failed to setup the llvm module target triple.");
 
-  if (isAdaptiveProfile) {
-    llvm::DenseMap<std::size_t, bool> intPrecisions;
-    llvm::DenseMap<std::size_t, bool> floatPrecisions;
-
-    for (llvm::Function &func : *llvmModule)
-      for (llvm::BasicBlock &block : func)
-        for (llvm::Instruction &inst : block) {
-          inst.dump();
-          if (isIntOrFloatArithmeticOperation(inst))
-            for(std::size_t i = 0; i < inst.getNumOperands(); i++) {
-              auto ty = inst.getOperand(i)->getType();
-              if (ty->isIntegerTy()) {
-                inst.dump();
-                intPrecisions[ty->getScalarSizeInBits()] = true;
-              }
-              else if (ty->isFloatingPointTy()) {
-                inst.dump();
-                floatPrecisions[ty->getScalarSizeInBits()] = true;
-              }
-            }
-          }
-
-    std::string intPrecisionStr;
-    llvm::SmallVector<std::size_t> intPrecisionsVec;
-    for(auto &[k,v]: intPrecisions)
-      if (v) 
-        intPrecisionsVec.push_back(k);
-    std::sort(intPrecisionsVec.begin(), intPrecisionsVec.end());
-    for(auto k: intPrecisionsVec) {
-        if (!intPrecisionStr.empty())
-          intPrecisionStr += ",";
-        intPrecisionStr += "i" + std::to_string(k);
-    }
-
-    std::string floatPrecisionStr;
-    llvm::SmallVector<std::size_t> floatPrecisionsVec;
-    for(auto &[k,v]: floatPrecisions)
-      if (v) 
-        floatPrecisionsVec.push_back(k);
-    std::sort(floatPrecisionsVec.begin(), floatPrecisionsVec.end());
-    for(auto k: floatPrecisionsVec) {
-        if (!floatPrecisionStr.empty())
-          floatPrecisionStr += ",";
-        floatPrecisionStr += "f" + std::to_string(k);
-    }
-    //auto trueValue =
-    //    llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
-    //auto zeroInt2Value =
-    //    llvm::ConstantInt::getTrue(llvm::Type::getIntNTy(*llvmContext, 2));
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "qubit_resetting", trueValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "classical_ints", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "classical_floats", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "classical_fixed_points", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "user_functions", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "dynamic_float_args", falseValue);
-    // llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                           "extern_functions", falseValue);
-
-    if (!intPrecisionStr.empty()) {
-      llvm::Constant* intPrecisionStrConst = llvm::ConstantDataArray::getString(*llvmContext, intPrecisionStr, false);
-      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                               "int_computations", intPrecisionStrConst);
-    }
-    if (!floatPrecisionStr.empty()) {
-      llvm::Constant* floatPrecisionStrConst = llvm::ConstantDataArray::getString(*llvmContext, floatPrecisionStr, false);
-      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                               "float_computations", floatPrecisionStrConst);
-    }
-   
-    //llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-    //                          "backwards_branching", zeroInt2Value);
-  }
-
-  // // Note: optimizeLLVM is the one that is setting nonnull attributes on
-  // // the @__quantum__rt__result_record_output calls.
-  // cudaq::optimizeLLVM(llvmModule.get());
-  // if (!cudaq::setupTargetTriple(llvmModule.get()))
-  //   throw std::runtime_error("Failed to setup the llvm module target triple.");
+  if (isAdaptiveProfile)
+    applyQIRAdaptiveCapabilitiesAttributes(llvmModule.get());
 
   // PyQIR currently requires named blocks. It's not clear if blocks can share
   // names across functions, so we are being conservative by giving every block
