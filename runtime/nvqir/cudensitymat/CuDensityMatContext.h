@@ -45,6 +45,9 @@ public:
   /// @return std::size_t Recommended workspace limit in bytes.
   static std::size_t getRecommendedWorkSpaceLimit();
 
+  /// @brief Return the device Id of the context
+  int getDeviceId() const { return m_deviceId; }
+
 private:
   /// @brief Construct a new Context object for a specific device.
   /// @param deviceId ID of the CUDA device.
