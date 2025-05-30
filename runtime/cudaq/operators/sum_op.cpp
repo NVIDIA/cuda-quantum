@@ -1855,6 +1855,27 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
       matrix, 1ul << evaluated.terms[0].relevant_dimensions.size());
 }
 
+template <typename HandlerTy>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
+dia_spmatrix sum_op<HandlerTy>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  // For a full sum_op, we convert to sparse matrix then to the DIA format.
+  // Note: converting a full `sum_op` to DIA is not being used by the internal
+  // dynamics solver, which always process the underlying terms within the
+  // product_op.
+  int64_t totalDim = 1;
+  for (const auto degree : degrees()) {
+    const auto iter = dimensions.find(degree);
+    const auto degreeDim = iter != dimensions.end() ? iter->second : 2;
+    totalDim *= degreeDim;
+  }
+  return cudaq::detail::to_dia_spmatrix(
+      to_sparse_matrix(dimensions, parameters, invert_order), totalDim);
+}
+
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::vector<double> sum_op<HandlerTy>::get_data_representation() const {
   auto nr_ops = 0;
@@ -1904,6 +1925,20 @@ template csr_spmatrix sum_op<boson_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
+
+template dia_spmatrix sum_op<spin_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template dia_spmatrix sum_op<fermion_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template dia_spmatrix sum_op<boson_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+
 template std::vector<double>
 sum_op<spin_handler>::get_data_representation() const;
 

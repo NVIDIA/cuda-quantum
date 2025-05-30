@@ -820,6 +820,24 @@ public:
           {},
       bool invert_order = false) const;
 
+  /// @brief Return the multi-diagonal matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
+  dia_spmatrix to_diagonal_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
+
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<double> get_data_representation() const;
 
@@ -1657,6 +1675,23 @@ public:
           {},
       bool invert_order = false) const;
 
+  /// @brief Return the multi-diagonal matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
+  dia_spmatrix to_diagonal_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
   // utility functions for backward compatibility
   /// @cond
 

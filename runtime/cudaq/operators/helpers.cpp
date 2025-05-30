@@ -222,5 +222,34 @@ cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
   return std::make_tuple(values, rows, cols);
 }
 
+dia_spmatrix to_dia_spmatrix(const csr_spmatrix &csr_matrix, std::size_t dim) {
+  const auto &[data, rows, cols] = csr_matrix;
+  const auto numElems = rows.size();
+  assert(cols.size() == numElems);
+  std::set<int64_t> dia_offsets;
+  for (std::size_t i = 0; i < numElems; ++i) {
+    assert(cols[i] < dim && rows[i] < dim);
+    dia_offsets.insert(static_cast<int64_t>(cols[i]) -
+                       static_cast<int64_t>(rows[i]));
+  }
+
+  const auto numDiags = dia_offsets.size();
+  std::vector<std::complex<double>> diag_data(numDiags * dim, 0.0);
+  for (std::size_t i = 0; i < numElems; ++i) {
+    const auto offset =
+        static_cast<int64_t>(cols[i]) - static_cast<int64_t>(rows[i]);
+    const auto iter = dia_offsets.find(offset);
+    assert(iter != dia_offsets.end());
+    auto bufferIdx = std::distance(dia_offsets.begin(), iter);
+
+    const int64_t idx = offset <= 0 ? cols[i] : rows[i];
+    diag_data[dim * bufferIdx + idx] = data[i];
+  }
+
+  return std::make_pair(
+      std::move(diag_data),
+      std::vector<int64_t>(dia_offsets.begin(), dia_offsets.end()));
+}
+
 } // namespace detail
 } // namespace cudaq
