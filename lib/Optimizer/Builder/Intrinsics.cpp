@@ -484,7 +484,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__result_record_output(!qir_result, !qir_charptr)
   func.func private @__quantum__qis__cnot__body(!qir_qubit, !qir_qubit)
   func.func private @__quantum__qis__cz__body(!qir_qubit, !qir_qubit)
-  func.func private @__quantum__qis__read_result(!qir_result) -> i1
+  func.func private @__quantum__rt__read_result(!qir_result) -> i1
     )#"},
 
     // Declarations of all full QIR functions used by codegen.

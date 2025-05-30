@@ -165,18 +165,19 @@ bool isIntOrFloatArithmeticOperation(llvm::Instruction &I) {
 void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule) {
     llvm::DenseMap<std::size_t, bool> intPrecisions;
     llvm::DenseMap<std::size_t, bool> floatPrecisions;
-    std::size_t retCount = 1;
+    std::size_t retCount = 0;
     bool hasMultipleTargetBranching = false;
 
-    for (llvm::Function &func : *llvmModule)
-      for (llvm::BasicBlock &block : func)
+    for (llvm::Function &func : *llvmModule) {
+      std::size_t funcRetCount = 0;
+      for (llvm::BasicBlock &block : func) {
         for (llvm::Instruction &inst : block) {
           if (inst.getOpcode() == llvm::Instruction::Ret)
-            retCount++;
+            funcRetCount++;
           if (inst.getOpcode() == llvm::Instruction::Switch)
             hasMultipleTargetBranching = true;
 
-          if (isIntOrFloatArithmeticOperation(inst))
+          if (isIntOrFloatArithmeticOperation(inst)) {
             for(std::size_t i = 0; i < inst.getNumOperands(); i++) {
               auto ty = inst.getOperand(i)->getType();
               if (ty->isIntegerTy())
@@ -185,6 +186,10 @@ void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule) {
                 floatPrecisions[ty->getScalarSizeInBits()] = true;
             }
           }
+        }
+      }
+      retCount = std::max(funcRetCount, retCount);
+    }
 
     std::string intPrecisionStr;
     llvm::SmallVector<std::size_t> intPrecisionsVec;
@@ -237,7 +242,7 @@ void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule) {
       llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                                 cudaq::opt::QIRMultipleTargetBranchingFlagName, trueValue);
 
-    if (retCount > 0)
+    if (retCount > 1)
       llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                                cudaq::opt::QIRMultipleReturnPointsFlagName, trueValue);
 }
