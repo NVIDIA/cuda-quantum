@@ -53,22 +53,32 @@ to any occurrence of the operation, regardless of which qubits it acts on.
 
 .. tab:: Python
 
-    .. code-block:: python
+    .. literalinclude:: /../snippets/python/noise/noise_model_examples.py
+       :language: python
+       :start-after: [Begin PY AddChannelSpecific]
+       :end-before: [End PY AddChannelSpecific]
+       :dedent: 8
 
-        # Add a noise channel to z gate on qubit 0
-        noise.add_channel('z', [0], noise_channel)
-        # Add a noise channel to x gate, regardless of qubit operands. 
-        noise.add_all_qubit_channel('x', noise_channel)
+    .. literalinclude:: /../snippets/python/noise/noise_model_examples.py
+       :language: python
+       :start-after: [Begin PY AddChannelAllQubit]
+       :end-before: [End PY AddChannelAllQubit]
+       :dedent: 8
 
 
 .. tab:: C++
 
-    .. code-block:: cpp
+    .. literalinclude:: /../snippets/cpp/noise/noise_model_examples.cpp
+       :language: cpp
+       :start-after: [Begin CPP AddChannelSpecific]
+       :end-before: [End CPP AddChannelSpecific]
+       :dedent: 6
         
-        // Add a noise channel to z gate on qubit 0
-        noise.add_channel("z", {0}, noise_channel);
-        // Add a noise channel to x gate, regardless of qubit operands. 
-        noise.add_all_qubit_channel("x", noise_channel)
+    .. literalinclude:: /../snippets/cpp/noise/noise_model_examples.cpp
+       :language: cpp
+       :start-after: [Begin CPP AddChannelAllQubit]
+       :end-before: [End CPP AddChannelAllQubit]
+       :dedent: 6
 
 In addition to static noise channels, users can also define a noise channel as a 
 callback function, which returns a concrete channel definition in terms of Kraus matrices 
@@ -76,29 +86,20 @@ depending on the gate operands and gate parameters if any.
 
 .. tab:: Python
 
-    .. code-block:: python
-
-        # Noise channel callback function
-        def noise_cb(qubits, params):
-           # Construct a channel based on specific operands and parameters
-           ...
-           return noise_channel 
-        
-        # Add a dynamic noise channel to the 'rx' gate.
-        noise.add_channel('rx', noise_cb)
+    .. literalinclude:: /../snippets/python/noise/noise_model_examples.py
+       :language: python
+       :start-after: [Begin PY AddChannelDynamic]
+       :end-before: [End PY AddChannelDynamic]
+       :dedent: 8
 
 
 .. tab:: C++
 
-    .. code-block:: cpp
-        
-        // Add a dynamic noise channel to the 'rx' gate.
-        noise.add_channel("rx",
-            [](const auto &qubits, const auto &params) -> cudaq::kraus_channel {
-                // Construct a channel based on specific operands and parameters
-                ...
-                return noiseChannel;
-            });
+    .. literalinclude:: /../snippets/cpp/noise/noise_model_examples.cpp
+       :language: cpp
+       :start-after: [Begin CPP AddChannelDynamic]
+       :end-before: [End CPP AddChannelDynamic]
+       :dedent: 6
 
 
 Noise models can be constructed via the :code:`cudaq::noise_model` and specified for 

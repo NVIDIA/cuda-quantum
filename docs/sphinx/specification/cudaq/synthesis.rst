@@ -22,64 +22,21 @@ device kernel:
     template <typename QuantumKernel, typename... Args>
     void adjoint(QuantumKernel &&kernel, Args &... args);
 
-These functions can be leveraged in quantum kernel code in the following way
+These functions can be leveraged in quantum kernel code in the following way:
 
 .. tab:: C++ 
 
-  .. code-block:: cpp
-
-      __qpu__ void x_gate(cudaq::qubit& q) { x(q); }
-      
-      struct kernel {
-        void operator() () __qpu__ {
-          cudaq::qarray<3> q;
-          ...
-          // Create Toffoli gate
-          auto ctrl_bits = q.front(2);
-          cudaq::control(x_gate, ctrl_bits, q[2]);
-          ...
-        }
-      };
-      
-      void rx_and_h_gate(double x, cudaq::qubit& q) __qpu__ { rx(x,q); h(q); }
-      
-      __qpu__ kernel(int N) {
-        cudaq::qvector q(N);
-        ...
-        // apply h(q[2]); rx(-pi, q[2]);
-        cudaq::adjoint(rx_and_h_gate{}, M_PI, q[2]);
-        ...
-      }
+  .. literalinclude:: /../snippets/cpp/synthesis/synthesis_examples.cpp
+     :language: cpp
+     :start-after: [Begin CPP ControlAndAdjointCombined]
+     :end-before: [End CPP ControlAndAdjointCombined]
 
 .. tab:: Python 
 
-  .. code-block:: python 
-
-    @cudaq.kernel()
-    def x_gate(q : cudaq.qubit):
-        x(q)
-    
-    @cudaq.kernel()
-    def kernelTestControl():
-        q = cudaq.qvector(3)
-        ...
-        ctrl_bits = q.front(2)
-        cudaq.control(x_gate, ctrl_bits, q[2])
-        ...
-    
-    @cudaq.kernel()
-    def rx_and_h_gate(x : float, q : cudaq.qubit):
-        rx(x, q)
-        h(q)
-    
-    @cudaq.kernel()
-    def kernelTestAdjoint(N : int):
-        q = cudaq.qvector(N)
-        ...
-        # apply h(q[2]); rx(-pi, q[2])
-        cudaq.adjoint(rx_and_h_gate, np.pi, q[2])
-        ...
-
+  .. literalinclude:: /../snippets/python/synthesis/synthesis_examples.py
+     :language: python
+     :start-after: [Begin PY ControlAndAdjointCombined]
+     :end-before: [End PY ControlAndAdjointCombined]
 
 **[3]** The :code:`cudaq::control(...)` function takes as input an instantiated pure
 device quantum kernel, a std::range of control qubits (:code:`cudaq::qvector`
@@ -92,15 +49,17 @@ a range of control qubits with or without the use of the :code:`operator!`
 
 .. tab:: C++ 
   
-  .. code-block:: cpp
-
-      cudaq::control(kernel{}, {qubit0, !qubit1}, kernel_arg);
+  .. literalinclude:: /../snippets/cpp/synthesis/synthesis_examples.cpp
+     :language: cpp
+     :start-after: [Begin CPP NegatedControlRSTLine]
+     :end-before: [End CPP NegatedControlRSTLine]
 
 .. tab:: Python 
 
-  .. code-block:: python 
-
-    cudaq.control(kernel, [qubit0, ~qubit1], kernel_arg)
+  .. literalinclude:: /../snippets/python/synthesis/synthesis_examples.py
+     :language: python
+     :start-after: [Begin PY NegatedControlRSTLine]
+     :end-before: [End PY NegatedControlRSTLine]
   
 **[5]** The :code:`cudaq::adjoint(...)` function takes as input an
 pure device quantum kernel and the remaining arguments for the kernel.

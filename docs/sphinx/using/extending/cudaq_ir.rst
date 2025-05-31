@@ -2,22 +2,11 @@ Working with the CUDA-Q IR
 ********************************
 Let's see the output of :code:`nvq++` in verbose mode. Consider a simple code like the one below, saved to file :code:`simple.cpp`.
 
-.. code-block:: console 
+.. literalinclude:: /../snippets/cpp/extending/cudaq_ir_simple.cpp
+   :language: cpp
+   :start-after: [Begin CUDA_IR_Simple_CPP_Content]
+   :end-before: [End CUDA_IR_Simple_CPP_Content]
 
-    #include <cudaq.h>
-
-    struct ghz {
-      void operator()(int N) __qpu__ {
-        cudaq::qvector q(N);
-        h(q[0]);
-        for (int i = 0; i < N - 1; i++) {
-          x<cudaq::ctrl>(q[i], q[i + 1]);
-        }
-        mz(q);
-      }
-    };
-
-    int main() { ... }
 
  We see the following output from :code:`nvq++` verbose mode (up to some absolute paths).
 
@@ -153,18 +142,11 @@ To demonstrate how these tools work together, let's take the simple GHZ CUDA-Q
 program and lower the kernel from C++ to Quake, synthesize that Quake code, 
 and produce QIR. Recall the code snippet for the kernel
 
-.. code-block:: cpp 
+.. literalinclude:: /../snippets/cpp/extending/cudaq_ir_ghz_kernel.cpp
+   :language: cpp
+   :start-after: [Begin CUDA_IR_GHZ_Kernel_Struct_CPP]
+   :end-before: [End CUDA_IR_GHZ_Kernel_Struct_CPP]
 
-    // Define a quantum kernel
-    struct ghz {
-      auto operator()() __qpu__ {
-        cudaq::qarray<5> q;
-        h(q[0]);
-        for (int i = 0; i < 4; i++) 
-          x<cudaq::ctrl>(q[i], q[i + 1]);
-        mz(q);
-      }
-    };
 
 Using the toolchain, we can lower this directly to QIR,
 
