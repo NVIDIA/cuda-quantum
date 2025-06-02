@@ -17,6 +17,7 @@ target_include_directories(test_pasqal PRIVATE ../..)
 target_link_libraries(test_pasqal
   PRIVATE
     fmt::fmt-header-only 
+    cudaq
     cudaq-common 
     gtest_main
 )

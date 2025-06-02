@@ -10,6 +10,21 @@ name: tensornet
 description: "cutensornet simulator backend target based on full tensor network contraction"
 gpu-requirements: true
 
-config:
-  nvqir-simulation-backend: tensornet
-  preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+target-arguments:
+  - key: option
+    required: false
+    type: option-flags
+    help-string: "Specify the target options as a comma-separated list.\nSupported options are 'fp32', 'fp64'"
+
+configuration-matrix:
+  - name: single-gpu-fp64
+    option-flags: [fp64]
+    default: true
+    config:
+      nvqir-simulation-backend: tensornet
+      preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+  - name: single-gpu-fp32
+    option-flags: [fp32]
+    config:
+      nvqir-simulation-backend: tensornet-fp32
+      preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]

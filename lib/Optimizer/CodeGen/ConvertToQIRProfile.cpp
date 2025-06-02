@@ -50,7 +50,7 @@ static std::size_t getNumQubits(LLVM::CallOp callOp) {
 static bool isQIRSliceCall(Operation *op) {
   if (auto call = dyn_cast_or_null<LLVM::CallOp>(op)) {
     StringRef funcName = call.getCalleeAttr().getValue();
-    return funcName.equals(cudaq::opt::QIRArraySlice);
+    return funcName == cudaq::opt::QIRArraySlice;
   }
   return false;
 }
@@ -123,12 +123,12 @@ private:
 
       if (isAllocateArray(funcName)) {
         addAllocation([&]() { return getNumQubits(callOp); });
-      } else if (funcName.equals(cudaq::opt::QIRQubitAllocate)) {
+      } else if (funcName == cudaq::opt::QIRQubitAllocate) {
         addAllocation([]() { return 1; });
-      } else if (funcName.equals(cudaq::opt::QIRMeasure) ||
+      } else if (funcName == cudaq::opt::QIRMeasure ||
                  // FIXME Store the register names for the record_output
                  // functions
-                 funcName.equals(cudaq::opt::QIRMeasureToRegister)) {
+                 funcName == cudaq::opt::QIRMeasureToRegister) {
         std::optional<std::size_t> optQb;
         if (auto allocCall =
                 callOp.getOperand(0).getDefiningOp<LLVM::CallOp>()) {
@@ -365,8 +365,8 @@ struct QIRToQIRProfileFuncPass
       if (!funcNameAttr)
         return true;
       auto funcName = funcNameAttr.getValue();
-      return (!funcName.equals(cudaq::opt::QIRArrayQubitAllocateArray) &&
-              !funcName.equals(cudaq::opt::QIRQubitAllocate)) ||
+      return (funcName != cudaq::opt::QIRArrayQubitAllocateArray &&
+              funcName != cudaq::opt::QIRQubitAllocate) ||
              op->hasAttr(cudaq::opt::StartingOffsetAttrName);
     });
 

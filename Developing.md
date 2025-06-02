@@ -30,6 +30,19 @@ line printed when you build the code and run an example using the command
 bash "$CUDAQ_REPO_ROOT/scripts/build_cudaq.sh" && \
 nvq++ "$CUDAQ_REPO_ROOT/docs/sphinx/applications/cpp/grover.cpp" -o grover.out && \
 ./grover.out
+# Build with specific options - verbose, debug build, run 8 jobs in parallel
+bash "$CUDAQ_REPO_ROOT/scripts/build_cudaq.sh" -v -c Debug -j 8
+```
+
+Incremental Rebuilds
+After making changes, you can rebuild specific components without rebuilding everything:
+
+```bash
+cd "$CUDAQ_REPO_ROOT/build"
+# Rebuild - faster than full build from scratch
+ninja
+# Rebuild specific component
+ninja <target>
 ```
 
 When working on compiler internals, it can be useful to look at intermediate
@@ -65,6 +78,28 @@ comments as well as a comment at the top of the file to indicating its purpose.
 [cpp_style]: https://www.gnu.org/prep/standards/standards.html
 [llvm_style]: https://llvm.org/docs/CodingStandards.html
 
+### C++ Formatting
+
+```bash
+bash "$CUDAQ_REPO_ROOT/scripts/run_clang_format.sh"
+```
+
+### Python Formatting
+
+```bash
+yapf -i <file_name>.py
+# To run recursively on a directory
+yapf -i --recursive <directory>
+```
+
+### Spell checker
+
+```bash
+bash "$CUDAQ_REPO_ROOT/scripts/run_all_spelling.sh"
+# To only check the files that have changed from `main`
+bash "$CUDAQ_REPO_ROOT/scripts/run_all_spelling.sh" -d
+```
+
 ## Testing and debugging
 
 CUDA-Q tests are categorized as unit tests on runtime library code and
@@ -72,6 +107,22 @@ CUDA-Q tests are categorized as unit tests on runtime library code and
 libraries should have an accompanying test added to the appropriate spot in the
 `unittests` folder. All code that directly impacts compiler code should have an
 accompanying `FileCheck` test. These tests are located in the `test` folder.
+
+### C++ tests
+
+```bash
+cd "$CUDAQ_REPO_ROOT/build"
+ctest
+# To run a specific test
+ctest -R <test-name>
+```
+
+### Python tests
+
+```bash
+python3 -m pytest -v python/tests/ --ignore python/tests/backends
+for backendTest in python/tests/backends/*.py; do python3 -m pytest -v $backendTest; done
+```
 
 When running a CUDA-Q executable locally, the verbosity of the output can be
 configured by setting the `CUDAQ_LOG_LEVEL` environment variable. Setting its

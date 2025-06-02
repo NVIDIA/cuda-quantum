@@ -9,7 +9,7 @@
 #include "LinkedLibraryHolder.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Logger.h"
-#include "cudaq/algorithms/evolve.h"
+#include "cudaq/algorithms/evolve_internal.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"

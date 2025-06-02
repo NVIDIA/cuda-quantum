@@ -9,6 +9,7 @@
 add_mlir_dialect_library(OptimBuilder
   Factory.cpp
   Intrinsics.cpp
+  Marshal.cpp
 
   DEPENDS
     CCDialect

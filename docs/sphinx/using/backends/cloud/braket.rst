@@ -100,6 +100,3 @@ argument to ``cudaq.sample``. By default, the ``shots_count`` is set to 1000.
 
 To see a complete example for using Amazon Braket backends, take a look at our :ref:`Python examples <examples>`.
 
-.. note:: 
-
-    The ``cudaq.observe`` API is not yet supported on the `braket` target.

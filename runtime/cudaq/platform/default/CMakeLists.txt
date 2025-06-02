@@ -25,7 +25,7 @@ target_include_directories(${LIBRARY_NAME}
 
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
-    pthread cudaq-em-default cudaq-spin cudaq-common
+    pthread cudaq-em-default cudaq-operator cudaq-common
   PRIVATE
     fmt::fmt-header-only cudaq CUDAQTargetConfigUtil)
 

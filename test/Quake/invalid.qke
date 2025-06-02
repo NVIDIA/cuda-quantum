@@ -158,3 +158,19 @@ func.func @test_insert_value(%0: !cc.array<!cc.struct<{i8, complex<f64>}> x 6>) 
   %1 = cc.insert_value %0[2, 1, 0], %2 : (!cc.array<!cc.struct<{i8, complex<f64>}> x 6>, i64) -> !cc.array<!cc.struct<{i8, complex<f64>}> x 6>
   return
 }
+
+// -----
+
+func.func @test_cast_truncation_1(%0: i64) -> i32 {
+  // expected-error@+1 {{to integer extension, not truncation}}
+  %1 = cc.cast unsigned %0 : (i64) -> i32
+  return %1 : i32
+}
+
+// -----
+
+func.func @test_cast_truncation_2(%0: i64) -> i32 {
+  // expected-error@+1 {{to integer extension, not truncation}}
+  %1 = cc.cast signed %0 : (i64) -> i32
+  return %1 : i32
+}

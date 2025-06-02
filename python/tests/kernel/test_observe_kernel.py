@@ -265,9 +265,10 @@ def test_empty_spin_op():
         ry(theta, q[1])
         x.ctrl(q[1], q[0])
 
-    h = spin.z(0)
+    h = spin.empty()
+    h += spin.z(0)
     batched = h.distribute_terms(2)
-    assert batched[1].get_term_count() == 0
+    assert batched[1].term_count == 0
     assert cudaq.observe(circuit, batched[1], .59).expectation() == 0
 
 
@@ -308,10 +309,10 @@ def test_pack_args_pauli_list():
         ]
 
     def build_cudaq_obs(hs, paulis):
-        observable = cudaq.SpinOperator()
+        observable = cudaq.SpinOperator.empty()
         for h, p in zip(hs, paulis):
             observable += h * cudaq.SpinOperator.from_word(p)
-        return observable - cudaq.SpinOperator()
+        return observable
 
     @cudaq.kernel
     def gqeCirc1(N: int, thetas: list[float], one_pauli: cudaq.pauli_word):

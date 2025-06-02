@@ -137,16 +137,35 @@ def test_quantinuum_state_preparation():
     assert not '111' in counts
 
 
-def test_quantinuum_state_synthesis():
+def test_quantinuum_state_synthesis_from_simulator():
     kernel, state = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(state)
 
     state = cudaq.State.from_data(
         np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
 
-    with pytest.raises(RuntimeError) as e:
-        counts = cudaq.sample(kernel, state)
-    assert 'Could not successfully apply quake-synth.' in repr(e)
+    counts = cudaq.sample(kernel, state)
+    assert "00" in counts
+    assert "10" in counts
+    assert len(counts) == 2
+
+
+def test_quantinuum_state_synthesis():
+
+    init, n = cudaq.make_kernel(int)
+    qubits = init.qalloc(n)
+    init.x(qubits[0])
+
+    s = cudaq.get_state(init, 2)
+
+    kernel, state = cudaq.make_kernel(cudaq.State)
+    qubits = kernel.qalloc(state)
+    kernel.x(qubits[1])
+
+    s = cudaq.get_state(kernel, s)
+    counts = cudaq.sample(kernel, s)
+    assert '10' in counts
+    assert len(counts) == 1
 
 
 def test_exp_pauli():
@@ -155,6 +174,7 @@ def test_exp_pauli():
     test.exp_pauli(1.0, q, "XX")
 
     counts = cudaq.sample(test)
+    print(test, counts)
     assert '00' in counts
     assert '11' in counts
     assert not '01' in counts
@@ -166,10 +186,40 @@ def test_exp_pauli_param():
     q = test.qalloc(2)
     test.exp_pauli(1.0, q, w)
 
-    # FIXME: should work after new launchKernel becomes default.
-    with pytest.raises(RuntimeError) as e:
-        counts = cudaq.sample(test, cudaq.pauli_word("XX"))
-    assert 'Remote rest platform Quake lowering failed.' in repr(e)
+    counts = cudaq.sample(test, cudaq.pauli_word("XX"))
+    print(test, counts)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
+def test_capture_array():
+    arr = np.array([1., 0], dtype=np.complex128)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(arr)
+
+    with pytest.raises(
+            RuntimeError,
+            match=
+            "captured vectors are not supported on quantum hardware or remote simulators"
+    ):
+        counts = cudaq.sample(kernel)
+
+
+def test_capture_state():
+    s = cudaq.State.from_data(np.array([1., 0], dtype=np.complex128))
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(s)
+
+    with pytest.raises(
+            RuntimeError,
+            match=
+            "captured states are not supported on quantum hardware or remote simulators"
+    ):
+        counts = cudaq.sample(kernel)
 
 
 # leave for gdb debugging

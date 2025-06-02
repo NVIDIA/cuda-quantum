@@ -165,7 +165,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_complex64(i64, !cc.ptr<complex<f64>>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
 // CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_complex32(i64, !cc.ptr<complex<f32>>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
 // CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_state_ptr(!cc.ptr<none>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
-// CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64, !cc.ptr<!cc.state>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:         func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64, !cc.ptr<!quake.state>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
 // CHECK:         func.func private @__quantum__rt__qubit_release_array(!cc.ptr<!llvm.struct<"Array", opaque>>)
 // CHECK:         func.func private @__quantum__rt__qubit_release(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__rt__array_create_1d(i32, i64) -> !cc.ptr<!llvm.struct<"Array", opaque>>

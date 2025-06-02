@@ -6,13 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime  # exposes state class
+import matplotlib.pyplot as plt
 import numpy as np
 from math import isclose  # builtin
-import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-
 from qutip import Qobj, Bloch
+
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime  # exposes state class
 
 
 def add_to_bloch_sphere(psi: cudaq_runtime.State,

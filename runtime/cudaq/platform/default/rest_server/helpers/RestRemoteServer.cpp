@@ -82,7 +82,8 @@ T getValueOrThrow(llvm::Expected<T> valOrErr,
 // pointers into the code objects inside the JIT.
 void clearRegOpsAndDestroyJIT(std::unique_ptr<llvm::orc::LLJIT> &jit) {
   cudaq::getExecutionManager()->clearRegisteredOperations();
-  jit.release();
+  // Destroys the LLJIT object
+  jit.reset();
 }
 
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
@@ -325,7 +326,8 @@ public:
         gradient->setKernel(fnWrapper);
 
       bool requiresGrad = optimizer.requiresGradients();
-      auto theSpin = **io_context.spin;
+      auto theSpin = *io_context.spin;
+      assert(cudaq::spin_op::canonicalize(theSpin) == theSpin);
 
       result = optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                                 std::vector<double> &grad_vec) {

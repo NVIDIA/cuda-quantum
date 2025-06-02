@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import cudaq
-from cudaq.operator import *
 import json
 import os
 import pytest

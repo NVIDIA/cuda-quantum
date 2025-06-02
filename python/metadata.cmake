@@ -15,7 +15,6 @@ if(NOT METADATA_FILE)
     message(FATAL_ERROR "METADATA_FILE is not defined")
 endif()
 
-message(STATUS "Creating metadata file in ${METADATA_FILE}.")
 if(CUDA_VERSION_MAJOR)
     file(WRITE ${METADATA_FILE} "cuda_major=${CUDA_VERSION_MAJOR}")
 else()

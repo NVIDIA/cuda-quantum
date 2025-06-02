@@ -14,6 +14,8 @@
 
 namespace cudaq {
 
+struct QuditInfo;
+
 /// @brief A trace is a circuit representation of the executed computation, as
 /// seen by the execution manager. (Here, a circuit is represented as a list
 /// of instructions on qudits). Since the execution manager cannot "see" control

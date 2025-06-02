@@ -14,11 +14,11 @@
 #include "SimulationState.h"
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
+#include "cudaq/operators.h"
 #include <optional>
 #include <string_view>
 
 namespace cudaq {
-class spin_op;
 
 /// @brief The ExecutionContext is an abstraction to indicate
 /// how a CUDA-Q kernel should be executed.
@@ -31,7 +31,7 @@ public:
   std::size_t shots = 0;
 
   /// @brief An optional spin operator
-  std::optional<cudaq::spin_op *> spin;
+  std::optional<cudaq::spin_op> spin;
 
   /// @brief Measurement counts for a CUDA-Q kernel invocation
   sample_result result;

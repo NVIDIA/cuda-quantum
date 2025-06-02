@@ -9,7 +9,7 @@
 #pragma once
 
 #include "MeasureCounts.h"
-#include "cudaq/spin_op.h"
+#include "cudaq/operators.h"
 
 #include <cassert>
 
@@ -35,14 +35,18 @@ public:
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op.
-  observe_result(double e, const spin_op &H) : expVal(e), spinOp(H) {}
+  observe_result(double e, const spin_op &H) : expVal(e), spinOp(H) {
+    assert(cudaq::spin_op::canonicalize(spinOp) == spinOp);
+  }
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op. If this execution
   /// was shots based, also provide the sample_result data containing counts
   /// for each term in H.
   observe_result(double e, const spin_op &H, sample_result counts)
-      : expVal(e), spinOp(H), data(counts) {}
+      : expVal(e), spinOp(H), data(counts) {
+    assert(cudaq::spin_op::canonicalize(spinOp) == spinOp);
+  }
 
   /// @brief Return the raw counts data for all terms
   /// @return
@@ -59,74 +63,49 @@ public:
   /// @brief Return the expected value for the provided spin_op
   /// @return
   double expectation() { return expVal; }
-  // Deprecated:
-  [[deprecated("`exp_val_z()` is deprecated. Use `expectation()` with the same "
-               "argument structure.")]] double
-  exp_val_z() {
-    return expVal;
-  }
 
   /// @brief Return the expectation value for a sub-term in the provided
   /// spin_op.
-  template <typename SpinOpType>
-  double expectation(SpinOpType term) {
-    static_assert(std::is_same_v<spin_op, std::remove_reference_t<SpinOpType>>,
-                  "Must provide a one term spin_op");
-    // Pauli == Pauli II..III
-    // e.g. someone might check for <Z>, which
-    // on more than 1 qubit can be <ZIII...III>
-    auto numQubits = spinOp.num_qubits();
-    auto termStr = term.to_string(false);
-    // Expand the string representation of the term to match the number of
-    // qubits of the overall spin_op this result represents by appending
-    // identity ops.
-    if (!data.has_expectation(termStr))
-      for (std::size_t i = termStr.size(); i < numQubits; i++)
-        termStr += "I";
+  double expectation(const spin_op_term &term) {
+    auto termStr = cudaq::spin_op_term::canonicalize(term).get_term_id();
     return data.expectation(termStr);
   }
-  // Deprecated:
-  template <typename SpinOpType>
-  [[deprecated("`exp_val_z()` is deprecated. Use `expectation()` with the same "
-               "argument structure.")]] double
-  exp_val_z(SpinOpType term) {
-    static_assert(std::is_same_v<spin_op, std::remove_reference_t<SpinOpType>>,
-                  "Must provide a one term spin_op");
-    // Pauli == Pauli II..III
-    // e.g. someone might check for <Z>, which
-    // on more than 1 qubit can be <ZIII...III>
-    auto numQubits = spinOp.num_qubits();
-    auto termStr = term.to_string(false);
-    if (!data.has_expectation(termStr) && termStr.size() == 1 && numQubits > 1)
-      for (std::size_t i = 1; i < numQubits; i++)
-        termStr += "I";
+
+  [[deprecated("passing a spin_op to expectation is deprecated - please pass a "
+               "spin_op_term instead")]] double
+  expectation(const spin_op &op) {
+    if (op.num_terms() != 1)
+      throw std::runtime_error("expecting a spin op with exactly one term");
+    auto termStr = cudaq::spin_op_term::canonicalize(*op.begin()).get_term_id();
     return data.expectation(termStr);
   }
 
   /// @brief Return the counts data for the given spin_op
-  /// @param term
-  /// @return
-  template <typename SpinOpType>
-  sample_result counts(SpinOpType term) {
-    static_assert(std::is_same_v<spin_op, std::remove_reference_t<SpinOpType>>,
-                  "Must provide a one term spin_op");
-    assert(term.num_terms() == 1 && "Must provide a one term spin_op");
-    auto numQubits = spinOp.num_qubits();
-    auto termStr = term.to_string(false);
-    if (!data.has_expectation(termStr) && termStr.size() == 1 && numQubits > 1)
-      for (std::size_t i = 1; i < numQubits; i++)
-        termStr += "I";
+  sample_result counts(const spin_op_term &term) {
+    auto termStr = cudaq::spin_op_term::canonicalize(term).get_term_id();
+    auto counts = data.to_map(termStr);
+    ExecutionResult result(counts);
+    return sample_result(result);
+  }
+
+  [[deprecated("passing a spin_op to counts is deprecated - please pass a "
+               "spin_op_term instead")]] sample_result
+  counts(const spin_op &op) {
+    if (op.num_terms() != 1)
+      throw std::runtime_error("expecting a spin op with exactly one term");
+    auto termStr = cudaq::spin_op_term::canonicalize(*op.begin()).get_term_id();
     auto counts = data.to_map(termStr);
     ExecutionResult result(counts);
     return sample_result(result);
   }
 
   /// @brief Return the coefficient of the identity term.
-  /// @return
+  /// Assumes there is at more one identity term.
+  /// Returns 0 if no identity term exists.
   double id_coefficient() {
     for (const auto &term : spinOp)
       if (term.is_identity())
-        return term.get_coefficient().real();
+        return term.evaluate_coefficient().real();
     return 0.0;
   }
 

@@ -31,7 +31,7 @@ public:
   LogicalResult matchAndRewrite(func::CallOp call,
                                 PatternRewriter &rewriter) const override {
     auto callee = call.getCallee();
-    if (callee.equals(cudaq::stdMoveBuiltin)) {
+    if (callee == cudaq::stdMoveBuiltin) {
       rewriter.replaceOp(call, call.getOperands());
       rewriter.eraseOp(call);
       return success();

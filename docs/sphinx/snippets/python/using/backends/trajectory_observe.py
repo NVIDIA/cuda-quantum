@@ -11,6 +11,9 @@ import cudaq
 from cudaq import spin
 
 # Use the `nvidia` target
+# Other targets capable of trajectory simulation are:
+# - `tensornet`
+# - `tensornet-mps`
 cudaq.set_target("nvidia")
 
 

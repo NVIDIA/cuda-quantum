@@ -78,12 +78,13 @@ public:
     (addArgument(args), ...);
   }
   RemoteSimulationState() = default;
-  virtual ~RemoteSimulationState();
+  virtual ~RemoteSimulationState() override;
   /// @brief Triggers remote execution to resolve the state data.
   virtual void execute() const;
 
   /// @brief Helper to retrieve (kernel name, `args` pointers)
-  virtual std::pair<std::string, std::vector<void *>> getKernelInfo() const;
+  virtual std::optional<std::pair<std::string, std::vector<void *>>>
+  getKernelInfo() const override;
 
   /// @brief Return the number of qubits this state represents.
   std::size_t getNumQubits() const override;

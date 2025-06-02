@@ -14,6 +14,13 @@ If you have already installed and configured CUDA-Q, or if you are using our
 :doc:`Basics Section <basics/basics>`. More information about working with containers and Docker alternatives can be 
 found in our complete :doc:`Installation Guide <install/install>`.
 
+.. note::
+
+    If you are using CUDA 12.8 on Blackwell, you may need to install additional
+    dependencies to use the python wheels.
+
+    See :ref:`Blackwell CUDA Dependencies <blackwell-cuda-dependencies>` for more information.
+
 Install CUDA-Q
 ----------------------------
 
@@ -129,3 +136,23 @@ For further information on available targets, see :doc:`Backends <backends/backe
 You are now all set to start developing quantum applications using CUDA-Q!
 Please proceed to :doc:`Basics <basics/basics>` for an introduction
 to the fundamental features of CUDA-Q.
+
+
+CUDA-Q Academic
+------------------
+`CUDA-Q Academic <https://github.com/NVIDIA/cuda-q-academic>`_  is a collection of courses designed for academic use based on the CUDA-Q platform.  Courses range in complexity from the basics of quantum computing up to implementations of algorithms from the research literature.  Users will learn quantum computing, CUDA-Q, and how to run hybrid algorithms that make the most of QPUs and AI supercomputers through coding exercises and interactive lessons.  
+
+.. figure:: cudaq_academic/widget-recording.gif
+   :width: 500px
+   :align: center
+
+   Example of the interactive material within CUDA-Q Academic.
+
+The courses can be run using a local installation of CUDA-Q or via the cloud using `qBraid`, `CoCalc`, or `Google Colab`. 
+
+Users just learning quantum computing are encouraged to begin with the `Quick Start to Quantum <https://github.com/NVIDIA/cuda-q-academic/blob/main/quick-start-to-quantum/README.md>`_ course which provides an introduction to the basics of quantum computing and helps you implement your first algorithm. 
+
+Advanced users can choose from a number of learning paths spanning topics ranging from QEC to hybrid algorithms `here  <https://github.com/NVIDIA/cuda-q-academic>`_ .
+
+
+

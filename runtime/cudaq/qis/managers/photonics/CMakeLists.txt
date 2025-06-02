@@ -21,7 +21,7 @@ list(APPEND PHOTONICS_DEPENDENCIES cudaq-common libqpp fmt::fmt-header-only)
 add_openmp_configurations(${LIBRARY_NAME} PHOTONICS_DEPENDENCIES)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-spin
+  PUBLIC cudaq-operator
   PRIVATE ${PHOTONICS_DEPENDENCIES}
 )
 

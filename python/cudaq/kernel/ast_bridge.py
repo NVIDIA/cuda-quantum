@@ -7,20 +7,36 @@
 # ============================================================================ #
 import ast
 import importlib
-import hashlib
 import graphlib
-import sys, os
-from typing import Callable
-from collections import deque
 import numpy as np
+import os
+import sys
+from collections import deque
+
+from cudaq.mlir._mlir_libs._quakeDialects import (
+    cudaq_runtime, load_intrinsic, gen_vector_of_complex_constant,
+    register_all_dialects)
+from cudaq.mlir.dialects import arith, cc, complex, func, math, quake
+from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
+                           DenseBoolArrayAttr, DenseI32ArrayAttr,
+                           DenseI64ArrayAttr, DictAttr, F32Type, F64Type,
+                           FlatSymbolRefAttr, FloatAttr, FunctionType,
+                           InsertionPoint, IntegerAttr, IntegerType, Location,
+                           Module, StringAttr, SymbolTable, TypeAttr, UnitAttr)
+from cudaq.mlir.passmanager import PassManager
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType, globalRegisteredTypes
-from ..mlir.ir import *
-from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc
-from ..mlir.dialects import builtin, func, arith, math, complex
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects, gen_vector_of_complex_constant
 from .captured_data import CapturedDataStorage
+from .utils import (
+    Color,
+    globalAstRegistry,
+    globalKernelRegistry,
+    globalRegisteredOperations,
+    globalRegisteredTypes,
+    nvqppPrefix,
+    mlirTypeFromAnnotation,
+    mlirTypeFromPyType,
+    mlirTypeToPyType,
+)
 
 State = cudaq_runtime.State
 
@@ -521,8 +537,9 @@ class PyASTBridge(ast.NodeVisitor):
         if cc.PointerType.isinstance(vecTy):
             vecTy = cc.PointerType.getElementType(vecTy)
 
-        return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
-                               arrSize).result
+        return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy),
+                               alloca,
+                               length=arrSize).result
 
     def getStructMemberIdx(self, memberName, structTy):
         """
@@ -596,7 +613,7 @@ class PyASTBridge(ast.NodeVisitor):
             cc.StoreOp(castedEle, targetEleAddr)
 
         self.createInvariantForLoop(sourceSize, bodyBuilder)
-        return cc.StdvecInitOp(targetVecTy, targetPtr, sourceSize).result
+        return cc.StdvecInitOp(targetVecTy, targetPtr, length=sourceSize).result
 
     def __insertDbgStmt(self, value, dbgStmt):
         """
@@ -2965,7 +2982,8 @@ class PyASTBridge(ast.NodeVisitor):
         self.createInvariantForLoop(iterableSize, bodyBuilder)
         self.pushValue(
             cc.StdvecInitOp(cc.StdvecType.get(self.ctx, listComputePtrTy),
-                            listValue, iterableSize).result)
+                            listValue,
+                            length=iterableSize).result)
         return
 
     def visit_List(self, node):
@@ -3160,7 +3178,7 @@ class PyASTBridge(ast.NodeVisitor):
                     DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 self.pushValue(
-                    cc.StdvecInitOp(var.type, ptr, nElementsVal).result)
+                    cc.StdvecInitOp(var.type, ptr, length=nElementsVal).result)
             else:
                 self.emitFatalError(
                     f"unhandled slice operation, cannot handle type {var.type}",
@@ -3843,7 +3861,7 @@ class PyASTBridge(ast.NodeVisitor):
             resBuf = cc.CastOp(ptrTy, resBuf)
             heapCopy = func.CallOp([ptrTy], symName,
                                    [resBuf, dynSize, eleSize]).result
-            res = cc.StdvecInitOp(result.type, heapCopy, dynSize).result
+            res = cc.StdvecInitOp(result.type, heapCopy, length=dynSize).result
             func.ReturnOp([res])
             return
 
@@ -4232,8 +4250,8 @@ class PyASTBridge(ast.NodeVisitor):
             node)
 
 
-def compile_to_mlir(astModule, metadata,
-                    capturedDataStorage: CapturedDataStorage, **kwargs):
+def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
+                    **kwargs):
     """
     Compile the given Python AST Module for the CUDA-Q 
     kernel FunctionDef to an MLIR `ModuleOp`. 
@@ -4316,9 +4334,10 @@ def compile_to_mlir(astModule, metadata,
     if verbose:
         print(bridge.module)
 
-    # Canonicalize the code
-    pm = PassManager.parse("builtin.module(canonicalize,cse)",
-                           context=bridge.ctx)
+    # Canonicalize the code, check for measurement(s) readout
+    pm = PassManager.parse(
+        "builtin.module(canonicalize,cse,func.func(quake-add-metadata))",
+        context=bridge.ctx)
 
     try:
         pm.run(bridge.module)
@@ -4326,12 +4345,6 @@ def compile_to_mlir(astModule, metadata,
         raise RuntimeError("could not compile code for '{}'.".format(
             bridge.name))
 
-    if metadata['conditionalOnMeasure']:
-        SymbolTable(
-            bridge.module.operation)[nvqppPrefix +
-                                     bridge.name].attributes.__setitem__(
-                                         'qubitMeasurementFeedback',
-                                         BoolAttr.get(True, context=bridge.ctx))
     extraMetaData = {}
     if len(bridge.dependentCaptureVars):
         extraMetaData['dependent_captures'] = bridge.dependentCaptureVars

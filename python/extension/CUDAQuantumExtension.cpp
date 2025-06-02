@@ -25,23 +25,25 @@
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_translate.h"
 #include "runtime/cudaq/algorithms/py_vqe.h"
+#include "runtime/cudaq/operators/py_boson_op.h"
+#include "runtime/cudaq/operators/py_fermion_op.h"
+#include "runtime/cudaq/operators/py_handlers.h"
+#include "runtime/cudaq/operators/py_matrix.h"
+#include "runtime/cudaq/operators/py_matrix_op.h"
+#include "runtime/cudaq/operators/py_scalar_op.h"
+#include "runtime/cudaq/operators/py_spin_op.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_qubit_qis.h"
-#include "runtime/cudaq/spin/py_matrix.h"
-#include "runtime/cudaq/spin/py_spin_op.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
+#include "runtime/interop/PythonCppInterop.h"
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
-
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
-
-#include "runtime/interop/PythonCppInterop.h"
-
 #include <pybind11/complex.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
@@ -96,7 +98,12 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindMeasureCounts(cudaqRuntime);
   cudaq::bindObserveResult(cudaqRuntime);
   cudaq::bindComplexMatrix(cudaqRuntime);
+  cudaq::bindScalarWrapper(cudaqRuntime);
   cudaq::bindSpinWrapper(cudaqRuntime);
+  cudaq::bindFermionWrapper(cudaqRuntime);
+  cudaq::bindBosonWrapper(cudaqRuntime);
+  cudaq::bindOperatorsWrapper(cudaqRuntime);
+  cudaq::bindHandlersWrapper(cudaqRuntime);
   cudaq::bindQIS(cudaqRuntime);
   cudaq::bindOptimizerWrapper(cudaqRuntime);
   cudaq::bindNoise(cudaqRuntime);
@@ -236,7 +243,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
           targetInfo.emplace_back(t[0], t[1]);
         }
         cudaq::getExecutionManager()->apply(name, params, {}, targetInfo, false,
-                                            cudaq::spin_op());
+                                            cudaq::spin_op::identity());
       },
       "Apply the input photonics operation on the target qudits.",
       py::arg("name"), py::arg("params"), py::arg("targets"));

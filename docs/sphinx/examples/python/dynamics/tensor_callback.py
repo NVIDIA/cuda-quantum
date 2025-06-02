@@ -1,5 +1,5 @@
 import cudaq
-from cudaq import ElementaryOperator, spin, operators, Schedule, ScipyZvodeIntegrator
+from cudaq import MatrixOperatorElement, operators, boson, Schedule, ScipyZvodeIntegrator
 import numpy as np
 import cupy as cp
 import os
@@ -26,10 +26,10 @@ lz_formula_p0 = np.exp(-np.pi * g**2 / (alpha))
 lz_formula_p1 = 1.0 - lz_formula_p0
 
 # Let's define the control term as a callback tensor that acts on 2-level systems
-ElementaryOperator.define("lz_op", [2], callback_tensor)
+operators.define("lz_op", [2], callback_tensor)
 
 # Hamiltonian
-hamiltonian = ElementaryOperator("lz_op", [0])
+hamiltonian = operators.instantiate("lz_op", [0])
 
 # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
 dimensions = {0: 2}
@@ -46,7 +46,7 @@ evolution_result = cudaq.evolve(hamiltonian,
                                 dimensions,
                                 schedule,
                                 psi0,
-                                observables=[operators.number(0)],
+                                observables=[boson.number(0)],
                                 collapse_operators=[],
                                 store_intermediate_results=True,
                                 integrator=ScipyZvodeIntegrator())

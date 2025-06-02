@@ -13,7 +13,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
-#include "cudaq/spin_op.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <fstream>
 #include <iostream>
 #include <spdlog/cfg/env.h>

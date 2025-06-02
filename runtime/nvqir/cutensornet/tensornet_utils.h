@@ -8,9 +8,9 @@
 
 #pragma once
 #include "cutensornet.h"
-#include <algorithm>
 #include <complex>
 #include <random>
+#include <vector>
 
 #define HANDLE_CUDA_ERROR(x)                                                   \
   {                                                                            \
@@ -35,11 +35,12 @@
 
 /// @brief Allocate and initialize device memory according to the input host
 /// data.
+template <typename T>
 inline void *
-allocateGateMatrix(const std::vector<std::complex<double>> &gateMatHost) {
+allocateGateMatrix(const std::vector<std::complex<T>> &gateMatHost) {
   // Copy quantum gates to Device memory
   void *d_gate{nullptr};
-  const auto sizeBytes = gateMatHost.size() * sizeof(std::complex<double>);
+  const auto sizeBytes = gateMatHost.size() * sizeof(std::complex<T>);
   HANDLE_CUDA_ERROR(cudaMalloc(&d_gate, sizeBytes));
   HANDLE_CUDA_ERROR(cudaMemcpy(d_gate, gateMatHost.data(), sizeBytes,
                                cudaMemcpyHostToDevice));
@@ -47,55 +48,30 @@ allocateGateMatrix(const std::vector<std::complex<double>> &gateMatHost) {
 }
 
 /// @brief Generate an array of random values in the range (0.0, max)
-inline std::vector<double> randomValues(uint64_t num_samples, double max_value,
-                                        std::mt19937 &randomEngine) {
-  std::vector<double> rs;
-  rs.reserve(num_samples);
-  std::uniform_real_distribution<double> distr(0.0, max_value);
-  for (uint64_t i = 0; i < num_samples; ++i) {
-    rs.emplace_back(distr(randomEngine));
-  }
-  std::sort(rs.begin(), rs.end());
-  return rs;
-}
+std::vector<double> randomValues(uint64_t num_samples, double max_value,
+                                 std::mt19937 &randomEngine);
 
 /// @brief Struct to allocate and clean up device memory scratch space.
 struct ScratchDeviceMem {
+  // Device pointer to scratch buffer
   void *d_scratch = nullptr;
+  // Actual size in bytes
   std::size_t scratchSize = 0;
+  // Ratio to current free memory size to allocate the scratch size.
+  // Note: the actual allocation size may slightly be different due to alignment
+  // consideration.
+  // The default ratio if not otherwise specified.
+  static inline constexpr double defaultFreeMemRatio = 0.5;
+  double freeMemRatio = defaultFreeMemRatio;
+
+  ScratchDeviceMem();
   // Compute the scratch size to allocate.
-  void computeScratchSize() {
-    // Query the free memory on Device
-    std::size_t freeSize{0}, totalSize{0};
-    HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeSize, &totalSize));
-    scratchSize = (freeSize - (freeSize % 4096)) /
-                  2; // use half of available memory with alignment
-  }
+  void computeScratchSize();
 
   // Allocate scratch device memory based on available memory
-  void allocate() {
-    if (d_scratch)
-      throw std::runtime_error(
-          "Multiple scratch device memory allocations is not allowed.");
+  void allocate();
 
-    computeScratchSize();
-    // Try allocate device memory
-    auto errCode = cudaMalloc(&d_scratch, scratchSize);
-    if (errCode == cudaErrorMemoryAllocation) {
-      // This indicates race condition whereby other GPU code is allocating
-      // memory while we are calling cudaMemGetInfo.
-      // Attempt to redo the allocation with an updated cudaMemGetInfo data.
-      computeScratchSize();
-      HANDLE_CUDA_ERROR(cudaMalloc(&d_scratch, scratchSize));
-    } else {
-      HANDLE_CUDA_ERROR(errCode);
-    }
-  }
-
-  ~ScratchDeviceMem() {
-    if (scratchSize > 0)
-      HANDLE_CUDA_ERROR(cudaFree(d_scratch));
-  }
+  ~ScratchDeviceMem();
 };
 
 /// Initialize `cutensornet` MPI Comm

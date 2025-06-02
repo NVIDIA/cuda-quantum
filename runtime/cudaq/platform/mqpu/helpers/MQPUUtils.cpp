@@ -35,10 +35,16 @@ bool portAvailable(int port) {
   int sock = ::socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0)
     return false;
-  if (::bind(sock, (struct sockaddr *)&servAddr, sizeof(servAddr)) == 0)
-    if (close(sock) == 0)
-      return true;
-  return false;
+  bool available =
+      (::bind(sock, (struct sockaddr *)&servAddr, sizeof(servAddr)) == 0);
+
+  // Close the socket to avoid leaks
+  if (::close(sock) != 0) {
+    perror("Failed to close socket");
+    return false;
+  }
+
+  return available;
 }
 
 // Util to pick (at random) an available TCP/IP port for auto-launching a server

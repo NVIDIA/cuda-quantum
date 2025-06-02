@@ -282,13 +282,13 @@ def test_sample_control_qubit_args():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
 # CHECK-SAME: () attributes {"cudaq-entrypoint"
-# CHECK:           %{{[0-2]}} = quake.alloca !quake.ref
-# CHECK:           %{{[0-2]}} = quake.alloca !quake.ref
-# CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%{{[0-2]}}) : (!quake.ref) -> ()
-# CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}[%{{[0-2]}}] %{{[0-2]}} : (!quake.ref, !quake.ref) -> ()
-# CHECK:           quake.h %{{[0-2]}} : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %{{[0-2]}} : (!quake.ref) -> !quake.measure
+# CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
+# CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
+# CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}[%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
 # CHECK:           return
 # CHECK:         }
 

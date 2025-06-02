@@ -6,8 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(spin)
-
 set(LIBRARY_NAME cudaq)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
@@ -17,13 +15,16 @@ add_library(${LIBRARY_NAME}
          SHARED cudaq.cpp 
                 target_control.cpp
                 algorithms/draw.cpp
+                algorithms/evolve.cpp
+                algorithms/schedule.cpp
+                platform/qpu_state.cpp
                 platform/quantum_platform.cpp
                 qis/execution_manager_c_api.cpp
                 qis/execution_manager.cpp
                 qis/remote_state.cpp
                 qis/state.cpp
                 utils/cudaq_utils.cpp
-                utils/tensor.cpp
+                utils/matrix.cpp
                 distributed/mpi_plugin.cpp)
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
@@ -40,7 +41,7 @@ if (CUDA_FOUND)
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-spin cudaq-common cudaq-nlopt cudaq-ensmallen
+    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
     PRIVATE nvqir fmt::fmt-header-only CUDA::cudart_static)
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -52,7 +53,7 @@ else()
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-spin cudaq-common cudaq-nlopt cudaq-ensmallen
+    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
     PRIVATE nvqir fmt::fmt-header-only)
 endif()
 
@@ -61,6 +62,7 @@ add_subdirectory(algorithms)
 add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
+add_subdirectory(operators)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 

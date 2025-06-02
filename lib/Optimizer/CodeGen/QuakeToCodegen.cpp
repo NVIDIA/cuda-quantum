@@ -93,7 +93,7 @@ public:
     auto result = irBuilder.loadIntrinsic(module, createStateFunc);
     assert(succeeded(result) && "loading intrinsic should never fail");
 
-    auto stateTy = cudaq::cc::StateType::get(ctx);
+    auto stateTy = quake::StateType::get(ctx);
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     auto cast = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);

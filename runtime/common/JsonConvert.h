@@ -139,12 +139,10 @@ inline void to_json(json &j, const ExecutionContext &context) {
     }
   }
 
-  if (context.spin.has_value() && context.spin.value() != nullptr) {
+  if (context.spin.has_value()) {
     const std::vector<double> spinOpRepr =
-        context.spin.value()->getDataRepresentation();
-    const auto spinOpN = context.spin.value()->num_qubits();
+        context.spin.value().get_data_representation();
     j["spin"] = json();
-    j["spin"]["num_qubits"] = spinOpN;
     j["spin"]["data"] = spinOpRepr;
   }
   j["registerNames"] = context.registerNames;
@@ -178,9 +176,10 @@ inline void from_json(const json &j, ExecutionContext &context) {
   if (j.contains("spin")) {
     std::vector<double> spinData;
     j["spin"]["data"].get_to(spinData);
-    const std::size_t nQubits = j["spin"]["num_qubits"];
-    auto serializedSpinOps = std::make_unique<spin_op>(spinData, nQubits);
-    context.spin = serializedSpinOps.release();
+    auto serializedSpinOps = spin_op(spinData);
+    context.spin = std::move(serializedSpinOps);
+    assert(cudaq::spin_op::canonicalize(context.spin.value()) ==
+           context.spin.value());
   }
 
   if (j.contains("simulationData")) {
@@ -578,9 +577,6 @@ public:
             std::make_unique<ExecutionContext>(j["executionContext"]["name"])),
         executionContext(*m_deserializedContext) {
     from_json(j, *this);
-    // Take the ownership of the spin_op pointer for proper cleanup.
-    if (executionContext.spin.has_value() && executionContext.spin.value())
-      m_deserializedSpinOp.reset(executionContext.spin.value());
   }
 
   // Underlying code (IR) payload as a Base64 string.

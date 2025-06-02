@@ -25,18 +25,13 @@ on:
         description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
         required: false
         default: ''
-  # We need write permissions for packages to update the build caches of GHCR.
-  # Make sure no external code is checked out as part of this workflow.
-  # This trigger replaces the pull_request_target trigger in prepare_deployment.yml
-  # so that we can use the NVIDIA runners to update the build caches.
   workflow_run:
     workflows:
       - PR merged
     types:
       - completed
-  # Whenever we create a release branch, we want to populate the caches.
-  # Unfortunately, it is not currently possible to filter by branch,
-  # see also: https://github.com/orgs/community/discussions/26286
+    # PR merged workflow runs after merge into certain branches an on pull_request_target;
+    # there should hence be no need for additional branch filtering here.
   push:
     branches:
       - 'releases/*'
@@ -370,7 +365,7 @@ jobs:
         cuda_version=${{ matrix.cuda_version }}
         base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
-        ${{ matrix.cuda_version != '11.8' && 'cuda_packages=cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcusolver libnvjitlink' || '' }}
+        ${{ matrix.cuda_version != '11.8' && 'cuda_packages=cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcurand-dev libcusolver libnvjitlink' || '' }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}

@@ -64,14 +64,19 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
     ../runtime/cudaq/qis/py_qubit_qis.cpp
-    ../runtime/cudaq/spin/py_matrix.cpp
-    ../runtime/cudaq/spin/py_spin_op.cpp
+    ../runtime/cudaq/operators/py_helpers.cpp  
+    ../runtime/cudaq/operators/py_matrix.cpp
+    ../runtime/cudaq/operators/py_scalar_op.cpp
+    ../runtime/cudaq/operators/py_spin_op.cpp
+    ../runtime/cudaq/operators/py_fermion_op.cpp
+    ../runtime/cudaq/operators/py_boson_op.cpp
+    ../runtime/cudaq/operators/py_matrix_op.cpp
+    ../runtime/cudaq/operators/py_handlers.cpp
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../runtime/utils/PyRemoteRESTQPU.cpp
     ../runtime/utils/PyFermioniqRESTQPU.cpp
-    ../runtime/utils/PyQuEraRemoteRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
@@ -84,6 +89,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/orca/OrcaServerHelper.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalRemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalServerHelper.cpp
+    ../../runtime/cudaq/platform/quera/QuEraRemoteRESTQPU.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI

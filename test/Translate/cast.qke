@@ -1,0 +1,23 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir %s | FileCheck %s
+
+func.func private @simp3()
+
+func.func @simp5() -> !cc.ptr<i8> {
+  %0 = func.constant @simp3 : () -> ()
+  %1 = cc.cast %0 : (() -> ()) -> !cc.ptr<i8>
+  func.return %1 : !cc.ptr<i8>
+}
+
+// CHECK-LABEL: declare void @simp3()
+
+// CHECK-LABEL: define nonnull i8* @simp5() local_unnamed_addr
+// CHECK:         ret i8* bitcast (void ()* @simp3 to i8*)
+// CHECK:       }

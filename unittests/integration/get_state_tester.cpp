@@ -161,7 +161,7 @@ __qpu__ void bell() {
 CUDAQ_TEST(GetStateTester, checkOverlapFromHostVector) {
   auto state = cudaq::get_state(bell);
   state.dump();
-  std::vector<std::complex<double>> hostStateData{M_SQRT1_2, 0, 0, M_SQRT1_2};
+  std::vector<cudaq::complex> hostStateData{M_SQRT1_2, 0, 0, M_SQRT1_2};
   auto hostState = cudaq::state::from_data(hostStateData);
   hostState.dump();
   // Check overlap with host vector

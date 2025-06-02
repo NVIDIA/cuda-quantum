@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "CircuitSimulator.h"
+#include "CuDensityMatContext.h"
+#include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
 #include "cudaq.h"
 #include "cudaq/distributed/mpi_plugin.h"
@@ -50,7 +52,7 @@ void initCuDensityMatCommLib() {
   // use this builtin plugin shim (redirect MPI calls to CUDA-Q plugin)
   if (std::getenv("CUDENSITYMAT_COMM_LIB") == nullptr) {
     cudaq::info("Enabling cuDensityMat MPI without environment variable "
-                "CUDENSITYMAT_COMM_LIB. \nUse the builtin cuTensorNet "
+                "CUDENSITYMAT_COMM_LIB. \nUse the builtin cuDensityMat "
                 "communicator lib from '{}' - CUDA-Q MPI plugin {}.",
                 getThisSharedLibFilePath(), getMpiPluginFilePath());
     setenv("CUDENSITYMAT_COMM_LIB", getThisSharedLibFilePath(), 0);
@@ -58,6 +60,9 @@ void initCuDensityMatCommLib() {
 }
 
 class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double> {
+private:
+  static constexpr int INVALID_CUDA_DEVICE = -1;
+
 protected:
   using ScalarType = double;
   using DataType = std::complex<double>;
@@ -80,16 +85,44 @@ public:
   CuDensityMatSim() {
     int numDevices{0};
     HANDLE_CUDA_ERROR(cudaGetDeviceCount(&numDevices));
-    const int deviceId =
-        cudaq::mpi::is_initialized() ? cudaq::mpi::rank() % numDevices : 0;
+    int currentDevice = INVALID_CUDA_DEVICE;
+    HANDLE_CUDA_ERROR(cudaGetDevice(&currentDevice));
+    const int deviceId = cudaq::mpi::is_initialized()
+                             ? cudaq::mpi::rank() % numDevices
+                             : currentDevice;
     if (cudaq::mpi::is_initialized())
       initCuDensityMatCommLib();
     HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
+
+    // Enable CUDA mem pool
+    {
+      // Enable by default
+      const bool enableMemPool =
+          cudaq::getEnvBool("CUDAQ_ENABLE_MEMPOOL", true);
+      if (!enableMemPool) {
+        cudaq::info("Mempool is disabled.");
+      } else {
+        // Check if mempool is available
+        int device{0};
+        HANDLE_CUDA_ERROR(cudaGetDevice(&device));
+        int supported{0};
+        HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
+            &supported, cudaDevAttrMemoryPoolsSupported, device));
+        if (!supported) {
+          cudaq::info("Memory pools are unsupported on this GPU");
+        } else {
+          cudaMemPool_t memPool;
+          HANDLE_CUDA_ERROR(cudaDeviceGetDefaultMemPool(&memPool, device));
+          uint64_t uMax = UINT64_MAX;
+          HANDLE_CUDA_ERROR(cudaMemPoolSetAttribute(
+              memPool, cudaMemPoolAttrReleaseThreshold, &uMax));
+        }
+      }
+    }
   }
 
   /// The destructor
-  virtual ~CuDensityMatSim() = default;
-
+  virtual ~CuDensityMatSim() {}
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     return std::make_unique<cudaq::CuDensityMatState>();
   }

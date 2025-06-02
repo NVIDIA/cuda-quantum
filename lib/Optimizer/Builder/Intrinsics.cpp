@@ -273,18 +273,18 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   })#"},
 
     {cudaq::createCudaqStateFromDataFP32, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
+  func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
   )#"},
     {cudaq::createCudaqStateFromDataFP64, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!cc.state>
+  func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
   )#"},
 
     {cudaq::deleteCudaqState, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_delete(%p : !cc.ptr<!cc.state>) -> ()
+  func.func private @__nvqpp_cudaq_state_delete(%p : !cc.ptr<!quake.state>) -> ()
   )#"},
 
     {cudaq::getNumQubitsFromCudaqState, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!cc.state>) -> i64
+  func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!quake.state>) -> i64
   )#"},
 
     {"__nvqpp_getStateVectorData_fp32", {}, R"#(
@@ -319,6 +319,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
 
+    // This helper function copies a buffer off the stack to the heap. This is
+    // required when the data on the stack is about to go out of scope but is
+    // still live.
     {"__nvqpp_vectorCopyCtor", {cudaq::llvmMemCopyIntrinsic, "malloc"}, R"#(
   func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> {
     %size = arith.muli %arg1, %arg2 : i64
@@ -326,6 +329,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %false = arith.constant false
     call @llvm.memcpy.p0i8.p0i8.i64(%0, %arg0, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     return %0 : !cc.ptr<i8>
+  })#"},
+
+    // This helper function copies a buffer that is in the heap to a buffer on
+    // the stack. Both buffers must already exist. This helper matches
+    // __nvqpp_vectorCopyCtor and eliminates memory leaks.
+    {"__nvqpp_vectorCopyToStack", {cudaq::llvmMemCopyIntrinsic, "free"}, R"#(
+  func.func private @__nvqpp_vectorCopyToStack(%to: !cc.ptr<i8>, %from: !cc.ptr<i8>, %size: i64) {
+    %false = arith.constant false
+    call @llvm.memcpy.p0i8.p0i8.i64(%to, %from, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @free(%from) : (!cc.ptr<i8>) -> ()
+    return
   })#"},
 
     // __nvqpp_vector_bool_free_temporary_lists
@@ -404,7 +418,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__qubit_allocate_array_with_state_complex64(i64, !cc.ptr<complex<f64>>) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_complex32(i64, !cc.ptr<complex<f32>>) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_ptr(!cc.ptr<none>) -> !qir_array
-  func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64, !cc.ptr<!cc.state>) -> !qir_array
+  func.func private @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64, !cc.ptr<!quake.state>) -> !qir_array
 
   func.func private @__quantum__rt__qubit_release_array(!qir_array)
   func.func private @__quantum__rt__qubit_release(!qir_qubit)
@@ -433,6 +447,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__exp_pauli__ctl(f64, !qir_array, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !qir_array, !qir_array, !qir_charptr)
+
+  func.func private @__quantum__qis__convert_array_to_stdvector(!qir_array) -> !qir_array
+  func.func private @__quantum__qis__free_converted_stdvector(!qir_array)
+  func.func private @__quantum__qis__trap(i64)
 
   llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
   llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}

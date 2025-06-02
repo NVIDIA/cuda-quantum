@@ -7,11 +7,10 @@
 # ============================================================================ #
 
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import List
 
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
 @dataclass

@@ -116,10 +116,8 @@ diagnostics infrastructures for free.
 
 Specifically, this library provides the `qudit`, `qubit`, `qreg`, and `qspan`
 types, the intrinsic quantum operations, and the algorithmic primitives like
-`cudaq::sample` and `cudaq::observe`.
-
-This library defines the `cudaq::spin_op` for defining general Pauli tensor
-product terms.
+`cudaq::sample`, `cudaq::observe`, and `cudaq::evolve`, as well as their
+asynchronous versions.
 
 This library defines the `quantum_platform` architecture, enabling CUDA-Q to
 target both simulated and physical quantum computing architectures.
