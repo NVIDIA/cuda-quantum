@@ -287,9 +287,18 @@ complex_matrix boson_handler::to_matrix(
 }
 
 dia_spmatrix boson_handler::to_diagonal_matrix(
-    const std::string &fermi_word, const std::vector<std::int64_t> &dimensions,
+    const std::string &boson_word, const std::vector<std::int64_t> &dimensions,
     std::complex<double> coeff, bool invert_order) {
-  return dia_spmatrix();
+  std::int64_t dim = 1;
+  for (auto d : dimensions)
+    dim *= d;
+  return cudaq::detail::create_dia_matrix(
+      dim, coeff,
+      [&boson_word, &dimensions, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(boson_word, dimensions, process_entry, invert_order);
+      });
 }
 
 std::string boson_handler::to_string(bool include_degrees) const {

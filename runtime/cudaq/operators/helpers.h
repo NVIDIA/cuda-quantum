@@ -80,6 +80,15 @@ EigenSparseMatrix create_sparse_matrix(
                                                       std::complex<double>)> &)>
         &create);
 
+/// Helper function for matrix creation.
+/// The matrix creation function should call its function argument for
+/// every entry in the matrix.
+dia_spmatrix create_dia_matrix(
+    std::size_t dim, std::complex<double> coeff,
+    const std::function<void(const std::function<void(std::size_t, std::size_t,
+                                                      std::complex<double>)> &)>
+        &create);
+
 /// Converts and Eigen sparse matrix to the `csr_spmatrix` format used in
 /// CUDA-Q.
 csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,

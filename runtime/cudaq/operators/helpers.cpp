@@ -206,6 +206,37 @@ EigenSparseMatrix create_sparse_matrix(
   return matrix;
 }
 
+dia_spmatrix create_dia_matrix(
+    std::size_t dim, std::complex<double> coeff,
+    const std::function<void(const std::function<void(std::size_t, std::size_t,
+                                                      std::complex<double>)> &)>
+        &create) {
+  std::vector<std::complex<double>> diaData;
+  diaData.reserve(dim);
+  std::vector<int64_t> offset;
+
+  auto process_entry = [&diaData, &offset, &coeff,
+                        dim](std::size_t new_state, std::size_t old_state,
+                             std::complex<double> entry) {
+    const int64_t diaOffset = static_cast<int64_t>(old_state) -
+                              static_cast<int64_t>(new_state); // column - row
+    const int64_t dia_vec_idx = diaOffset <= 0 ? old_state : new_state;
+    const auto iter = std::find(offset.begin(), offset.end(), diaOffset);
+    const auto idx = (iter == offset.end())
+                         ? offset.size()
+                         : std::distance(offset.begin(), iter);
+    if (iter == offset.end()) {
+      offset.emplace_back(diaOffset);
+      diaData.resize(offset.size() * dim);
+    }
+    const auto abs_idx = idx * dim + dia_vec_idx;
+    assert(diaData.size() > abs_idx);
+    diaData[abs_idx] = coeff * entry;
+  };
+  create(process_entry);
+  return std::make_pair(std::move(diaData), std::move(offset));
+}
+
 cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
                                     std::size_t estimated_num_entries) {
   std::vector<std::complex<double>> values;
