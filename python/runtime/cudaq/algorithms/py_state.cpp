@@ -170,14 +170,14 @@ state pyGetStateQPU(py::object kernel, py::args args) {
 state pyGetStateLibraryMode(py::object kernel, py::args args) {
   return details::extractState([&]() mutable {
     if (0 == args.size())
-      cudaq::invokeKernel(std::forward<py::object>(kernel));
+      kernel();
     else {
       std::vector<py::object> argsData;
       for (size_t i = 0; i < args.size(); i++) {
         py::object arg = args[i];
         argsData.emplace_back(std::forward<py::object>(arg));
       }
-      cudaq::invokeKernel(std::forward<py::object>(kernel), argsData);
+      kernel(std::move(argsData));
     }
   });
 }
