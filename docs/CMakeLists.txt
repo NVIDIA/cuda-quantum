@@ -135,23 +135,23 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(Intro intro.py)
   add_pycudaq_test(BellState bell_state.py
     SOURCE_DIR
-      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python)"
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
   )
   add_pycudaq_test(GHZ ghz.py
     SOURCE_DIR
-      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python)"
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
   )
   add_pycudaq_test(PhaseEstimation phase_estimation.py
     SOURCE_DIR
-      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python)"
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
   )
   add_pycudaq_test(DeuteronBindingEnergyParamSweep deuteron_binding_energy_param_sweep.py
     SOURCE_DIR
-      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python)"
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
   )
   add_pycudaq_test(Grover grover.py
     SOURCE_DIR
-      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python)"
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
   )
   if (CUDA_FOUND)
     add_pycudaq_test(EvolveDynamics using/backends/dynamics.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
