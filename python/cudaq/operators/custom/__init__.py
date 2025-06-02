@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from __future__ import annotations
 import typing
 import numpy.typing
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.operators import *
@@ -54,7 +55,7 @@ def define(id: str,
 
 
 def instantiate(op_id: str,
-                degrees: int | typing.Iterable[int]) -> MatrixOperatorTerm:
+                degrees: int | typing.Iterable[int]) -> cudaq.MatrixOperatorTerm:
     """
     Instantiates a product operator containing a previously defined operator element.
 

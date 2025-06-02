@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy
 import random
 import string
+import typing
 import warnings
 import uuid
 from numpy.typing import NDArray
@@ -48,7 +49,7 @@ def _compute_step_matrix(hamiltonian: Operator,
                          dimensions: Mapping[int, int],
                          parameters: Mapping[str, NumericType],
                          dt: float,
-                         use_gpu: bool = False) -> NDArray[complexfloating]:
+                         use_gpu: bool = False) -> NDArray[numpy.complexfloating]:
     op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
     op_matrix = -1j * op_matrix * dt
 
@@ -160,7 +161,7 @@ def _evolution_kernel(
     split_into_steps=False,
     register_kraus_channel: Optional[Callable[
         [str, Mapping[str, NumericType], float], None]] = None
-) -> Generator[PyKernel]:
+) -> typing.Generator[PyKernel]:
     kernel_base_name = "".join(filter(str.isalnum, str(uuid.uuid4())))
 
     def register_operations():

@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from __future__ import annotations
 import typing
 
 from .helpers import NumericType
@@ -15,14 +16,14 @@ from .boson import BosonOperator, BosonOperatorTerm, BosonOperatorElement
 from .custom import MatrixOperator, MatrixOperatorTerm, MatrixOperatorElement
 from .scalar import ScalarOperator
 
-OperatorSum = MatrixOperator | SpinOperator | BosonOperator | FermionOperator
-ProductOperator = MatrixOperatorTerm | SpinOperatorTerm | BosonOperatorTerm | FermionOperatorTerm
-ElementaryOperator = SpinOperatorElement | BosonOperatorElement | FermionOperatorElement | MatrixOperatorElement
+OperatorSum = typing.Union[MatrixOperator, SpinOperator, BosonOperator, FermionOperator]
+ProductOperator = typing.Union[MatrixOperatorTerm, SpinOperatorTerm, BosonOperatorTerm, FermionOperatorTerm]
+ElementaryOperator = typing.Union[SpinOperatorElement, BosonOperatorElement, FermionOperatorElement, MatrixOperatorElement]
 
 # Doc strings for type alias are not supported in Python.
 # The string below hence merely serves to document it here;
 # within the Python AST it is not associated with the type alias.
-Operator = OperatorSum | ProductOperator | ScalarOperator
+Operator = typing.Union[OperatorSum, ProductOperator, ScalarOperator]
 """
 Type of an arbitrary operator expression. 
 Operator expressions cannot be used within quantum kernels, but 

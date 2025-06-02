@@ -6,4 +6,5 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from __future__ import annotations
 from .scalar_op import ScalarOperator

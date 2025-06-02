@@ -83,6 +83,7 @@ docs/sphinx/_doxygen
 docs/sphinx/_mdgen
 **/_build/*
 _version.py
+python/README.md
 
 # third party integrations
 simulators/

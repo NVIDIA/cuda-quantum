@@ -6,5 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from __future__ import annotations
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.fermion import *
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import FermionOperator, FermionOperatorTerm, FermionOperatorElement
