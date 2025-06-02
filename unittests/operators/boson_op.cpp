@@ -956,4 +956,27 @@ TEST(OperatorExpressions, checkMultiDiagConversion) {
       }
     }
   }
+
+  // Sum op
+  for (auto &H1 : {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+                   cudaq::boson_op::number(0)}) {
+    for (auto &H2 : {cudaq::boson_op::annihilate(1), cudaq::boson_op::create(1),
+                     cudaq::boson_op::number(1)}) {
+      for (auto &H3 :
+           {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+            cudaq::boson_op::number(0)}) {
+        for (auto &H4 :
+             {cudaq::boson_op::annihilate(1), cudaq::boson_op::create(1),
+              cudaq::boson_op::number(1)}) {
+
+          auto H = H1 * H2 + H3 * H4;
+          std::cout << H1.to_string() << " " << H2.to_string() << " + "
+                    << H3.to_string() << " " << H4.to_string() << " = "
+                    << H.to_string() << "\n";
+          compareDenseDiag(H.to_matrix(dimensions),
+                           H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
 }
