@@ -1,3 +1,7 @@
+import cudaq
+from typing import Callable
+
+
 @cudaq.kernel
 def reflect(qubits: cudaq.qview):
     ctrls = qubits.front(qubits.size() - 1)

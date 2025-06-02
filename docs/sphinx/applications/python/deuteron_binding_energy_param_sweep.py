@@ -1,5 +1,6 @@
 import cudaq
 from cudaq import spin
+import numpy as np
 
 
 @cudaq.kernel

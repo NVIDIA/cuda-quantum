@@ -1,4 +1,5 @@
 import cudaq, numpy as np
+from typing import Callable
 
 
 # Compute phase for U |psi> = exp(-2 pi phase) |psi>
