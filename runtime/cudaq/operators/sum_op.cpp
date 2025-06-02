@@ -6,17 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/EigenSparse.h"
+#include "cudaq/operators.h"
+#include "evaluation.h"
+#include "helpers.h"
 #include <algorithm>
 #include <iostream>
 #include <set>
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include "common/EigenSparse.h"
-#include "cudaq/operators.h"
-#include "evaluation.h"
-#include "helpers.h"
 
 namespace cudaq {
 
@@ -1751,7 +1750,9 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec) {
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
+product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &arg) {
+  std::string word{arg};
+  word.erase(std::find(word.begin(), word.end(), '\0'), word.end());
   std::vector<HandlerTy> ops;
   ops.reserve(word.length());
   for (std::size_t i = 0; i < word.length(); i++) {
