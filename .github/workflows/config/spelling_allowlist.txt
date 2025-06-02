@@ -276,6 +276,7 @@ nullary
 observables
 optimizer
 optimizers
+pagerank
 parallelization
 parallelize
 parallelizing
