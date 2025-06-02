@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Quantum PageRank &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -35,8 +35,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Bernstein-Vazirani Algorithm" href="bernstein_vazirani.html" />
-    <link rel="prev" title="Molecular docking via DC-QAOA" href="digitized_counterdiabatic_qaoa.html" /> 
+    <link rel="next" title="The UCCSD Wavefunction ansatz" href="uccsd_wf_ansatz.html" />
+    <link rel="prev" title="Generating the electronic Hamiltonian" href="generate_fermionic_ham.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -224,10 +224,10 @@
 <li class="toctree-l3"><a class="reference internal" href="digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Setup">Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
@@ -416,10 +416,10 @@
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="quantum_pagerank.html">Quantum PageRank</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum PageRank</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Problem-Definition">Problem Definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Breakdown-of-Terms">Breakdown of Terms</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
@@ -840,156 +840,61 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
-      <li class="breadcrumb-item active">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</li>
+      <li class="breadcrumb-item active">Quantum PageRank</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/applications/python/krylov.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/applications/python/quantum_pagerank.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="digitized_counterdiabatic_qaoa.html" class="btn btn-neutral float-left" title="Molecular docking via DC-QAOA" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="bernstein_vazirani.html" class="btn btn-neutral float-right" title="Bernstein-Vazirani Algorithm" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="generate_fermionic_ham.html" class="btn btn-neutral float-left" title="Generating the electronic Hamiltonian" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="uccsd_wf_ansatz.html" class="btn btn-neutral float-right" title="The UCCSD Wavefunction ansatz" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Multi-reference-Quantum-Krylov-Algorithm---H_2-Molecule">
-<h1>Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule<a class="headerlink" href="#Multi-reference-Quantum-Krylov-Algorithm---H_2-Molecule" title="Permalink to this heading">¶</a></h1>
-<p>The multireference selected quantum Krylov (MRSQK) algorithm is defined in <a class="reference external" href="https://arxiv.org/pdf/1911.05163">this paper</a> and was developed as a low-cost alternative to quantum phase estimation. This tutorial will demonstrate how this algorithm can be implemented in CUDA-Q and accelerated using multiple GPUs. The <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/applications/python/hadamard_test.html">CUDA-Q Hadamard test tutorial</a> might provide helpful background information for understanding
-this tutorial.</p>
-<p>The algorithm works by preparing an initial state, and then defining this state in a smaller subspace constructed with a basis that corresponds to Trotter steps of the initial state. This subspace can be diagonalized to produce an approximate energy for the system without variational optimization of any parameters.</p>
-<p>In the example below, the initial guess is the ground state of the diagonalized Hamiltonian for demonstration purposes. In practice one could use a number of heuristics to prepare the ground state such as Hartree Fock or CISD. A very promising ground state preparation method which can leverage quantum computers is the linear combination of unitaries (LCU). LCU would allow for the state preparation to occur completely on the quantum computer and avoid storing an inputting the exponentially large
-state vector.</p>
-<p>Regardless of the method used for state preparation, the procedure begins by selecting a <span class="math notranslate nohighlight">\(d\)</span>-dimensional basis of reference states <span class="math notranslate nohighlight">\({\Phi_0 \cdots \Phi_d},\)</span> where each is a linear combination of Slater determinants:</p>
-<div class="math notranslate nohighlight">
-\[\ket{\Phi_I}  =  \sum_{\mu} d_{\mu I}\ket{\phi_{\mu}}.\]</div>
-<p>From this, a non-orthogonal Krylov Space <span class="math notranslate nohighlight">\(\mathcal{K} = \{\psi_{0} \cdots \psi_{N}\}\)</span> is constructed by applying a family of <span class="math notranslate nohighlight">\(s\)</span> unitary operators on each of the <span class="math notranslate nohighlight">\(d\)</span> reference states resulting in <span class="math notranslate nohighlight">\(d*s = N\)</span> elements in the Krylov space where</p>
-<div class="math notranslate nohighlight">
-\[\ket{\psi_{\alpha}} \equiv \ket{\psi_I^{(n)}} = \hat{U}_n\ket{\Phi_I},\]</div>
-<p>Therefore, the general quantum state that we originally set out to describe is</p>
-<div class="math notranslate nohighlight">
-\[\ket{\Psi} = \sum_{\alpha} c_{\alpha}\ket{\psi_{\alpha}} = \sum_{I=0}^d \sum_{n=0}^s c_I^{(n)}\hat{U}_n\ket{\Phi_I}.\]</div>
-<p>The energy of this state can be obtained by solving the generalized eigenvalue problem</p>
-<div class="math notranslate nohighlight">
-\[\boldsymbol{Hc}=\boldsymbol{Sc}E,\]</div>
-<p>where the elements of the overlap are</p>
-<div class="math notranslate nohighlight">
-\[S_{\alpha \beta} = \braket{\psi_{\alpha}|\psi_{\beta}} =   \braket{\Phi_I|\hat{U}_m^{\dagger}\hat{U}_n|\Phi_J}\]</div>
-<p>and Hamiltonian matrix is</p>
-<div class="math notranslate nohighlight">
-\[H_{\alpha \beta} = \braket{\psi_{\alpha}|\hat{H}|\psi_{\beta}} =   \braket{\Phi_I|\hat{U}_m^{\dagger}\hat{H}\hat{U}_n|\Phi_J}.\]</div>
-<p>The matrix elements for <span class="math notranslate nohighlight">\(S\)</span> are computed with the Hadamard test with a circuit shown below for the case of the overlap matrix elements.</p>
-<p><img alt="Htest" src="../../_images/krylovcircuit.png" /></p>
-<p>The <span class="math notranslate nohighlight">\(2\sigma_+\)</span> term refers to measurement of the expectation value of this circuit with the <span class="math notranslate nohighlight">\(X+iY\)</span> operator.</p>
-<p>The Hamiltonian matrix elements are computed with a circuit that includes controlled application of the Hamiltonian. Once the <span class="math notranslate nohighlight">\(H\)</span> and <span class="math notranslate nohighlight">\(S\)</span> matrices are constructed, the diagonalization is performed classically to produce an estimate for the ground state in question.</p>
-<section id="Setup">
-<h2>Setup<a class="headerlink" href="#Setup" title="Permalink to this heading">¶</a></h2>
-<p>This cell installs the necessary packages.</p>
+  <section id="Quantum-PageRank">
+<h1>Quantum PageRank<a class="headerlink" href="#Quantum-PageRank" title="Permalink to this heading">¶</a></h1>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">scipy</span>
-
-<span class="o">%</span><span class="k">pip</span> install pyscf
-
-<span class="c1"># Single-node, single gpu</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-<br/></pre></div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">torch</span><span class="o">==</span><span class="m">2</span>.6.0<span class="w"> </span>torch-geometric<span class="o">==</span><span class="m">2</span>.6.1<span class="w"> </span>-q
+</pre></div>
 </div>
 </div>
-<p>The molecule is defined below and its Hamiltonian is extracted as a matrix. The matrix is diagonalized to produce the ground state. The corresponding state vector will be used as the initial state to ensure good results for this demonstration.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.classical_pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_mol_hamiltonian</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">qchem.hamiltonian</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner_fermion</span>
-
-<span class="c1"># Define H2 molecule</span>
-
-<span class="c1"># Generate the spin Hamiltonian</span>
-
-<span class="n">geometry</span> <span class="o">=</span> <span class="s1">&#39;H 0.0 0.0 0.0; H 0.0 0.0 0.7474&#39;</span>
-<span class="c1">#geometry = &#39;Li 0.3925 0.0 0.0; H -1.1774 0.0 0.0&#39;</span>
-<span class="c1">#geometry = &quot;qchem/H2O.xyz&quot;</span>
-
-
-<span class="c1"># Run HF, ccsd and compute the spin molecular hamiltonian using the HF molecular orbitals.</span>
-<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;sto3g&#39;</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-<span class="c1"># For active space calculations, we can specify the number of active electrons and orbitals.</span>
-<span class="c1">#molecular_data = get_mol_hamiltonian(xyz=geometry, spin=0, charge=0, basis=&#39;631g&#39;, nele_cas=4, norb_cas=4,</span>
-<span class="c1">#                                     ccsd=True, casci=True, verbose=True)</span>
-
-<span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">tbi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="n">e_nn</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-<span class="n">nelectrons</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-<span class="n">norbitals</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
-
-<span class="n">qubits_num</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span>
-
-<span class="c1"># Jordan-Wigner transformation to convert the fermionic Hamiltonian to a spin Hamiltonian</span>
-<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">e_nn</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">)</span>
-
-<span class="c1"># Diagonalize Hamiltonian</span>
-<span class="n">spin_ham_matrix</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">to_matrix</span><span class="p">()</span>
-<span class="n">e</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">spin_ham_matrix</span><span class="p">)</span>
-
-<span class="c1"># Find the ground state energy and the corresponding eigenvector</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Ground state energy (classical simulation)= &#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="s1">&#39;, index= &#39;</span><span class="p">,</span>
-      <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-<span class="n">min_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-
-<span class="c1"># Eigenvector can be used to initialize the qubits</span>
-<span class="n">vec</span> <span class="o">=</span> <span class="n">c</span><span class="p">[:,</span> <span class="n">min_indices</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_geometric.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Data</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<section id="Problem-Definition">
+<h2>Problem Definition<a class="headerlink" href="#Problem-Definition" title="Permalink to this heading">¶</a></h2>
+<p><strong>PageRank</strong> is an algorithm used to rank nodes—such as web pages or individuals—in directed or undirected graphs based on their relative importance.</p>
+<div class="line-block">
+<div class="line">Given a graph $ G = (V, E) $:</div>
+<div class="line">- $ V $ is the set of nodes (e.g., web pages, individuals).</div>
+<div class="line">- $ E $ is the set of edges (e.g., hyperlinks/connections between pages/individuals).</div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-overwrite output file: H 0-pyscf.log
-[pyscf] Total number of orbitals =  2
-[pyscf] Total number of electrons =  2
-[pyscf] HF energy =  -1.116325564486115
-[pyscf] Total R-CCSD energy =  -1.1371758844013329
-Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  3
-</pre></div></div>
-</div>
-<p>The functions below take the original Hamiltonian defined above, and strip it into a list of Pauli words and a list of coefficients which will be uses later.</p>
+<p>The goal is to assign an importance score to each node based on the number and importance of incoming links.</p>
+<hr class="docutils" />
+<p>PageRank has broad applications across various fields: ranking web pages in search engines, identifying influential individuals in social networks, recommending products in recommendation systems, and measuring the impact of research papers in scientific citation networks.</p>
+<p>Here, we use the Karate Club graph as an example network to rank the importance of each member within the social structure:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">ham</span><span class="p">:</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">evaluate_coefficient</span><span class="p">())</span>
-    <span class="k">return</span> <span class="n">result</span>
-
-<span class="c1"># Collect Pauli words from a spin operator so we can pass them to a kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-    <span class="c1"># Our kernel uses these words to apply exp_pauli to the entire state.</span>
-    <span class="c1"># we hence ensure that each pauli word covers the entire space.</span>
-
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">ham</span><span class="p">:</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">result</span>
-
-<span class="c1"># Build the lists of coefficients and Pauli Words from the H2 Hamiltonian</span>
-<span class="n">coefficient</span> <span class="o">=</span> <span class="n">term_coefficients</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
-<span class="n">pauli_string</span> <span class="o">=</span> <span class="n">term_words</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">coefficient</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">pauli_string</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load and visualize the Karate Club graph</span>
+<span class="n">graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">karate_club_graph</span><span class="p">()</span>
+<span class="n">pos</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">spring_layout</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">nx</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">with_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">node_size</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">node_color</span><span class="o">=</span><span class="s1">&#39;#8C8C8C&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -997,243 +902,181 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<div class="highlight"><pre>
-[(-0.10647701149300504+0j), (0.17028010135220506+0j), (0.17028010135220503+0j), (-0.2200413002242175+0j), (-0.2200413002242175+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
-[&#39;IIII&#39;, &#39;ZIII&#39;, &#39;IZII&#39;, &#39;IIZI&#39;, &#39;IIIZ&#39;, &#39;ZZII&#39;, &#39;ZIZI&#39;, &#39;ZIIZ&#39;, &#39;IZZI&#39;, &#39;IZIZ&#39;, &#39;IIZZ&#39;, &#39;XXYY&#39;, &#39;XYYX&#39;, &#39;YXXY&#39;, &#39;YYXX&#39;]
-</pre></div></div>
-</div>
-<p>In this example, the unitary operators that build the Krylov subspace are first-order Trotter operations at different time steps. The performance here could potentially be improved by increasing the size of the time step, using a higher order Trotter approximation, or using other sorts of approximations. The CUDA-Q kernels below define the unitary operations that construct the <span class="math notranslate nohighlight">\(\psi\)</span> basis. Each receives the target qubits, the time step, and components of the Hamiltonian.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Applies Unitary operation corresponding to Um</span>
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">U_m</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
-        <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
-    <span class="c1"># Compute U_m = exp(-i m dt H)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)):</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">dt</span> <span class="o">*</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-
-<span class="c1"># Applies Unitary operation corresponding to Un</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">U_n</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
-        <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">]):</span>
-    <span class="c1"># Compute U_n = exp(-i n dt H)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)):</span>
-        <span class="n">exp_pauli</span><span class="p">(</span><span class="n">dt</span> <span class="o">*</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-
-<span class="c1"># Applies the gate operations for a Hamiltonian Pauli Word</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">apply_pauli</span><span class="p">(</span><span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span> <span class="n">word</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
-    <span class="c1"># Add H (Hamiltonian operator)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">word</span><span class="p">)):</span>
-        <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">y</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">word</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="n">z</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-
-<span class="c1"># Performs Hadamard test circuit which determines matrix elements of S and H of subspace</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">qfd_kernel</span><span class="p">(</span><span class="n">dt_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt_beta</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span>
-               <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span> <span class="n">word_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
-               <span class="n">vec</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]):</span>
-
-    <span class="n">ancilla</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
-    <span class="n">qreg</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span>
-
-    <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
-
-    <span class="n">x</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_m</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">qreg</span><span class="p">,</span> <span class="n">dt_alpha</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
-
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">apply_pauli</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">qreg</span><span class="p">,</span> <span class="n">word_list</span><span class="p">)</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">U_n</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">qreg</span><span class="p">,</span> <span class="n">dt_beta</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
-</pre></div>
+<img alt="../../_images/applications_python_quantum_pagerank_5_0.png" src="../../_images/applications_python_quantum_pagerank_5_0.png" />
 </div>
 </div>
-<p>The auxillary function below takes a Pauli word, and converts it to a list of integers which informs applications of this word to a circuit with the <code class="docutils literal notranslate"><span class="pre">apply_pauli</span></code> kernel.</p>
+<p>The mathematical foundations of the PageRank algorithm include <strong>Link matrix :math:`mathbf{L}`</strong> and <strong>PageRank Matrix :math:`mathbf{P}`</strong>. Let’s explore their definitions and meanings: For <strong>Social Network Analysis (SNA)</strong>, the <strong>Link matrix :math:`mathbf{L}`</strong> is used to represent how influence, information, or relationships flow between people (nodes). The entry <span class="math notranslate nohighlight">\(L_{ij}\)</span> in row <span class="math notranslate nohighlight">\(i\)</span>, column <span class="math notranslate nohighlight">\(j\)</span> of the matrix shows how much influence person <span class="math notranslate nohighlight">\(j\)</span> gives to person
+<span class="math notranslate nohighlight">\(i\)</span> with the following definition:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}L_{ij} =
+\begin{cases}
+\frac{1}{d_j^{\text{out}}} &amp; \text{if there is a link from node } j \text{ to node } i \\
+0 &amp; \text{otherwise}
+\end{cases}\end{split}\]</div>
+<p>The Normalization <span class="math notranslate nohighlight">\(\frac{1}{d_j^{\text{out}}}\)</span> by the out-degree of node <span class="math notranslate nohighlight">\(j\)</span> can be interpreted as the normalized distribution of influence across the network. That is to say, if person <span class="math notranslate nohighlight">\(j\)</span> follows a few people, then their “vote of importance” is evenly split among those <span class="math notranslate nohighlight">\(m\)</span> people. So, <span class="math notranslate nohighlight">\(L_{ij} = \frac{1}{m}\)</span> for each connection.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">pauli_str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Number of nodes/members</span>
+<span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
 
-    <span class="n">my_list</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span>
-            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;X&#39;</span><span class="p">:</span>
-            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;Y&#39;</span><span class="p">:</span>
-            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">pauli_word</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
-            <span class="n">my_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">my_list</span>
+<span class="c1"># Initialize link matrix L</span>
+<span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">))</span>
+
+<span class="c1"># Fill L using out-degree normalization</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">():</span>  <span class="c1"># Column-wise</span>
+    <span class="n">neighbors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">neighbors</span><span class="p">:</span>  <span class="c1"># Avoid division by zero</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">:</span>
+            <span class="n">L</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">graph</span><span class="o">.</span><span class="n">degree</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>  <span class="c1"># Normalize by out-degree of node j</span>
 </pre></div>
 </div>
 </div>
-<p>The spin operators necessary for the Hadamard test are defined below.</p>
+<p>To describe the dynamics of a random walker moving through the network, the <strong>PageRank Matrix :math:`mathbf{P}`</strong> is introduced as below:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{P} = \alpha \mathbf{L} + (1 - \alpha) \frac{1}{N} \mathbf{E}\]</div>
+<p>The matrix models the walker’s behavior by capturing the probabilities of moving between nodes (with damping factor <span class="math notranslate nohighlight">\(\alpha\)</span>), considering both the network’s link structure (via link matrix <span class="math notranslate nohighlight">\(\mathbf{L}\)</span>) and the possibility of random jumps through the teleportation matrix <span class="math notranslate nohighlight">\(\mathbf{E}\)</span>, which ensures unbiased exploration of all nodes with a probability of <span class="math notranslate nohighlight">\(1/N\)</span>.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the spin-op x for real component and y for the imaginary component.</span>
-<span class="n">x_0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">y_0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define parameters</span>
+<span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.85</span>  <span class="c1"># Damping factor</span>
+<span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">))</span> <span class="o">/</span> <span class="n">N</span>  <span class="c1"># Random teleportation matrix</span>
+
+<span class="c1"># Build the PageRank Matrix P</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">L</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">E</span>
 </pre></div>
 </div>
 </div>
-<p>Finally, the time step for the unitary operations that build the Krylov space is defined as well as the dimension of the Krylov space.</p>
+</section>
+<section id="Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">
+<h2>Simulating Quantum PageRank by CUDA-Q dynamics<a class="headerlink" href="#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics" title="Permalink to this heading">¶</a></h2>
+<p>Instead of computing PageRank iteratively by <a class="reference external" href="https://en.wikipedia.org/wiki/PageRank#Power_method">the power method</a>, we aim to introduce a <a class="reference external" href="https://www.nature.com/articles/srep00605">quantum version of PageRank</a> that solves the ranking problem by leveraging the principles of quantum mechanics, specifically <a class="reference external" href="https://journals.aps.org/pra/abstract/10.1103/PhysRevA.81.022323">Quantum Stochastic Walk (QSW)</a>, which generalizes classical random walks by incorporating both <strong>coherent quantum
+evolution</strong> and <strong>incoherent stochastic dynamics</strong>, described by the <strong>Lindblad master equation</strong>:</p>
+<p>$ <span class="math">\frac{d\rho}{dt}</span> = -i(1-<span class="math">\omega</span>)[H, <span class="math">\rho</span>] + <span class="math">\omega `:nbsphinx-math:</span>sum`_{k&gt;0} <span class="math">\gamma</span>_k <span class="math">\left`( L_k :nbsphinx-math:</span>rho <cite>L_k^:nbsphinx-math:</cite>dagger <cite>- :nbsphinx-math:</cite>frac{1}{2}` {L_k^:nbsphinx-math:<cite>dagger `L_k, :nbsphinx-math:</cite>rho`} <span class="math">\right</span>) $</p>
+</section>
+<section id="Breakdown-of-Terms">
+<h2>Breakdown of Terms<a class="headerlink" href="#Breakdown-of-Terms" title="Permalink to this heading">¶</a></h2>
+<p><strong>Hamiltonian Evolution (coherent):</strong></p>
+<p>$ -i(1-<span class="math">\omega</span>)[H, <span class="math">\rho</span>] $</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(H\)</span> is the Hamiltonian, governing coherent unitary evolution.</p></li>
+<li><p>The factor <span class="math notranslate nohighlight">\(1 - \omega\)</span> determines the extent of quantum behavior in the system.</p></li>
+</ul>
+<p><strong>Dissipative Evolution (incoherent):</strong></p>
+<p>$ <span class="math">\omega `:nbsphinx-math:</span>sum`_{k &gt; 0} <span class="math">\gamma</span>_k <span class="math">\left`( L_k :nbsphinx-math:</span>rho <cite>L_k^{:nbsphinx-math:</cite>dagger`} - <span class="math">\frac{1}{2}</span> { L_k^{<span class="math">\dagger</span>} L_k, <span class="math">\rho</span>} <span class="math">\right</span>) $</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\gamma_k\)</span> are rates associated with each dissipative process.</p></li>
+<li><p><span class="math notranslate nohighlight">\(L_k\)</span> are Lindblad operators modeling incoherent jumps between states.</p></li>
+<li><p>The term: $ L_k <span class="math">\rho `L_k^{:nbsphinx-math:</span>dagger`} - <span class="math">\frac{1}{2}</span> { L_k^{<span class="math">\dagger</span>} L_k, <span class="math">\rho</span>} $ ensures that the system remains a valid density matrix (preserving trace and positivity).</p></li>
+</ul>
+<p><strong>Parameter :math:`omega` controls the interpolation:</strong></p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\omega = 0\)</span> → Pure Quantum Walk (QW), where only unitary evolution occurs.</p></li>
+<li><p><span class="math notranslate nohighlight">\(\omega = 1\)</span> → Pure Classical Random Walk (CRW), where only stochastic transitions occur.</p></li>
+<li><p><span class="math notranslate nohighlight">\(0 &lt; \omega &lt; 1\)</span> → Quantum Stochastic Walk (QSW), a hybrid of both.</p></li>
+</ul>
+<p>In brief, this framework naturally extends PageRank, where the dissipators <span class="math notranslate nohighlight">\(L_k\)</span> encode stochastic teleportation, similar to the random jumps in classical PageRank. The <strong>Quantum PageRank (QPR)</strong> model based on quantum spatial walks can reveal hidden structures for some networks, enhance ranking sensitivity, and achieve comparable or faster convergence compared to its classical counterpart.</p>
+<p>Given the time-dependent nature of quantum stochastic walks, CUDA-Q Dynamic leverages GPU acceleration and provides a suite of APIs for efficiently solving time-evolved states. Let’s get started:</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#Define parameters for the quantum Krylov space</span>
-<span class="n">dt</span> <span class="o">=</span> <span class="mf">0.5</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElementaryOperator</span><span class="p">,</span> <span class="n">Schedule</span>
 
-<span class="c1"># Dimension of the Krylov space</span>
-<span class="n">m_qfd</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="c1"># Construct the Hamiltonian based on the adjacency matrix of the social network</span>
+<span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy_array</span><span class="p">(</span><span class="n">graph</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+
+<span class="c1"># Defines an elementary operator named &quot;hamiltonian&quot;, allowing creation with the name and its degrees of freedom.</span>
+<span class="n">ElementaryOperator</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">&quot;hamiltonian&quot;</span><span class="p">,</span>
+                          <span class="n">expected_dimensions</span><span class="o">=</span><span class="p">[</span><span class="n">N</span><span class="p">],</span>
+                          <span class="n">create</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">H</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-</section>
-<section id="Computing-the-matrix-elements">
-<h2>Computing the matrix elements<a class="headerlink" href="#Computing-the-matrix-elements" title="Permalink to this heading">¶</a></h2>
-<p>The cell below computes the overlap matrix. This can be done in serial or in parallel, depending on the <code class="docutils literal notranslate"><span class="pre">multi_gpu</span></code> specification. First, an operator is built to apply the identity to the overlap matrix circuit when <code class="docutils literal notranslate"><span class="pre">apply_pauli</span></code> is called. Next, the <code class="docutils literal notranslate"><span class="pre">wf_overlap</span></code> array is constructed which will hold the matrix elements.</p>
-<p>Next, a pair of nested loops iterate over the time steps defined by the dimension of the subspace. Each m,n combination corresponds to computation of an off-diagonal matrix element of the overlap matrix <span class="math notranslate nohighlight">\(S\)</span> using the Hadamard test. This is accomplished by calling the CUDA-Q <code class="docutils literal notranslate"><span class="pre">observe</span></code> function with the X and Y operators, along with the time steps, the components of the Hamiltonian matrix, and the initial state vector <code class="docutils literal notranslate"><span class="pre">vec</span></code>.</p>
-<p>The observe function broadcasts over the two provided operators <span class="math notranslate nohighlight">\(X\)</span> and <span class="math notranslate nohighlight">\(Y\)</span> and returns a list of results. The <code class="docutils literal notranslate"><span class="pre">expectation</span></code> function returns the expectation values which are summed and stored in the matrix.</p>
-<p>The multi-gpu case completes the same steps, except the <code class="docutils literal notranslate"><span class="pre">observe_async</span></code> command is used. This allows for the <span class="math notranslate nohighlight">\(X\)</span> and <span class="math notranslate nohighlight">\(Y\)</span> observables to be evaluated at the same time on two different simulated QPUs. In this case, the results are stored in lists corresponding to the real and imaginary parts. These are then accessed later with the <code class="docutils literal notranslate"><span class="pre">get</span></code> command to build <span class="math notranslate nohighlight">\(S\)</span>.</p>
+<p>The <strong>Lindblad operators</strong> can be defined for a quantum system represented by a density matrix <span class="math notranslate nohighlight">\(\rho\)</span>. They facilitate the incorporation of both quantum coherence and incoherent processes into the dynamics.</p>
+<p>For Quantum PageRank, the Lindblad operators shown below have been demonstrated to converge to a stationary solution:</p>
+<div class="math notranslate nohighlight">
+\[L(i,j) = |i\rangle \langle j| \quad\]</div>
+<p>where the indices $ i $ and $ j $ label the nodes in the network as well as the Lindblad operators. This notation indicates that the operator $ L(i,j) $ describes a <strong>transition</strong> from state <span class="math notranslate nohighlight">\(|j\rangle\)</span> to state <span class="math notranslate nohighlight">\(|i\rangle\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Create the identity operator</span>
-<span class="n">identity_op</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="o">.</span><span class="n">from_word</span><span class="p">(</span><span class="s1">&#39;I&#39;</span> <span class="o">*</span> <span class="n">qubits_num</span><span class="p">)</span>
-<span class="c1"># Get the Pauli word and convert it to a list of integers</span>
-<span class="c1"># where I=0, X=1, Y=2, Z=3</span>
-<span class="c1"># This is used to apply the identity operator in the kernel.</span>
-<span class="n">identity_word</span> <span class="o">=</span> <span class="n">identity_op</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">()</span>
-<span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">identity_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">lindblad_op</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+    <span class="n">L</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">L</span>
 
-<span class="c1"># Empty overlap matrix S</span>
-<span class="n">wf_overlap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-<span class="c1"># Loop to solve for S matrix elements</span>
-<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
-    <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
-    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
-        <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
-                                <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">)</span>
-        <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
-        <span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
-        <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
-            <span class="n">wf_overlap</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
-<br/><br/></pre></div>
+
+<span class="c1"># exec hack for https://github.com/NVIDIA/cuda-quantum/issues/2426.</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="n">exec</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">ElementaryOperator.define(</span>
+<span class="s2">    f&quot;lindblad_</span><span class="si">{</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="si">}</span><span class="s2">&quot;,</span>
+<span class="s2">    expected_dimensions=[N],</span>
+<span class="s2">    create=lambda: lindblad_op(</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">),</span>
+<span class="s2">)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+
+<span class="n">lindblad_ops</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span> <span class="o">*</span> <span class="n">ElementaryOperator</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;lindblad_</span><span class="si">{</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+<span class="p">]</span>
+</pre></div>
 </div>
 </div>
-<p>The Hamiltonian matrix elements are computed in the same way, except this time the Hamiltonian is applied as part of the circuit. This is accomplished with the extra for loop, which iterates through the terms in the Hamiltonian, computing an expectation value for each one and then summing the results to produce one matrix element.</p>
+<p>Simply simulate the dynamic system via the <code class="docutils literal notranslate"><span class="pre">evolve</span></code> API with <code class="docutils literal notranslate"><span class="pre">&quot;dynamics&quot;</span></code> backend of CUDA-Q:</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Single GPU:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
 
-<span class="c1"># Empty H matrix</span>
-<span class="c1"># This matrix will be used to store the Hamiltonian matrix elements</span>
-<span class="c1"># for the Krylov subspace.</span>
-<span class="c1"># The matrix is symmetric, so we only need to compute the upper triangle.</span>
-<span class="c1"># The matrix is of size m_qfd x m_qfd, where m_qfd is the dimension of the Krylov subspace.</span>
-<span class="n">ham_matrx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+<span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">stop</span> <span class="o">=</span> <span class="mi">1</span>
 
-<span class="c1"># Loops over H matrix terms</span>
-<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
-    <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
-    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
-        <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
 
-        <span class="c1"># 2 entry array that stores real and imaginary part of matrix element</span>
-        <span class="n">tot_e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">quantum_pagerank</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">lindblad_ops</span><span class="p">,</span> <span class="n">omega</span><span class="p">):</span>
 
-        <span class="c1"># Loops over the terms in the Hamiltonian, computing expectation values</span>
-        <span class="k">for</span> <span class="n">coef</span><span class="p">,</span> <span class="n">word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">):</span>
-            <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
+    <span class="c1"># Define the page labels</span>
+    <span class="n">page_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">))</span>
 
-            <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
-                                        <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span>
-                                        <span class="n">vec</span><span class="p">)</span>
+    <span class="c1"># Initialize the state</span>
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span> <span class="o">/</span> <span class="n">N</span>
 
-            <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+    <span class="c1"># Define the Hamiltonian and collapse operators based on the value of omega</span>
+    <span class="n">hamiltonian</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">omega</span><span class="p">)</span> <span class="o">*</span> <span class="n">ElementaryOperator</span><span class="p">(</span><span class="s2">&quot;hamiltonian&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">collapse_operators</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">omega</span><span class="p">)</span> <span class="o">*</span> <span class="n">op</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">lindblad_ops</span><span class="p">]</span>
 
-            <span class="c1"># Multiplies result by coefficient corresponding to Pauli Word</span>
-            <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+        <span class="n">hamiltonian</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
+        <span class="n">dimensions</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">N</span><span class="p">},</span>
+        <span class="n">schedule</span><span class="o">=</span><span class="n">Schedule</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]),</span>
+        <span class="n">initial_state</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">rho</span><span class="p">),</span>
+        <span class="n">collapse_operators</span><span class="o">=</span><span class="n">lindblad_ops</span><span class="p">,</span>
+    <span class="p">)</span>
 
-            <span class="c1"># Accumulates results for each Pauli Word</span>
-            <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">final_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">final_state</span><span class="p">())</span>
 
-        <span class="c1"># Sums real and imaginary totals to specify Hamiltonian entry</span>
-        <span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
-        <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
-            <span class="n">ham_matrx</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">page_labels</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">final_state</span><span class="p">))))</span>
 </pre></div>
 </div>
 </div>
-</section>
-<section id="Determining-the-ground-state-energy-of-the-subspace">
-<h2>Determining the ground state energy of the subspace<a class="headerlink" href="#Determining-the-ground-state-energy-of-the-subspace" title="Permalink to this heading">¶</a></h2>
-<p>The final step is to solve the generalized eigenvaulue problem with the overlap and Hamiltonian matrices constructed using the quantum computer. The procedure begins by diagonalizing <span class="math notranslate nohighlight">\(S\)</span> with the transform</p>
-<div class="math notranslate nohighlight">
-\[S = U\Sigma U^{\dagger}\]</div>
-<p>The eigenvectors <span class="math notranslate nohighlight">\(v\)</span> and eigenvalues <span class="math notranslate nohighlight">\(s\)</span> are used to construct a new matrix <span class="math notranslate nohighlight">\(X':\)</span></p>
-<div class="math notranslate nohighlight">
-\[X' = S ^{\frac{-1}{2}} = \sum_k v_{ki} \frac{1}{\sqrt{s_k}} v_{kj}.\]</div>
-<p>The matrix <span class="math notranslate nohighlight">\(X'\)</span> diagonalizes <span class="math notranslate nohighlight">\(H:\)</span></p>
-<div class="math notranslate nohighlight">
-\[X'^{\dagger}HX' = ES^{\frac{1}{2}}C.\]</div>
-<p>Using the eigenvectors of <span class="math notranslate nohighlight">\(H'\)</span>, (<span class="math notranslate nohighlight">\(^{\frac{1}{2}}C\)</span>), the original eigenvectors to the problem can be found by left multiplying by <span class="math notranslate nohighlight">\(S^{\frac{-1}{2}}C.\)</span></p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">eig</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
-    <span class="c1">#Solver for generalized eigenvalue problem</span>
-    <span class="c1"># HC = SCE</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># For cases where 0 &lt; ω &lt; 1 (e.g., ω = 0.6), the dynamics follow a quantum Stochastic Walk with both coherent and incoherent (dissipative) evolution</span>
+<span class="n">pagerank_qsw</span> <span class="o">=</span> <span class="n">quantum_pagerank</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">lindblad_ops</span><span class="p">,</span> <span class="n">omega</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
 
-    <span class="n">THRESHOLD</span> <span class="o">=</span> <span class="mf">1e-20</span>
-    <span class="n">s_diag</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-    <span class="n">s_prime</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">sii</span> <span class="ow">in</span> <span class="n">s_diag</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">sii</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-7</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;S may not be hermitian, large imag. eval component.&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">sii</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">THRESHOLD</span><span class="p">:</span>
-            <span class="n">s_prime</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">sii</span><span class="p">))</span>
-
-    <span class="n">X_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">s_diag</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">s_prime</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s_diag</span><span class="p">)):</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s_prime</span><span class="p">)):</span>
-            <span class="n">X_prime</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s_prime</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
-
-    <span class="n">H_prime</span> <span class="o">=</span> <span class="p">(((</span><span class="n">X_prime</span><span class="o">.</span><span class="n">conjugate</span><span class="p">())</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X_prime</span><span class="p">)</span>
-    <span class="n">e_prime</span><span class="p">,</span> <span class="n">C_prime</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">H_prime</span><span class="p">)</span>
-    <span class="n">C</span> <span class="o">=</span> <span class="n">X_prime</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C_prime</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">e_prime</span><span class="p">,</span> <span class="n">C</span>
+<span class="c1"># For the extreme case ω = 0 reduces the Quantum Stochastic Walk to a purely classical random walk</span>
+<span class="n">pagerank_cw</span> <span class="o">=</span> <span class="n">quantum_pagerank</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">lindblad_ops</span><span class="p">,</span> <span class="n">omega</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1241,10 +1084,76 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eigen_value</span><span class="p">,</span> <span class="n">eigen_vect</span> <span class="o">=</span> <span class="n">eig</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">],</span> <span class="n">wf_overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span>
-                                                                      <span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Energy from QFD:&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">eigen_value</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare the results with NetworkX&#39;s built-in PageRank algorithm</span>
+<span class="n">pagerank</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">pagerank</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+
+<span class="c1"># Plot the results</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+
+<span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pagerank</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">[</span><span class="n">pagerank</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">],</span>
+         <span class="s1">&#39;-o&#39;</span><span class="p">,</span>
+         <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#8C8C8C&#39;</span><span class="p">,</span>
+         <span class="n">label</span><span class="o">=</span><span class="s1">&#39;PageRank&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">[</span><span class="n">pagerank_cw</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">],</span>
+         <span class="s1">&#39;-o&#39;</span><span class="p">,</span>
+         <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#FAC200&#39;</span><span class="p">,</span>
+         <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Classical Walk&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">[</span><span class="n">pagerank_qsw</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">],</span>
+         <span class="s1">&#39;-o&#39;</span><span class="p">,</span>
+         <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#76B900&#39;</span><span class="p">,</span>
+         <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Quantum Stochastic Walk (Quantum PageRank)&#39;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Node&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Score&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Ranking Comparison&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/applications_python_quantum_pagerank_20_0.png" src="../../_images/applications_python_quantum_pagerank_20_0.png" />
+</div>
+</div>
+<p>Note that the ranking results obtained by the Quantum PageRank algorithm show smoother ranking distribution, which reduces the dominance of major hubs, allowing less connected nodes to be fairly recognized. This facilitates the identification of secondary hubs and reveals finer structural details within the network, offering a more nuanced and continuous scale of node importance for complex networks.</p>
+<hr class="docutils" />
+<p>Finally, let’s visualize the ranking results, representing the influence of each node, from the Quantum PageRank using the <code class="docutils literal notranslate"><span class="pre">CUDA-Q</span> <span class="pre">Dynamic</span></code> simulation:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Scale the node sizes</span>
+<span class="n">node_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">pagerank_qsw</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+<span class="n">node_sizes</span> <span class="o">=</span> <span class="n">node_weights</span> <span class="o">*</span> <span class="mi">20000</span>  <span class="c1"># Scale factor for visualization</span>
+
+<span class="c1"># Draw the graph with node sizes corresponding to the importance of the nodes</span>
+<span class="n">pos</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">spring_layout</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">nx</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span>
+        <span class="n">pos</span><span class="p">,</span>
+        <span class="n">node_size</span><span class="o">=</span><span class="n">node_sizes</span><span class="p">,</span>
+        <span class="n">with_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">node_color</span><span class="o">=</span><span class="s1">&#39;#76B900&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/applications_python_quantum_pagerank_22_0.png" src="../../_images/applications_python_quantum_pagerank_22_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1253,8 +1162,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Energy from QFD:
-(-1.137176660753775-1.6945689273261445e-07j)
+CUDA-Q Version cu12-0.10.0 (https://github.com/NVIDIA/cuda-quantum 857dd2ce0a783c32416af8fba8664ff30f9ddc47)
 </pre></div></div>
 </div>
 </section>
@@ -1264,8 +1172,8 @@ Energy from QFD:
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="digitized_counterdiabatic_qaoa.html" class="btn btn-neutral float-left" title="Molecular docking via DC-QAOA" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="bernstein_vazirani.html" class="btn btn-neutral float-right" title="Bernstein-Vazirani Algorithm" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="generate_fermionic_ham.html" class="btn btn-neutral float-left" title="Generating the electronic Hamiltonian" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="uccsd_wf_ansatz.html" class="btn btn-neutral float-right" title="The UCCSD Wavefunction ansatz" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
