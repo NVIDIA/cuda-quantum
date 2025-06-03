@@ -278,7 +278,7 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
     auto size = rewriter.create<arith::ConstantIntOp>(loc, members.size(), 64);
     auto buff = rewriter.create<cudaq::cc::AllocaOp>(loc, eleTy, size);
     for (auto iter : llvm::enumerate(members)) {
-      auto idx = iter.index();
+      std::int32_t idx = iter.index();
       auto m = iter.value();
       auto ptrEleTy = cudaq::cc::PointerType::get(eleTy);
       auto ptr = rewriter.create<cudaq::cc::ComputePtrOp>(
