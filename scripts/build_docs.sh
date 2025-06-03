@@ -64,7 +64,6 @@ docs_exit_code=0 # updated in each step
 
 # Make sure these are full path so that it doesn't matter where we use them
 docs_build_output="$repo_root/build/docs"
-sphinx_output_dir="$docs_build_output/sphinx"
 doxygen_output_dir="$docs_build_output/doxygen"
 dialect_output_dir="$docs_build_output/Dialects"
 rm -rf "$docs_build_output"
@@ -156,36 +155,12 @@ if [ -n "$(cat "$repo_root/python/README.md" | grep -e '.{{.*}}')" ]; then
     docs_exit_code=1
 fi
 
-echo "Building CUDA-Q documentation using Sphinx..."
 cd "$repo_root/docs"
-
-# The docs build so far is fast such that we do not care about the cached outputs.
-# Revisit this when caching becomes necessary.
-rm -rf sphinx/_doxygen/
-rm -rf sphinx/_mdgen/
-cp -r "$doxygen_output_dir" sphinx/_doxygen/
-# cp -r "$dialect_output_dir" sphinx/_mdgen/ # uncomment once we use the content from those files
-
-rm -rf "$sphinx_output_dir"
-sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
-sphinx_exit_code=$?
-if [ ! "$sphinx_exit_code" -eq "0" ]; then
-    echo "Failed to generate documentation using sphinx-build."
-    echo "Sphinx exit code: $sphinx_exit_code"
-    echo "======== logs ========"
-    cat "$logs_dir/sphinx_output.txt" "$logs_dir/sphinx_error.txt"
-    echo "======================"
-    docs_exit_code=12
-fi
-
-rm -rf sphinx/_doxygen/
-rm -rf sphinx/_mdgen/
-
 mkdir -p "$DOCS_INSTALL_PREFIX"
 if [ "$docs_exit_code" -eq "0" ]; then
-    cp -r "$sphinx_output_dir"/* "$DOCS_INSTALL_PREFIX"
-    touch "$DOCS_INSTALL_PREFIX/.nojekyll"
-    echo "Documentation was generated in $DOCS_INSTALL_PREFIX."
+    # right now we don't publish docs for the dialects, so don't copy them here
+    cp -r "$doxygen_output_dir"/* "$DOCS_INSTALL_PREFIX"
+    echo "XML documentation was generated in $DOCS_INSTALL_PREFIX."
     echo "To browse it, open this url in a browser: file://$DOCS_INSTALL_PREFIX/index.html"
 else
     echo "Documentation generation failed with exit code $docs_exit_code."
