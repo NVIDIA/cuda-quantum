@@ -543,7 +543,7 @@ struct WireSetToProfileQIRPrepPass
     addBodyDecl("mz", measTy);
     auto readResTy = FunctionType::get(ctx, TypeRange{resTy},
                                        TypeRange{builder.getI1Type()});
-    createNewDecl("__quantum__qis__read_result__body", readResTy);
+    createNewDecl(cudaq::opt::QIRReadResultBody, readResTy);
 
     auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
     auto recordTy =
