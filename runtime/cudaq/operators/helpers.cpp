@@ -222,5 +222,71 @@ cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
   return std::make_tuple(values, rows, cols);
 }
 
+dia_spmatrix create_dia_matrix(
+    std::size_t dim, std::complex<double> coeff,
+    const std::function<void(const std::function<void(std::size_t, std::size_t,
+                                                      std::complex<double>)> &)>
+        &create) {
+  std::vector<std::complex<double>> diaData;
+  diaData.reserve(dim);
+  std::vector<int64_t> offset;
+
+  auto process_entry = [&diaData, &offset, &coeff,
+                        dim](std::size_t new_state, std::size_t old_state,
+                             std::complex<double> entry) {
+    const int64_t diaOffset = static_cast<int64_t>(old_state) -
+                              static_cast<int64_t>(new_state); // column - row
+    // lower diagonals: column id is the index; upper diagonals: row id is the
+    // index
+    const int64_t dia_vec_idx = diaOffset <= 0 ? old_state : new_state;
+    const auto iter = std::find(offset.begin(), offset.end(), diaOffset);
+    const auto idx = (iter == offset.end())
+                         ? offset.size()
+                         : std::distance(offset.begin(), iter);
+    if (iter == offset.end()) {
+      // First time we've seen this diagonal offset: add this diagonal vector.
+      offset.emplace_back(diaOffset);
+      diaData.resize(offset.size() * dim);
+    }
+    const auto abs_idx = idx * dim + dia_vec_idx;
+    assert(diaData.size() > abs_idx);
+    diaData[abs_idx] = coeff * entry;
+  };
+  create(process_entry);
+  return std::make_pair(std::move(diaData), std::move(offset));
+}
+
+void inplace_accumulate(dia_spmatrix &accumulated, const dia_spmatrix &matrix) {
+  auto &[acc_buffer, acc_offsets] = accumulated;
+  const auto &[add_buffer, add_offsets] = matrix;
+  if (add_offsets.empty())
+    return;
+  const auto dim = add_buffer.size() / add_offsets.size();
+  if (dim * acc_offsets.size() != acc_buffer.size())
+    throw std::invalid_argument("Cannot accumulate two multi-diagonal matrices "
+                                "of different dimensions.");
+
+  for (std::size_t i = 0; i < add_offsets.size(); ++i) {
+    const auto iter =
+        std::find(acc_offsets.begin(), acc_offsets.end(), add_offsets[i]);
+    if (iter == acc_offsets.end()) {
+      // This is a new offset, just append the offset and the diagonal vector.
+      acc_offsets.emplace_back(add_offsets[i]);
+      const auto startIter = add_buffer.begin() + dim * i;
+      const auto endIter = add_buffer.begin() + dim * (i + 1);
+      acc_buffer.insert(acc_buffer.end(), startIter, endIter);
+      assert(acc_buffer.size() == dim * acc_offsets.size());
+    } else {
+      // This is a common diagonal offset.
+      const auto acc_idx = std::distance(acc_offsets.begin(), iter);
+      // Add two diagonal vectors
+      std::transform(acc_buffer.begin() + dim * acc_idx,
+                     acc_buffer.begin() + dim * (acc_idx + 1),
+                     add_buffer.begin() + dim * i,
+                     acc_buffer.begin() + dim * acc_idx,
+                     std::plus<std::complex<double>>());
+    }
+  }
+}
 } // namespace detail
 } // namespace cudaq

@@ -358,3 +358,12 @@ cudaq::complex_matrix cudaq::complex_matrix::adjoint() {
 
   return result;
 }
+
+std::vector<cudaq::complex_matrix::value_type>
+cudaq::complex_matrix::diagonal_elements(int index) const {
+  Eigen::Map<cudaq::complex_matrix::EigenMatrix> map(data, rows(), cols());
+  auto diag = map.diagonal(index);
+  std::vector<cudaq::complex_matrix::value_type> result(diag.begin(),
+                                                        diag.end());
+  return result;
+}

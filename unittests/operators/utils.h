@@ -19,7 +19,8 @@ void assert_product_equal(
     const std::vector<cudaq::matrix_handler> &expected_terms);
 
 void checkEqual(cudaq::complex_matrix a, cudaq::complex_matrix b);
-
+void checkEqual(const cudaq::complex_matrix &denseMat,
+                const cudaq::dia_spmatrix &diaMat);
 cudaq::complex_matrix zero_matrix(std::size_t size);
 
 cudaq::complex_matrix id_matrix(std::size_t size);

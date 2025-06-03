@@ -1856,6 +1856,32 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
       matrix, 1ul << evaluated.terms[0].relevant_dimensions.size());
 }
 
+template <typename HandlerTy>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
+dia_spmatrix sum_op<HandlerTy>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto evaluated = this->transform(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+
+  if (evaluated.terms.size() == 0)
+    return dia_spmatrix();
+
+  auto dia_matrix = HandlerTy::to_diagonal_matrix(
+      evaluated.terms[0].encoding, evaluated.terms[0].relevant_dimensions,
+      evaluated.terms[0].coefficient, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    cudaq::detail::inplace_accumulate(
+        dia_matrix,
+        HandlerTy::to_diagonal_matrix(
+            evaluated.terms[i].encoding, evaluated.terms[i].relevant_dimensions,
+            evaluated.terms[i].coefficient, invert_order));
+  return dia_matrix;
+}
+
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::vector<double> sum_op<HandlerTy>::get_data_representation() const {
   auto nr_ops = 0;
@@ -1905,6 +1931,19 @@ template csr_spmatrix sum_op<boson_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
+template dia_spmatrix sum_op<spin_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template dia_spmatrix sum_op<fermion_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template dia_spmatrix sum_op<boson_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+
 template std::vector<double>
 sum_op<spin_handler>::get_data_representation() const;
 
