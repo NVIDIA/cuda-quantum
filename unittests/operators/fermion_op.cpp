@@ -832,3 +832,94 @@ TEST(OperatorExpressions, checkAntiCommutationRelations) {
   utils::checkEqual(rel15.to_matrix(), utils::zero_matrix(4));
   utils::checkEqual(rel16.to_matrix(), utils::zero_matrix(4));
 }
+
+TEST(OperatorExpressions, checkFermionMultiDiagConversion) {
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
+  auto compareDenseDiag = [](const cudaq::complex_matrix &denseMat,
+                             const cudaq::dia_spmatrix &diaMat) {
+    int64_t dim = denseMat.rows();
+    const auto &[buffer, offsets] = diaMat;
+    for (int64_t i = -(dim - 1); i < dim; ++i) {
+      const auto iter = std::find(offsets.begin(), offsets.end(), i);
+      if (iter != offsets.end()) {
+        const auto idx = std::distance(offsets.begin(), iter);
+        const auto diags = denseMat.diagonal_elements(i);
+        for (std::size_t j = 0; j < diags.size(); ++j) {
+          EXPECT_NEAR(std::abs(diags[j] - buffer[dim * idx + j]), 0.0, 1e-12);
+        }
+        for (std::size_t j = diags.size(); j < dim; ++j) {
+          EXPECT_NEAR(std::abs(buffer[dim * idx + j]), 0.0, 1e-12);
+        }
+      } else {
+        const auto diags = denseMat.diagonal_elements(i);
+        for (std::size_t j = 0; j < diags.size(); ++j) {
+          EXPECT_NEAR(std::abs(diags[j]), 0.0, 1e-12);
+        }
+      }
+    }
+  };
+  // Same degree of freedom
+  for (auto &H1 : {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+                   cudaq::fermion_op::number(0)}) {
+    for (auto &H2 : {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+                     cudaq::fermion_op::number(0)}) {
+      for (auto &H3 :
+           {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+            cudaq::fermion_op::number(0)}) {
+        for (auto &H4 :
+             {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+              cudaq::fermion_op::number(0)}) {
+          std::cout << H1.to_string() << " " << H2.to_string() << " "
+                    << H3.to_string() << " " << H4.to_string() << "\n";
+          auto H = H1 * H2 * H3 * H4;
+          compareDenseDiag(H.to_matrix(dimensions),
+                           H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
+
+  // Different degrees of freedom
+  for (auto &H1 : {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+                   cudaq::fermion_op::number(0)}) {
+    for (auto &H2 : {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+                     cudaq::fermion_op::number(0)}) {
+      for (auto &H3 :
+           {cudaq::fermion_op::annihilate(1), cudaq::fermion_op::create(1),
+            cudaq::fermion_op::number(1)}) {
+        for (auto &H4 :
+             {cudaq::fermion_op::annihilate(1), cudaq::fermion_op::create(1),
+              cudaq::fermion_op::number(1)}) {
+          std::cout << H1.to_string() << " " << H2.to_string() << " "
+                    << H3.to_string() << " " << H4.to_string() << "\n";
+          auto H = H1 * H2 * H3 * H4;
+          compareDenseDiag(H.to_matrix(dimensions),
+                           H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
+
+  // Sum op
+  for (auto &H1 : {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+                   cudaq::fermion_op::number(0)}) {
+    for (auto &H2 : {cudaq::fermion_op::annihilate(1), cudaq::fermion_op::create(1),
+                     cudaq::fermion_op::number(1)}) {
+      for (auto &H3 :
+           {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+            cudaq::fermion_op::number(0)}) {
+        for (auto &H4 :
+             {cudaq::fermion_op::annihilate(1), cudaq::fermion_op::create(1),
+              cudaq::fermion_op::number(1)}) {
+
+          auto H = H1 * H2 + H3 * H4;
+          std::cout << H1.to_string() << " " << H2.to_string() << " + "
+                    << H3.to_string() << " " << H4.to_string() << " = "
+                    << H.to_string() << "\n";
+          compareDenseDiag(H.to_matrix(dimensions),
+                           H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
+}
