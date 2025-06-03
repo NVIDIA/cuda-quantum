@@ -1100,8 +1100,7 @@ void bindAltLaunchKernel(py::module &mod) {
           m->setAttr("quake.mangled_name_map", attr);
       },
       "Synthesize away the callable block argument from the entrypoint in "
-      "modA "
-      "with the FuncOp of given name.");
+      "`modA` with the `FuncOp` of given name.");
 
   mod.def(
       "jitAndGetFunctionPointer",
