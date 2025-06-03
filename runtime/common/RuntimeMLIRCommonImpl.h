@@ -26,7 +26,9 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Operator.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Base64.h"
@@ -44,8 +46,6 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/ParseUtilities.h"
-#include "llvm/IR/Operator.h"
-#include "llvm/IR/InstIterator.h"
 
 namespace cudaq {
 
@@ -118,133 +118,189 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
 }
 
 bool isTargetBranchingOperation(llvm::Instruction &I) {
-    auto op = I.getOpcode();
-    switch (op) {
-      case llvm::Instruction::Select:
-      case llvm::Instruction::PHI:
-      case llvm::Instruction::Switch:
-      return true;
-      default: return false;
-    }
+  auto op = I.getOpcode();
+  switch (op) {
+  case llvm::Instruction::Select:
+  case llvm::Instruction::PHI:
+  case llvm::Instruction::Switch:
+    return true;
+  default:
+    return false;
   }
-
-bool isIntOrFloatArithmeticOperation(llvm::Instruction &I) {
-    auto op = I.getOpcode();
-    switch (op) {
-      case llvm::Instruction::ZExt:
-      case llvm::Instruction::SExt:
-      case llvm::Instruction::Trunc:
-      case  llvm::Instruction::Add:
-      case  llvm::Instruction::Sub:
-      case  llvm::Instruction::Mul:
-      case  llvm::Instruction::UDiv:
-      case  llvm::Instruction::SDiv:
-      case  llvm::Instruction::URem:
-      case  llvm::Instruction::SRem:
-      case  llvm::Instruction::And:
-      case  llvm::Instruction::Or:
-      case  llvm::Instruction::Xor:
-      case  llvm::Instruction::Shl:
-      case  llvm::Instruction::AShr:
-      case  llvm::Instruction::LShr:
-      case  llvm::Instruction::ICmp:
-
-      case  llvm::Instruction::FAdd:
-      case  llvm::Instruction::FSub:
-      case  llvm::Instruction::FMul:
-      case  llvm::Instruction::FDiv:
-      case  llvm::Instruction::FPExt:
-      case  llvm::Instruction::FPTrunc:
-      case  llvm::Instruction::FRem:
-      case  llvm::Instruction::FCmp:
-        return true;
-      default: return false;
-    }
 }
 
+bool isIntOrFloatArithmeticOperation(llvm::Instruction &I) {
+  // TODO: update to cudaq constant func names after cudaq::run merge
+  // and add tests.
+  if (auto *call = dyn_cast<llvm::CallBase>(&I)) {
+    auto name = call->getCalledFunction()->getName().str();
+    if (name == "__quantum__rt__int_record_output" ||
+        name == "__quantum__float__int_record_output")
+      return true;
+  }
+  auto op = I.getOpcode();
+  switch (op) {
+  case llvm::Instruction::ZExt:
+  case llvm::Instruction::SExt:
+  case llvm::Instruction::Trunc:
+  case llvm::Instruction::Add:
+  case llvm::Instruction::Sub:
+  case llvm::Instruction::Mul:
+  case llvm::Instruction::UDiv:
+  case llvm::Instruction::SDiv:
+  case llvm::Instruction::URem:
+  case llvm::Instruction::SRem:
+  case llvm::Instruction::And:
+  case llvm::Instruction::Or:
+  case llvm::Instruction::Xor:
+  case llvm::Instruction::Shl:
+  case llvm::Instruction::AShr:
+  case llvm::Instruction::LShr:
+  case llvm::Instruction::ICmp:
+
+  case llvm::Instruction::FAdd:
+  case llvm::Instruction::FSub:
+  case llvm::Instruction::FMul:
+  case llvm::Instruction::FDiv:
+  case llvm::Instruction::FPExt:
+  case llvm::Instruction::FPTrunc:
+  case llvm::Instruction::FRem:
+  case llvm::Instruction::FCmp:
+    return true;
+  }
+  return false;
+}
+
+/// @brief Add module flags according to the spec:
+/// https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Adaptive_Profile.md#module-flags-metadata
 void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule) {
-    llvm::DenseMap<std::size_t, bool> intPrecisions;
-    llvm::DenseMap<std::size_t, bool> floatPrecisions;
-    std::size_t retCount = 0;
-    bool hasMultipleTargetBranching = false;
+  llvm::DenseMap<std::size_t, bool> intPrecisions;
+  llvm::DenseMap<std::size_t, bool> floatPrecisions;
+  std::size_t retCount = 0;
+  bool hasMultipleTargetBranching = false;
+  std::uint64_t backwardBranching = 0;
+  bool hasIRFunctions = false;
 
-    for (llvm::Function &func : *llvmModule) {
-      std::size_t funcRetCount = 0;
-      for (llvm::BasicBlock &block : func) {
-        for (llvm::Instruction &inst : block) {
-          if (inst.getOpcode() == llvm::Instruction::Ret)
-            funcRetCount++;
-          if (inst.getOpcode() == llvm::Instruction::Switch)
-            hasMultipleTargetBranching = true;
+  for (llvm::Function &func : *llvmModule) {
+    std::size_t funcRetCount = 0;
+    for (llvm::BasicBlock &block : func) {
+      for (llvm::Instruction &inst : block) {
+        // Collect information to set `multiple_return_points` module flag.
+        if (inst.getOpcode() == llvm::Instruction::Ret)
+          funcRetCount++;
 
-          if (isIntOrFloatArithmeticOperation(inst)) {
-            for(std::size_t i = 0; i < inst.getNumOperands(); i++) {
-              auto ty = inst.getOperand(i)->getType();
-              if (ty->isIntegerTy())
-                intPrecisions[ty->getScalarSizeInBits()] = true;
-              else if (ty->isFloatingPointTy())
-                floatPrecisions[ty->getScalarSizeInBits()] = true;
-            }
+        // Collect information to set `multiple_target_branching` module flag.
+        if (inst.getOpcode() == llvm::Instruction::Switch)
+          hasMultipleTargetBranching = true;
+
+        // Collect information to set `backwards_branching` module flag.
+        if (auto *br = dyn_cast<llvm::BranchInst>(&inst)) {
+          bool isLoop = false;
+          for (auto successor : br->successors()) {
+            if (successor == &block)
+              isLoop = true;
+          }
+          if (isLoop) {
+            // The `backwardBranching` value is a 2-bit integer where bit 0
+            // indicates presence of simple iterations, and bit 1 indicates
+            // presence of conditionally terminating loops, i.e. loops with
+            // an exit that depends on a measurement.
+            auto condition = br->getCondition();
+            if (auto *call = dyn_cast<llvm::CallBase>(condition)) {
+              if (call->getCalledFunction()->getName().str() ==
+                  cudaq::opt::QIRReadResultBody)
+                backwardBranching |= (std::uint64_t)2;
+            } else
+              backwardBranching |= (std::uint64_t)1;
           }
         }
+
+        // Collect information to set `int_computations` and
+        // `float_computations` module flags.
+        if (isIntOrFloatArithmeticOperation(inst)) {
+          for (std::size_t i = 0; i < inst.getNumOperands(); i++) {
+            auto ty = inst.getOperand(i)->getType();
+            if (ty->isIntegerTy())
+              intPrecisions[ty->getScalarSizeInBits()] = true;
+            else if (ty->isFloatingPointTy())
+              floatPrecisions[ty->getScalarSizeInBits()] = true;
+          }
+        }
+
+        // Collect information to set `if_functions` module flag.
+        if (auto *call = dyn_cast<llvm::CallBase>(&inst)) {
+          auto name = call->getCalledFunction()->getName().str();
+          if (!name.starts_with("__quantum__"))
+            hasIRFunctions = true;
+        }
       }
-      retCount = std::max(funcRetCount, retCount);
     }
+    retCount = std::max(funcRetCount, retCount);
+  }
 
-    std::string intPrecisionStr;
-    llvm::SmallVector<std::size_t> intPrecisionsVec;
-    for(auto &[k,v]: intPrecisions)
-      if (v) 
-        intPrecisionsVec.push_back(k);
-    std::sort(intPrecisionsVec.begin(), intPrecisionsVec.end());
-    for(auto k: intPrecisionsVec) {
-        if (!intPrecisionStr.empty())
-          intPrecisionStr += ",";
-        intPrecisionStr += "i" + std::to_string(k);
-    }
+  std::string intPrecisionStr;
+  llvm::SmallVector<std::size_t> intPrecisionsVec;
+  for (auto &[k, v] : intPrecisions)
+    if (v)
+      intPrecisionsVec.push_back(k);
+  std::sort(intPrecisionsVec.begin(), intPrecisionsVec.end());
+  for (auto k : intPrecisionsVec) {
+    if (!intPrecisionStr.empty())
+      intPrecisionStr += ",";
+    intPrecisionStr += "i" + std::to_string(k);
+  }
 
-    std::string floatPrecisionStr;
-    llvm::SmallVector<std::size_t> floatPrecisionsVec;
-    for(auto &[k,v]: floatPrecisions)
-      if (v) 
-        floatPrecisionsVec.push_back(k);
-    std::sort(floatPrecisionsVec.begin(), floatPrecisionsVec.end());
-    for(auto k: floatPrecisionsVec) {
-        if (!floatPrecisionStr.empty())
-          floatPrecisionStr += ",";
-        floatPrecisionStr += "f" + std::to_string(k);
-    }
+  std::string floatPrecisionStr;
+  llvm::SmallVector<std::size_t> floatPrecisionsVec;
+  for (auto &[k, v] : floatPrecisions)
+    if (v)
+      floatPrecisionsVec.push_back(k);
+  std::sort(floatPrecisionsVec.begin(), floatPrecisionsVec.end());
+  for (auto k : floatPrecisionsVec) {
+    if (!floatPrecisionStr.empty())
+      floatPrecisionStr += ",";
+    floatPrecisionStr += "f" + std::to_string(k);
+  }
 
-    auto &llvmContext = llvmModule->getContext();
-    auto falseValue = llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(llvmContext));
-    auto trueValue = llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
+  auto &llvmContext = llvmModule->getContext();
+  auto trueValue =
+      llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
 
+  if (hasIRFunctions)
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                               cudaq::opt::QIRIrFunctionsFlagName, falseValue);
+                              cudaq::opt::QIRIrFunctionsFlagName, trueValue);
 
-    if (!intPrecisionStr.empty()) {
-      llvm::Constant* intPrecisionStrConst = llvm::ConstantDataArray::getString(llvmContext, intPrecisionStr, false);
-      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                               cudaq::opt::QIRIntComputationsFlagName, intPrecisionStrConst);
-    }
-    if (!floatPrecisionStr.empty()) {
-      llvm::Constant* floatPrecisionStrConst = llvm::ConstantDataArray::getString(llvmContext, floatPrecisionStr, false);
-      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                cudaq::opt::QIRFloatComputationsFlagName, floatPrecisionStrConst);
-    }
-
-    auto zeroInt2Value =
-       llvm::ConstantInt::getIntegerValue(llvm::Type::getIntNTy(llvmContext, 2), llvm::APInt(2, 0));
+  if (!intPrecisionStr.empty()) {
+    llvm::Constant *intPrecisionValue =
+        llvm::ConstantDataArray::getString(llvmContext, intPrecisionStr, false);
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                             cudaq::opt::QIRBackwardsBranchingFlagName, zeroInt2Value);
+                              cudaq::opt::QIRIntComputationsFlagName,
+                              intPrecisionValue);
+  }
+  if (!floatPrecisionStr.empty()) {
+    llvm::Constant *floatPrecisionValue = llvm::ConstantDataArray::getString(
+        llvmContext, floatPrecisionStr, false);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              cudaq::opt::QIRFloatComputationsFlagName,
+                              floatPrecisionValue);
+  }
 
-    if (hasMultipleTargetBranching)
-      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                cudaq::opt::QIRMultipleTargetBranchingFlagName, trueValue);
+  auto backwardsBranchingValue = llvm::ConstantInt::getIntegerValue(
+      llvm::Type::getIntNTy(llvmContext, 2),
+      llvm::APInt(2, backwardBranching, false));
+  llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                            cudaq::opt::QIRBackwardsBranchingFlagName,
+                            backwardsBranchingValue);
 
-    if (retCount > 1)
-      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                               cudaq::opt::QIRMultipleReturnPointsFlagName, trueValue);
+  if (hasMultipleTargetBranching)
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              cudaq::opt::QIRMultipleTargetBranchingFlagName,
+                              trueValue);
+
+  if (retCount > 1)
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              cudaq::opt::QIRMultipleReturnPointsFlagName,
+                              trueValue);
 }
 
 // Once a call to a function with irreversible attribute is seen, no more calls
@@ -266,7 +322,8 @@ verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
         if (callInst && callInst->getCalledFunction()) {
           auto calledFunc = callInst->getCalledFunction();
           auto funcName = calledFunc->getName();
-          bool isIrreversible = calledFunc->hasFnAttribute(cudaq::opt::QIRIrreversibleFlagName);
+          bool isIrreversible =
+              calledFunc->hasFnAttribute(cudaq::opt::QIRIrreversibleFlagName);
           bool isReversible = !isIrreversible;
           bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
@@ -447,7 +504,10 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
             llvm::isa<llvm::CallBase>(inst) ||
             llvm::isa<llvm::BranchInst>(inst) ||
             llvm::isa<llvm::ReturnInst>(inst);
-        bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction || isIntOrFloatArithmeticOperation(inst) || isTargetBranchingOperation(inst);
+        bool isValidAdaptiveProfileInstruction =
+            isValidBaseProfileInstruction ||
+            isIntOrFloatArithmeticOperation(inst) ||
+            isTargetBranchingOperation(inst);
         if (isBaseProfile && !isValidBaseProfileInstruction) {
           llvm::errs() << "error - invalid instruction found: " << inst << '\n';
           return mlir::failure();
@@ -532,15 +592,19 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
 
   // Add required module flags for the Base Profile
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            cudaq::opt::QIRMajorVersionFlagName, qir_major_version);
+                            cudaq::opt::QIRMajorVersionFlagName,
+                            qir_major_version);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Max,
-                            cudaq::opt::QIRMinorVersionFlagName, qir_minor_version);
+                            cudaq::opt::QIRMinorVersionFlagName,
+                            qir_minor_version);
   auto falseValue =
       llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(*llvmContext));
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            cudaq::opt::QIRDynamicQubitsManagementFlagName, falseValue);
+                            cudaq::opt::QIRDynamicQubitsManagementFlagName,
+                            falseValue);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            cudaq::opt::QIRDynamicResultManagementFlagName, falseValue);
+                            cudaq::opt::QIRDynamicResultManagementFlagName,
+                            falseValue);
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on
   // the @__quantum__rt__result_record_output calls.
