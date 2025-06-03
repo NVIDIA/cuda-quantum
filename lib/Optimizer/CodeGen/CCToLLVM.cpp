@@ -295,6 +295,9 @@ public:
               .Case([&](LLVM::LLVMPointerType) {
                 boilerplate((LLVM::BitcastOp *)nullptr);
               })
+              .Case([&](LLVM::LLVMFunctionType) {
+                boilerplate((LLVM::BitcastOp *)nullptr);
+              })
               .Case([&](IntegerType) {
                 boilerplate((LLVM::IntToPtrOp *)nullptr);
               });
@@ -610,8 +613,20 @@ public:
                                                  operands[0]);
     val = rewriter.create<LLVM::InsertValueOp>(loc, val, cast, zero);
     auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
-    rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, operands[1],
-                                                     one);
+    if (operands.size() == 2) {
+      rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, operands[1],
+                                                       one);
+    } else {
+      std::int64_t arrSize =
+          llvm::cast<LLVM::LLVMArrayType>(
+              llvm::cast<LLVM::LLVMPointerType>(operands[0].getType())
+                  .getElementType())
+              .getNumElements();
+      auto i64Ty = rewriter.getI64Type();
+      Value len = rewriter.create<LLVM::ConstantOp>(
+          loc, i64Ty, IntegerAttr::get(i64Ty, arrSize));
+      rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, len, one);
+    }
     return success();
   }
 };

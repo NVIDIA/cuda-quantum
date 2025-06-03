@@ -172,20 +172,26 @@ state pyGetStateQPU(py::object kernel, py::args args) {
 state pyGetStateLibraryMode(py::object kernel, py::args args) {
   return details::extractState([&]() mutable {
     if (0 == args.size())
-      cudaq::invokeKernel(std::forward<py::object>(kernel));
+      kernel();
     else {
       std::vector<py::object> argsData;
       for (size_t i = 0; i < args.size(); i++) {
         py::object arg = args[i];
         argsData.emplace_back(std::forward<py::object>(arg));
       }
-      cudaq::invokeKernel(std::forward<py::object>(kernel), argsData);
+      kernel(std::move(argsData));
     }
   });
 }
 
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
+  py::enum_<cudaq::InitialState>(mod, "InitialStateType",
+                                 "Enumeration describing the initial state "
+                                 "type to be created in the backend")
+      .value("ZERO", cudaq::InitialState::ZERO)
+      .value("UNIFORM", cudaq::InitialState::UNIFORM)
+      .export_values();
 
   py::class_<SimulationState::Tensor>(
       mod, "Tensor",

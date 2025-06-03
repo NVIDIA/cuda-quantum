@@ -9,7 +9,6 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/KernelWrapper.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 #include "cudaq/platform.h"
@@ -158,10 +157,8 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   // function, whereby the bridge has generated code to construct the kernel
   // name at runtime.
   if (cudaq::get_quake_by_name(cudaq::getKernelName(kernel), false).empty())
-    return details::extractState([&]() mutable {
-      cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                          std::forward<Args>(args)...);
-    });
+    return details::extractState(
+        [&]() mutable { kernel(std::forward<Args>(args)...); });
 
   return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
                                          std::forward<Args>(args)...));
@@ -188,10 +185,8 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   throw std::runtime_error(
       "could not create state in library mode for quantum devices");
 #endif
-  return details::extractState([&]() mutable {
-    cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                        std::forward<Args>(args)...);
-  });
+  return details::extractState(
+      [&]() mutable { kernel(std::forward<Args>(args)...); });
 #endif
 }
 
@@ -220,14 +215,13 @@ async_state_result get_state_async(std::size_t qpu_id, QuantumKernel &&kernel,
 #if CUDAQ_USE_STD20
   return details::runGetStateAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                            std::forward<Args>(args)...);
+        kernel(std::forward<Args>(args)...);
       },
       platform, qpu_id);
 #else
   return details::runGetStateAsync(
-      [args = std::make_tuple(kernel, args...)]() mutable {
-        std::apply(cudaq::invokeKernel, args);
+      [&kernel, args = std::make_tuple(kernel, args...)]() mutable {
+        std::apply(kernel, args);
       },
       platform, qpu_id);
 #endif
