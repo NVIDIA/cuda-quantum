@@ -65,6 +65,13 @@ private:
                                   std::complex<double> coeff = 1.,
                                   bool invert_order = false);
 
+  // helper function for multi-diagonal matrix creations
+  static mdiag_sparse_matrix
+  to_diagonal_matrix(const std::string &fermi_word,
+                     const std::vector<std::int64_t> &dimensions = {},
+                     std::complex<double> coeff = 1.,
+                     bool invert_order = false);
+
 public:
   // read-only properties
 
