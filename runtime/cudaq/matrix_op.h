@@ -296,8 +296,8 @@ public:
   /// returns empty.
   mdiag_sparse_matrix
   to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
-                const std::unordered_map<std::string, std::complex<double>>
-                    &parameters = {}) const;
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {}) const;
 
   /// @brief Generates a string representation of the matrix_handler.
   /// @param include_degrees A flag indicating whether to include degree

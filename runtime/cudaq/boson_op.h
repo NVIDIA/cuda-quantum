@@ -16,7 +16,7 @@
 #include "cudaq/utils/matrix.h"
 
 namespace cudaq {
-class boson_handler : public operator_handler, mdiag_operator_handler  {
+class boson_handler : public operator_handler, mdiag_operator_handler {
   template <typename T>
   friend class product_op;
   template <typename T>
@@ -108,8 +108,8 @@ public:
   /// of eigenstates, for each degree of freedom.
   virtual mdiag_sparse_matrix
   to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
-                const std::unordered_map<std::string, std::complex<double>>
-                    &parameters = {}) const override;
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {}) const override;
   virtual std::string to_string(bool include_degrees) const override;
 
   // comparisons

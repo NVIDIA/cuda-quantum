@@ -326,7 +326,8 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     wrappedTensorCallback = wrapTensorCallback(elemOp, keys);
   }
 
-  const auto [diags, offsets] = elemOp.to_diagonal_matrix(dimensions, parameters);
+  const auto [diags, offsets] =
+      elemOp.to_diagonal_matrix(dimensions, parameters);
   const bool shouldUseDia = [&]() {
     if (diags.empty())
       return false;

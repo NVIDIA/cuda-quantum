@@ -102,7 +102,7 @@ public:
 };
 
 using mdiag_sparse_matrix =
-      std::pair<std::vector<std::complex<double>>, std::vector<std::int64_t>>;
+    std::pair<std::vector<std::complex<double>>, std::vector<std::int64_t>>;
 
 class dia_matrix_callback {
 private:

@@ -124,8 +124,8 @@ public:
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
   virtual mdiag_sparse_matrix
   to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
-                const std::unordered_map<std::string, std::complex<double>>
-                    &parameters = {}) const override;
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {}) const override;
   virtual std::string to_string(bool include_degrees) const override;
 
   // comparisons
