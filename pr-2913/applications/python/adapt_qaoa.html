@@ -416,6 +416,12 @@
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_pagerank.html">Quantum PageRank</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
@@ -583,6 +589,32 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Add a new Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#server-helper-class">Server Helper Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#target-configuration">Target Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#testing">Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#unit-tests">Unit Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#mock-server">Mock Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#integration-tests">Integration Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#code-review">Code Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
@@ -698,7 +730,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
@@ -841,13 +873,14 @@ using general variational quantum algorithm methods. If the norm of the gradient
 parameter</p>
 <p>3- Optimize all parameters currently in the Ansatz <span class="math notranslate nohighlight">\(\beta_m, \gamma_m = 1, 2, ...k\)</span> such that <span class="math notranslate nohighlight">\(\braket{\psi (k)|H_C|\psi(k)}\)</span> is minimized, and return to the second step.</p>
 <p>Below is a schematic representation of the ADAPT-QAOA algorithm explained above.</p>
-<div><p><img alt="723baf54c418431fb2972bfec50e009d" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 600px;" /></p>
+<div><p><img alt="5effdc33fdc444bc829945919f1b02d6" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 600px;" /></p>
 </div><div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
 
@@ -859,7 +892,7 @@ parameter</p>
 <h2>Simulation input:<a class="headerlink" href="#Simulation-input:" title="Permalink to this heading">¶</a></h2>
 <p>The gradients used to select new operators are sensitive to the initial values for <span class="math notranslate nohighlight">\(\gamma\)</span>. We initialize the parameter at <span class="math notranslate nohighlight">\(\gamma_0 =0.01\)</span> as explained in the paper.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The Max-cut graph:</span>
@@ -897,7 +930,7 @@ parameter</p>
 <div class="math notranslate nohighlight">
 \[H_C= - \frac{1}{2} \sum_{i,j} \omega_{i,j} (I - Z_i Z_j)\]</div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">spin_ham</span> <span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
@@ -946,15 +979,15 @@ parameter</p>
 <h2>Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:<a class="headerlink" href="#Th-operator-pool-A_j:" title="Permalink to this heading">¶</a></h2>
 <p>Here, the mixer pool consists of qaoa mixer, single-qubit, and multi-qubit entangling gates. Note that more single and multi-qubit gates can be added based on the problem. Because of symmetry, we only includes the mixer pools that will have nonzero gradients as explained in the <a class="reference external" href="https://journals.aps.org/prresearch/pdf/10.1103/PhysRevResearch.4.033029">paper</a></p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">qaoa_mixer</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
 
-    <span class="n">term</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">term</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
-        <span class="n">term</span> <span class="o">=</span> <span class="n">term</span> <span class="o">+</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">term</span> <span class="o">=</span> <span class="n">term</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
     <span class="n">pool</span> <span class="o">=</span> <span class="p">[</span><span class="n">term</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">pool</span>
@@ -964,7 +997,7 @@ parameter</p>
     <span class="n">pool</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-        <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)))</span>
 
     <span class="k">return</span> <span class="n">pool</span>
 
@@ -974,10 +1007,10 @@ parameter</p>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
-            <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
-            <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
-            <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
-            <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+            <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">j</span><span class="p">)))</span>
+            <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">j</span><span class="p">)))</span>
+            <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">j</span><span class="p">)))</span>
+            <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">*</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">j</span><span class="p">)))</span>
 
     <span class="k">return</span> <span class="n">pool</span>
 
@@ -991,7 +1024,7 @@ parameter</p>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the mixer pool</span>
@@ -1013,7 +1046,7 @@ Number of pool operator:  46
 <section id="The-commutator-[H_C,A_j]:">
 <h2>The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:<a class="headerlink" href="#The-commutator-[H_C,A_j]:" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate the commutator [H,Ai]</span>
@@ -1033,7 +1066,7 @@ Number of pool operator:  46
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">###########################################</span>
@@ -1084,7 +1117,7 @@ Number of pool operator:  46
 <h2>Beginning of ADAPT-QAOA iteration:<a class="headerlink" href="#Beginning-of-ADAPT-QAOA-iteration:" title="Permalink to this heading">¶</a></h2>
 <p>Note that, here in this tutorial, we set the seed for the random number generator. This ensures that the random choices are reproducible in each step of iteration when choosing operator pools if more than one operator pool has the same value. For production, users need to change that.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Begining od ADAPT-QAOA iteration</span>
@@ -1142,7 +1175,12 @@ Number of pool operator:  46
         <span class="n">layer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">random_mixer</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">temp_pool</span><span class="p">)</span>
 
-        <span class="n">mixer_pool</span> <span class="o">=</span> <span class="n">mixer_pool</span> <span class="o">+</span> <span class="p">[</span><span class="n">random_mixer</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">)]</span>
+        <span class="n">pool_added</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">random_mixer</span><span class="p">:</span>
+            <span class="n">pool_added</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">))</span>
+
+        <span class="n">mixer_pool</span> <span class="o">=</span> <span class="n">mixer_pool</span> <span class="o">+</span> <span class="n">pool_added</span>
+
 
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Mixer pool at step&#39;</span><span class="p">,</span> <span class="n">istep</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">mixer_pool</span><span class="p">)</span>
@@ -1258,7 +1296,7 @@ Final Energy:  -4.999999999996581
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Sampling the Final ADAPT QAOA circuit&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
@@ -1277,13 +1315,13 @@ Final Energy:  -4.999999999996581
 
  Sampling the Final ADAPT QAOA circuit
 
-The most probable max cut:  01011
-All bitstring from circuit sampling:  { 01011:2550 10100:2450 }
+The most probable max cut:  10100
+All bitstring from circuit sampling:  { 01011:2499 10100:2501 }
 
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
@@ -1295,7 +1333,7 @@ All bitstring from circuit sampling:  { 01011:2550 10100:2450 }
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 05873efb8973bd60fcf7cfe193e6ab54c6edee60)
+CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 974716fa2024267f7c12a2ed86ffbfe314d37a36)
 </pre></div></div>
 </div>
 </section>
