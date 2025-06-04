@@ -46,14 +46,13 @@ constexpr StringRef mappedWireSetName("mapped_wireset");
 
 bool identityPlacement(Placement &placement, Device &device) {
   unsigned j = 0;
-  for (unsigned i = 0, end = placement.getNumVirtualQ(); i < end; ++i) {
+  for (unsigned i = 0, end = placement.getNumVirtualQ(); i < end; ++i, ++j) {
     while (j < placement.getNumDeviceQ() &&
            device.isQubitExcluded(Placement::DeviceQ(j)))
       ++j;
     if (j >= placement.getNumDeviceQ())
       return false;
     placement.map(Placement::VirtualQ(i), Placement::DeviceQ(j));
-    ++j;
   }
   return true;
 }
@@ -650,8 +649,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
-    LLVM_DEBUG({ deviceInstance->dump(); });
-
     const std::size_t deviceNumQubits = deviceInstance->getNumUsableQubits();
 
     SmallVector<quake::BorrowWireOp> sources(deviceNumQubits);
@@ -798,6 +795,13 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       signalPassFailure();
       return;
     }
+
+    LLVM_DEBUG({
+      llvm::dbgs() << "\nDevice\n======\n";
+      deviceInstance->dump(llvm::dbgs());
+      llvm::dbgs() << "\nPlacement\n=========\n";
+      placement.dump(llvm::dbgs());
+    });
 
     // Route
     SabreRouter router(*deviceInstance, wireToVirtualQ, placement, extendedLayerSize,
