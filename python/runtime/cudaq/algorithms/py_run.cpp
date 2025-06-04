@@ -117,12 +117,9 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
 }
 
 /// @brief Run `cudaq::run_async` on the provided kernel.
-std::future<std::vector<py::object>>
-pyRunAsync(py::object &kernel, py::args args, std::size_t shots_count,
+/// std::future<std::vector<py::object>>
+auto pyRunAsync(py::object &kernel, py::args args, std::size_t shots_count,
            std::optional<noise_model> noise_model, std::size_t qpu_id) {
-  if (shots_count == 0)
-    return {};
-
   auto &platform = get_platform();
   auto numQPUs = platform.num_qpus();
   if (qpu_id >= numQPUs)
@@ -136,22 +133,25 @@ pyRunAsync(py::object &kernel, py::args args, std::size_t shots_count,
   auto mod = unwrap(module);
   mod->setAttr(runtime::enableCudaqRun, mlir::UnitAttr::get(mod->getContext()));
 
-  if (noise_model.has_value()) {
-    if (platform.is_remote())
+  if (noise_model.has_value() && platform.is_remote())
       throw std::runtime_error(
           "Noise model is not supported on remote platforms.");
-    // Launch the kernel in the appropriate context.
-    platform.set_noise(&noise_model.value());
-  }
 
   // Should only have C++ going on here, safe to release the GIL
   py::gil_scoped_release release;
 
   std::promise<std::vector<py::object>> promise;
   std::future<std::vector<py::object>> f = promise.get_future();
+
+  if (shots_count == 0) {
+    promise.set_value({});
+    return f;
+  }
+
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), shots_count, &platform, argData, name, module, func,
        noise_model = std::move(noise_model)]() mutable {
+        // Launch the kernel in the appropriate context.
         if (noise_model.has_value())
           platform.set_noise(&noise_model.value());
 
