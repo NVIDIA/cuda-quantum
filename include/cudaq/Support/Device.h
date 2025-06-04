@@ -97,8 +97,6 @@ public:
     }
 
     device.computeAllPairShortestPaths();
-    // llvm::errs() << "Device (" << filename << "):\n";
-    // device.dump(llvm::errs());
     return device;
   }
 
@@ -237,13 +235,12 @@ public:
   /// Returns the number of physical qubits in the device.
   unsigned getNumQubits() const { return topology.getNumNodes(); }
 
+  unsigned getNumUsableQubits() const {
+    return getNumQubits() - excludedQubits.size();
+  }
+
   /// Returns true if the qubit is excluded from the device.
   bool isQubitExcluded(Qubit qubit) const {
-    llvm::errs() << "Checking if qubit " << qubit << " is excluded\n";
-    llvm::errs() << "Excluded qubits:";
-    for (auto q : excludedQubits)
-      llvm::errs() << q << " ";
-    llvm::errs() << "\n";
     return std::find(excludedQubits.begin(), excludedQubits.end(), qubit) !=
            excludedQubits.end();
   }
@@ -271,7 +268,7 @@ public:
   }
 
   void dump(llvm::raw_ostream &os = llvm::errs()) const {
-    os << "asdGraph:\n";
+    os << "Graph:\n";
     topology.dump(os);
     os << "\nShortest Paths:\n";
     for (unsigned src = 0; src < getNumQubits(); ++src)

@@ -44,9 +44,18 @@ constexpr StringRef mappedWireSetName("mapped_wireset");
 // Placement
 //===----------------------------------------------------------------------===//
 
-void identityPlacement(Placement &placement) {
-  for (unsigned i = 0, end = placement.getNumVirtualQ(); i < end; ++i)
-    placement.map(Placement::VirtualQ(i), Placement::DeviceQ(i));
+bool identityPlacement(Placement &placement, Device &device) {
+  unsigned j = 0;
+  for (unsigned i = 0, end = placement.getNumVirtualQ(); i < end; ++i) {
+    while (j < placement.getNumDeviceQ() &&
+           device.isQubitExcluded(Placement::DeviceQ(j)))
+      ++j;
+    if (j >= placement.getNumDeviceQ())
+      return false;
+    placement.map(Placement::VirtualQ(i), Placement::DeviceQ(j));
+    ++j;
+  }
+  return true;
 }
 
 //===----------------------------------------------------------------------===//
@@ -206,11 +215,6 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
     deviceQubits.push_back(placement.getPhy(vr));
 
   // No operation can be mapped to excluded qubits.
-  LLVM_DEBUG({
-    logger.startLine() << "Device qubits:";
-    for (auto qubit : deviceQubits)
-      logger.startLine() << qubit;
-  });
   for (auto qubit : deviceQubits)
     if (device.isQubitExcluded(qubit)) {
       return failure();
@@ -375,39 +379,22 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
   LLVM_DEBUG({
     logger.getOStream() << "\n";
     logger.startLine() << logLineComment;
-    logger.startLine() << "Device:\n";
-    logger.indent();
-    device.dump(logger.getOStream());
-    logger.unindent();
-  });
-
-  LLVM_DEBUG({
-    logger.getOStream() << "\n";
-    logger.startLine() << logLineComment;
     logger.startLine() << "Mapping front layer:\n";
     logger.indent();
-  });
-  
-  // The source ops can be mapped, unless they use excluded qubits.
-  for (auto borrowWire : sources) {
-    LLVM_DEBUG({
-      logger.startLine() << "* " << *borrowWire;
-    });
-    Value wire = borrowWire.getResult();
-    auto phy = placement.getPhy(wireToVirtualQ[wire]);
-    if (device.isQubitExcluded(phy)) {
-      LLVM_DEBUG(logger.getOStream() << " --> FAILURE\n");
-      continue;
-    }
-    LLVM_DEBUG(logger.getOStream() << " --> SUCCESS\n");
-    visitUsers(borrowWire->getUsers(), frontLayer);
-    phyToWire[phy.index] = wire;
-  }
-
-  LLVM_DEBUG({
+    for (auto virtOp : sources)
+      logger.startLine() << "* " << *virtOp << " --> SUCCESS\n";
     logger.unindent();
     logger.startLine() << logLineComment;
   });
+  
+  // The source ops can always be mapped - excluded qubits and related errors
+  // are handled by the identity placement function.
+  for (auto borrowWire : sources) {
+    visitUsers(borrowWire->getUsers(), frontLayer);
+    Value wire = borrowWire.getResult();
+    auto phy = placement.getPhy(wireToVirtualQ[wire]);
+    phyToWire[phy.index] = wire;
+  }
 
   OpBuilder builder(&block, block.begin());
   auto wireType = builder.getType<quake::WireType>();
@@ -463,6 +450,78 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
   LLVM_DEBUG(logger.startLine() << '\n' << logLineComment << '\n';);
 }
 
+std::pair<bool, std::optional<Device>> deviceFromString(llvm::StringRef deviceString) {
+  std::size_t deviceDim[2];
+  deviceDim[0] = deviceDim[1] = 0;
+
+  // Get device
+  StringRef deviceTopoStr =
+      deviceString.take_front(deviceString.find_first_of('('));
+    
+  // Trim the dimensions off of `deviceDef` if dimensions were provided in the
+  // string
+  if (deviceTopoStr.size() < deviceString.size())
+    deviceString = deviceString.drop_front(deviceTopoStr.size());
+
+  if (deviceTopoStr.equals_insensitive("file")) {
+    StringRef deviceFilename;
+    if (deviceString.consume_front("(")) {
+      deviceString = deviceString.ltrim();
+      if (deviceString.consume_back(")")) {
+        deviceFilename = deviceString;
+        // Remove any leading and trailing single quotes that may have been
+        // added in order to pass files with spaces into the pass (required
+        // for parsePassPipeline).
+        if (deviceFilename.size() >= 2 && deviceFilename.front() == '\'' &&
+            deviceFilename.back() == '\'')
+          deviceFilename = deviceFilename.drop_front(1).drop_back(1);
+        // Make sure the file exists before continuing
+        if (!llvm::sys::fs::exists(deviceFilename)) {
+          llvm::errs() << "Path " << deviceFilename << " does not exist\n";
+          return std::make_pair(false, std::nullopt);
+        }
+      } else {
+        llvm::errs() << "Missing closing ')' in device option\n";
+        return std::make_pair(false, std::nullopt);
+      }
+    } else {
+      llvm::errs() << "Filename must be provided in device option like "
+                      "file(/full/path/to/device_file.txt): "
+                    << deviceString << '\n';
+      return std::make_pair(false, std::nullopt);
+    }
+
+    return std::make_pair(false, Device::file(deviceFilename));
+  } else {
+    if (deviceString.consume_front("(")) {
+      deviceString = deviceString.ltrim();
+      deviceString.consumeInteger(/*Radix=*/10, deviceDim[0]);
+      deviceString = deviceString.ltrim();
+      if (deviceString.consume_front(","))
+        deviceString.consumeInteger(/*Radix=*/10, deviceDim[1]);
+      deviceString = deviceString.ltrim();
+      if (!deviceString.consume_front(")")) {
+        llvm::errs() << "Missing closing ')' in device option\n";
+        return std::make_pair(false, std::nullopt);
+      }
+    }
+    if (deviceTopoStr == "path") {
+      return std::make_pair(true, Device::path(deviceDim[0]));
+    } else if (deviceTopoStr == "ring") {
+      return std::make_pair(true, Device::ring(deviceDim[0]));
+    } else if (deviceTopoStr == "star") {
+      return std::make_pair(true, Device::star(deviceDim[0], deviceDim[1]));
+    } else if (deviceTopoStr == "grid") {
+      return std::make_pair(true, Device::grid(deviceDim[0], deviceDim[1]));
+    } else if (deviceTopoStr == "bypass") {
+      return std::make_pair(true, std::nullopt);
+    } else {
+      llvm::errs() << "Unknown device option: " << deviceTopoStr << '\n';
+      return std::make_pair(false, std::nullopt);
+    }
+  }
+}
+
 //===----------------------------------------------------------------------===//
 // Pass implementation
 //===----------------------------------------------------------------------===//
@@ -470,125 +529,26 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
 struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
   using MappingPrepBase::MappingPrepBase;
 
-  /// Device dimensions that come from inside the `device` option parenthesis,
-  /// like X and Y for star(X,Y)
-  std::size_t deviceDim[2];
-
-  enum DeviceTopologyEnum { Unknown, Path, Ring, Star, Grid, File, Bypass };
-  DeviceTopologyEnum deviceTopoType;
-
-  /// If the deviceTopoType is File, this is the path to the file.
-  StringRef deviceFilename;
+  std::optional<Device> deviceInstance;
+  bool deviceBypass = false;
 
   virtual LogicalResult initialize(MLIRContext *context) override {
-    // Initialize prior to parsing
-    deviceDim[0] = deviceDim[1] = 0;
-
-    // Get device
-    StringRef deviceDef = device;
-    StringRef deviceTopoStr =
-        deviceDef.take_front(deviceDef.find_first_of('('));
-
-    // Trim the dimensions off of `deviceDef` if dimensions were provided in the
-    // string
-    if (deviceTopoStr.size() < deviceDef.size())
-      deviceDef = deviceDef.drop_front(deviceTopoStr.size());
-
-    if (deviceTopoStr.equals_insensitive("file")) {
-      if (deviceDef.consume_front("(")) {
-        deviceDef = deviceDef.ltrim();
-        if (deviceDef.consume_back(")")) {
-          deviceFilename = deviceDef;
-          // Remove any leading and trailing single quotes that may have been
-          // added in order to pass files with spaces into the pass (required
-          // for parsePassPipeline).
-          if (deviceFilename.size() >= 2 && deviceFilename.front() == '\'' &&
-              deviceFilename.back() == '\'')
-            deviceFilename = deviceFilename.drop_front(1).drop_back(1);
-          // Make sure the file exists before continuing
-          if (!llvm::sys::fs::exists(deviceFilename)) {
-            llvm::errs() << "Path " << deviceFilename << " does not exist\n";
-            return failure();
-          }
-        } else {
-          llvm::errs() << "Missing closing ')' in device option\n";
-          return failure();
-        }
-      } else {
-        llvm::errs() << "Filename must be provided in device option like "
-                        "file(/full/path/to/device_file.txt): "
-                     << device.getValue() << '\n';
-        return failure();
-      }
-    } else {
-      if (deviceDef.consume_front("(")) {
-        deviceDef = deviceDef.ltrim();
-        deviceDef.consumeInteger(/*Radix=*/10, deviceDim[0]);
-        deviceDef = deviceDef.ltrim();
-        if (deviceDef.consume_front(","))
-          deviceDef.consumeInteger(/*Radix=*/10, deviceDim[1]);
-        deviceDef = deviceDef.ltrim();
-        if (!deviceDef.consume_front(")")) {
-          llvm::errs() << "Missing closing ')' in device option\n";
-          return failure();
-        }
-      }
+    std::tie(deviceBypass, deviceInstance) = deviceFromString(device);
+    if(deviceInstance || deviceBypass) {
+      return success();
     }
 
-    deviceTopoType = llvm::StringSwitch<DeviceTopologyEnum>(deviceTopoStr)
-                         .Case("path", Path)
-                         .Case("ring", Ring)
-                         .Case("star", Star)
-                         .Case("grid", Grid)
-                         .Case("file", File)
-                         .Case("bypass", Bypass)
-                         .Default(Unknown);
-    if (deviceTopoType == Unknown) {
-      llvm::errs() << "Unknown device option: " << deviceTopoStr << '\n';
-      return failure();
-    }
-
-    return success();
-  }
-
-  /// Create an adjacency matrix attribute for a WireSetOp.
-  SparseElementsAttr getAdjacencyFromDevice(Device &d, MLIRContext *ctx) {
-    int numEdges = 0;
-    unsigned int qubitCardinality = static_cast<unsigned int>(d.getNumQubits());
-
-    SmallVector<APInt, 32> edgeVector;
-    for (unsigned int i = 0; i < qubitCardinality; i++) {
-      auto neighbors = d.getNeighbours(Device::Qubit(i));
-      numEdges += neighbors.size();
-      for (auto neighbor : neighbors) {
-        edgeVector.emplace_back(64, i);
-        edgeVector.emplace_back(64, neighbor.index);
-      }
-    }
-
-    IntegerType boolTy = IntegerType::get(ctx, /*width=*/1);
-    ShapedType tensorI1 =
-        RankedTensorType::get({qubitCardinality, qubitCardinality}, boolTy);
-    auto indicesType =
-        RankedTensorType::get({numEdges, 2}, IntegerType::get(ctx, 64));
-    auto indices = DenseIntElementsAttr::get(indicesType, edgeVector);
-    auto intValue = mlir::DenseIntElementsAttr::get(
-        mlir::RankedTensorType::get({static_cast<int64_t>(numEdges)}, boolTy),
-        true);
-    auto sparseInt = SparseElementsAttr::get(tensorI1, indices, intValue);
-
-    return sparseInt;
+    signalPassFailure();
+    return failure();
   }
 
   quake::WireSetOp insertWireSetOpForDevice(Device &d, ModuleOp mod) {
     if (auto wires = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName))
       return wires;
 
-    auto adjacency = getAdjacencyFromDevice(d, mod.getContext());
     OpBuilder builder(mod.getBodyRegion());
     auto wireSetOp = builder.create<quake::WireSetOp>(
-        builder.getUnknownLoc(), mappedWireSetName, d.getNumQubits(),
-        adjacency);
+        builder.getUnknownLoc(), mappedWireSetName, d.getNumQubits());
     wireSetOp.setPrivate();
     return wireSetOp;
   }
@@ -596,33 +556,28 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
   void runOnOperation() override {
     auto mod = getOperation();
 
-    if (deviceTopoType == Bypass)
+    if (deviceBypass)
       return;
 
-    // Get grid dimensions
-    std::size_t x = deviceDim[0];
-    std::size_t y = deviceDim[1];
-
-    // These are captured in the user help (device options in Passes.td), so if
-    // you update this, be sure to update that as well.
-    Device d;
-    if (deviceTopoType == Path)
-      d = Device::path(x);
-    else if (deviceTopoType == Ring)
-      d = Device::ring(x);
-    else if (deviceTopoType == Star)
-      d = Device::star(/*numQubits=*/x, /*centerQubit=*/y);
-    else if (deviceTopoType == Grid)
-      d = Device::grid(/*width=*/x, /*height=*/y);
-    else if (deviceTopoType == File)
-      d = Device::file(deviceFilename);
-
-    insertWireSetOpForDevice(d, mod);
+    insertWireSetOpForDevice(*deviceInstance, mod);
   }
 };
 
 struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
   using MappingFuncBase::MappingFuncBase;
+
+  bool deviceBypass = false;
+  std::optional<Device> deviceInstance;
+
+  virtual LogicalResult initialize(MLIRContext *context) override {
+    std::tie(deviceBypass, deviceInstance) = deviceFromString(device);
+    if(deviceInstance || deviceBypass) {
+      return success();
+    }
+
+    signalPassFailure();
+    return failure();
+  }
 
   /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
   /// nullptr.
@@ -634,6 +589,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
   }
 
   void runOnOperation() override {
+    if (deviceBypass)
+      return;
 
     auto func = getOperation();
     auto &blocks = func.getBlocks();
@@ -687,20 +644,15 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     // Sanity checks and create a wire to virtual qubit mapping.
     Block &block = *blocks.begin();
 
-    Device d;
-    if (auto adj =
-            dyn_cast_or_null<SparseElementsAttr>(wireSetOp.getAdjacencyAttr()))
-      d = Device::attr(adj);
-
-    if (d.getNumQubits() == 0) {
+    if (deviceInstance->getNumUsableQubits() == 0) {
       func.emitError("Trying to target an empty device.");
       signalPassFailure();
       return;
     }
 
-    LLVM_DEBUG({ d.dump(); });
+    LLVM_DEBUG({ deviceInstance->dump(); });
 
-    const std::size_t deviceNumQubits = d.getNumQubits();
+    const std::size_t deviceNumQubits = deviceInstance->getNumUsableQubits();
 
     SmallVector<quake::BorrowWireOp> sources(deviceNumQubits);
     SmallVector<quake::ReturnWireOp> returnsToRemove;
@@ -830,7 +782,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     // Create or borrow auxillary qubits if needed. Place them after the last
     // allocated qubit.
     builder.setInsertionPointAfter(lastSource);
-    for (unsigned i = 0; i < d.getNumQubits(); i++) {
+    for (unsigned i = 0; i < deviceInstance->getNumUsableQubits(); i++) {
       if (!sources[i]) {
         auto borrowOp = builder.create<quake::BorrowWireOp>(
             unknownLoc, wireTy, mappedWireSetName, i);
@@ -840,11 +792,15 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Place
-    Placement placement(sources.size(), d.getNumQubits());
-    identityPlacement(placement);
+    Placement placement(sources.size(), deviceInstance->getNumQubits());
+    if (!identityPlacement(placement, *deviceInstance)) {
+      func.emitOpError("Not enough usable device qubits to map sources.");
+      signalPassFailure();
+      return;
+    }
 
     // Route
-    SabreRouter router(d, wireToVirtualQ, placement, extendedLayerSize,
+    SabreRouter router(*deviceInstance, wireToVirtualQ, placement, extendedLayerSize,
                        extendedLayerWeight, decayDelta, roundsDecayReset);
     router.route(*blocks.begin(), sources);
     sortTopologically(&block);
@@ -967,6 +923,7 @@ void registerMappingPipeline() {
 
         // Add the per-function pass
         MappingFuncOptions funcOpts;
+        SET_IF_EXISTS(funcOpts, opt, device);
         SET_IF_EXISTS(funcOpts, opt, extendedLayerSize);
         SET_IF_EXISTS(funcOpts, opt, extendedLayerWeight);
         SET_IF_EXISTS(funcOpts, opt, decayDelta);

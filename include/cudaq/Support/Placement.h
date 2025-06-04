@@ -70,6 +70,17 @@ public:
     std::swap(phyToVr[phy0.index], phyToVr[phy1.index]);
   }
 
+  void dump(llvm::raw_ostream &os = llvm::errs()) const {
+    os << "Device qubits:\n";
+    for (unsigned i = 0; i < getNumDeviceQ(); ++i) {
+      os << "Q" << i << " -> " << getVr(DeviceQ(i)) << "\n";
+    }
+    os << "Virtual qubits:\n";
+    for (unsigned i = 0; i < getNumVirtualQ(); ++i) {
+      os << "Q" << i << " -> " << getPhy(VirtualQ(i)) << "\n";
+    }
+  }
+
 private:
   mlir::SmallVector<DeviceQ> vrToPhy;
   mlir::SmallVector<VirtualQ> phyToVr;
