@@ -286,6 +286,21 @@ complex_matrix boson_handler::to_matrix(
   return boson_handler::to_matrix(boson_word, relevant_dims);
 }
 
+mdiag_sparse_matrix boson_handler::to_diagonal_matrix(
+    const std::string &boson_word, const std::vector<std::int64_t> &dimensions,
+    std::complex<double> coeff, bool invert_order) {
+  std::int64_t dim = 1;
+  for (auto d : dimensions)
+    dim *= d;
+  return cudaq::detail::create_mdiag_sparse_matrix(
+      dim, coeff,
+      [&boson_word, &dimensions, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(boson_word, dimensions, process_entry, invert_order);
+      });
+}
+
 std::string boson_handler::to_string(bool include_degrees) const {
   if (include_degrees)
     return this->unique_id(); // unique id for consistency with keys in some
