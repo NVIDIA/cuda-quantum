@@ -23,8 +23,7 @@
   using the remote platform. It provides serialization utilities for kernel
   arguments. The argument packing (for serialization) is handled by C++
   templates in lieu of bridge-generated functions. These utilities will only be
-  used for the remote platform target in library-mode (guarded by pre-defined
-  macros).
+  used for the remote platform target (guarded by pre-defined macros).
 */
 
 namespace cudaq {
