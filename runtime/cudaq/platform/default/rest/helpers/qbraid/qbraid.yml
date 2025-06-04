@@ -1,0 +1,30 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: qbraid
+description: "CUDA-Q target for qBraid."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  # Define the lowering pipeline
+  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,func.func(lower-to-cfg),canonicalize,func.func(multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,CCZToCX,CRyToCX,CRxToCX,R1AdjToR1,RxAdjToRx,RyAdjToRy,RzAdjToRz},quake-to-cc-prep,func.func(memtoreg{quantum=0}),symbol-dce"
+  # Tell the rest-qpu that we are generating OpenQASM.
+  codegen-emission: qasm2
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+
+target-arguments:
+  - key: machine
+    required: false
+    type: string
+    platform-arg: qpu 
+    help-string: "Specify the qBraid QPU."

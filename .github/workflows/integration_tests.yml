@@ -23,11 +23,16 @@ on:
           - iqm
           - oqc
           - orca
+<<<<<<< HEAD
           - pasqal
           - qci
           - quantinuum
           - scaleway
           - tii
+=======
+          - fermioniq
+          - qbraid
+>>>>>>> 17f25cf4 (qBraid integration MVP (#4))
       single_test_name:
         type: string
         required: false
