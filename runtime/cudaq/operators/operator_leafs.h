@@ -485,7 +485,7 @@ public:
 
 // An adapter for operator handler classes that can generate multi-diagonal
 // representation.
-// Subclasses to implement the
+// Subclasses to implement the `to_diagonal_matrix` method
 class mdiag_operator_handler {
 public:
   /// @brief Return the `matrix_handler` as a multi-diagonal matrix.
