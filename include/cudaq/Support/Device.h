@@ -24,7 +24,8 @@ public:
   using Path = mlir::SmallVector<Qubit>;
 
   /// Read device connectivity info from a file. The input format is the same
-  /// as the Graph dump() format.
+  /// as the Graph dump() format, with the addition of a line that lists the
+  /// excluded qubits.
   static Device file(llvm::StringRef filename) {
     Device device;
 
@@ -46,6 +47,17 @@ public:
         if (!line.consumeInteger(/*Radix=*/10, numQubits)) {
           for (unsigned i = 0u; i < numQubits; ++i)
             device.topology.createNode();
+        }
+      } else if (line.consume_front("Excluded nodes:")) {
+        line = line.ltrim();
+        if (line.consume_front("{")) {
+          while (!line.empty()) {
+            unsigned nodeNum = 0;
+            if (!line.consumeInteger(/*Radix=*/10, nodeNum)) {
+              device.excludedQubits.push_back(Qubit(nodeNum));
+            }
+            line = line.ltrim(" \t\n\v\f\r,}");
+          }
         }
       } else {
         // Parse edges
@@ -75,7 +87,18 @@ public:
       }
     }
 
+    // We need to remove paths that include excluded qubits
+    for (auto excluded : device.excludedQubits) {
+      auto neighbors = device.topology.getNeighbours(excluded);
+      while (!neighbors.empty()) {
+        device.topology.removeEdge(excluded, neighbors.front());
+        neighbors = device.topology.getNeighbours(excluded);
+      }
+    }
+
     device.computeAllPairShortestPaths();
+    // llvm::errs() << "Device (" << filename << "):\n";
+    // device.dump(llvm::errs());
     return device;
   }
 
@@ -214,6 +237,17 @@ public:
   /// Returns the number of physical qubits in the device.
   unsigned getNumQubits() const { return topology.getNumNodes(); }
 
+  /// Returns true if the qubit is excluded from the device.
+  bool isQubitExcluded(Qubit qubit) const {
+    llvm::errs() << "Checking if qubit " << qubit << " is excluded\n";
+    llvm::errs() << "Excluded qubits:";
+    for (auto q : excludedQubits)
+      llvm::errs() << q << " ";
+    llvm::errs() << "\n";
+    return std::find(excludedQubits.begin(), excludedQubits.end(), qubit) !=
+           excludedQubits.end();
+  }
+
   /// Returns the distance between two qubits.
   unsigned getDistance(Qubit src, Qubit dst) const {
     unsigned pairID = getPairID(src.index, dst.index);
@@ -237,7 +271,7 @@ public:
   }
 
   void dump(llvm::raw_ostream &os = llvm::errs()) const {
-    os << "Graph:\n";
+    os << "asdGraph:\n";
     topology.dump(os);
     os << "\nShortest Paths:\n";
     for (unsigned src = 0; src < getNumQubits(); ++src)
@@ -247,6 +281,10 @@ public:
         llvm::interleaveComma(path, os);
         os << "}\n";
       }
+    os << "\nExcluded qubits: ";
+    for (auto q : excludedQubits)
+      os << q << " ";
+    os << "\n";
   }
 
 private:
@@ -288,6 +326,9 @@ private:
 
   /// Device nodes (qubits) and edges (connections)
   GraphCSR topology;
+
+  /// List of excluded qubits
+  mlir::SmallVector<Qubit> excludedQubits;
 
   /// List of shortest path from/to every source/destination
   mlir::SmallVector<PathRef> shortestPaths;

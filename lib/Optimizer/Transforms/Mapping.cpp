@@ -205,6 +205,17 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
   for (auto vr : virtOp.qubits)
     deviceQubits.push_back(placement.getPhy(vr));
 
+  // No operation can be mapped to excluded qubits.
+  LLVM_DEBUG({
+    logger.startLine() << "Device qubits:";
+    for (auto qubit : deviceQubits)
+      logger.startLine() << qubit;
+  });
+  for (auto qubit : deviceQubits)
+    if (device.isQubitExcluded(qubit)) {
+      return failure();
+    }
+
   // An operation cannot be mapped if it is not a measurement and uses two
   // qubits virtual qubit that are no adjacently placed.
   if (!virtOp.op->hasTrait<QuantumMeasure>() && deviceQubits.size() == 2 &&
@@ -364,21 +375,39 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
   LLVM_DEBUG({
     logger.getOStream() << "\n";
     logger.startLine() << logLineComment;
+    logger.startLine() << "Device:\n";
+    logger.indent();
+    device.dump(logger.getOStream());
+    logger.unindent();
+  });
+
+  LLVM_DEBUG({
+    logger.getOStream() << "\n";
+    logger.startLine() << logLineComment;
     logger.startLine() << "Mapping front layer:\n";
     logger.indent();
-    for (auto virtOp : sources)
-      logger.startLine() << "* " << *virtOp << " --> SUCCESS\n";
+  });
+  
+  // The source ops can be mapped, unless they use excluded qubits.
+  for (auto borrowWire : sources) {
+    LLVM_DEBUG({
+      logger.startLine() << "* " << *borrowWire;
+    });
+    Value wire = borrowWire.getResult();
+    auto phy = placement.getPhy(wireToVirtualQ[wire]);
+    if (device.isQubitExcluded(phy)) {
+      LLVM_DEBUG(logger.getOStream() << " --> FAILURE\n");
+      continue;
+    }
+    LLVM_DEBUG(logger.getOStream() << " --> SUCCESS\n");
+    visitUsers(borrowWire->getUsers(), frontLayer);
+    phyToWire[phy.index] = wire;
+  }
+
+  LLVM_DEBUG({
     logger.unindent();
     logger.startLine() << logLineComment;
   });
-
-  // The source ops can always be mapped.
-  for (auto borrowWire : sources) {
-    visitUsers(borrowWire->getUsers(), frontLayer);
-    Value wire = borrowWire.getResult();
-    auto phy = placement.getPhy(wireToVirtualQ[wire]);
-    phyToWire[phy.index] = wire;
-  }
 
   OpBuilder builder(&block, block.begin());
   auto wireType = builder.getType<quake::WireType>();
