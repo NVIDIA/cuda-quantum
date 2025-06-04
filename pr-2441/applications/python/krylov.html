@@ -416,6 +416,12 @@
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_pagerank.html">Quantum PageRank</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
@@ -724,7 +730,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
@@ -878,40 +884,56 @@ state vector.</p>
 <p>The Hamiltonian matrix elements are computed with a circuit that includes controlled application of the Hamiltonian. Once the <span class="math notranslate nohighlight">\(H\)</span> and <span class="math notranslate nohighlight">\(S\)</span> matrices are constructed, the diagonalization is performed classically to produce an estimate for the ground state in question.</p>
 <section id="Setup">
 <h2>Setup<a class="headerlink" href="#Setup" title="Permalink to this heading">¶</a></h2>
-<p>This cell installs the necessary packages. This application can be parallelized, so please uncomment the <code class="docutils literal notranslate"><span class="pre">mgpu</span></code> specification below if you would like to run on more than one GPU.</p>
+<p>This cell installs the necessary packages.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">scipy</span>
 
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">openfermion</span><span class="o">==</span><span class="m">1</span>.6.1<span class="w"> </span><span class="nv">pyscf</span><span class="o">==</span><span class="m">2</span>.6.2<span class="w"> </span><span class="nv">openfermionpyscf</span><span class="o">==</span><span class="m">0</span>.5<span class="w"> </span>-q
+<span class="o">%</span><span class="k">pip</span> install pyscf
 
 <span class="c1"># Single-node, single gpu</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-<span class="n">multi_gpu</span> <span class="o">=</span> <span class="kc">False</span>
-
-<span class="c1"># Single-node, multi-GPU</span>
-<span class="c1">#cudaq.set_target(&quot;nvidia&quot;, option=&#39;mqpu,fp64&#39;)</span>
-<span class="c1">#multi_gpu = True</span>
-</pre></div>
+<br/></pre></div>
 </div>
 </div>
 <p>The molecule is defined below and its Hamiltonian is extracted as a matrix. The matrix is diagonalized to produce the ground state. The corresponding state vector will be used as the initial state to ensure good results for this demonstration.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define H2 molecule</span>
-<span class="n">geometry</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.7474</span><span class="p">))]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.classical_pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_mol_hamiltonian</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qchem.hamiltonian</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner_fermion</span>
 
-<span class="n">hamiltonian</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">chemistry</span><span class="o">.</span><span class="n">create_molecular_hamiltonian</span><span class="p">(</span>
-    <span class="n">geometry</span><span class="p">,</span> <span class="s1">&#39;sto-3g&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="c1"># Define H2 molecule</span>
 
-<span class="n">electron_count</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">n_electrons</span>
-<span class="n">qubits_num</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">n_orbitals</span>
+<span class="c1"># Generate the spin Hamiltonian</span>
+
+<span class="n">geometry</span> <span class="o">=</span> <span class="s1">&#39;H 0.0 0.0 0.0; H 0.0 0.0 0.7474&#39;</span>
+<span class="c1">#geometry = &#39;Li 0.3925 0.0 0.0; H -1.1774 0.0 0.0&#39;</span>
+<span class="c1">#geometry = &quot;qchem/H2O.xyz&quot;</span>
+
+
+<span class="c1"># Run HF, ccsd and compute the spin molecular hamiltonian using the HF molecular orbitals.</span>
+<span class="n">molecular_data</span> <span class="o">=</span> <span class="n">get_mol_hamiltonian</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="n">geometry</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="s1">&#39;sto3g&#39;</span><span class="p">,</span> <span class="n">ccsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># For active space calculations, we can specify the number of active electrons and orbitals.</span>
+<span class="c1">#molecular_data = get_mol_hamiltonian(xyz=geometry, spin=0, charge=0, basis=&#39;631g&#39;, nele_cas=4, norb_cas=4,</span>
+<span class="c1">#                                     ccsd=True, casci=True, verbose=True)</span>
+
+<span class="n">obi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">tbi</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">e_nn</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">nelectrons</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">norbitals</span> <span class="o">=</span> <span class="n">molecular_data</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+
+<span class="n">qubits_num</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">norbitals</span>
+
+<span class="c1"># Jordan-Wigner transformation to convert the fermionic Hamiltonian to a spin Hamiltonian</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">jordan_wigner_fermion</span><span class="p">(</span><span class="n">obi</span><span class="p">,</span> <span class="n">tbi</span><span class="p">,</span> <span class="n">e_nn</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">)</span>
 
 <span class="c1"># Diagonalize Hamiltonian</span>
 <span class="n">spin_ham_matrix</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">to_matrix</span><span class="p">()</span>
@@ -927,38 +949,58 @@ state vector.</p>
 </pre></div>
 </div>
 </div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+overwrite output file: H 0-pyscf.log
+[pyscf] Total number of orbitals =  2
+[pyscf] Total number of electrons =  2
+[pyscf] HF energy =  -1.116325564486115
+[pyscf] Total R-CCSD energy =  -1.1371758844013329
+Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  3
+</pre></div></div>
+</div>
 <p>The functions below take the original Hamiltonian defined above, and strip it into a list of Pauli words and a list of coefficients which will be uses later.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Collect coefficients from a spin operator so they can pass to a kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">termCoefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Collect coefficients from a spin operator so we can pass them to a kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">term_coefficients</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">complex</span><span class="p">]:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">ham</span><span class="p">:</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_coefficient</span><span class="p">())</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">evaluate_coefficient</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">result</span>
 
-
-<span class="c1"># Collect Pauli words from a spin operator so they can pass to a kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">termWords</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="c1"># Collect Pauli words from a spin operator so we can pass them to a kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">term_words</span><span class="p">(</span><span class="n">ham</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
     <span class="c1"># Our kernel uses these words to apply exp_pauli to the entire state.</span>
     <span class="c1"># we hence ensure that each pauli word covers the entire space.</span>
-    <span class="n">n_spins</span> <span class="o">=</span> <span class="n">ham</span><span class="o">.</span><span class="n">get_qubit_count</span><span class="p">()</span>
+
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">ham</span><span class="p">:</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">(</span><span class="n">n_spins</span><span class="p">))</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">result</span>
 
-
 <span class="c1"># Build the lists of coefficients and Pauli Words from the H2 Hamiltonian</span>
-<span class="n">coefficient</span> <span class="o">=</span> <span class="n">termCoefficients</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
-<span class="n">pauli_string</span> <span class="o">=</span> <span class="n">termWords</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
+<span class="n">coefficient</span> <span class="o">=</span> <span class="n">term_coefficients</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
+<span class="n">pauli_string</span> <span class="o">=</span> <span class="n">term_words</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">coefficient</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">pauli_string</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[(-0.10647701149300504+0j), (0.17028010135220506+0j), (0.17028010135220503+0j), (-0.2200413002242175+0j), (-0.2200413002242175+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
+[&#39;IIII&#39;, &#39;ZIII&#39;, &#39;IZII&#39;, &#39;IIZI&#39;, &#39;IIIZ&#39;, &#39;ZZII&#39;, &#39;ZIZI&#39;, &#39;ZIIZ&#39;, &#39;IZZI&#39;, &#39;IZIZ&#39;, &#39;IIZZ&#39;, &#39;XXYY&#39;, &#39;XYYX&#39;, &#39;YXXY&#39;, &#39;YYXX&#39;]
+</pre></div></div>
 </div>
 <p>In this example, the unitary operators that build the Krylov subspace are first-order Trotter operations at different time steps. The performance here could potentially be improved by increasing the size of the time step, using a higher order Trotter approximation, or using other sorts of approximations. The CUDA-Q kernels below define the unitary operations that construct the <span class="math notranslate nohighlight">\(\psi\)</span> basis. Each receives the target qubits, the time step, and components of the Hamiltonian.</p>
 <div class="nbinput nblast docutils container">
@@ -1078,101 +1120,28 @@ state vector.</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Single GPU:</span>
-<span class="k">if</span> <span class="ow">not</span> <span class="n">multi_gpu</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># Create the identity operator</span>
+<span class="n">identity_op</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="o">.</span><span class="n">from_word</span><span class="p">(</span><span class="s1">&#39;I&#39;</span> <span class="o">*</span> <span class="n">qubits_num</span><span class="p">)</span>
+<span class="c1"># Get the Pauli word and convert it to a list of integers</span>
+<span class="c1"># where I=0, X=1, Y=2, Z=3</span>
+<span class="c1"># This is used to apply the identity operator in the kernel.</span>
+<span class="n">identity_word</span> <span class="o">=</span> <span class="n">identity_op</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">()</span>
+<span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">identity_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
 
-    <span class="c1"># Add identity operator to compute overlap of basis</span>
-    <span class="n">observe_op</span> <span class="o">=</span> <span class="mf">1.0</span>
-    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
-        <span class="n">observe_op</span> <span class="o">*=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-    <span class="n">identity_word</span> <span class="o">=</span> <span class="n">observe_op</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">()</span>
-    <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">identity_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
-
-    <span class="c1"># Empty overlap matrix S</span>
-    <span class="n">wf_overlap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-
-    <span class="c1"># Loop to solve for S matrix elements</span>
-    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
-        <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
-        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
-            <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
-                                    <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">)</span>
-            <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
-            <span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
-            <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
-                <span class="n">wf_overlap</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
-
-<span class="k">else</span><span class="p">:</span>
-
-    <span class="c1">## Multi-GPU</span>
-
-    <span class="c1"># Add identity operator to compute overlap of basis</span>
-    <span class="n">observe_op</span> <span class="o">=</span> <span class="mf">1.0</span>
-
-    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubits_num</span><span class="p">):</span>
-        <span class="n">observe_op</span> <span class="o">*=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">spin</span><span class="o">.</span><span class="n">i</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-
-    <span class="n">identity_word</span> <span class="o">=</span> <span class="n">observe_op</span><span class="o">.</span><span class="n">get_pauli_word</span><span class="p">()</span>
-    <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">identity_word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
-
-    <span class="c1"># Empty overlap matrix S</span>
-    <span class="n">wf_overlap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-
-    <span class="c1"># Empty lists to store results</span>
-    <span class="n">collect_overlap_real</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">collect_overlap_img</span> <span class="o">=</span> <span class="p">[]</span>
-
-    <span class="c1"># Loop to compute matrix elements of S</span>
-    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
-        <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
-        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
-            <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
-
-            <span class="c1"># The count variable determines which (simulated) QPU the computation is sent to</span>
-            <span class="c1"># The results are stored in a list corresponding to the real and imaginary parts</span>
-            <span class="n">count_id</span> <span class="o">=</span> <span class="n">count</span> <span class="o">%</span> <span class="mi">2</span>
-            <span class="n">collect_overlap_real</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span>
-                                    <span class="n">x_0</span><span class="p">,</span>
-                                    <span class="n">dt_m</span><span class="p">,</span>
-                                    <span class="n">dt_n</span><span class="p">,</span>
-                                    <span class="n">coefficient</span><span class="p">,</span>
-                                    <span class="n">pauli_string</span><span class="p">,</span>
-                                    <span class="n">pauli_list</span><span class="p">,</span>
-                                    <span class="n">vec</span><span class="p">,</span>
-                                    <span class="n">qpu_id</span><span class="o">=</span><span class="n">count_id</span><span class="p">))</span>
-
-            <span class="n">collect_overlap_img</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span>
-                                    <span class="n">y_0</span><span class="p">,</span>
-                                    <span class="n">dt_m</span><span class="p">,</span>
-                                    <span class="n">dt_n</span><span class="p">,</span>
-                                    <span class="n">coefficient</span><span class="p">,</span>
-                                    <span class="n">pauli_string</span><span class="p">,</span>
-                                    <span class="n">pauli_list</span><span class="p">,</span>
-                                    <span class="n">vec</span><span class="p">,</span>
-                                    <span class="n">qpu_id</span><span class="o">=</span><span class="n">count_id</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
-            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="n">tot_dim</span> <span class="o">=</span> <span class="mi">0</span>
-
-    <span class="c1"># A second loop takes the lists of results and, using `get`, populates the matrix elements</span>
-    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
-            <span class="n">observe_result</span> <span class="o">=</span> <span class="n">collect_overlap_real</span><span class="p">[</span><span class="n">tot_dim</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-            <span class="n">real_val</span> <span class="o">=</span> <span class="n">observe_result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-
-            <span class="n">observe_result</span> <span class="o">=</span> <span class="n">collect_overlap_img</span><span class="p">[</span><span class="n">tot_dim</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-            <span class="n">img_val</span> <span class="o">=</span> <span class="n">observe_result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-
-            <span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">real_val</span> <span class="o">+</span> <span class="n">img_val</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
-            <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
-                <span class="n">wf_overlap</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
-
-            <span class="n">tot_dim</span> <span class="o">+=</span> <span class="mi">1</span>
-</pre></div>
+<span class="c1"># Empty overlap matrix S</span>
+<span class="n">wf_overlap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+<span class="c1"># Loop to solve for S matrix elements</span>
+<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
+    <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
+        <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
+                                <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span> <span class="n">vec</span><span class="p">)</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+        <span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
+            <span class="n">wf_overlap</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">wf_overlap</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+<br/><br/></pre></div>
 </div>
 </div>
 <p>The Hamiltonian matrix elements are computed in the same way, except this time the Hamiltonian is applied as part of the circuit. This is accomplished with the extra for loop, which iterates through the terms in the Hamiltonian, computing an expectation value for each one and then summing the results to produce one matrix element.</p>
@@ -1181,114 +1150,45 @@ state vector.</p>
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Single GPU:</span>
-<span class="k">if</span> <span class="ow">not</span> <span class="n">multi_gpu</span><span class="p">:</span>
 
-    <span class="c1"># Empty H</span>
-    <span class="n">ham_matrx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+<span class="c1"># Empty H matrix</span>
+<span class="c1"># This matrix will be used to store the Hamiltonian matrix elements</span>
+<span class="c1"># for the Krylov subspace.</span>
+<span class="c1"># The matrix is symmetric, so we only need to compute the upper triangle.</span>
+<span class="c1"># The matrix is of size m_qfd x m_qfd, where m_qfd is the dimension of the Krylov subspace.</span>
+<span class="n">ham_matrx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
 
-    <span class="c1"># Loops over H matrix terms</span>
-    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
-        <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
-        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
-            <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
+<span class="c1"># Loops over H matrix terms</span>
+<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
+    <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
+        <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
 
-            <span class="c1"># 2 entry array that stores real and imaginary part of matrix element</span>
-            <span class="n">tot_e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># 2 entry array that stores real and imaginary part of matrix element</span>
+        <span class="n">tot_e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 
-            <span class="c1"># Loops over the terms in the Hamiltonian, computing expectation values</span>
-            <span class="k">for</span> <span class="n">coef</span><span class="p">,</span> <span class="n">word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">):</span>
-                <span class="c1">#print(coef,word)</span>
+        <span class="c1"># Loops over the terms in the Hamiltonian, computing expectation values</span>
+        <span class="k">for</span> <span class="n">coef</span><span class="p">,</span> <span class="n">word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">):</span>
+            <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
 
-                <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
-                <span class="c1">#print(pauli_list)</span>
-
-                <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span> <span class="p">[</span><span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">],</span> <span class="n">dt_m</span><span class="p">,</span> <span class="n">dt_n</span><span class="p">,</span>
                                         <span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">,</span> <span class="n">pauli_list</span><span class="p">,</span>
                                         <span class="n">vec</span><span class="p">)</span>
 
-                <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
 
-                <span class="c1"># Multiplies result by coefficient corresponding to Pauli Word</span>
-                <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">imag</span> <span class="o">*</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="c1"># Multiplies result by coefficient corresponding to Pauli Word</span>
+            <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">coef</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-                <span class="c1"># Accumulates results for each Pauli Word</span>
-                <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="c1"># Accumulates results for each Pauli Word</span>
+            <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-            <span class="c1"># Sums real and imaginary totals to specify Hamiltonian entry</span>
-            <span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
-            <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
-                <span class="n">ham_matrx</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
-<span class="k">else</span><span class="p">:</span>
-
-    <span class="c1">## Multi-GPU</span>
-
-    <span class="c1"># Empty H</span>
-    <span class="n">ham_matrx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m_qfd</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-
-    <span class="c1"># Loops over H matrix terms</span>
-    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_qfd</span><span class="p">):</span>
-        <span class="n">dt_m</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">m</span>
-        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m_qfd</span><span class="p">):</span>
-            <span class="n">dt_n</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">n</span>
-
-            <span class="c1">#List storing results from real and imaginary circuit evaluations for each Pauli word</span>
-            <span class="n">ham_matrix_real</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">ham_matrix_imag</span> <span class="o">=</span> <span class="p">[]</span>
-
-            <span class="c1"># Loop to asynchronously compute real and imaginary parts for each Pauli word on two GPUs</span>
-            <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">tot_e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">coef</span><span class="p">,</span> <span class="n">word</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">pauli_string</span><span class="p">):</span>
-                <span class="n">count_id</span> <span class="o">=</span> <span class="n">count</span> <span class="o">%</span> <span class="mi">2</span>
-                <span class="c1">#print(coef,word)</span>
-
-                <span class="n">pauli_list</span> <span class="o">=</span> <span class="n">pauli_str</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">qubits_num</span><span class="p">)</span>
-                <span class="c1">#print(pauli_list)</span>
-
-                <span class="n">ham_matrix_real</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span>
-                                        <span class="n">x_0</span><span class="p">,</span>
-                                        <span class="n">dt_m</span><span class="p">,</span>
-                                        <span class="n">dt_n</span><span class="p">,</span>
-                                        <span class="n">coefficient</span><span class="p">,</span>
-                                        <span class="n">pauli_string</span><span class="p">,</span>
-                                        <span class="n">pauli_list</span><span class="p">,</span>
-                                        <span class="n">vec</span><span class="p">,</span>
-                                        <span class="n">qpu_id</span><span class="o">=</span><span class="n">count_id</span><span class="p">))</span>
-                <span class="n">ham_matrix_imag</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">qfd_kernel</span><span class="p">,</span>
-                                        <span class="n">y_0</span><span class="p">,</span>
-                                        <span class="n">dt_m</span><span class="p">,</span>
-                                        <span class="n">dt_n</span><span class="p">,</span>
-                                        <span class="n">coefficient</span><span class="p">,</span>
-                                        <span class="n">pauli_string</span><span class="p">,</span>
-                                        <span class="n">pauli_list</span><span class="p">,</span>
-                                        <span class="n">vec</span><span class="p">,</span>
-                                        <span class="n">qpu_id</span><span class="o">=</span><span class="n">count_id</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
-
-                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-            <span class="c1"># Loops through coefficients to sum the real and imaginary parts of H matrix element</span>
-            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">coef</span> <span class="ow">in</span> <span class="n">coefficient</span><span class="p">:</span>
-
-                <span class="n">observe_result</span> <span class="o">=</span> <span class="n">ham_matrix_real</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-                <span class="n">real_val</span> <span class="o">=</span> <span class="n">observe_result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-
-                <span class="n">observe_result</span> <span class="o">=</span> <span class="n">ham_matrix_imag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-                <span class="n">img_val</span> <span class="o">=</span> <span class="n">observe_result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-
-                <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">real_val</span> <span class="o">*</span> <span class="n">coef</span><span class="o">.</span><span class="n">real</span>
-                <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">img_val</span> <span class="o">*</span> <span class="n">coef</span><span class="o">.</span><span class="n">imag</span>
-
-                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
-
-            <span class="c1"># Enter final H matrix element</span>
-            <span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
-            <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
-                <span class="n">ham_matrx</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+        <span class="c1"># Sums real and imaginary totals to specify Hamiltonian entry</span>
+        <span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">tot_e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">m</span><span class="p">:</span>
+            <span class="n">ham_matrx</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
@@ -1337,8 +1237,8 @@ state vector.</p>
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">eigen_value</span><span class="p">,</span> <span class="n">eigen_vect</span> <span class="o">=</span> <span class="n">eig</span><span class="p">(</span><span class="n">ham_matrx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">],</span> <span class="n">wf_overlap</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">m_qfd</span><span class="p">,</span>
@@ -1347,6 +1247,15 @@ state vector.</p>
 <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">eigen_value</span><span class="p">))</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Energy from QFD:
+(-1.137176660753775-1.6945689273261445e-07j)
+</pre></div></div>
 </div>
 </section>
 </section>

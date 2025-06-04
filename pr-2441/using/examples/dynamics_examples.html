@@ -413,6 +413,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
@@ -721,7 +727,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
@@ -886,7 +892,7 @@
 <span class="c1"># Cavity in a state which has 5 photons initially</span>
 <span class="n">cavity_state</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
 <span class="n">cavity_state</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-<span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">qubit_state</span><span class="p">,</span> <span class="n">cavity_state</span><span class="p">))</span>
+<span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">cavity_state</span><span class="p">,</span> <span class="n">qubit_state</span><span class="p">))</span>
 
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">201</span><span class="p">)</span>
 <span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
@@ -984,75 +990,38 @@
 <span class="c1"># Dimensions of sub-system</span>
 <span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
 
-<span class="c1"># Initial state of the system (ground state).</span>
-<span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>
-    <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
-
 <span class="c1"># Two initial states: |00&gt; and |10&gt;.</span>
 <span class="c1"># We show the &#39;conditional&#39; evolution when controlled qubit is in |1&gt; state.</span>
 <span class="n">psi_00</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>
     <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
 <span class="n">psi_10</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>
-    <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
+    <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
 
 <span class="c1"># Schedule of time steps.</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1001</span><span class="p">)</span>
 <span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
 
-<span class="c1"># Run the simulation.</span>
-<span class="c1"># Control bit = 0</span>
-<span class="n">evolution_result_00</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span>
-                                   <span class="n">dimensions</span><span class="p">,</span>
-                                   <span class="n">schedule</span><span class="p">,</span>
-                                   <span class="n">psi_00</span><span class="p">,</span>
-                                   <span class="n">observables</span><span class="o">=</span><span class="p">[</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-                                   <span class="p">],</span>
-                                   <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
-                                   <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                   <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
-
-<span class="c1"># Control bit = 1</span>
-<span class="n">evolution_result_10</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span>
-                                   <span class="n">dimensions</span><span class="p">,</span>
-                                   <span class="n">schedule</span><span class="p">,</span>
-                                   <span class="n">psi_10</span><span class="p">,</span>
-                                   <span class="n">observables</span><span class="o">=</span><span class="p">[</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-                                       <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-                                   <span class="p">],</span>
-                                   <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
-                                   <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                   <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
+<span class="c1"># Run the simulations (batched).</span>
+<span class="n">evolution_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span>
+                                 <span class="n">dimensions</span><span class="p">,</span>
+                                 <span class="n">schedule</span><span class="p">,</span> <span class="p">[</span><span class="n">psi_00</span><span class="p">,</span> <span class="n">psi_10</span><span class="p">],</span>
+                                 <span class="n">observables</span><span class="o">=</span><span class="p">[</span>
+                                     <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                     <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                     <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                     <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                                     <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                                     <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                                 <span class="p">],</span>
+                                 <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
+                                 <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                 <span class="n">integrator</span><span class="o">=</span><span class="n">ScipyZvodeIntegrator</span><span class="p">())</span>
 
 <span class="n">get_result</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">idx</span><span class="p">,</span> <span class="n">res</span><span class="p">:</span> <span class="p">[</span>
     <span class="n">exp_vals</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">exp_vals</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">expectation_values</span><span class="p">()</span>
 <span class="p">]</span>
-<span class="n">results_00</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">evolution_result_00</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">evolution_result_00</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">evolution_result_00</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">evolution_result_00</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">evolution_result_00</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">evolution_result_00</span><span class="p">)</span>
-<span class="p">]</span>
-<span class="n">results_10</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">evolution_result_10</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">evolution_result_10</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">evolution_result_10</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">evolution_result_10</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">evolution_result_10</span><span class="p">),</span>
-    <span class="n">get_result</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">evolution_result_10</span><span class="p">)</span>
-<span class="p">]</span>
+<span class="n">results_00</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_result</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">evolution_results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">)]</span>
+<span class="n">results_10</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_result</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">evolution_results</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">)]</span>
 
 <span class="c1"># The changes in recession frequencies of the target qubit when control qubit is in |1&gt; state allow us to implement two-qubit conditional gates.</span>
 <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
