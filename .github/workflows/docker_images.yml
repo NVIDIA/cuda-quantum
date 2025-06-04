@@ -153,6 +153,11 @@ jobs:
             org.opencontainers.image.title=open-mpi
             org.opencontainers.image.description=Open MPI dependencies of CUDA Quantum
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v9.2.2-52
+
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -303,8 +308,15 @@ jobs:
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v9.2.2-52
+
       - name: Set up context for buildx
         run: |
+          echo uname -rv
+          uname -rv
           docker context create builder_context
 
       - name: Set up buildx runner
@@ -514,8 +526,15 @@ jobs:
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v9.2.2-52
+
       - name: Set up context for buildx
         run: |
+          echo uname -rv
+          uname -rv
           docker context create builder_context
 
       - name: Set up buildx runner
