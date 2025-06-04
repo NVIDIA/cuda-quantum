@@ -1,12 +1,5 @@
-# ### Defining Kernels
-#
-# Kernels are the building blocks of quantum algorithms in CUDA-Q. A kernel is specified by using the following syntax. `cudaq.qubit` builds a register consisting of a single qubit, while `cudaq.qvector` builds a register of $N$ qubits.
-
-# In[14]:
-
+# [Begin Definition]
 import cudaq
-
-# In[15]:
 
 
 @cudaq.kernel
@@ -16,10 +9,9 @@ def kernel():
     C = cudaq.qvector(5)
 
 
-# Inputs to kernels are defined by specifying a parameter in the kernel definition along with the appropriate type. The kernel below takes an integer to define a register of N qubits.
+# [End Definition]
 
-# In[16]:
-
+# [Begin `InputDefinition`]
 N = 2
 
 
@@ -28,18 +20,9 @@ def kernel(N: int):
     register = cudaq.qvector(N)
 
 
-# ### Initializing states
-#
-# It is often helpful to define an initial state for a kernel. There are a few ways to do this in CUDA-Q. Note, method 5 is particularly useful for cases where the state of one kernel is passed into a second kernel to prepare its initial state.
-#
-# 1. Passing complex vectors as parameters
-# 2. Capturing complex vectors
-# 3. Precision-agnostic API
-# 4. Define as CUDA-Q amplitudes
-# 5. Pass in a state from another kernel
+# [End `InputDefinition`]
 
-# In[17]:
-
+# [Begin `PassingComplexVector`]
 # Passing complex vectors as parameters
 c = [.707 + 0j, 0 - .707j]
 
@@ -49,6 +32,9 @@ def kernel(vec: list[complex]):
     q = cudaq.qubit(vec)
 
 
+# [End `PassingComplexVector`]
+
+# [Begin `CapturingComplexVector`]
 # Capturing complex vectors
 c = [0.70710678 + 0j, 0., 0., 0.70710678]
 
@@ -58,6 +44,9 @@ def kernel():
     q = cudaq.qvector(c)
 
 
+# [End `CapturingComplexVector`]
+
+# [Begin `PrecisionAgnosticAPI`]
 # Precision-Agnostic API
 import numpy as np
 
@@ -69,6 +58,9 @@ def kernel():
     q = cudaq.qvector(c)
 
 
+# [End `PrecisionAgnosticAPI`]
+
+# [Begin `CUDAQAmplitudes`]
 # Define as CUDA-Q amplitudes
 c = cudaq.amplitudes([0.70710678 + 0j, 0., 0., 0.70710678])
 
@@ -78,6 +70,9 @@ def kernel():
     q = cudaq.qvector(c)
 
 
+# [End `CUDAQAmplitudes`]
+
+# [Begin `PassingState`]
 # Pass in a state from another kernel
 c = [0.70710678 + 0j, 0., 0., 0.70710678]
 
@@ -96,31 +91,20 @@ def kernel(state: cudaq.State):
 
 
 kernel(state_to_pass)
-
-# ### Applying Gates
-#
-#
-# After a kernel is constructed, gates can be applied to start building out a quantum circuit.
-# All the predefined gates in CUDA-Q can be found here:
-# https://nvidia.github.io/cuda-quantum/api/default_ops.
-#
-#
-# Gates can be applied to all qubits in a register:
-
-# In[18]:
+# [End `PassingState`]
 
 
+# [Begin `AllQubits`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
     h(register)
 
 
-# Or, to individual qubits in a register:
-
-# In[19]:
+# [End `AllQubits`]
 
 
+# [Begin `IndividualQubits`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
@@ -128,13 +112,10 @@ def kernel():
     h(register[-1])  # last qubit
 
 
-# ### Controlled Operations
-#
-# Controlled operations are available for any gate and can be used by adding `.ctrl` to the end of any gate, followed by specification of the control qubit and the target qubit.
-
-# In[20]:
+# [End `IndividualQubits`]
 
 
+# [Begin `ControlledOperations`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
@@ -142,13 +123,10 @@ def kernel():
            register[1])  # CNOT gate applied with qubit 0 as control
 
 
-# ### Multi-Controlled Operations
-#
-# It is valid for more than one qubit to be used for multi-controlled gates. The control qubits are specified as a list.
-
-# In[21]:
+# [End `ControlledOperations`]
 
 
+# [Begin `MultiControlledOperations`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
@@ -156,11 +134,10 @@ def kernel():
            register[2])  # X applied to qubit two controlled by qubit 0 and 1
 
 
-# You can also call a controlled kernel within a kernel:
-
-# In[22]:
+# [End `MultiControlledOperations`]
 
 
+# [Begin `ControlledKernel`]
 @cudaq.kernel
 def x_kernel(qubit: cudaq.qubit):
     x(qubit)
@@ -180,8 +157,6 @@ def kernel():
 
 
 # The above is equivalent to:
-
-
 @cudaq.kernel
 def kernel():
     qvector = cudaq.qvector(3)
@@ -193,26 +168,19 @@ def kernel():
 
 results = cudaq.sample(kernel)
 print(results)
-
-# ### Adjoint Operations
-#
-# The adjoint of a gate can be applied by appending the gate with the `adj` designation.
-
-# In[23]:
+# [End `ControlledKernel`]
 
 
+# [Begin `AdjointOperations`]
 @cudaq.kernel
 def kernel():
     register = cudaq.qvector(10)
     t.adj(register[0])
 
 
-# ### Custom Operations
-#
-# Custom gate operations can be specified using `cudaq.register_operation`. A one-dimensional Numpy array specifies the unitary matrix to be applied. The entries of the array read from top to bottom through the rows.
+# [End `AdjointOperations`]
 
-# In[24]:
-
+# [Begin `CustomOperations`]
 import numpy as np
 
 cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
@@ -226,13 +194,10 @@ def kernel():
     custom_x.ctrl(qubits[0], qubits[1])
 
 
-# ### Building Kernels with Kernels
-#
-# For many complex applications, it is helpful for a kernel to call another kernel to perform a specific subroutine. The example blow shows how `kernel_A` can be called within `kernel_B` to perform CNOT operations.
-
-# In[25]:
+# [End `CustomOperations`]
 
 
+# [Begin `BuildingKernelsWithKernels`]
 @cudaq.kernel
 def kernel_A(qubit_0: cudaq.qubit, qubit_1: cudaq.qubit):
     x.ctrl(qubit_0, qubit_1)
@@ -245,13 +210,10 @@ def kernel_B():
         kernel_A(reg[i], reg[i + 1])
 
 
-# ### Parameterized Kernels
-#
-# It is often useful to define parameterized circuit kernels which can be used for applications like VQE.
-
-# In[26]:
+#[End `BuildingKernelsWithKernels`]
 
 
+# [Begin `ParameterizedKernels`]
 @cudaq.kernel
 def kernel(thetas: list[float]):
     qubits = cudaq.qvector(2)
@@ -260,5 +222,5 @@ def kernel(thetas: list[float]):
 
 
 thetas = [.024, .543]
-
 kernel(thetas)
+# [End `ParameterizedKernels`]
