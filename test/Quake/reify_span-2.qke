@@ -1,0 +1,55 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -globalize-array-values -canonicalize %s | FileCheck %s
+
+func.func private @pony_express(!cc.stdvec<!cc.stdvec<!cc.charspan>>)
+
+func.func @covered_wagon() {
+  %0 = cc.const_array [["XY", "ZI"], ["IZ", "YX"]] : !cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>
+  %1 = cc.reify_span %0 : (!cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>) -> !cc.stdvec<!cc.stdvec<!cc.charspan>>
+  call @pony_express(%1) : (!cc.stdvec<!cc.stdvec<!cc.charspan>>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @covered_wagon() {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_3:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 3>>, i64) -> !cc.charspan
+// CHECK:           %[[VAL_4:.*]] = cc.string_literal "ZI" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_5:.*]] = cc.stdvec_init %[[VAL_4]], %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 3>>, i64) -> !cc.charspan
+// CHECK:           %[[VAL_6:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_8]] : !cc.ptr<!cc.charspan>
+// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_6]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           cc.store %[[VAL_5]], %[[VAL_9]] : !cc.ptr<!cc.charspan>
+// CHECK:           %[[VAL_10:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_1]] : (!cc.ptr<!cc.array<!cc.charspan x ?>>, i64) -> !cc.stdvec<!cc.charspan>
+// CHECK:           %[[VAL_11:.*]] = cc.string_literal "IZ" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_11]], %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 3>>, i64) -> !cc.charspan
+// CHECK:           %[[VAL_13:.*]] = cc.string_literal "YX" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK:           %[[VAL_14:.*]] = cc.stdvec_init %[[VAL_13]], %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 3>>, i64) -> !cc.charspan
+// CHECK:           %[[VAL_15:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
+// CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+// CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_15]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           cc.store %[[VAL_12]], %[[VAL_17]] : !cc.ptr<!cc.charspan>
+// CHECK:           %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_15]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
+// CHECK:           cc.store %[[VAL_14]], %[[VAL_18]] : !cc.ptr<!cc.charspan>
+// CHECK:           %[[VAL_19:.*]] = cc.stdvec_init %[[VAL_16]], %[[VAL_1]] : (!cc.ptr<!cc.array<!cc.charspan x ?>>, i64) -> !cc.stdvec<!cc.charspan>
+// CHECK:           %[[VAL_20:.*]] = cc.alloca !cc.array<!cc.stdvec<!cc.charspan> x 2>
+// CHECK:           %[[VAL_21:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x 2>>) -> !cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>
+// CHECK:           %[[VAL_22:.*]] = cc.cast %[[VAL_20]] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x 2>>) -> !cc.ptr<!cc.stdvec<!cc.charspan>>
+// CHECK:           cc.store %[[VAL_10]], %[[VAL_22]] : !cc.ptr<!cc.stdvec<!cc.charspan>>
+// CHECK:           %[[VAL_23:.*]] = cc.compute_ptr %[[VAL_20]][1] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x 2>>) -> !cc.ptr<!cc.stdvec<!cc.charspan>>
+// CHECK:           cc.store %[[VAL_19]], %[[VAL_23]] : !cc.ptr<!cc.stdvec<!cc.charspan>>
+// CHECK:           %[[VAL_24:.*]] = cc.stdvec_init %[[VAL_21]], %[[VAL_1]] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>, i64) -> !cc.stdvec<!cc.stdvec<!cc.charspan>>
+// CHECK:           call @pony_express(%[[VAL_24]]) : (!cc.stdvec<!cc.stdvec<!cc.charspan>>) -> ()
+// CHECK:           return
+// CHECK:         }
+

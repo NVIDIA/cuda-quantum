@@ -2342,6 +2342,19 @@ void cudaq::cc::OffsetOfOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
+// ReifySpanOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::ReifySpanOp::verify() {
+  auto conArr = getElements().getDefiningOp<cudaq::cc::ConstantArrayOp>();
+  if (!conArr && !isa<BlockArgument>(getElements()))
+    return emitOpError("requires a constant array argument.");
+  if (conArr.arrayDimension() != spanDimension())
+    return emitOpError("input array dimension must be same as span dimension.");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // ReturnOp
 //===----------------------------------------------------------------------===//
 

@@ -10,6 +10,7 @@
 #include "common/ArgumentWrapper.h"
 #include "common/Logger.h"
 #include "cudaq/algorithms/evolve_internal.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
@@ -19,9 +20,6 @@
 #include <pybind11/stl.h>
 
 namespace cudaq {
-
-void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
-                       const std::vector<std::string> &);
 
 template <typename numeric_type>
 using spin_op_creator =

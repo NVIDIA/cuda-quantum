@@ -834,6 +834,9 @@ public:
     if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic)))
       return module.emitError(std::string("could not load ") +
                               cudaq::llvmMemCopyIntrinsic);
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemSetIntrinsic)))
+      return module.emitError(std::string("could not load ") +
+                              cudaq::llvmMemSetIntrinsic);
     if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_zeroDynamicResult")))
       return module.emitError("could not load __nvqpp_zeroDynamicResult");
     if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_createDynamicResult")))
