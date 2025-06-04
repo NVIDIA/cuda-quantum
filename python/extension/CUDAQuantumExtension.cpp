@@ -118,10 +118,10 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindEvolveResult(cudaqRuntime);
   cudaq::bindPyDraw(cudaqRuntime);
   cudaq::bindPyRun(cudaqRuntime);
+  cudaq::bindPyRunAsync(cudaqRuntime);
   cudaq::bindPyTranslate(cudaqRuntime);
   cudaq::bindSampleAsync(cudaqRuntime);
   cudaq::bindObserveAsync(cudaqRuntime);
-  cudaq::bindRunAsync(cudaqRuntime);
   cudaq::bindVQE(cudaqRuntime);
   cudaq::bindAltLaunchKernel(cudaqRuntime);
   cudaq::bindTestUtils(cudaqRuntime, *holder.get());

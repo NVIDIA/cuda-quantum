@@ -116,10 +116,66 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
   return results;
 }
 
+/// @brief Run `cudaq::run_async` on the provided kernel.
+std::future<std::vector<py::object>>
+pyRunAsync(py::object &kernel, py::args args, std::size_t shots_count,
+           std::optional<noise_model> noise_model, std::size_t qpu_id) {
+  if (shots_count == 0)
+    return {};
+
+  auto &platform = get_platform();
+  auto numQPUs = platform.num_qpus();
+  if (qpu_id >= numQPUs)
+    throw std::runtime_error("qpu_id (" + std::to_string(qpu_id) +
+                             ") exceeds the number of available QPUs (" +
+                             std::to_string(numQPUs) + ")");
+
+  auto [name, module, argData, func] =
+      details::getKernelLaunchParameters(kernel, args);
+
+  auto mod = unwrap(module);
+  mod->setAttr(runtime::enableCudaqRun, mlir::UnitAttr::get(mod->getContext()));
+
+  if (noise_model.has_value()) {
+    if (platform.is_remote())
+      throw std::runtime_error(
+          "Noise model is not supported on remote platforms.");
+    // Launch the kernel in the appropriate context.
+    platform.set_noise(&noise_model.value());
+  }
+
+  // Should only have C++ going on here, safe to release the GIL
+  py::gil_scoped_release release;
+
+  std::promise<std::vector<py::object>> promise;
+  std::future<std::vector<py::object>> f = promise.get_future();
+  QuantumTask wrapped = detail::make_copyable_function(
+      [p = std::move(promise), shots_count, &platform, argData, name, module, func,
+       noise_model = std::move(noise_model)]() mutable {
+        if (noise_model.has_value())
+          platform.set_noise(&noise_model.value());
+
+        auto results = details::pyRunTheKernel(name, module, func, *argData,
+                                               platform, shots_count);
+        delete argData;
+        p.set_value(results);
+        platform.reset_noise();
+      });
+  platform.enqueueAsyncTask(qpu_id, wrapped);
+  return f;
+}
+
 /// @brief Bind the run cudaq function.
 void bindPyRun(py::module &mod) {
   mod.def("run", &pyRun, py::arg("kernel"), py::kw_only(),
           py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
           R"#()#");
+}
+
+/// @brief Bind the run_async cudaq function.
+void bindPyRunAsync(py::module &mod) {
+  mod.def("run_async", &pyRunAsync, py::arg("kernel"), py::kw_only(),
+          py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
+          py::arg("qpu_id") = 0, R"#()#");
 }
 } // namespace cudaq

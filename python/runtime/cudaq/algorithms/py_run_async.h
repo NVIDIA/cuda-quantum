@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#pragma once
+// #pragma once
 
-#include <pybind11/pybind11.h>
+// #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
+// namespace py = pybind11;
 
-namespace cudaq {
-void bindRunAsync(py::module &mod);
-} // namespace cudaq
+// namespace cudaq {
+// void bindRunAsync(py::module &mod);
+// } // namespace cudaq
