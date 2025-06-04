@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -lift-array-alloc %s | FileCheck %s
-// RXN: cudaq-opt -lift-array-alloc -globalize-array-values %s | FileCheck --check-prefix=GLOBAL %s
+// RXN: cudaq-opt -lift-array-alloc -globalize-array-values -canonicalize %s | FileCheck --check-prefix=GLOBAL %s
 
 func.func @__nvqpp__mlirgen__function_test_complex_constant_array._Z27test_complex_constant_arrayv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   %cst = complex.constant [0.707106769 : f32, 0.000000e+00 : f32] : complex<f32>

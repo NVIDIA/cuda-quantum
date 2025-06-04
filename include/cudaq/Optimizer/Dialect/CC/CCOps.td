@@ -1175,6 +1175,19 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
   let assemblyFormat = [{
     $constantValues `:` qualified(type($arrayType)) attr-dict
   }];
+
+  let extraClassDeclaration = [{
+    // The total number of array dimensions.
+    std::size_t arrayDimension() {
+      std::size_t depth = 0;
+      mlir::Type ty = getType();
+      while (auto arrTy = llvm::dyn_cast<cudaq::cc::ArrayType>(ty)) {
+        ty = arrTy.getElementType();
+        ++depth;
+      }
+      return depth;
+    }
+  }];
 }
 
 def cc_CreateStringLiteralOp : CCOp<"string_literal", [Pure]> {
@@ -1238,6 +1251,33 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
   let results = (outs cc_StdVectorType:$spanType);
   let assemblyFormat = [{
     $elements `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    // The total number span dimensions. The total is the number of outer
+    // std::vector<T> classes plus one if the inner class is a std::string.
+    std::size_t spanDimension() {
+      std::size_t depth = 0;
+      mlir::Type ty = getType();
+      while (auto spanTy = llvm::dyn_cast<cudaq::cc::SpanLikeType>(ty)) {
+        ty = spanTy.getElementType();
+        ++depth;
+      }
+      return depth;
+    }
+
+    // The number of std::vector<T> dimensions.
+    std::size_t vectorDimension() {
+      std::size_t depth = 0;
+      mlir::Type ty = getType();
+      while (auto vecTy = llvm::dyn_cast<cudaq::cc::StdvecType>(ty)) {
+        ty = vecTy.getElementType();
+        ++depth;
+      }
+      return depth;
+    }
   }];
 }
 
