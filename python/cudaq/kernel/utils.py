@@ -145,13 +145,10 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 return IntegerType.get_signless(64)
             if annotation.attr == 'int32':
                 return IntegerType.get_signless(32)
-<<<<<<< HEAD
-=======
             if annotation.attr == 'int16':
                 return IntegerType.get_signless(16)
             if annotation.attr == 'int8':
                 return IntegerType.get_signless(8)
->>>>>>> 4dc549fb85 ([Python] Support passing nested lists as arguments (#2894))
 
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
@@ -320,13 +317,10 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return IntegerType.get_signless(64, ctx)
     if argType == np.int32:
         return IntegerType.get_signless(32, ctx)
-<<<<<<< HEAD
-=======
     if argType == np.int16:
         return IntegerType.get_signless(16, ctx)
     if argType == np.int8:
         return IntegerType.get_signless(8, ctx)
->>>>>>> 4dc549fb85 ([Python] Support passing nested lists as arguments (#2894))
     if argType in [float, np.float64]:
         return F64Type.get(ctx)
     if argType == np.float32:
@@ -458,11 +452,6 @@ def mlirTypeToPyType(argType):
         width = IntegerType(argType).width
         if width == 1:
             return bool
-<<<<<<< HEAD
-        if IntegerType(argType).width == 32:
-            return np.int32
-        return int
-=======
         if width == 8:
             return np.int8
         if width == 16:
@@ -471,7 +460,6 @@ def mlirTypeToPyType(argType):
             return np.int32
         if width == 64:
             return int
->>>>>>> 4dc549fb85 ([Python] Support passing nested lists as arguments (#2894))
 
     if F64Type.isinstance(argType):
         return float

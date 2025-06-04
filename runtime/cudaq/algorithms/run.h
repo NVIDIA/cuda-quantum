@@ -9,7 +9,6 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/KernelWrapper.h"
 #include "common/MeasureCounts.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
@@ -112,19 +111,15 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   std::vector<ResultTy> results;
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i)
-    results.emplace_back(cudaq::invokeKernel(
-        std::forward<QuantumKernel>(kernel), std::forward<ARGS>(args)...));
+    results.emplace_back(kernel(std::forward<ARGS>(args)...));
   return results;
 #endif
   // Launch the kernel in the appropriate context.
   auto &platform = cudaq::get_platform();
   std::string kernelName{cudaq::getKernelName(kernel)};
   details::RunResultSpan span = details::runTheKernel(
-      [&]() mutable {
-        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                            std::forward<ARGS>(args)...);
-      },
-      platform, kernelName, shots);
+      [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
+      kernelName, shots);
   return {reinterpret_cast<ResultTy *>(span.data),
           reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
 }
@@ -164,8 +159,7 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
     platform.set_exec_ctx(ctx.get());
-    results.emplace_back(cudaq::invokeKernel(
-        std::forward<QuantumKernel>(kernel), std::forward<ARGS>(args)...));
+    results.emplace_back(kernel(std::forward<ARGS>(args)...));
     platform.reset_exec_ctx();
   }
   platform.reset_noise();
@@ -175,11 +169,8 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
   platform.set_noise(&noise_model);
   std::string kernelName{cudaq::getKernelName(kernel)};
   details::RunResultSpan span = details::runTheKernel(
-      [&]() mutable {
-        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                            std::forward<ARGS>(args)...);
-      },
-      platform, kernelName, shots);
+      [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
+      kernelName, shots);
   platform.reset_noise();
 
   return {reinterpret_cast<ResultTy *>(span.data),
@@ -228,19 +219,14 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         std::vector<ResultTy> res;
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i)
-          res.emplace_back(
-              cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                  std::forward<ARGS>(args)...));
+          res.emplace_back(kernel(std::forward<ARGS>(args)...));
         p.set_value(std::move(res));
         return;
 #endif
         const std::string kernelName{cudaq::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
-            [&]() mutable {
-              cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                  std::forward<ARGS>(args)...);
-            },
-            platform, kernelName, shots);
+            [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
+            kernelName, shots);
         std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
                                          std::decay_t<ARGS>...>>
             results{
@@ -263,8 +249,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         for (std::size_t i = 0; i < shots; ++i) {
           res.emplace_back(std::apply(
               [&kernel](ARGS &&...args) {
-                return cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                           std::forward<ARGS>(args)...);
+                return kernel(std::forward<ARGS>(args)...);
               },
               std::move(args)));
         }
@@ -276,9 +261,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
             [&]() mutable {
               std::apply(
                   [&kernel](ARGS &&...args) {
-                    return cudaq::invokeKernel(
-                        std::forward<QuantumKernel>(kernel),
-                        std::forward<ARGS>(args)...);
+                    return kernel(std::forward<ARGS>(args)...);
                   },
                   std::move(args));
             },
@@ -346,9 +329,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
           platform.set_exec_ctx(ctx.get());
-          res.emplace_back(
-              cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                  std::forward<ARGS>(args)...));
+          res.emplace_back(kernel(std::forward<ARGS>(args)...));
           platform.reset_exec_ctx();
         }
         platform.reset_noise();
@@ -358,11 +339,8 @@ run_async(std::size_t qpu_id, std::size_t shots,
         platform.set_noise(&noise_model);
         const std::string kernelName{cudaq::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
-            [&]() mutable {
-              cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                  std::forward<ARGS>(args)...);
-            },
-            platform, kernelName, shots);
+            [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
+            kernelName, shots);
         std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
                                          std::decay_t<ARGS>...>>
             results{
@@ -390,8 +368,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
           platform.set_exec_ctx(ctx.get());
           res.emplace_back(std::apply(
               [&kernel](ARGS &&...args) {
-                return cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                           std::forward<ARGS>(args)...);
+                return kernel(std::forward<ARGS>(args)...);
               },
               std::move(args)));
           platform.reset_exec_ctx();
@@ -406,9 +383,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
             [&]() mutable {
               std::apply(
                   [&kernel](ARGS &&...args) {
-                    return cudaq::invokeKernel(
-                        std::forward<QuantumKernel>(kernel),
-                        std::forward<ARGS>(args)...);
+                    return kernel(std::forward<ARGS>(args)...);
                   },
                   std::move(args));
             },

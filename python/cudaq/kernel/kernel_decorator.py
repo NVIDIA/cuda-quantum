@@ -15,7 +15,7 @@ from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
-                           SymbolTable)
+                           SymbolTable, UnitAttr)
 from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage

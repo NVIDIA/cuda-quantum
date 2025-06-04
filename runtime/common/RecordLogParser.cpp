@@ -10,7 +10,7 @@
 #include "Logger.h"
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
-  cudaq::info("Parsing log:\n{}", outputLog);
+  cudaq::debug("Parsing log:\n{}", outputLog);
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;
