@@ -2,11 +2,13 @@
 // ```
 // nvq++ --target quantum_machines quantum_machines.cpp -o out.x && ./out.x
 // ```
-// This will submit the job to the Quantum Machines OPX available in the address provider by --quantum-machines-url
-// By default, the action runs a on a mock executor. 
-// To execute or a real qpu please note the executor name by --quantum-machines-executor.
+// This will submit the job to the Quantum Machines OPX available in the address
+// provider by `--quantum-machines-url`. By default, the action runs a on a mock
+// executor. To execute or a real QPU please note the executor name by
+// `--quantum-machines-executor`.
 // ```
-// nvq++ --target quantum_machines --quantum-machines-url "https://iqcc.qoperator.qm.co" \
+// nvq++ --target quantum_machines --quantum-machines-url
+// "https://iqcc.qoperator.qm.co" \
 //  --quantum-machines-executor iqcc quantum_machines.cpp -o out.x
 // ./out.x
 // ```
@@ -21,7 +23,7 @@ struct all_h {
   auto operator()() __qpu__ {
     cudaq::qvector q(5);
     for (int i = 0; i < 4; i++) {
-      h(q[i]);  
+      h(q[i]);
     }
     auto result = mz(q);
   }

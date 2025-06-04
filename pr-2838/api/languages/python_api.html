@@ -413,6 +413,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
@@ -946,6 +952,12 @@ requires custom handling.</p>
 <span class="sig-name descname"><span class="pre">compile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.compile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compile the Python function AST to MLIR. This is a no-op
 if the kernel is already compiled.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.enable_return_to_log">
+<span class="sig-name descname"><span class="pre">enable_return_to_log</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.enable_return_to_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enable translation from <code class="code docutils literal notranslate"><span class="pre">return</span></code> statements to QIR output log</p>
 </dd></dl>
 
 <dl class="py method">
@@ -2097,7 +2109,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2130658270</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4057461721</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random spin operator with the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>) where each term acts on all targets in the open range [0, qubit_count). An optional seed value may also be provided.</p>
@@ -4490,6 +4502,17 @@ on multiple degrees of freedom.</p></li>
 <dd></dd></dl>
 
 <p>Returns true if the target consists of a remote REST QPU.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Target.is_remote_simulator">
+<span class="sig-name descname"><span class="pre">is_remote_simulator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Target.is_remote_simulator" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">is_remote_simulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Target" title="cudaq.Target"><span class="pre">Target</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Returns true if the target consists of a remote REST Simulator QPU.</p>
 </dd></dl>
 
 <dl class="py property">
