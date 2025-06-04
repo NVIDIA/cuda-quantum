@@ -721,7 +721,7 @@ public:
           builder.create<cudaq::cc::StoreOp>(loc, spanData, spanp);
           bufferAppendix += length;
         }
-        auto svTy = cudaq::cc::StdvecType::get(ptrTy);
+        auto svTy = cudaq::cc::StdvecType::get(charSpanTy);
         auto ics = builder.create<cudaq::cc::StdvecInitOp>(loc, svTy, aos, ns);
         arguments[idx].replaceAllUsesWith(ics);
         continue;

@@ -889,3 +889,71 @@ TEST(OperatorExpressions, checkCommutationRelations) {
   utils::checkEqual(rel11.to_matrix(dimensions), utils::zero_matrix(16));
   utils::checkEqual(rel12.to_matrix(dimensions), utils::zero_matrix(16));
 }
+
+TEST(OperatorExpressions, checkMultiDiagConversionBoson) {
+  cudaq::dimension_map dimensions = {{0, 10}, {1, 10}};
+  // Same degree of freedom
+  for (auto &H1 : {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+                   cudaq::boson_op::number(0)}) {
+    for (auto &H2 : {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+                     cudaq::boson_op::number(0)}) {
+      for (auto &H3 :
+           {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+            cudaq::boson_op::number(0)}) {
+        for (auto &H4 :
+             {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+              cudaq::boson_op::number(0)}) {
+          std::cout << H1.to_string() << " " << H2.to_string() << " "
+                    << H3.to_string() << " " << H4.to_string() << "\n";
+          auto H = H1 * H2 * H3 * H4;
+          utils::checkEqual(H.to_matrix(dimensions),
+                            H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
+
+  // Different degrees of freedom
+  for (auto &H1 : {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+                   cudaq::boson_op::number(0)}) {
+    for (auto &H2 : {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+                     cudaq::boson_op::number(0)}) {
+      for (auto &H3 :
+           {cudaq::boson_op::annihilate(1), cudaq::boson_op::create(1),
+            cudaq::boson_op::number(1)}) {
+        for (auto &H4 :
+             {cudaq::boson_op::annihilate(1), cudaq::boson_op::create(1),
+              cudaq::boson_op::number(1)}) {
+          std::cout << H1.to_string() << " " << H2.to_string() << " "
+                    << H3.to_string() << " " << H4.to_string() << "\n";
+          auto H = H1 * H2 * H3 * H4;
+          utils::checkEqual(H.to_matrix(dimensions),
+                            H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
+
+  // Sum op
+  for (auto &H1 : {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+                   cudaq::boson_op::number(0)}) {
+    for (auto &H2 : {cudaq::boson_op::annihilate(1), cudaq::boson_op::create(1),
+                     cudaq::boson_op::number(1)}) {
+      for (auto &H3 :
+           {cudaq::boson_op::annihilate(0), cudaq::boson_op::create(0),
+            cudaq::boson_op::number(0)}) {
+        for (auto &H4 :
+             {cudaq::boson_op::annihilate(1), cudaq::boson_op::create(1),
+              cudaq::boson_op::number(1)}) {
+
+          auto H = H1 * H2 + H3 * H4;
+          std::cout << H1.to_string() << " " << H2.to_string() << " + "
+                    << H3.to_string() << " " << H4.to_string() << " = "
+                    << H.to_string() << "\n";
+          utils::checkEqual(H.to_matrix(dimensions),
+                            H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
+}

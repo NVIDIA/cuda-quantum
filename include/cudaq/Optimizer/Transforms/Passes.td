@@ -213,6 +213,16 @@ def CombineQuantumAllocations :
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
+def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
+  let summary = "Propagate constants to their uses.";
+  let description = [{
+    This is a greedy pass that will push constants from single and
+    multidimensional array constants to their ultimate uses.
+
+    TODO: Merge const-prop-complex into this pass.
+  }];
+}
+
 def ConstPropComplex : Pass<"const-prop-complex", "mlir::func::FuncOp"> {
   let summary = "Create and propagate complex constants.";
   let description = [{
@@ -493,12 +503,18 @@ def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
   let description = [{
     Often a `const_array` op can be canonicalized into scalar constants that
     are then constant propagated to their uses in the quake ops. When this
-    happens, the `const_array` may become unused and be eliminated.
+    happens, the `const_array` may become unused and can be eliminated.
 
     However, there can also be cases where the `const_array` remains alive, such
     as when it is used in a `state_init` op. In such cases, we may be able to go
     ahead and replace the `const_array` with a global constant. This pass makes
     such conversions.
+
+    A `const_array` may also be used as an image for a tree of spans which has
+    yet to be reified. In this case, the inner most array may be lowered to a
+    global object, but the tree of spans working outward from those objects
+    must be constructed. This pass can replace the reify_span operation with
+    smaller granularity operations that build these trees of spans.
   }];
 }
 

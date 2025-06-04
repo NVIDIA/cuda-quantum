@@ -169,8 +169,8 @@ public:
       }
     }
     flushGateQueue();
-    cudaq::info(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
-                term.to_string());
+    CUDAQ_INFO(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
+               term.to_string());
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
     if (term.num_ops() != qubitIds.size())
@@ -262,8 +262,8 @@ public:
   /// Only supported for noise backends. By default do nothing
   virtual void applyNoise(const cudaq::kraus_channel &channel,
                           const std::vector<std::size_t> &targets) {
-    cudaq::warn("kraus_channel application not supported on {} simulator.",
-                name());
+    CUDAQ_WARN("kraus_channel application not supported on {} simulator.",
+               name());
   }
 
   /// @brief Apply a custom operation described by a matrix of data
@@ -395,6 +395,10 @@ public:
   /// Determine the (preferred) precision of the simulator.
   virtual bool isSinglePrecision() const = 0;
   bool isDoublePrecision() const { return !isSinglePrecision(); }
+
+  /// A string containing the output logging of a kernel launched with
+  /// `cudaq::run()`.
+  std::string outputLog;
 };
 
 /// @brief The CircuitSimulatorBase is the type that is meant to
@@ -440,7 +444,7 @@ protected:
 
   /// @brief Store the last observed register name, this will help us
   /// know if we are writing to a classical bit vector
-  std::string lastMidCircuitRegisterName = "";
+  std::string lastMidCircuitRegisterName;
 
   /// @brief Vector storing register names that are bit vectors
   std::vector<std::string> vectorRegisters;
@@ -1284,11 +1288,10 @@ public:
                        }
                      });
     }
-    if (cudaq::details::should_log(cudaq::details::LogLevel::info))
-      cudaq::info(gateToString(customName.empty() ? "unknown op" : customName,
-                               controls, {}, targets) +
-                      " = {}",
-                  matrix);
+    CUDAQ_INFO(gateToString(customName.empty() ? "unknown op" : customName,
+                            controls, {}, targets) +
+                   " = {}",
+               matrix);
     enqueueGate(customName.empty() ? "unknown op" : customName.data(), actual,
                 controls, targets, {});
   }
@@ -1299,10 +1302,7 @@ public:
                                const std::vector<std::size_t> &targets) {
     flushAnySamplingTasks();
     QuantumOperation gate;
-    // This is a very hot section of code. Don't form the log string unless
-    // we're actually going to use it.
-    if (cudaq::details::should_log(cudaq::details::LogLevel::info))
-      cudaq::info(gateToString(gate.name(), controls, angles, targets));
+    CUDAQ_INFO(gateToString(gate.name(), controls, angles, targets));
     enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
   }
 

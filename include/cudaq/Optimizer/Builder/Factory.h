@@ -171,6 +171,8 @@ inline mlir::Value createFloatConstant(mlir::Location loc,
 inline mlir::Value createFloatConstant(mlir::Location loc,
                                        mlir::OpBuilder &builder, double value,
                                        mlir::FloatType type) {
+  if (type == builder.getF32Type())
+    return createFloatConstant(loc, builder, llvm::APFloat((float)value), type);
   return createFloatConstant(loc, builder, llvm::APFloat(value), type);
 }
 

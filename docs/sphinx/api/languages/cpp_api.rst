@@ -24,6 +24,10 @@ Operators
     - ``std::vector<std::size_t>``: Indices.
     - ``std::vector<std::size_t>``: Sizes.
 
+.. cpp:type:: mdiag_sparse_matrix = std::pair<std::vector<std::complex<double>>, std::vector<std::int64_t>>
+
+    Alias for a pair, in the multi-diagonal representation, containing vectors for complex values and diagonal offsets.  
+
 .. doxygenclass:: cudaq::operator_handler
 
 .. doxygenclass:: cudaq::spin_handler

@@ -482,6 +482,7 @@ public:
       auto builder = cudaq::IRBuilder::atBlockEnd(parentModule.getBody());
       auto pauliConst = builder.genCStringLiteralAppendNul(
           loc, parentModule, *instOp.getPauliLiteral());
+      // Create a pauli reference and make it the last operand.
       operands.push_back(rewriter.create<LLVM::AddressOfOp>(
           loc, cudaq::opt::factory::getPointerType(pauliConst.getType()),
           pauliConst.getSymName()));

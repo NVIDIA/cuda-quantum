@@ -521,7 +521,35 @@ def test_simple_return_types():
     assert ret == 8
 
     @cudaq.kernel
-    def qernel(a: float, b: float) -> float:
+    def kernel(a: int, b: int) -> np.int32:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert ret == 8
+
+    @cudaq.kernel
+    def kernel(a: int, b: int) -> np.int64:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert ret == 8
+
+    @cudaq.kernel
+    def kernel(a: float, b: float) -> float:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert np.isclose(ret, 8., atol=1e-12)
+
+    @cudaq.kernel
+    def kernel(a: float, b: float) -> np.float32:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert np.isclose(ret, 8., atol=1e-12)
+
+    @cudaq.kernel
+    def kernel(a: float, b: float) -> np.float64:
         return a * b
 
     ret = kernel(2, 4)
@@ -538,6 +566,51 @@ def test_simple_return_types():
         return True
 
     assert boolKernel()
+
+
+def test_tuple_creation_and_access():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        t = (-42, True, 13.5)
+        return t[0]
+
+    ret = kernel()
+    assert ret == -42
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        t = (-42, True, 13.5)
+        return t[1]
+
+    ret = kernel()
+    assert ret == True
+
+    @cudaq.kernel
+    def kernel() -> float:
+        t = (-42, True, 13.5)
+        return t[2]
+
+    ret = kernel()
+    assert np.isclose(ret, 13.5, atol=1e-12)
+
+    @cudaq.kernel
+    def kernel() -> float:
+        t = (-42, True, 13.5)
+        return t[3]
+
+    with pytest.raises(RuntimeError) as e:
+        ret = kernel()
+    assert 'tuple index is out of range: 3' in repr(e)
+
+    @cudaq.kernel
+    def kernel(i: int) -> float:
+        t = (-42, True, 13.5)
+        return t[i]
+
+    with pytest.raises(RuntimeError) as e:
+        ret = kernel()
+    assert 'non-constant subscript value on a tuple is not supported' in repr(e)
 
 
 def test_list_creation():
@@ -571,7 +644,6 @@ def test_list_creation():
         for i in myList:
             x(q[i])
 
-    print(kernel3)
     counts = cudaq.sample(kernel3, 5)
     assert len(counts) == 1
     assert '1' * 5 in counts
@@ -583,7 +655,6 @@ def test_list_creation():
         for i in casted:
             x(q[i])
 
-    print(kernel4)
     counts = cudaq.sample(kernel4, list(range(5)))
     assert len(counts) == 1
     assert '1' * 5 in counts

@@ -9,7 +9,7 @@
 // REQUIRES: remote-sim
 
 // clang-format off
-// RUN: nvq++ --library-mode %cpp_std --target remote-mqpu %s |& FileCheck %s
+// RUN: nvq++ %cpp_std --target remote-mqpu %s |& FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -58,16 +58,12 @@ __qpu__ void oracle_func(cudaq::qvector<> &q) {
 int main() {
   {
     auto counts = cudaq::sample(run_grover{}, 3, 1, oracle{});
-    // CHECK: Callable entry-point kernel arguments are not supported for the
-    // CHECK: remote simulator platform in library mode. Please rewrite the
-    // entry CHECK: point kernel or use MLIR mode.
+    // CHECK: kernel argument type not supported
     counts.dump();
   }
   {
     auto counts = cudaq::sample(run_grover{}, 3, 1, oracle_func);
-    // CHECK NEXT: Callable entry-point kernel arguments are not supported for
-    // CHECK NEXT: the remote simulator platform in library mode. Please
-    // CHECK NEXT: rewrite the entry  point kernel or use MLIR mode.
+    // CHECK NEXT: kernel argument type not supported
     counts.dump();
   }
   return 0;
