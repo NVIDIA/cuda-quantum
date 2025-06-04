@@ -109,6 +109,14 @@ public:
                      const std::unordered_map<std::string, std::string>
                          &parameter_descriptions = {});
 
+  /// @brief Adds the definition of an elementary operator with the given id.
+  // The definition also includes a multi-diagonal matrix generator.
+  static void define(std::string operator_id,
+                     std::vector<std::int64_t> expected_dimensions,
+                     matrix_callback &&create, dia_matrix_callback &&dia_create,
+                     const std::unordered_map<std::string, std::string>
+                         &parameter_descriptions = {});
+
   /// @brief Adds the definition of an elementary operator with the given id to
   /// the class. After definition, an the defined elementary operator can be
   /// instantiated by providing the operator id as well as the degree(s) of
@@ -278,6 +286,18 @@ public:
   to_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
+
+  /// @brief Return the `matrix_handler` as a multi-diagonal matrix.
+  /// @param  `dimensions` : A map specifying the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
+  /// If the multi-diagonal matrix representation is not available, it will
+  /// returns empty.
+  mdiag_sparse_matrix
+  to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
+                const std::unordered_map<std::string, std::complex<double>>
+                    &parameters = {}) const;
 
   /// @brief Generates a string representation of the matrix_handler.
   /// @param include_degrees A flag indicating whether to include degree
