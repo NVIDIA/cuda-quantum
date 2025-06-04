@@ -497,5 +497,7 @@ public:
   to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
                      const std::unordered_map<std::string, std::complex<double>>
                          &parameters = {}) const = 0;
+  /// @brief Default destructor
+  virtual ~mdiag_operator_handler() = default;
 };
 } // namespace cudaq
