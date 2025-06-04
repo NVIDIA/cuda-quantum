@@ -44,7 +44,7 @@ using csr_spmatrix =
 // elements), we use a fixed-size 2-D vector (flattened into a 1-D vector with
 // constant stride) so that it can be used directly with cudensitymat.
 // Note: the list of offsets must be unique.
-using dia_spmatrix =
+using mdiag_sparse_matrix =
     std::pair<std::vector<std::complex<double>>, std::vector<std::int64_t>>;
 
 namespace detail {
@@ -109,14 +109,15 @@ csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
 /// Helper function for multi-diagonal matrix creation.
 /// The matrix creation function should call its function argument for
 /// every entry in the matrix.
-dia_spmatrix create_dia_matrix(
+mdiag_sparse_matrix create_mdiag_sparse_matrix(
     std::size_t dim, std::complex<double> coeff,
     const std::function<void(const std::function<void(std::size_t, std::size_t,
                                                       std::complex<double>)> &)>
         &create);
 
 /// Add (in-place) a multi-diagonal matrix to another one
-void inplace_accumulate(dia_spmatrix &accumulated, const dia_spmatrix &matrix);
+void inplace_accumulate(mdiag_sparse_matrix &accumulated,
+                        const mdiag_sparse_matrix &matrix);
 
 } // namespace detail
 } // namespace cudaq

@@ -1859,7 +1859,7 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
 template <typename HandlerTy>
 PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
                                       product_op<T>::supports_inplace_mult)
-dia_spmatrix sum_op<HandlerTy>::to_diagonal_matrix(
+mdiag_sparse_matrix sum_op<HandlerTy>::to_diagonal_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
@@ -1868,7 +1868,7 @@ dia_spmatrix sum_op<HandlerTy>::to_diagonal_matrix(
                                                                    parameters));
 
   if (evaluated.terms.size() == 0)
-    return dia_spmatrix();
+    return mdiag_sparse_matrix();
 
   auto dia_matrix = HandlerTy::to_diagonal_matrix(
       evaluated.terms[0].encoding, evaluated.terms[0].relevant_dimensions,
@@ -1931,15 +1931,15 @@ template csr_spmatrix sum_op<boson_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
-template dia_spmatrix sum_op<spin_handler>::to_diagonal_matrix(
+template mdiag_sparse_matrix sum_op<spin_handler>::to_diagonal_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
-template dia_spmatrix sum_op<fermion_handler>::to_diagonal_matrix(
+template mdiag_sparse_matrix sum_op<fermion_handler>::to_diagonal_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
-template dia_spmatrix sum_op<boson_handler>::to_diagonal_matrix(
+template mdiag_sparse_matrix sum_op<boson_handler>::to_diagonal_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;

@@ -54,7 +54,7 @@ void checkEqual(cudaq::complex_matrix a, cudaq::complex_matrix b) {
 }
 
 void checkEqual(const cudaq::complex_matrix &denseMat,
-                const cudaq::dia_spmatrix &diaMat) {
+                const cudaq::mdiag_sparse_matrix &diaMat) {
   int64_t dim = denseMat.rows();
   const auto &[buffer, offsets] = diaMat;
   for (int64_t i = -(dim - 1); i < dim; ++i) {

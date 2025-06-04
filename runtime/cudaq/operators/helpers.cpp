@@ -222,7 +222,7 @@ cudaq::csr_spmatrix to_csr_spmatrix(const EigenSparseMatrix &matrix,
   return std::make_tuple(values, rows, cols);
 }
 
-dia_spmatrix create_dia_matrix(
+mdiag_sparse_matrix create_mdiag_sparse_matrix(
     std::size_t dim, std::complex<double> coeff,
     const std::function<void(const std::function<void(std::size_t, std::size_t,
                                                       std::complex<double>)> &)>
@@ -256,7 +256,8 @@ dia_spmatrix create_dia_matrix(
   return std::make_pair(std::move(diaData), std::move(offset));
 }
 
-void inplace_accumulate(dia_spmatrix &accumulated, const dia_spmatrix &matrix) {
+void inplace_accumulate(mdiag_sparse_matrix &accumulated,
+                        const mdiag_sparse_matrix &matrix) {
   auto &[acc_buffer, acc_offsets] = accumulated;
   const auto &[add_buffer, add_offsets] = matrix;
   if (add_offsets.empty())

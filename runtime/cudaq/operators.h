@@ -832,7 +832,7 @@ public:
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
-  dia_spmatrix to_diagonal_matrix(
+  mdiag_sparse_matrix to_diagonal_matrix(
       std::unordered_map<std::size_t, std::int64_t> dimensions = {},
       const std::unordered_map<std::string, std::complex<double>> &parameters =
           {},
@@ -1687,7 +1687,7 @@ public:
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
   PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
-  dia_spmatrix to_diagonal_matrix(
+  mdiag_sparse_matrix to_diagonal_matrix(
       std::unordered_map<std::size_t, std::int64_t> dimensions = {},
       const std::unordered_map<std::string, std::complex<double>> &parameters =
           {},

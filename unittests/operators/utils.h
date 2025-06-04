@@ -20,7 +20,7 @@ void assert_product_equal(
 
 void checkEqual(cudaq::complex_matrix a, cudaq::complex_matrix b);
 void checkEqual(const cudaq::complex_matrix &denseMat,
-                const cudaq::dia_spmatrix &diaMat);
+                const cudaq::mdiag_sparse_matrix &diaMat);
 cudaq::complex_matrix zero_matrix(std::size_t size);
 
 cudaq::complex_matrix id_matrix(std::size_t size);

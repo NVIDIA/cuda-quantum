@@ -87,7 +87,7 @@ private:
   /// @brief Computes the multi-diagonal matrix representation of the string
   /// encoding of a fermionic product operator. Private method since this
   /// encoding is not very user friendly.
-  static dia_spmatrix
+  static mdiag_sparse_matrix
   to_diagonal_matrix(const std::string &fermi_word,
                      const std::vector<std::int64_t> &dimensions = {},
                      std::complex<double> coeff = 1.,

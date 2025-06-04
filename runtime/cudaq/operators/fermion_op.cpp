@@ -245,11 +245,11 @@ complex_matrix fermion_handler::to_matrix(
       this->canonical_form(dimensions, relevant_dims));
 }
 
-dia_spmatrix fermion_handler::to_diagonal_matrix(
+mdiag_sparse_matrix fermion_handler::to_diagonal_matrix(
     const std::string &fermi_word, const std::vector<std::int64_t> &dimensions,
     std::complex<double> coeff, bool invert_order) {
   auto dim = 1 << fermi_word.size();
-  return cudaq::detail::create_dia_matrix(
+  return cudaq::detail::create_mdiag_sparse_matrix(
       dim, coeff,
       [&fermi_word, invert_order](
           const std::function<void(std::size_t, std::size_t,
