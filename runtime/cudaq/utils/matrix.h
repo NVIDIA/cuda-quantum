@@ -159,6 +159,10 @@ public:
   /// Returns the conjugate transpose of a matrix.
   complex_matrix adjoint();
 
+  /// Returns diagonal elements
+  // Index can be used to get super/sub diagonal elements
+  std::vector<value_type> diagonal_elements(int index = 0) const;
+
   /// Return a square identity matrix for the given size.
   static complex_matrix identity(const std::size_t rows);
 
