@@ -50,12 +50,16 @@ def execute(notebook_filename):
         ],
                        check=True)
         elapsed = time.perf_counter() - start_time
-        print(f"Time taken for nbconvert: {elapsed:.2f} seconds")
-        os.remove(notebook_filename_out)
+        print(
+            f"Time taken for nbconvert : {elapsed:.2f} seconds for '{notebook_filename}'"
+        )
         return True
     except subprocess.CalledProcessError:
         print('Error executing the notebook "%s".\n\n' % notebook_filename)
         return False
+    finally:
+        if os.path.exists(notebook_filename_out):
+            os.remove(notebook_filename_out)
 
 
 def print_results(success, failed, skipped=[]):

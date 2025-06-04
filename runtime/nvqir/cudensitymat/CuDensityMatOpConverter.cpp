@@ -8,6 +8,7 @@
 
 #include "CuDensityMatOpConverter.h"
 #include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
 #include "common/Logger.h"
 #include <iostream>
 #include <map>
@@ -51,24 +52,6 @@ flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix) {
   }
 
   return flatMatrix;
-}
-
-void *createArrayGpu(const std::vector<std::complex<double>> &cpuArray) {
-  void *gpuArray{nullptr};
-  const std::size_t array_size = cpuArray.size() * sizeof(std::complex<double>);
-  if (array_size > 0) {
-    HANDLE_CUDA_ERROR(cudaMalloc(&gpuArray, array_size));
-    HANDLE_CUDA_ERROR(cudaMemcpy(gpuArray,
-                                 static_cast<const void *>(cpuArray.data()),
-                                 array_size, cudaMemcpyHostToDevice));
-  }
-  return gpuArray;
-}
-
-// Function to destroy a previously created array copy in GPU memory
-void destroyArrayGpu(void *gpuArray) {
-  if (gpuArray)
-    HANDLE_CUDA_ERROR(cudaFree(gpuArray));
 }
 
 cudaq::product_op<cudaq::matrix_handler>
@@ -139,6 +122,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     const std::vector<int64_t> &modeExtents,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool isMasterEquation) {
+  LOG_API_TIME();
   if (!isMasterEquation && collapseOperators.empty()) {
     cudaq::info("Construct state vector Liouvillian");
     auto liouvillian = ham * std::complex<double>(0.0, -1.0);
@@ -213,6 +197,11 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
   }
 }
 
+void cudaq::dynamics::CuDensityMatOpConverter::clearCallbackContext() {
+  m_scalarCallbacks.clear();
+  m_tensorCallbacks.clear();
+}
+
 cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
   for (auto term : m_operatorTerms)
     cudensitymatDestroyOperatorTerm(term);
@@ -220,8 +209,9 @@ cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
   for (auto op : m_elementaryOperators)
     cudensitymatDestroyElementaryOperator(op);
 
-  for (auto *buffer : m_deviceBuffers)
-    cudaFree(buffer);
+  for (auto *buffer : m_deviceBuffers) {
+    cudaq::dynamics::DeviceAllocator::free(buffer);
+  }
 }
 
 cudensitymatElementaryOperator_t
@@ -277,7 +267,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
   if (subspaceExtents.empty())
     throw std::invalid_argument("subspaceExtents cannot be empty.");
 
-  auto *elementaryMat_d = createArrayGpu(flatMatrix);
+  auto *elementaryMat_d = cudaq::dynamics::createArrayGpu(flatMatrix);
   cudensitymatElementaryOperator_t cudmElemOp = nullptr;
 
   HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
@@ -288,7 +278,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
   if (!cudmElemOp) {
     std::cerr << "[ERROR] cudmElemOp is NULL in createElementaryOperator !"
               << std::endl;
-    destroyArrayGpu(elementaryMat_d);
+    cudaq::dynamics::destroyArrayGpu(elementaryMat_d);
     throw std::runtime_error("Failed to create elementary operator.");
   }
   m_elementaryOperators.emplace(cudmElemOp);
@@ -430,9 +420,20 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
     // i.e., ABC means C to be applied first.
     std::reverse(elemOps.begin(), elemOps.end());
     std::reverse(allDegrees.begin(), allDegrees.end());
-    result.emplace_back(std::make_pair(
-        productOp.get_coefficient(),
-        createProductOperatorTerm(elemOps, modeExtents, allDegrees, {})));
+    if (elemOps.empty()) {
+      // Constant term (no operator)
+      cudaq::product_op<cudaq::matrix_handler> constantTerm =
+          cudaq::sum_op<cudaq::matrix_handler>::identity(0);
+      cudensitymatElementaryOperator_t cudmElemOp = createElementaryOperator(
+          *constantTerm.begin(), parameters, modeExtents);
+      result.emplace_back(std::make_pair(
+          productOp.get_coefficient(),
+          createProductOperatorTerm({cudmElemOp}, modeExtents, {{0}}, {})));
+    } else {
+      result.emplace_back(std::make_pair(
+          productOp.get_coefficient(),
+          createProductOperatorTerm(elemOps, modeExtents, allDegrees, {})));
+    }
   }
   return result;
 }
@@ -570,7 +571,8 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Callback param name {}, value {}", context->paramNames[i],
+        cudaq::debug("Callback param name {}, batch size {}, value {}",
+                     context->paramNames[i], batchSize,
                      param_map[context->paramNames[i]]);
       }
 
