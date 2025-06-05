@@ -1,6 +1,4 @@
 # ============================================================================ #
-# TODO: what else needs to be done here?                                       #
-#                                                                              #
 # Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
@@ -14,6 +12,7 @@ import lit.formats
 
 from lit.llvm import llvm_config
 
+# name: The name of this test suite.
 config.name = "NVQPP-Unit"
 
 # testFormat: The test format to use to interpret tests.
@@ -47,10 +46,6 @@ config.substitutions.append(("%cudaq_src_dir", config.cudaq_src_dir))
 config.substitutions.append(("%cudaq_plugin_ext", config.cudaq_plugin_ext))
 
 llvm_config.use_default_substitutions()
-
-
-# name: The name of this test suite.
-config.name = "NVQPP-Unit"
 
 # Ask `llvm-config` about asserts
 llvm_config.feature_config([("--assertion-mode", {"ON": "asserts"})])

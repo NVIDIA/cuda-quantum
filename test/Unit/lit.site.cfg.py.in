@@ -10,8 +10,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-#HOWDY
-
 import sys
 
 # Helper function to convert cmake variable boolean definitions to True/False.
