@@ -174,7 +174,7 @@ cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
             "setting. "
             "Expected "
             "a non-negative number. Got: " +
-            maxDiags);
+            maxDiagsStr);
 
       cudaq::info("Setting multi-diagonal max number of diagonals to {}.",
                   maxDiags);

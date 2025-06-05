@@ -189,6 +189,25 @@ In the above code snippet, we map the cavity light field to degree index 1 and t
 The description of composite quantum system dynamics is independent from the Hilbert space of the system components.
 The latter is specified by the dimension map that is provided to the `cudaq.evolve` call. 
 
+Builtin operators support both dense and multi-diagonal sparse format. 
+Depending on the sparsity of operator matrix and/or the sub-system dimension, CUDA-Q will
+either use the dense or multi-diagonal data formats for optimal performance.
+
+Specifically, the following environment variable options are applicable to the :code:`dynamics` target. 
+Any environment variables must be set prior to setting the target or running "`import cudaq`".
+
+.. list-table:: **Additional environment variable options for the `dynamics` target**
+  :widths: 20 30 50
+
+  * - Option
+    - Value
+    - Description
+  * - ``CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION``
+    - Non-negative number
+    - The minimum sub-system dimension on which the operator acts to activate multi-diagonal data format. For example, if a minimum dimension configuration of `N` is set, all operators acting on degrees of freedom (sub-system) whose dimension is less than or equal to `N` would always use the dense format. The final data format to be used depends on the next configuration. The default is 0 (all operators are considered for the multi-diagonal format).
+  * - ``CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL``
+    - Non-negative number
+    - The maximum number of diagonals for multi-diagonal representation. If the operator matrix has more diagonals than this value, the dense format will be used. Default is 1, i.e., operators with only one diagonal line (center, lower, or upper) will use the multi-diagonal sparse storage. 
 
 Time-Dependent Dynamics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
