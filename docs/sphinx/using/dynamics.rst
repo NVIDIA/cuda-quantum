@@ -204,7 +204,7 @@ Any environment variables must be set prior to setting the target or running "`i
     - Description
   * - ``CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION``
     - Non-negative number
-    - The minimum sub-system dimension on which the operator acts to activate multi-diagonal data format. For example, if a minimum dimension configuration of `N` is set, all operators acting on degrees of freedom (sub-system) whose dimension is less than or equal to `N` would always use the dense format. The final data format to be used depends on the next configuration. The default is 0 (all operators are considered for the multi-diagonal format).
+    - The minimum sub-system dimension on which the operator acts to activate multi-diagonal data format. For example, if a minimum dimension configuration of `N` is set, all operators acting on degrees of freedom (sub-system) whose dimension is less than or equal to `N` would always use the dense format. The final data format to be used depends on the next configuration. The default is 4.
   * - ``CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL``
     - Non-negative number
     - The maximum number of diagonals for multi-diagonal representation. If the operator matrix has more diagonals than this value, the dense format will be used. Default is 1, i.e., operators with only one diagonal line (center, lower, or upper) will use the multi-diagonal sparse storage. 

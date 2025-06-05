@@ -745,20 +745,16 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
         std::cerr << "Dimension map is empty!" << std::endl;
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
       }
-
-      complex_matrix matrix_data = storedOp.to_matrix(dimensions, param_map);
-
-      std::size_t rows = matrix_data.rows();
-      std::size_t cols = matrix_data.cols();
-
-      if (rows != cols) {
-        std::cerr << "Non-square matrix encountered: " << rows << "x" << cols
-                  << std::endl;
-        return CUDENSITYMAT_STATUS_INVALID_VALUE;
-      }
-
-      const std::vector<std::complex<double>> flatMatrix =
-          flattenMatrixColumnMajor(matrix_data);
+      const std::vector<std::complex<double>> flatMatrix = [&]() {
+        if (sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE) {
+          complex_matrix matrix_data =
+              storedOp.to_matrix(dimensions, param_map);
+          return flattenMatrixColumnMajor(matrix_data);
+        }
+        auto [mDiagData, _] =
+            storedOp.to_diagonal_matrix(dimensions, param_map);
+        return mDiagData;
+      }();
 
       if (data_type == CUDA_C_64F) {
         memcpy(tensor_storage, flatMatrix.data(),
