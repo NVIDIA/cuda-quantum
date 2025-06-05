@@ -440,7 +440,8 @@ endif()
 
 # Third-party libraries (tpls)
 # ==============================================================================
-set(FMT_INSTALL ON)
+# Disable fmt's install rules so that no fmt headers/targets get exported
+set(FMT_INSTALL OFF CACHE BOOL "Disable installing fmt; keep it private to CUDA-Q." FORCE)
 cmake_policy(PUSH)
 # CMP0146: The FindCUDA module is removed.
 # CMake 3.27 and above no longer provide the modules.
@@ -448,7 +449,7 @@ cmake_policy(PUSH)
 if(POLICY CMP0146)
   cmake_policy(SET CMP0146 OLD)
 endif()
-add_subdirectory(tpls/fmt)
+add_subdirectory(tpls/fmt EXCLUDE_FROM_ALL)
 cmake_policy(POP)
 include_directories(SYSTEM tpls/json/include)
 
