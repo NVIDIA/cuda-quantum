@@ -7,12 +7,18 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
+#include "common/RecordLogParser.h"
 #include "cudaq/platform.h"
 #include <fmt/core.h>
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
+
+namespace nvqir {
+std::string_view getQirOutputLog();
+void clearQirOutputLog();
+} // namespace nvqir
 
 namespace cudaq {
 
@@ -32,6 +38,8 @@ void bindExecutionContext(py::module &mod) {
                      &cudaq::ExecutionContext::numberTrajectories)
       .def_readwrite("explicitMeasurements",
                      &cudaq::ExecutionContext::explicitMeasurements)
+      .def_readonly("invocationResultBuffer",
+                    &cudaq::ExecutionContext::invocationResultBuffer)
       .def("setSpinOperator",
            [](cudaq::ExecutionContext &ctx, cudaq::spin_op &spin) {
              ctx.spin = spin;
@@ -65,5 +73,17 @@ void bindExecutionContext(py::module &mod) {
     auto &self = cudaq::get_platform();
     return self.get_exec_ctx()->name;
   });
+  mod.def("getQirOutputLog", []() { return nvqir::getQirOutputLog(); });
+  mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
+  mod.def("decodeQirOutputLog",
+          [](const std::string &outputLog, py::buffer decodedResults) {
+            cudaq::RecordLogParser parser;
+            parser.parse(outputLog);
+            auto info = decodedResults.request();
+            // Get the buffer and length of buffer (in bytes) from the parser.
+            auto *origBuffer = parser.getBufferPtr();
+            const std::size_t bufferSize = parser.getBufferSize();
+            std::memcpy(info.ptr, origBuffer, bufferSize);
+          });
 }
 } // namespace cudaq

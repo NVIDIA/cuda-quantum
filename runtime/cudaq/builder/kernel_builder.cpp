@@ -212,9 +212,8 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                              "type as first argument.");
   cudaq::info("kernel_builder apply exp_pauli {}", pauliWord);
 
-  auto stringLiteral = builder.getStringAttr(pauliWord);
   builder.create<quake::ExpPauliOp>(ValueRange{thetaVal}, ValueRange{},
-                                    ValueRange{qubitsVal}, stringLiteral);
+                                    ValueRange{qubitsVal}, pauliWord);
 }
 
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
