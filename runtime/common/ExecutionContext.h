@@ -127,5 +127,18 @@ public:
   /// @brief Whether or not to simply concatenate measurements in execution
   /// order.
   bool explicitMeasurements = false;
+
+  /// @brief Whether or not to de-correlate X and Z errors in the noise model
+  /// that is used to generate the MSM.
+  bool msm_decorrelate_xz_errors = false;
+
+  /// @brief Probability of occurrence of each error mechanism (column) in
+  /// Measurement Syndrome Matrix (0-1 range).
+  std::optional<std::vector<double>> msm_probabilities;
+
+  /// @brief The number of rows and columns of a Measurement Syndrome Matrix.
+  /// Note: Measurement Syndrome Matrix is defined in
+  /// https://arxiv.org/pdf/2407.13826.
+  std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 };
 } // namespace cudaq
