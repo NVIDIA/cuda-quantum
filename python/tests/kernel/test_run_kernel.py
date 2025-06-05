@@ -916,6 +916,47 @@ def test_run_errors():
     assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
 
 
+def test_modify_struct():
+
+    @dataclass
+    class MyClass:
+        x: int
+        y: bool
+
+    @cudaq.kernel
+    def simple_struct(t: MyClass) -> MyClass:
+        q = cudaq.qubit()
+        t.x = 42
+        return t
+
+    results = cudaq.run(simple_struct, MyClass(-13, True), shots_count=2)
+    print(results)
+    assert len(results) == 2
+    assert results[0] == MyClass(42, True)
+    assert results[1] == MyClass(42, True)
+
+
+def test_create_and_modify_struct():
+
+    @dataclass
+    class MyClass:
+        x: int
+        y: bool
+
+    @cudaq.kernel
+    def simple_struct() -> MyClass:
+        q = cudaq.qubit()
+        t = MyClass(-13, True)
+        t.x = 42
+        return t
+
+    results = cudaq.run(simple_struct, shots_count=2)
+    print(results)
+    assert len(results) == 2
+    assert results[0] == MyClass(42, True)
+    assert results[1] == MyClass(42, True)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
