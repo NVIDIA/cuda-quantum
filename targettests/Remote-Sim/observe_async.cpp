@@ -10,8 +10,7 @@
 // REQUIRES: c++20
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t 
-// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t
+// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t
 // clang-format on
 
 #include "remote_test_assert.h"

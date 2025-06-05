@@ -1160,11 +1160,14 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
         // here as the verifier will raise an error.
         rewriter.setInsertionPoint(rewriter.getBlock()->getTerminator());
       }
-      auto recOut = rewriter.create<func::CallOp>(
-          loc, TypeRange{}, cudaq::opt::QIRRecordOutput,
-          ArrayRef<Value>{res, cstringGlobal});
-      recOut->setAttr(cudaq::opt::ResultIndexAttrName, resultAttr);
-      recOut->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+      auto mod = mz->getParentOfType<ModuleOp>();
+      if (!mod->hasAttr(cudaq::runtime::enableCudaqRun)) {
+        auto recOut = rewriter.create<func::CallOp>(
+            loc, TypeRange{}, cudaq::opt::QIRRecordOutput,
+            ArrayRef<Value>{res, cstringGlobal});
+        recOut->setAttr(cudaq::opt::ResultIndexAttrName, resultAttr);
+        recOut->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+      }
       rewriter.replaceOp(mz, res);
     }
     return success();
@@ -2178,6 +2181,8 @@ struct QuakeToQIRAPIPrepPass
           } else if (api == "adaptive-profile") {
             funcAttrs.push_back(builder.getStrArrayAttr(
                 {cudaq::opt::QIRProfilesAttrName, "adaptive_profile"}));
+            funcAttrs.push_back(builder.getStrArrayAttr(
+                {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}));
           }
           if (totalQubits)
             funcAttrs.push_back(builder.getStrArrayAttr(
@@ -2237,6 +2242,7 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
   QuakeToQIRAPIFinalOptions finalApiOpt{.api = api.str()};
   pm.addPass(cudaq::opt::createQuakeToQIRAPIFinal(finalApiOpt));
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
+  pm.addPass(createCanonicalizerPass());
 }
 
 namespace {

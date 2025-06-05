@@ -14,8 +14,7 @@
 #include <stdlib.h>
 
 std::string mockPort = "62448";
-std::string backendStringTemplate =
-    "quantum_machines;url;http://localhost:{}";
+std::string backendStringTemplate = "quantum_machines;url;http://localhost:{}";
 
 CUDAQ_TEST(QuantumMachinesTester, minimal3Hadamard) {
   auto backendString =
@@ -34,7 +33,6 @@ CUDAQ_TEST(QuantumMachinesTester, minimal3Hadamard) {
   counts.dump();
   EXPECT_EQ(counts.size(), 8);
 }
-
 
 int main(int argc, char **argv) {
   setenv("QUANTUM_MACHINES_API_KEY", "00000000000000000000000000000000", 0);
