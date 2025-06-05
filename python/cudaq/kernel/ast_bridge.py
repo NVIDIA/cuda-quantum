@@ -1209,6 +1209,17 @@ class PyASTBridge(ast.NodeVisitor):
             elif isinstance(node.targets[0], ast.Subscript) and isinstance(
                     node.targets[0].value,
                     ast.Name) and node.targets[0].value.id in self.symbolTable:
+
+                # Tuples are immutable, so we cannot assign to items in them
+                # Get the variable from the symbol table and check if it's a tuple
+                varType = self.symbolTable[node.targets[0].value.id].type
+                if cc.PointerType.isinstance(varType):
+                    varType = cc.PointerType.getElementType(varType)
+                if cc.StructType.isinstance(varType) and cc.StructType.getName(
+                        varType) == "tuple":
+                    self.emitFatalError(
+                        "'tuple' object does not support item assignment", node)
+
                 # Visit_Subscript will try to load any pointer and return it
                 # but here we want the pointer, so flip that flag
                 # FIXME: move loading from Visit_Subscript to the user instead.
