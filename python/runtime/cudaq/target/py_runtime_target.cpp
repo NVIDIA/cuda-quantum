@@ -46,6 +46,9 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       .def("is_emulated", &cudaq::RuntimeTarget::is_emulated,
            "Returns true if the emulation mode for the target has been "
            "activated.")
+      .def(
+          "is_remote_simulator", &cudaq::RuntimeTarget::is_remote_simulator,
+          "Returns true if the target consists of a remote REST Simulator QPU.")
       .def("get_precision", &cudaq::RuntimeTarget::get_precision,
            "Return the simulation precision for the current target.")
       .def(

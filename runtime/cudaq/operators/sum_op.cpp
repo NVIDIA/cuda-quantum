@@ -6,17 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/EigenSparse.h"
+#include "cudaq/operators.h"
+#include "evaluation.h"
+#include "helpers.h"
 #include <algorithm>
 #include <iostream>
 #include <set>
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include "common/EigenSparse.h"
-#include "cudaq/operators.h"
-#include "evaluation.h"
-#include "helpers.h"
 
 namespace cudaq {
 
@@ -36,12 +35,10 @@ namespace cudaq {
 template <typename HandlerTy>
 void sum_op<HandlerTy>::insert(const product_op<HandlerTy> &other) {
   assert(!this->is_default);
-  auto term_id = other.get_term_id();
-  auto it = this->term_map.find(term_id);
-  if (it == this->term_map.cend()) {
+  auto [it, inserted] =
+      this->term_map.try_emplace(other.get_term_id(), this->terms.size());
+  if (inserted) {
     this->coefficients.push_back(other.coefficient);
-    this->term_map.insert(
-        it, std::make_pair(std::move(term_id), this->terms.size()));
     this->terms.push_back(other.operators);
   } else {
     this->coefficients[it->second] += other.coefficient;
@@ -52,12 +49,10 @@ void sum_op<HandlerTy>::insert(const product_op<HandlerTy> &other) {
 template <typename HandlerTy>
 void sum_op<HandlerTy>::insert(product_op<HandlerTy> &&other) {
   assert(!this->is_default);
-  auto term_id = other.get_term_id();
-  auto it = this->term_map.find(term_id);
-  if (it == this->term_map.cend()) {
+  auto [it, inserted] =
+      this->term_map.try_emplace(other.get_term_id(), this->terms.size());
+  if (inserted) {
     this->coefficients.push_back(std::move(other.coefficient));
-    this->term_map.insert(
-        it, std::make_pair(std::move(term_id), this->terms.size()));
     this->terms.push_back(std::move(other.operators));
   } else {
     this->coefficients[it->second] += other.coefficient;
@@ -1755,23 +1750,26 @@ sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec) {
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
-product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &word) {
-  auto prod = sum_op<HandlerTy>::identity();
+product_op<HandlerTy> sum_op<HandlerTy>::from_word(const std::string &arg) {
+  std::string word{arg};
+  word.erase(std::find(word.begin(), word.end(), '\0'), word.end());
+  std::vector<HandlerTy> ops;
+  ops.reserve(word.length());
   for (std::size_t i = 0; i < word.length(); i++) {
     auto letter = word[i];
     if (letter == 'Y')
-      prod *= sum_op<HandlerTy>::y(i);
+      ops.push_back(HandlerTy::y(i));
     else if (letter == 'X')
-      prod *= sum_op<HandlerTy>::x(i);
+      ops.push_back(HandlerTy::x(i));
     else if (letter == 'Z')
-      prod *= sum_op<HandlerTy>::z(i);
+      ops.push_back(HandlerTy::z(i));
     else if (letter == 'I')
-      prod *= sum_op<HandlerTy>::i(i);
+      ops.push_back(HandlerTy(i));
     else
       throw std::runtime_error(
           "Invalid Pauli for spin_op::from_word, must be X, Y, Z, or I.");
   }
-  return prod;
+  return product_op<HandlerTy>(1., std::move(ops));
 }
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
@@ -1858,6 +1856,32 @@ csr_spmatrix sum_op<HandlerTy>::to_sparse_matrix(
       matrix, 1ul << evaluated.terms[0].relevant_dimensions.size());
 }
 
+template <typename HandlerTy>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
+mdiag_sparse_matrix sum_op<HandlerTy>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto evaluated = this->transform(
+      operator_arithmetics<operator_handler::canonical_evaluation>(dimensions,
+                                                                   parameters));
+
+  if (evaluated.terms.size() == 0)
+    return mdiag_sparse_matrix();
+
+  auto dia_matrix = HandlerTy::to_diagonal_matrix(
+      evaluated.terms[0].encoding, evaluated.terms[0].relevant_dimensions,
+      evaluated.terms[0].coefficient, invert_order);
+  for (auto i = 1; i < terms.size(); ++i)
+    cudaq::detail::inplace_accumulate(
+        dia_matrix,
+        HandlerTy::to_diagonal_matrix(
+            evaluated.terms[i].encoding, evaluated.terms[i].relevant_dimensions,
+            evaluated.terms[i].coefficient, invert_order));
+  return dia_matrix;
+}
+
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::vector<double> sum_op<HandlerTy>::get_data_representation() const {
   auto nr_ops = 0;
@@ -1907,6 +1931,19 @@ template csr_spmatrix sum_op<boson_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
+template mdiag_sparse_matrix sum_op<spin_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template mdiag_sparse_matrix sum_op<fermion_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template mdiag_sparse_matrix sum_op<boson_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+
 template std::vector<double>
 sum_op<spin_handler>::get_data_representation() const;
 

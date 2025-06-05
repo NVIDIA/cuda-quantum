@@ -1160,11 +1160,14 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
         // here as the verifier will raise an error.
         rewriter.setInsertionPoint(rewriter.getBlock()->getTerminator());
       }
-      auto recOut = rewriter.create<func::CallOp>(
-          loc, TypeRange{}, cudaq::opt::QIRRecordOutput,
-          ArrayRef<Value>{res, cstringGlobal});
-      recOut->setAttr(cudaq::opt::ResultIndexAttrName, resultAttr);
-      recOut->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+      auto mod = mz->getParentOfType<ModuleOp>();
+      if (!mod->hasAttr(cudaq::runtime::enableCudaqRun)) {
+        auto recOut = rewriter.create<func::CallOp>(
+            loc, TypeRange{}, cudaq::opt::QIRRecordOutput,
+            ArrayRef<Value>{res, cstringGlobal});
+        recOut->setAttr(cudaq::opt::ResultIndexAttrName, resultAttr);
+        recOut->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+      }
       rewriter.replaceOp(mz, res);
     }
     return success();
@@ -1184,6 +1187,29 @@ struct ResetOpPattern : public OpConversionPattern<quake::ResetOp> {
     // Replace the quake op with the new call op.
     rewriter.replaceOpWithNewOp<func::CallOp>(
         reset, TypeRange{}, qirFunctionName, adaptor.getOperands());
+    return success();
+  }
+};
+
+struct ApplyOpTrap : public OpConversionPattern<quake::ApplyOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  // If we see a `quake.apply` operation at this point, something has gone wrong
+  // and we were unable to autogenerate the function that we should be calling.
+  // So we replace the apply with a trap and the results with poison values.
+  LogicalResult
+  matchAndRewrite(quake::ApplyOp apply, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = apply.getLoc();
+    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
+                                  ValueRange{zero});
+    SmallVector<Value> values;
+    for (auto r : apply.getResults()) {
+      Value v = rewriter.create<cudaq::cc::PoisonOp>(loc, r.getType());
+      values.push_back(v);
+    }
+    rewriter.replaceOp(apply, values);
     return success();
   }
 };
@@ -1701,8 +1727,8 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<GetMemberOpRewrite, MakeStruqOpRewrite, RelaxSizeOpErase,
-                  VeqSizeOpRewrite>(typeConverter, ctx);
+  patterns.insert<ApplyOpTrap, GetMemberOpRewrite, MakeStruqOpRewrite,
+                  RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2155,6 +2181,8 @@ struct QuakeToQIRAPIPrepPass
           } else if (api == "adaptive-profile") {
             funcAttrs.push_back(builder.getStrArrayAttr(
                 {cudaq::opt::QIRProfilesAttrName, "adaptive_profile"}));
+            funcAttrs.push_back(builder.getStrArrayAttr(
+                {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}));
           }
           if (totalQubits)
             funcAttrs.push_back(builder.getStrArrayAttr(
@@ -2214,6 +2242,7 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
   QuakeToQIRAPIFinalOptions finalApiOpt{.api = api.str()};
   pm.addPass(cudaq::opt::createQuakeToQIRAPIFinal(finalApiOpt));
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
+  pm.addPass(createCanonicalizerPass());
 }
 
 namespace {

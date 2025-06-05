@@ -16,7 +16,7 @@ public:
   virtual ~base_time_stepper() = default;
 
   virtual state
-  compute(const state &inputState, double t, double stepSize,
+  compute(const state &inputState, double t,
           const std::unordered_map<std::string, std::complex<double>>
               &parameters) = 0;
 };

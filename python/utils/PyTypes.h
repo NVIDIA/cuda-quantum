@@ -122,6 +122,54 @@ public:
   }
 };
 
+/// Extended python int object.
+///
+/// Includes `int`, `numpy.intXXX`.
+class Int : public pybind11::object {
+public:
+  PYBIND11_OBJECT_CVT(Int, object, isInt_, convert_)
+
+  // Allow implicit conversion from int:
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  Int(long value) : object(PyLong_FromLong((long)value), stolen_t{}) {
+    if (!m_ptr) {
+      pybind11::pybind11_fail("Could not allocate float object!");
+    }
+  }
+
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  operator std::int8_t() const { return (std::int8_t)PyLong_AsLong(m_ptr); }
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  operator std::int16_t() const { return (std::int16_t)PyLong_AsLong(m_ptr); }
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  operator std::int32_t() const { return (std::int32_t)PyLong_AsLong(m_ptr); }
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  operator std::int64_t() const { return (std::int64_t)PyLong_AsLong(m_ptr); }
+
+  static bool isInt_(PyObject *o) {
+    if (PyLong_Check(o)) {
+      return true;
+    }
+    PyTypeObject *type = Py_TYPE(o);
+    std::string name = std::string(type->tp_name);
+    if (name == "numpy.int8" || name == "numpy.int16" ||
+        name == "numpy.int32" || name == "numpy.int64") {
+      return true;
+    }
+    return false;
+  }
+
+  static PyObject *convert_(PyObject *o) {
+    PyObject *ret = nullptr;
+    if (isInt_(o)) {
+      ret = PyLong_FromLong(PyLong_AsLong(o));
+    } else {
+      pybind11::set_error(PyExc_TypeError, "Unexpected type");
+    }
+    return ret;
+  }
+};
+
 template <typename T>
 inline char const *typeName() {
   return typeid(T).name();
@@ -133,6 +181,10 @@ inline char const *typeName<py_ext::Float>() {
 template <>
 inline char const *typeName<py_ext::Complex>() {
   return "complex";
+}
+template <>
+inline char const *typeName<py_ext::Int>() {
+  return "long";
 }
 template <>
 inline char const *typeName<pybind11::int_>() {
@@ -172,7 +224,22 @@ inline pybind11::object convert(bool value) {
 }
 
 template <>
-inline pybind11::object convert(long value) {
+inline pybind11::object convert(std::int8_t value) {
+  return pybind11::int_(value);
+}
+
+template <>
+inline pybind11::object convert(std::int16_t value) {
+  return pybind11::int_(value);
+}
+
+template <>
+inline pybind11::object convert(std::int32_t value) {
+  return pybind11::int_(value);
+}
+
+template <>
+inline pybind11::object convert(std::int64_t value) {
   return pybind11::int_(value);
 }
 
