@@ -395,13 +395,13 @@ void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
     // Remote simulator - use altLaunchKernel to support returning values.
     // TODO: after cudaq::run support this should be merged with the quantum
     // device case.
-    auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
+    std::unique_ptr<cudaq::ArgWrapper> wrapper(
+        new cudaq::ArgWrapper{mod, names, rawArgs});
     auto dynamicResult = cudaq::altLaunchKernel(
-        name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
+        name.c_str(), thunk, reinterpret_cast<void *>(wrapper.get()), size,
         returnOffset);
     if (dynamicResult.data_buffer || dynamicResult.size)
       throw std::runtime_error("not implemented: support dynamic results");
-    delete wrapper;
   } else if (isQuantumDevice) {
     // Quantum devices or their emulation - we can use streamlinedLaunchKernel
     // as quantum platform do not support direct returns.
