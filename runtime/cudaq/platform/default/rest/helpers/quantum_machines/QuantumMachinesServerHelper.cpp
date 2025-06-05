@@ -39,6 +39,7 @@ public:
   RestHeaders getHeaders() override {
     RestHeaders headers;
     headers["Content-Type"] = "application/json";
+    headers["X-API-Key"] = backendConfig["api_key"];
     return headers;
   }
 
@@ -79,7 +80,6 @@ public:
     job["source"] = "oq2";
     job["shots"] = shots;
     job["executor"] = backendConfig["executor"];
-    job["api_key"] = backendConfig["api_key"];
     job["qubit_mapping"] = backendConfig["qubit_mapping"];
     RestHeaders headers = getHeaders();
     std::string path = backendConfig["url"]+"/v1/execute";
