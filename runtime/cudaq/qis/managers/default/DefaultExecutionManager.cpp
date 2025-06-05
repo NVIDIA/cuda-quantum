@@ -226,6 +226,17 @@ protected:
     if (isInTracerMode())
       return;
 
+    if (channel.noise_type == cudaq::noise_model_type::global_disable) {
+      this->noiseDisabled = true;
+      return;
+    }
+    if (channel.noise_type == cudaq::noise_model_type::global_enable) {
+      this->noiseDisabled = false;
+      return;
+    }
+    if (this->noiseDisabled)
+      return;
+
     flushGateQueue();
 
     if (channel.empty())
