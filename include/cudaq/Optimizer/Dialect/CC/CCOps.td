@@ -1170,16 +1170,27 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
       %arrCon = cc.const_array [1.0, 2.0] : !cc.array<f64 x 2>
     ```
   }];
-  let arguments = (ins
-    ArrayAttr:$constantValues
-  );
+  let arguments = (ins ArrayAttr:$constantValues);
   let results = (outs cc_ArrayType:$arrayType);
   let assemblyFormat = [{
     $constantValues `:` qualified(type($arrayType)) attr-dict
   }];
+
+  let extraClassDeclaration = [{
+    // The total number of array dimensions.
+    std::size_t arrayDimension() {
+      std::size_t depth = 0;
+      mlir::Type ty = getType();
+      while (auto arrTy = llvm::dyn_cast<cudaq::cc::ArrayType>(ty)) {
+        ty = arrTy.getElementType();
+        ++depth;
+      }
+      return depth;
+    }
+  }];
 }
 
-def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
+def cc_CreateStringLiteralOp : CCOp<"string_literal", [Pure]> {
   let summary = "Create a constant string literal.";
   let description = [{
     This operation creates a ASCIIZ string literal value. It's argument is a
@@ -1199,8 +1210,76 @@ def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
 }
 
 //===----------------------------------------------------------------------===//
-// Stdvec operations.
+// Span/Stdvec operations.
 //===----------------------------------------------------------------------===//
+
+def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
+  let summary = "Convert a constant array value to a tree of spans.";
+  let description = [{
+    A ReifySpanOp is a macro op that can be used to convert a first-class
+    constant array value, `cc.const_array`, atomically into a tree of spans
+    as an object in memory.
+
+    The following example shows how one recovers the address of the string
+    object "YI\0" from a const_array of strings, `%2`. It also shows how to
+    reify that array to a span of spans of characters, `%3`.
+
+    ```mlir
+      %1 = cc.const_array [ "XZ", "YI" ] : !cc.array<!cc.charspan x 2>
+      %2 = cc.extract_value %1[1] : (!cc.array<!cc.charspan>) -> !cc.charspan
+      %3 = cc.reify_span %1 : (!cc.array<!cc.charspan x 2>) ->
+                               !cc.stdvec<!cc.charspan>
+    ```
+
+    Expanding the reify_span op will generate the following code
+    ```mlir
+      %1 = cc.alloca !cc.array<!cc.charspan x 2>
+      %2 = cc.string_literal "XZ" : !cc.ptr<!cc.array<i8 x 3>>
+      %4 = cc.stdvec_init %2 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
+      %5 = cc.cast %1 : (!cc.ptr<!cc.array<!cc.charspan x 2>>) ->
+                         !cc.ptr<!cc.charspan>
+      cc.store %4, %5 : !cc.ptr<!cc.charspan>
+      %6 = cc.string_literal "YI" : !cc.ptr<!cc.array<i8 x 3>>
+      %8 = cc.stdvec_init %6 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
+      %9 = cc.compute_ptr %1[1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) ->
+                                   !cc.ptr<!cc.charspan>
+      cc.store %8, %9 : !cc.ptr<!cc.charspan>
+    ```
+  }];
+
+  let arguments = (ins cc_ArrayType:$elements);
+  let results = (outs cc_StdVectorType:$spanType);
+  let assemblyFormat = [{
+    $elements `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    // The total number span dimensions. The total is the number of outer
+    // std::vector<T> classes plus one if the inner class is a std::string.
+    std::size_t spanDimension() {
+      std::size_t depth = 0;
+      mlir::Type ty = getType();
+      while (auto spanTy = llvm::dyn_cast<cudaq::cc::SpanLikeType>(ty)) {
+        ty = spanTy.getElementType();
+        ++depth;
+      }
+      return depth;
+    }
+
+    // The number of std::vector<T> dimensions.
+    std::size_t vectorDimension() {
+      std::size_t depth = 0;
+      mlir::Type ty = getType();
+      while (auto vecTy = llvm::dyn_cast<cudaq::cc::StdvecType>(ty)) {
+        ty = vecTy.getElementType();
+        ++depth;
+      }
+      return depth;
+    }
+  }];
+}
 
 def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
   let summary = "Initialize a stdvec object from a pointer and length.";
@@ -1216,21 +1295,29 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     Example:
 
     ```mlir
-    %buff = ... : !cc.ptr<f64>
-    %len = ... : i64
-    %svec = cc.stdvec_init %buff, %len : (!cc.ptr<f64>, i64) -> !cc.stdvec<f64>
-    func.call @kernel(%svec) ...
+      %buff = ... : !cc.ptr<f64>
+      %len = ... : i64
+      %vec1 = cc.stdvec_init %buff, %len : (!cc.ptr<f64>, i64) ->
+                                            !cc.stdvec<f64>
+      func.call @kernel(%vec1) ...
+
+      %arr = ... : !cc.ptr<!cc.array<i64 x 12>>
+      %vec2 = cc.stdvec_init %arr : (!cc.ptr<!cc.array<i64 x 12>>) ->
+                                     !cc.stdvec<i64>  // span length is 12
     ```
   }];
 
   let arguments = (ins
     AnyPointerType:$buffer,
-    AnyInteger:$length
+    Optional<AnyInteger>:$length
   );
   let results = (outs SpanningType:$stdvec);
 
+  let hasVerifier = 1;
+  let hasCanonicalizer = 1;
+
   let assemblyFormat = [{
-    $buffer `,` $length `:` functional-type(operands, results) attr-dict
+    $buffer ( `,` $length^ )? `:` functional-type(operands, results) attr-dict
   }];
 }
 
