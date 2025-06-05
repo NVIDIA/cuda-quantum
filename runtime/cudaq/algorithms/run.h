@@ -97,7 +97,13 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
 template <typename QuantumKernel, typename... ARGS>
 #if CUDAQ_USE_STD20
   requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                                std::decay_t<ARGS>...>>)
+                                                std::decay_t<ARGS>...>> &&
+           !std::is_same_v<
+               std::remove_cvref_t<std::invoke_result_t<
+                   std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>,
+               std::vector<typename std::remove_cvref_t<
+                   std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                        std::decay_t<ARGS>...>>::value_type>>)
 #endif
 std::vector<
     std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
