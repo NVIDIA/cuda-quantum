@@ -74,12 +74,12 @@ void matrix_handler::define(std::string operator_id,
 void matrix_handler::define(std::string operator_id,
                             std::vector<std::int64_t> expected_dimensions,
                             matrix_callback &&create,
-                            dia_matrix_callback &&dia_create,
+                            diag_matrix_callback &&diag_create,
                             const std::unordered_map<std::string, std::string>
                                 &parameter_descriptions) {
   auto defn = Definition(
       operator_id, std::move(expected_dimensions), std::move(create),
-      std::move(dia_create),
+      std::move(diag_create),
       std::unordered_map<std::string, std::string>(parameter_descriptions));
   auto result =
       matrix_handler::defined_ops.insert({operator_id, std::move(defn)});

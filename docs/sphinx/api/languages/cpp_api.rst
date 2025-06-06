@@ -14,7 +14,7 @@ Operators
 
 .. doxygenclass:: cudaq::matrix_callback
 
-.. doxygenclass:: cudaq::dia_matrix_callback
+.. doxygenclass:: cudaq::diag_matrix_callback
 
 .. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
 

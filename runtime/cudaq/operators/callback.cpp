@@ -33,9 +33,9 @@ complex_matrix matrix_callback::operator()(
   return this->callback_func(relevant_dimensions, parameters);
 }
 
-// dia_matrix_callback
+// diag_matrix_callback
 
-mdiag_sparse_matrix dia_matrix_callback::operator()(
+mdiag_sparse_matrix diag_matrix_callback::operator()(
     const std::vector<std::int64_t> &relevant_dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
@@ -55,16 +55,16 @@ Definition::Definition(
 
 Definition::Definition(Definition &&def)
     : id(def.id), generator(std::move(def.generator)),
-      dia_generator(std::move(def.dia_generator)),
+      diag_generator(std::move(def.diag_generator)),
       parameter_descriptions(std::move(def.parameter_descriptions)),
       required_dimensions(std::move(def.expected_dimensions)) {}
 
 Definition::Definition(
     std::string operator_id, const std::vector<int64_t> &expected_dimensions,
-    matrix_callback &&create, dia_matrix_callback &&dia_create,
+    matrix_callback &&create, diag_matrix_callback &&diag_create,
     std::unordered_map<std::string, std::string> &&parameter_descriptions)
     : id(operator_id), generator(std::move(create)),
-      dia_generator(std::move(dia_create)),
+      diag_generator(std::move(diag_create)),
       parameter_descriptions(std::move(parameter_descriptions)),
       required_dimensions(std::move(expected_dimensions)) {}
 
@@ -79,7 +79,7 @@ mdiag_sparse_matrix Definition::generate_dia_matrix(
     const std::vector<std::int64_t> &relevant_dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters)
     const {
-  return dia_generator.value()(relevant_dimensions, parameters);
+  return diag_generator.value()(relevant_dimensions, parameters);
 }
 Definition::~Definition() = default;
 } // namespace cudaq

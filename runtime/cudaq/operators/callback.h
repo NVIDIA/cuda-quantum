@@ -104,7 +104,7 @@ public:
 using mdiag_sparse_matrix =
     std::pair<std::vector<std::complex<double>>, std::vector<std::int64_t>>;
 
-class dia_matrix_callback {
+class diag_matrix_callback {
 private:
   // The user provided callback function that takes a vector defining the
   // dimension for each degree of freedom it acts on, and a map of complex
@@ -122,15 +122,15 @@ public:
               mdiag_sparse_matrix, Callable, const std::vector<std::int64_t> &,
               const std::unordered_map<std::string, std::complex<double>> &>,
           bool> = true>
-  dia_matrix_callback(Callable &&callable) {
+  diag_matrix_callback(Callable &&callable) {
     callback_func = std::forward<Callable>(callable);
   }
 
-  dia_matrix_callback(const dia_matrix_callback &other) = default;
-  dia_matrix_callback(dia_matrix_callback &&other) = default;
+  diag_matrix_callback(const diag_matrix_callback &other) = default;
+  diag_matrix_callback(diag_matrix_callback &&other) = default;
 
-  dia_matrix_callback &operator=(const dia_matrix_callback &other) = default;
-  dia_matrix_callback &operator=(dia_matrix_callback &&other) = default;
+  diag_matrix_callback &operator=(const diag_matrix_callback &other) = default;
+  diag_matrix_callback &operator=(diag_matrix_callback &&other) = default;
 
   mdiag_sparse_matrix
   operator()(const std::vector<std::int64_t> &relevant_dimensions,
@@ -143,7 +143,7 @@ class Definition {
 private:
   std::string id;
   matrix_callback generator;
-  std::optional<dia_matrix_callback> dia_generator;
+  std::optional<diag_matrix_callback> diag_generator;
   std::vector<std::int64_t> required_dimensions;
 
 public:
@@ -157,7 +157,7 @@ public:
       std::unordered_map<std::string, std::string> &&parameter_descriptions);
   Definition(
       std::string operator_id, const std::vector<int64_t> &expected_dimensions,
-      matrix_callback &&create, dia_matrix_callback &&dia_create,
+      matrix_callback &&create, diag_matrix_callback &&diag_create,
       std::unordered_map<std::string, std::string> &&parameter_descriptions);
   Definition(Definition &&def);
   ~Definition();
@@ -167,7 +167,7 @@ public:
   generate_matrix(const std::vector<std::int64_t> &relevant_dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
                       &parameters) const;
-  bool has_dia_generator() const { return dia_generator.has_value(); }
+  bool has_dia_generator() const { return diag_generator.has_value(); }
   mdiag_sparse_matrix generate_dia_matrix(
       const std::vector<std::int64_t> &relevant_dimensions,
       const std::unordered_map<std::string, std::complex<double>> &parameters)

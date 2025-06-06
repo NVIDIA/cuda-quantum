@@ -105,7 +105,7 @@ private:
   std::unordered_set<cudensitymatOperatorTerm_t> m_operatorTerms;
   std::deque<ScalarCallBackContext> m_scalarCallbacks;
   std::deque<TensorCallBackContext> m_tensorCallbacks;
-  int m_minDimensionDia = 4;
-  int m_maxDiagonalsDia = 1;
+  int m_minDimensionDiag = 4;
+  int m_maxDiagonalsDiag = 1;
 };
 } // namespace cudaq::dynamics

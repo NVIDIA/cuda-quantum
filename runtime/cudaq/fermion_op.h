@@ -133,6 +133,7 @@ public:
   /// the eigenbasis of the number operator.
   /// @param  `dimensions` : A map specifying the dimension, that is the number
   /// of eigenstates, for each degree of freedom.
+  /// @param  `parameters` : A map specifying runtime parameter values.
   virtual mdiag_sparse_matrix
   to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
                      const std::unordered_map<std::string, std::complex<double>>

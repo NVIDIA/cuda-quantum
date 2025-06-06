@@ -138,47 +138,43 @@ computeDagger(const cudaq::product_op<cudaq::matrix_handler> &productOp) {
 cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
     cudensitymatHandle_t handle)
     : m_handle(handle) {
-  {
-    if (auto *minDimensionDIA =
-            std::getenv("CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION")) {
-      const std::string minDimension(minDimensionDIA);
-      const char *nptr = minDimension.data();
+  const auto getIntEnvVarIfPresent =
+      [](const char *envName) -> std::optional<int> {
+    if (auto *envVal = std::getenv(envName)) {
+      const std::string envValStr(envVal);
+      const char *nptr = envValStr.data();
       char *endptr = nullptr;
       errno = 0; // reset errno to 0 before call
-      auto minDim = strtol(nptr, &endptr, 10);
+      auto envIntVal = strtol(nptr, &endptr, 10);
 
-      if (nptr == endptr || errno != 0 || minDim < 0)
-        throw std::runtime_error(
-            "Invalid CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION setting. "
-            "Expected "
-            "a non-negative number. Got: " +
-            minDimension);
+      if (nptr == endptr || errno != 0 || envIntVal < 0)
+        throw std::runtime_error(fmt::format(
+            "Invalid {} setting. Expected a non-negative number. Got: '{}'",
+            envName, envValStr));
 
-      cudaq::info("Setting multi-diagonal min dimension to {}.", minDim);
-      m_minDimensionDia = minDim;
+      return envIntVal;
+    }
+    // The environment variable is not set.
+    return std::nullopt;
+  };
+
+  {
+    const auto minDim =
+        getIntEnvVarIfPresent("CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION");
+    if (minDim.has_value()) {
+      cudaq::info("Setting multi-diagonal min dimension to {}.",
+                  minDim.value());
+      m_minDimensionDiag = minDim.value();
     }
   }
 
   {
-    if (auto *maxDiagsDIA = std::getenv(
-            "CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL")) {
-      const std::string maxDiagsStr(maxDiagsDIA);
-      const char *nptr = maxDiagsStr.data();
-      char *endptr = nullptr;
-      errno = 0; // reset errno to 0 before call
-      auto maxDiags = strtol(nptr, &endptr, 10);
-
-      if (nptr == endptr || errno != 0 || maxDiags < 0)
-        throw std::runtime_error(
-            "Invalid CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL "
-            "setting. "
-            "Expected "
-            "a non-negative number. Got: " +
-            maxDiagsStr);
-
+    const auto maxDiags = getIntEnvVarIfPresent(
+        "CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL");
+    if (maxDiags.has_value()) {
       cudaq::info("Setting multi-diagonal max number of diagonals to {}.",
-                  maxDiags);
-      m_maxDiagonalsDia = maxDiags;
+                  maxDiags.value());
+      m_maxDiagonalsDiag = maxDiags.value();
     }
   }
 }
@@ -334,9 +330,9 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     const auto dim = std::accumulate(
         subspaceExtents.begin(), subspaceExtents.end(), 1,
         std::multiplies<decltype(subspaceExtents)::value_type>());
-    if (dim < m_minDimensionDia)
+    if (dim < m_minDimensionDiag)
       return false;
-    return offsets.size() <= m_maxDiagonalsDia;
+    return offsets.size() <= m_maxDiagonalsDiag;
   }();
 
   auto *elementaryMat_d = [&]() {

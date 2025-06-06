@@ -113,7 +113,8 @@ public:
   // The definition also includes a multi-diagonal matrix generator.
   static void define(std::string operator_id,
                      std::vector<std::int64_t> expected_dimensions,
-                     matrix_callback &&create, dia_matrix_callback &&dia_create,
+                     matrix_callback &&create,
+                     diag_matrix_callback &&diag_create,
                      const std::unordered_map<std::string, std::string>
                          &parameter_descriptions = {});
 
@@ -292,8 +293,9 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
+  /// @param  `parameters` : A map specifying runtime parameter values.
   /// If the multi-diagonal matrix representation is not available, it will
-  /// returns empty.
+  /// return empty.
   mdiag_sparse_matrix
   to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
                      const std::unordered_map<std::string, std::complex<double>>

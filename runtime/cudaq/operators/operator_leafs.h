@@ -493,6 +493,7 @@ public:
   ///                      that is, the dimension of each degree of freedom
   ///                      that the operator acts on. Example for two, 2-level
   ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
+  /// @param  `parameters` : A map specifying runtime parameter values.
   virtual mdiag_sparse_matrix
   to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
                      const std::unordered_map<std::string, std::complex<double>>
