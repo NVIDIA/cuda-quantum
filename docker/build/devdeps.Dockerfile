@@ -28,7 +28,7 @@ ARG base_image=ubuntu:22.04
 # [CUDA-Q Dependencies]
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
-ARG toolchain=gcc11
+ARG toolchain=gcc12
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
