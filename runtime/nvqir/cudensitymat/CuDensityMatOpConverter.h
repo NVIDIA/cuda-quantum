@@ -43,6 +43,10 @@ public:
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool isMasterEquation);
 
+  cudensitymatOperator_t constructLiouvillian(
+      const super_op &superOp, const std::vector<int64_t> &modeExtents,
+      const std::unordered_map<std::string, std::complex<double>> &parameters);
+
   /// @brief Clear the current callback context
   // Callback context may contain Python objects, hence needs to be clear before
   // shutdown to prevent race condition.
