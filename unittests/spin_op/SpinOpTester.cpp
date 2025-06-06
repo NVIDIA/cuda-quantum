@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
+#include "utils.h"
 #include <gtest/gtest.h>
 
 enum Pauli : int8_t { I = 0, X, Y, Z };
@@ -309,6 +310,67 @@ TEST(SpinOpTester, checkDistributeTerms) {
   EXPECT_EQ(distributed.size(), 2);
   EXPECT_EQ(distributed[0].num_terms(), 3);
   EXPECT_EQ(distributed[1].num_terms(), 2);
+}
+
+TEST(SpinOpTester, checkMultiDiagConversionSpin) {
+  for (auto &H : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                  cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+    utils::checkEqual(H.to_matrix(), H.to_diagonal_matrix());
+  }
+
+  // Product ops testing
+  for (auto &H1 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                   cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+    for (auto &H2 : {cudaq::spin_op::i(1), cudaq::spin_op::x(1),
+                     cudaq::spin_op::y(1), cudaq::spin_op::z(1)}) {
+      auto H = H1 * H2;
+      std::cout << "Testing " << H.to_string() << "\n";
+      utils::checkEqual(H.to_matrix(), H.to_diagonal_matrix());
+    }
+  }
+
+  for (auto &H1 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                   cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+    for (auto &H2 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                     cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+      auto H = H1 * H2;
+      std::cout << "Testing " << H.to_string() << "\n";
+      utils::checkEqual(H.to_matrix(), H.to_diagonal_matrix());
+    }
+  }
+
+  // Sum ops testing
+  for (auto &H1 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                   cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+    for (auto &H2 : {cudaq::spin_op::i(1), cudaq::spin_op::x(1),
+                     cudaq::spin_op::y(1), cudaq::spin_op::z(1)}) {
+      for (auto &H3 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                       cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+        for (auto &H4 : {cudaq::spin_op::i(1), cudaq::spin_op::x(1),
+                         cudaq::spin_op::y(1), cudaq::spin_op::z(1)}) {
+          auto H = H1 * H2 + H3 * H4;
+          std::cout << "Testing " << H.to_string() << "\n";
+          utils::checkEqual(H.to_matrix(), H.to_diagonal_matrix());
+        }
+      }
+    }
+  }
+
+  for (auto &H1 : {cudaq::spin_op::i(0), cudaq::spin_op::x(0),
+                   cudaq::spin_op::y(0), cudaq::spin_op::z(0)}) {
+    for (auto &H2 : {cudaq::spin_op::i(1), cudaq::spin_op::x(1),
+                     cudaq::spin_op::y(1), cudaq::spin_op::z(1)}) {
+      for (auto &H3 : {cudaq::spin_op::i(1), cudaq::spin_op::x(1),
+                       cudaq::spin_op::y(1), cudaq::spin_op::z(1)}) {
+        for (auto &H4 : {cudaq::spin_op::i(2), cudaq::spin_op::x(2),
+                         cudaq::spin_op::y(2), cudaq::spin_op::z(2)}) {
+          auto H = H1 * H2 + H3 * H4;
+          std::cout << "Testing " << H.to_string() << "\n";
+          utils::checkEqual(H.to_matrix(), H.to_diagonal_matrix());
+        }
+      }
+    }
+  }
 }
 
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))

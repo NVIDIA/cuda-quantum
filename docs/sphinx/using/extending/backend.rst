@@ -225,7 +225,7 @@ Create a ``YAML`` configuration file for your target:
       preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
       # Define the lowering pipeline
       # This will cover applying hardware-specific constraints since each provider may have different native gate sets, requiring custom mappings and decompositions. You may need assistance from the CUDA-Q team to set this up correctly.
-      platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements),symbol-dce"
+      platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations},symbol-dce,<provider_name>-gate-set-mapping"
       # Tell the rest-qpu that we are generating QIR base profile.
       # As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.
       codegen-emission: qir-base

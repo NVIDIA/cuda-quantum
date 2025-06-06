@@ -202,6 +202,19 @@ complex_matrix spin_handler::to_matrix(
   return spin_handler::to_matrix(this->canonical_form(dimensions, rel_dims));
 }
 
+mdiag_sparse_matrix spin_handler::to_diagonal_matrix(
+    const std::string &pauli_word, const std::vector<std::int64_t> &dimensions,
+    std::complex<double> coeff, bool invert_order) {
+  auto dim = 1ul << pauli_word.size();
+  return cudaq::detail::create_mdiag_sparse_matrix(
+      dim, coeff,
+      [&pauli_word, invert_order](
+          const std::function<void(std::size_t, std::size_t,
+                                   std::complex<double>)> &process_entry) {
+        create_matrix(pauli_word, process_entry, invert_order);
+      });
+}
+
 std::string spin_handler::to_string(bool include_degrees) const {
   if (include_degrees)
     return this->unique_id(); // unique id for consistency with keys in some

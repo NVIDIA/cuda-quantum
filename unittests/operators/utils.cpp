@@ -53,6 +53,32 @@ void checkEqual(cudaq::complex_matrix a, cudaq::complex_matrix b) {
   }
 }
 
+void checkEqual(const cudaq::complex_matrix &denseMat,
+                const cudaq::mdiag_sparse_matrix &diaMat) {
+  int64_t dim = denseMat.rows();
+  const auto &[buffer, offsets] = diaMat;
+  for (int64_t i = -(dim - 1); i < dim; ++i) {
+    const auto iter = std::find(offsets.begin(), offsets.end(), i);
+    if (iter != offsets.end()) {
+      const auto idx = std::distance(offsets.begin(), iter);
+      const auto diags = denseMat.diagonal_elements(i);
+      for (std::size_t j = 0; j < diags.size(); ++j) {
+        EXPECT_NEAR(std::abs(diags[j] - buffer[dim * idx + j]), 0.0, 1e-8);
+      }
+      for (std::size_t j = diags.size(); j < dim; ++j) {
+        EXPECT_NEAR(std::abs(buffer[dim * idx + j]), 0.0, 1e-8);
+      }
+    } else {
+      // If the diagonal offset is not in the DIA format, check that the
+      // elements are zero.
+      const auto diags = denseMat.diagonal_elements(i);
+      for (std::size_t j = 0; j < diags.size(); ++j) {
+        EXPECT_NEAR(std::abs(diags[j]), 0.0, 1e-8);
+      }
+    }
+  }
+}
+
 cudaq::complex_matrix zero_matrix(std::size_t size) {
   auto mat = cudaq::complex_matrix(size, size);
   return mat;

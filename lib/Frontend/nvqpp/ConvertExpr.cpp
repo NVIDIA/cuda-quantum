@@ -1153,7 +1153,7 @@ bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
                                           Location loc, StringRef funcName) {
   // Handle any std::pow(N,M)
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
-      funcName == "pow") {
+      (funcName == "pow" || funcName == "powf")) {
     auto funcArity = func->getNumParams();
     SmallVector<Value> args = lastValues(funcArity);
     auto powFun = popValue();
@@ -1188,39 +1188,34 @@ bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
 
-  // Handle std::sqrt
-  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
-      funcName == "sqrt") {
+  auto floatOperator = [&]<typename Op>(Op, const char *dblName) -> bool {
     assert(func->getNumParams() == 1 && "must be unary");
     Value arg = popValue();
     [[maybe_unused]] auto funcConst = popValue();
     if (isa<IntegerType>(arg.getType()))
       arg = builder.create<cudaq::cc::CastOp>(
-          loc, builder.getF64Type(), arg,
+          loc,
+          funcName == dblName ? builder.getF64Type() : builder.getF32Type(),
+          arg,
           x->getArg(0)->getType()->isUnsignedIntegerOrEnumerationType()
               ? cudaq::cc::CastOpMode::Unsigned
               : cudaq::cc::CastOpMode::Signed);
-    return pushValue(builder.create<math::SqrtOp>(loc, arg));
-  }
+    return pushValue(builder.create<Op>(loc, arg));
+  };
+
+  // Handle std::sqrt
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "sqrt" || funcName == "sqrtf"))
+    return floatOperator(math::SqrtOp{}, "sqrt");
 
   // Handle std::round
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
-      funcName == "round") {
-    assert(func->getNumParams() == 1 && "must be unary");
-    Value arg = popValue();
-    [[maybe_unused]] auto funcConst = popValue();
-    if (isa<IntegerType>(arg.getType()))
-      arg = builder.create<cudaq::cc::CastOp>(
-          loc, builder.getF64Type(), arg,
-          x->getArg(0)->getType()->isUnsignedIntegerOrEnumerationType()
-              ? cudaq::cc::CastOpMode::Unsigned
-              : cudaq::cc::CastOpMode::Signed);
-    return pushValue(builder.create<math::RoundOp>(loc, arg));
-  }
+      (funcName == "round" || funcName == "roundf"))
+    return floatOperator(math::RoundOp{}, "round");
 
   // Handle std::abs
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
-      funcName == "abs") {
+      (funcName == "abs" || funcName == "fabs" || funcName == "fabsf")) {
     assert(func->getNumParams() == 1 && "must be unary");
     Value arg = popValue();
     [[maybe_unused]] auto funcConst = popValue();
@@ -1228,6 +1223,41 @@ bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
       return pushValue(builder.create<math::AbsIOp>(loc, arg));
     return pushValue(builder.create<math::AbsFOp>(loc, arg));
   }
+
+  // Handle std::sin
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "sin" || funcName == "sinf"))
+    return floatOperator(math::SinOp{}, "sin");
+
+  // Handle std::cos
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "cos" || funcName == "cosf"))
+    return floatOperator(math::CosOp{}, "cos");
+
+  // Handle std::tan
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "tan" || funcName == "tanf"))
+    return floatOperator(math::TanOp{}, "tan");
+
+  // Handle std::exp
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "exp" || funcName == "expf"))
+    return floatOperator(math::ExpOp{}, "exp");
+
+  // Handle std::log
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "log" || funcName == "logf"))
+    return floatOperator(math::LogOp{}, "log");
+
+  // Handle std::ceil
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "ceil" || funcName == "ceilf"))
+    return floatOperator(math::CeilOp{}, "ceil");
+
+  // Handle std::floor
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "floor" || funcName == "floorf"))
+    return floatOperator(math::FloorOp{}, "floor");
 
   return false;
 }

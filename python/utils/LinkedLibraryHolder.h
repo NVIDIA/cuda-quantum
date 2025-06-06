@@ -37,6 +37,7 @@ struct RuntimeTarget {
   /// @brief Return the number of QPUs this target exposes.
   std::size_t num_qpus();
   bool is_remote();
+  bool is_remote_simulator();
   bool is_emulated();
   simulation_precision get_precision();
   std::string get_target_args_help_string() const;

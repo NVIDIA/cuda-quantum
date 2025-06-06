@@ -832,3 +832,77 @@ TEST(OperatorExpressions, checkAntiCommutationRelations) {
   utils::checkEqual(rel15.to_matrix(), utils::zero_matrix(4));
   utils::checkEqual(rel16.to_matrix(), utils::zero_matrix(4));
 }
+
+TEST(OperatorExpressions, checkMultiDiagConversionFermion) {
+  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
+  // Same degree of freedom
+  for (auto &H1 :
+       {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+        cudaq::fermion_op::number(0)}) {
+    for (auto &H2 :
+         {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+          cudaq::fermion_op::number(0)}) {
+      for (auto &H3 :
+           {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+            cudaq::fermion_op::number(0)}) {
+        for (auto &H4 :
+             {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+              cudaq::fermion_op::number(0)}) {
+          std::cout << H1.to_string() << " " << H2.to_string() << " "
+                    << H3.to_string() << " " << H4.to_string() << "\n";
+          auto H = H1 * H2 * H3 * H4;
+          utils::checkEqual(H.to_matrix(dimensions),
+                            H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
+
+  // Different degrees of freedom
+  for (auto &H1 :
+       {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+        cudaq::fermion_op::number(0)}) {
+    for (auto &H2 :
+         {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+          cudaq::fermion_op::number(0)}) {
+      for (auto &H3 :
+           {cudaq::fermion_op::annihilate(1), cudaq::fermion_op::create(1),
+            cudaq::fermion_op::number(1)}) {
+        for (auto &H4 :
+             {cudaq::fermion_op::annihilate(1), cudaq::fermion_op::create(1),
+              cudaq::fermion_op::number(1)}) {
+          std::cout << H1.to_string() << " " << H2.to_string() << " "
+                    << H3.to_string() << " " << H4.to_string() << "\n";
+          auto H = H1 * H2 * H3 * H4;
+          utils::checkEqual(H.to_matrix(dimensions),
+                            H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
+
+  // Sum op
+  for (auto &H1 :
+       {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+        cudaq::fermion_op::number(0)}) {
+    for (auto &H2 :
+         {cudaq::fermion_op::annihilate(1), cudaq::fermion_op::create(1),
+          cudaq::fermion_op::number(1)}) {
+      for (auto &H3 :
+           {cudaq::fermion_op::annihilate(0), cudaq::fermion_op::create(0),
+            cudaq::fermion_op::number(0)}) {
+        for (auto &H4 :
+             {cudaq::fermion_op::annihilate(1), cudaq::fermion_op::create(1),
+              cudaq::fermion_op::number(1)}) {
+
+          auto H = H1 * H2 + H3 * H4;
+          std::cout << H1.to_string() << " " << H2.to_string() << " + "
+                    << H3.to_string() << " " << H4.to_string() << " = "
+                    << H.to_string() << "\n";
+          utils::checkEqual(H.to_matrix(dimensions),
+                            H.to_diagonal_matrix(dimensions));
+        }
+      }
+    }
+  }
+}

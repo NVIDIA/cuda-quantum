@@ -12,6 +12,23 @@ and is also available as a Docker image. More information about installing the n
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+**0.11.0**
+
+This release contains a range of ergonomic improvements and documentation updates.
+It adds support for initializing qubits to have a given state for quantum hardware backends
+and exposes a range of new configurations for different simulator backends. This release also
+addresses some performance issues with the initial introduction of a general operator framework
+in CUDA-Q. This required some breaking changes. We refer to the 
+`release notes <https://github.com/NVIDIA/cuda-quantum/releases/0.11.0>`__ for further details.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.11.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.11.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.11.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.11.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.11.0>`__.
+
 **0.10.0**
 
 In this release we have added a range of tools for simulating noisy quantum systems.
@@ -28,7 +45,7 @@ new tutorials and examples, for more information.
 
 *Note*: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cudaq/0.10.0>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.10.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.10.0>`__
