@@ -189,6 +189,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.walkingReturnNode = False
         self.controlNegations = []
         self.subscriptPushPointerValue = False
+        self.attributePushPointerValue = False
         self.verbose = 'verbose' in kwargs and kwargs['verbose']
         self.currentNode = None
 
@@ -1203,39 +1204,59 @@ class PyASTBridge(ast.NodeVisitor):
                 self.currentAssignVariableName = str(node.targets[0].id)
                 self.visit(node.value)
                 self.currentAssignVariableName = None
-            # Handle assignments like `listVar[IDX] = VALUE`
-            # `listVAR` must be in the symbol table
-            elif isinstance(node.targets[0], ast.Subscript) and isinstance(
+            # Handle assignments like `listVar[IDX] = VALUE`, or `classVar.attr = VALUE`
+            # `listVar`, `classVar` must be in the symbol table
+            elif isinstance(
                     node.targets[0].value,
                     ast.Name) and node.targets[0].value.id in self.symbolTable:
-                # Visit_Subscript will try to load any pointer and return it
-                # but here we want the pointer, so flip that flag
-                # FIXME: move loading from Visit_Subscript to the user instead.
-                self.subscriptPushPointerValue = True
-                # Visit the subscript node, get the pointer value
-                self.visit(node.targets[0])
-                # Reset the push pointer value flag
-                self.subscriptPushPointerValue = False
-                ptrVal = self.popValue()
-                if not cc.PointerType.isinstance(ptrVal.type):
-                    self.emitFatalError(
-                        "Invalid CUDA-Q subscript assignment, variable must be a pointer.",
-                        node)
-                # See if this is a pointer to an array, if so cast it
-                # to a pointer on the array type
-                ptrEleType = cc.PointerType.getElementType(ptrVal.type)
-                if cc.ArrayType.isinstance(ptrEleType):
-                    ptrVal = cc.CastOp(
-                        cc.PointerType.get(
-                            self.ctx, cc.ArrayType.getElementType(ptrEleType)),
-                        ptrVal).result
+                if isinstance(node.targets[0], ast.Subscript):
+                    # Visit_Subscript will try to load any pointer and return it
+                    # but here we want the pointer, so flip that flag
+                    # FIXME: move loading from Visit_Subscript to the user instead.
+                    self.subscriptPushPointerValue = True
+                    # Visit the subscript node, get the pointer value
+                    self.visit(node.targets[0])
+                    # Reset the push pointer value flag
+                    self.subscriptPushPointerValue = False
+                    ptrVal = self.popValue()
+                    if not cc.PointerType.isinstance(ptrVal.type):
+                        self.emitFatalError(
+                            "Invalid CUDA-Q subscript assignment, variable must be a pointer.",
+                            node)
+                    # See if this is a pointer to an array, if so cast it
+                    # to a pointer on the array type
+                    ptrEleType = cc.PointerType.getElementType(ptrVal.type)
+                    if cc.ArrayType.isinstance(ptrEleType):
+                        ptrVal = cc.CastOp(
+                            cc.PointerType.get(
+                                self.ctx,
+                                cc.ArrayType.getElementType(ptrEleType)),
+                            ptrVal).result
 
-                # Visit the value being assigned
-                self.visit(node.value)
-                valueToStore = self.popValue()
-                # Store the value
-                cc.StoreOp(valueToStore, ptrVal)
-                return
+                    # Visit the value being assigned
+                    self.visit(node.value)
+                    valueToStore = self.popValue()
+                    # Store the value
+                    cc.StoreOp(valueToStore, ptrVal)
+                    return
+
+                elif isinstance(node.targets[0], ast.Attribute):
+                    self.attributePushPointerValue = True
+                    # Visit the attribute node, get the pointer value
+                    self.visit(node.targets[0])
+                    # Reset the push pointer value flag
+                    self.attributePushPointerValue = False
+                    ptrVal = self.popValue()
+                    if not cc.PointerType.isinstance(ptrVal.type):
+                        self.emitFatalError(
+                            "Invalid CUDA-Q attribute assignment, variable must be a pointer.",
+                            node)
+                    # Visit the value being assigned
+                    self.visit(node.value)
+                    valueToStore = self.popValue()
+                    # Store the value
+                    cc.StoreOp(valueToStore, ptrVal)
+                    return
         else:
             if isinstance(node.value, ast.Tuple):
                 for ele in node.value.elts:
@@ -1331,7 +1352,12 @@ class PyASTBridge(ast.NodeVisitor):
                         cc.PointerType.get(self.ctx, memberTy), value, [],
                         DenseI32ArrayAttr.get([structIdx],
                                               context=self.ctx)).result
-                    # We'll always have a pointer, and we always want to load it.
+
+                    if self.attributePushPointerValue:
+                        self.pushValue(eleAddr)
+                        return
+
+                    # If we have a pointer, and we always want to load it.
                     eleAddr = cc.LoadOp(eleAddr).result
                     self.pushValue(eleAddr)
                     return
