@@ -121,10 +121,9 @@ OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
   return argData;
 }
 
-ExecutionEngine *
-jitKernel(const std::string &name, MlirModule module,
-                 const std::vector<std::string> &names,
-                 std::size_t startingArgIdx = 0) {
+ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
+                           const std::vector<std::string> &names,
+                           std::size_t startingArgIdx = 0) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "jitKernel", name);
   auto mod = unwrap(module);
 
@@ -145,8 +144,8 @@ jitKernel(const std::string &name, MlirModule module,
   if (allowCache && jitCache->hasJITEngine(hashKey)) {
     jit = jitCache->getJITEngine(hashKey);
   } else {
-    ScopedTraceWithContext(cudaq::TIMING_JIT,
-                           "jitKernel - execute passes", name);
+    ScopedTraceWithContext(cudaq::TIMING_JIT, "jitKernel - execute passes",
+                           name);
 
     auto cloned = mod.clone();
     auto context = cloned.getContext();
@@ -218,7 +217,6 @@ jitKernel(const std::string &name, MlirModule module,
 
   return jit;
 }
-
 
 std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
