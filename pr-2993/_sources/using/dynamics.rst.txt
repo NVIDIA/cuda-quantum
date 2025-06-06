@@ -189,7 +189,7 @@ In the above code snippet, we map the cavity light field to degree index 1 and t
 The description of composite quantum system dynamics is independent from the Hilbert space of the system components.
 The latter is specified by the dimension map that is provided to the `cudaq.evolve` call. 
 
-Builtin operators support both dense and multi-diagonal sparse format. 
+Builtin operators support both dense and multi-diagonal sparse formats. 
 Depending on the sparsity of operator matrix and/or the sub-system dimension, CUDA-Q will
 either use the dense or multi-diagonal data formats for optimal performance.
 
