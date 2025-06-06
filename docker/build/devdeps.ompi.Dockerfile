@@ -13,7 +13,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t nvcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
+#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
 
 ARG cuda_version=12.0
 FROM nvcr.io/nvidia/cuda:${cuda_version}.0-devel-ubuntu24.04
