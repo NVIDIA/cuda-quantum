@@ -22,23 +22,22 @@ the primitive X, Y, and Z Pauli operators on specified qubit indices
 which can subsequently be used in algebraic expressions to build up
 more complicated Pauli tensor products and their sums.
 
-.. tab:: C++ 
+.. tab:: C++
 
-    .. code-block:: cpp
-
-        auto h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - \
-                 2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) + \
-                 .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+  .. literalinclude:: /../snippets/cpp/operators/spin_op_creation.cpp
+     :language: cpp
+     :start-after: [Begin SpinOp Creation C++]
+     :end-before: [End SpinOp Creation C++]
+     :lines: 2-4
 
 .. tab:: Python
 
-    .. code-block:: python 
-
-        from cudaq import spin 
-        h = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(0) * spin.y(1) + \
-                 .21829 * spin.z(0) - 6.125 * spin.z(1)
-
-
+  .. literalinclude:: /../snippets/python/operators/spin_op_creation.py
+     :language: python
+     :start-after: [Begin SpinOp Creation Python]
+     :end-before: [End SpinOp Creation Python]
+     :lines: 2-4
+     
 **[5]** The :code:`spin_op` also provides a mechanism for the expression of circuit
 synthesis tasks within quantum kernel code. Specifically, operations
 that encode :math:`N`\ :sup:`th`\ order trotterization of exponentiated :code:`spin_op`

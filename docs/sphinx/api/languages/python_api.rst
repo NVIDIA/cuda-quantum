@@ -98,29 +98,9 @@ Backend Configuration
         first be registered *outside the kernel* with `register_channel`, like
         this:
 
-        .. code-block:: python
-
-            class CustomNoiseChannel(cudaq.KrausChannel):
-                num_parameters = 1
-                num_targets = 1
-
-            def __init__(self, params: list[float]):
-                cudaq.KrausChannel.__init__(self)
-                # Example: Create Kraus ops based on params
-                p = params[0]
-                k0 = np.array([[np.sqrt(1 - p), 0], [0, np.sqrt(1 - p)]],
-                            dtype=np.complex128)
-                k1 = np.array([[0, np.sqrt(p)], [np.sqrt(p), 0]],
-                            dtype=np.complex128)
-
-                # Create KrausOperators and add to channel
-                self.append(cudaq.KrausOperator(k0))
-                self.append(cudaq.KrausOperator(k1))
-
-                self.noise_type = cudaq.NoiseModelType.Unknown
-
-            noise = cudaq.NoiseModel()
-            noise.register_channel(CustomNoiseChannel)
+        .. literalinclude:: /../sphinx/snippets/python/noise/custom_noise_channel.py
+           :language: python
+           :lines: 3-23
 
     :param parameters: The precise argument pack depend on the concrete
         :class:`cudaq.KrausChannel` being used. The arguments are a concatenated
@@ -128,10 +108,9 @@ Backend Configuration
         depolarization channel, which has `num_parameters = 1` and `num_targets =
         2`, one would write the call like this:
 
-        .. code-block:: python
-
-            q, r = cudaq.qubit(), cudaq.qubit()
-            cudaq.apply_noise(cudaq.Depolarization2, 0.1, q, r)
+        .. literalinclude:: /../sphinx/snippets/python/noise/apply_noise_example.py
+           :language: python
+           :lines: 4-5
 
     :param targets: The target qubits on which to apply the noise
 
