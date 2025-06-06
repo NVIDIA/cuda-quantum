@@ -6,9 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ -fenable-cudaq-run %cpp_std %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -fenable-cudaq-run --library-mode %cpp_std %s -o %t && %t |
-// FileCheck %s
+// RUN: nvq++ -fenable-cudaq-run --library-mode %cpp_std %s -o %t && %t | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 
