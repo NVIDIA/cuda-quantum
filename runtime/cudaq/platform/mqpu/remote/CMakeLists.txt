@@ -12,8 +12,8 @@ target_link_libraries(cudaq-remote-simulator-qpu PUBLIC
                         cudaq-common 
                         cudaq-mlir-runtime
                         rest-remote-platform-client
-                        fmt::fmt-header-only
                         cudaq-platform-mqpu
+                        PRIVATE fmt::fmt-header-only
                     )
                     
 install(TARGETS cudaq-remote-simulator-qpu DESTINATION lib)
