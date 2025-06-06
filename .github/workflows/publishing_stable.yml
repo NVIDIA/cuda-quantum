@@ -123,7 +123,7 @@ jobs:
         with:
           version: v0.19.0
           driver-opts: |
-            image=moby/buildkit:v0.19.0
+            image=moby/buildkit:v0.22.0
 
       - name: Update cuda-quantum metadata
         id: metadata
