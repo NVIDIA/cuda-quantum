@@ -147,6 +147,9 @@ Returns:
 
         observeResult = cudaq_runtime.ObserveResult(expVal, localOp, res)
         if not isinstance(spin_operator, list):
+            if noise_model != None:
+                cudaq_runtime.unset_noise()
+
             return observeResult
 
         results = []

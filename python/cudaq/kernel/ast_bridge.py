@@ -994,8 +994,7 @@ class PyASTBridge(ast.NodeVisitor):
         if self.buildingEntryPoint:
             # This is an inner function def, we will
             # treat it as a cc.callable (cc.create_lambda)
-            if self.verbose:
-                print("Visiting inner FunctionDef {}".format(node.name))
+            self.debug_msg(lambda: f'Visiting inner FunctionDef {node.name}')
 
             arguments = node.args.args
             if len(arguments):
@@ -3976,10 +3975,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Map tuples in the Python AST to equivalents in MLIR.
         """
-        if self.verbose:
-            print("[Visit Tuple = {}]".format(
-                ast.unparse(node) if hasattr(ast, 'unparse') else node))
-
         self.generic_visit(node)
         self.currentNode = node
 
