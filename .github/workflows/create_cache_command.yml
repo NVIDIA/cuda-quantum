@@ -121,7 +121,7 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      build_config_id: cu${{ matrix.cuda_version }}-gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-gcc12
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         cuda_version=${{ matrix.cuda_version }}

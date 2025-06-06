@@ -17,7 +17,7 @@
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext -f docker/build/devdeps.ext.Dockerfile .
 
 ARG cuda_version=11.8
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc12-main
 ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:cu12-ompi-main
 FROM $ompidev_image AS ompibuild
 ARG cuda_version
