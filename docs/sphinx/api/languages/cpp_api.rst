@@ -14,6 +14,8 @@ Operators
 
 .. doxygenclass:: cudaq::matrix_callback
 
+.. doxygenclass:: cudaq::diag_matrix_callback
+
 .. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
 
     Alias for a tuple containing vectors for complex values, indices, and sizes.
@@ -29,6 +31,8 @@ Operators
     Alias for a pair, in the multi-diagonal representation, containing vectors for complex values and diagonal offsets.  
 
 .. doxygenclass:: cudaq::operator_handler
+
+.. doxygenclass:: cudaq::mdiag_operator_handler
 
 .. doxygenclass:: cudaq::spin_handler
     :members:
