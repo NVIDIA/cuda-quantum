@@ -560,18 +560,28 @@ def test_return_tuple_int_float():
     assert results[1] == (13, 42.3)
 
     @cudaq.kernel
-    def simple_tuple_int_float_assign(
+    def simple_tuple_int_float_update(
             n: int, t: tuple[int, float]) -> tuple[int, float]:
         qubits = cudaq.qvector(n)
         t[0] = -14
         t[1] = 11.5
         return t
 
-    # TODO: Fix incorrect IR generation for tuple element assignment
-    # https://github.com/NVIDIA/cuda-quantum/issues/2965
-    results = cudaq.run(simple_tuple_int_float_assign,
-                        2, (13, 42.3),
-                        shots_count=2)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int_float_update, 2, (13, 42.3), shots_count=2)
+    assert "'tuple' object does not support item assignment" in str(e.value)
+
+    @cudaq.kernel(verbose=True)
+    def simple_tuple_int_float_reassign(
+            n: int, t: tuple[int, float]) -> tuple[int, float]:
+        qubits = cudaq.qvector(n)
+        t = (-14, 11.5)
+        return t
+
+    ## FIXME: Reassigning a tuple does not work in kernels.
+    # results = cudaq.run(simple_tuple_int_float_reassign,
+    #                     2, (13, 42.3),
+    #                     shots_count=2)
     # assert len(results) == 2
     # assert results[0] == (-14, 11.5)
     # assert results[1] == (-14, 11.5)

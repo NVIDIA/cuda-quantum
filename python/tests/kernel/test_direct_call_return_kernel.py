@@ -382,10 +382,9 @@ def test_return_tuple_int_float():
         t[1] = 11.5
         return t
 
-    # TODO: Fix incorrect IR generation for tuple element assignment
-    # https://github.com/NVIDIA/cuda-quantum/issues/2965
-    result = simple_tuple_int_float_assign(2, (-13, 42.3))
-    # assert result == (-14, 11.5)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_int_float_assign(2, (-13, 42.3))
+    assert "'tuple' object does not support item assignment" in str(e.value)
 
 
 def test_return_tuple_float_int():
