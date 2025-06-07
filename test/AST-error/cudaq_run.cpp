@@ -6,10 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
-// RUN: nvq++ -fenable-cudaq-run %cpp_std %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -fenable-cudaq-run --library-mode %cpp_std %s -o %t && %t | FileCheck %s
-// clang-format on
+// RUN: cudaq-quake -verify %s
+
+// DELETE this test when std::vector return type is supported in cudaq::run!
 
 #include <cudaq.h>
 
@@ -57,13 +56,6 @@ __qpu__ std::vector<float> vector_float_test() {
   return result;
 }
 
-/// TODO: this currently fails due to a missing support for tuple copy
-// constructor in ConvertExpr.cpp
-// __qpu__ std::tuple<int, bool> tuple_test(std::tuple<int, bool> tup) {
-//   cudaq::qvector v(2);
-//   return tup;
-// }
-
 struct MyTuple {
   bool boolVal;
   std::int64_t i64Val;
@@ -100,27 +92,6 @@ int main() {
     }
   }
 
-  // TODO: this currently fails due to a missing support for tuple copy
-  // constructor in ConvertExpr.cpp
-  // {
-  //   std::tuple<int, bool> t{13, true};
-  //   const auto results = cudaq::run(50, unary_test_tuple, t);
-  //   int c = 0;
-  //   if (results.size() != 50) {
-  //     printf("unary_test_list FAILED! Expected 50 shots. Got %lu\n",
-  //     results.size());
-  //   } else {
-  //     printf("Got %lu\n", results.size());
-  //     for (auto i : results) {
-  //       printf("%d: [", c++);
-  //       auto [a,b] = i;
-  //       printf("%d, %d", a, b);
-  //       printf("]\n");
-  //     }
-  //     printf("success!\n");
-  //   }
-  // }
-
   // Run async
   {
     const auto results =
@@ -147,9 +118,11 @@ int main() {
     }
   }
 
-#if 0
-  // vector return types are not fully supported yet.
   {
+    // expected-error@+5{{no matching function for call to 'run'}}
+    // expected-note@*{{}}
+    // expected-note@*{{}}
+    // expected-note@*{{}}
     const std::vector<std::vector<bool>> results =
         cudaq::run(3, vector_bool_test);
     c = 0;
@@ -166,6 +139,10 @@ int main() {
   }
 
   {
+    // expected-error@+5{{no matching function for call to 'run'}}
+    // expected-note@*{{}}
+    // expected-note@*{{}}
+    // expected-note@*{{}}
     const std::vector<std::vector<int>> results =
         cudaq::run(3, vector_int_test);
     c = 0;
@@ -182,6 +159,10 @@ int main() {
   }
 
   {
+    // expected-error@+5{{no matching function for call to 'run'}}
+    // expected-note@*{{}}
+    // expected-note@*{{}}
+    // expected-note@*{{}}
     const std::vector<std::vector<float>> results =
         cudaq::run(2, vector_float_test);
     c = 0;
@@ -193,7 +174,6 @@ int main() {
       printf("success!\n");
     }
   }
-#endif
 
   {
     const auto results = cudaq::run(3, struct_test);
@@ -210,12 +190,3 @@ int main() {
 
   return 0;
 }
-
-// CHECK: success!
-// CHECK: success!
-// CHECK: success!
-// CHECK: success!
-// XXECK: success!
-// XXECK: success!
-// XXECK: success!
-// CHECK: success!
