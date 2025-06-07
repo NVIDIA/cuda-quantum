@@ -989,13 +989,13 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElementaryOperator</span><span class="p">,</span> <span class="n">Schedule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span><span class="p">,</span> <span class="n">Schedule</span>
 
 <span class="c1"># Construct the Hamiltonian based on the adjacency matrix of the social network</span>
 <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy_array</span><span class="p">(</span><span class="n">graph</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
 
 <span class="c1"># Defines an elementary operator named &quot;hamiltonian&quot;, allowing creation with the name and its degrees of freedom.</span>
-<span class="n">ElementaryOperator</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">&quot;hamiltonian&quot;</span><span class="p">,</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">&quot;hamiltonian&quot;</span><span class="p">,</span>
                           <span class="n">expected_dimensions</span><span class="o">=</span><span class="p">[</span><span class="n">N</span><span class="p">],</span>
                           <span class="n">create</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">H</span><span class="p">)</span>
 </pre></div>
@@ -1020,7 +1020,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
         <span class="n">exec</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">ElementaryOperator.define(</span>
+<span class="s2">operators.define(</span>
 <span class="s2">    f&quot;lindblad_</span><span class="si">{</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="si">}</span><span class="s2">&quot;,</span>
 <span class="s2">    expected_dimensions=[N],</span>
 <span class="s2">    create=lambda: lindblad_op(</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">),</span>
@@ -1028,7 +1028,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 <span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
 
 <span class="n">lindblad_ops</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span> <span class="o">*</span> <span class="n">ElementaryOperator</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;lindblad_</span><span class="si">{</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;lindblad_</span><span class="si">{</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
 <span class="p">]</span>
@@ -1055,7 +1055,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
     <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span> <span class="o">/</span> <span class="n">N</span>
 
     <span class="c1"># Define the Hamiltonian and collapse operators based on the value of omega</span>
-    <span class="n">hamiltonian</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">omega</span><span class="p">)</span> <span class="o">*</span> <span class="n">ElementaryOperator</span><span class="p">(</span><span class="s2">&quot;hamiltonian&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">hamiltonian</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">omega</span><span class="p">)</span> <span class="o">*</span> <span class="n">operators</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="s2">&quot;hamiltonian&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">collapse_operators</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">omega</span><span class="p">)</span> <span class="o">*</span> <span class="n">op</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">lindblad_ops</span><span class="p">]</span>
 
     <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
