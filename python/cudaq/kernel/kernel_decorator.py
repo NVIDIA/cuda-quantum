@@ -129,6 +129,17 @@ class PyKernelDecorator(object):
         else:
             # Get the function source
             src = inspect.getsource(self.kernelFunction)
+            # Detect alias used to import cudaq and replace it with canonical name
+            for name, val in self.parentFrame.f_globals.items():
+                try:
+                    if hasattr(val, '__name__') and val.__name__ == 'cudaq':
+                        alias = name
+                        if alias != 'cudaq':
+                            src = src.replace(f'{alias}.', 'cudaq.')
+                        break
+                except Exception:
+                    continue
+
 
             # Strip off the extra tabs
             leadingSpaces = len(src) - len(src.lstrip())
