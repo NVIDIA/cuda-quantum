@@ -253,7 +253,9 @@ jobs:
             ls
             echo "interop dir:"
             ls python/tests/interop
-            python3 -m pytest -v build/python/tests/interop
+            echo "build interop dir:"
+            ls build/python/tests/interop
+            python3 -m pytest -v build/python/tests/interop/
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml::Python interop tests failed with status $pytest_status."
