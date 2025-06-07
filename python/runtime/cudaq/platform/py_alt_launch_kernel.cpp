@@ -121,14 +121,11 @@ OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
   return argData;
 }
 
-std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
-jitAndCreateArgs(const std::string &name, MlirModule module,
-                 cudaq::OpaqueArguments &runtimeArgs,
-                 const std::vector<std::string> &names, Type returnType,
-                 std::size_t startingArgIdx = 0) {
-  ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
+ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
+                           const std::vector<std::string> &names,
+                           std::size_t startingArgIdx = 0) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "jitKernel", name);
   auto mod = unwrap(module);
-  auto funcOp = getKernelFuncOp(module, name);
 
   // Do not cache the JIT if we are running with startingArgIdx > 0 because a)
   // we won't be executing right after JIT-ing, and b) we might get called later
@@ -147,8 +144,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   if (allowCache && jitCache->hasJITEngine(hashKey)) {
     jit = jitCache->getJITEngine(hashKey);
   } else {
-    ScopedTraceWithContext(cudaq::TIMING_JIT,
-                           "jitAndCreateArgs - execute passes", name);
+    ScopedTraceWithContext(cudaq::TIMING_JIT, "jitKernel - execute passes",
+                           name);
 
     auto cloned = mod.clone();
     auto context = cloned.getContext();
@@ -218,6 +215,17 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
       jitCache->cache(hashKey, jit);
   }
 
+  return jit;
+}
+
+std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
+jitAndCreateArgs(const std::string &name, MlirModule module,
+                 cudaq::OpaqueArguments &runtimeArgs,
+                 const std::vector<std::string> &names, Type returnType,
+                 std::size_t startingArgIdx = 0) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
+  auto jit = jitKernel(name, module, names, startingArgIdx);
+
   // We need to append the return type to the OpaqueArguments here
   // so that we get a spot in the `rawArgs` memory for the
   // altLaunchKernel function to dump the result
@@ -273,6 +281,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
           });
         })
         .Case([&](cudaq::cc::StructType ty) {
+          auto funcOp = getKernelFuncOp(module, name);
           auto [size, offsets] = getTargetLayout(funcOp, ty);
           auto ourAllocatedArg = std::malloc(size);
           runtimeArgs.emplace_back(ourAllocatedArg,
@@ -1108,11 +1117,7 @@ void bindAltLaunchKernel(py::module &mod) {
   mod.def(
       "jitAndGetFunctionPointer",
       [](MlirModule mod, const std::string &funcName) {
-        OpaqueArguments runtimeArgs;
-        auto noneType = mlir::NoneType::get(unwrap(mod).getContext());
-        auto [jit, rawArgs, size, returnOffset] =
-            jitAndCreateArgs(funcName, mod, runtimeArgs, {}, noneType);
-
+        auto jit = jitKernel(funcName, mod, {});
         auto funcPtr = jit->lookup(funcName);
         if (!funcPtr) {
           throw std::runtime_error(
