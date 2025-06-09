@@ -14,10 +14,10 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
-#include "nvqir/tracer/Tracer.h"
 
 extern "C" {
-void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
+void __nvqir__setCircuitSimulatorByName(std::string name);
+void __nvqir__resetCircuitSimulator();
 }
 
 namespace cudaq {
@@ -55,8 +55,7 @@ auto trace(std::function<bool()> choice, QuantumKernel &&kernel, Args &&...args)
     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
   }
 
-  nvqir::CircuitSimulator* sim = new nvqir::Tracer();
-      __nvqir__setCircuitSimulator(sim);
+  __nvqir__setCircuitSimulatorByName("tracer");
 
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
@@ -74,15 +73,11 @@ auto trace(std::function<bool()> choice, QuantumKernel &&kernel, Args &&...args)
 
   // Set the platform
   platform.set_exec_ctx(ctx.get());
-  //platform.setTargetBackend("resourcecount");
 
   cudaq::invokeKernel(std::forward<QuantumKernel>(kernel), std::forward<Args>(args)...);
 
-  // sim = cudaq::getUniquePluginInstance<nvqir::CircuitSimulator>(
-  //       std::string("getCircuitSimulator"));
-  // __nvqir__setCircuitSimulator(sim);
+  __nvqir__resetCircuitSimulator();
 
-  //__nvqir__resetCircuitSimulator();
   return ctx->resourceCounts;
 }
 } // namespace cudaq
