@@ -13,3 +13,9 @@
 /// Register this Simulator with NVQIR.
 NVQIR_REGISTER_SIMULATOR(nvqir::Tracer, tracer)
 #endif
+
+extern "C" {
+nvqir::CircuitSimulator *__nvqir__getTracerCircuitSimulator() {
+    return new nvqir::Tracer();
+}
+}

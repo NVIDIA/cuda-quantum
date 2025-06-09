@@ -15,9 +15,14 @@
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 
+namespace nvqir {
+class CircuitSimulator;
+}
+
 extern "C" {
-void __nvqir__setCircuitSimulatorByName(std::string name);
+void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 void __nvqir__resetCircuitSimulator();
+nvqir::CircuitSimulator *__nvqir__getTracerCircuitSimulator();
 }
 
 namespace cudaq {
@@ -55,7 +60,8 @@ auto trace(std::function<bool()> choice, QuantumKernel &&kernel, Args &&...args)
     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
   }
 
-  __nvqir__setCircuitSimulatorByName("tracer");
+  auto *tracer = __nvqir__getTracerCircuitSimulator();
+  __nvqir__setCircuitSimulator(tracer);
 
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
