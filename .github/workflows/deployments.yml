@@ -214,7 +214,7 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      build_config_id: cu${{ matrix.cuda_version }}-gcc12
+      build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         cuda_version=${{ matrix.cuda_version }}
@@ -360,10 +360,10 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
-      build_config_id: cu${{ matrix.cuda_version }}-gcc12
+      build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
         cuda_version=${{ matrix.cuda_version }}
-        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}
+        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
         ${{ matrix.cuda_version != '11.8' && 'cuda_packages=cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcurand-dev libcusolver libnvjitlink' || '' }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
