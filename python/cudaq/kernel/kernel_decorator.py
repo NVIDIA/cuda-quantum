@@ -140,7 +140,6 @@ class PyKernelDecorator(object):
                 except Exception:
                     continue
 
-
             # Strip off the extra tabs
             leadingSpaces = len(src) - len(src.lstrip())
             self.funcSrc = '\n'.join(
