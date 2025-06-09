@@ -117,6 +117,10 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
+  resource_counts resourceCounts;
+
+  std::function<bool()> choice = nullptr;
+
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}

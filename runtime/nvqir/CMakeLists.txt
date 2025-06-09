@@ -39,6 +39,7 @@ install(TARGETS ${LIBRARY_NAME}
 
 add_subdirectory(qpp)
 add_subdirectory(stim)
+add_subdirectory(tracer)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   add_subdirectory(custatevec)

@@ -200,6 +200,10 @@ public:
 
     // Execution context is valid
     executionContext = context;
+
+    // TODO: probably want to handle this a little smarter
+    if (executionContext->name == "resourcecount")
+      emulate = true;
   }
 
   /// Reset the execution context
@@ -489,6 +493,12 @@ public:
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
+      // std::function<void(std::string, size_t)> f = [&](std::string gate, size_t count) {
+      //   executionContext->resourceCounts.append(gate, count);
+      // };
+      // cudaq::opt::ResourceCountPreprocessOptions opt{ f };
+      // pm.addNestedPass<mlir::func::FuncOp>(opt::createResourceCountPreprocess(opt));
+      // pm.addPass(mlir::createCanonicalizerPass());
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
@@ -631,6 +641,9 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), or cudaq::draw().");
 
+    if (executionContext->name == "resourcecount")
+      emulate = true;
+
     // Get the Quake code, lowered according to config file.
     auto codes = lowerQuakeCode(kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
@@ -653,6 +666,9 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), or cudaq::draw().");
 
+    if (executionContext->name == "resourcecount")
+      emulate = true;
+
     // Get the Quake code, lowered according to config file.
     // FIXME: For python, we reach here with rawArgs being empty and args having
     // the arguments. Python should be using the streamlined argument synthesis,
@@ -674,6 +690,23 @@ public:
       cudaq::getExecutionManager()->setExecutionContext(executionContext);
       invokeJITKernelAndRelease(jitEngines[0], kernelName);
       cudaq::getExecutionManager()->resetExecutionContext();
+      jitEngines.clear();
+      return;
+    }
+
+    if (executionContext->name == "resourcecount" && jitEngines.size() == 1) {
+      // Set simulator to custom
+      // TODO: move this to trace runtime function
+      // nvqir::CircuitSimulator* sim = new nvqir::Tracer();
+      // __nvqir__setCircuitSimulator(sim);
+      cudaq::getExecutionManager()->setExecutionContext(executionContext);
+      invokeJITKernelAndRelease(jitEngines[0], kernelName);
+      cudaq::getExecutionManager()->resetExecutionContext();
+      // Reset simulator
+      // TODO: move this to trace runtime function
+      // sim = cudaq::getUniquePluginInstance<nvqir::CircuitSimulator>(
+      //   std::string("getCircuitSimulator"));
+      // __nvqir__setCircuitSimulator(sim);
       jitEngines.clear();
       return;
     }
