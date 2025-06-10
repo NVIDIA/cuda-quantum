@@ -916,6 +916,86 @@ def test_run_errors():
     assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
 
 
+def test_modify_struct():
+
+    @dataclass
+    class MyClass:
+        x: int
+        y: bool
+
+    @cudaq.kernel
+    def simple_struct(t: MyClass) -> MyClass:
+        q = cudaq.qubit()
+        t.x = 42
+        return t
+
+    results = cudaq.run(simple_struct, MyClass(-13, True), shots_count=2)
+    print(results)
+    assert len(results) == 2
+    assert results[0] == MyClass(42, True)
+    assert results[1] == MyClass(42, True)
+
+    @dataclass
+    class Foo:
+        x: bool
+        y: float
+        z: int
+
+    @cudaq.kernel
+    def kernel(t: Foo) -> Foo:
+        q = cudaq.qubit()
+        t.z = 100
+        t.y = 3.14
+        t.x = True
+        return t
+
+    results = cudaq.run(kernel, Foo(False, 6.28, 17), shots_count=2)
+    print(results)
+    assert len(results) == 2
+    assert results[0] == Foo(True, 3.14, 100)
+    assert results[1] == Foo(True, 3.14, 100)
+
+
+def test_create_and_modify_struct():
+
+    @dataclass
+    class MyClass:
+        x: int
+        y: bool
+
+    @cudaq.kernel
+    def simple_struct() -> MyClass:
+        q = cudaq.qubit()
+        t = MyClass(-13, True)
+        t.x = 42
+        return t
+
+    results = cudaq.run(simple_struct, shots_count=2)
+    print(results)
+    assert len(results) == 2
+    assert results[0] == MyClass(42, True)
+    assert results[1] == MyClass(42, True)
+
+    @dataclass
+    class Bar:
+        x: bool
+        y: bool
+        z: float
+
+    @cudaq.kernel
+    def kernel(n: int) -> Bar:
+        q = cudaq.qvector(n)
+        t = Bar(False, False, 4.14)
+        t.x = True
+        t.y = True
+        return t
+
+    results = cudaq.run(kernel, 2, shots_count=1)
+    print(results)
+    assert len(results) == 1
+    assert results[0] == Bar(True, True, 4.14)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
