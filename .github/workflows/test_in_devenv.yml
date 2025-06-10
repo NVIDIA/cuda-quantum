@@ -96,6 +96,12 @@ jobs:
           run: |
             cd $CUDAQ_REPO_ROOT
             python3 -m pip install iqm-client==16.1
+            python3 -m pytest -v build/python/tests/interop/
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=test_in_devenv.yml::Python interop tests failed with status $pytest_status."
+              exit 1
+            fi
             ctest --output-on-failure --test-dir build -E "ctest-nvqpp|ctest-targettests"
             ctest_status=$?
             $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
@@ -137,25 +143,6 @@ jobs:
             external_plugin_status=$?   
             if [ ! $external_plugin_status -eq 0 ] ; then
               echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed with status $external_plugin_status."
-              exit 1
-            fi
-
-      - name: Test CUDA Quantum interop (Python)
-        uses: ./.github/actions/run-in-docker
-        with:
-          image: cuda-quantum-dev:local
-          shell: bash
-          run: |
-            cd $CUDAQ_REPO_ROOT
-            pip install . --user -vvv
-            if [ ! $pyinstall_status -eq 0 ]; then
-              echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
-              exit 1
-            fi
-            python3 -m pytest -v build/python/tests/interop/
-            pytest_status=$?
-            if [ ! $pytest_status -eq 0 ]; then
-              echo "::error file=test_in_devenv.yml::Python interop tests failed with status $pytest_status."
               exit 1
             fi
 
