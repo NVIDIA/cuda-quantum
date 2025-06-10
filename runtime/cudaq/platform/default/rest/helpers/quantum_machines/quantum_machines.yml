@@ -41,9 +41,4 @@ target-arguments:
     type: string
     platform-arg: api_key
     help-string: "An API key to access the Qoperator server"
-  - key: qubit_mapping
-    required: false
-    type: string
-    platform-arg: qubit_mapping
-    help-string: "Mapping of logical qubits (and qubit pairs) to physical qubits and qubit pairs. Example: q[0]:qA1;q[0]->q[1]:qA1-qA2;q[1]:qD5"
   

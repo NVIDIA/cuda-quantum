@@ -62,8 +62,6 @@ public:
     backendConfig["executor"] =
         getValueOrDefault(config, "executor", DEFAULT_EXECUTOR);
     backendConfig["api_key"] = getValueOrDefault(config, "api_key", "");
-    backendConfig["qubit_mapping"] =
-        getValueOrDefault(config, "qubit_mapping", "");
 
     cudaq::info("Initializing Quantum Machines Backend. config: {}",
                 backendConfig);
@@ -83,7 +81,6 @@ public:
     job["source"] = "oq2";
     job["shots"] = shots;
     job["executor"] = backendConfig["executor"];
-    job["qubit_mapping"] = backendConfig["qubit_mapping"];
     RestHeaders headers = getHeaders();
     std::string path = backendConfig["url"] + "/v1/execute";
     return std::make_tuple(path, headers, std::vector<ServerMessage>{job});
