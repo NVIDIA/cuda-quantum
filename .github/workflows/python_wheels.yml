@@ -121,6 +121,11 @@ jobs:
           # do not change this prefix without adjusting other workflows
           echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v9.2.2-52
+
       - name: Set up context for buildx
         run: |
           docker context create builder_context

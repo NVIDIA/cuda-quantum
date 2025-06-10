@@ -16,7 +16,7 @@
 #include "cudaq/utils/matrix.h"
 
 namespace cudaq {
-class boson_handler : public operator_handler {
+class boson_handler : public operator_handler, mdiag_operator_handler {
   template <typename T>
   friend class product_op;
   template <typename T>
@@ -68,6 +68,14 @@ private:
                                   const std::vector<std::int64_t> &dimensions,
                                   std::complex<double> coeff = 1.,
                                   bool invert_order = false);
+  /// @brief Computes the multi-diagonal matrix representation of the string
+  /// encoding of a bosonic product operator. Private method since this encoding
+  /// is not very user friendly.
+  static mdiag_sparse_matrix
+  to_diagonal_matrix(const std::string &fermi_word,
+                     const std::vector<std::int64_t> &dimensions = {},
+                     std::complex<double> coeff = 1.,
+                     bool invert_order = false);
 
 public:
   // read-only properties
@@ -94,7 +102,15 @@ public:
   to_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
-
+  /// @brief Return the multi-diagonal matrix representation of the operator in
+  /// the eigenbasis of the number operator.
+  /// @param  `dimensions` : A map specifying the dimension, that is the number
+  /// of eigenstates, for each degree of freedom.
+  /// @param  `parameters` : A map specifying runtime parameter values.
+  virtual mdiag_sparse_matrix
+  to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {}) const override;
   virtual std::string to_string(bool include_degrees) const override;
 
   // comparisons

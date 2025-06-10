@@ -14,7 +14,6 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
                                             StringRef codeGenFor,
                                             StringRef passConfigAs) {
   pm.addNestedPass<func::FuncOp>(createApplyControlNegations());
-  addAggressiveEarlyInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createUnwindLoweringPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -46,6 +45,7 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   else
     emitError(UnknownLoc::get(pm.getContext()),
               "convert to QIR must be given a valid specification to use.");
+  pm.addPass(createReturnToOutputLog());
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(createCCToLLVM());

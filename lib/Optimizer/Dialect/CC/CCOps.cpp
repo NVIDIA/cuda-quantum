@@ -210,18 +210,22 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
     auto fltTy = builder.getF32Type();
     auto dblTy = builder.getF64Type();
     auto loc = getLoc();
+    auto truncate = [&](std::int64_t val) -> std::int64_t {
+      auto srcTy = getValue().getType();
+      auto srcWidth = srcTy.getIntOrFloatBitWidth();
+      // Zero-extend to get the original integer value.
+      if (srcWidth < 64)
+        val &= ((1UL << srcWidth) - 1);
+      return val;
+    };
+
     if (auto attr = dyn_cast<IntegerAttr>(optConst)) {
       auto val = attr.getInt();
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
-        auto srcTy = getValue().getType();
-        auto srcWidth = srcTy.getIntOrFloatBitWidth();
 
-        if (getZint()) {
-          // Zero-extend to get the original integer value.
-          if (srcWidth < 64)
-            val &= ((1UL << srcWidth) - 1);
-        }
+        if (getZint())
+          val = truncate(val);
 
         if (width == 1) {
           bool v = val != 0;
@@ -233,6 +237,7 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
 
       } else if (ty == fltTy) {
         if (getZint()) {
+          val = truncate(val);
           APFloat fval(static_cast<float>(static_cast<std::uint64_t>(val)));
           return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
               .getResult();
@@ -244,6 +249,7 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
         }
       } else if (ty == dblTy) {
         if (getZint()) {
+          val = truncate(val);
           APFloat fval(static_cast<double>(static_cast<std::uint64_t>(val)));
           return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
               .getResult();
@@ -255,8 +261,24 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
         }
       }
     }
+
+    // %5 = arith.constant ... : F1
+    // %6 = cc.cast %5 : (F1) -> F2
+    // ────────────────────────────
+    // %6 = arith.constant ... : F2
     if (auto attr = dyn_cast<FloatAttr>(optConst)) {
       auto val = attr.getValue();
+      if (ty == fltTy) {
+        float f = val.convertToDouble();
+        APFloat fval(f);
+        return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
+            .getResult();
+      }
+      if (ty == dblTy) {
+        APFloat fval{val.convertToDouble()};
+        return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
+            .getResult();
+      }
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
         if (getZint()) {
@@ -269,22 +291,13 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
           return builder.create<arith::ConstantIntOp>(loc, v, width)
               .getResult();
         }
-      } else if (ty == fltTy) {
-        float f = val.convertToDouble();
-        APFloat fval(f);
-        return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
-            .getResult();
-      } else if (ty == dblTy) {
-        APFloat fval{val.convertToDouble()};
-        return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
-            .getResult();
       }
     }
 
-    // %5 = complex.constant ... -> complex<T>
+    // %5 = complex.constant ... : complex<T>
     // %6 = cc.cast %5 : (complex<T>) -> complex<U>
     // ────────────────────────────────────────────
-    // %6 = complex.constant ... -> complex<U>
+    // %6 = complex.constant ... : complex<U>
     if (auto attr = dyn_cast<ArrayAttr>(optConst)) {
       auto eleTy = cast<ComplexType>(ty).getElementType();
       auto reFp = dyn_cast<FloatAttr>(attr[0]);
@@ -297,7 +310,8 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
           auto imPart = builder.getFloatAttr(eleTy, APFloat{imVal});
           auto cv = builder.getArrayAttr({rePart, imPart});
           return builder.create<complex::ConstantOp>(loc, ty, cv).getResult();
-        } else if (eleTy == dblTy) {
+        }
+        if (eleTy == dblTy) {
           double reVal = reFp.getValue().convertToDouble();
           double imVal = imFp.getValue().convertToDouble();
           auto rePart = builder.getFloatAttr(eleTy, APFloat{reVal});
@@ -327,6 +341,17 @@ LogicalResult cudaq::cc::CastOp::verify() {
     } else if ((isa<FloatType>(inTy) && isa<IntegerType>(outTy)) ||
                (isa<IntegerType>(inTy) && isa<FloatType>(outTy))) {
       // ok, do nothing.
+    } else if (isa<ComplexType>(inTy) && isa<ComplexType>(outTy)) {
+      auto inEleTy = cast<ComplexType>(inTy).getElementType();
+      auto outEleTy = cast<ComplexType>(outTy).getElementType();
+      if ((isa<IntegerType>(inEleTy) && isa<IntegerType>(outEleTy)) ||
+          (isa<FloatType>(inEleTy) && isa<IntegerType>(outEleTy)) ||
+          (isa<IntegerType>(inEleTy) && isa<FloatType>(outEleTy))) {
+      } else {
+        return emitOpError(
+            "signed (unsigned) may only be applied to complex of integer "
+            "to/from complex of integer or complex of float.");
+      }
     } else {
       return emitOpError("signed (unsigned) may only be applied to integer to "
                          "integer or integer to/from float.");
@@ -378,8 +403,17 @@ LogicalResult cudaq::cc::CastOp::verify() {
              isa<cc::PointerType, LLVM::LLVMPointerType>(outTy)) {
     // ok, pointer casts: bitcast, nop
   } else if (isa<ComplexType>(inTy) && isa<ComplexType>(outTy)) {
-    // ok, type conversion of a complex value
-    // NB: use complex.re or complex.im to convert (extract) a fp value.
+    auto inEleTy = cast<ComplexType>(inTy).getElementType();
+    auto outEleTy = cast<ComplexType>(outTy).getElementType();
+    if (isa<FloatType>(inEleTy) && isa<FloatType>(outEleTy)) {
+      // ok, type conversion of a complex floating-point value
+      // NB: use complex.re or complex.im to convert (extract) a fp value.
+    } else {
+      // TODO: For now, disable complex<int>. All variants of complex<int>
+      // require a signed/unsigned modifier. These include to/from complex<int>
+      // and to/from complex<fp>.
+      return emitOpError("invalid complex cast.");
+    }
   } else if (isa<FunctionType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
     // ok, type conversion of a function to an indirect callable
     // Folding will remove this.
@@ -479,12 +513,42 @@ struct FuseComplexCreate : public OpRewritePattern<complex::CreateOp> {
     return failure();
   }
 };
+
+struct FuseComplexRe : public OpRewritePattern<complex::ReOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(complex::ReOp reop,
+                                PatternRewriter &rewriter) const override {
+    auto comcon = reop.getReal().getDefiningOp<complex::ConstantOp>();
+    if (comcon) {
+      FloatType fltTy = reop.getType();
+      APFloat reVal = cast<FloatAttr>(comcon.getValue()[0]).getValue();
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(reop, reVal, fltTy);
+      return success();
+    }
+    return failure();
+  }
+};
+
+struct FuseComplexIm : public OpRewritePattern<complex::ImOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(complex::ImOp imop,
+                                PatternRewriter &rewriter) const override {
+    auto comcon = imop.getImaginary().getDefiningOp<complex::ConstantOp>();
+    if (comcon) {
+      FloatType fltTy = imop.getType();
+      APFloat imVal = cast<FloatAttr>(comcon.getValue()[1]).getValue();
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(imop, imVal, fltTy);
+      return success();
+    }
+    return failure();
+  }
+};
 } // namespace
 
 static void
 getArbitraryCustomCanonicalizationPatterns(RewritePatternSet &patterns,
                                            MLIRContext *context) {
-  patterns.add<FuseComplexCreate>(context);
+  patterns.add<FuseComplexCreate, FuseComplexRe, FuseComplexIm>(context);
 }
 
 void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
@@ -1149,6 +1213,93 @@ LogicalResult cudaq::cc::InsertValueOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// StdvecInitOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+struct CollapseCastToStdvecInit
+    : public OpRewritePattern<cudaq::cc::StdvecInitOp> {
+  using Base = OpRewritePattern<cudaq::cc::StdvecInitOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::StdvecInitOp init,
+                                PatternRewriter &rewriter) const override {
+    if (auto buff = init.getBuffer().getDefiningOp<cudaq::cc::CastOp>()) {
+      auto castVal = buff.getValue();
+      auto fromPtrTy = cast<cudaq::cc::PointerType>(castVal.getType());
+      auto fromTy = fromPtrTy.getElementType();
+      auto toTy = cast<cudaq::cc::PointerType>(buff.getType()).getElementType();
+      if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(fromTy))
+        if (!isa<cudaq::cc::ArrayType>(toTy)) {
+          if (arrTy.isUnknownSize())
+            rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+                init, init.getType(), castVal, init.getLength());
+          else
+            rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+                init, init.getType(), castVal);
+          return success();
+        }
+    }
+    return failure();
+  }
+};
+
+struct FoldStdvecInit : public OpRewritePattern<cudaq::cc::StdvecInitOp> {
+  using Base = OpRewritePattern<cudaq::cc::StdvecInitOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::StdvecInitOp init,
+                                PatternRewriter &rewriter) const override {
+    if (auto arrTy =
+            dyn_cast<cudaq::cc::ArrayType>(init.getBuffer().getType())) {
+      if (arrTy.isUnknownSize())
+        return failure();
+      if (auto len = init.getLength())
+        if (auto optInt = cudaq::opt::factory::getIntIfConstant(len))
+          if (*optInt == arrTy.getSize()) {
+            rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+                init, init.getType(), init.getBuffer());
+            return success();
+          }
+    }
+    return failure();
+  }
+};
+} // namespace
+
+void cudaq::cc::StdvecInitOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<CollapseCastToStdvecInit, FoldStdvecInit>(context);
+}
+
+LogicalResult cudaq::cc::StdvecInitOp::verify() {
+  Value buff = getBuffer();
+  auto buffTy = cast<cc::PointerType>(buff.getType());
+  auto buffEleTy = buffTy.getElementType();
+  if (auto arrTy = dyn_cast<cc::ArrayType>(buffEleTy)) {
+    if (arrTy.isUnknownSize()) {
+      if (!getLength())
+        return emitOpError("must specify a length.");
+    } else {
+      // Input buffer is an array of constant length. If there is a length
+      // argument provided, it must not exceed the length of the buffer.
+      if (auto len = getLength())
+        if (auto optInt = opt::factory::getIntIfConstant(len))
+          if (*optInt > arrTy.getSize())
+            return emitOpError("length override exceeds array length.");
+    }
+    buffEleTy = arrTy.getElementType();
+  }
+  // FIXME: For now leave the loophole that the input buffer may be a "void*" or
+  // "char*" and implicitly casted by this operation.
+  if (buffEleTy != NoneType::get(getContext()) &&
+      buffEleTy != IntegerType::get(getContext(), 8) &&
+      buffEleTy != cast<cc::SpanLikeType>(getType()).getElementType())
+    return emitOpError("element types must be the same.");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // StdvecDataOp
 //===----------------------------------------------------------------------===//
 
@@ -1194,11 +1345,19 @@ struct ForwardStdvecInitSize
 
   LogicalResult matchAndRewrite(cudaq::cc::StdvecSizeOp size,
                                 PatternRewriter &rewriter) const override {
-    if (auto ini = size.getStdvec().getDefiningOp<cudaq::cc::StdvecInitOp>()) {
-      Value cast = rewriter.create<cudaq::cc::CastOp>(
-          size.getLoc(), size.getType(), ini.getLength());
-      rewriter.replaceOp(size, cast);
-      return success();
+    if (auto init = size.getStdvec().getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+      auto ty = size.getType();
+      if (Value len = init.getLength()) {
+        rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(size, ty, len);
+        return success();
+      }
+      if (auto arrTy =
+              dyn_cast<cudaq::cc::ArrayType>(init.getBuffer().getType()))
+        if (!arrTy.isUnknownSize()) {
+          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
+              size, arrTy.getSize(), ty);
+          return success();
+        }
     }
     return failure();
   }
@@ -2238,6 +2397,19 @@ struct FoldTrivialOffsetOf : public OpRewritePattern<cudaq::cc::OffsetOfOp> {
 void cudaq::cc::OffsetOfOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<FoldTrivialOffsetOf>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// ReifySpanOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::ReifySpanOp::verify() {
+  auto conArr = getElements().getDefiningOp<cudaq::cc::ConstantArrayOp>();
+  if (!conArr && !isa<BlockArgument>(getElements()))
+    return emitOpError("requires a constant array argument.");
+  if (conArr.arrayDimension() != spanDimension())
+    return emitOpError("input array dimension must be same as span dimension.");
+  return success();
 }
 
 //===----------------------------------------------------------------------===//

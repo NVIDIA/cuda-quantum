@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
-from ..cudm_helpers import cudm
 from .builtin_integrators import cuDensityMatTimeStepper
 from ...mlir._mlir_libs._quakeDialects import cudaq_runtime
 import numpy, math
@@ -42,6 +41,7 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
         super().__init__(**kwargs)
         self.stepper = stepper
         self.is_density_state = None
+        self.batchSize = None
 
     def __init__(self, **kwargs):
         if not has_scipy:
@@ -51,7 +51,7 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
     def compute_rhs(self, t, vec):
         state = cudaq_runtime.State.from_data(vec)
         state = bindings.initializeState(state, list(self.dimensions),
-                                         self.is_density_state)
+                                         self.is_density_state, self.batch_size)
         result = self.stepper.compute(state, t)
         as_array = numpy.ravel(numpy.array(result))
         return as_array
@@ -85,9 +85,10 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
             self.schedule_ = bindings.Schedule(self.schedule._steps,
                                                list(self.schedule._parameters))
             if self.is_density_state is None:
-                self.is_density_state = math.prod(
-                    self.dimensions)**2 == self.state.getTensor(
-                    ).get_num_elements()
+                batch_size = bindings.getBatchSize(self.state)
+                self.is_density_state = (
+                    (math.prod(self.dimensions)**2 *
+                     batch_size) == self.state.getTensor().get_num_elements())
             self.stepper = cuDensityMatTimeStepper(self.schedule_,
                                                    self.hamiltonian,
                                                    self.collapse_operators,
@@ -100,13 +101,16 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
         new_state_vec = self.solver.integrate(t)
         self.state = cudaq_runtime.State.from_data(new_state_vec)
         self.state = bindings.initializeState(self.state, list(self.dimensions),
-                                              self.is_density_state)
+                                              self.is_density_state,
+                                              self.batch_size)
         self.t = t
 
     def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
         super().set_state(state, t)
         as_array = numpy.ravel(numpy.array(self.state))
+        self.batch_size = bindings.getBatchSize(state)
         if self.dimensions is not None:
-            self.is_density_state = math.prod(
-                self.dimensions)**2 == len(as_array)
+            self.is_density_state = (
+                (self.batch_size *
+                 math.prod(self.dimensions)**2) == len(as_array))
         self.solver.set_initial_value(as_array, t)
