@@ -517,8 +517,7 @@ void sample_result::reorder(const std::vector<std::size_t> &idx,
   }
 }
 
-void resource_counts::appendMeasure(bool measure) {
-}
+void resource_counts::appendMeasure(bool measure) {}
 
 void resource_counts::append(GateData gate, size_t count) {
   std::string gatestr("c", gate.controls);
@@ -587,8 +586,6 @@ CountsDictionary resource_counts::to_map() const {
   return CountsDictionary(gateCounts);
 }
 
-void resource_counts::addQubit() {
-  numQubits++;
-}
+void resource_counts::addQubit() { numQubits++; }
 
 } // namespace cudaq

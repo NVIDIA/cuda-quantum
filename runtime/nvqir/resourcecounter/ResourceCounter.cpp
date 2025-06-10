@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "nvqir/CircuitSimulator.h"
 #include "ResourceCounter.h"
+#include "nvqir/CircuitSimulator.h"
 
 #ifndef __NVQIR_ResourceCounter_TOGGLE_CREATE
 /// Register this Simulator with NVQIR.
@@ -16,6 +16,6 @@ NVQIR_REGISTER_SIMULATOR(nvqir::ResourceCounter, resourcecounter)
 
 extern "C" {
 nvqir::CircuitSimulator *__nvqir__getResourceCounterCircuitSimulator() {
-    return new nvqir::ResourceCounter();
+  return new nvqir::ResourceCounter();
 }
 }

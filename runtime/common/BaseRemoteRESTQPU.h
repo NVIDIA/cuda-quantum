@@ -489,7 +489,8 @@ public:
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
-      // std::function<void(std::string, size_t)> f = [&](std::string gate, size_t count) {
+      // std::function<void(std::string, size_t)> f = [&](std::string gate,
+      // size_t count) {
       //   executionContext->resourceCounts.append(gate, count);
       // };
       // cudaq::opt::ResourceCountPreprocessOptions opt{ f };

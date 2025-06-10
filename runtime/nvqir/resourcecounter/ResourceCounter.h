@@ -27,8 +27,10 @@ protected:
   }
 
   void applyGate(const GateApplicationTask &task) override {
-    cudaq::info("Applying {} with {} controls", task.operationName, task.controls.size());
-    auto gate = resource_counts::GateData{ task.operationName, task.controls.size() };
+    cudaq::info("Applying {} with {} controls", task.operationName,
+                task.controls.size());
+    auto gate =
+        resource_counts::GateData{task.operationName, task.controls.size()};
     executionContext->resourceCounts.append(gate);
   }
 
@@ -49,9 +51,7 @@ public:
   }
   virtual ~ResourceCounter() = default;
 
-  bool canHandleObserve() override {
-    return false;
-  }
+  bool canHandleObserve() override { return false; }
 
   /// @brief Reset the qubit
   /// @param index 0-based index of qubit to reset

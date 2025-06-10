@@ -335,25 +335,23 @@ public:
 
   /// @brief Add another gate to this `resource_count`.
   /// @param gate Encountered gate
-  void append(const GateData gate, size_t count=1);
+  void append(const GateData gate, size_t count = 1);
 
   /// @brief Add another gate to this `resource_count`.
   /// @param gate Encountered gate
-  void append(const std::string gate, size_t count=1);
+  void append(const std::string gate, size_t count = 1);
 
   void appendMeasure(bool measure);
 
   /// @brief Return the number of times the given gate was observed
   /// @param gate
   /// @return
-  std::size_t
-  count(const GateData gate) const;
+  std::size_t count(const GateData gate) const;
 
   /// @brief Return the number of times the given gate was observed
   /// @param gate
   /// @return
-  std::size_t
-  count(const std::string gate) const;
+  std::size_t count(const std::string gate) const;
 
   /// @brief Dump this resource_counts to standard out.
   void dump() const;
@@ -364,8 +362,7 @@ public:
   /// @brief Clear this resource_counts.
   void clear();
 
-  CountsDictionary
-  to_map() const;
+  CountsDictionary to_map() const;
 
   void addQubit();
 };

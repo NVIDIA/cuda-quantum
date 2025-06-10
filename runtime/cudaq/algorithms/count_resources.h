@@ -53,7 +53,8 @@ template <typename QuantumKernel, typename... Args,
           typename = std::enable_if_t<
               std::is_invocable_r_v<void, QuantumKernel, Args...>>>
 #endif
-auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel, Args &&...args) {
+auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel,
+                     Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
   if constexpr (has_name<QuantumKernel>::value) {
@@ -80,7 +81,8 @@ auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel, Args 
   // Set the platform
   platform.set_exec_ctx(ctx.get());
 
-  cudaq::invokeKernel(std::forward<QuantumKernel>(kernel), std::forward<Args>(args)...);
+  cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                      std::forward<Args>(args)...);
 
   __nvqir__resetCircuitSimulator();
 
