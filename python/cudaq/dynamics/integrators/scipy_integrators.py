@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
-from ..cudm_helpers import cudm
 from .builtin_integrators import cuDensityMatTimeStepper, cuDensityMatSuperOpTimeStepper
 from ...mlir._mlir_libs._quakeDialects import cudaq_runtime
 import numpy, math

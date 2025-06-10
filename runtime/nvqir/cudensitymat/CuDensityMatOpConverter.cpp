@@ -71,7 +71,27 @@ computeDagger(const cudaq::matrix_handler &op) {
       auto originalMat = op.to_matrix(dims, params);
       return originalMat.adjoint();
     };
-    cudaq::matrix_handler::define(daggerOpName, {-1}, std::move(func));
+
+    auto dia_func =
+        [op](const std::vector<int64_t> &dimensions,
+             const std::unordered_map<std::string, std::complex<double>>
+                 &params) {
+          cudaq::dimension_map dims;
+          if (dimensions.size() != op.degrees().size())
+            throw std::runtime_error("Dimension mismatched");
+
+          for (std::size_t i = 0; i < dimensions.size(); ++i) {
+            dims[op.degrees()[i]] = dimensions[i];
+          }
+          auto diaMat = op.to_diagonal_matrix(dims, params);
+          for (auto &offset : diaMat.second)
+            offset *= -1;
+          for (auto &element : diaMat.first)
+            element = std::conj(element);
+          return diaMat;
+        };
+    cudaq::matrix_handler::define(daggerOpName, {-1}, std::move(func),
+                                  std::move(dia_func));
   } catch (...) {
     // Nothing, this has been define
   }
@@ -125,6 +145,50 @@ computeDagger(const cudaq::sum_op<cudaq::matrix_handler> &sumOp) {
 }
 
 } // namespace
+
+cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
+    cudensitymatHandle_t handle)
+    : m_handle(handle) {
+  const auto getIntEnvVarIfPresent =
+      [](const char *envName) -> std::optional<int> {
+    if (auto *envVal = std::getenv(envName)) {
+      const std::string envValStr(envVal);
+      const char *nptr = envValStr.data();
+      char *endptr = nullptr;
+      errno = 0; // reset errno to 0 before call
+      auto envIntVal = strtol(nptr, &endptr, 10);
+
+      if (nptr == endptr || errno != 0 || envIntVal < 0)
+        throw std::runtime_error(fmt::format(
+            "Invalid {} setting. Expected a non-negative number. Got: '{}'",
+            envName, envValStr));
+
+      return envIntVal;
+    }
+    // The environment variable is not set.
+    return std::nullopt;
+  };
+
+  {
+    const auto minDim =
+        getIntEnvVarIfPresent("CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION");
+    if (minDim.has_value()) {
+      cudaq::info("Setting multi-diagonal min dimension to {}.",
+                  minDim.value());
+      m_minDimensionDiag = minDim.value();
+    }
+  }
+
+  {
+    const auto maxDiags = getIntEnvVarIfPresent(
+        "CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL");
+    if (maxDiags.has_value()) {
+      cudaq::info("Setting multi-diagonal max number of diagonals to {}.",
+                  maxDiags.value());
+      m_maxDiagonalsDiag = maxDiags.value();
+    }
+  }
+}
 
 cudensitymatOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
@@ -269,22 +333,49 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     wrappedTensorCallback = wrapTensorCallback(elemOp, keys);
   }
 
-  auto flatMatrix =
-      flattenMatrixColumnMajor(elemOp.to_matrix(dimensions, parameters));
+  const auto [diags, offsets] =
+      elemOp.to_diagonal_matrix(dimensions, parameters);
+  const bool shouldUseDia = [&]() {
+    if (diags.empty())
+      return false;
+    const auto dim = std::accumulate(
+        subspaceExtents.begin(), subspaceExtents.end(), 1,
+        std::multiplies<decltype(subspaceExtents)::value_type>());
+    if (dim < m_minDimensionDiag)
+      return false;
+    return offsets.size() <= m_maxDiagonalsDiag;
+  }();
 
-  if (flatMatrix.empty())
-    throw std::invalid_argument("Input matrix (flat matrix) cannot be empty.");
+  auto *elementaryMat_d = [&]() {
+    if (shouldUseDia)
+      return cudaq::dynamics::createArrayGpu(diags);
+    auto flatMatrix =
+        flattenMatrixColumnMajor(elemOp.to_matrix(dimensions, parameters));
 
-  if (subspaceExtents.empty())
-    throw std::invalid_argument("subspaceExtents cannot be empty.");
+    if (flatMatrix.empty())
+      throw std::invalid_argument(
+          "Input matrix (flat matrix) cannot be empty.");
 
-  auto *elementaryMat_d = cudaq::dynamics::createArrayGpu(flatMatrix);
+    if (subspaceExtents.empty())
+      throw std::invalid_argument("subspaceExtents cannot be empty.");
+
+    return cudaq::dynamics::createArrayGpu(flatMatrix);
+  }();
+
   cudensitymatElementaryOperator_t cudmElemOp = nullptr;
-
-  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-      m_handle, static_cast<int32_t>(subspaceExtents.size()),
-      subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
-      CUDA_C_64F, elementaryMat_d, wrappedTensorCallback, &cudmElemOp));
+  if (shouldUseDia) {
+    const std::vector<int32_t> diagonalOffsets(offsets.begin(), offsets.end());
+    HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+        m_handle, static_cast<int32_t>(subspaceExtents.size()),
+        subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_MULTIDIAGONAL,
+        offsets.size(), diagonalOffsets.data(), CUDA_C_64F, elementaryMat_d,
+        wrappedTensorCallback, &cudmElemOp));
+  } else {
+    HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+        m_handle, static_cast<int32_t>(subspaceExtents.size()),
+        subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
+        CUDA_C_64F, elementaryMat_d, wrappedTensorCallback, &cudmElemOp));
+  }
 
   if (!cudmElemOp) {
     std::cerr << "[ERROR] cudmElemOp is NULL in createElementaryOperator !"
@@ -661,20 +752,16 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
         std::cerr << "Dimension map is empty!" << std::endl;
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
       }
-
-      complex_matrix matrix_data = storedOp.to_matrix(dimensions, param_map);
-
-      std::size_t rows = matrix_data.rows();
-      std::size_t cols = matrix_data.cols();
-
-      if (rows != cols) {
-        std::cerr << "Non-square matrix encountered: " << rows << "x" << cols
-                  << std::endl;
-        return CUDENSITYMAT_STATUS_INVALID_VALUE;
-      }
-
-      const std::vector<std::complex<double>> flatMatrix =
-          flattenMatrixColumnMajor(matrix_data);
+      const std::vector<std::complex<double>> flatMatrix = [&]() {
+        if (sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE) {
+          complex_matrix matrix_data =
+              storedOp.to_matrix(dimensions, param_map);
+          return flattenMatrixColumnMajor(matrix_data);
+        }
+        auto [mDiagData, _] =
+            storedOp.to_diagonal_matrix(dimensions, param_map);
+        return mDiagData;
+      }();
 
       if (data_type == CUDA_C_64F) {
         memcpy(tensor_storage, flatMatrix.data(),

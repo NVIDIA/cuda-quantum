@@ -266,6 +266,7 @@ lossy
 lvalue
 makefiles
 merchantability
+mps
 multithreaded
 mutex
 namespace
