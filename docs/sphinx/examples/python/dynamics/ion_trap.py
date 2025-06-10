@@ -76,7 +76,7 @@ for i in range(N):
 
 observables = [P_ground, P_excited]
 
-# Step 6: Run the simulation!
+# Run the simulation!
 print("Running time evolution...")
 evolution_result = cudaq.evolve(
     hamiltonian,
@@ -94,7 +94,6 @@ exp_vals = evolution_result.expectation_values()
 pop_ground = [exp_vals[i][0].expectation() for i in range(len(times))]  
 pop_excited = [exp_vals[i][1].expectation() for i in range(len(times))]
 
-# Step 7: Analyze the results
 # The GHZ state appears at a special time: χt = π/8
 ghz_chi_t = np.pi / 8  
 ghz_time_idx = np.argmin(np.abs(chi_times - ghz_chi_t))
@@ -113,7 +112,6 @@ ghz_quality = 1 - 2 * abs(ghz_pop_ground - 0.5)  # Distance from ideal probabili
 print(f"GHZ state quality: {ghz_quality:.3f} (1.0 = perfect)")
 print(f"Perfect GHZ would have P(gg) = P(ee) = 0.5")
 
-# Step 8: Plot the evolution
 plt.figure(figsize=(10, 6))
 plt.plot(chi_times, pop_ground, 'b-', linewidth=2, label=f"|{'g'*N}⟩ (all ground)")
 plt.plot(chi_times, pop_excited, 'r-', linewidth=2, label=f"|{'e'*N}⟩ (all excited)")
