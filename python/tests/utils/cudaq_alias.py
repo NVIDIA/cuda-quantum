@@ -11,6 +11,7 @@
 import os
 import pytest
 
+
 def test_cudaq_alias_as_quda():
     """Tests aliasing cudaq as quda"""
     import cudaq as quda
@@ -18,10 +19,11 @@ def test_cudaq_alias_as_quda():
     @quda.kernel
     def simple():
         q = quda.qubit()
-    
+
     results = quda.sample(simple)
     results.dump()
     assert '1000' in result
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
