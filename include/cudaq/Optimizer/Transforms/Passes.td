@@ -218,16 +218,6 @@ def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
   let description = [{
     This is a greedy pass that will push constants from single and
     multidimensional array constants to their ultimate uses.
-
-    TODO: Merge const-prop-complex into this pass.
-  }];
-}
-
-def ConstPropComplex : Pass<"const-prop-complex", "mlir::func::FuncOp"> {
-  let summary = "Create and propagate complex constants.";
-  let description = [{
-    Rewrite the complex.CreateOp to complex.ConstantOp when possible.
-    Replace array pointer casts with element pointer casts.
   }];
 }
 
