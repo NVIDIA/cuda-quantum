@@ -200,10 +200,6 @@ public:
 
     // Execution context is valid
     executionContext = context;
-
-    // TODO: probably want to handle this a little smarter
-    if (executionContext->name == "resourcecount")
-      emulate = true;
   }
 
   /// Reset the execution context
@@ -588,7 +584,7 @@ public:
     } else
       modules.emplace_back(kernelName, moduleOp);
 
-    if (emulate) {
+    if (emulate || executionContext->name == "resourcecount") {
       // If we are in emulation mode, we need to first get a full QIR
       // representation of the code. Then we'll map to an LLVM Module, create a
       // JIT ExecutionEngine pointer and use that for execution
@@ -641,9 +637,6 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), or cudaq::draw().");
 
-    if (executionContext->name == "resourcecount")
-      emulate = true;
-
     // Get the Quake code, lowered according to config file.
     auto codes = lowerQuakeCode(kernelName, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
@@ -665,9 +658,6 @@ public:
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), or cudaq::draw().");
-
-    if (executionContext->name == "resourcecount")
-      emulate = true;
 
     // Get the Quake code, lowered according to config file.
     // FIXME: For python, we reach here with rawArgs being empty and args having
@@ -695,18 +685,9 @@ public:
     }
 
     if (executionContext->name == "resourcecount" && jitEngines.size() == 1) {
-      // Set simulator to custom
-      // TODO: move this to trace runtime function
-      // nvqir::CircuitSimulator* sim = new nvqir::Tracer();
-      // __nvqir__setCircuitSimulator(sim);
       cudaq::getExecutionManager()->setExecutionContext(executionContext);
       invokeJITKernelAndRelease(jitEngines[0], kernelName);
       cudaq::getExecutionManager()->resetExecutionContext();
-      // Reset simulator
-      // TODO: move this to trace runtime function
-      // sim = cudaq::getUniquePluginInstance<nvqir::CircuitSimulator>(
-      //   std::string("getCircuitSimulator"));
-      // __nvqir__setCircuitSimulator(sim);
       jitEngines.clear();
       return;
     }
