@@ -7,18 +7,15 @@
 # ============================================================================ #
 
 from __future__ import annotations
-from typing import Sequence, Mapping, List, Optional
+from typing import Sequence, Mapping, Optional
 
 from ..runtime.observe import observe
 from .schedule import Schedule
 from ..operators import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from .cudm_helpers import cudm, CudmStateType
 from .helpers import InitialState, InitialStateArgT
 from .integrator import BaseIntegrator
-from .integrators.builtin_integrators import RungeKuttaIntegrator, cuDensityMatTimeStepper
-import cupy
-import math
+from .integrators.builtin_integrators import RungeKuttaIntegrator
 from ..util.timing_helper import ScopeTimer
 from . import nvqir_dynamics_bindings as bindings
 from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator
@@ -35,11 +32,6 @@ def evolve_dynamics(
     store_intermediate_results=False,
     integrator: Optional[BaseIntegrator] = None
 ) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
-    if cudm is None:
-        raise ImportError(
-            "[dynamics target] Failed to import cuquantum density module. Please check your installation."
-        )
-
     # Reset the schedule
     schedule.reset()
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
