@@ -10,14 +10,21 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include <pybind11/pybind11.h>
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
+#include <pybind11/numpy.h>
+#include <future>
 #include <string>
 #include <tuple>
 #include <vector>
 
+
+
 namespace cudaq {
 namespace details {
+
 
 std::vector<py::object> readRunResults(mlir::ModuleOp module,
                                        mlir::func::FuncOp kernelFuncOp,
@@ -116,9 +123,16 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
   return results;
 }
 
+// Internal struct representing buffer to be filled asynchronously.
+// When the `ready` future is set, the content of the buffer is filled.
+struct async_run_result {
+  std::future<void> ready;
+  std::vector<py::object> results;
+};
+
 /// @brief Run `cudaq::run_async` on the provided kernel.
-/// std::future<std::vector<py::object>>
-auto pyRunAsync(py::object &kernel, py::args args, std::size_t shots_count,
+async_run_result
+pyRunAsync(py::object &kernel, py::args args, std::size_t shots_count,
            std::optional<noise_model> noise_model, std::size_t qpu_id) {
   auto &platform = get_platform();
   auto numQPUs = platform.num_qpus();
@@ -138,18 +152,22 @@ auto pyRunAsync(py::object &kernel, py::args args, std::size_t shots_count,
           "Noise model is not supported on remote platforms.");
 
   // Should only have C++ going on here, safe to release the GIL
-  py::gil_scoped_release release;
+  //py::gil_scoped_release release;
 
-  std::promise<std::vector<py::object>> promise;
-  std::future<std::vector<py::object>> f = promise.get_future();
+  // std::promise<std::vector<py::object>> promise;
+  // std::future<std::vector<py::object>> f = promise.get_future();
+
+  async_run_result result;
+  std::promise<void> promise;
+  result.ready = promise.get_future();
 
   if (shots_count == 0) {
-    promise.set_value({});
-    return f;
+    promise.set_value();
+    return result;
   }
 
   QuantumTask wrapped = detail::make_copyable_function(
-      [p = std::move(promise), shots_count, &platform, argData, name, module, func,
+      [p = std::move(promise), shots_count, &result, &platform, argData, name, module, func,
        noise_model = std::move(noise_model)]() mutable {
         // Launch the kernel in the appropriate context.
         if (noise_model.has_value())
@@ -158,11 +176,12 @@ auto pyRunAsync(py::object &kernel, py::args args, std::size_t shots_count,
         auto results = details::pyRunTheKernel(name, module, func, *argData,
                                                platform, shots_count);
         delete argData;
-        p.set_value(results);
+        result.results = std::move(results);
+        p.set_value();
         platform.reset_noise();
       });
   platform.enqueueAsyncTask(qpu_id, wrapped);
-  return f;
+  return result;
 }
 
 /// @brief Bind the run cudaq function.
@@ -174,6 +193,15 @@ void bindPyRun(py::module &mod) {
 
 /// @brief Bind the run_async cudaq function.
 void bindPyRunAsync(py::module &mod) {
+  py::class_<async_run_result>(mod, "AsyncRunResult", "")
+      .def(
+          "get",
+          [](async_run_result &self) {
+            py::call_guard<py::gil_scoped_release>();
+            self.ready.get();
+            return self.results;
+          },
+          "");
   mod.def("run_async", &pyRunAsync, py::arg("kernel"), py::kw_only(),
           py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
           py::arg("qpu_id") = 0, R"#()#");

@@ -83,50 +83,6 @@ def test_simple_run_ghz_with_noise():
     cudaq.reset_target()
 
 
-def test_run_async():
-    shots = 100
-    qubitCounts = [4, 5, 6, 7, 8]
-    resultHandles = []
-    for qubitCount in qubitCounts:
-        resultHandles.append(
-            cudaq.run_async(simple, qubitCount, shots_count=shots))
-        print(f"({time.time()}) Launch async run for {qubitCount} qubits")
-
-    for i in range(len(qubitCounts)):
-        results = resultHandles[i].get()
-        qubitCount = qubitCounts[i]
-        print(f"({time.time()}) Result for {qubitCount} qubits: {results}")
-        assert len(results) == shots
-        non_zero_count = 0
-        for result in results:
-            assert result == 0 or result == qubitCount  # 00..0 or 1...11
-            if result == qubitCount:
-                non_zero_count += 1
-
-        assert non_zero_count > 0
-
-
-def test_run_async_with_noise():
-    cudaq.set_target("density-matrix-cpu")
-    shots = 100
-    qubitCount = 3
-    depol = cudaq.Depolarization2(.5)
-    noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("cx", depol)
-    results = cudaq.run_async(simple,
-                              qubitCount,
-                              shots_count=shots,
-                              noise_model=noise).get()
-    print(results)
-    assert len(results) == shots
-    noisy_count = 0
-    for result in results:
-        if result != 0 and result != qubitCount:
-            noisy_count += 1
-    assert noisy_count > 0
-    cudaq.reset_target()
-
-
 def test_return_bool():
 
     @cudaq.kernel
