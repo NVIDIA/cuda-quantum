@@ -488,14 +488,16 @@ public:
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
-      pm.addPass(mlir::createCanonicalizerPass());
-      // std::function<void(std::string, size_t)> f = [&](std::string gate,
-      // size_t count) {
-      //   executionContext->resourceCounts.append(gate, count);
-      // };
-      // cudaq::opt::ResourceCountPreprocessOptions opt{ f };
-      // pm.addNestedPass<mlir::func::FuncOp>(opt::createResourceCountPreprocess(opt));
-      // pm.addPass(mlir::createCanonicalizerPass());
+      if (executionContext->name == "resourcecount") {
+        pm.addPass(mlir::createCanonicalizerPass());
+        std::function<void(std::string, size_t)> f = [&](std::string gate,
+        size_t count) {
+          executionContext->resourceCounts.append(gate, count);
+        };
+        cudaq::opt::ResourceCountPreprocessOptions opt{ f };
+        pm.addNestedPass<mlir::func::FuncOp>(opt::createResourceCountPreprocess(opt));
+        pm.addPass(mlir::createCanonicalizerPass());
+      }
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
