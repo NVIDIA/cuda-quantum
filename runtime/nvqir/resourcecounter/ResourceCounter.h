@@ -15,7 +15,7 @@ using namespace cudaq;
 
 namespace nvqir {
 
-class Tracer : public nvqir::CircuitSimulatorBase<double> {
+class ResourceCounter : public nvqir::CircuitSimulatorBase<double> {
 protected:
   size_t num_qubits;
   std::map<std::string, size_t> gate_counts;
@@ -42,12 +42,12 @@ protected:
   }
 
 public:
-  Tracer() {
+  ResourceCounter() {
     // Populate the correct name so it is printed correctly during
     // deconstructor.
     summaryData.name = name();
   }
-  virtual ~Tracer() = default;
+  virtual ~ResourceCounter() = default;
 
   bool canHandleObserve() override {
     return false;
@@ -63,7 +63,7 @@ public:
     throw std::runtime_error("Can't sample from resource counter simulator!");
   }
 
-  std::string name() const override { return "tracer"; }
+  std::string name() const override { return "resourcecounter"; }
 
   CircuitSimulator *clone() override {
     // TODO: probably fine

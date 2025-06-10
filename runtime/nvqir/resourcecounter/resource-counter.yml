@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: tracer
-description: "Tracer backend target"
+name: resource-counter
+description: "Resource counter backend target"
 config:
-  nvqir-simulation-backend: tracer
+  nvqir-simulation-backend: resourcecounter
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]

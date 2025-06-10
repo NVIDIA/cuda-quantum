@@ -5,10 +5,10 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-set(LIBRARY_NAME nvqir-tracer)
+set(LIBRARY_NAME nvqir-resource-counter)
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
-add_library(${LIBRARY_NAME} SHARED Tracer.cpp)
+add_library(${LIBRARY_NAME} SHARED ResourceCounter.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
 set (TRACER_DEPENDENCIES libstim fmt::fmt-header-only cudaq-common)
@@ -27,4 +27,4 @@ set_target_properties(${LIBRARY_NAME}
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
-add_target_config(tracer)
+add_target_config(resource-counter)

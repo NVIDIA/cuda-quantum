@@ -22,7 +22,7 @@ class CircuitSimulator;
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 void __nvqir__resetCircuitSimulator();
-nvqir::CircuitSimulator *__nvqir__getTracerCircuitSimulator();
+nvqir::CircuitSimulator *__nvqir__getResourceCounterCircuitSimulator();
 }
 
 namespace cudaq {
@@ -53,15 +53,15 @@ template <typename QuantumKernel, typename... Args,
           typename = std::enable_if_t<
               std::is_invocable_r_v<void, QuantumKernel, Args...>>>
 #endif
-auto trace(std::function<bool()> choice, QuantumKernel &&kernel, Args &&...args) {
+auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel, Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
   if constexpr (has_name<QuantumKernel>::value) {
     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
   }
 
-  auto *tracer = __nvqir__getTracerCircuitSimulator();
-  __nvqir__setCircuitSimulator(tracer);
+  auto *resource_counter = __nvqir__getResourceCounterCircuitSimulator();
+  __nvqir__setCircuitSimulator(resource_counter);
 
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();

@@ -7,15 +7,15 @@
  ******************************************************************************/
 
 #include "nvqir/CircuitSimulator.h"
-#include "Tracer.h"
+#include "ResourceCounter.h"
 
-#ifndef __NVQIR_TRACER_TOGGLE_CREATE
+#ifndef __NVQIR_ResourceCounter_TOGGLE_CREATE
 /// Register this Simulator with NVQIR.
-NVQIR_REGISTER_SIMULATOR(nvqir::Tracer, tracer)
+NVQIR_REGISTER_SIMULATOR(nvqir::ResourceCounter, resourcecounter)
 #endif
 
 extern "C" {
-nvqir::CircuitSimulator *__nvqir__getTracerCircuitSimulator() {
-    return new nvqir::Tracer();
+nvqir::CircuitSimulator *__nvqir__getResourceCounterCircuitSimulator() {
+    return new nvqir::ResourceCounter();
 }
 }
