@@ -165,7 +165,7 @@ evolve_result evolveSingle(
     const state &initial_state, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
-    bool store_intermediate_results = false,
+    IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
     std::optional<int> shots_count = std::nullopt);
 
 evolve_result evolveSingle(
@@ -174,7 +174,7 @@ evolve_result evolveSingle(
     InitialState initial_state, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
-    bool store_intermediate_results = false,
+    IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
     std::optional<int> shots_count = std::nullopt);
 
 std::vector<evolve_result> evolveBatched(
@@ -183,7 +183,7 @@ std::vector<evolve_result> evolveBatched(
     const std::vector<state> &initial_states, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
-    bool store_intermediate_results = false,
+    IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
     std::optional<int> shots_count = std::nullopt);
 
 evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,

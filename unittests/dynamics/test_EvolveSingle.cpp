@@ -32,7 +32,7 @@ TEST(EvolveTester, checkSimple) {
 
   cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
+      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -65,7 +65,7 @@ TEST(EvolveTester, checkSimpleRK4) {
 
   cudaq::integrators::runge_kutta integrator(4, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
+      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -98,7 +98,7 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
 
   cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, true);
+      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -151,7 +151,7 @@ TEST(EvolveTester, checkCompositeSystem) {
 
   auto result = cudaq::__internal__::evolveSingle(
       hamiltonian, dims, schedule, initialState, integrator, {},
-      {cavity_occ_op, atom_occ_op}, true);
+      {cavity_occ_op, atom_occ_op}, cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), num_steps);
 
@@ -207,7 +207,7 @@ TEST(EvolveTester, checkCompositeSystemWithCollapse) {
   cudaq::sum_op<cudaq::matrix_handler> collapsedOp(collapsedOp_t);
   cudaq::evolve_result result = cudaq::__internal__::evolveSingle(
       hamiltonian, dims, schedule, initialState, integrator, {collapsedOp},
-      {cavity_occ_op, atom_occ_op}, true);
+      {cavity_occ_op, atom_occ_op}, cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), num_steps);
 
@@ -253,7 +253,7 @@ TEST(EvolveTester, checkScalarTd) {
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
   cudaq::integrators::runge_kutta integrator(4, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {collapseOp}, {obs}, true);
+      ham, dims, schedule, initialState, integrator, {collapseOp}, {obs}, cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;

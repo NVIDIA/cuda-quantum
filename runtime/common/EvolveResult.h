@@ -16,6 +16,24 @@
 
 namespace cudaq {
 
+class IntermediateResultSave {
+private:
+  enum class UnderlyingTy : int { None, All, ExpectationValue };
+  int m_value;
+
+public:
+  static constexpr int None = static_cast<int>(UnderlyingTy::None);
+  static constexpr int All = static_cast<int>(UnderlyingTy::All);
+  static constexpr int ExpectationValue =
+      static_cast<int>(UnderlyingTy::ExpectationValue);
+
+  constexpr explicit IntermediateResultSave(int val) : m_value(val) {}
+  constexpr IntermediateResultSave(bool val)
+      : m_value(val ? static_cast<int>(UnderlyingTy::All)
+                    : static_cast<int>(UnderlyingTy::None)) {}
+  constexpr operator int() { return m_value; }
+};
+
 /// @brief The evolve_result encapsulates all data generated from a
 /// cudaq"::"evolve call. This includes information about the state
 /// and any computed expectation values during and after evolution,

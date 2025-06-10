@@ -62,7 +62,7 @@ evolve_result evolveSingle(
     const state &initialState, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
     const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-    bool storeIntermediateResults, std::optional<int> shotsCount) {
+    IntermediateResultSave storeIntermediateResults, std::optional<int> shotsCount) {
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -104,7 +104,7 @@ evolve_result evolveSingle(
   for (const auto &step : schedule) {
     integrator.integrate(step.real());
     auto [t, currentState] = integrator.getState();
-    if (storeIntermediateResults) {
+    if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
       std::vector<double> expVals;
 
       for (auto &expectation : expectations) {
@@ -116,14 +116,15 @@ evolve_result evolveSingle(
         expVals.emplace_back(expVal.front().real());
       }
       expectationVals.emplace_back(std::move(expVals));
-      intermediateStates.emplace_back(currentState);
+      if (storeIntermediateResults == cudaq::IntermediateResultSave::All)
+        intermediateStates.emplace_back(currentState);
     }
   }
 
   if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
     cudaq::dynamics::dumpPerfTrace();
 
-  if (storeIntermediateResults) {
+  if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
     return evolve_result(intermediateStates, expectationVals);
   } else {
     // Only final state is needed
@@ -158,7 +159,7 @@ evolve_result evolveSingle(
     InitialState initial_state, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators,
     const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-    bool store_intermediate_results, std::optional<int> shots_count) {
+    IntermediateResultSave store_intermediate_results, std::optional<int> shots_count) {
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
   auto cudmState = CuDensityMatState::createInitialState(
@@ -174,7 +175,7 @@ std::vector<evolve_result> evolveBatched(
     const std::vector<state> &initialStates, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
     const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-    bool storeIntermediateResults, std::optional<int> shotsCount) {
+    IntermediateResultSave storeIntermediateResults, std::optional<int> shotsCount) {
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -214,7 +215,7 @@ std::vector<evolve_result> evolveBatched(
   for (const auto &step : schedule) {
     integrator.integrate(step.real());
     auto [t, currentState] = integrator.getState();
-    if (storeIntermediateResults) {
+    if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
       auto *cudmState = asCudmState(currentState);
       std::vector<std::vector<double>> expVals(initialStates.size());
       for (auto &expectation : expectations) {
@@ -226,16 +227,22 @@ std::vector<evolve_result> evolveBatched(
           expVals[i].emplace_back(expVal[i].real());
         }
       }
-      auto states = CuDensityMatState::splitBatchedState(*cudmState);
-      assert(states.size() == initialStates.size());
+
+      if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
+        auto states = CuDensityMatState::splitBatchedState(*cudmState);
+        assert(states.size() == initialStates.size());
+        for (int i = 0; i < initialStates.size(); ++i) {
+          intermediateStates[i].emplace_back(cudaq::state(states[i]));
+        }
+      }
+
       for (int i = 0; i < initialStates.size(); ++i) {
         expectationVals[i].emplace_back(expVals[i]);
-        intermediateStates[i].emplace_back(cudaq::state(states[i]));
       }
     }
   }
 
-  if (storeIntermediateResults) {
+  if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
     std::vector<evolve_result> results;
     for (int i = 0; i < initialStates.size(); ++i) {
       results.emplace_back(
