@@ -797,7 +797,6 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   // in their runtime.
   if (!isSimulator) {
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstPropComplex());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
     pm.addPass(cudaq::opt::createGlobalizeArrayValues());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
