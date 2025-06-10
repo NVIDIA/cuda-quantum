@@ -17,7 +17,6 @@
 
 namespace cudaq {
 
-namespace {
 std::tuple<std::string, MlirModule, OpaqueArguments *>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::len(kernel.attr("arguments")) != args.size())
@@ -35,7 +34,6 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 
   return {kernelName, kernelMod, argData};
 }
-} // namespace
 
 /// @brief Run `cudaq::draw` on the provided kernel.
 std::string pyDraw(py::object &kernel, py::args args) {
