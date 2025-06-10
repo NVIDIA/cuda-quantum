@@ -83,8 +83,7 @@ protected:
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<mlir::func::FuncOp>(
-        cudaq::opt::createUnwindLoweringPass());
+    pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createUnwindLowering());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
     pm.addPass(createInlinerPass());
