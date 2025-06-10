@@ -3216,7 +3216,7 @@ class PyASTBridge(ast.NodeVisitor):
             lowerVal, upperVal, stepVal = (None, None, None)
             if node.slice.lower is not None:
                 self.visit(node.slice.lower)
-                lowerVal = self.popValue()
+                lowerVal = fix_negative(self.popValue())
             else:
                 lowerVal = self.getConstantInt(0)
             if node.slice.upper is not None:
