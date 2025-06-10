@@ -119,11 +119,6 @@ jobs:
             echo multiline
           } >> $GITHUB_OUTPUT
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
-
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -224,11 +219,6 @@ jobs:
           cache_to="${build_cache},mode=max,ignore-error=false"
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
 
       - name: Set up context for buildx
         run: |
