@@ -140,6 +140,25 @@ jobs:
               exit 1
             fi
 
+      - name: Test CUDA Quantum interop (Python)
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: cuda-quantum-dev:local
+          shell: bash
+          run: |
+            cd $CUDAQ_REPO_ROOT
+            pip install . --user -vvv
+            if [ ! $pyinstall_status -eq 0 ]; then
+              echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
+              exit 1
+            fi
+            python3 -m pytest -v build/python/tests/interop/
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=test_in_devenv.yml::Python interop tests failed with status $pytest_status."
+              exit 1
+            fi
+
       - name: Save environment
         id: env_save
         if: inputs.export_environment
@@ -223,8 +242,7 @@ jobs:
 
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
-            --build-arg base_image=$base_image \
-            --build-arg install="CMAKE_BUILD_TYPE=Debug"
+            --build-arg base_image=$base_image
 
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main
@@ -248,12 +266,6 @@ jobs:
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
-              exit 1
-            fi
-            python3 -m pytest -v build/python/tests/interop/
-            pytest_status=$?
-            if [ ! $pytest_status -eq 0 ]; then
-              echo "::error file=test_in_devenv.yml::Python interop tests failed with status $pytest_status."
               exit 1
             fi
             for backendTest in python/tests/backends/*.py; do
