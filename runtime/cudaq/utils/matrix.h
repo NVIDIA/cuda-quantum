@@ -197,6 +197,7 @@ public:
   std::size_t rows() const { return dimensions.first; }
   std::size_t cols() const { return dimensions.second; }
   std::size_t size() const { return get_size(dimensions); }
+  value_type *get_data() const { return data; }
 
   const EigenMatrix as_eigen() const;
 
