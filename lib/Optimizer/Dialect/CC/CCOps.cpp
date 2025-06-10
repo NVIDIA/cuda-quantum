@@ -261,6 +261,11 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
         }
       }
     }
+
+    // %5 = arith.constant ... : F1
+    // %6 = cc.cast %5 : (F1) -> F2
+    // ────────────────────────────
+    // %6 = arith.constant ... : F2
     if (auto attr = dyn_cast<FloatAttr>(optConst)) {
       auto val = attr.getValue();
       if (isa<IntegerType>(ty)) {
@@ -287,10 +292,10 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
       }
     }
 
-    // %5 = complex.constant ... -> complex<T>
+    // %5 = complex.constant ... : complex<T>
     // %6 = cc.cast %5 : (complex<T>) -> complex<U>
     // ────────────────────────────────────────────
-    // %6 = complex.constant ... -> complex<U>
+    // %6 = complex.constant ... : complex<U>
     if (auto attr = dyn_cast<ArrayAttr>(optConst)) {
       auto eleTy = cast<ComplexType>(ty).getElementType();
       auto reFp = dyn_cast<FloatAttr>(attr[0]);
@@ -485,12 +490,42 @@ struct FuseComplexCreate : public OpRewritePattern<complex::CreateOp> {
     return failure();
   }
 };
+
+struct FuseComplexRe : public OpRewritePattern<complex::ReOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(complex::ReOp reop,
+                                PatternRewriter &rewriter) const override {
+    auto comcon = reop.getReal().getDefiningOp<complex::ConstantOp>();
+    if (comcon) {
+      FloatType fltTy = reop.getType();
+      APFloat reVal = cast<FloatAttr>(comcon.getValue()[0]).getValue();
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(reop, reVal, fltTy);
+      return success();
+    }
+    return failure();
+  }
+};
+
+struct FuseComplexIm : public OpRewritePattern<complex::ImOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(complex::ImOp imop,
+                                PatternRewriter &rewriter) const override {
+    auto comcon = imop.getImaginary().getDefiningOp<complex::ConstantOp>();
+    if (comcon) {
+      FloatType fltTy = imop.getType();
+      APFloat imVal = cast<FloatAttr>(comcon.getValue()[1]).getValue();
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(imop, imVal, fltTy);
+      return success();
+    }
+    return failure();
+  }
+};
 } // namespace
 
 static void
 getArbitraryCustomCanonicalizationPatterns(RewritePatternSet &patterns,
                                            MLIRContext *context) {
-  patterns.add<FuseComplexCreate>(context);
+  patterns.add<FuseComplexCreate, FuseComplexRe, FuseComplexIm>(context);
 }
 
 void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
