@@ -18,9 +18,8 @@ qubit_count = 5
 @cudaq.kernel
 def simplest():
     qvector = cudaq.qvector(qubit_count)
-    for i in range(qubit_count):
-        reset(qvector[i])
 
+    reset(qvector)
     # t.adj(qvector[0]) - not yet supported as tdg gate is not supported yet
     x.ctrl(qvector[0], qvector[1])
     h.ctrl(qvector[1], qvector[2])

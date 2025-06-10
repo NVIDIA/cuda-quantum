@@ -16,11 +16,7 @@ qubit_count = 5
 @cudaq.kernel
 def gates():
     qvector = cudaq.qvector(qubit_count)
-    for i in range(qubit_count):
-        reset(qvector[i])
-
-    # for i in range(qubit_count):
-    #     x(qvector[i])
+    reset(qvector)
 
     x(qvector[0])
     y(qvector[0])
@@ -33,4 +29,4 @@ def gates():
     r1(math.pi/2, qvector[4])
 
 
-cudaq.sample(gates, shots_count=1000)
+cudaq.sample(gates, shots_count=10000)

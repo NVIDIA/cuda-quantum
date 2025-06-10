@@ -33,8 +33,8 @@ struct all_h {
 };
 
 int main() {
-  // Submit asynchronously (e.g., continue executing
-  // code in the file until the job has been returned).
+  // Submit asynchronously (e.g., continue executing code in the file until 
+  // the job has been returned).
   auto future = cudaq::sample_async(all_h{});
   // ... classical code to execute in the meantime ...
 

@@ -14,13 +14,12 @@ qubit_count = 4
 
 
 @cudaq.kernel
-def simplest():
+def reset_and_x():
     qvector = cudaq.qvector(qubit_count)
-    for i in range(qubit_count):
-        reset(qvector[i])
+    reset(qvector)
 
     for i in range(qubit_count):
-        h(qvector[i])
+        x(qvector[i])
 
 
-cudaq.sample(simplest, shots_count=1000000)
+cudaq.sample(reset_and_x, shots_count=10)
