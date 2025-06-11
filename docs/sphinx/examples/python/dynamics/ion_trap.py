@@ -10,10 +10,10 @@ What we're doing:
 - Apply an effective Hamiltonian H = 4χJ_x²  
 - Watch the system evolve into a GHZ superposition: `(|gg...g⟩ + |ee...e⟩)/√2`
 
-This tutorial uses the simplified effective model (Eq. 2 from the paper).
+This tutorial uses the simplified effective model (`Eq. 2` from the paper).
 
 Reference:
-Mølmer, Klaus, and Anders Sørensen. "Multiparticle entanglement of hot trapped ions." Physical Review Letters 82.9 (1999): 1835.
+Mølmer, Klaus, and Anders `Sørensen`. "`Multiparticle` entanglement of hot trapped ions." Physical Review Letters 82.9 (1999): 1835.
 
 """
 
@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 
 cudaq.set_target("dynamics")
 
-# Physical parameters, these come from the `Sørensen-Mølmer`` paper
+# Physical parameters, these come from the `Sørensen-Mølmer` paper
 nu = 1.0  # Trap frequency (our reference)
 delta = 0.9 * nu  # Laser detuning
 Omega = 0.1 * nu  # Laser strength
