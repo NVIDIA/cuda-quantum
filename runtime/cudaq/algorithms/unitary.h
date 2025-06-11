@@ -16,9 +16,8 @@
 
 namespace cudaq::details {
 
-/// @brief Build a controlled-gate unitary: identity in all control subspaces
-/// except
-///        the “all controls = 1” block, which is replaced by the original gate.
+/// @brief Build a controlled-gate unitary: identity in all control blocks
+/// except the “all controls = 1” block, which is replaced by the original gate.
 /// @param gate The base unitary matrix of the target gate.
 /// @param num_controls The number of control qubits.
 /// @returns A complex_matrix representing the controlled version of the gate.
@@ -38,9 +37,8 @@ inline complex_matrix make_controlled_unitary(const complex_matrix &gate,
   return M;
 }
 
-/// @brief Expand an m-qubit gate to an n-qubit system by tensoring with
-/// identities
-///        and permuting qubits into the specified positions.
+/// @brief Expand an m-qubit gate to an n-qubit system by tensor product with
+/// identities and permuting qubits into the specified positions.
 /// @param gate The unitary matrix acting on m qubits.
 /// @param num_qudits The total number of qubits in the full system.
 /// @param qudit_indices A vector of size m giving the target qubit indices in
