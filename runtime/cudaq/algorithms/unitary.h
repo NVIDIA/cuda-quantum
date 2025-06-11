@@ -7,33 +7,105 @@
  ******************************************************************************/
 
 #pragma once
- 
+
 #include "common/Trace.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/utils/matrix.h"
 #include "nvqir/Gates.h"
+#include <iostream>
 
 namespace cudaq::details {
+
+/// Return the SWAP unitary that exchanges qubits i and j in an n-qubit system.
+inline complex_matrix make_swap(std::size_t i, std::size_t j,
+                                std::size_t num_qubits) {
+  std::size_t dim = 1ULL << num_qubits;
+  // default‐construct yields a zero matrix
+  complex_matrix S(dim, dim);
+  for (std::size_t k = 0; k < dim; ++k) {
+    // extract bits
+    std::size_t bi = (k >> i) & 1ULL;
+    std::size_t bj = (k >> j) & 1ULL;
+    // if bits differ, flip both
+    std::size_t k2 = bi == bj ? k : k ^ ((1ULL << i) | (1ULL << j));
+    // place |k2⟩⟨k|
+    S(k2, k) = 1;
+  }
+  return S;
+}
+
+/// Build a controlled-gate unitary: identity in all control subspaces
+/// except the last one, where the original gate is placed.
+inline complex_matrix make_controlled_unitary(const complex_matrix &gate,
+                                              std::size_t num_controls) {
+  auto gdim = gate.rows();
+  auto ctrl_dim = 1ULL << num_controls;
+  auto new_dim = ctrl_dim * gdim;
+  // Start with identity of full size
+  complex_matrix M = complex_matrix::identity(new_dim);
+  // Offset of the “all controls = 1” block
+  auto offset = (ctrl_dim - 1) * gdim;
+  // Overwrite bottom-right block with gate
+  for (std::size_t i = 0; i < gdim; ++i)
+    for (std::size_t j = 0; j < gdim; ++j)
+      M(offset + i, offset + j) = gate(i, j);
+  return M;
+}
 
 inline complex_matrix
 expand_gate_to_system(const complex_matrix &gate, std::size_t num_qudits,
                       const std::vector<std::size_t> &qudit_indices) {
-  // Build a list of matrices for each qubit: gate if one of the participating
-  // qudits, identity otherwise.
-  std::vector<complex_matrix> factors;
-  // std::size_t gate_idx = 0;
-  for (std::size_t q = 0; q < num_qudits; ++q) {
-    if (std::find(qudit_indices.begin(), qudit_indices.end(), q) !=
-        qudit_indices.end()) {
-      factors.push_back(gate);
-    } else {
-      factors.push_back(complex_matrix::identity(2));
+  // number of qubits this gate acts on
+  std::size_t m = qudit_indices.size();
+
+  // 1) Build U0 = gate ⊗ I ⊗ ... ⊗ I, with gate on qubits [0..m-1]
+  std::vector<complex_matrix> facs;
+  facs.reserve(1 + num_qudits - m);
+  facs.push_back(gate);
+  for (std::size_t k = m; k < num_qudits; ++k)
+    facs.push_back(complex_matrix::identity(2));
+  auto U0 = kronecker(facs.begin(), facs.end());
+
+  // 2) Build permutation P that moves qubits [0..m−1] → qudit_indices[]
+  std::size_t dim = 1ULL << num_qudits;
+  // 2a) build a map old_index → new_index
+  std::vector<std::size_t> perm(num_qudits);
+  for (std::size_t k = 0; k < m; ++k)
+    perm[k] = qudit_indices[k];
+  // mark used targets
+  std::vector<bool> used(num_qudits, false);
+  for (auto idx : qudit_indices)
+    used[idx] = true;
+  // collect the free new slots
+  std::vector<std::size_t> free_pos;
+  free_pos.reserve(num_qudits - m);
+  for (std::size_t i = 0; i < num_qudits; ++i)
+    if (!used[i])
+      free_pos.push_back(i);
+  // assign the remaining old qubits (m..n−1) into those slots
+  for (std::size_t k = m; k < num_qudits; ++k)
+    perm[k] = free_pos[k - m];
+
+  // 2b) build P by permuting computational‐basis indices (fixing endian)
+  complex_matrix P(dim, dim); // zero‐initialized
+  // Interpret bit-0 of the index as the MSB, build P accordingly.
+  for (std::size_t col = 0; col < dim; ++col) {
+    std::size_t row = 0;
+    // i = 0 → MSB, i = num_qudits-1 → LSB
+    for (std::size_t i = 0; i < num_qudits; ++i) {
+      auto srcBitPos = num_qudits - 1 - i;
+      if ((col >> srcBitPos) & 1ULL) {
+        // place that 1 in the new position (also big-endian)
+        auto dstBitPos = num_qudits - 1 - perm[i];
+        row |= (1ULL << dstBitPos);
+      }
     }
+    P(row, col) = 1.0;
   }
-  // Kronecker product of all factors
-  auto full_unitary = kronecker(factors.begin(), factors.end());
-  // TODO: swap
-  return full_unitary;
+
+  // 3) Embed: full_gate = P * U0 * P⁻¹
+  auto result = P * U0 * P.adjoint();
+  return result;
 }
 
 inline complex_matrix unitary_from_trace(const Trace &trace) {
@@ -47,9 +119,15 @@ inline complex_matrix unitary_from_trace(const Trace &trace) {
     std::size_t gate_dim = static_cast<std::size_t>(std::sqrt(gate_vec.size()));
     complex_matrix gate(gate_vec, {gate_dim, gate_dim});
 
+    // If there are control qubits, build the controlled-unitary
+    if (!inst.controls.empty()) {
+      gate = make_controlled_unitary(gate, inst.controls.size());
+      gate_dim = gate.rows();
+    }
+
     // Get vector of all qubit indices that this gate operates on
     std::vector<std::size_t> inst_qubits;
-    inst_qubits.reserve(inst.targets.size());
+    inst_qubits.reserve(inst.controls.size() + inst.targets.size());
     for (const auto &control : inst.controls) {
       inst_qubits.push_back(control.id);
     }
