@@ -3194,26 +3194,42 @@ class PyASTBridge(ast.NodeVisitor):
             self.visit(node.value)
             var = self.ifPointerThenLoad(self.popValue())
 
+            vectorSize = None
+            if quake.VeqType.isinstance(var.type):
+                vectorSize = quake.VeqSizeOp(self.getIntegerType(64),
+                                             var).result
+            elif cc.StdvecType.isinstance(var.type):
+                vectorSize = cc.StdvecSizeOp(self.getIntegerType(), var).result
+
+            def fix_negative(val):
+                if hasattr(val.owner, 'opview') and isinstance(
+                        val.owner.opview, arith.ConstantOp):
+                    if 'value' in val.owner.attributes:
+                        attr = IntegerAttr(val.owner.attributes['value'])
+                        upperInt = attr.value
+                        if upperInt < 0:
+                            return arith.AddIOp(
+                                vectorSize,
+                                self.getConstantInt(upperInt)).result
+                return val
+
             lowerVal, upperVal, stepVal = (None, None, None)
             if node.slice.lower is not None:
                 self.visit(node.slice.lower)
-                lowerVal = self.popValue()
+                lowerVal = fix_negative(self.popValue())
             else:
                 lowerVal = self.getConstantInt(0)
             if node.slice.upper is not None:
                 self.visit(node.slice.upper)
-                upperVal = self.popValue()
+                upperVal = fix_negative(self.popValue())
             else:
-                if quake.VeqType.isinstance(var.type):
-                    upperVal = quake.VeqSizeOp(self.getIntegerType(64),
-                                               var).result
-                elif cc.StdvecType.isinstance(var.type):
-                    upperVal = cc.StdvecSizeOp(self.getIntegerType(),
-                                               var).result
-                else:
+                if not quake.VeqType.isinstance(
+                        var.type) and not cc.StdvecType.isinstance(var.type):
                     self.emitFatalError(
                         f"unhandled upper slice == None, can't handle type {var.type}",
                         node)
+                else:
+                    upperVal = vectorSize
 
             if node.slice.step is not None:
                 self.emitFatalError("step value in slice is not supported.",

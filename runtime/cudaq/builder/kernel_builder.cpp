@@ -954,7 +954,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
     cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(createCanonicalizerPass());
-    pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+    pm.addPass(cudaq::opt::createApplySpecialization());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createExpandMeasurementsPass());
