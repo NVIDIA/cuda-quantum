@@ -756,16 +756,6 @@ public:
     std::vector<QuakeValue> parameters{param1, param2, param3};
     details::u3(*opBuilder, parameters, empty, target);
   }
-  [[deprecated("In the future, passing `ctrls` to u3 will require an explicit "
-               "`<cudaq::ctrl>` template argument. "
-               "Upon the next release, this will be interpreted as a single "
-               "qubit gate broadcast across all input qubits, per the CUDA-Q "
-               "Specification.")]] void
-  u3(QuakeValue param1, QuakeValue param2, QuakeValue param3,
-     std::vector<QuakeValue> &ctrls, QuakeValue &target) {
-    std::vector<QuakeValue> parameters{param1, param2, param3};
-    details::u3(*opBuilder, parameters, ctrls, target);
-  }
   template <typename mod, typename = typename std::enable_if_t<
                               std::is_same_v<mod, cudaq::ctrl>>>
   void u3(QuakeValue param1, QuakeValue param2, QuakeValue param3,
@@ -780,19 +770,6 @@ public:
     QuakeValue v3(*opBuilder, param3);
     std::vector<QuakeValue> parameters{v1, v2, v3};
     details::u3(*opBuilder, parameters, empty, target);
-  }
-  [[deprecated("In the future, passing `ctrls` to u3 will require an explicit "
-               "`<cudaq::ctrl>` template argument. "
-               "Upon the next release, this will be interpreted as a single "
-               "qubit gate broadcast across all input qubits, per the CUDA-Q "
-               "Specification.")]] void
-  u3(double param1, double param2, double param3,
-     std::vector<QuakeValue> &ctrls, QuakeValue &target) {
-    QuakeValue v1(*opBuilder, param1);
-    QuakeValue v2(*opBuilder, param2);
-    QuakeValue v3(*opBuilder, param3);
-    std::vector<QuakeValue> parameters{v1, v2, v3};
-    details::u3(*opBuilder, parameters, ctrls, target);
   }
   template <typename mod, typename = typename std::enable_if_t<
                               std::is_same_v<mod, cudaq::ctrl>>>
