@@ -67,12 +67,12 @@ auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel,
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
-  auto hasConditionalFeebdback =
+  auto hasConditionalFeedback =
       cudaq::kernelHasConditionalFeedback(kernelName);
   // Create the execution context.
   auto ctx = std::make_unique<ExecutionContext>("resourcecount", 1);
   ctx->kernelName = kernelName;
-  ctx->hasConditionalsOnMeasureResults = hasConditionalFeebdback;
+  ctx->hasConditionalsOnMeasureResults = hasConditionalFeedback;
   ctx->choice = choice;
 
   // Indicate that this is not an async exec
@@ -81,8 +81,7 @@ auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel,
   // Set the platform
   platform.set_exec_ctx(ctx.get());
 
-  cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                      std::forward<Args>(args)...);
+  kernel(std::forward<Args>(args)...);
 
   __nvqir__resetCircuitSimulator();
 

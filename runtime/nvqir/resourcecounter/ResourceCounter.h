@@ -22,7 +22,7 @@ protected:
 
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override {
-    sampleQubits.emplace_back(num_qubits++);
+    num_qubits++;
     executionContext->resourceCounts.addQubit();
   }
 
