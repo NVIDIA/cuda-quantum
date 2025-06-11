@@ -41,19 +41,21 @@ def test_two_hadamards_two_qubits():
     expected = np.kron(H, H)
     np.testing.assert_allclose(U, expected, atol=1e-12)
 
-def test_rotation_h_hadamard_rotation():
-    theta1, theta2 = np.pi/5, np.pi/7
 
-    H = (1/np.sqrt(2))*np.array([[1,1],[1,-1]],dtype=np.complex128)
-    X = np.array([[0,1],[1,0]],dtype=np.complex128)
+def test_rotation_h_hadamard_rotation():
+    theta1, theta2 = np.pi / 5, np.pi / 7
+
+    H = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]], dtype=np.complex128)
+    X = np.array([[0, 1], [1, 0]], dtype=np.complex128)
     I2 = np.eye(2, dtype=np.complex128)
+
     def Rx(theta):
-        return np.cos(theta/2)*I2 - 1j*np.sin(theta/2)*X
+        return np.cos(theta / 2) * I2 - 1j * np.sin(theta / 2) * X
 
     @cudaq.kernel
     def k(a: float, b: float):
         q = cudaq.qubit()
-        rx(a, q)        
+        rx(a, q)
         h(q)
         rx(b, q)
 
@@ -63,10 +65,9 @@ def test_rotation_h_hadamard_rotation():
     np.testing.assert_allclose(U, expected, atol=1e-12)
 
 
-
 def test_two_sparse_qubits():
     # acts only on qubit 0 with H and qubit 2 with X; qubit 1 is identity
-    H = (1/np.sqrt(2)) * np.array([[1, 1], [1, -1]], dtype=np.complex128)
+    H = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]], dtype=np.complex128)
     X = np.array([[0, 1], [1, 0]], dtype=np.complex128)
     I2 = np.eye(2, dtype=np.complex128)
 
