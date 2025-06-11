@@ -1160,7 +1160,6 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
     The lower to CFG pass removed all structured operations from a function,
     lowering the body of the function completely to a primitive CFG.
   }];
-  let constructor = "cudaq::opt::createUnwindLoweringPass()";
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {
