@@ -18,6 +18,11 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
+namespace cudaq::opt {
+#define GEN_PASS_DEF_APPLYSPECIALIZATION
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
 #define DEBUG_TYPE "apply-op-specialization"
 
 using namespace mlir;
@@ -195,10 +200,10 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
 };
 
 class ApplySpecializationPass
-    : public cudaq::opt::ApplySpecializationBase<ApplySpecializationPass> {
+    : public cudaq::opt::impl::ApplySpecializationBase<
+          ApplySpecializationPass> {
 public:
-  ApplySpecializationPass() = default;
-  ApplySpecializationPass(bool b) : optComputeActionOptim(b) {}
+  using ApplySpecializationBase::ApplySpecializationBase;
 
   void runOnOperation() override {
     ApplyOpAnalysis analysis(getOperation());
@@ -243,7 +248,7 @@ public:
   /// the compute and uncompute functions.
   DenseSet<Operation *> computeActionAnalysis(func::FuncOp func) {
     DenseSet<Operation *> controlNotNeeded;
-    if (getComputeActionOptimization()) {
+    if (computeActionOptimization) {
       func->walk([&](Operation *op) {
         if (auto compAct = dyn_cast<quake::ComputeActionOp>(op)) {
           // This is clearly a compute action. Mark the compute side.
@@ -640,23 +645,7 @@ public:
                             << module << "\n\n");
   }
 
-  bool getComputeActionOptimization() const {
-    if (optComputeActionOptim)
-      return *optComputeActionOptim;
-    return computeActionOptimization;
-  }
-  std::optional<bool> optComputeActionOptim;
-
   // MLIR dependency: internal name used by tablegen.
   static constexpr char segmentSizes[] = "operand_segment_sizes";
 };
 } // namespace
-
-std::unique_ptr<mlir::Pass> cudaq::opt::createApplyOpSpecializationPass() {
-  return std::make_unique<ApplySpecializationPass>();
-}
-
-std::unique_ptr<mlir::Pass>
-cudaq::opt::createApplyOpSpecializationPass(bool computeActionOpt) {
-  return std::make_unique<ApplySpecializationPass>(computeActionOpt);
-}

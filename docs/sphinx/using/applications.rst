@@ -37,6 +37,7 @@ CUDA-Q Applications
    /applications/python/generate_fermionic_ham
    /applications/python/quantum_pagerank
    /applications/python/uccsd_wf_ansatz
+   /applications/python/mps_encoding
 
 
 .. raw:: html
@@ -281,7 +282,15 @@ CUDA-Q Applications
             Learn how to implement the UCCSD wavefunction ansatz using CUDA-Q.
         </div>
         <img src="../_static/app_title_images/uccsd.png" alt="UCCSD Wavefunction Ansatz" class="notebook-image">
+    </div>
 
+    <div class="notebook-entry" data-tags="cpu,fundamental">
+        <a href="../applications/python/mps_encoding.html" class="notebook-title">MPS Sequential Encoding</a>
+        <div class="notebook-content">
+            Learn how to approximately prepare quantum states via MPS using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
+    </div>
 
     <script>
     document.addEventListener("DOMContentLoaded", function() {

@@ -448,6 +448,12 @@ public:
   mlir::Value floatingPointCoercion(mlir::Location loc, mlir::Type toType,
                                     mlir::Value value);
 
+  mlir::SmallVector<mlir::Value>
+  convertKernelArgs(mlir::Location loc, std::size_t dropFrontNum,
+                    const mlir::SmallVector<mlir::Value> &args,
+                    mlir::ArrayRef<mlir::Type> kernelArgTys,
+                    clang::CallExpr *x);
+
   /// Load the value referenced by an addressable value, if \p val is an address
   /// type. Otherwise, just returns \p val.
   mlir::Value loadLValue(mlir::Value val) {

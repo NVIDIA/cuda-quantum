@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
-from ..cudm_helpers import cudm, CudmOperator, CudmWorkStream
 from ...util.timing_helper import ScopeTimer
 from typing import Sequence, Mapping
 from ...operators import Operator

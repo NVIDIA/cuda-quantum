@@ -18,6 +18,11 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
+namespace cudaq::opt {
+#define GEN_PASS_DEF_UNWINDLOWERING
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
 #define DEBUG_TYPE "unwind-lowering"
 
 using namespace mlir;
@@ -808,8 +813,10 @@ using UnwindContinueOpPattern =
     UnwindLoopJumpOpPattern<cudaq::cc::UnwindContinueOp, cudaq::cc::ContinueOp>;
 
 class UnwindLoweringPass
-    : public cudaq::opt::UnwindLoweringBase<UnwindLoweringPass> {
+    : public cudaq::opt::impl::UnwindLoweringBase<UnwindLoweringPass> {
 public:
+  using UnwindLoweringBase::UnwindLoweringBase;
+
   void runOnOperation() override {
     func::FuncOp func = getOperation();
     DominanceInfo domInfo(func);
@@ -857,7 +864,3 @@ public:
   }
 };
 } // namespace
-
-std::unique_ptr<mlir::Pass> cudaq::opt::createUnwindLoweringPass() {
-  return std::make_unique<UnwindLoweringPass>();
-}

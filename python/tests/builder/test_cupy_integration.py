@@ -23,6 +23,7 @@ def assert_close(want, got, tolerance=1.e-5) -> bool:
 
 
 def test_state_vector_simple_py_float():
+    cudaq.set_target('nvidia')
     # Test overlap with device state vector
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(2)
@@ -42,6 +43,7 @@ def test_state_vector_simple_py_float():
 
 
 def test_state_vector_simple_cfp32():
+    cudaq.set_target('nvidia')
     # Test overlap with device state vector
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(2)
@@ -59,7 +61,7 @@ def test_state_vector_simple_cfp32():
 
 
 def test_state_vector_simple_cfp64():
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
     # Test overlap with device state vector
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(2)
@@ -78,6 +80,7 @@ def test_state_vector_simple_cfp64():
 
 
 def test_state_vector_to_cupy():
+    cudaq.set_target('nvidia')
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(2)
     kernel.h(q[0])
@@ -97,6 +100,7 @@ def test_state_vector_to_cupy():
 
 
 def test_cupy_to_state():
+    cudaq.set_target('nvidia')
     cp_data = cp.array([.707107, 0, 0, .707107], dtype=cp.complex64)
     state_from_cupy = cudaq.State.from_data(cp_data)
     state_from_cupy.dump()
@@ -111,7 +115,7 @@ def test_cupy_to_state():
 
 
 def test_cupy_to_state_without_dtype():
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
     cp_data = cp.array([.707107, 0j, 0, .707107])
     state_from_cupy = cudaq.State.from_data(cp_data)
     state_from_cupy.dump()

@@ -337,4 +337,16 @@ func.func @test() {
 %two = arith.constant 2 : i32
 // expected-error @+1 {{unexpected size operand}}
 %0 = quake.alloca !quake.veq<4>[%two : i32]
-     
+
+// -----
+
+%c = complex.constant [4.0, 66.0] : complex<f64>
+// expected-error @+1 {{invalid complex cast}}
+%0 = cc.cast signed %c : (complex<f64>) -> complex<i32>
+
+// -----
+
+%c = cc.poison complex<i32>
+// expected-error @+1 {{invalid complex cast}}
+%0 = cc.cast unsigned %c : (complex<i32>) -> complex<f64>
+

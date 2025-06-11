@@ -246,6 +246,15 @@ complex_matrix fermion_handler::to_matrix(
 }
 
 mdiag_sparse_matrix fermion_handler::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
+  std::vector<std::int64_t> relevant_dims;
+  return fermion_handler::to_diagonal_matrix(
+      this->canonical_form(dimensions, relevant_dims));
+}
+
+mdiag_sparse_matrix fermion_handler::to_diagonal_matrix(
     const std::string &fermi_word, const std::vector<std::int64_t> &dimensions,
     std::complex<double> coeff, bool invert_order) {
   auto dim = 1 << fermi_word.size();

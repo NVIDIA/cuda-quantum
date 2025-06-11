@@ -86,6 +86,14 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
 
 } // namespace details
 
+#if CUDAQ_USE_STD20
+template <typename T>
+struct isVectorType : std::false_type {};
+
+template <typename T, typename A>
+struct isVectorType<std::vector<T, A>> : std::true_type {};
+#endif
+
 /// @brief Run a kernel \p shots number of times and return a `std::vector` of
 /// results.
 /// @tparam QuantumKernel Quantum kernel type (must return a non-void result)
@@ -97,7 +105,9 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
 template <typename QuantumKernel, typename... ARGS>
 #if CUDAQ_USE_STD20
   requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                                std::decay_t<ARGS>...>>)
+                                                std::decay_t<ARGS>...>> &&
+           !isVectorType<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                              std::decay_t<ARGS>...>>::value)
 #endif
 std::vector<
     std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
@@ -136,7 +146,9 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
 template <typename QuantumKernel, typename... ARGS>
 #if CUDAQ_USE_STD20
   requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                                std::decay_t<ARGS>...>>)
+                                                std::decay_t<ARGS>...>> &&
+           !isVectorType<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                              std::decay_t<ARGS>...>>::value)
 #endif
 std::vector<
     std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
