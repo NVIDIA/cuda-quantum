@@ -17,7 +17,7 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createUnwindLoweringPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addPass(createApplyOpSpecializationPass());
+  pm.addPass(createApplySpecialization());
   pm.addNestedPass<func::FuncOp>(createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
