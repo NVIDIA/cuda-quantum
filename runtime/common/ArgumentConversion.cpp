@@ -92,12 +92,14 @@ static Value genConstant(OpBuilder &builder, const std::string &v,
 }
 
 // Forward declare aggregate type builder as they can be recursive.
-static Value genConstant(OpBuilder &, cudaq::cc::StdvecType, void *,
-                         ModuleOp substMod, llvm::DataLayout &);
-static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *,
-                         ModuleOp substMod, llvm::DataLayout &);
-static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *,
-                         ModuleOp substMod, llvm::DataLayout &);
+static Value genRecursiveSpan(OpBuilder &, cudaq::cc::StdvecType, void *,
+                              ModuleOp, llvm::DataLayout &);
+static Value genConstant(OpBuilder &, cudaq::cc::StdvecType, void *, ModuleOp,
+                         llvm::DataLayout &);
+static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *, ModuleOp,
+                         llvm::DataLayout &);
+static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *, ModuleOp,
+                         llvm::DataLayout &);
 
 /// Create callee.init_N that initializes the state
 ///
@@ -532,6 +534,13 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   return {};
 }
 
+static bool isSupportedRecursiveSpan(cudaq::cc::StdvecType ty) {
+  Type eleTy = ty.getElementType();
+  while (auto ty = dyn_cast<cudaq::cc::SpanLikeType>(eleTy))
+    eleTy = ty.getElementType();
+  return isa<IntegerType, FloatType>(eleTy);
+}
+
 // Recursive step processing of aggregates.
 Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
                       llvm::DataLayout &layout) {
@@ -601,8 +610,107 @@ static std::size_t getHostSideElementSize(Type eleTy,
   return cudaq::opt::getDataSize(layout, eleTy);
 }
 
+/// Recursively builds an `ArrayAttr` containing the constants.
+ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
+                                    cudaq::cc::StdvecType vecTy, void *p,
+                                    llvm::DataLayout &layout) {
+  typedef const char *VectorType[3];
+  VectorType *vecPtr = static_cast<VectorType *>(p);
+  auto delta = (*vecPtr)[1] - (*vecPtr)[0];
+  if (!delta)
+    return {};
+  auto eleTy = vecTy.getElementType();
+  unsigned stepBy = 0;
+  std::function<Attribute(char *)> genAttr;
+  if (auto innerTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
+    stepBy = sizeof(VectorType);
+    genAttr = [&](char *p) -> Attribute {
+      return genRecursiveConstantArray(builder, innerTy, p, layout);
+    };
+  } else if (auto stringTy = dyn_cast<cudaq::cc::CharspanType>(eleTy)) {
+    stepBy = sizeof(std::string);
+    genAttr = [=](char *p) -> Attribute {
+      std::string *s = reinterpret_cast<std::string *>(p);
+      return StringAttr::get(eleTy.getContext(), *s);
+    };
+  } else if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
+    unsigned width = intTy.getWidth();
+    stepBy = (width + 7) / 8;
+    genAttr = [=](char *p) -> Attribute {
+      std::uint64_t val = 0;
+      switch (width) {
+      case 1:
+        val = *p != '\0';
+        break;
+      case 8:
+        val = *(reinterpret_cast<std::uint8_t *>(p));
+        break;
+      case 16:
+        val = *(reinterpret_cast<std::uint16_t *>(p));
+        break;
+      case 32:
+        val = *(reinterpret_cast<std::uint32_t *>(p));
+        break;
+      case 64:
+        val = *(reinterpret_cast<std::uint64_t *>(p));
+        break;
+      }
+      return IntegerAttr::get(intTy, val);
+    };
+  } else if (auto fltTy = dyn_cast<FloatType>(eleTy)) {
+    unsigned width = fltTy.getWidth();
+    stepBy = width / 8;
+    genAttr = [=](char *p) -> Attribute {
+      switch (width) {
+      case 32: {
+        float val = *(reinterpret_cast<float *>(p));
+        return FloatAttr::get(eleTy, APFloat{val});
+      }
+      case 64: {
+        double val = *(reinterpret_cast<double *>(p));
+        return FloatAttr::get(eleTy, APFloat{val});
+      }
+      default:
+        return FloatAttr::get(eleTy, APFloat{0.0});
+      }
+    };
+  } else {
+    return {};
+  }
+  SmallVector<Attribute> members;
+  for (char *item = const_cast<char *>((*vecPtr)[0]); item < (*vecPtr)[1];
+       item += stepBy)
+    members.push_back(genAttr(item));
+  return ArrayAttr::get(builder.getContext(), members);
+}
+
+static Type convertRecursiveSpanType(Type ty) {
+  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+    return cudaq::cc::ArrayType::get(
+        convertRecursiveSpanType(vecTy.getElementType()));
+  if (auto cspanTy = dyn_cast<cudaq::cc::CharspanType>(ty))
+    return cudaq::cc::ArrayType::get(IntegerType::get(ty.getContext(), 8));
+  return ty;
+}
+
+/// This generates a constant array to be used as an initializer for a
+/// `cc.reify_span` operation. This higher level semantics helps facilitate
+/// constant propagation through the recursive span structure. The reify
+/// operation will be lowered to more primitive ops on an as-needed basis.
+Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::StdvecType ty, void *p,
+                       ModuleOp substMod, llvm::DataLayout &layout) {
+  ArrayAttr constants = genRecursiveConstantArray(builder, ty, p, layout);
+  auto loc = builder.getUnknownLoc();
+  auto arrTy = convertRecursiveSpanType(ty);
+  auto conArr =
+      builder.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, constants);
+  return builder.create<cudaq::cc::ReifySpanOp>(loc, ty, conArr);
+}
+
 Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
                   ModuleOp substMod, llvm::DataLayout &layout) {
+  if (isSupportedRecursiveSpan(vecTy))
+    return genRecursiveSpan(builder, vecTy, p, substMod, layout);
   typedef const char *VectorType[3];
   VectorType *vecPtr = static_cast<VectorType *>(p);
   auto delta = (*vecPtr)[1] - (*vecPtr)[0];

@@ -20,6 +20,7 @@ static constexpr int TIMING_SAMPLE = 4;
 static constexpr int TIMING_GATE_COUNT = 5;
 static constexpr int TIMING_JIT = 6;
 static constexpr int TIMING_JIT_PASSES = 7;
-static constexpr int TIMING_MAX_VALUE = 7;
+static constexpr int TIMING_RUN = 8;
+static constexpr int TIMING_MAX_VALUE = 8;
 bool isTimingTagEnabled(int tag);
 } // namespace cudaq
