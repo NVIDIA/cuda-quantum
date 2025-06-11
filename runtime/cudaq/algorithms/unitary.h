@@ -1,3 +1,13 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+ 
 #include "common/Trace.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/utils/matrix.h"
@@ -21,7 +31,9 @@ expand_gate_to_system(const complex_matrix &gate, std::size_t num_qudits,
     }
   }
   // Kronecker product of all factors
-  return kronecker(factors.begin(), factors.end());
+  auto full_unitary = kronecker(factors.begin(), factors.end());
+  // TODO: swap
+  return full_unitary;
 }
 
 inline complex_matrix unitary_from_trace(const Trace &trace) {
@@ -63,17 +75,15 @@ complex_matrix get_unitary_cmat(QuantumKernel &&kernel, Args &&...args) {
 template <typename QuantumKernel, typename... Args>
 std::vector<std::complex<double>> get_unitary(QuantumKernel &&kernel,
                                               Args &&...args) {
-  auto trace = traceFromKernel(kernel, std::forward<Args>(args)...);
-  return unitary_from_trace(trace);
+  auto U = get_unitary_cmat(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...);
+  // Flatten to row-major std::vector
+  std::vector<std::complex<double>> result;
+  result.reserve(U.rows() * U.cols());
+  for (std::size_t i = 0; i < U.rows(); ++i)
+    for (std::size_t j = 0; j < U.cols(); ++j)
+      result.push_back(U(i, j));
+  return result;
 }
-
-//
-// Flatten to row-major std::vector
-// std::vector<std::complex<double>> result;
-// result.reserve(dim * dim);
-// for (std::size_t i = 0; i < dim; ++i)
-//   for (std::size_t j = 0; j < dim; ++j)
-//     result.push_back(U(i, j));
-// return result;
 
 } // namespace cudaq::details
