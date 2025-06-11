@@ -53,6 +53,9 @@ def evolve_dynamics(
                 "'collapse_operators' must be empty when supplying the super-operator"
             )
         integrator.set_system(dimensions, schedule, hamiltonian)
+        for (left_op, right_op) in hamiltonian:
+            if right_op is not None:
+                has_collapse_operators = True
     else:
         has_collapse_operators = len(collapse_operators) > 0
         collapse_operators = [MatrixOperator(op) for op in collapse_operators]

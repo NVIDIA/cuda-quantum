@@ -71,6 +71,13 @@ void bindSuperOperatorWrapper(py::module &mod) {
           "multiplication of the second operator operand to the "
           "density matrix. The sum is distributed into a linear combination of "
           "super-operator actions.")
+      .def(
+          "__iter__",
+          [](super_op &self) {
+            return py::make_iterator(self.begin(), self.end());
+          },
+          py::keep_alive<0, 1>(),
+          "Loop through each term of the super-operator.")
       .def(py::self += py::self, py::is_operator());
 }
 
