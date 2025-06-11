@@ -29,9 +29,6 @@ void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 
-std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
-std::unique_ptr<mlir::Pass>
-createApplyOpSpecializationPass(bool computeActionOpt);
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
