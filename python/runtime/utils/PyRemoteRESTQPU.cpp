@@ -113,7 +113,7 @@ protected:
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+    pm.addPass(cudaq::opt::createApplySpecialization());
     pm.addPass(createInlinerPass());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());

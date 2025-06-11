@@ -57,11 +57,11 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
     purposes only.
   }];
 
-  let constructor = "cudaq::opt::createApplyOpSpecializationPass()";
-
   let options = [
-    Option<"computeActionOptimization", "compute-action-opt", "bool",
-      /*default=*/"true", "Enable the compute-action control optimization.">
+    Option<"computeActionOptimization", "compute-action", "bool",
+      /*default=*/"true", "Enable the compute-action control optimization.">,
+    Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
+      "Enable specialization and constant propagation from apply call sites.">
   ];
 }
 
@@ -268,7 +268,8 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
 }
 
 def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
-  let summary = "Maps qubits and reorders operations based on dependency graph.";
+  let summary =
+    "Maps qubits and reorders operations based on dependency graph.";
   let description = [{
     A dependency graph is a Directed Acyclic Graph (DAG) where each node
     represents an operation, and each edge represents a "depends on" relation

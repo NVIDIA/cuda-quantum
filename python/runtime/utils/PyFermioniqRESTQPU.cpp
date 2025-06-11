@@ -85,7 +85,7 @@ protected:
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createUnwindLowering());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+    pm.addPass(cudaq::opt::createApplySpecialization());
     pm.addPass(createInlinerPass());
     pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
