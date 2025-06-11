@@ -1,14 +1,14 @@
 """
 Tutorial: Creating a GHZ State with Trapped Ions
 
-This example shows how to prepare a GHZ (Greenberger-Horne-Zeilinger) state 
+This example shows how to prepare a GHZ (`Greenberger-Horne-Zeilinger`) state 
 using trapped ions and CUDA-Q. We'll use the effective spin model from the 
-famous Sørensen-Mølmer paper.
+famous `Sørensen-Mølmer` paper.
 
 What we're doing:
-- Start with N ions all in ground state |gg...g⟩
+- Start with N ions all in ground state `|gg...g⟩`
 - Apply an effective Hamiltonian H = 4χJ_x²  
-- Watch the system evolve into a GHZ superposition: (|gg...g⟩ + |ee...e⟩)/√2
+- Watch the system evolve into a GHZ superposition: `(|gg...g⟩ + |ee...e⟩)/√2`
 
 This tutorial uses the simplified effective model (Eq. 2 from the paper).
 
@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 
 cudaq.set_target("dynamics")
 
-# Physical parameters, these come from the Sørensen-Mølmer paper
+# Physical parameters, these come from the `Sørensen-Mølmer`` paper
 nu = 1.0            # Trap frequency (our reference)
 delta = 0.9 * nu    # Laser detuning  
 Omega = 0.1 * nu    # Laser strength
@@ -49,9 +49,9 @@ J_x /= 2  # Normalize
 hamiltonian = 4 * chi * J_x * J_x
 
 # Set up initial state and time evolution  
-# Start with all ions in ground state |gg...g⟩
+# Start with all ions in ground state `|gg...g⟩`
 initial_state_vector = cp.zeros(2**N, dtype=cp.complex128)
-initial_state_vector[0] = 1.0  # |00...0⟩ = |gg...g⟩
+initial_state_vector[0] = 1.0  # |00...0⟩ = `|gg...g⟩`
 initial_state = cudaq.State.from_data(initial_state_vector)
 
 # Set up time points for evolution
@@ -60,21 +60,21 @@ chi_times = chi * times  # Dimensionless time χt
 schedule = Schedule(times, ["t"])
 
 # Create observables to track the populations
-# We want to measure the probability of being in |gg...g⟩ and |ee...e⟩
+# We want to measure the probability of being in `|gg...g⟩` and `|ee...e⟩`
 
-# Projector onto |gg...g⟩ = |00...0⟩ 
+# Projector onto `|gg...g⟩ = |00...0⟩`
 P_ground = spin.empty()
 for i in range(N):
     if i == 0:
-        P_ground = (spin.identity(i) - spin.z(i)) / 2  # |0⟩⟨0|
+        P_ground = (spin.identity(i) - spin.z(i)) / 2  # `|0⟩⟨0|`
     else:
         P_ground = P_ground * (spin.identity(i) - spin.z(i)) / 2
 
-# Projector onto |ee...e⟩ = |11...1⟩
+# Projector onto `|ee...e⟩ = |11...1⟩`
 P_excited = spin.empty()
 for i in range(N):
     if i == 0:
-        P_excited = (spin.identity(i) + spin.z(i)) / 2  # |1⟩⟨1|
+        P_excited = (spin.identity(i) + spin.z(i)) / 2  # `|1⟩⟨1|`
     else:
         P_excited = P_excited * (spin.identity(i) + spin.z(i)) / 2
 
@@ -111,7 +111,7 @@ print(f"Total in extremes: {ghz_pop_ground + ghz_pop_excited:.3f}")
 
 
 # Check GHZ state quality
-# For perfect GHZ state: P(gg) = P(ee) = 0.5
+# For perfect GHZ state: `P(gg) = P(ee) = 0.5`
 ghz_quality = 1 - 2 * abs(ghz_pop_ground - 0.5)  # Distance from ideal probability
 print(f"GHZ state quality: {ghz_quality:.3f} (1.0 = perfect)")
 print(f"Perfect GHZ would have P(gg) = P(ee) = 0.5")
