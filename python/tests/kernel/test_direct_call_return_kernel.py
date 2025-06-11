@@ -362,8 +362,9 @@ def test_return_tuple_int_float():
     def simple_tuple_int_float_no_args() -> tuple[int, float]:
         return (-13, 42.3)
 
-    result = simple_tuple_int_float_no_args()
-    assert result == (-13, 42.3)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_int_float_no_args()
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int_float(n: int, t: tuple[int,
@@ -371,8 +372,9 @@ def test_return_tuple_int_float():
         qubits = cudaq.qvector(n)
         return t
 
-    result = simple_tuple_int_float(2, (-13, 42.3))
-    assert result == (-13, 42.3)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_int_float((-13, 42.3))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int_float_assign(
@@ -382,10 +384,9 @@ def test_return_tuple_int_float():
         t[1] = 11.5
         return t
 
-    # TODO: Fix incorrect IR generation for tuple element assignment
-    # https://github.com/NVIDIA/cuda-quantum/issues/2965
-    result = simple_tuple_int_float_assign(2, (-13, 42.3))
-    # assert result == (-14, 11.5)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_int_float_assign(2, (-13, 42.3))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_float_int():
@@ -394,8 +395,9 @@ def test_return_tuple_float_int():
     def simple_tuple_float_int_no_args() -> tuple[float, int]:
         return (42.3, 13)
 
-    result = simple_tuple_float_int_no_args()
-    assert result == (42.3, 13)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_float_int_no_args()
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_float_int(n: int, t: tuple[float,
@@ -403,8 +405,9 @@ def test_return_tuple_float_int():
         qubits = cudaq.qvector(n)
         return t
 
-    result = simple_tuple_float_int(2, (42.3, 13))
-    assert result == (42.3, 13)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_float_int(2, (42.3, 13))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_bool_int():
@@ -413,16 +416,18 @@ def test_return_tuple_bool_int():
     def simple_tuple_bool_int_no_args() -> tuple[bool, int]:
         return (True, 13)
 
-    result = simple_tuple_bool_int_no_args()
-    assert result == (True, 13)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_bool_int_no_args()
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_bool_int(n: int, t: tuple[bool, int]) -> tuple[bool, int]:
         qubits = cudaq.qvector(n)
         return t
 
-    result = simple_tuple_bool_int(2, (True, 13))
-    assert result == (True, 13)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_bool_int(2, (True, 13))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_int_bool():
@@ -431,16 +436,18 @@ def test_return_tuple_int_bool():
     def simple_tuple_int_bool_no_args() -> tuple[int, bool]:
         return (-13, True)
 
-    result = simple_tuple_int_bool_no_args()
-    assert result == (-13, True)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_int_bool_no_args()
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int_bool(n: int, t: tuple[int, bool]) -> tuple[int, bool]:
         qubits = cudaq.qvector(n)
         return t
 
-    result = simple_tuple_int_bool(2, (-13, True))
-    assert result == (-13, True)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_int_bool(2, (-13, True))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_int32_bool():
@@ -449,20 +456,17 @@ def test_return_tuple_int32_bool():
     def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
         return (-13, True)
 
-    # TODO: allow type promotion for tuple elements (from int to np.int32)
-    # error: Invalid return type, function was defined to return a <class 'tuple'>
-    # but the value being returned is of type <class 'tuple'>
-    # result = simple_tuple_int32_bool_no_args()
-    # assert result == (-13, True)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_int32_bool_no_args()
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:
         return (np.int32(-13), True)
 
-    # TODO: support explicit casts
-    # error: unsupported NumPy call (int32)
-    # result = simple_tuple_int32_bool_no_args1()
-    # assert result == (-13, True)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_int32_bool_no_args1()
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int32_bool(
@@ -470,8 +474,9 @@ def test_return_tuple_int32_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    result = simple_tuple_int32_bool(2, (np.int32(-13), True))
-    assert result == (-13, True)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_int32_bool(2, (np.int32(-13), True))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_bool_int_float():
@@ -480,8 +485,9 @@ def test_return_tuple_bool_int_float():
     def simple_tuple_bool_int_float_no_args() -> tuple[bool, int, float]:
         return (True, 13, 42.3)
 
-    result = simple_tuple_bool_int_float_no_args()
-    assert result == (True, 13, 42.3)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_bool_int_float_no_args()
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_bool_int_float(
@@ -489,8 +495,9 @@ def test_return_tuple_bool_int_float():
         qubits = cudaq.qvector(n)
         return t
 
-    result = simple_tuple_bool_int_float(2, (True, 13, 42.3))
-    assert result == (True, 13, 42.3)
+    with pytest.raises(RuntimeError) as e:
+        simple_tuple_bool_int_float(2, (True, 13, 42.3))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_dataclass_int_bool():
