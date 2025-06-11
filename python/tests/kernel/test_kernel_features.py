@@ -2238,6 +2238,39 @@ def test_in_comparator():
     assert len(c) == 1 and '0' in c
 
 
+def test_negative_indices_for_a_slice():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(6)
+        h(qubits[0:3])
+        controls = qubits[0:-1]
+        target = qubits[-1]
+
+        x.ctrl(controls, target)
+
+    # test here is that it compiles and runs
+    cudaq.sample(kernel)
+    circuit = cudaq.draw(kernel)
+    print(circuit)
+    expected_str = '''     ╭───╮     
+q0 : ┤ h ├──●──
+     ├───┤  │  
+q1 : ┤ h ├──●──
+     ├───┤  │  
+q2 : ┤ h ├──●──
+     ╰───╯  │  
+q3 : ───────●──
+            │  
+q4 : ───────●──
+          ╭─┴─╮
+q5 : ─────┤ x ├
+          ╰───╯
+'''
+
+    assert circuit == expected_str
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
