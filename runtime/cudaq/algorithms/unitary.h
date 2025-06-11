@@ -16,26 +16,12 @@
 
 namespace cudaq::details {
 
-/// Return the SWAP unitary that exchanges qubits i and j in an n-qubit system.
-inline complex_matrix make_swap(std::size_t i, std::size_t j,
-                                std::size_t num_qubits) {
-  std::size_t dim = 1ULL << num_qubits;
-  // default‐construct yields a zero matrix
-  complex_matrix S(dim, dim);
-  for (std::size_t k = 0; k < dim; ++k) {
-    // extract bits
-    std::size_t bi = (k >> i) & 1ULL;
-    std::size_t bj = (k >> j) & 1ULL;
-    // if bits differ, flip both
-    std::size_t k2 = bi == bj ? k : k ^ ((1ULL << i) | (1ULL << j));
-    // place |k2⟩⟨k|
-    S(k2, k) = 1;
-  }
-  return S;
-}
-
-/// Build a controlled-gate unitary: identity in all control subspaces
-/// except the last one, where the original gate is placed.
+/// @brief Build a controlled-gate unitary: identity in all control subspaces
+/// except
+///        the “all controls = 1” block, which is replaced by the original gate.
+/// @param gate The base unitary matrix of the target gate.
+/// @param num_controls The number of control qubits.
+/// @returns A complex_matrix representing the controlled version of the gate.
 inline complex_matrix make_controlled_unitary(const complex_matrix &gate,
                                               std::size_t num_controls) {
   auto gdim = gate.rows();
@@ -52,6 +38,15 @@ inline complex_matrix make_controlled_unitary(const complex_matrix &gate,
   return M;
 }
 
+/// @brief Expand an m-qubit gate to an n-qubit system by tensoring with
+/// identities
+///        and permuting qubits into the specified positions.
+/// @param gate The unitary matrix acting on m qubits.
+/// @param num_qudits The total number of qubits in the full system.
+/// @param qudit_indices A vector of size m giving the target qubit indices in
+/// the full system.
+/// @returns A complex_matrix representing the expanded gate on the full n-qubit
+/// system.
 inline complex_matrix
 expand_gate_to_system(const complex_matrix &gate, std::size_t num_qudits,
                       const std::vector<std::size_t> &qudit_indices) {
@@ -87,7 +82,7 @@ expand_gate_to_system(const complex_matrix &gate, std::size_t num_qudits,
     perm[k] = free_pos[k - m];
 
   // 2b) build P by permuting computational‐basis indices (fixing endian)
-  complex_matrix P(dim, dim); // zero‐initialized
+  complex_matrix P(dim, dim);
   // Interpret bit-0 of the index as the MSB, build P accordingly.
   for (std::size_t col = 0; col < dim; ++col) {
     std::size_t row = 0;
@@ -95,7 +90,6 @@ expand_gate_to_system(const complex_matrix &gate, std::size_t num_qudits,
     for (std::size_t i = 0; i < num_qudits; ++i) {
       auto srcBitPos = num_qudits - 1 - i;
       if ((col >> srcBitPos) & 1ULL) {
-        // place that 1 in the new position (also big-endian)
         auto dstBitPos = num_qudits - 1 - perm[i];
         row |= (1ULL << dstBitPos);
       }
@@ -108,6 +102,11 @@ expand_gate_to_system(const complex_matrix &gate, std::size_t num_qudits,
   return result;
 }
 
+/// @brief Construct the full system unitary from a Trace of quantum
+/// instructions.
+/// @param trace The Trace object recording the sequence of quantum operations.
+/// @returns A complex_matrix representing the overall unitary of the traced
+/// kernel.
 inline complex_matrix unitary_from_trace(const Trace &trace) {
   auto num_qubits = trace.getNumQudits();
   std::size_t dim = 1ULL << num_qubits;
@@ -144,12 +143,24 @@ inline complex_matrix unitary_from_trace(const Trace &trace) {
   return U;
 }
 
+/// @brief Execute a quantum kernel and return its unitary as a complex_matrix.
+/// @tparam QuantumKernel The functor type of the quantum kernel.
+/// @param kernel The quantum kernel to execute.
+/// @param args Arguments to pass to the kernel.
+/// @returns The full system unitary as a complex_matrix.
 template <typename QuantumKernel, typename... Args>
 complex_matrix get_unitary_cmat(QuantumKernel &&kernel, Args &&...args) {
   auto trace = traceFromKernel(kernel, std::forward<Args>(args)...);
   return unitary_from_trace(trace);
 }
 
+/// @brief Execute a quantum kernel and return its unitary as a flat
+/// std::vector.
+/// @tparam QuantumKernel The functor type of the quantum kernel.
+/// @param kernel The quantum kernel to execute.
+/// @param args Arguments to pass to the kernel.
+/// @returns A std::vector<std::complex<double>> representing the unitary in
+/// row-major order.
 template <typename QuantumKernel, typename... Args>
 std::vector<std::complex<double>> get_unitary(QuantumKernel &&kernel,
                                               Args &&...args) {

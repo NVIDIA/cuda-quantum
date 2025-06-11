@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from scipy.linalg import block_diag
 import cudaq
@@ -31,7 +32,6 @@ def general_cnot(n, ctrl, tgt):
 
 
 def test_single_hadamard():
-    print("Testing single Hadamard gate...")
 
     @cudaq.kernel
     def k():
@@ -45,7 +45,6 @@ def test_single_hadamard():
 
 
 def test_two_x_gates_one_qubit():
-    print("Testing two X gates on one qubit...")
 
     @cudaq.kernel
     def k():
@@ -59,7 +58,6 @@ def test_two_x_gates_one_qubit():
 
 
 def test_two_hadamards_two_qubits():
-    print("Testing two Hadamard gates on two qubits...")
 
     @cudaq.kernel
     def k():
@@ -74,7 +72,6 @@ def test_two_hadamards_two_qubits():
 
 
 def test_rotation_h_hadamard_rotation():
-    print("Testing rotation, Hadamard, and another rotation on one qubit...")
     theta1, theta2 = np.pi / 5, np.pi / 7
 
     @cudaq.kernel
@@ -91,7 +88,6 @@ def test_rotation_h_hadamard_rotation():
 
 
 def test_single_qubit_large():
-    print("Testing multiqubit qubits with different gates...")
 
     @cudaq.kernel
     def k():
@@ -101,13 +97,10 @@ def test_single_qubit_large():
     U = cudaq.get_unitary(k)
     # U = I  ⊗ I ⊗ X
     expected = np.kron(np.kron(I2, I2), X)
-    print(f"Computed unitary:\n{U}")
-    print(f"Expected unitary:\n{expected}")
     np.testing.assert_allclose(U, expected, atol=1e-12)
 
 
 def test_two_sparse_qubits():
-    print("Testing two sparse qubits with different gates...")
 
     @cudaq.kernel
     def k():
@@ -118,13 +111,10 @@ def test_two_sparse_qubits():
     U = cudaq.get_unitary(k)
     # U = H ⊗ I ⊗ X
     expected = np.kron(np.kron(H, I2), X)
-    print(f"Computed unitary:\n{U}")
-    print(f"Expected unitary:\n{expected}")
     np.testing.assert_allclose(U, expected, atol=1e-12)
 
 
 def test_custom_single_qubit_gate():
-    print("Testing custom single qubit gate...")
     # Apply a user-defined 2×2 unitary M
     M = np.array([[0, 1j], [1, 0]], dtype=np.complex128)
     cudaq.register_operation("custom_gate", M)
@@ -155,7 +145,6 @@ def test_swap_two_qubits():
 
 
 def test_cnot_two_qubits_opposite():
-    print("Testing CNOT gate on two qubits...")
 
     @cudaq.kernel
     def k():
@@ -169,7 +158,6 @@ def test_cnot_two_qubits_opposite():
 
 
 def test_cnot_nonadjacent_qubits():
-    print("Testing CNOT gate on non-adjacent qubits...")
 
     @cudaq.kernel
     def k():
@@ -178,17 +166,11 @@ def test_cnot_nonadjacent_qubits():
 
     U = cudaq.get_unitary(k)
     EXPECTED = general_cnot(3, ctrl=2, tgt=0)
-    print(EXPECTED)
-    print(U)
     np.testing.assert_allclose(U, EXPECTED, atol=1e-12)
-
-
-import pytest
 
 
 @pytest.mark.parametrize("num_qubits", [2, 3, 4, 5])
 def test_parametrized_h_cnot_circuit(num_qubits):
-    print(f"Testing parametrized circuit with {num_qubits} qubits...")
     # H on odd qubits, then CNOT(i → (3*i)%num_qubits)
     @cudaq.kernel
     def circuit(n: int):
@@ -215,7 +197,6 @@ def test_parametrized_h_cnot_circuit(num_qubits):
 
 
 def test_toffoli_three_qubits():
-    print("Testing Toffoli (CCX) gate on three qubits...")
 
     @cudaq.kernel
     def k():
@@ -226,13 +207,10 @@ def test_toffoli_three_qubits():
     U = cudaq.get_unitary(k)
     # build expected 8×8 Toffoli matrix
     expected = block_diag(np.eye(6, dtype=np.complex128), X)
-    print(f"Computed unitary:\n{U}")
-    print(f"Expected unitary:\n{expected}")
     np.testing.assert_allclose(U, expected, atol=1e-12)
 
 
 def test_controlled_rotation():
-    print("Testing rotation, Hadamard, and another rotation on one qubit...")
     theta = np.pi / 6
 
     @cudaq.kernel
@@ -243,6 +221,4 @@ def test_controlled_rotation():
     # pass the two angles into get_unitary:
     U = cudaq.get_unitary(k, theta)
     expected = block_diag(np.eye(6, dtype=np.complex128), Rx(theta))
-    print(f"Computed unitary:\n{U}")
-    print(f"Expected unitary:\n{expected}")
     np.testing.assert_allclose(U, expected, atol=1e-12)
