@@ -413,11 +413,21 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html#Run-VQE">Run VQE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/mps_encoding.html">Approximate State Preparation using MPS Sequential Encoding</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/mps_encoding.html#Ran's-approach">Ran’s approach</a></li>
 </ul>
 </li>
 </ul>
@@ -1075,7 +1085,7 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code></p></td>
 <td><p>comma-separated list of positive integers</p></td>
-<td><p>Specify the inter-node network structure (faster to slower). For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, this <code class="code docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code> environment variable can be set to <code class="code docutils literal notranslate"><span class="pre">3,2</span></code>. The first <code class="code docutils literal notranslate"><span class="pre">3</span></code> represents <strong>8</strong> nodes with fast communication and the second <code class="code docutils literal notranslate"><span class="pre">2</span></code> represents <strong>4</strong> 8-node groups in those total 32 nodes. Default is an empty list (no customization based on network structure of the cluster).</p></td>
+<td><p>Specify the network structure (faster to slower). For example, assuming a 32 MPI processes simulation, whereby the network topology is divided into 4 groups of 8 processes, which have faster communication network between them. In this case, the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code> environment variable can be set to <code class="code docutils literal notranslate"><span class="pre">3,2</span></code>. The first <code class="code docutils literal notranslate"><span class="pre">3</span></code> (<code class="code docutils literal notranslate"><span class="pre">log2(8)</span></code>) represents <strong>8</strong> processes with fast communication within the group and the second <code class="code docutils literal notranslate"><span class="pre">2</span></code> represents the <strong>4</strong> groups (8 processes each) in those total 32 processes. The sum of all elements in this list is <code class="code docutils literal notranslate"><span class="pre">5</span></code>, corresponding to the total number of MPI processes (<code class="code docutils literal notranslate"><span class="pre">2^5</span> <span class="pre">=</span> <span class="pre">32</span></code>). Default is an empty list (no customization based on network structure of the cluster).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_HOST_DEVICE_MIGRATION_LEVEL</span></code></p></td>
 <td><p>positive integer</p></td>
