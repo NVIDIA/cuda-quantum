@@ -10,7 +10,11 @@ What we're doing:
 - Apply an effective Hamiltonian H = 4χJ_x²  
 - Watch the system evolve into a GHZ superposition: (|gg...g⟩ + |ee...e⟩)/√2
 
-This tutorial uses the simplified effective model.
+This tutorial uses the simplified effective model (Eq. 2 from the paper).
+
+Reference:
+Mølmer, Klaus, and Anders Sørensen. "Multiparticle entanglement of hot trapped ions." Physical Review Letters 82.9 (1999): 1835.
+
 """
 
 import cudaq
@@ -22,7 +26,7 @@ import matplotlib.pyplot as plt
 cudaq.set_target("dynamics")
 
 # Physical parameters, these come from the Sørensen-Mølmer paper
-nu = 1.0        # Trap frequency (our reference)
+nu = 1.0            # Trap frequency (our reference)
 delta = 0.9 * nu    # Laser detuning  
 Omega = 0.1 * nu    # Laser strength
 eta = 0.1           # How strongly lasers couple to motion
@@ -46,9 +50,9 @@ hamiltonian = 4 * chi * J_x * J_x
 
 # Set up initial state and time evolution  
 # Start with all ions in ground state |gg...g⟩
-initial_state_vector = np.zeros(2**N, dtype=np.complex128)
+initial_state_vector = cp.zeros(2**N, dtype=cp.complex128)
 initial_state_vector[0] = 1.0  # |00...0⟩ = |gg...g⟩
-initial_state = cudaq.State.from_data(cp.array(initial_state_vector))
+initial_state = cudaq.State.from_data(initial_state_vector)
 
 # Set up time points for evolution
 times = np.linspace(0, evolution_time, num_steps)
@@ -126,4 +130,5 @@ plt.grid(True, alpha=0.3)
 plt.xlim(0, 1)
 plt.ylim(0, 1)
 plt.tight_layout()
+plt.savefig("ghz_trapped_ions.png")
 plt.show()
