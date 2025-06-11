@@ -29,20 +29,20 @@ void bindSuperOperatorWrapper(py::module &mod) {
           "left_multiply",
           py::overload_cast<const cudaq::product_op<cudaq::matrix_handler> &>(
               &super_op::left_multiply),
-          "Creates an super-operator representing a left "
+          "Creates a super-operator representing a left "
           "multiplication of the operator to the density matrix.")
       .def_static(
           "right_multiply",
           py::overload_cast<const cudaq::product_op<cudaq::matrix_handler> &>(
               &super_op::right_multiply),
-          "Creates an super-operator representing a right "
+          "Creates a super-operator representing a right "
           "multiplication of the operator to the density matrix.")
       .def_static(
           "left_right_multiply",
           py::overload_cast<const cudaq::product_op<cudaq::matrix_handler> &,
                             const cudaq::product_op<cudaq::matrix_handler> &>(
               &super_op::left_right_multiply),
-          "Creates an super-operator representing a simultaneous left "
+          "Creates a super-operator representing a simultaneous left "
           "multiplication of the first operator operand and right "
           "multiplication of the second operator operand to the "
           "density matrix.")
@@ -51,14 +51,14 @@ void bindSuperOperatorWrapper(py::module &mod) {
           "left_multiply",
           py::overload_cast<const cudaq::sum_op<cudaq::matrix_handler> &>(
               &super_op::left_multiply),
-          "Creates an super-operator representing a left "
+          "Creates a super-operator representing a left "
           "multiplication of the operator to the density matrix. The sum is "
           "distributed into a linear combination of super-operator actions.")
       .def_static(
           "right_multiply",
           py::overload_cast<const cudaq::sum_op<cudaq::matrix_handler> &>(
               &super_op::right_multiply),
-          "Creates an super-operator representing a right "
+          "Creates a super-operator representing a right "
           "multiplication of the operator to the density matrix. The sum is "
           "distributed into a linear combination of super-operator actions.")
       .def_static(
@@ -66,7 +66,7 @@ void bindSuperOperatorWrapper(py::module &mod) {
           py::overload_cast<const cudaq::sum_op<cudaq::matrix_handler> &,
                             const cudaq::sum_op<cudaq::matrix_handler> &>(
               &super_op::left_right_multiply),
-          "Creates an super-operator representing a simultaneous left "
+          "Creates a super-operator representing a simultaneous left "
           "multiplication of the first operator operand and right "
           "multiplication of the second operator operand to the "
           "density matrix. The sum is distributed into a linear combination of "
