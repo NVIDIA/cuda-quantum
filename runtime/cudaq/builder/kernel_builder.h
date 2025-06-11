@@ -840,7 +840,6 @@ public:
         std::vector<QuakeValue> parameters{param1, param2, param3};
         u3<cudaq::ctrl>(parameters, ctrls, target);
       }
-      return;
     }
   }
 
