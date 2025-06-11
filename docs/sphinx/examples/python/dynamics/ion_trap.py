@@ -26,17 +26,17 @@ import matplotlib.pyplot as plt
 cudaq.set_target("dynamics")
 
 # Physical parameters, these come from the `Sørensen-Mølmer`` paper
-nu = 1.0            # Trap frequency (our reference)
-delta = 0.9 * nu    # Laser detuning  
-Omega = 0.1 * nu    # Laser strength
-eta = 0.1           # How strongly lasers couple to motion
+nu = 1.0  # Trap frequency (our reference)
+delta = 0.9 * nu  # Laser detuning
+Omega = 0.1 * nu  # Laser strength
+eta = 0.1  # How strongly lasers couple to motion
 
 # The effective coupling strength (this is the key parameter!)
 chi = (eta**2 * Omega**2 * nu) / (2 * (nu**2 - delta**2))
 
-N = 8                           # Number of ions (start small!)
-evolution_time = 1.0 / chi      # How long to evolve
-num_steps = 100                 # Time resolution
+N = 8  # Number of ions (start small!)
+evolution_time = 1.0 / chi  # How long to evolve
+num_steps = 100  # Time resolution
 
 dimensions = {i: 2 for i in range(N)}  # Each ion is a 2-level system
 
@@ -48,7 +48,7 @@ J_x /= 2  # Normalize
 
 hamiltonian = 4 * chi * J_x * J_x
 
-# Set up initial state and time evolution  
+# Set up initial state and time evolution
 # Start with all ions in ground state `|gg...g⟩`
 initial_state_vector = cp.zeros(2**N, dtype=cp.complex128)
 initial_state_vector[0] = 1.0  # |00...0⟩ = `|gg...g⟩`
@@ -90,16 +90,15 @@ evolution_result = cudaq.evolve(
     observables=observables,
     collapse_operators=[],  # No decoherence for this tutorial
     store_intermediate_results=True,
-    integrator=RungeKuttaIntegrator()
-)
+    integrator=RungeKuttaIntegrator())
 
 # Extract the results
 exp_vals = evolution_result.expectation_values()
-pop_ground = [exp_vals[i][0].expectation() for i in range(len(times))]  
+pop_ground = [exp_vals[i][0].expectation() for i in range(len(times))]
 pop_excited = [exp_vals[i][1].expectation() for i in range(len(times))]
 
 # The GHZ state appears at a special time: χt = π/8
-ghz_chi_t = np.pi / 8  
+ghz_chi_t = np.pi / 8
 ghz_time_idx = np.argmin(np.abs(chi_times - ghz_chi_t))
 ghz_pop_ground = pop_ground[ghz_time_idx]
 ghz_pop_excited = pop_excited[ghz_time_idx]
@@ -109,17 +108,29 @@ print(f"P(|{'g'*N}⟩) = {ghz_pop_ground:.3f}")
 print(f"P(|{'e'*N}⟩) = {ghz_pop_excited:.3f}")
 print(f"Total in extremes: {ghz_pop_ground + ghz_pop_excited:.3f}")
 
-
 # Check GHZ state quality
 # For perfect GHZ state: `P(gg) = P(ee) = 0.5`
-ghz_quality = 1 - 2 * abs(ghz_pop_ground - 0.5)  # Distance from ideal probability
+ghz_quality = 1 - 2 * abs(
+    ghz_pop_ground - 0.5)  # Distance from ideal probability
 print(f"GHZ state quality: {ghz_quality:.3f} (1.0 = perfect)")
 print(f"Perfect GHZ would have P(gg) = P(ee) = 0.5")
 
 plt.figure(figsize=(10, 6))
-plt.plot(chi_times, pop_ground, 'b-', linewidth=2, label=f"|{'g'*N}⟩ (all ground)")
-plt.plot(chi_times, pop_excited, 'r-', linewidth=2, label=f"|{'e'*N}⟩ (all excited)")
-plt.axvline(ghz_chi_t, color='gray', linestyle='--', alpha=0.7, label="GHZ time")
+plt.plot(chi_times,
+         pop_ground,
+         'b-',
+         linewidth=2,
+         label=f"|{'g'*N}⟩ (all ground)")
+plt.plot(chi_times,
+         pop_excited,
+         'r-',
+         linewidth=2,
+         label=f"|{'e'*N}⟩ (all excited)")
+plt.axvline(ghz_chi_t,
+            color='gray',
+            linestyle='--',
+            alpha=0.7,
+            label="GHZ time")
 plt.axhline(0.5, color='black', linestyle=':', alpha=0.5, label="Perfect GHZ")
 
 plt.xlabel("Dimensionless time (χt)")
