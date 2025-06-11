@@ -14,7 +14,6 @@ This tutorial uses the simplified effective model (`Eq. 2` from the paper).
 
 Reference:
 Mølmer, Klaus, and Anders `Sørensen`. "`Multiparticle` entanglement of hot trapped ions." Physical Review Letters 82.9 (1999): 1835.
-
 """
 
 import cudaq
