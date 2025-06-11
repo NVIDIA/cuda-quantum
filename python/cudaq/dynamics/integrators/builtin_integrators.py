@@ -41,8 +41,9 @@ class cuDensityMatTimeStepper(BaseTimeStepper[State]):
         action_result = self.stepper.compute(state, current_time)
         return action_result
 
+
 class cuDensityMatSuperOpTimeStepper(cuDensityMatTimeStepper):
-    # Time-stepper which takes super-operator as system dynamics 
+    # Time-stepper which takes super-operator as system dynamics
     def __init__(self, super_op, schedule, dims):
         if not has_dynamics:
             raise ImportError(

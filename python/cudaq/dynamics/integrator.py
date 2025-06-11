@@ -62,7 +62,7 @@ class BaseIntegrator(ABC, Generic[TState]):
             self.super_op = hamiltonian
         else:
             self.hamiltonian = hamiltonian
-        
+
         self.collapse_operators = collapse_operators
 
     @abstractmethod

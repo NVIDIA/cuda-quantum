@@ -49,14 +49,16 @@ def evolve_dynamics(
     has_collapse_operators = False
     if isinstance(hamiltonian, SuperOperator):
         if len(collapse_operators) > 0:
-            raise ValueError("'collapse_operators' must be empty when supplying the super-operator")
+            raise ValueError(
+                "'collapse_operators' must be empty when supplying the super-operator"
+            )
         integrator.set_system(dimensions, schedule, hamiltonian)
     else:
         has_collapse_operators = len(collapse_operators) > 0
         collapse_operators = [MatrixOperator(op) for op in collapse_operators]
         integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
-                            collapse_operators)
-        
+                              collapse_operators)
+
     hilbert_space_dims_list = list(hilbert_space_dims)
     expectation_op = [
         bindings.CuDensityMatExpectation(MatrixOperator(observable),
@@ -78,9 +80,9 @@ def evolve_dynamics(
                                                         dimensions,
                                                         has_collapse_operators)
         else:
-            initial_state = bindings.initializeState(
-                initial_state, hilbert_space_dims_list,
-                has_collapse_operators, 1)
+            initial_state = bindings.initializeState(initial_state,
+                                                     hilbert_space_dims_list,
+                                                     has_collapse_operators, 1)
     integrator.set_state(initial_state, schedule._steps[0])
 
     exp_vals = [[] for _ in range(batch_size)]
