@@ -729,7 +729,8 @@ def quake_WireSetOp : QuakeOp<"wire_set", [IsolatedFromAbove, Symbol]> {
 
   let arguments = (ins
     StrAttr:$sym_name,
-    I32Attr:$cardinality
+    I32Attr:$cardinality,
+    OptionalAttr<ElementsAttr>:$adjacency
   );
 
   let hasCustomAssemblyFormat = 1;

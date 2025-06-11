@@ -541,13 +541,43 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
     return failure();
   }
 
+  /// Create an adjacency matrix attribute for a WireSetOp.
+  SparseElementsAttr getAdjacencyFromDevice(Device &d, MLIRContext *ctx) {
+    int numEdges = 0;
+    unsigned int qubitCardinality = static_cast<unsigned int>(d.getNumQubits());
+
+    SmallVector<APInt, 32> edgeVector;
+    for (unsigned int i = 0; i < qubitCardinality; i++) {
+      auto neighbors = d.getNeighbours(Device::Qubit(i));
+      numEdges += neighbors.size();
+      for (auto neighbor : neighbors) {
+        edgeVector.emplace_back(64, i);
+        edgeVector.emplace_back(64, neighbor.index);
+      }
+    }
+
+    IntegerType boolTy = IntegerType::get(ctx, /*width=*/1);
+    ShapedType tensorI1 =
+        RankedTensorType::get({qubitCardinality, qubitCardinality}, boolTy);
+    auto indicesType =
+        RankedTensorType::get({numEdges, 2}, IntegerType::get(ctx, 64));
+    auto indices = DenseIntElementsAttr::get(indicesType, edgeVector);
+    auto intValue = mlir::DenseIntElementsAttr::get(
+        mlir::RankedTensorType::get({static_cast<int64_t>(numEdges)}, boolTy),
+        true);
+    auto sparseInt = SparseElementsAttr::get(tensorI1, indices, intValue);
+
+    return sparseInt;
+  }
+
   quake::WireSetOp insertWireSetOpForDevice(Device &d, ModuleOp mod) {
     if (auto wires = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName))
       return wires;
 
+    auto adjacency = getAdjacencyFromDevice(d, mod.getContext());
     OpBuilder builder(mod.getBodyRegion());
     auto wireSetOp = builder.create<quake::WireSetOp>(
-        builder.getUnknownLoc(), mappedWireSetName, d.getNumQubits());
+        builder.getUnknownLoc(), mappedWireSetName, d.getNumQubits(), adjacency);
     wireSetOp.setPrivate();
     return wireSetOp;
   }

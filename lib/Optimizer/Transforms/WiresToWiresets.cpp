@@ -113,7 +113,7 @@ struct AddWiresetPass
     OpBuilder builder(mod.getBodyRegion());
     auto wireSetOp = builder.create<quake::WireSetOp>(
         builder.getUnknownLoc(), cudaq::opt::topologyAgnosticWiresetName,
-        INT_MAX);
+        INT_MAX, ElementsAttr{});
     wireSetOp.setPrivate();
   }
 };
