@@ -105,4 +105,9 @@ public:
   /// @brief Reset the target back to the default.
   void resetTarget();
 };
+
+/// @brief Set the current simulator to the resource counter
+void setResourceCountingSimulator();
+
+void resetSimulator();
 } // namespace cudaq

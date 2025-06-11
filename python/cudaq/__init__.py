@@ -152,6 +152,7 @@ AsyncStateResult = cudaq_runtime.AsyncStateResult
 vqe = cudaq_runtime.vqe
 draw = cudaq_runtime.draw
 run = cudaq_runtime.run
+count_resources = cudaq_runtime.count_resources
 translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG
 getSVGstring = display_trace.getSVGstring

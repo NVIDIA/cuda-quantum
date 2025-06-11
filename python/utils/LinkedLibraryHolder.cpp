@@ -13,6 +13,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/target_control.h"
 #include "nvqir/CircuitSimulator.h"
+#include "nvqir/resourcecounter/ResourceCounter.h"
 #include <fstream>
 #include <regex>
 #include <sstream>
@@ -22,6 +23,7 @@
 // Our hook into configuring the NVQIR backend.
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
+void __nvqir__resetCircuitSimulator();
 }
 
 namespace cudaq {
@@ -499,6 +501,14 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   for (auto &[name, target] : targets)
     ret.emplace_back(target);
   return ret;
+}
+
+void resetSimulator() {
+  __nvqir__resetCircuitSimulator();
+}
+
+void setResourceCountingSimulator() {
+  __nvqir__setCircuitSimulator(new nvqir::ResourceCounter());
 }
 
 } // namespace cudaq
