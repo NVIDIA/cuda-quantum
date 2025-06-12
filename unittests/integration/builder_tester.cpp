@@ -430,7 +430,83 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("0111"), 1000);
   }
 }
-#endif
+#ifndef CUDAQ_BACKEND_DM
+CUDAQ_TEST(BuilderTester, checkU3) {
+  cudaq::set_random_seed(13);
+
+  // Simple U3 gate.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto target = kernel.qalloc();
+    kernel.u3(M_PI_2, 0, M_PI, target);
+    auto counts = cudaq::sample(kernel);
+    EXPECT_EQ(counts.size(), 2);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "0" || k == "1");
+    }
+    EXPECT_EQ(counter, 1000);
+    auto state = cudaq::get_state(kernel);
+    EXPECT_NEAR(M_SQRT1_2, state[0].real(), 1e-3);
+    EXPECT_NEAR(M_SQRT1_2, state[1].real(), 1e-3);
+  }
+
+  // Check controlled-U3 gate.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(2);
+    // Prepare control qubit in the 1-state.
+    kernel.x(qubits[0]);
+    // Apply controlled-U3 gate.
+    kernel.u3<cudaq::ctrl>(M_PI_2, 0.0, M_PI, qubits[0], qubits[1]);
+    auto counts = cudaq::sample(kernel);
+    EXPECT_EQ(counts.size(), 2);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "10" || k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+  // Check controlled-U3 gate with a vector of controls.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto target = kernel.qalloc();
+    auto ctrl1 = kernel.qalloc();
+    auto ctrl2 = kernel.qalloc();
+    auto ctrl3 = kernel.qalloc();
+    // Prepare control qubits in the 1-state.
+    kernel.x(ctrl1);
+    kernel.x(ctrl2);
+    kernel.x(ctrl3);
+    // Create a vector of controls.
+    std::vector<cudaq::QuakeValue> controls{ctrl1, ctrl2, ctrl3};
+    kernel.u3<cudaq::ctrl>(M_PI_2, 0, M_PI, controls, target);
+    auto counts = cudaq::sample(kernel);
+    EXPECT_EQ(counts.size(), 2);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "0111" || k == "1111");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+  // Check adjoint U3 gate.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto target = kernel.qalloc();
+    kernel.u3(M_PI, -M_PI_2, M_PI_2, target);
+    auto counts = cudaq::sample(kernel);
+    EXPECT_EQ(counts.count("1"), 1000);
+    // Apply adjoint U3 gate.
+    kernel.u3<cudaq::adj>(M_PI, -M_PI_2, M_PI_2, target);
+    auto counts_adj = cudaq::sample(kernel);
+    EXPECT_EQ(counts_adj.count("0"), 1000);
+  }
+}
+#endif // CUDAQ_BACKEND_DM
+#endif // CUDAQ_BACKEND_STIM
 
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);

@@ -21,7 +21,6 @@ add_cudaq_library(OptTransforms
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstantPropagation.cpp
-  ConstPropComplex.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
   DelayMeasurements.cpp
