@@ -408,7 +408,7 @@ void control(ImplicitLocOpBuilder &builder, std::string &name,
 }
 
 void control(ImplicitLocOpBuilder &builder, std::string &name,
-             std::string &quakeCode, std::vector<QuakeValue> &controls,
+             std::string &quakeCode, const std::vector<QuakeValue> &controls,
              std::vector<QuakeValue> &values) {
   SmallVector<Value> controlValues;
   for (auto &c : controls)
