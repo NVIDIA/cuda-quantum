@@ -10,7 +10,6 @@
 
 import cudaq
 
-# Define the random walk phase estimation kernel
 def test_resource_counter():
     @cudaq.kernel
     def mykernel():
@@ -36,10 +35,10 @@ def test_resource_counter():
     counts2 = cudaq.count_resources(choice, mykernel)
     counts3 = cudaq.sample(mykernel, shots_count=10)
 
-    assert(counts1.count("00") + counts1.count("11") == 5)
-    assert(counts2.count("h") == 1)
-    assert(counts2.count("x") == 1)
-    assert(counts3.count("00") + counts3.count("11") == 10)
+    assert counts1.count("00") + counts1.count("11") == 5
+    assert counts2.count("h") == 1
+    assert counts2.count("x") == 1
+    assert counts3.count("00") + counts3.count("11") == 10
 
 # leave for gdb debugging
 if __name__ == "__main__":
