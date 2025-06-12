@@ -117,7 +117,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          image: tonistiigi/binfmt:qemu-v9.2.0-51
+          image: tonistiigi/binfmt:qemu-v8.1.5
 
       - name: Set up context for buildx
         run: |
@@ -199,7 +199,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          image: tonistiigi/binfmt:qemu-v9.2.0-51
+          image: tonistiigi/binfmt:qemu-v8.1.5
 
       - name: Set up context for buildx
         run: |
