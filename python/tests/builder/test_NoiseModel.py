@@ -34,6 +34,16 @@ def test_depolarization_channel(target: str):
     assert ('1' in counts)
     assert (counts.count('0') + counts.count('1') == 100)
 
+    future = cudaq.sample_async(circuit,
+                                noise_model=noise,
+                                shots_count=100,
+                                qpu_id=0)
+    counts = future.get()
+    assert (len(counts) == 2)
+    assert ('0' in counts)
+    assert ('1' in counts)
+    assert (counts.count('0') + counts.count('1') == 100)
+
     counts = cudaq.sample(circuit)
     assert (len(counts) == 1)
     assert ('1' in counts)
