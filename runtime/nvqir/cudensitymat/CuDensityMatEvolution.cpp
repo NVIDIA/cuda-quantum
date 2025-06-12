@@ -124,11 +124,16 @@ evolve_result evolveSingle(
   if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
     cudaq::dynamics::dumpPerfTrace();
 
-  if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
+  if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
     return evolve_result(intermediateStates, expectationVals);
   } else {
     // Only final state is needed
     auto [finalTime, finalState] = integrator.getState();
+
+    if (storeIntermediateResults ==
+        cudaq::IntermediateResultSave::ExpectationValue)
+      return evolve_result({finalState}, expectationVals);
+
     std::vector<double> expVals;
     auto *cudmState = asCudmState(finalState);
     for (auto &expectation : expectations) {
@@ -242,7 +247,7 @@ std::vector<evolve_result> evolveBatched(
     }
   }
 
-  if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
+  if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
     std::vector<evolve_result> results;
     for (int i = 0; i < initialStates.size(); ++i) {
       results.emplace_back(
@@ -253,6 +258,20 @@ std::vector<evolve_result> evolveBatched(
     // Only final state is needed
     auto [finalTime, finalState] = integrator.getState();
     auto *cudmState = asCudmState(finalState);
+    auto states = CuDensityMatState::splitBatchedState(*cudmState);
+    assert(states.size() == initialStates.size());
+
+    if (storeIntermediateResults ==
+        cudaq::IntermediateResultSave::ExpectationValue) {
+      std::vector<evolve_result> results;
+      for (int i = 0; i < initialStates.size(); ++i) {
+        results.emplace_back(
+            evolve_result({cudaq::state(states[i])}, expectationVals[i]));
+      }
+      return results;
+    }
+
+    // Compute final expectation values
     std::vector<std::vector<double>> expVals(initialStates.size());
     for (auto &expectation : expectations) {
       expectation.prepare(cudmState->get_impl());
@@ -263,8 +282,7 @@ std::vector<evolve_result> evolveBatched(
         expVals[i].emplace_back(expVal[i].real());
       }
     }
-    auto states = CuDensityMatState::splitBatchedState(*cudmState);
-    assert(states.size() == initialStates.size());
+    
     std::vector<evolve_result> results;
     for (int i = 0; i < initialStates.size(); ++i) {
       results.emplace_back(evolve_result(cudaq::state(states[i]), expVals[i]));

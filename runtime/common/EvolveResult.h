@@ -27,7 +27,7 @@ public:
   static constexpr int ExpectationValue =
       static_cast<int>(UnderlyingTy::ExpectationValue);
 
-  constexpr explicit IntermediateResultSave(int val) : m_value(val) {}
+  constexpr IntermediateResultSave(int val) : m_value(val) {}
   constexpr IntermediateResultSave(bool val)
       : m_value(val ? static_cast<int>(UnderlyingTy::All)
                     : static_cast<int>(UnderlyingTy::None)) {}
