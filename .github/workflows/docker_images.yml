@@ -612,7 +612,7 @@ jobs:
       - name: Configure credentials
         if: needs.metadata.outputs.platform_tag == ''
         run: |
-          docker run --privileged --rm multiarch/qemu-user-static --reset -p --install all --credential yes
+          docker run --privileged --rm multiarch/qemu-user-static --reset -p --install all
 
       - name: Build cuda-quantum image
         id: cudaq_build
