@@ -49,26 +49,20 @@ void bindCountResources(py::module &mod) {
 
         return ctx->resourceCounts;
       },
-      R"#(Asynchronously sample the state of the provided `kernel` at the 
-specified number of circuit executions (`shots_count`).
-When targeting a quantum platform with more than one QPU, the optional
-`qpu_id` allows for control over which QPU to enable. Will return a
-future whose results can be retrieved via `future.get()`.
+      R"#(Performs resource counting on the given quantum kernel
+expression and returns an accounting of how many times each gate
+was applied, in addition to the total number of gates and qubits used.
 
 Args:
-  kernel (:class:`Kernel`): The :class:`Kernel` to execute `shots_count` 
-    times on the QPU.
+  choice (Any): A choice function called to determine the outcome of
+    measurements, in case control flow depends on measurements. Should
+    only return either `True` or `False`
+  kernel (:class:`Kernel`): The :class:`Kernel` to count resources on
   *arguments (Optional[Any]): The concrete values to evaluate the kernel 
     function at. Leave empty if the kernel doesn't accept any arguments.
-  shots_count (Optional[int]): The number of kernel executions on the 
-    QPU. Defaults to 1000. Key-word only.
-  explicit_measurements (Optional[bool]): A flag to indicate whether or not to 
-    concatenate measurements in execution order for the returned sample result.
-  qpu_id (Optional[int]): The optional identification for which QPU 
-    on the platform to target. Defaults to zero. Key-word only.
 
 Returns:
-  :class:`AsyncSampleResult`: 
-  A dictionary containing the measurement count results for the :class:`Kernel`.)#");
+  :class:`ResourceCounts`:
+  A dictionary containing the resource count results for the :class:`Kernel`.)#");
 }
 } // namespace cudaq
