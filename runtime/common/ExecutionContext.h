@@ -128,13 +128,15 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
-  /// @brief Whether or not to de-correlate X and Z errors in the noise model
-  /// that is used to generate the MSM.
-  bool msm_decorrelate_xz_errors = false;
-
   /// @brief Probability of occurrence of each error mechanism (column) in
   /// Measurement Syndrome Matrix (0-1 range).
   std::optional<std::vector<double>> msm_probabilities;
+
+  /// @brief Error mechanism ID. From a probability perspective, each error
+  /// mechanism ID is independent of all other error mechanism ID. For all
+  /// errors with the *same* ID, only one of them can happen. That is - the
+  /// errors containing the same ID are correlated with each other.
+  std::optional<std::vector<std::size_t>> msm_prob_err_id;
 
   /// @brief The number of rows and columns of a Measurement Syndrome Matrix.
   /// Note: Measurement Syndrome Matrix is defined in

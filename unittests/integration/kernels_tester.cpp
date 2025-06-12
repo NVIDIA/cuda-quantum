@@ -337,96 +337,17 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1_corr) {
       0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833,
       0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.020833, 0.062500,
       0.062500, 0.062500, 0.062500, 0.062500};
+  std::vector<std::size_t> expected_err_ids{
+      0,  0,  0,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,
+      5,  6,  7,  8,  9,  10, 10, 10, 11, 11, 11, 12, 12, 12, 13,
+      13, 13, 14, 14, 14, 15, 16, 17, 18, 19, 20, 20, 20, 21, 21,
+      21, 22, 22, 22, 23, 23, 23, 24, 24, 24, 25, 26, 27, 28, 29};
   for (std::size_t i = 0; i < expected_probabilities.size(); i++)
     EXPECT_NEAR(expected_probabilities[i], ctx_msm.msm_probabilities.value()[i],
                 1e-5)
         << "Mismatch at index " << i;
-}
-
-CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1_decorrelate) {
-  struct multi_round_ghz {
-    void operator()(int num_qubits, int num_rounds,
-                    double noise_probability) __qpu__ {
-      cudaq::qvector q(num_qubits);
-      for (int round = 0; round < num_rounds; round++) {
-        h(q[0]);
-        for (int qi = 0; qi < num_qubits; qi++)
-          cudaq::apply_noise<cudaq::depolarization_channel>(noise_probability,
-                                                            q[qi]);
-        for (int qi = 1; qi < num_qubits; qi++)
-          x<cudaq::ctrl>(q[qi - 1], q[qi]);
-        mz(q);
-        for (int qi = 0; qi < num_qubits; qi++)
-          reset(q[qi]);
-      }
-    }
-  };
-
-  int num_qubits = 5;
-  int num_rounds = 3;
-  double noise_bf_prob = 0.0625;
-
-  cudaq::noise_model noise;
-  cudaq::bit_flip_channel bf(noise_bf_prob);
-  for (std::size_t i = 0; i < num_qubits; i++)
-    noise.add_channel("mz", {i}, bf);
-  cudaq::set_noise(noise);
-
-  // Stage 1 - get the MSM size by running with "msm_size". The
-  // result will be returned in ctx_msm_size.shots.
-  cudaq::ExecutionContext ctx_msm_size("msm_size");
-  ctx_msm_size.msm_decorrelate_xz_errors = true;
-  auto &platform = cudaq::get_platform();
-  platform.set_exec_ctx(&ctx_msm_size);
-  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
-  platform.reset_exec_ctx();
-
-  // Stage 2 - get the MSM using the size calculated above
-  // (ctx_msm_size.msm_dimensions).
-  cudaq::ExecutionContext ctx_msm("msm");
-  ctx_msm.msm_decorrelate_xz_errors = true;
-  ctx_msm.noiseModel = &noise;
-  ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
-  platform.set_exec_ctx(&ctx_msm);
-  multi_round_ghz{}(num_qubits, num_rounds, noise_bf_prob);
-  platform.reset_exec_ctx();
-
-  // The MSM is now stored in ctx_msm.result. More precisely, the unfiltered
-  // MSM is stored there, but some post-processing may be required to
-  // eliminate duplicate columns.
-  auto msm_as_strings = ctx_msm.result.sequential_data();
-  auto msm_transpose = transpose_msm(msm_as_strings);
-
-  const std::vector<std::string> expected = {
-      "1.........1..................................",
-      "1.1........1.................................",
-      "1.1.1.......1................................",
-      "1.1.1.1......1...............................",
-      "1.1.1.1.1.....1..............................",
-      ".1.1...........1.........1...................",
-      ".1.1...........1.1........1..................",
-      ".1.1...........1.1.1.......1.................",
-      ".1.1...........1.1.1.1......1................",
-      ".1.1...........1.1.1.1.1.....1...............",
-      "...1.1..........1.1...........1.........1....",
-      "...1.1..........1.1...........1.1........1...",
-      "...1.1..........1.1...........1.1.1.......1..",
-      "...1.1..........1.1...........1.1.1.1......1.",
-      "...1.1..........1.1...........1.1.1.1.1.....1"};
-
-  EXPECT_EQ(msm_transpose, expected);
-
-  std::vector<double> expected_probabilities{
-      0.041667, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667,
-      0.041667, 0.041667, 0.041667, 0.062500, 0.062500, 0.062500, 0.062500,
-      0.062500, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667,
-      0.041667, 0.041667, 0.041667, 0.041667, 0.062500, 0.062500, 0.062500,
-      0.062500, 0.062500, 0.041667, 0.041667, 0.041667, 0.041667, 0.041667,
-      0.041667, 0.041667, 0.041667, 0.041667, 0.041667, 0.062500, 0.062500,
-      0.062500, 0.062500, 0.062500};
-  for (std::size_t i = 0; i < expected_probabilities.size(); i++)
-    EXPECT_NEAR(expected_probabilities[i], ctx_msm.msm_probabilities.value()[i],
-                1e-5)
+  for (std::size_t i = 0; i < ctx_msm.msm_prob_err_id.value().size(); i++)
+    EXPECT_EQ(ctx_msm.msm_prob_err_id.value()[i], expected_err_ids[i])
         << "Mismatch at index " << i;
 }
 
@@ -435,7 +356,8 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1_decorrelate) {
 /// returns the MSM and the probabilities. NOTE: This is NOT intended to be a
 /// true QEC-like kernel
 template <typename NoiseType, int num_qubits>
-std::pair<std::vector<std::string>, std::vector<double>>
+std::tuple<std::vector<std::string>, std::vector<double>,
+           std::vector<std::size_t>>
 get_msm_test(double noise_probability) {
   // This simple kernel just creates qubits and applies one noise operation,
   // depending on the template parameters.
@@ -483,12 +405,12 @@ get_msm_test(double noise_probability) {
   platform.reset_exec_ctx();
 
   return {transpose_msm(ctx_msm.result.sequential_data()),
-          ctx_msm.msm_probabilities.value()};
+          ctx_msm.msm_probabilities.value(), ctx_msm.msm_prob_err_id.value()};
 }
 
 CUDAQ_TEST(KernelsTester, msmTester_depol2) {
   double noise_probability = 0.0625;
-  auto [msm_transpose, msm_probabilities] =
+  auto [msm_transpose, msm_probabilities, msm_prob_err_id] =
       get_msm_test<cudaq::depolarization2, 2>(noise_probability);
 
   const std::vector<std::string> expected = {"...11111111....",
@@ -500,50 +422,57 @@ CUDAQ_TEST(KernelsTester, msmTester_depol2) {
   for (std::size_t i = 0; i < expected_probabilities.size(); i++)
     EXPECT_NEAR(expected_probabilities[i], msm_probabilities[i], 1e-5)
         << "Mismatch at index " << i;
+  for (std::size_t i = 0; i < msm_prob_err_id.size(); i++)
+    EXPECT_EQ(msm_prob_err_id[i], 0) << "Mismatch at index " << i;
 }
 
 CUDAQ_TEST(KernelsTester, msmTester_x) {
   double noise_probability = 0.0625;
-  auto [msm_transpose, msm_probabilities] =
+  auto [msm_transpose, msm_probabilities, msm_prob_err_id] =
       get_msm_test<cudaq::x_error, 1>(noise_probability);
   EXPECT_EQ(msm_transpose, std::vector<std::string>{"1"});
   EXPECT_NEAR(msm_probabilities[0], noise_probability, 1e-5);
+  EXPECT_EQ(msm_prob_err_id[0], 0);
 }
 
 CUDAQ_TEST(KernelsTester, msmTester_y) {
   double noise_probability = 0.0625;
-  auto [msm_transpose, msm_probabilities] =
+  auto [msm_transpose, msm_probabilities, msm_prob_err_id] =
       get_msm_test<cudaq::y_error, 1>(noise_probability);
   EXPECT_EQ(msm_transpose, std::vector<std::string>{"1"});
   EXPECT_NEAR(msm_probabilities[0], noise_probability, 1e-5);
+  EXPECT_EQ(msm_prob_err_id[0], 0);
 }
 
 CUDAQ_TEST(KernelsTester, msmTester_z) {
   double noise_probability = 0.0625;
-  auto [msm_transpose, msm_probabilities] =
+  auto [msm_transpose, msm_probabilities, msm_prob_err_id] =
       get_msm_test<cudaq::z_error, 1>(noise_probability);
   EXPECT_EQ(msm_transpose, std::vector<std::string>{"."});
   EXPECT_NEAR(msm_probabilities[0], noise_probability, 1e-5);
+  EXPECT_EQ(msm_prob_err_id[0], 0);
 }
 
 CUDAQ_TEST(KernelsTester, msmTester_pauli1) {
   double noise_probability = 0.0625;
-  auto [msm_transpose, msm_probabilities] =
+  auto [msm_transpose, msm_probabilities, msm_prob_err_id] =
       get_msm_test<cudaq::pauli1, 1>(noise_probability);
   EXPECT_EQ(msm_transpose, std::vector<std::string>{"11."});
   for (std::size_t i = 0; i < msm_probabilities.size(); i++)
     EXPECT_NEAR(msm_probabilities[i], noise_probability / 3, 1e-5);
+  EXPECT_EQ(msm_prob_err_id[0], 0);
 }
 
 CUDAQ_TEST(KernelsTester, msmTester_pauli2) {
   double noise_probability = 0.0625;
-  auto [msm_transpose, msm_probabilities] =
+  auto [msm_transpose, msm_probabilities, msm_prob_err_id] =
       get_msm_test<cudaq::pauli2, 2>(noise_probability);
   const std::vector<std::string> expected = {"...11111111....",
                                              "11..11..11..11."};
   EXPECT_EQ(msm_transpose, expected);
   for (std::size_t i = 0; i < msm_probabilities.size(); i++)
     EXPECT_NEAR(msm_probabilities[i], noise_probability / 15, 1e-5);
+  EXPECT_EQ(msm_prob_err_id[0], 0);
 }
 
 #endif

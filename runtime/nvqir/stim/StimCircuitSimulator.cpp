@@ -52,15 +52,16 @@ protected:
   /// "msm_size" execution contexts.
   std::size_t msm_err_count = 0;
 
+  /// @brief Error ID counter for MSM generation. This is only used for "msm"
+  /// and "msm_size" execution contexts.
+  std::size_t msm_id_counter = 0;
+
   /// @brief Whether or not the execution context name is "msm" (value is cached
   /// for speed)
   bool is_msm_mode = false;
 
   std::optional<StimNoiseType>
   isValidStimNoiseChannel(const kraus_channel &channel) const {
-
-    bool msm_decorrelate_xz_errors =
-        executionContext && executionContext->msm_decorrelate_xz_errors;
 
     // Check the old way first
     switch (channel.noise_type) {
@@ -71,18 +72,10 @@ protected:
                            .flips_z = {false},
                            .params = {channel.parameters[0]}};
     case cudaq::noise_model_type::y_error:
-      if (msm_decorrelate_xz_errors) {
-        return StimNoiseType{
-            .stim_name = "Y_ERROR",
-            .flips_x = {true, false},
-            .flips_z = {false, true},
-            .params = {channel.parameters[0], channel.parameters[0]}};
-      } else {
-        return StimNoiseType{.stim_name = "Y_ERROR",
-                             .flips_x = {true},
-                             .flips_z = {true},
-                             .params = {channel.parameters[0]}};
-      }
+      return StimNoiseType{.stim_name = "Y_ERROR",
+                           .flips_x = {true},
+                           .flips_z = {true},
+                           .params = {channel.parameters[0]}};
     case cudaq::noise_model_type::phase_flip_channel:
     case cudaq::noise_model_type::z_error:
       return StimNoiseType{.stim_name = "Z_ERROR",
@@ -91,50 +84,25 @@ protected:
                            .params = {channel.parameters[0]}};
     case cudaq::noise_model_type::depolarization_channel:
     case cudaq::noise_model_type::depolarization1:
-      if (msm_decorrelate_xz_errors) {
-        return StimNoiseType{
-            .stim_name = "DEPOLARIZE1",
-            .flips_x = {true, false},
-            .flips_z = {false, true},
-            .params = std::vector<double>(2, 2 * channel.parameters[0] / 3.0)};
-      } else {
-        return StimNoiseType{
-            .stim_name = "DEPOLARIZE1",
-            .flips_x = {true, true, false},
-            .flips_z = {false, true, true},
-            .params = std::vector<double>(3, channel.parameters[0] / 3.0)};
-      }
+      return StimNoiseType{
+          .stim_name = "DEPOLARIZE1",
+          .flips_x = {true, true, false},
+          .flips_z = {false, true, true},
+          .params = std::vector<double>(3, channel.parameters[0] / 3.0)};
     case cudaq::noise_model_type::depolarization2: {
       constexpr bool x_err[4] = {false, true, true, false}; // X errors for IXYZ
       constexpr bool z_err[4] = {false, false, true, true}; // Z errors for IXYZ
       StimNoiseType ret{.stim_name = "DEPOLARIZE2", .num_targets = 2};
-      if (msm_decorrelate_xz_errors) {
-        // clang-format off
-        //                                     ---Error1---  ---Error2---  ---Error3---
-        //                                     Q1     Q2     Q1     Q2     Q1     Q2
-        // X errors
-        ret.flips_x.insert(ret.flips_x.end(), {false, true,  true,  false, true,  true });
-        ret.flips_z.insert(ret.flips_z.end(), {false, false, false, false, false, false});
-        ret.params.insert(ret.params.end(), 3, 4 * channel.parameters[0] / 15);
-        // Z errors
-        ret.flips_x.insert(ret.flips_x.end(), {false, false, false, false, false, false});
-        ret.flips_z.insert(ret.flips_z.end(), {false, true,  true,  false, true,  true });
-        ret.params.insert(ret.params.end(), 3, 4 * channel.parameters[0] / 15);
-        // clang-format on
-      } else {
-        ret.params = std::vector<double>(15, channel.parameters[0] / 15.0);
-        // Generate the entries for p/15: IX, IY, IZ, XI, XX, XY, XZ, YI, YX,
-        // YY, YZ, ZI, ZX, ZY, ZZ
-        for (int q1_err = 0; q1_err < 4; q1_err++) {   // qubit 1 loop
-          for (int q2_err = 0; q2_err < 4; q2_err++) { // qubit 2 loop
-            if (q1_err == 0 && q2_err == 0)            // skip II
-              continue;
-            // Push back the values for the two qubits, for both x and z errors
-            ret.flips_x.insert(ret.flips_x.end(),
-                               {x_err[q1_err], x_err[q2_err]});
-            ret.flips_z.insert(ret.flips_z.end(),
-                               {z_err[q1_err], z_err[q2_err]});
-          }
+      ret.params = std::vector<double>(15, channel.parameters[0] / 15.0);
+      // Generate the entries for p/15: IX, IY, IZ, XI, XX, XY, XZ, YI, YX,
+      // YY, YZ, ZI, ZX, ZY, ZZ
+      for (int q1_err = 0; q1_err < 4; q1_err++) {   // qubit 1 loop
+        for (int q2_err = 0; q2_err < 4; q2_err++) { // qubit 2 loop
+          if (q1_err == 0 && q2_err == 0)            // skip II
+            continue;
+          // Push back the values for the two qubits, for both x and z errors
+          ret.flips_x.insert(ret.flips_x.end(), {x_err[q1_err], x_err[q2_err]});
+          ret.flips_z.insert(ret.flips_z.end(), {z_err[q1_err], z_err[q2_err]});
         }
       }
       return ret;
@@ -144,75 +112,29 @@ protected:
       // probability that is specified in the 3 channel parameters.
       static_assert(cudaq::pauli1::num_parameters == 3);
       assert(channel.parameters.size() == cudaq::pauli1::num_parameters);
-      if (msm_decorrelate_xz_errors) {
-        return StimNoiseType{
-            .stim_name = "PAULI_CHANNEL_1",
-            .flips_x = {true, false},
-            .flips_z = {false, true},
-            .params = {channel.parameters[0] + channel.parameters[1],
-                       channel.parameters[1] + channel.parameters[2]}};
-      } else {
-        return StimNoiseType{.stim_name = "PAULI_CHANNEL_1",
-                             .flips_x = {true, true, false},
-                             .flips_z = {false, true, true},
-                             .params = channel.parameters};
-      }
+      return StimNoiseType{.stim_name = "PAULI_CHANNEL_1",
+                           .flips_x = {true, true, false},
+                           .flips_z = {false, true, true},
+                           .params = channel.parameters};
     }
     case cudaq::noise_model_type::pauli2: {
       static_assert(cudaq::pauli2::num_parameters == 15);
       assert(channel.parameters.size() == cudaq::pauli2::num_parameters);
       StimNoiseType ret{.stim_name = "PAULI_CHANNEL_2", .num_targets = 2};
-      if (msm_decorrelate_xz_errors) {
-        // clang-format off
-        // ID    X1Z1 X2Z2 | ID        X1X2 | ID       Z1Z2 
-        //  0 IX  0 0  1 0 |  0 E1      0 1 |  0        0 0 
-        //  1 IY  0 0  1 1 |  1 E1      0 1 |  1 E1     0 1 
-        //  2 IZ  0 0  0 1 |  2         0 0 |  2 E1     0 1 
-        //  3 XI  1 0  0 0 |  3   E2    1 0 |  3        0 0 
-        //  4 XX  1 0  1 0 |  4     E3  1 1 |  4        0 0 
-        //  5 XY  1 0  1 1 |  5     E3  1 1 |  5 E1     0 1 
-        //  6 XZ  1 0  0 1 |  6   E2    1 0 |  6 E1     0 1 
-        //  7 YI  1 1  0 0 |  7   E2    1 0 |  7   E2   1 0 
-        //  8 YX  1 1  1 0 |  8     E3  1 1 |  8   E2   1 0 
-        //  9 YY  1 1  1 1 |  9     E3  1 1 |  9     E3 1 1 
-        // 10 YZ  1 1  0 1 | 10   E2    1 0 | 10     E3 1 1 
-        // 11 ZI  0 1  0 0 | 11         0 0 | 11   E2   1 0 
-        // 12 ZX  0 1  1 0 | 12 E1      0 1 | 12   E2   1 0 
-        // 13 ZY  0 1  1 1 | 13 E1      0 1 | 13     E3 1 1 
-        // 14 ZZ  0 1  0 1 | 14         0 0 | 14     E3 1 1 
-        //                                     ---Error1---  ---Error2---  ---Error3--- |
-        //                                     Q1     Q2     Q1     Q2     Q1     Q2
-        // X errors
-        ret.flips_x.insert(ret.flips_x.end(), {false, true,  true,  false, true,  true });
-        ret.flips_z.insert(ret.flips_z.end(), {false, false, false, false, false, false});
-        ret.params.push_back(channel.parameters[0] + channel.parameters[ 1] + channel.parameters[12] + channel.parameters[13]); // E1
-        ret.params.push_back(channel.parameters[3] + channel.parameters[ 6] + channel.parameters[ 7] + channel.parameters[10]); // E2
-        ret.params.push_back(channel.parameters[4] + channel.parameters[ 5] + channel.parameters[ 8] + channel.parameters[ 9]); // E3
-        // Z errors
-        ret.flips_x.insert(ret.flips_x.end(), {false, false, false, false, false, false});
-        ret.flips_z.insert(ret.flips_z.end(), {false, true,  true,  false, true,  true });
-        ret.params.push_back(channel.parameters[1] + channel.parameters[ 2] + channel.parameters[ 5] + channel.parameters[ 6]); // E1
-        ret.params.push_back(channel.parameters[7] + channel.parameters[ 8] + channel.parameters[11] + channel.parameters[12]); // E2
-        ret.params.push_back(channel.parameters[9] + channel.parameters[10] + channel.parameters[13] + channel.parameters[14]); // E3
-        // clang-format on
-      } else {
-        // Generate the entries for: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ,
-        // ZI, ZX, ZY, ZZ
-        std::vector<bool> x_err{false, true, true, false}; // X errors for IXYZ
-        std::vector<bool> z_err{false, false, true, true}; // Z errors for IXYZ
-        for (int q1_err = 0; q1_err < 4; q1_err++) {       // qubit 1 loop
-          for (int q2_err = 0; q2_err < 4; q2_err++) {     // qubit 2 loop
-            if (q1_err == 0 && q2_err == 0)                // skip II
-              continue;
-            // Push back the values for the two qubits, for both x and z errors
-            ret.flips_x.insert(ret.flips_x.end(),
-                               {x_err[q1_err], x_err[q2_err]});
-            ret.flips_z.insert(ret.flips_z.end(),
-                               {z_err[q1_err], z_err[q2_err]});
-          }
+      // Generate the entries for: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ,
+      // ZI, ZX, ZY, ZZ
+      std::vector<bool> x_err{false, true, true, false}; // X errors for IXYZ
+      std::vector<bool> z_err{false, false, true, true}; // Z errors for IXYZ
+      for (int q1_err = 0; q1_err < 4; q1_err++) {       // qubit 1 loop
+        for (int q2_err = 0; q2_err < 4; q2_err++) {     // qubit 2 loop
+          if (q1_err == 0 && q2_err == 0)                // skip II
+            continue;
+          // Push back the values for the two qubits, for both x and z errors
+          ret.flips_x.insert(ret.flips_x.end(), {x_err[q1_err], x_err[q2_err]});
+          ret.flips_z.insert(ret.flips_z.end(), {z_err[q1_err], z_err[q2_err]});
         }
-        ret.params = channel.parameters;
       }
+      ret.params = channel.parameters;
       return ret;
     }
     case cudaq::noise_model_type::amplitude_damping_channel:
@@ -303,6 +225,8 @@ protected:
         num_msm_cols = dims.second;
         executionContext->msm_probabilities.emplace();
         executionContext->msm_probabilities->reserve(num_msm_cols);
+        executionContext->msm_prob_err_id.emplace();
+        executionContext->msm_prob_err_id->reserve(num_msm_cols);
       }
 
       // If possible, provide a non-empty stim::CircuitStats in order to avoid
@@ -325,6 +249,7 @@ protected:
       }
       sampleSim->reset_all();
       msm_err_count = 0;
+      msm_id_counter = 0;
     }
   }
 
@@ -338,6 +263,7 @@ protected:
     sampleSim.reset();
     num_measurements = 0;
     msm_err_count = 0;
+    msm_id_counter = 0;
     is_msm_mode = false;
   }
 
@@ -437,9 +363,11 @@ protected:
               sampleSim->z_table[qubits[t]][shot] ^= res->flips_z[flip_ix];
             }
             executionContext->msm_probabilities->push_back(res->params[m]);
+            executionContext->msm_prob_err_id->push_back(msm_id_counter);
             msm_err_count++;
           }
         }
+        msm_id_counter++;
       } else {
         stim::Circuit noiseOps;
         noiseOps.safe_append_u(res.value().stim_name, qubits,
