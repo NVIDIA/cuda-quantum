@@ -276,6 +276,11 @@ void control(mlir::ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, QuakeValue &control,
              std::vector<QuakeValue> &values);
 
+/// @brief Apply the given kernel controlled on multiple qubit values.
+void control(mlir::ImplicitLocOpBuilder &builder, std::string &name,
+             std::string &quakeCode, std::vector<QuakeValue> &controls,
+             std::vector<QuakeValue> &values);
+
 /// @brief Apply the adjoint of the given kernel
 void adjoint(mlir::ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, std::vector<QuakeValue> &values);
