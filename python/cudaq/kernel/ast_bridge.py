@@ -192,6 +192,10 @@ class PyASTBridge(ast.NodeVisitor):
         self.attributePushPointerValue = False
         self.verbose = 'verbose' in kwargs and kwargs['verbose']
         self.currentNode = None
+        if self.knownResultType is not None and cc.StdvecType.isinstance(
+                self.knownResultType):
+            self.emitFatalError(
+                "Returning `list` from kernels is not yet supported.")
 
     def debug_msg(self, msg, node=None):
         if self.verbose:
@@ -1030,6 +1034,9 @@ class PyASTBridge(ast.NodeVisitor):
                     node.returns, ast.Constant) and
                                                  (node.returns.value is None)):
                 self.knownResultType = self.mlirTypeFromAnnotation(node.returns)
+                if cc.StdvecType.isinstance(self.knownResultType):
+                    self.emitFatalError(
+                        "Returning `list` from kernels is not yet supported.")
 
             # Get the argument names
             argNames = [arg.arg for arg in node.args.args]
@@ -3960,6 +3967,10 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError(
                 f"Invalid return type, function was defined to return a {mlirTypeToPyType(self.knownResultType)} but the value being returned is of type {mlirTypeToPyType(result.type)}",
                 node)
+
+        if result.type is not None and cc.StdvecType.isinstance(result.type):
+            self.emitFatalError(
+                "Returning `list` from kernels is not yet supported.")
 
         if cc.StdvecType.isinstance(result.type):
             symName = '__nvqpp_vectorCopyCtor'
