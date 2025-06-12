@@ -812,6 +812,10 @@ protected:
                  matrix, controls, targets, params);
 
     gateQueue.emplace(name, matrix, controls, targets, params);
+
+    static constexpr std::size_t kMaxGateQueueSize = 1024;
+    if (gateQueue.size() >= kMaxGateQueueSize)
+      flushGateQueue();
   }
 
   /// @brief This pure virtual method is meant for subtypes

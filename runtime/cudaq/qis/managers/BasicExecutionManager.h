@@ -245,6 +245,11 @@ public:
     // Add to the instruction queue
     instructionQueue.emplace_back(std::move(mutable_name), mutable_params,
                                   mutable_controls, mutable_targets, op);
+
+    static constexpr std::size_t kMaxQueueSize = 1024;
+    if (!isInTracerMode() && instructionQueue.size() >= kMaxQueueSize) {
+      synchronize();
+    }
   }
 
   void applyNoise(const kraus_channel &channel,
