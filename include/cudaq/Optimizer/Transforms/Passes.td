@@ -57,11 +57,11 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
     purposes only.
   }];
 
-  let constructor = "cudaq::opt::createApplyOpSpecializationPass()";
-
   let options = [
-    Option<"computeActionOptimization", "compute-action-opt", "bool",
-      /*default=*/"true", "Enable the compute-action control optimization.">
+    Option<"computeActionOptimization", "compute-action", "bool",
+      /*default=*/"true", "Enable the compute-action control optimization.">,
+    Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
+      "Enable specialization and constant propagation from apply call sites.">
   ];
 }
 
@@ -218,16 +218,6 @@ def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
   let description = [{
     This is a greedy pass that will push constants from single and
     multidimensional array constants to their ultimate uses.
-
-    TODO: Merge const-prop-complex into this pass.
-  }];
-}
-
-def ConstPropComplex : Pass<"const-prop-complex", "mlir::func::FuncOp"> {
-  let summary = "Create and propagate complex constants.";
-  let description = [{
-    Rewrite the complex.CreateOp to complex.ConstantOp when possible.
-    Replace array pointer casts with element pointer casts.
   }];
 }
 
@@ -278,7 +268,8 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
 }
 
 def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
-  let summary = "Maps qubits and reorders operations based on dependency graph.";
+  let summary =
+    "Maps qubits and reorders operations based on dependency graph.";
   let description = [{
     A dependency graph is a Directed Acyclic Graph (DAG) where each node
     represents an operation, and each edge represents a "depends on" relation
@@ -1169,7 +1160,6 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
     The lower to CFG pass removed all structured operations from a function,
     lowering the body of the function completely to a primitive CFG.
   }];
-  let constructor = "cudaq::opt::createUnwindLoweringPass()";
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {
