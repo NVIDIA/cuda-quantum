@@ -156,7 +156,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          image: tonistiigi/binfmt:qemu-v7.0.0
+          image: tonistiigi/binfmt:qemu-v9.2.0-51
 
       - name: Set up context for buildx
         run: |
@@ -311,7 +311,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          image: tonistiigi/binfmt:qemu-v7.0.0
+          image: tonistiigi/binfmt:qemu-v9.2.0-51
 
       - name: Set up context for buildx
         run: |
@@ -529,7 +529,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          image: tonistiigi/binfmt:qemu-v7.0.0
+          image: tonistiigi/binfmt:qemu-v9.2.0-51
 
       - name: Set up context for buildx
         run: |
@@ -612,7 +612,7 @@ jobs:
       - name: Configure credentials
         if: needs.metadata.outputs.platform_tag == ''
         run: |
-          docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
+          docker run --privileged --rm tonistiigi/binfmt:master --install all --credential yes
 
       - name: Build cuda-quantum image
         id: cudaq_build
