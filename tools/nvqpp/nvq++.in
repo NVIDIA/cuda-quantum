@@ -669,7 +669,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 fi
 
 # Configure the NVQIR link line if this is in refactored mode
-NVQIR_LIBS="${NVQIR_LIBS}${NVQIR_SIMULATION_BACKEND} -lnvqir-tracer"
+NVQIR_LIBS="${NVQIR_LIBS}${NVQIR_SIMULATION_BACKEND} -lnvqir-resource-counter"
 
 # Add the MLIR-related libraries if requested. 
 if ${ENABLE_MLIR_LIB_LINKING}; then 
