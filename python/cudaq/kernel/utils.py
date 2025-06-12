@@ -185,6 +185,12 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if isinstance(annotation,
                   ast.Subscript) and (annotation.value.id == 'tuple' or
                                       annotation.value.id == 'Tuple'):
+        localEmitFatalError(
+            f"Use of tuples is not supported in kernels ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+        )
+
+        #FIXME: re-enable tuple support after we have the spec.
+        # https://github.com/NVIDIA/cuda-quantum/issues/3031
         if not hasattr(annotation, 'slice'):
             localEmitFatalError(
                 f"tuple subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
@@ -378,6 +384,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                                  mlirTypeFromPyType(type(argInstance[0]), ctx))
 
     if get_origin(argType) == tuple:
+        #FIXME: re-enable tuple support after we have the spec.
+        # https://github.com/NVIDIA/cuda-quantum/issues/3031
+        emitFatalError(f'Use of tuples is not supported in kernels ({argType})')
         result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
         eleTyNames = result.group('names')
         eleTypes = []
@@ -393,6 +402,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
     if (argType == tuple):
+        #FIXME: re-enable tuple support after we have the spec.
+        # https://github.com/NVIDIA/cuda-quantum/issues/3031
+        emitFatalError(f'Use of tuples is not supported in kernels ({argType})')
         argInstance = kwargs['argInstance']
         if argInstance == None or (len(argInstance) == 0):
             emitFatalError(f'Cannot infer runtime argument type for {argType}')

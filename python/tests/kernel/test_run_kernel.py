@@ -346,6 +346,35 @@ def test_return_list_bool():
     assert results[0] == [True, False, True]
     assert results[1] == [True, False, True]
 
+    @cudaq.kernel
+    def simple_list_bool_args(n: int, t: list[bool]) -> list[bool]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    results = cudaq.run(simple_list_bool_args,
+                        2, [True, False, True],
+                        shots_count=2)
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
+    # assert len(results) == 2
+    # assert results[0] == [True, False, True]
+    # assert results[1] == [True, False, True]
+
+    @cudaq.kernel
+    def simple_list_bool_args_no_broadcast(t: list[bool]) -> list[bool]:
+        qubits = cudaq.qvector(2)
+        return t
+
+    results = cudaq.run(simple_list_bool_args_no_broadcast, [True, False, True],
+                        shots_count=2)
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
+    # assert len(results) == 2
+    # assert results[0] == [True, False, True]
+    # assert results[1] == [True, False, True]
+
 
 def test_return_list_int():
 
@@ -364,7 +393,9 @@ def test_return_list_int():
         return t
 
     results = cudaq.run(simple_list_int, 2, [-13, 5, 42], shots_count=2)
-    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
     # assert len(results) == 2
     # assert results[0] == [-13, 5, 42]
     # assert results[1] == [-13, 5, 42]
@@ -387,7 +418,9 @@ def test_return_list_int8():
         return t
 
     results = cudaq.run(simple_list_int8, 2, [-13, 5, 42], shots_count=2)
-    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
     # assert len(results) == 2
     # assert results[0] == [-13, 5, 42]
     # assert results[1] == [-13, 5, 42]
@@ -410,7 +443,9 @@ def test_return_list_int16():
         return t
 
     results = cudaq.run(simple_list_int16, 2, [-13, 5, 42], shots_count=2)
-    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
     # assert len(results) == 2
     # assert results[0] == [-13, 5, 42]
     # assert results[1] == [-13, 5, 42]
@@ -433,7 +468,9 @@ def test_return_list_int32():
         return t
 
     results = cudaq.run(simple_list_int32, 2, [-13, 5, 42], shots_count=2)
-    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
     # assert len(results) == 2
     # assert results[0] == [-13, 5, 42]
     # assert results[1] == [-13, 5, 42]
@@ -456,7 +493,9 @@ def test_return_list_int64():
         return t
 
     results = cudaq.run(simple_list_int64, 2, [-13, 5, 42], shots_count=2)
-    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
     # assert len(results) == 2
     # assert results[0] == [-13, 5, 42]
     # assert results[1] == [-13, 5, 42]
@@ -481,7 +520,9 @@ def test_return_list_float():
     results = cudaq.run(simple_list_float,
                         2, [-13.2, 5.0, 42.99],
                         shots_count=2)
-    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
     # assert len(results) == 2
     # assert results[0] == [-13.2, 5.0, 42.99]
     # assert results[1] == [-13.2, 5.0, 42.99]
@@ -506,7 +547,9 @@ def test_return_list_float32():
     results = cudaq.run(simple_list_float32,
                         2, [-13.2, 5.0, 42.99],
                         shots_count=2)
-    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
     # assert len(results) == 2
     # assert results[0] == [-13.2, 5.0, 42.99]
     # assert results[1] == [-13.2, 5.0, 42.99]
@@ -531,10 +574,17 @@ def test_return_list_float64():
     results = cudaq.run(simple_list_float64,
                         2, [-13.2, 5.0, 42.99],
                         shots_count=2)
-    # FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
+    #https://github.com/NVIDIA/cuda-quantum/issues/2963
+    assert len(results) == 0
     # assert len(results) == 2
     # assert results[0] == [-13.2, 5.0, 42.99]
     # assert results[1] == [-13.2, 5.0, 42.99]
+
+
+# Test tuples
+# TODO: Define spec for using tuples in kernels
+# https://github.com/NVIDIA/cuda-quantum/issues/3031
 
 
 def test_return_tuple_int_float():
@@ -543,10 +593,9 @@ def test_return_tuple_int_float():
     def simple_tuple_int_float_no_args() -> tuple[int, float]:
         return (13, 42.3)
 
-    results = cudaq.run(simple_tuple_int_float_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (13, 42.3)
-    assert results[1] == (13, 42.3)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int_float_no_args)
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int_float(n: int, t: tuple[int,
@@ -554,10 +603,9 @@ def test_return_tuple_int_float():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_tuple_int_float, 2, (13, 42.3), shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (13, 42.3)
-    assert results[1] == (13, 42.3)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int_float, 2, (13, 42.3))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int_float_assign(
@@ -567,14 +615,9 @@ def test_return_tuple_int_float():
         t[1] = 11.5
         return t
 
-    # TODO: Fix incorrect IR generation for tuple element assignment
-    # https://github.com/NVIDIA/cuda-quantum/issues/2965
-    results = cudaq.run(simple_tuple_int_float_assign,
-                        2, (13, 42.3),
-                        shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == (-14, 11.5)
-    # assert results[1] == (-14, 11.5)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int_float_assign, 2, (-13, 11.5))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int_float_error(
@@ -584,8 +627,7 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_tuple_int_float_error, 2, (-13, 11.5))
-    assert 'Invalid return type, function was defined to return a tuple[bool, float] but the value being returned is of type tuple[int, float]' in str(
-        e.value)
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_float_int():
@@ -594,10 +636,9 @@ def test_return_tuple_float_int():
     def simple_tuple_float_int_no_args() -> tuple[float, int]:
         return (42.3, 13)
 
-    results = cudaq.run(simple_tuple_float_int_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (42.3, 13)
-    assert results[1] == (42.3, 13)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_float_int_no_args)
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_float_int(n: int, t: tuple[float,
@@ -605,10 +646,9 @@ def test_return_tuple_float_int():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_tuple_float_int, 2, (42.3, 13), shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (42.3, 13)
-    assert results[1] == (42.3, 13)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_float_int, 2, (42.3, 13))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_bool_int():
@@ -617,20 +657,18 @@ def test_return_tuple_bool_int():
     def simple_tuple_bool_int_no_args() -> tuple[bool, int]:
         return (True, 13)
 
-    results = cudaq.run(simple_tuple_bool_int_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (True, 13)
-    assert results[1] == (True, 13)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_bool_int_no_args)
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_bool_int(n: int, t: tuple[bool, int]) -> tuple[bool, int]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_tuple_bool_int, 2, (True, 13), shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (True, 13)
-    assert results[1] == (True, 13)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_bool_int, 2, (True, 13))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_int_bool():
@@ -639,20 +677,18 @@ def test_return_tuple_int_bool():
     def simple_tuple_int_bool_no_args() -> tuple[int, bool]:
         return (-13, True)
 
-    results = cudaq.run(simple_tuple_int_bool_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (-13, True)
-    assert results[1] == (-13, True)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int_bool_no_args)
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int_bool(n: int, t: tuple[int, bool]) -> tuple[int, bool]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_tuple_int_bool, 2, (-13, True), shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (-13, True)
-    assert results[1] == (-13, True)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int_bool, 2, (-13, True))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_int32_bool():
@@ -661,24 +697,17 @@ def test_return_tuple_int32_bool():
     def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
         return (-13, True)
 
-    # TODO: allow type promotion for tuple elements (from int to np.int32)
-    # error: Invalid return type, function was defined to return a <class 'tuple'>
-    # but the value being returned is of type <class 'tuple'>
-    # results = cudaq.run(simple_tuple_int32_bool_no_args, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == (np.int32(-13), True)
-    # assert results[1] == (np.int32(-13), True)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int32_bool_no_args)
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
         return (np.int32(-13), True)
 
-    # TODO: support explicit casts
-    # error: unsupported NumPy call (int32)
-    # results = cudaq.run(simple_tuple_int32_bool_no_args1, shots_count=2)
-    # assert len(results) == 2
-    # assert results[0] == (np.int32(-13), True)
-    # assert results[1] == (np.int32(-13), True)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int32_bool_no_args)
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int32_bool(
@@ -686,12 +715,9 @@ def test_return_tuple_int32_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_tuple_int32_bool,
-                        2, (np.int32(-13), True),
-                        shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (-13, True)
-    assert results[1] == (-13, True)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_int32_bool, 2, (-13, True))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_tuple_bool_int_float():
@@ -700,10 +726,9 @@ def test_return_tuple_bool_int_float():
     def simple_tuple_bool_int_float_no_args() -> tuple[bool, int, float]:
         return (True, 13, 42.3)
 
-    results = cudaq.run(simple_tuple_bool_int_float_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (True, 13, 42.3)
-    assert results[1] == (True, 13, 42.3)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_bool_int_float_no_args)
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_bool_int_float(
@@ -711,12 +736,9 @@ def test_return_tuple_bool_int_float():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_tuple_bool_int_float,
-                        2, (True, 13, 42.3),
-                        shots_count=2)
-    assert len(results) == 2
-    assert results[0] == (True, 13, 42.3)
-    assert results[1] == (True, 13, 42.3)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_tuple_bool_int_float, 2, (True, 13, 42.3))
+    assert 'Use of tuples is not supported in kernels' in str(e.value)
 
 
 def test_return_dataclass_int_bool():

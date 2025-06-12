@@ -19,9 +19,16 @@ TensorNetworkSpinOp<ScalarType>::TensorNetworkSpinOp(
     : m_cutnHandle(handle) {
   LOG_API_TIME();
   auto degrees = spinOp.degrees();
-  const std::vector<int64_t> qubitDims(degrees.size(), 2);
+  // Note: the `degrees` list is non-continuous and only contains non-identity
+  // indices.
+  // We need to create the network operator spanning over the entire qubit index
+  // space.
+  const std::size_t maxQubitIdx =
+      *std::max_element(degrees.begin(), degrees.end());
+  const std::size_t numQubits = maxQubitIdx + 1;
+  const std::vector<int64_t> qubitDims(numQubits, 2);
   HANDLE_CUTN_ERROR(cutensornetCreateNetworkOperator(
-      m_cutnHandle, degrees.size(), qubitDims.data(), cudaDataType,
+      m_cutnHandle, qubitDims.size(), qubitDims.data(), cudaDataType,
       &m_cutnNetworkOperator));
   // Heuristic threshold to perform direct observable calculation.
   // If the number of qubits in the spin_op is small, it is more efficient to
