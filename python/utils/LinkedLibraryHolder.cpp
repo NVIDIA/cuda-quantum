@@ -503,9 +503,7 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   return ret;
 }
 
-void resetSimulator() {
-  __nvqir__resetCircuitSimulator();
-}
+void resetSimulator() { __nvqir__resetCircuitSimulator(); }
 
 void setResourceCountingSimulator() {
   __nvqir__setCircuitSimulator(new nvqir::ResourceCounter());

@@ -524,11 +524,12 @@ public:
       if (executionContext->name == "resourcecount") {
         pm.addPass(mlir::createCanonicalizerPass());
         std::function<void(std::string, size_t)> f = [&](std::string gate,
-        size_t count) {
+                                                         size_t count) {
           executionContext->resourceCounts.append(gate, count);
         };
-        cudaq::opt::ResourceCountPreprocessOptions opt{ f };
-        pm.addNestedPass<mlir::func::FuncOp>(opt::createResourceCountPreprocess(opt));
+        cudaq::opt::ResourceCountPreprocessOptions opt{f};
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createResourceCountPreprocess(opt));
         pm.addPass(mlir::createCanonicalizerPass());
       }
       if (disableMLIRthreading || enablePrintMLIREachPass)
