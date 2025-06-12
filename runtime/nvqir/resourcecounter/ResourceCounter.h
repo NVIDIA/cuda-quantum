@@ -17,12 +17,9 @@ namespace nvqir {
 
 class ResourceCounter : public nvqir::CircuitSimulatorBase<double> {
 protected:
-  size_t num_qubits;
-  std::map<std::string, size_t> gate_counts;
 
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override {
-    num_qubits++;
     executionContext->resourceCounts.addQubit();
   }
 
@@ -66,13 +63,11 @@ public:
   std::string name() const override { return "resourcecounter"; }
 
   CircuitSimulator *clone() override {
-    // TODO: probably fine
     return this;
   };
 
   void deallocateStateImpl() override {}
 
-  // TODO
   void setToZeroState() override {}
 };
 
