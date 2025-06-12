@@ -209,6 +209,7 @@ def test_kernel_control_list_args(qubit_count):
     print(kernel)
 
 
+# CHECK-LABEL: test_kernel_control_list_args
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
 # CHECK-SAME:      (%[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
@@ -280,6 +281,7 @@ def test_sample_control_qubit_args():
     print(kernel)
 
 
+# CHECK-LABEL: test_sample_control_qubit_args
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
 # CHECK-SAME: () attributes {"cudaq-entrypoint"
 # CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref

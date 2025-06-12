@@ -1343,11 +1343,9 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
       // Each parameter must be converted to double-precision.
       auto f64Ty = rewriter.getF64Type();
       for (std::size_t i = 0; i < opParams.size(); ++i) {
-        if (opParams[i].getType().getIntOrFloatBitWidth() < 64)
-          opParams[i] = rewriter.create<arith::ExtFOp>(loc, f64Ty, opParams[i]);
-        else if (opParams[i].getType().getIntOrFloatBitWidth() > 64)
+        if (opParams[i].getType().getIntOrFloatBitWidth() != 64)
           opParams[i] =
-              rewriter.create<arith::TruncFOp>(loc, f64Ty, opParams[i]);
+              rewriter.create<cudaq::cc::CastOp>(loc, f64Ty, opParams[i]);
       }
     }
 
