@@ -109,9 +109,8 @@ fi
 # This avoids duplicate testing during container validation in the publishing task.
 for backend_to_remove in nvidia-fp64 nvidia-mgpu nvidia-mqpu-fp64 nvidia-mqpu-mps nvidia-mqpu
 do
-    requested_backends=$(echo "$requested_backends" | tr ' ' '\n' | grep -vx "$backend_to_remove" | tr '\n' ' ')
+    requested_backends=$(echo "$requested_backends" | grep -vx "$backend_to_remove")
 done
-requested_backends=$(echo "$requested_backends" | xargs)
 
 echo
 echo "Installed backends:"
