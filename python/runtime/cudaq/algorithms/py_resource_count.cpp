@@ -20,9 +20,6 @@
 namespace py = pybind11;
 
 namespace cudaq {
-void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
-                       const std::vector<std::string> &);
-
 void bindCountResources(py::module &mod) {
   mod.def(
       "count_resources",
