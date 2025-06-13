@@ -282,12 +282,13 @@ def evolve_single(
             split_into_steps=True,
             register_kraus_channel=add_noise_channel_for_step)
         kernels = [kernel for kernel in evolution]
+        save_intermediate_states = store_intermediate_results == IntermediateResultSave.ALL
         if len(observables) == 0:
-            return cudaq_runtime.evolve(initial_state, kernels)
+            return cudaq_runtime.evolve(initial_state, kernels, save_intermediate_states)
         if len(collapse_operators) > 0:
             cudaq_runtime.set_noise(noise)
         result = cudaq_runtime.evolve(initial_state, kernels, parameters,
-                                      observable_spinops, shots_count)
+                                      observable_spinops, shots_count, save_intermediate_states)
         cudaq_runtime.unset_noise()
         return result
     else:

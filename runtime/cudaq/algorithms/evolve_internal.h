@@ -53,7 +53,7 @@ evolve_result evolve(state initial_state, QuantumKernel &&kernel,
 template <typename QuantumKernel>
 evolve_result evolve(state initial_state, std::vector<QuantumKernel> &kernels,
                      const std::vector<std::vector<spin_op>> &observables = {},
-                     int shots_count = -1) {
+                     int shots_count = -1, bool save_intermediate_states = true) {
   std::vector<state> intermediate_states = {};
   std::vector<std::vector<observe_result>> expectation_values = {};
   int step_idx = -1;
@@ -61,8 +61,14 @@ evolve_result evolve(state initial_state, std::vector<QuantumKernel> &kernels,
     if (intermediate_states.size() == 0) {
       intermediate_states.push_back(get_state(kernel, initial_state));
     } else {
-      intermediate_states.push_back(
-          get_state(kernel, intermediate_states.back()));
+      auto new_state = get_state(kernel, intermediate_states.back());
+      if (save_intermediate_states) {
+        intermediate_states.push_back(new_state);
+      } else {
+        // If we are not saving intermediate results, we just update the last
+        // state.
+        std::swap(intermediate_states.back(), new_state);
+      }
     }
     if (observables.size() > 0) {
       std::vector<observe_result> expectations = {};
@@ -115,17 +121,18 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
              const std::vector<std::vector<spin_op>> &observables = {},
              std::size_t qpu_id = 0,
              std::optional<cudaq::noise_model> noise_model = std::nullopt,
-             int shots_count = -1) {
+             int shots_count = -1, bool save_intermediate_states = true) {
   auto &platform = cudaq::get_platform();
   std::promise<evolve_result> promise;
   auto f = promise.get_future();
 
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), kernels, initial_state, observables, noise_model,
-       shots_count, &platform]() mutable {
+       shots_count, &platform, save_intermediate_states]() mutable {
         if (noise_model.has_value())
           platform.set_noise(&noise_model.value());
-        p.set_value(evolve(initial_state, kernels, observables, shots_count));
+        p.set_value(evolve(initial_state, kernels, observables, shots_count,
+                           save_intermediate_states));
         if (noise_model.has_value())
           platform.set_noise(nullptr);
       });
