@@ -60,34 +60,19 @@ single quantum bit (:math:`2`-level) in the discrete quantum memory space.
 
 .. tab:: C++ 
 
-  .. code-block:: cpp
-
-      {
-        // Allocate a qubit in the |0> state
-        cudaq::qubit q;
-        // Put the qubit in a superposition of |0> and |1>
-        h(q); // cudaq::h == hadamard, ADL leveraged
-        printf("ID = %lu\n", q.id()); // prints 0
-        cudaq::qubit r;
-        printf("ID = %lu\n", r.id()); // prints 1
-        // qubit out of scope, implicit deallocation
-      }
-      cudaq::qubit q;
-      printf("ID = %lu\n", q.id()); // prints 0 (previous deallocated)
+  .. literalinclude:: /../snippets/cpp/types/types_qubit_example.cpp
+     :language: cpp
+     :start-after: [Begin CppQubitUsage]
+     :end-before: [End CppQubitUsage]
+     :dedent: 6 
 
 .. tab:: Python 
 
-  .. code-block:: python 
-
-    # Allocate a qubit in the |0> state
-    q = cudaq.qubit()
-    # Put the qubit in a superposition of |0> and |1>
-    h(q)
-    print("ID = {}".format(q.id())) # prints 0
-    
-    r = cudaq.qubit()
-    print("ID = {}", r.id()) # prints 1
-    # qubits go out of scope, implicit deallocation
+  .. literalinclude:: /../snippets/python/types/types_qubit_example.py
+     :language: python
+     :start-after: [Begin PyQubitUsage]
+     :end-before: [End PyQubitUsage]
+     :dedent: 4
     
 Quantum Containers
 ------------------
@@ -220,44 +205,19 @@ The :code:`cudaq::qview` should take on the following structure:
 
 .. tab:: C++ 
 
-  .. code-block:: cpp 
-
-    // Allocate 20 qubits, std::vector-like semantics
-    cudaq::qvector q(20);
-    // Get first qubit
-    auto first = q.front();
-    // Get first 5 qubits
-    auto first_5 = q.front(5);
-    // Get last qubit 
-    auto last = q.back();
-    // Can loop over qubits with size() method
-    for (int i = 0; i < q.size(); i++) {
-      ... do something with q[i] ...
-    }
-    // Range based for loop supported 
-    for (auto & qb : q) {
-      ... do something with qb ...
-    }
+  .. literalinclude:: /../snippets/cpp/types/types_qvector_example.cpp
+     :language: cpp
+     :start-after: [Begin CppQvectorUsage]
+     :end-before: [End CppQvectorUsage]
+     :dedent: 6
 
 .. tab:: Python 
 
-  .. code-block:: python 
-
-    # Allocate 20 qubits, vector-like semantics
-    q = cudaq.qvector(20)
-    # Get the first qubit 
-    first = q.front()
-    # Get the first 5 qubits 
-    first_5 = q.front(5)
-    # Get the last qubit 
-    last = q.back()
-    # Can loop over qubits with size or len function 
-    for i in range(len(q)):
-      .. do something with q[i] ..
-    # Range based for loop 
-    for qb in q:
-      .. do something with qb .. 
-
+  .. literalinclude:: /../snippets/python/types/types_qvector_example.py
+     :language: python
+     :start-after: [Begin PyQvectorUsage]
+     :end-before: [End PyQvectorUsage]
+     :dedent: 4
 
 :code:`cudaq::qarray<N, Levels = 2>`
 ++++++++++++++++++++++++++++++++++++
