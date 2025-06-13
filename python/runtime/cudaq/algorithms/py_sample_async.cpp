@@ -125,7 +125,8 @@ for more information on this programming pattern.)#")
                      kernelMod,
                      noise_model = std::move(noise_model)]() mutable {
                       if (noise_model.has_value())
-                        platform.set_noise(&noise_model.value());
+                        platform.get_exec_ctx()->noiseModel =
+                            &noise_model.value();
                       pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
                     }),
                 platform, kernelName, shots, explicitMeasurements, qpu_id),
