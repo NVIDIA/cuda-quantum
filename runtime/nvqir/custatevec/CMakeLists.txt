@@ -13,6 +13,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 message (STATUS "CUSTATEVEC_ROOT and CUDA_FOUND - building custatevec NVQIR backend.")
 
 add_library(nvqir-custatevec-kernels SHARED CuStateVecCircuitSimulator.cu)
+target_compile_options(nvqir-custatevec-kernels PRIVATE -Wno-deprecated-declarations)
 install(TARGETS nvqir-custatevec-kernels DESTINATION lib)
 
 find_library(CUSTATEVEC_LIB
