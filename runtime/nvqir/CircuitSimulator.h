@@ -136,6 +136,19 @@ public:
   /// simulator.
   virtual void synchronize() {}
 
+  /// @brief For simulators that support generating an MSM, this returns the
+  /// number of rows and columns in the MSM (for a given noisy kernel)
+  virtual std::optional<std::pair<std::size_t, std::size_t>> generateMSMSize() {
+    return std::nullopt;
+  }
+
+  /// @brief For simulators that support generating an MSM, this generates the
+  /// MSM and stores the result in the execution context. The result is only
+  /// valid for a specific kernel with a specific noise profile.
+  /// Note: Measurement Syndrome Matrix is defined in
+  /// https://arxiv.org/pdf/2407.13826.
+  virtual void generateMSM() {}
+
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -382,6 +395,10 @@ public:
   /// Determine the (preferred) precision of the simulator.
   virtual bool isSinglePrecision() const = 0;
   bool isDoublePrecision() const { return !isSinglePrecision(); }
+
+  /// A string containing the output logging of a kernel launched with
+  /// `cudaq::run()`.
+  std::string outputLog;
 };
 
 /// @brief The CircuitSimulatorBase is the type that is meant to
@@ -427,7 +444,7 @@ protected:
 
   /// @brief Store the last observed register name, this will help us
   /// know if we are writing to a classical bit vector
-  std::string lastMidCircuitRegisterName = "";
+  std::string lastMidCircuitRegisterName;
 
   /// @brief Vector storing register names that are bit vectors
   std::vector<std::string> vectorRegisters;
@@ -1177,6 +1194,16 @@ public:
     if (executionContext->name == "extract-state") {
       flushGateQueue();
       executionContext->simulationState = getSimulationState();
+    }
+
+    if (executionContext->name == "msm_size") {
+      flushGateQueue();
+      executionContext->msm_dimensions = generateMSMSize();
+    }
+
+    if (executionContext->name == "msm") {
+      flushGateQueue();
+      generateMSM();
     }
 
     // Deallocate the deferred qubits, but do so

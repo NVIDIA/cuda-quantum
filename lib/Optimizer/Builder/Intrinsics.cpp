@@ -402,6 +402,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},
 
+    {cudaq::llvmMemSetIntrinsic, // llvm.memset.p0i8.i64
+     {},
+     R"#(
+  func.func private @llvm.memset.p0i8.i64(!cc.ptr<i8>, i8, i64, i1) -> ())#"},
+
     {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
 
     // Declarations of QIR functions used by codegen that are common to all
@@ -538,6 +543,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_result = !cc.ptr<!llvm.struct<"Result", opaque>>
   !qir_charptr = !cc.ptr<i8>
   !qir_llvmptr = !llvm.ptr<i8>
+    )#"},
+
+    // The QIR defined output logging functions.
+    {"qir_output_logging",
+     {},
+     R"#(
+  func.func private @__quantum__rt__bool_record_output(i1, !cc.ptr<i8>)
+  func.func private @__quantum__rt__int_record_output(i64, !cc.ptr<i8>)
+  func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)
+  func.func private @__quantum__rt__tuple_record_output(i64, !cc.ptr<i8>)
+  func.func private @__quantum__rt__array_record_output(i64, !cc.ptr<i8>)
     )#"},
 
     // streamlinedLaunchKernel(kernelName, vectorArgPtrs)

@@ -1175,6 +1175,19 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
   let assemblyFormat = [{
     $constantValues `:` qualified(type($arrayType)) attr-dict
   }];
+
+  let extraClassDeclaration = [{
+    // The total number of array dimensions.
+    std::size_t arrayDimension() {
+      std::size_t depth = 0;
+      mlir::Type ty = getType();
+      while (auto arrTy = llvm::dyn_cast<cudaq::cc::ArrayType>(ty)) {
+        ty = arrTy.getElementType();
+        ++depth;
+      }
+      return depth;
+    }
+  }];
 }
 
 def cc_CreateStringLiteralOp : CCOp<"string_literal", [Pure]> {
@@ -1238,6 +1251,33 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
   let results = (outs cc_StdVectorType:$spanType);
   let assemblyFormat = [{
     $elements `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    // The total number span dimensions. The total is the number of outer
+    // std::vector<T> classes plus one if the inner class is a std::string.
+    std::size_t spanDimension() {
+      std::size_t depth = 0;
+      mlir::Type ty = getType();
+      while (auto spanTy = llvm::dyn_cast<cudaq::cc::SpanLikeType>(ty)) {
+        ty = spanTy.getElementType();
+        ++depth;
+      }
+      return depth;
+    }
+
+    // The number of std::vector<T> dimensions.
+    std::size_t vectorDimension() {
+      std::size_t depth = 0;
+      mlir::Type ty = getType();
+      while (auto vecTy = llvm::dyn_cast<cudaq::cc::StdvecType>(ty)) {
+        ty = vecTy.getElementType();
+        ++depth;
+      }
+      return depth;
+    }
   }];
 }
 
@@ -1716,6 +1756,46 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
 
   let assemblyFormat = [{
     $callable `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def cc_NoInlineCallOp :
+    CCOp<"noinline_call", [CallOpInterface, SymbolUserOpInterface]> {
+  let summary = "Create a call that the inliner will not inline.";
+  let description = [{
+    The MLIR inliner in LLVM 16 is too smart and will inline trivial calls.
+    Moreover, there is no mechanism in this version of MLIR to stop the inliner
+    from inlining these trivial functions.
+
+    The cc.noinline_call is therefore a special op that prevents the inliner
+    from doing the inlining by misreporting what function is called.
+  }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$callee,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>);
+
+  let assemblyFormat = [{
+    $callee `(` $args `)` `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// DO NOT RETURN the callee of this operation. This fools the inliner into
+    /// not knowing what is actually called.
+    mlir::CallInterfaceCallable getCallableForCallee() {
+      return mlir::FlatSymbolRefAttr::get(getContext(), ".no.inline");
+    }
+
+    mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
   }];
 }
 

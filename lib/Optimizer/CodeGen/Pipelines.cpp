@@ -16,9 +16,9 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(createApplyControlNegations());
   addAggressiveEarlyInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createUnwindLoweringPass());
+  pm.addNestedPass<func::FuncOp>(createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addPass(createApplyOpSpecializationPass());
+  pm.addPass(createApplySpecialization());
   pm.addNestedPass<func::FuncOp>(createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -46,6 +46,7 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   else
     emitError(UnknownLoc::get(pm.getContext()),
               "convert to QIR must be given a valid specification to use.");
+  pm.addPass(createReturnToOutputLog());
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(createCCToLLVM());
@@ -60,7 +61,7 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
 }
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
-  pm.addNestedPass<func::FuncOp>(createUnwindLoweringPass());
+  pm.addNestedPass<func::FuncOp>(createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createExpandMeasurementsPass());
   LoopUnrollOptions luo;
   pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));

@@ -271,5 +271,19 @@ def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
   ];
 }
 
+def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
+  let summary = "Convert a kernel to be compatible with cudaq::run().";
+  let description = [{
+    When the target supports the cudaq::run() launch function, the kernel's
+    return value(s) are translated into QIR output logging functions. This
+    conversion allows the kernel to be executed as a group of shots on the QPU
+    and a log file produced for the data produced by each kernel execution.
+    Effectively, this allows for the benefit of running the kernel as a batch
+    of executions and eliminating the overhead of executing the kernel one at
+    a time with all the interprocessor overhead.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

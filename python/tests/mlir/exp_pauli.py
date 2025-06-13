@@ -98,8 +98,8 @@ def test_exp_pauli():
 # CHECK:         %[[VAL_18:.*]] = load %Qubit*, %Qubit** %[[VAL_17]], align 8
 # CHECK:         tail call void @__quantum__qis__rx(double %[[VAL_16]], %Qubit* %[[VAL_18]])
 # CHECK:         %[[VAL_14]] = add nuw nsw i64 %[[VAL_13]], 1
-# CHECK:         %[[VAL_19:.*]] = icmp slt i64 %[[VAL_14]], %[[VAL_4]]
-# CHECK:         br i1 %[[VAL_19]], label %[[VAL_12]], label %[[VAL_9]]
+# CHECK:         %[[VAL_19:.*]] = icmp eq i64 %[[VAL_14]], %[[VAL_4]]
+# CHECK:         br i1 %[[VAL_19]], label %[[VAL_9]], label %[[VAL_12]]
 # CHECK:       :                                      ; preds = %[[VAL_12]], %[[VAL_10]]
 # CHECK:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_2]])
 # CHECK:         %[[VAL_20:.*]] = tail call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
