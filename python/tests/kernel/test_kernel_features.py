@@ -159,6 +159,35 @@ def test_control():
     assert '110' in counts
 
 
+def test_multi_control_gates():
+    """Test that a multi-controlled X (Toffoli) gate works with the multi-control API."""
+
+    @cudaq.kernel
+    def mcx_kernel():
+        q = cudaq.qvector(3)
+        # State |110>
+        x(q[0])
+        x(q[1])
+        x.ctrl([q[0], q[1]], q[2])
+        mz(q)
+
+    counts = cudaq.sample(mcx_kernel)
+    assert len(counts) == 1
+    assert '111' in counts
+
+    @cudaq.kernel
+    def mcx_kernel_neg():
+        q = cudaq.qvector(3)
+        # State |100>
+        x(q[0])
+        x.ctrl([q[0], q[1]], q[2])
+        mz(q)
+
+    counts = cudaq.sample(mcx_kernel_neg)
+    assert len(counts) == 1
+    assert '100' in counts
+
+
 def test_grover():
     """Test that compute_action works in tandem with kernel composability."""
 
