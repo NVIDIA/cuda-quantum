@@ -79,7 +79,8 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        base_integrator &integrator,
        std::initializer_list<CollapseOpTy> collapse_operators = {},
        std::initializer_list<ObserveOpTy> observables = {},
-       IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
@@ -112,7 +113,8 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        base_integrator &integrator,
        std::initializer_list<CollapseOpTy> collapse_operators = {},
        std::initializer_list<ObserveOpTy> observables = {},
-       IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
@@ -142,7 +144,8 @@ evolve_result evolve(const HamTy &hamiltonian,
                      base_integrator &integrator,
                      const std::vector<CollapseOpTy> &collapse_operators = {},
                      const std::vector<ObserveOpTy> &observables = {},
-                     IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
                      std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
@@ -172,7 +175,8 @@ evolve_result evolve(const HamTy &hamiltonian,
                      base_integrator &integrator,
                      const std::vector<CollapseOpTy> &collapse_operators = {},
                      const std::vector<ObserveOpTy> &observables = {},
-                     IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
                      std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
@@ -205,7 +209,8 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        base_integrator &integrator,
        std::initializer_list<CollapseOpTy> collapse_operators = {},
        std::initializer_list<ObserveOpTy> observables = {},
-       IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveBatched(
@@ -239,7 +244,8 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        base_integrator &integrator,
        const std::vector<CollapseOpTy> &collapse_operators = {},
        const std::vector<ObserveOpTy> &observables = {},
-       IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveBatched(
@@ -273,7 +279,8 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              base_integrator &integrator,
              std::initializer_list<CollapseOpTy> collapse_operators = {},
              std::initializer_list<ObserveOpTy> observables = {},
-             IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+             IntermediateResultSave store_intermediate_results =
+                 IntermediateResultSave::None,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
 #if defined(CUDAQ_ANALOG_TARGET)
   // Clone the integrator to extend its lifetime.
@@ -314,7 +321,8 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              base_integrator &integrator,
              const std::vector<CollapseOpTy> &collapse_operators = {},
              const std::vector<ObserveOpTy> &observables = {},
-             IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+             IntermediateResultSave store_intermediate_results =
+                 IntermediateResultSave::None,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
 #if defined(CUDAQ_ANALOG_TARGET)
   // Clone the integrator to extend its lifetime.

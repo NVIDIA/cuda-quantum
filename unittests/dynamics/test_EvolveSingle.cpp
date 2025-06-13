@@ -32,7 +32,8 @@ TEST(EvolveTester, checkSimple) {
 
   cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, cudaq::IntermediateResultSave::All);
+      ham, dims, schedule, initialState, integrator, {}, {pauliZ},
+      cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -65,7 +66,8 @@ TEST(EvolveTester, checkSimpleRK4) {
 
   cudaq::integrators::runge_kutta integrator(4, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, cudaq::IntermediateResultSave::All);
+      ham, dims, schedule, initialState, integrator, {}, {pauliZ},
+      cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -98,7 +100,8 @@ TEST(EvolveTester, checkDensityMatrixSimple) {
 
   cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {}, {pauliZ}, cudaq::IntermediateResultSave::All);
+      ham, dims, schedule, initialState, integrator, {}, {pauliZ},
+      cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -253,7 +256,8 @@ TEST(EvolveTester, checkScalarTd) {
       cudaq::state::from_data(std::make_pair(rho0.data(), rho0.size()));
   cudaq::integrators::runge_kutta integrator(4, 0.001);
   auto result = cudaq::__internal__::evolveSingle(
-      ham, dims, schedule, initialState, integrator, {collapseOp}, {obs}, cudaq::IntermediateResultSave::All);
+      ham, dims, schedule, initialState, integrator, {collapseOp}, {obs},
+      cudaq::IntermediateResultSave::All);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;

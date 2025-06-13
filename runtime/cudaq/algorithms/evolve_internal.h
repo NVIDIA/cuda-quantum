@@ -53,7 +53,8 @@ evolve_result evolve(state initial_state, QuantumKernel &&kernel,
 template <typename QuantumKernel>
 evolve_result evolve(state initial_state, std::vector<QuantumKernel> &kernels,
                      const std::vector<std::vector<spin_op>> &observables = {},
-                     int shots_count = -1, bool save_intermediate_states = true) {
+                     int shots_count = -1,
+                     bool save_intermediate_states = true) {
   std::vector<state> intermediate_states = {};
   std::vector<std::vector<observe_result>> expectation_values = {};
   int step_idx = -1;
@@ -172,7 +173,8 @@ evolve_result evolveSingle(
     const state &initial_state, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
-    IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+    IntermediateResultSave store_intermediate_results =
+        IntermediateResultSave::None,
     std::optional<int> shots_count = std::nullopt);
 
 evolve_result evolveSingle(
@@ -181,7 +183,8 @@ evolve_result evolveSingle(
     InitialState initial_state, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
-    IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+    IntermediateResultSave store_intermediate_results =
+        IntermediateResultSave::None,
     std::optional<int> shots_count = std::nullopt);
 
 std::vector<evolve_result> evolveBatched(
@@ -190,7 +193,8 @@ std::vector<evolve_result> evolveBatched(
     const std::vector<state> &initial_states, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
-    IntermediateResultSave store_intermediate_results = IntermediateResultSave::None,
+    IntermediateResultSave store_intermediate_results =
+        IntermediateResultSave::None,
     std::optional<int> shots_count = std::nullopt);
 
 evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
