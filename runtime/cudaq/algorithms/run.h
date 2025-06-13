@@ -191,9 +191,15 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
       [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
       kernelName, shots);
   platform.reset_noise();
-
-  return {reinterpret_cast<ResultTy *>(span.data),
-          reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+  if constexpr (std::is_same_v<ResultTy, bool>) {
+    // Special case for std::vector<bool> which is a specialization.
+    std::vector<bool> results;
+    __nvqpp_initializer_list_to_vector_bool(results, span.data,
+                                            span.lengthInBytes);
+    return results;
+  } else
+    return {reinterpret_cast<ResultTy *>(span.data),
+            reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
 }
 
 /// @brief Launch a run of a kernel for \p shots number of times on a specific
@@ -246,12 +252,20 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
             kernelName, shots);
-        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                         std::decay_t<ARGS>...>>
-            results{
-                reinterpret_cast<ResultTy *>(span.data),
-                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
-        p.set_value(std::move(results));
+        if constexpr (std::is_same_v<ResultTy, bool>) {
+          // Special case for std::vector<bool> which is a specialization.
+          std::vector<bool> results;
+          __nvqpp_initializer_list_to_vector_bool(results, span.data,
+                                                  span.lengthInBytes);
+          p.set_value(std::move(results));
+        } else {
+          std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                           std::decay_t<ARGS>...>>
+              results{
+                  reinterpret_cast<ResultTy *>(span.data),
+                  reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+          p.set_value(std::move(results));
+        }
       });
 #else
   QuantumTask wrapped = detail::make_copyable_function(
@@ -285,12 +299,20 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
                   std::move(args));
             },
             platform, kernelName, shots);
-        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                         std::decay_t<ARGS>...>>
-            results{
-                reinterpret_cast<ResultTy *>(span.data),
-                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
-        p.set_value(std::move(results));
+        if constexpr (std::is_same_v<ResultTy, bool>) {
+          // Special case for std::vector<bool> which is a specialization.
+          std::vector<bool> results;
+          __nvqpp_initializer_list_to_vector_bool(results, span.data,
+                                                  span.lengthInBytes);
+          p.set_value(std::move(results));
+        } else {
+          std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                           std::decay_t<ARGS>...>>
+              results{
+                  reinterpret_cast<ResultTy *>(span.data),
+                  reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+          p.set_value(std::move(results));
+        }
       });
 #endif
   platform.enqueueAsyncTask(qpu_id, wrapped);
@@ -360,13 +382,22 @@ run_async(std::size_t qpu_id, std::size_t shots,
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
             kernelName, shots);
-        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                         std::decay_t<ARGS>...>>
-            results{
-                reinterpret_cast<ResultTy *>(span.data),
-                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
         platform.reset_noise();
-        p.set_value(std::move(results));
+        if constexpr (std::is_same_v<ResultTy, bool>) {
+          // Special case for std::vector<bool> which is a specialization.
+          std::vector<bool> results;
+          __nvqpp_initializer_list_to_vector_bool(results, span.data,
+                                                  span.lengthInBytes);
+          p.set_value(std::move(results));
+        } else {
+          std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                           std::decay_t<ARGS>...>>
+              results{
+                  reinterpret_cast<ResultTy *>(span.data),
+                  reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+
+          p.set_value(std::move(results));
+        }
       });
 #else
   QuantumTask wrapped = detail::make_copyable_function(
@@ -407,13 +438,21 @@ run_async(std::size_t qpu_id, std::size_t shots,
                   std::move(args));
             },
             platform, kernelName, shots);
-        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                         std::decay_t<ARGS>...>>
-            results{
-                reinterpret_cast<ResultTy *>(span.data),
-                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
         platform.reset_noise();
-        p.set_value(std::move(results));
+        if constexpr (std::is_same_v<ResultTy, bool>) {
+          // Special case for std::vector<bool> which is a specialization.
+          std::vector<bool> results;
+          __nvqpp_initializer_list_to_vector_bool(results, span.data,
+                                                  span.lengthInBytes);
+          p.set_value(std::move(results));
+        } else {
+          std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
+                                           std::decay_t<ARGS>...>>
+              results{
+                  reinterpret_cast<ResultTy *>(span.data),
+                  reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+          p.set_value(std::move(results));
+        }
       });
 #endif
   platform.enqueueAsyncTask(qpu_id, wrapped);
