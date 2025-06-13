@@ -88,6 +88,14 @@ def test_depolarization_channel_simple(target: str):
     got_one_probability = noisy_counts.probability("1")
     assert np.isclose(got_zero_probability, want_probability, atol=.2)
     assert np.isclose(got_one_probability, want_probability, atol=.2)
+
+    # Asynchronous call
+    future = cudaq.sample_async(kernel, noise_model=noise)
+    noisy_counts = future.get()
+    got_zero_probability = noisy_counts.probability("0")
+    got_one_probability = noisy_counts.probability("1")
+    assert np.isclose(got_zero_probability, want_probability, atol=.2)
+    assert np.isclose(got_one_probability, want_probability, atol=.2)
     cudaq.reset_target()
 
 
@@ -121,6 +129,12 @@ def test_amplitude_damping_simple():
     # With noise, all measurements should be in the |0> state,
     noisy_counts = cudaq.sample(kernel, noise_model=noise)
     want_counts = 1000
+    got_counts = noisy_counts["0"]
+    assert (got_counts == want_counts)
+
+    # Asynchronous call
+    future = cudaq.sample_async(kernel, noise_model=noise)
+    noisy_counts = future.get()
     got_counts = noisy_counts["0"]
     assert (got_counts == want_counts)
     cudaq.reset_target()
@@ -457,6 +471,9 @@ def test_callback_channel():
     noisy_counts = cudaq.sample(kernel, shots_count=shots, noise_model=noise)
     noisy_counts.dump()
     # All qubits, except q[2], are flipped.
+    assert np.isclose(noisy_counts.probability("00100"), 1.0)
+    future = cudaq.sample_async(kernel, shots_count=shots, noise_model=noise)
+    noisy_counts = future.get()
     assert np.isclose(noisy_counts.probability("00100"), 1.0)
     cudaq.reset_target()
 
