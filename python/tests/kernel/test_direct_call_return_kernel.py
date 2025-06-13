@@ -6,15 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os
+import os, time
 
 import pytest
 import numpy as np
+from typing import Callable, List, Tuple
 from dataclasses import dataclass
 
 import cudaq
-
-list_err_msg = 'Returning `list` from kernels is not yet supported'
 
 
 def is_close(actual, expected):
@@ -200,18 +199,16 @@ def test_return_list_bool():
     def simple_list_bool_no_args() -> list[bool]:
         return [True, False, True]
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_bool_no_args()
-    assert list_err_msg in str(e.value)
+    result = simple_list_bool_no_args()
+    assert result == [True, False, True]
 
     @cudaq.kernel
     def simple_list_bool(n: int, t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_bool(2, [True, False, True])
-    assert list_err_msg in str(e.value)
+    result = simple_list_bool(2, [True, False, True])
+    assert result == [True, False, True]
 
 
 def test_return_list_int():
@@ -220,18 +217,16 @@ def test_return_list_int():
     def simple_list_int_no_args() -> list[int]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int_no_args()
-    assert list_err_msg in str(e.value)
+    result = simple_list_int_no_args()
+    assert result == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int(n: int, t: list[int]) -> list[int]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int(2, [-13, 5, 42])
-    assert list_err_msg in str(e.value)
+    result = simple_list_int(2, [-13, 5, 42])
+    assert result == [-13, 5, 42]
 
 
 def test_return_list_int32():
@@ -240,18 +235,16 @@ def test_return_list_int32():
     def simple_list_int32_no_args() -> list[np.int32]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int32_no_args()
-    assert list_err_msg in str(e.value)
+    result = simple_list_int32_no_args()
+    assert result == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int32(n: int, t: list[np.int32]) -> list[np.int32]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int32(2, [-13, 5, 42])
-    assert list_err_msg in str(e.value)
+    result = simple_list_int32(2, [-13, 5, 42])
+    assert result == [-13, 5, 42]
 
 
 def test_return_list_int16():
@@ -260,18 +253,16 @@ def test_return_list_int16():
     def simple_list_int16_no_args() -> list[np.int16]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int16_no_args()
-    assert list_err_msg in str(e.value)
+    result = simple_list_int16_no_args()
+    assert result == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int16(2, [-13, 5, 42])
-    assert list_err_msg in str(e.value)
+    result = simple_list_int16(2, [-13, 5, 42])
+    assert result == [-13, 5, 42]
 
 
 def test_return_list_int8():
@@ -280,18 +271,16 @@ def test_return_list_int8():
     def simple_list_int8_no_args() -> list[np.int8]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int8_no_args()
-    assert list_err_msg in str(e.value)
+    result = simple_list_int8_no_args()
+    assert result == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int8(2, [-13, 5, 42])
-    assert list_err_msg in str(e.value)
+    result = simple_list_int8(2, [-13, 5, 42])
+    assert result == [-13, 5, 42]
 
 
 def test_return_list_int64():
@@ -300,18 +289,16 @@ def test_return_list_int64():
     def simple_list_int64_no_args() -> list[np.int64]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int64_no_args()
-    assert list_err_msg in str(e.value)
+    result = simple_list_int64_no_args()
+    assert result == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int64(n: int, t: list[np.int64]) -> list[np.int64]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_int64(2, [-13, 5, 42])
-    assert list_err_msg in str(e.value)
+    result = simple_list_int64(2, [-13, 5, 42])
+    assert result == [-13, 5, 42]
 
 
 def test_return_list_float():
@@ -320,18 +307,16 @@ def test_return_list_float():
     def simple_list_float_no_args() -> list[float]:
         return [-13.2, 5., 42.99]
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_float_no_args()
-    assert list_err_msg in str(e.value)
+    result = simple_list_float_no_args()
+    assert result == [-13.2, 5.0, 42.99]
 
     @cudaq.kernel
     def simple_list_float(n: int, t: list[float]) -> list[float]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_float(2, [-13.2, 5.0, 42.99])
-    assert list_err_msg in str(e.value)
+    result = simple_list_float(2, [-13.2, 5.0, 42.99])
+    assert result == [-13.2, 5.0, 42.99]
 
 
 def test_return_list_float32():
@@ -340,18 +325,17 @@ def test_return_list_float32():
     def simple_list_float32_no_args() -> list[np.float32]:
         return [-13.2, 5., 42.99]
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_float32_no_args()
-    assert list_err_msg in str(e.value)
+    result = simple_list_float32_no_args()
+    print(result)
+    assert is_close_array(result, [-13.2, 5.0, 42.99])
 
     @cudaq.kernel
     def simple_list_float32(n: int, t: list[np.float32]) -> list[np.float32]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_float32(2, [-13.2, 5.0, 42.99])
-    assert list_err_msg in str(e.value)
+    result = simple_list_float32(2, [-13.2, 5.0, 42.99])
+    assert is_close_array(result, [-13.2, 5.0, 42.99])
 
 
 def test_return_list_float64():
@@ -360,18 +344,16 @@ def test_return_list_float64():
     def simple_list_float64_no_args() -> list[np.float64]:
         return [-13.2, 5., 42.99]
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_float64_no_args()
-    assert list_err_msg in str(e.value)
+    result = simple_list_float64_no_args()
+    assert result == [-13.2, 5.0, 42.99]
 
     @cudaq.kernel
     def simple_list_float64(n: int, t: list[np.float64]) -> list[np.float64]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        simple_list_float64(2, [-13.2, 5.0, 42.99])
-    assert list_err_msg in str(e.value)
+    result = simple_list_float64(2, [-13.2, 5.0, 42.99])
+    assert result == [-13.2, 5.0, 42.99]
 
 
 def test_return_tuple_int_float():
