@@ -428,6 +428,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/mps_encoding.html">Approximate State Preparation using MPS Sequential Encoding</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/mps_encoding.html#Ran's-approach">Ran’s approach</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="backends/backends.html">   Backends</a><ul>
@@ -1139,6 +1143,33 @@ the interaction between a two-level atom and a light (Boson) field.</p>
 <p>In the above code snippet, we map the cavity light field to degree index 1 and the two-level atom to degree index 0.
 The description of composite quantum system dynamics is independent from the Hilbert space of the system components.
 The latter is specified by the dimension map that is provided to the <code class="code docutils literal notranslate"><span class="pre">cudaq.evolve</span></code> call.</p>
+<p>Builtin operators support both dense and multi-diagonal sparse formats.
+Depending on the sparsity of operator matrix and/or the sub-system dimension, CUDA-Q will
+either use the dense or multi-diagonal data formats for optimal performance.</p>
+<p>Specifically, the following environment variable options are applicable to the <code class="code docutils literal notranslate"><span class="pre">dynamics</span></code> target.
+Any environment variables must be set prior to setting the target or running “<code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>”.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text"><strong>Additional environment variable options for the `dynamics` target</strong></span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 30%" />
+<col style="width: 50%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>Option</p></td>
+<td><p>Value</p></td>
+<td><p>Description</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION</span></code></p></td>
+<td><p>Non-negative number</p></td>
+<td><p>The minimum sub-system dimension on which the operator acts to activate multi-diagonal data format. For example, if a minimum dimension configuration of <code class="code docutils literal notranslate"><span class="pre">N</span></code> is set, all operators acting on degrees of freedom (sub-system) whose dimension is less than or equal to <code class="code docutils literal notranslate"><span class="pre">N</span></code> would always use the dense format. The final data format to be used depends on the next configuration. The default is 4.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL</span></code></p></td>
+<td><p>Non-negative number</p></td>
+<td><p>The maximum number of diagonals for multi-diagonal representation. If the operator matrix has more diagonals than this value, the dense format will be used. Default is 1, i.e., operators with only one diagonal line (center, lower, or upper) will use the multi-diagonal sparse storage.</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="time-dependent-dynamics">
 <h2>Time-Dependent Dynamics<a class="headerlink" href="#time-dependent-dynamics" title="Permalink to this heading">¶</a></h2>
@@ -1371,8 +1402,8 @@ the desired value for each parameter:</p>
 <h2>Numerical Integrators<a class="headerlink" href="#numerical-integrators" title="Permalink to this heading">¶</a></h2>
 <p id="integrators">For Python, CUDA-Q provides a set of numerical integrators, to be used with the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code>
 backend target.</p>
-<table class="docutils align-default" id="id2">
-<caption><span class="caption-text">Numerical Integrators</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Numerical Integrators</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 29%" />
 <col style="width: 71%" />
@@ -1442,8 +1473,8 @@ using their Docker images.</p>
 </div>
 <p>For C++, CUDA-Q provides Runge-Kutta integrator, to be used with the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code>
 backend target.</p>
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-text">Numerical Integrators</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Numerical Integrators</span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 29%" />
 <col style="width: 71%" />
