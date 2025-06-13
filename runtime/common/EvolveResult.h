@@ -31,7 +31,7 @@ public:
   constexpr IntermediateResultSave(bool val)
       : m_value(val ? static_cast<int>(UnderlyingTy::All)
                     : static_cast<int>(UnderlyingTy::None)) {}
-  constexpr operator int() { return m_value; }
+  constexpr operator int() const { return m_value; }
 };
 
 /// @brief The evolve_result encapsulates all data generated from a

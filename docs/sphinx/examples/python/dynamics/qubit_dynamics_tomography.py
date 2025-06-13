@@ -46,7 +46,7 @@ evolution_results = cudaq.evolve(hamiltonian,
                                               spin.y(0),
                                               spin.z(0)],
                                  collapse_operators=[],
-                                 store_intermediate_results=True,
+                                 store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
                                  integrator=RungeKuttaIntegrator())
 
 get_result = lambda idx, res: [

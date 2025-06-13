@@ -74,7 +74,7 @@ evolution_result = cudaq.evolve(hamiltonian,
                                     operators.position(0)
                                 ],
                                 collapse_operators=[],
-                                store_intermediate_results=True,
+                                store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
                                 integrator=ScipyZvodeIntegrator())
 
 get_result = lambda idx, res: [

@@ -20,7 +20,7 @@ from cudaq.kernel.register_op import register_operation
 from cudaq.kernel.utils import ahkPrefix
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..operators import NumericType, Operator, RydbergHamiltonian
-from .helpers import InitialState, InitialStateArgT
+from .helpers import InitialState, InitialStateArgT, IntermediateResultSave
 from .integrator import BaseIntegrator
 from .schedule import Schedule
 
@@ -205,10 +205,15 @@ def evolve_single(
         initial_state: InitialStateArgT,
         collapse_operators: Sequence[Operator] = [],
         observables: Sequence[Operator] = [],
-        store_intermediate_results=False,
+        store_intermediate_results: IntermediateResultSave = IntermediateResultSave.NONE,
         integrator: Optional[BaseIntegrator] = None,
         shots_count: Optional[int] = None) -> cudaq_runtime.EvolveResult:
     target_name = cudaq_runtime.get_target().name
+    if not isinstance(store_intermediate_results, IntermediateResultSave):
+        raise ValueError(
+            f"Invalid argument `store_intermediate_results` for target {cudaq_runtime.get_target().name}."
+        )
+
     if target_name in analog_targets:
         ## TODO: Convert result from `sample_result` to `evolve_result`
         return _launch_analog_hamiltonian_kernel(target_name, hamiltonian,
@@ -268,7 +273,7 @@ def evolve_single(
         else:
             initial_state = cudaq_runtime.State.from_data(state_data)
 
-    if store_intermediate_results:
+    if store_intermediate_results != IntermediateResultSave.NONE:
         evolution = _evolution_kernel(
             num_qubits,
             compute_step_matrix,
@@ -312,7 +317,7 @@ def evolve(
     initial_state: InitialStateArgT | Sequence[InitialStateArgT] = None,
     collapse_operators: Sequence[Operator] = [],
     observables: Sequence[Operator] = [],
-    store_intermediate_results=False,
+    store_intermediate_results: IntermediateResultSave | bool = IntermediateResultSave.NONE,
     integrator: Optional[BaseIntegrator] = None,
     shots_count: Optional[int] = None
 ) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
@@ -336,7 +341,7 @@ def evolve(
         collapse_operators: A sequence of operators that describe the influence of 
             noise on the quantum system.
         `observables`: A sequence of operators for which to compute their expectation
-            value during evolution. If `store_intermediate_results` is set to True,
+            value during evolution. If `store_intermediate_results` is not None,
             the expectation values are computed after each step in the schedule, 
             and otherwise only the final expectation values at the end of the 
             evolution are computed.
@@ -353,6 +358,10 @@ def evolve(
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
+    
+    if isinstance(store_intermediate_results, bool):
+        store_intermediate_results = IntermediateResultSave.ALL if store_intermediate_results else IntermediateResultSave.NONE
+    
     if target_name in analog_targets:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(
@@ -375,7 +384,7 @@ def evolve(
         if len(observables) != 0:
             raise ValueError(
                 f"Unexpected argument `observables` for target {target_name}.")
-        if store_intermediate_results == True:
+        if store_intermediate_results != IntermediateResultSave.NONE:
             raise ValueError(
                 f"Unexpected argument `store_intermediate_results` for target {target_name}."
             )
@@ -425,9 +434,13 @@ def evolve_single_async(
         initial_state: InitialStateArgT,
         collapse_operators: Sequence[Operator] = [],
         observables: Sequence[Operator] = [],
-        store_intermediate_results=False,
+        store_intermediate_results: IntermediateResultSave = IntermediateResultSave.NONE,
         integrator: Optional[BaseIntegrator] = None,
         shots_count: Optional[int] = None) -> cudaq_runtime.AsyncEvolveResult:
+    if not isinstance(store_intermediate_results, IntermediateResultSave):
+        raise ValueError(
+            f"Invalid argument `store_intermediate_results` for target {cudaq_runtime.get_target().name}."
+        )
     target_name = cudaq_runtime.get_target().name
     if target_name == "dynamics":
         try:
@@ -536,7 +549,7 @@ def evolve_async(
     initial_state: InitialStateArgT | Sequence[InitialStateArgT] = None,
     collapse_operators: Sequence[Operator] = [],
     observables: Sequence[Operator] = [],
-    store_intermediate_results=False,
+    store_intermediate_results:IntermediateResultSave | bool = IntermediateResultSave.NONE,
     integrator: Optional[BaseIntegrator] = None,
     shots_count: Optional[int] = None
 ) -> cudaq_runtime.AsyncEvolveResult | Sequence[
@@ -557,6 +570,10 @@ def evolve_async(
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
+    
+    if isinstance(store_intermediate_results, bool):
+        store_intermediate_results = IntermediateResultSave.ALL if store_intermediate_results else IntermediateResultSave.NONE
+        
     if target_name in analog_targets:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(
@@ -579,7 +596,7 @@ def evolve_async(
         if len(observables) != 0:
             raise ValueError(
                 f"Unexpected argument `observables` for target {target_name}.")
-        if store_intermediate_results == True:
+        if store_intermediate_results != IntermediateResultSave.NONE:
             raise ValueError(
                 f"Unexpected argument `store_intermediate_results` for target {target_name}."
             )

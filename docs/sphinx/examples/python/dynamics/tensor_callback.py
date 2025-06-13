@@ -48,7 +48,7 @@ evolution_result = cudaq.evolve(hamiltonian,
                                 psi0,
                                 observables=[boson.number(0)],
                                 collapse_operators=[],
-                                store_intermediate_results=True,
+                                store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
                                 integrator=ScipyZvodeIntegrator())
 
 prob1 = [

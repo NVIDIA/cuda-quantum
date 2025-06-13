@@ -50,7 +50,7 @@ evolution_result = cudaq.evolve(hamiltonian,
                                              spin.y(0),
                                              spin.z(0)],
                                 collapse_operators=[],
-                                store_intermediate_results=True,
+                                store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
                                 integrator=ScipyZvodeIntegrator())
 
 # Now, run the simulation with qubit decoherence
@@ -66,7 +66,7 @@ evolution_result_decay = cudaq.evolve(
         np.sqrt(gamma_sm) * spin.plus(0),
         np.sqrt(gamma_sz) * spin.z(0)
     ],
-    store_intermediate_results=True,
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
     integrator=ScipyZvodeIntegrator())
 
 get_result = lambda idx, res: [

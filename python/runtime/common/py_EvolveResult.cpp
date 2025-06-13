@@ -80,26 +80,6 @@ void bindEvolveResult(py::module &mod) {
           py::call_guard<py::gil_scoped_release>(),
           "Retrieve the evolution result from the asynchronous evolve "
           "execution\n.");
-
-  py::class_<IntermediateResultSave>(
-      mod, "IntermediateResultSave",
-      "Specify the intermediate data to be saved in the `EvolveResult`.\n")
-      .def_readonly("None", &cudaq::IntermediateResultSave::None,
-                    "No intermediate results will be saved. Only the final "
-                    "state and expectation values will be saved.")
-      .def_readonly("ExpectationValue",
-                    &cudaq::IntermediateResultSave::ExpectationValue,
-                    "The intermediate expectation values will be saved along "
-                    "with the final state.")
-      .def_readonly("All", &cudaq::IntermediateResultSave::All,
-                    "All intermediate results will be saved, including the "
-                    "states and expectation values.")
-      .def(
-          "__int__",
-          [](const IntermediateResultSave &self) {
-            return static_cast<int>(self);
-          },
-          "Return the integer value of the IntermediateResultSave enum.\n");
 }
 
 } // namespace cudaq

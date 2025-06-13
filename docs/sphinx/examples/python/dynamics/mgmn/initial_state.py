@@ -49,7 +49,7 @@ evolution_result = cudaq.evolve(H,
                                 psi0,
                                 observables=[avg_magnetization_op],
                                 collapse_operators=[],
-                                store_intermediate_results=True,
+                                store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
                                 integrator=RungeKuttaIntegrator())
 
 exp_val = [
