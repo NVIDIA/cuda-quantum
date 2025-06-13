@@ -29,7 +29,8 @@ def evolve_dynamics(
     initial_state: InitialStateArgT | Sequence[cudaq_runtime.State],
     collapse_operators: Sequence[Operator] = [],
     observables: Sequence[Operator] = [],
-    store_intermediate_results: IntermediateResultSave = IntermediateResultSave.NONE,
+    store_intermediate_results: IntermediateResultSave = IntermediateResultSave.
+    NONE,
     integrator: Optional[BaseIntegrator] = None
 ) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     # Reset the schedule
@@ -39,7 +40,7 @@ def evolve_dynamics(
     if not isinstance(store_intermediate_results, IntermediateResultSave):
         raise TypeError(
             "store_intermediate_results must be an instance of IntermediateResultSave"
-        ) 
+        )
     # Check that the integrator can support distributed state if this is a distributed simulation.
     if cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks(
     ) > 1 and integrator is not None and not integrator.support_distributed_state(
@@ -90,7 +91,8 @@ def evolve_dynamics(
                 integrator.integrate(schedule.current_step)
         # If we store intermediate values, compute them for each step.
         # Otherwise, just for the last step.
-        if store_intermediate_results != IntermediateResultSave.NONE or step_idx == (len(schedule) - 1):
+        if store_intermediate_results != IntermediateResultSave.NONE or step_idx == (
+                len(schedule) - 1):
             step_exp_vals = [[] for _ in range(batch_size)]
             _, state = integrator.get_state()
             for obs_idx, obs in enumerate(expectation_op):
@@ -98,11 +100,12 @@ def evolve_dynamics(
                 exp_val = obs.compute(state, schedule.current_step)
                 for i in range(batch_size):
                     step_exp_vals[i].append(exp_val[i])
-            
+
             for i in range(batch_size):
                 exp_vals[i].append(step_exp_vals[i])
             # Store all intermediate states if requested. Otherwise, only the last state.
-            if store_intermediate_results == IntermediateResultSave.ALL or step_idx == (len(schedule) - 1):
+            if store_intermediate_results == IntermediateResultSave.ALL or step_idx == (
+                    len(schedule) - 1):
                 split_states = bindings.splitBatchedState(state)
                 for i in range(batch_size):
                     intermediate_states[i].append(split_states[i])

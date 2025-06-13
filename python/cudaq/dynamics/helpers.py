@@ -14,6 +14,7 @@ InitialState = cudaq_runtime.InitialStateType
 
 InitialStateArgT = cudaq_runtime.State | InitialState
 
+
 class IntermediateResultSave(Enum):
     '''
     Enum to specify how intermediate results should be saved during the dynamics evolution.

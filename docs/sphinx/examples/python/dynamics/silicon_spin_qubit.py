@@ -38,7 +38,8 @@ for amplitude in amplitudes:
                                     rho0,
                                     observables=[boson.number(0)],
                                     collapse_operators=[],
-                                    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+                                    store_intermediate_results=cudaq.
+                                    IntermediateResultSave.EXPECTATION_VALUE,
                                     integrator=ScipyZvodeIntegrator())
     evolution_results.append(get_result(0, evolution_result))
 

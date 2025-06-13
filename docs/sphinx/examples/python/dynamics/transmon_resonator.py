@@ -63,19 +63,20 @@ steps = np.linspace(0, 250, 1000)
 schedule = Schedule(steps, ["time"])
 
 # Evolve the system
-evolution_result = cudaq.evolve(hamiltonian,
-                                dimensions,
-                                schedule,
-                                psi0,
-                                observables=[
-                                    operators.number(1),
-                                    operators.number(0),
-                                    operators.position(1),
-                                    operators.position(0)
-                                ],
-                                collapse_operators=[],
-                                store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-                                integrator=ScipyZvodeIntegrator())
+evolution_result = cudaq.evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    psi0,
+    observables=[
+        operators.number(1),
+        operators.number(0),
+        operators.position(1),
+        operators.position(0)
+    ],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=ScipyZvodeIntegrator())
 
 get_result = lambda idx, res: [
     exp_vals[idx].expectation() for exp_vals in res.expectation_values()

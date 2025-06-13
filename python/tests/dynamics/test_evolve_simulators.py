@@ -203,7 +203,8 @@ def test_evolve(init_state):
                                     observables=[spin.y(0),
                                                  spin.z(0)],
                                     collapse_operators=[],
-                                    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE)
+                                    store_intermediate_results=cudaq.
+                                    IntermediateResultSave.EXPECTATION_VALUE)
 
     schedule.reset()
     # Now, run the simulation with qubit decaying due to the presence of a collapse operator.
@@ -214,7 +215,8 @@ def test_evolve(init_state):
         rho0,
         observables=[spin.y(0), spin.z(0)],
         collapse_operators=[np.sqrt(0.05) * spin.x(0)],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE)
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE)
 
     get_result = lambda idx, res: [
         exp_vals[idx].expectation() for exp_vals in res.expectation_values()
@@ -232,15 +234,16 @@ def test_evolve(init_state):
 
     # Test for `shots_count`
     schedule.reset()
-    evolution_result_shots = cudaq.evolve(hamiltonian,
-                                          dimensions,
-                                          schedule,
-                                          rho0,
-                                          observables=[spin.y(0),
-                                                       spin.z(0)],
-                                          collapse_operators=[],
-                                          store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-                                          shots_count=2000)
+    evolution_result_shots = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0,
+        observables=[spin.y(0), spin.z(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+        shots_count=2000)
     results_with_shots = [
         get_result(0, evolution_result_shots),
         get_result(1, evolution_result_shots)
@@ -277,7 +280,8 @@ def test_evolve_async():
         rho0,
         observables=[spin.y(0), spin.z(0)],
         collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE).get()
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE).get()
 
     get_result = lambda idx, res: [
         exp_vals[idx].expectation() for exp_vals in res.expectation_values()
@@ -297,7 +301,8 @@ def test_evolve_async():
         rho0,
         observables=[spin.y(0), spin.z(0)],
         collapse_operators=[np.sqrt(0.05) * spin.x(0)],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE).get()
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE).get()
 
     decay_results = [
         get_result(0, evolution_result_decay),
@@ -314,7 +319,8 @@ def test_evolve_async():
         rho0,
         observables=[spin.y(0), spin.z(0)],
         collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
         shots_count=2000).get()
     results_with_shots = [
         get_result(0, evolution_result_shots),

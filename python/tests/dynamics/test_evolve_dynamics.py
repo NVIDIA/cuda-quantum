@@ -60,7 +60,8 @@ def test_euler_integrator():
         psi0,
         observables=[hamiltonian],
         collapse_operators=[np.sqrt(decay_rate) * operators.annihilate(0)],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
         integrator=RungeKuttaIntegrator(order=1, max_step_size=0.01))
 
     assert len(evolution_result.intermediate_states()) == 1
@@ -69,6 +70,7 @@ def test_euler_integrator():
         expt.append(exp_vals[0].expectation())
     expected_answer = (N - 1) * np.exp(-decay_rate * steps)
     np.testing.assert_allclose(expected_answer, expt, 1e-3)
+
 
 def test_save_all_intermediate_states():
     """
@@ -100,6 +102,7 @@ def test_save_all_intermediate_states():
         expt.append(exp_vals[0].expectation())
     expected_answer = (N - 1) * np.exp(-decay_rate * steps)
     np.testing.assert_allclose(expected_answer, expt, 1e-3)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

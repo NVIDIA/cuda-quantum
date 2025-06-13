@@ -205,7 +205,8 @@ def evolve_single(
         initial_state: InitialStateArgT,
         collapse_operators: Sequence[Operator] = [],
         observables: Sequence[Operator] = [],
-        store_intermediate_results: IntermediateResultSave = IntermediateResultSave.NONE,
+        store_intermediate_results:
+    IntermediateResultSave = IntermediateResultSave.NONE,
         integrator: Optional[BaseIntegrator] = None,
         shots_count: Optional[int] = None) -> cudaq_runtime.EvolveResult:
     target_name = cudaq_runtime.get_target().name
@@ -284,11 +285,13 @@ def evolve_single(
         kernels = [kernel for kernel in evolution]
         save_intermediate_states = store_intermediate_results == IntermediateResultSave.ALL
         if len(observables) == 0:
-            return cudaq_runtime.evolve(initial_state, kernels, save_intermediate_states)
+            return cudaq_runtime.evolve(initial_state, kernels,
+                                        save_intermediate_states)
         if len(collapse_operators) > 0:
             cudaq_runtime.set_noise(noise)
         result = cudaq_runtime.evolve(initial_state, kernels, parameters,
-                                      observable_spinops, shots_count, save_intermediate_states)
+                                      observable_spinops, shots_count,
+                                      save_intermediate_states)
         cudaq_runtime.unset_noise()
         return result
     else:
@@ -318,7 +321,8 @@ def evolve(
     initial_state: InitialStateArgT | Sequence[InitialStateArgT] = None,
     collapse_operators: Sequence[Operator] = [],
     observables: Sequence[Operator] = [],
-    store_intermediate_results: IntermediateResultSave | bool = IntermediateResultSave.NONE,
+    store_intermediate_results: IntermediateResultSave |
+    bool = IntermediateResultSave.NONE,
     integrator: Optional[BaseIntegrator] = None,
     shots_count: Optional[int] = None
 ) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
@@ -359,10 +363,10 @@ def evolve(
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
-    
+
     if isinstance(store_intermediate_results, bool):
         store_intermediate_results = IntermediateResultSave.ALL if store_intermediate_results else IntermediateResultSave.NONE
-    
+
     if target_name in analog_targets:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(
@@ -435,7 +439,8 @@ def evolve_single_async(
         initial_state: InitialStateArgT,
         collapse_operators: Sequence[Operator] = [],
         observables: Sequence[Operator] = [],
-        store_intermediate_results: IntermediateResultSave = IntermediateResultSave.NONE,
+        store_intermediate_results:
+    IntermediateResultSave = IntermediateResultSave.NONE,
         integrator: Optional[BaseIntegrator] = None,
         shots_count: Optional[int] = None) -> cudaq_runtime.AsyncEvolveResult:
     if not isinstance(store_intermediate_results, IntermediateResultSave):
@@ -550,7 +555,8 @@ def evolve_async(
     initial_state: InitialStateArgT | Sequence[InitialStateArgT] = None,
     collapse_operators: Sequence[Operator] = [],
     observables: Sequence[Operator] = [],
-    store_intermediate_results:IntermediateResultSave | bool = IntermediateResultSave.NONE,
+    store_intermediate_results: IntermediateResultSave |
+    bool = IntermediateResultSave.NONE,
     integrator: Optional[BaseIntegrator] = None,
     shots_count: Optional[int] = None
 ) -> cudaq_runtime.AsyncEvolveResult | Sequence[
@@ -571,10 +577,10 @@ def evolve_async(
     if not isinstance(schedule, Schedule):
         raise ValueError(
             f"Invalid argument `schedule` for target {target_name}.")
-    
+
     if isinstance(store_intermediate_results, bool):
         store_intermediate_results = IntermediateResultSave.ALL if store_intermediate_results else IntermediateResultSave.NONE
-        
+
     if target_name in analog_targets:
         if not isinstance(hamiltonian, RydbergHamiltonian):
             raise ValueError(

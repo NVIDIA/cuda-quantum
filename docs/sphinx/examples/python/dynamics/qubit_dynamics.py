@@ -24,14 +24,15 @@ schedule = Schedule(steps, ["time"])
 
 # Run the simulation.
 # First, we run the simulation without any collapse operators (ideal).
-evolution_result = cudaq.evolve(hamiltonian,
-                                dimensions,
-                                schedule,
-                                rho0,
-                                observables=[spin.y(0), spin.z(0)],
-                                collapse_operators=[],
-                                store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-                                integrator=RungeKuttaIntegrator())
+evolution_result = cudaq.evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    rho0,
+    observables=[spin.y(0), spin.z(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=RungeKuttaIntegrator())
 
 # Now, run the simulation with qubit decaying due to the presence of a collapse operator.
 evolution_result_decay = cudaq.evolve(

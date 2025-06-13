@@ -68,7 +68,8 @@ for g in [0.25, 4.0]:
                                     psi0,
                                     observables=[staggered_magnetization_op],
                                     collapse_operators=[],
-                                    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+                                    store_intermediate_results=cudaq.
+                                    IntermediateResultSave.EXPECTATION_VALUE,
                                     integrator=RungeKuttaIntegrator())
 
     exp_val = [
