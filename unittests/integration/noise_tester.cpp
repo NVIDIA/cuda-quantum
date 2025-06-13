@@ -638,6 +638,41 @@ CUDAQ_TEST(NoiseTest, checkPauli2) {
   EXPECT_EQ(4, counts.size());
 }
 
+CUDAQ_TEST(NoiseTest, checkGlobalDisable) {
+  cudaq::set_random_seed(13);
+
+  auto kernel1 = [](std::vector<double> parms) __qpu__ {
+    cudaq::qubit q, r;
+    cudaq::apply_noise<cudaq::global_disable>(0.0, q);
+    cudaq::apply_noise<cudaq::pauli2>(parms, q, r);
+    mz(q);
+    mz(r);
+  };
+
+  auto kernel2 = [](std::vector<double> parms) __qpu__ {
+    cudaq::qubit q, r;
+    cudaq::apply_noise<cudaq::global_disable>(0.0, q);
+    cudaq::apply_noise<cudaq::global_enable>(0.0, q);
+    cudaq::apply_noise<cudaq::pauli2>(parms, q, r);
+    mz(q);
+    mz(r);
+  };
+
+  std::vector<double> probs(15, 0.9375 / 15);
+
+  // We expect no noise on this one because it is disabled before applying the
+  // noise.
+  auto counts = cudaq::sample(cudaq::sample_options{}, kernel1, probs);
+  counts.dump();
+  EXPECT_EQ(1, counts.size());
+
+  // We expect noise on this one because it is re-enabled before applying the
+  // noise.
+  counts = cudaq::sample(cudaq::sample_options{}, kernel2, probs);
+  counts.dump();
+  EXPECT_EQ(4, counts.size());
+}
+
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
     defined(CUDAQ_BACKEND_TENSORNET)
