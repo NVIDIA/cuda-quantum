@@ -130,8 +130,15 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
       kernelName, shots);
-  return {reinterpret_cast<ResultTy *>(span.data),
-          reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+  if constexpr (std::is_same_v<ResultTy, bool>) {
+    // Special case for std::vector<bool> which is a specialization.
+    std::vector<bool> results;
+    __nvqpp_initializer_list_to_vector_bool(results, span.data,
+                                            span.lengthInBytes);
+    return results;
+  } else
+    return {reinterpret_cast<ResultTy *>(span.data),
+            reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
 }
 
 /// @brief Run a kernel \p shots number of times with noise and return a
