@@ -82,8 +82,9 @@ int main() {
   // Simulation without decoherence
   // Evolve the system under the Hamiltonian, using the specified schedule and
   // integrator. No collapse operators are included (closed system evolution).
-  auto evolve_result = cudaq::evolve(hamiltonian, dimensions, schedule, psi0,
-                                     integrator, {}, observables, true);
+  auto evolve_result = cudaq::evolve(
+      hamiltonian, dimensions, schedule, psi0, integrator, {}, observables,
+      cudaq::IntermediateResultSave::ExpectationValue);
 
   // Simulation with decoherence
   // Introduce `dephasing` (decoherence) through a collapse operator.
@@ -91,9 +92,10 @@ int main() {
   // is `sqrt`(gamma_`sz`) * `Sz`_0 which simulates decoherence in the energy
   // basis (Z-basis `dephasing`).
   double gamma_sz = 1.0;
-  auto evolve_result_decay = cudaq::evolve(
-      hamiltonian, dimensions, schedule, psi0, integrator,
-      {std::sqrt(gamma_sz) * cudaq::spin_op::z(0)}, observables, true);
+  auto evolve_result_decay =
+      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
+                    {std::sqrt(gamma_sz) * cudaq::spin_op::z(0)}, observables,
+                    cudaq::IntermediateResultSave::ExpectationValue);
 
   // Lambda to extract expectation values for a given observable index
   auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
