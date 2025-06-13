@@ -70,6 +70,15 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
   externSimGenerator = std::make_unique<ExternallyProvidedSimGenerator>(sim);
   cudaq::info("[runtime] Setting the circuit simulator to {}.", sim->name());
 }
+
+void __nvqir__resetCircuitSimulator() {
+  simulator = nullptr;
+  if (externSimGenerator) {
+    auto ptr = externSimGenerator.release();
+    delete ptr;
+  }
+  cudaq::info("[runtime] Resetting the circuit simulator.");
+}
 }
 
 namespace nvqir {

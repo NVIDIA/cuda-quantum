@@ -231,6 +231,19 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   }];
 }
 
+def ResourceCountPreprocess : Pass<"resource-count-preprocess", "mlir::func::FuncOp"> {
+  let summary = "Does preprocessing for resource counter.";
+  let description = [{
+    Does preprocessing for resource counter.
+  }];
+
+  let options = [
+    Option<"countGate", "count-gate", "std::function<void(std::string,size_t)>",
+           /*default=*/"[](std::string str,size_t count){}",
+           "Closure that will handle gate counts">,
+  ];
+}
+
 def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
   let summary =
     "Move measurements as late as possible";

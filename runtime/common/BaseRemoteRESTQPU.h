@@ -521,7 +521,17 @@ public:
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
-      pm.addPass(mlir::createCanonicalizerPass());
+      if (executionContext->name == "resourcecount") {
+        pm.addPass(mlir::createCanonicalizerPass());
+        std::function<void(std::string, size_t)> f = [&](std::string gate,
+                                                         size_t count) {
+          executionContext->resourceCounts.append(gate, count);
+        };
+        cudaq::opt::ResourceCountPreprocessOptions opt{f};
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createResourceCountPreprocess(opt));
+        pm.addPass(mlir::createCanonicalizerPass());
+      }
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
@@ -611,7 +621,7 @@ public:
     } else
       modules.emplace_back(kernelName, moduleOp);
 
-    if (emulate) {
+    if (emulate || executionContext->name == "resourcecount") {
       // If we are in emulation mode, we need to first get a full QIR
       // representation of the code. Then we'll map to an LLVM Module, create a
       // JIT ExecutionEngine pointer and use that for execution
@@ -717,6 +727,14 @@ public:
     // After performing lowerQuakeCode, check to see if we are simply drawing
     // the circuit. If so, perform the trace here and then return.
     if (executionContext->name == "tracer" && jitEngines.size() == 1) {
+      cudaq::getExecutionManager()->setExecutionContext(executionContext);
+      invokeJITKernelAndRelease(jitEngines[0], kernelName);
+      cudaq::getExecutionManager()->resetExecutionContext();
+      jitEngines.clear();
+      return;
+    }
+
+    if (executionContext->name == "resourcecount" && jitEngines.size() == 1) {
       cudaq::getExecutionManager()->setExecutionContext(executionContext);
       invokeJITKernelAndRelease(jitEngines[0], kernelName);
       cudaq::getExecutionManager()->resetExecutionContext();
