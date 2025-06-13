@@ -56,6 +56,10 @@ struct ResourceCountPreprocessPass
     std::string gatestr(controls, 'c');
     gatestr += name;
 
+    if (dumpPreprocessed)
+      llvm::outs() << "Preprocessing " << gatestr << " for " << to_add
+                   << " counts\n";
+
     countGate(gatestr, to_add);
     to_erase.insert(op);
     return true;
@@ -97,5 +101,7 @@ struct ResourceCountPreprocessPass
 
     for (auto op : to_erase)
       op->erase();
+
+    to_erase.clear();
   }
 };
