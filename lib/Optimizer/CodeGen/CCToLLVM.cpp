@@ -752,7 +752,7 @@ class NoInlineCallPattern
     SmallVector<Type> types;
     for (auto ty : nicall.getResultTypes())
       types.push_back(getTypeConverter()->convertType(ty));
-    rewriter.replaceOpWithNewOp<LLVM::CallOp>(nicall, types, nicall.getCallee(),
+    rewriter.replaceOpWithNewOp<func::CallOp>(nicall, types, nicall.getCallee(),
                                               adaptor.getArgs());
     return success();
   }
