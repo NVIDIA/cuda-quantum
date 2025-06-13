@@ -10,7 +10,9 @@
 
 import cudaq
 
+
 def test_resource_counter():
+
     @cudaq.kernel
     def mykernel():
         q = cudaq.qubit()
@@ -39,6 +41,7 @@ def test_resource_counter():
     assert counts2.count("h") == 1
     assert counts2.count("x") == 1
     assert counts3.count("00") + counts3.count("11") == 10
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
