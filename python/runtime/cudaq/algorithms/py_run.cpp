@@ -65,9 +65,15 @@ std::vector<py::object> pyRunTheKernel(const std::string &name,
   auto returnTypes = funcOp.getResultTypes();
   if (returnTypes.empty() || returnTypes.size() > 1)
     throw std::runtime_error(
-        "cudaq.run only supports kernels that return a value.");
+        "`cudaq.run` only supports kernels that return a value.");
 
   auto returnTy = returnTypes[0];
+  // Disallow returning list / vectors from entry-point kernels.
+  if (returnTy.isa<cudaq::cc::StdvecType>()) {
+    throw std::runtime_error("`cudaq.run` does not yet support returning "
+                             "`list` from entry-point kernels.");
+  }
+
   auto mod = unwrap(module);
 
   auto [rawArgs, size, returnOffset, thunk] =
