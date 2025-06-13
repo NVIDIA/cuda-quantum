@@ -9,8 +9,8 @@
 #pragma once
 
 #include "Future.h"
-#include "MeasureCounts.h"
 #include "NoiseModel.h"
+#include "SampleResult.h"
 #include "SimulationState.h"
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"

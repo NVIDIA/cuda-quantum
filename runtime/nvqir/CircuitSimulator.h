@@ -12,8 +12,8 @@
 #include "QIRTypes.h"
 #include "common/Environment.h"
 #include "common/Logger.h"
-#include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
+#include "common/SampleResult.h"
 #include "common/Timing.h"
 #include "cudaq/host_config.h"
 #include <cstdarg>

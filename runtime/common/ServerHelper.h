@@ -12,8 +12,8 @@
 
 #include "ExecutionContext.h"
 #include "Future.h"
-#include "MeasureCounts.h"
 #include "Registry.h"
+#include "SampleResult.h"
 #include <filesystem>
 
 namespace cudaq {
