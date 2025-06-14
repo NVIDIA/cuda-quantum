@@ -5260,6 +5260,24 @@
 <dd><p>Whether or not to simply concatenate measurements in execution order. </p>
 </dd></dl>
 
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1ae3f00ca492659c5715faa185edecff1e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">msm_probabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Probability of occurrence of each error mechanism (column) in Measurement Syndrome Matrix (0-1 range). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext15msm_prob_err_idE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a9a7627c0aa37bcf0938be2941795b2aa"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">msm_prob_err_id</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext15msm_prob_err_idE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Error mechanism ID. From a probability perspective, each error mechanism ID is independent of all other error mechanism ID. For all errors with the <em>same</em> ID, only one of them can happen. That is - the errors containing the same ID are correlated with each other. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext14msm_dimensionsE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a676ed0f74e3f9f671c1066e5476b8f22"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">msm_dimensions</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext14msm_dimensionsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The number of rows and columns of a Measurement Syndrome Matrix. Note: Measurement Syndrome Matrix is defined in <a class="reference external" href="https://arxiv.org/pdf/2407.13826">https://arxiv.org/pdf/2407.13826</a>. </p>
+</dd></dl>
+
 </div>
 </dd></dl>
 
