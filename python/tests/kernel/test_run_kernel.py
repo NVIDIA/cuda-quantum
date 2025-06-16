@@ -6,15 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os, time
-
-import pytest
-import numpy as np
+import os
+import time
 from dataclasses import dataclass
 
 import cudaq
+import numpy as np
+import pytest
 
-list_err_msg = 'Returning `list` from kernels is not yet supported'
+list_err_msg = 'does not yet support returning `list` from entry-point kernels'
 
 
 def is_close(actual, expected):
@@ -324,6 +324,47 @@ def test_return_float64():
     assert len(results) == 2
     assert results[0] == 3.0
     assert results[1] == 3.0
+
+
+def test_return_list_from_device_kernel():
+
+    @cudaq.kernel
+    def kernel_that_returns_list() -> list[int]:
+        return [1, 2, 3]
+
+    @cudaq.kernel
+    def entry_point_kernel() -> int:
+        result = kernel_that_returns_list()
+        return len(result)
+
+    results = cudaq.run(entry_point_kernel, shots_count=2)
+
+    assert len(results) == 2
+    assert results[0] == 3
+    assert results[1] == 3
+
+    @cudaq.kernel
+    def incrementer(i: int) -> int:
+        return i + 1
+
+    @cudaq.kernel
+    def kernel_with_list_arg(arg: list[int]) -> list[int]:
+        result = arg
+        for i in result:
+            incrementer(i)
+        return result
+
+    @cudaq.kernel
+    def caller_kernel(arg: list[int]) -> int:
+        values = kernel_with_list_arg(arg)
+        result = 0
+        for v in values:
+            result += v
+        return result
+
+    results = cudaq.run(caller_kernel, [4, 5, 6], shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 15  # 4+1 + 5+1 + 6+1 = 15
 
 
 def test_return_list_bool():
@@ -865,7 +906,7 @@ def test_run_errors():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_no_return, 2)
-    assert 'cudaq.run only supports kernels that return a value.' in repr(e)
+    assert '`cudaq.run` only supports kernels that return a value.' in repr(e)
 
     with pytest.raises(TypeError) as e:
         cudaq.run(simple, 2, shots_count=-1)

@@ -16,7 +16,7 @@ set(COMMON_RUNTIME_SRC
   Executor.cpp
   Future.cpp
   Logger.cpp
-  MeasureCounts.cpp
+  SampleResult.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
