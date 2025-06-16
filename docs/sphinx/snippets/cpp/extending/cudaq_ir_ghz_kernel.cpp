@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// Compile and run with: `nvq++ cudaq_ir_ghz_kernel.cpp && ./a.out`
+
 #include <cudaq.h>
 #include <iostream> // Required for cudaq::sample and counts.dump()
 
@@ -25,3 +35,4 @@ int main() {
   counts.dump();
   return 0;
 }
+

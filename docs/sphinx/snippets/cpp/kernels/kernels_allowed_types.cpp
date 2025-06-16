@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// Compile and run with: `nvq++ kernels_allowed_types.cpp && ./a.out`
+
 #include <cmath>   // For M_PI_2
 #include <cstddef> // For std::size_t
 #include <cudaq.h>
@@ -72,3 +82,4 @@ int main() {
   // [End Allowed Types C++ Execution]
   return 0;
 }
+
