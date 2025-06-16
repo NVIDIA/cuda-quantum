@@ -12,8 +12,10 @@
 
 int main() {
   cudaq::qvector<3> q(1);
+  // [Begin Annihilate Op]
   annihilate(q[0]);
 
   return 0;
 }
+// [End Annihilate Op]
 
