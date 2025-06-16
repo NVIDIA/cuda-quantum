@@ -9,7 +9,7 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
@@ -52,14 +52,6 @@ RunResultSpan runTheKernel(std::function<void()> &&kernel,
 template <typename T>
 void resultSpanToVectorViaOwnership(std::vector<T> &result,
                                     RunResultSpan &spanIn) {
-  using raw_vector = struct {
-    T *start;
-    T *end0;
-    T *end1;
-  };
-  static_assert(sizeof(std::vector<T>) == sizeof(raw_vector) &&
-                "std::vector must use the nominal 3 pointer implementation");
-
   // Swap vec into a local variable. vec's original content, if any will be
   // reclaimed at the end of this function.
   std::vector<T> deadEnder;
@@ -72,6 +64,13 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
     __nvqpp_initializer_list_to_vector_bool(result, spanIn.data,
                                             spanIn.lengthInBytes);
   } else {
+    using raw_vector = struct {
+      T *start;
+      T *end0;
+      T *end1;
+    };
+    static_assert(sizeof(std::vector<T>) == sizeof(raw_vector) &&
+                  "std::vector must use the nominal 3 pointer implementation");
     raw_vector *rawVec = reinterpret_cast<raw_vector *>(&result);
     rawVec->start = reinterpret_cast<T *>(spanIn.data);
     rawVec->end0 = rawVec->end1 =
@@ -116,9 +115,9 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
     return {};
   using ResultTy =
       std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>;
+  std::vector<ResultTy> results;
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
-  std::vector<ResultTy> results;
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i)
     results.emplace_back(kernel(std::forward<ARGS>(args)...));
@@ -130,8 +129,8 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
       kernelName, shots);
-  return {reinterpret_cast<ResultTy *>(span.data),
-          reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+  details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+  return results;
 }
 
 /// @brief Run a kernel \p shots number of times with noise and return a
@@ -163,11 +162,11 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
     return {};
   using ResultTy =
       std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>;
+  std::vector<ResultTy> results;
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
   platform.set_noise(&noise_model);
   auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
-  std::vector<ResultTy> results;
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
     platform.set_exec_ctx(ctx.get());
@@ -184,9 +183,8 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
       [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
       kernelName, shots);
   platform.reset_noise();
-
-  return {reinterpret_cast<ResultTy *>(span.data),
-          reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+  details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+  return results;
 }
 
 /// @brief Launch a run of a kernel for \p shots number of times on a specific
@@ -239,11 +237,8 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
             kernelName, shots);
-        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                         std::decay_t<ARGS>...>>
-            results{
-                reinterpret_cast<ResultTy *>(span.data),
-                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+        std::vector<ResultTy> results;
+        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
       });
 #else
@@ -278,11 +273,8 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
                   std::move(args));
             },
             platform, kernelName, shots);
-        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                         std::decay_t<ARGS>...>>
-            results{
-                reinterpret_cast<ResultTy *>(span.data),
-                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+        std::vector<ResultTy> results;
+        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
       });
 #endif
@@ -353,12 +345,9 @@ run_async(std::size_t qpu_id, std::size_t shots,
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
             kernelName, shots);
-        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                         std::decay_t<ARGS>...>>
-            results{
-                reinterpret_cast<ResultTy *>(span.data),
-                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
         platform.reset_noise();
+        std::vector<ResultTy> results;
+        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
       });
 #else
@@ -400,12 +389,9 @@ run_async(std::size_t qpu_id, std::size_t shots,
                   std::move(args));
             },
             platform, kernelName, shots);
-        std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                         std::decay_t<ARGS>...>>
-            results{
-                reinterpret_cast<ResultTy *>(span.data),
-                reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
         platform.reset_noise();
+        std::vector<ResultTy> results;
+        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
       });
 #endif
