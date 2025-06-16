@@ -14,6 +14,7 @@
 #include "common/Executor.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
+#include "common/ResourceCounts.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
@@ -60,6 +61,7 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
+cudaq::resource_counts* getResourceCounts();
 } // namespace nvqir
 
 namespace cudaq {

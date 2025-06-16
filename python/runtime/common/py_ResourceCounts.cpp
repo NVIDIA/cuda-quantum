@@ -11,7 +11,7 @@
 
 #include "py_ResourceCounts.h"
 
-#include "common/MeasureCounts.h"
+#include "common/ResourceCounts.h"
 
 #include <sstream>
 

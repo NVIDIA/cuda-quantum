@@ -19,6 +19,7 @@ set(COMMON_RUNTIME_SRC
   MeasureCounts.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
+  ResourceCounts.cpp
   Resources.cpp
   ServerHelper.cpp
   Trace.cpp
