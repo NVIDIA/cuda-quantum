@@ -30,12 +30,9 @@ int main() {
       cudaq::spin_op::x(0) * cudaq::spin_op::x(1) + 0.5 * cudaq::spin_op::z(0);
   double param = 0.23; // Example parameter
 
-  // I only care about the expected value, discard
-  // the fine-grain data produced
   double expVal_simple = cudaq::observe(observe_kernel_demo{}, spinOp, param);
   printf("Simple ExpVal: %lf\n", expVal_simple);
 
-  // I require the result with all generated data
   auto result = cudaq::observe(observe_kernel_demo{}, spinOp, param);
   auto expVal_detailed = result.expectation();
   printf("Detailed ExpVal: %lf\n", expVal_detailed);
