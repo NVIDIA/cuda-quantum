@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// Compile and run with: `nvq++ cudaq_ir_simple.cpp && ./a.out`
+
 #include <cudaq.h>
 #include <iostream>
 
@@ -21,3 +31,4 @@ int main() {
   return 0;
 }
 // [End CUDA_IR_Simple_CPP_Content]
+
