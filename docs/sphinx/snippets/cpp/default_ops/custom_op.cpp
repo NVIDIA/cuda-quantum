@@ -22,6 +22,7 @@ __qpu__ void bell_pair() {
 }
 
 int main() {
+  // [Begin Custom Op]
   auto counts = cudaq::sample(bell_pair);
   for (auto &[bits, count] : counts) {
     printf("%s\n", bits.data());
@@ -29,4 +30,5 @@ int main() {
 
   return 0;
 }
+// [End Custom Op]
 
