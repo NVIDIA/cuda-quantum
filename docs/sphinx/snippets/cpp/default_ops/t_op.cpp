@@ -10,7 +10,7 @@
 
 int main() {
   cudaq::qubit qubit;
-
+  // [Begin T Op]
   // Apply the unitary transformation
   // T = | 1      0     |
   //     | 0  exp(iπ/4) |
@@ -18,4 +18,5 @@ int main() {
 
   return 0;
 }
+// [End T Op]
 
