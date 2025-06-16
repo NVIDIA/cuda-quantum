@@ -12,8 +12,10 @@
 
 int main() {
   cudaq::qubit qubit;
+  // [Begin MX Op]
   mx(qubit);
 
   return 0;
 }
+// [End MX Op]
 
