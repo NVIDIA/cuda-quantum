@@ -57,11 +57,9 @@ void callKernels_cpp() {
   cudaq::sample(entry_point_algo2);
 }
 // [End Kernel Composition Templates C++]
-
+// [Begin Kernel Composition Templates C++ Execution]
 int main() {
-  // [Begin Kernel Composition Templates C++ Execution]
   callKernels_cpp();
-  // [End Kernel Composition Templates C++ Execution]
   return 0;
 }
-
+// [End Kernel Composition Templates C++ Execution]
