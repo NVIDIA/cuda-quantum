@@ -12,12 +12,12 @@
 
 int main() {
   cudaq::qubit qubit;
-
+  // [Begin R1 Op]
   // Apply the unitary transformation
   // R1(λ) = | 1     0    |
   //         | 0  exp(iλ) |
   r1(std::numbers::pi, qubit);
-
+  // [End R1 Op]
   return 0;
 }
 
