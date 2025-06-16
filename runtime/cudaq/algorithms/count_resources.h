@@ -84,7 +84,6 @@ auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel,
   // Switch simulators back
   nvqir::stopUsingResourceCounterSimulator();
 
-  // return ctx->resourceCounts;
   return counts;
 }
 } // namespace cudaq
