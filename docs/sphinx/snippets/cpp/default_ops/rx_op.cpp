@@ -12,7 +12,7 @@
 
 int main() {
   cudaq::qubit qubit;
-
+  // [Begin Rx Op]
   // Apply the unitary transformation
   // Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
   //         | -isin(θ/2)  cos(θ/2)  |
@@ -20,4 +20,5 @@ int main() {
 
   return 0;
 }
+// [End Rx Op]
 
