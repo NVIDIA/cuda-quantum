@@ -12,7 +12,7 @@
 
 int main() {
   cudaq::qubit qubit;
-
+  // [Begin Rz Op]
   // Apply the unitary transformation
   // Rz(λ) = | exp(-iλ/2)      0     |
   //         |     0       exp(iλ/2) |
@@ -20,4 +20,5 @@ int main() {
 
   return 0;
 }
+// [End Rz Op]
 
