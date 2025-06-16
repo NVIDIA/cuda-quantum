@@ -2,6 +2,7 @@ import cudaq
 
 def main():
     # Create a kernel and allocate qubits in a |0> state.
+    # [Begin Controlled Op]
     ctrl_1, ctrl_2, target = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
     # Create a superposition.
     h(ctrl_1)
@@ -22,6 +23,7 @@ def main():
     t.ctrl([ctrl_1, ctrl_2], target)
     # The qubits `ctrl_1`, `ctrl_2`, and target are now in a state
     # (|000> + exp(iπ/4)|111>) / √2.
+    # [End Controlled Op]
 
 if __name__ == "__main__":
     main()
