@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"

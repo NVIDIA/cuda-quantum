@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #pragma once
-#include "MeasureCounts.h"
 #include "ObserveResult.h"
+#include "SampleResult.h"
 
 #include <functional>
 #include <future>
