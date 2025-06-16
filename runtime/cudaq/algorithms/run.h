@@ -52,14 +52,6 @@ RunResultSpan runTheKernel(std::function<void()> &&kernel,
 template <typename T>
 void resultSpanToVectorViaOwnership(std::vector<T> &result,
                                     RunResultSpan &spanIn) {
-  using raw_vector = struct {
-    T *start;
-    T *end0;
-    T *end1;
-  };
-  static_assert(sizeof(std::vector<T>) == sizeof(raw_vector) &&
-                "std::vector must use the nominal 3 pointer implementation");
-
   // Swap vec into a local variable. vec's original content, if any will be
   // reclaimed at the end of this function.
   std::vector<T> deadEnder;
@@ -72,6 +64,13 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
     __nvqpp_initializer_list_to_vector_bool(result, spanIn.data,
                                             spanIn.lengthInBytes);
   } else {
+    using raw_vector = struct {
+      T *start;
+      T *end0;
+      T *end1;
+    };
+    static_assert(sizeof(std::vector<T>) == sizeof(raw_vector) &&
+                  "std::vector must use the nominal 3 pointer implementation");
     raw_vector *rawVec = reinterpret_cast<raw_vector *>(&result);
     rawVec->start = reinterpret_cast<T *>(spanIn.data);
     rawVec->end0 = rawVec->end1 =
@@ -116,9 +115,9 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
     return {};
   using ResultTy =
       std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>;
+  std::vector<ResultTy> results;
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
-  std::vector<ResultTy> results;
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i)
     results.emplace_back(kernel(std::forward<ARGS>(args)...));
@@ -130,15 +129,8 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
       kernelName, shots);
-  if constexpr (std::is_same_v<ResultTy, bool>) {
-    // Special case for std::vector<bool> which is a specialization.
-    std::vector<bool> results;
-    __nvqpp_initializer_list_to_vector_bool(results, span.data,
-                                            span.lengthInBytes);
-    return results;
-  } else
-    return {reinterpret_cast<ResultTy *>(span.data),
-            reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+  details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+  return results;
 }
 
 /// @brief Run a kernel \p shots number of times with noise and return a
@@ -170,11 +162,11 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
     return {};
   using ResultTy =
       std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>;
+  std::vector<ResultTy> results;
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
   platform.set_noise(&noise_model);
   auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
-  std::vector<ResultTy> results;
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
     platform.set_exec_ctx(ctx.get());
@@ -191,15 +183,8 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
       [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
       kernelName, shots);
   platform.reset_noise();
-  if constexpr (std::is_same_v<ResultTy, bool>) {
-    // Special case for std::vector<bool> which is a specialization.
-    std::vector<bool> results;
-    __nvqpp_initializer_list_to_vector_bool(results, span.data,
-                                            span.lengthInBytes);
-    return results;
-  } else
-    return {reinterpret_cast<ResultTy *>(span.data),
-            reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
+  details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+  return results;
 }
 
 /// @brief Launch a run of a kernel for \p shots number of times on a specific
@@ -252,20 +237,9 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
             kernelName, shots);
-        if constexpr (std::is_same_v<ResultTy, bool>) {
-          // Special case for std::vector<bool> which is a specialization.
-          std::vector<bool> results;
-          __nvqpp_initializer_list_to_vector_bool(results, span.data,
-                                                  span.lengthInBytes);
-          p.set_value(std::move(results));
-        } else {
-          std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                           std::decay_t<ARGS>...>>
-              results{
-                  reinterpret_cast<ResultTy *>(span.data),
-                  reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
-          p.set_value(std::move(results));
-        }
+        std::vector<ResultTy> results;
+        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+        p.set_value(std::move(results));
       });
 #else
   QuantumTask wrapped = detail::make_copyable_function(
@@ -299,20 +273,9 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
                   std::move(args));
             },
             platform, kernelName, shots);
-        if constexpr (std::is_same_v<ResultTy, bool>) {
-          // Special case for std::vector<bool> which is a specialization.
-          std::vector<bool> results;
-          __nvqpp_initializer_list_to_vector_bool(results, span.data,
-                                                  span.lengthInBytes);
-          p.set_value(std::move(results));
-        } else {
-          std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                           std::decay_t<ARGS>...>>
-              results{
-                  reinterpret_cast<ResultTy *>(span.data),
-                  reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
-          p.set_value(std::move(results));
-        }
+        std::vector<ResultTy> results;
+        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+        p.set_value(std::move(results));
       });
 #endif
   platform.enqueueAsyncTask(qpu_id, wrapped);
@@ -383,21 +346,9 @@ run_async(std::size_t qpu_id, std::size_t shots,
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
             kernelName, shots);
         platform.reset_noise();
-        if constexpr (std::is_same_v<ResultTy, bool>) {
-          // Special case for std::vector<bool> which is a specialization.
-          std::vector<bool> results;
-          __nvqpp_initializer_list_to_vector_bool(results, span.data,
-                                                  span.lengthInBytes);
-          p.set_value(std::move(results));
-        } else {
-          std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                           std::decay_t<ARGS>...>>
-              results{
-                  reinterpret_cast<ResultTy *>(span.data),
-                  reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
-
-          p.set_value(std::move(results));
-        }
+        std::vector<ResultTy> results;
+        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+        p.set_value(std::move(results));
       });
 #else
   QuantumTask wrapped = detail::make_copyable_function(
@@ -439,20 +390,9 @@ run_async(std::size_t qpu_id, std::size_t shots,
             },
             platform, kernelName, shots);
         platform.reset_noise();
-        if constexpr (std::is_same_v<ResultTy, bool>) {
-          // Special case for std::vector<bool> which is a specialization.
-          std::vector<bool> results;
-          __nvqpp_initializer_list_to_vector_bool(results, span.data,
-                                                  span.lengthInBytes);
-          p.set_value(std::move(results));
-        } else {
-          std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                           std::decay_t<ARGS>...>>
-              results{
-                  reinterpret_cast<ResultTy *>(span.data),
-                  reinterpret_cast<ResultTy *>(span.data + span.lengthInBytes)};
-          p.set_value(std::move(results));
-        }
+        std::vector<ResultTy> results;
+        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+        p.set_value(std::move(results));
       });
 #endif
   platform.enqueueAsyncTask(qpu_id, wrapped);
