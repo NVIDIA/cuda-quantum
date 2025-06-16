@@ -34,7 +34,7 @@ int main() {
     } else {
       c = 0;
       for (auto i : results)
-        printf("%d: {%s, %ld, %f}\n", c++, i.boolVal ? "true" : "false",
+        printf("%d: {%s, %ld, %.3f}\n", c++, i.boolVal ? "true" : "false",
                i.i64Val, i.f64Val);
       printf("success!\n");
     }
@@ -68,7 +68,7 @@ int main() {
     } else {
       c = 0;
       for (auto i : results)
-        printf("%d: %f\n", c++, i);
+        printf("%d: %.3f\n", c++, i);
       printf("success!\n");
     }
   }
@@ -79,7 +79,7 @@ int main() {
     } else {
       c = 0;
       for (auto i : results)
-        printf("%d: %f\n", c++, i);
+        printf("%d: %.4f\n", c++, i);
       printf("success!\n");
     }
   }
@@ -97,9 +97,9 @@ int main() {
   return 0;
 }
 
-// CHECK: 0: {true, 654, 9.123000}
-// CHECK: 1: {true, 654, 9.123000}
-// CHECK: 2: {true, 654, 9.123000}
+// CHECK: 0: {true, 654, 9.123}
+// CHECK: 1: {true, 654, 9.123}
+// CHECK: 2: {true, 654, 9.123}
 // CHECK: success!
 // CHECK: 0: 42
 // CHECK: 1: 42
@@ -112,12 +112,12 @@ int main() {
 // CHECK: 2: 37
 // CHECK: 3: 37
 // CHECK: success!
-// CHECK: 0: 2.718280
-// CHECK: 1: 2.718280
-// CHECK: 2: 2.718280
+// CHECK: 0: 2.718
+// CHECK: 1: 2.718
+// CHECK: 2: 2.718
 // CHECK: success!
-// CHECK: 0: 1.414210
-// CHECK: 1: 1.414210
+// CHECK: 0: 1.4142
+// CHECK: 1: 1.4142
 // CHECK: success!
 // CHECK: 0: true
 // CHECK: 1: true
