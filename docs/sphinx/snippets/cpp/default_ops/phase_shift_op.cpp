@@ -12,8 +12,10 @@
 
 int main() {
   cudaq::qvector<4> q(1);
+  // [Begin Phase Shift Op]
   phase_shift(q[0], 0.17);
 
   return 0;
 }
+// [End Phase Shift Op]
 
