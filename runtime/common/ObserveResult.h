@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "MeasureCounts.h"
+#include "SampleResult.h"
 #include "cudaq/operators.h"
 
 #include <cassert>
