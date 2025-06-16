@@ -12,7 +12,7 @@
 
 int main() {
   cudaq::qubit qubit;
-
+  // [Begin Z Op]
   // Apply the unitary transformation
   // Z = | 1   0 |
   //     | 0  -1 |
@@ -20,4 +20,5 @@ int main() {
 
   return 0;
 }
+// [End Z Op]
 
