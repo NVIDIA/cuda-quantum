@@ -12,8 +12,10 @@
 
 int main() {
   cudaq::qubit qubit;
+  // [Begin My Op]
   my(qubit);
 
   return 0;
 }
+// [End My Op]
 
