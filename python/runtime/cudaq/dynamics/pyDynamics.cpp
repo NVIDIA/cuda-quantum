@@ -60,6 +60,21 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
                 liouvillian, schedule);
           }))
+      .def(py::init([](cudaq::schedule schedule,
+                       std::vector<int64_t> modeExtents,
+                       cudaq::super_op superOp) {
+        std::unordered_map<std::string, std::complex<double>> params;
+        for (const auto &param : schedule.get_parameters()) {
+          params[param] = schedule.get_value_function()(param, 0.0);
+        }
+        auto liouvillian =
+            cudaq::dynamics::Context::getCurrentContext()
+                ->getOpConverter()
+                .constructLiouvillian(superOp, modeExtents, params);
+        return PyCuDensityMatTimeStepper(
+            cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+            liouvillian, schedule);
+      }))
       .def("compute", [](PyCuDensityMatTimeStepper &self,
                          cudaq::state &inputState, double t) {
         std::unordered_map<std::string, std::complex<double>> params;
@@ -75,7 +90,8 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
       .def_readwrite("modeExtents", &cudaq::SystemDynamics::modeExtents)
       .def_readwrite("hamiltonian", &cudaq::SystemDynamics::hamiltonian)
       .def_readwrite("collapseOps", &cudaq::SystemDynamics::collapseOps)
-      .def_readwrite("parameters", &cudaq::SystemDynamics::parameters);
+      .def_readwrite("parameters", &cudaq::SystemDynamics::parameters)
+      .def_readwrite("superOp", &cudaq::SystemDynamics::superOp);
 
   // Expectation calculation
   py::class_<cudaq::CuDensityMatExpectation>(m, "CuDensityMatExpectation")

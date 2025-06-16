@@ -133,6 +133,17 @@ computeDagger(const cudaq::product_op<cudaq::matrix_handler> &productOp) {
   daggerProduct *= computeDagger(productOp.get_coefficient());
   return daggerProduct;
 }
+
+cudaq::sum_op<cudaq::matrix_handler>
+computeDagger(const cudaq::sum_op<cudaq::matrix_handler> &sumOp) {
+  cudaq::sum_op<cudaq::matrix_handler> daggerSum =
+      cudaq::sum_op<cudaq::matrix_handler>::empty();
+  for (const cudaq::product_op<cudaq::matrix_handler> &prodOp : sumOp)
+    daggerSum += computeDagger(prodOp);
+
+  return daggerSum;
+}
+
 } // namespace
 
 cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
@@ -781,4 +792,123 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
       reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
 
   return wrappedCallback;
+}
+
+cudensitymatOperator_t
+cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
+    const super_op &superOp, const std::vector<int64_t> &modeExtents,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) {
+  LOG_API_TIME();
+  cudensitymatOperator_t liouvillian;
+  HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
+      m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
+      &liouvillian));
+  // Append an operator term to the operator (super-operator)
+  // Handle the Hamiltonian
+  const std::map<std::string, std::complex<double>> sortedParameters(
+      parameters.begin(), parameters.end());
+  auto ks = std::views::keys(sortedParameters);
+  const std::vector<std::string> keys{ks.begin(), ks.end()};
+  for (const auto &[leftOpOpt, rightOpOpt] : superOp) {
+    if (leftOpOpt.has_value()) {
+      if (rightOpOpt.has_value()) {
+        scalar_operator coeff =
+            leftOpOpt->get_coefficient() * rightOpOpt->get_coefficient();
+        // L * rho * R
+        std::vector<cudensitymatElementaryOperator_t> elemOps;
+        std::vector<std::vector<std::size_t>> allDegrees;
+        std::vector<std::vector<int>> all_action_dual_modalities;
+
+        for (const auto &component : leftOpOpt.value()) {
+          if (const auto *elemOp =
+                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
+            auto cudmElemOp =
+                createElementaryOperator(*elemOp, parameters, modeExtents);
+            elemOps.emplace_back(cudmElemOp);
+            allDegrees.emplace_back(elemOp->degrees());
+            all_action_dual_modalities.emplace_back(
+                std::vector<int>(elemOp->degrees().size(), 0));
+          } else {
+            // Catch anything that we don't know
+            throw std::runtime_error("Unhandled type!");
+          }
+        }
+
+        for (const auto &component : rightOpOpt.value()) {
+          if (const auto *elemOp =
+                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
+            auto cudmElemOp =
+                createElementaryOperator(*elemOp, parameters, modeExtents);
+            elemOps.emplace_back(cudmElemOp);
+            allDegrees.emplace_back(elemOp->degrees());
+            all_action_dual_modalities.emplace_back(
+                std::vector<int>(elemOp->degrees().size(), 1));
+          } else {
+            // Catch anything that we don't know
+            throw std::runtime_error("Unhandled type!");
+          }
+        }
+
+        cudensitymatOperatorTerm_t term = createProductOperatorTerm(
+            elemOps, modeExtents, allDegrees, all_action_dual_modalities);
+
+        cudensitymatWrappedScalarCallback_t wrappedCallback =
+            cudensitymatScalarCallbackNone;
+        if (coeff.is_constant()) {
+          const auto coeffVal = coeff.evaluate();
+          HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+              m_handle, liouvillian, term, 0,
+              make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
+              wrappedCallback));
+        } else {
+          wrappedCallback = wrapScalarCallback(coeff, keys);
+          HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+              m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
+              wrappedCallback));
+        }
+      } else {
+        for (auto &[coeff, term] : convertToCudensitymat(
+                 leftOpOpt.value(), parameters, modeExtents)) {
+          cudensitymatWrappedScalarCallback_t wrappedCallback =
+              cudensitymatScalarCallbackNone;
+          if (coeff.is_constant()) {
+            const auto coeffVal = coeff.evaluate();
+            HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+                m_handle, liouvillian, term, 0,
+                make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
+                wrappedCallback));
+          } else {
+            wrappedCallback = wrapScalarCallback(coeff, keys);
+            HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+                m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
+                wrappedCallback));
+          }
+        }
+      }
+    } else {
+      if (rightOpOpt.has_value()) {
+        for (auto &[coeff, term] : convertToCudensitymat(
+                 rightOpOpt.value(), parameters, modeExtents)) {
+          cudensitymatWrappedScalarCallback_t wrappedCallback =
+              cudensitymatScalarCallbackNone;
+          if (coeff.is_constant()) {
+            const auto coeffVal = coeff.evaluate();
+            HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+                m_handle, liouvillian, term, 1,
+                make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
+                wrappedCallback));
+          } else {
+            wrappedCallback = wrapScalarCallback(coeff, keys);
+            HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+                m_handle, liouvillian, term, 1, make_cuDoubleComplex(1.0, 0.0),
+                wrappedCallback));
+          }
+        }
+      } else {
+        throw std::runtime_error("Invalid super-operator term encountered: no "
+                                 "operation action is specified.");
+      }
+    }
+  }
+  return liouvillian;
 }
