@@ -12,8 +12,10 @@
 
 int main() {
   cudaq::qvector<3> q(2);
+  // [Begin Beam Splitter Op]
   beam_splitter(q[0], q[1], 0.34);
 
   return 0;
 }
+// [End Beam Splitter Op]
 
