@@ -44,14 +44,12 @@ auto caller_for_pure_device = []() __qpu__ {
   mz(q);
 };
 // [End Kernel Types C++]
-
+// [Begin Kernel Types C++ Execution]
 int main() {
-  // [Begin Kernel Types C++ Execution]
   my_first_entry_point_kernel_lambda(1.23);
   std::vector<double> params = {0.5};
   my_second_entry_point_kernel_struct{}(1.23, params);
   cudaq::sample(caller_for_pure_device); // Sample to execute the caller
-  // [End Kernel Types C++ Execution]
   return 0;
 }
-
+// [End Kernel Types C++ Execution]
