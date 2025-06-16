@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "MeasureCounts.h"
+#include "SampleResult.h"
 #include "cudaq/spin_op.h"
 
 #include <algorithm>
