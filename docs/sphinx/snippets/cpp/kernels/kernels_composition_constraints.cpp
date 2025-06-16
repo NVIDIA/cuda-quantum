@@ -82,11 +82,10 @@ void callConstrainedKernels_cpp() {
   cudaq::sample(entry_algo_qubit);
 }
 // [End Kernel Composition Constraints C++]
-
+// [Begin Kernel Composition Constraints C++ Execution]
 int main() {
-  // [Begin Kernel Composition Constraints C++ Execution]
   callConstrainedKernels_cpp();
-  // [End Kernel Composition Constraints C++ Execution]
   return 0;
 }
+// [End Kernel Composition Constraints C++ Execution]
 
