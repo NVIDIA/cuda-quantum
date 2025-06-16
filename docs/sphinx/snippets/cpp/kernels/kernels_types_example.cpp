@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// Compile and run with: `nvq++ kernels_types_example.cpp && ./a.out`
+
 #include <cudaq.h>
 #include <stdio.h>
 #include <vector>
@@ -44,3 +54,4 @@ int main() {
   // [End Kernel Types C++ Execution]
   return 0;
 }
+
