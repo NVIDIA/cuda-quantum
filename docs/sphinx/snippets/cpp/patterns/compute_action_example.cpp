@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// Compile and run with: `nvq++ compute_action_example.cpp && ./a.out`
+
 #include <cudaq.h>
 #include <stdio.h> // For printf
 
@@ -29,3 +39,4 @@ int main() {
   // So, counts should show roughly equal numbers for "0" and "1".
   return 0;
 }
+
