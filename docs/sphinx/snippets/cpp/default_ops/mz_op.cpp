@@ -12,8 +12,10 @@
 
 int main() {
   cudaq::qubit qubit;
+  // [Begin MZ Op]
   mz(qubit);
 
   return 0;
 }
+// [End MZ Op]
 
