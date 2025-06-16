@@ -15,7 +15,7 @@ def reflect(qubits: cudaq.qview):
     # More standard: Reflection about the average
     # H(qubits)
     # X(qubits)
-    # Z.ctrl(ctrls, last) # Multi-controlled Z on last qubit, flips |1...1>
+    # Z.`ctrl`(ctrls, last) # Multi-controlled Z on last qubit, flips |1...1>
     # X(qubits)
     # H(qubits)
     # The compute_action simplifies this if the lambda captures the H and X.
@@ -27,12 +27,12 @@ def oracle(q: cudaq.qview): # Marks |101> and |011> (if q[2] is target)
     # This oracle marks states where (q0=1 AND q2=1) OR (q1=1 AND q2=1)
     # by flipping the phase of q[2] if q[0]=1 or q[1]=1.
     # A typical Grover oracle flips the phase of the *marked item(s)*.
-    # If q[2] is an ancilla, this is more like Deutsch-Jozsa.
+    # If q[2] is an ancilla, this is more like Deutsch-`Jozsa`.
     # Assuming q[2] is part of the search space and we want to find e.g. |101>
     # A common oracle for |101> (3 qubits) would be X(q[1]), CNOT(q[0],q[2]), CNOT(q[1],q[2]), X(q[1])
     # The provided oracle is:
-    # z.ctrl(q[0], q[2]) -> if q[0]=1, apply Z to q[2]
-    # z.ctrl(q[1], q[2]) -> if q[1]=1, apply Z to q[2]
+    # z.`ctrl`(q[0], q[2]) -> if q[0]=1, apply Z to q[2]
+    # z.`ctrl`(q[1], q[2]) -> if q[1]=1, apply Z to q[2]
     # This means if (q0=1, q1=0) -> Z on q2. If (q0=0, q1=1) -> Z on q2.
     # If (q0=1, q1=1) -> Z^2=I on q2. If (q0=0, q1=0) -> I on q2.
     # This oracle is a bit unusual for standard Grover search for specific bitstrings.
@@ -57,7 +57,7 @@ counts = cudaq.sample(grover, 3, 1, oracle)
 print(counts)
 # The assert implies specific outcomes.
 # For N=3, M=1, we'd expect some amplification.
-# The oracle z.ctrl(q[0],q[2]); z.ctrl(q[1],q[2]) marks states where q0 XOR q1 is 1, to apply Z to q2.
+# The oracle z.`ctrl`(q[0],q[2]); z.`ctrl`(q[1],q[2]) marks states where q0 XOR q1 is 1, to apply Z to q2.
 # This is not a standard Grover oracle for finding '101' and '011'.
 # However, I will keep the asserts as per the RST.
 assert len(counts) == 2 # This might be too strict for M=1.

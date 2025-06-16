@@ -6,8 +6,8 @@ signature, and that operations or primitive algorithms targeting a quantum
 coprocessor be implemented as adaptors on those callable instances. Adaptors, by
 definition, are generic functions that take any quantum kernel as input along with
 the runtime arguments for that kernel. Runtime arguments passed to adaptor functions
-flow through the adaptor to the provided kernel. This pattern allows general pre-
-and post-processing around concrete kernel execution.
+flow through the adaptor to the provided kernel. This pattern allows general 
+pre-processing and post-processing around concrete kernel execution.
 
 .. _cudaq-sample-spec:
 

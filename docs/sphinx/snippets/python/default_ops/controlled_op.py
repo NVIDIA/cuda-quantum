@@ -20,7 +20,7 @@ def main():
     # Apply the transformation T only if both 
     # control qubits are in a |1> state:
     t.ctrl([ctrl_1, ctrl_2], target)
-    # The qubits ctrl_1, ctrl_2, and target are now in a state
+    # The qubits `ctrl_1`, `ctrl_2`, and target are now in a state
     # (|000> + exp(iπ/4)|111>) / √2.
 
 if __name__ == "__main__":

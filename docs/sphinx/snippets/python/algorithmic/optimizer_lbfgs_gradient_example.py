@@ -10,7 +10,7 @@ def deuteron_n3_ansatz_py(x0: float, x1: float):
     ry(x0, q[1])
     ry(x1, q[2])
     x.ctrl(q[2], q[0])
-    x.ctrl(q[0], q[1]) # Assuming vctrl was a typo for ctrl
+    x.ctrl(q[0], q[1]) # Assuming `vctrl` was a typo for `ctrl`
     ry(-x0, q[1])
     x.ctrl(q[0], q[1])
     x.ctrl(q[1], q[0])

@@ -4,7 +4,7 @@ def main():
     qubit = cudaq.qubit()
 
     # Apply the unitary transformation
-    # H = (1 / sqrt(2)) * | 1   1 |
+    # H = (1 / `sqrt`(2)) * | 1   1 |
     #                     | 1  -1 |
     h(qubit)
 
