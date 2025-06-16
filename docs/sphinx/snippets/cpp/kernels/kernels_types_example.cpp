@@ -1,6 +1,6 @@
 #include <cudaq.h>
-#include <vector>   
-#include <stdio.h>  
+#include <stdio.h>
+#include <vector>
 
 // [Begin Kernel Types C++]
 // Entry point lambda kernel

@@ -1,8 +1,8 @@
 #include <cudaq.h>
 
 int main() {
-    cudaq::qubit qubit;
-    my(qubit);
-    
-    return 0;
+  cudaq::qubit qubit;
+  my(qubit);
+
+  return 0;
 }

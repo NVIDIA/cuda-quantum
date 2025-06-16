@@ -19,7 +19,7 @@ int main() {
   counts.dump();
 
   // Fine-grained access to the bits and counts
-  for (auto& [bits, count] : counts) {
+  for (auto &[bits, count] : counts) {
     printf("Observed: %s, Count: %lu\n", bits.data(), count);
   }
   // [End Sample Bell C++]

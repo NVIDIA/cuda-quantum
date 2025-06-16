@@ -14,9 +14,7 @@ auto kernel_compute_action_cpp = []() __qpu__ {
         s(q[0]);
       },
       // V_code lambda
-      [&]() {
-        x(q[0]);
-      });
+      [&]() { x(q[0]); });
   // [End Compute Action C++ Snippet]
 
   mz(q[0]); // Measure for results

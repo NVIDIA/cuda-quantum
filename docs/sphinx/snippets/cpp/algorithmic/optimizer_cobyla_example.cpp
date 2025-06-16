@@ -13,7 +13,8 @@ auto ansatz_cobyla = [](double theta, double phi) __qpu__ {
 };
 
 // Hamiltonian
-cudaq::spin_op H_cobyla = cudaq::spin_op::z(0) * cudaq::spin_op::x(1) + 0.5 * cudaq::spin_op::y(0);
+cudaq::spin_op H_cobyla =
+    cudaq::spin_op::z(0) * cudaq::spin_op::x(1) + 0.5 * cudaq::spin_op::y(0);
 
 int main() {
   cudaq::optimizers::cobyla optimizer;
@@ -21,14 +22,14 @@ int main() {
   optimizer.max_eval = 100;
 
   auto [opt_val, opt_params] = optimizer.optimize(
-      2, 
-      [&](const std::vector<double> &params, std::vector<double> &grad_vec) {
+      2, [&](const std::vector<double> &params, std::vector<double> &grad_vec) {
         // grad_vec is not used by COBYLA
         return cudaq::observe(ansatz_cobyla, H_cobyla, params[0], params[1]);
       });
 
   printf("COBYLA Optimal value: %lf\n", opt_val);
-  printf("COBYLA Optimal parameters: [%lf, %lf]\n", opt_params[0], opt_params[1]);
+  printf("COBYLA Optimal parameters: [%lf, %lf]\n", opt_params[0],
+         opt_params[1]);
   return 0;
 }
 // [End COBYLA Example C++]

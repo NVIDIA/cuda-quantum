@@ -1,5 +1,5 @@
 #include <cudaq.h>
-#include <stdio.h> 
+#include <stdio.h>
 
 // [Begin GHZ State C++]
 __qpu__ void ghz(const int n_qubits) { // Changed return to void as it's sampled
@@ -25,8 +25,9 @@ int main() {
   int num_qubits_for_ghz = 4; // Example number of qubits
   printf("Sampling GHZ state for %d qubits:\n", num_qubits_for_ghz);
   auto counts_result = cudaq::sample(ghz, num_qubits_for_ghz);
-  for (auto& [bits, count] : counts_result) { // Added & for structured binding
-    printf("Observed %s %lu times.\n", bits.data(), count); // .data() for std::string from sample_result
+  for (auto &[bits, count] : counts_result) { // Added & for structured binding
+    printf("Observed %s %lu times.\n", bits.data(),
+           count); // .data() for std::string from sample_result
   }
   return 0;
 }

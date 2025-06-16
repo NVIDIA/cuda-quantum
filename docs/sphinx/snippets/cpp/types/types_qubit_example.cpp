@@ -8,7 +8,7 @@ __qpu__ void qubit_usage_kernel_cpp() {
     // Allocate a qubit in the |0> state
     cudaq::qubit q;
     // Put the qubit in a superposition of |0> and |1>
-    h(q); // cudaq::h == hadamard, ADL leveraged
+    h(q);                         // cudaq::h == hadamard, ADL leveraged
     printf("ID = %lu\n", q.id()); // prints 0
     cudaq::qubit r;
     printf("ID = %lu\n", r.id()); // prints 1
@@ -16,7 +16,8 @@ __qpu__ void qubit_usage_kernel_cpp() {
     mz(q); // Add measurements for sample
     mz(r);
   }
-  cudaq::qubit q_realloc; // Renamed to avoid conflict in broader scope if this was a real test
+  cudaq::qubit q_realloc; // Renamed to avoid conflict in broader scope if this
+                          // was a real test
   printf("ID = %lu\n", q_realloc.id()); // prints 0 (previous deallocated)
   mz(q_realloc);
   // [End CppQubitUsage]
@@ -25,8 +26,8 @@ __qpu__ void qubit_usage_kernel_cpp() {
 int main() {
   printf("C++ Qubit Usage Example:\n");
   auto counts = cudaq::sample(qubit_usage_kernel_cpp);
-  // Due to printf, actual counts might be less critical here for the test's main purpose.
-  // The printf calls demonstrate ID management.
-  counts.dump(); 
+  // Due to printf, actual counts might be less critical here for the test's
+  // main purpose. The printf calls demonstrate ID management.
+  counts.dump();
   return 0;
 }

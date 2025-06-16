@@ -1,8 +1,8 @@
+#include <cmath>
 #include <cudaq.h>
-#include <cudaq/spin_op.h> 
-#include <cudaq/utils/linspace.h> 
-#include <stdio.h> 
-#include <cmath> 
+#include <cudaq/spin_op.h>
+#include <cudaq/utils/linspace.h>
+#include <stdio.h>
 
 // [Begin Deuteron Sweep C++]
 struct deuteron_n2_ansatz {
@@ -15,14 +15,15 @@ struct deuteron_n2_ansatz {
 };
 
 int main() {
-  cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
-                     2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-                     .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
   // Perform parameter sweep for deuteron N=2 Hamiltonian
   const auto param_space = cudaq::linspace(-M_PI, M_PI, 25);
   printf("Param Sweep <H>(theta) = energy\n");
-  for (const auto& param : param_space) {
+  for (const auto &param : param_space) {
     // KERNEL::observe(...) <==>
     // E(params...) = <psi(params...) | H | psi(params...)>
     double energy_at_param = cudaq::observe(deuteron_n2_ansatz{}, h, param);

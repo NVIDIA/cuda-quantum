@@ -1,5 +1,5 @@
 #include <cudaq.h>
-#include <stdio.h> 
+#include <stdio.h>
 
 // [Begin Intrinsic Modifiers C++]
 auto kernel_intrinsic_modifiers = []() __qpu__ {
@@ -16,7 +16,8 @@ auto kernel_intrinsic_modifiers = []() __qpu__ {
   h<cudaq::ctrl>(q, r, s);
 
   // Error, ctrl requires > 1 qubit operands (target + at least one control)
-  // h<cudaq::ctrl>(r); // This line is commented out in the original, keep it so.
+  // h<cudaq::ctrl>(r); // This line is commented out in the original, keep it
+  // so.
 
   // Add measurements to make it a complete circuit for sampling
   mz(q);

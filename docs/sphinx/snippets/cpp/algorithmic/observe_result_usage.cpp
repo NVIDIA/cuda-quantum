@@ -16,7 +16,8 @@ struct observe_kernel_demo {
 int main() {
   // [Begin Observe Result Usage C++]
   // Define a spin_op for demonstration
-  cudaq::spin_op spinOp = cudaq::spin_op::x(0) * cudaq::spin_op::x(1) + 0.5 * cudaq::spin_op::z(0);
+  cudaq::spin_op spinOp =
+      cudaq::spin_op::x(0) * cudaq::spin_op::x(1) + 0.5 * cudaq::spin_op::z(0);
   double param = 0.23; // Example parameter
 
   // I only care about the expected value, discard
@@ -32,11 +33,11 @@ int main() {
   // Example for a specific term
   auto x0x1_term = cudaq::spin_op::x(0) * cudaq::spin_op::x(1);
   if (spinOp.has_term(x0x1_term)) {
-      auto X0X1Exp = result.expectation(x0x1_term);
-      printf("X0X1 ExpVal: %lf\n", X0X1Exp);
-      auto X0X1Data = result.counts(x0x1_term);
-      printf("X0X1 Counts:\n");
-      X0X1Data.dump();
+    auto X0X1Exp = result.expectation(x0x1_term);
+    printf("X0X1 ExpVal: %lf\n", X0X1Exp);
+    auto X0X1Data = result.counts(x0x1_term);
+    printf("X0X1 Counts:\n");
+    X0X1Data.dump();
   }
   result.dump(); // Dump all data
   // [End Observe Result Usage C++]

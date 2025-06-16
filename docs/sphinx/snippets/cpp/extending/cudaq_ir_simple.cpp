@@ -1,5 +1,5 @@
 #include <cudaq.h>
-#include <iostream> 
+#include <iostream>
 
 struct ghz {
   void operator()(int N) __qpu__ {
@@ -12,12 +12,12 @@ struct ghz {
   }
 };
 
-int main() { 
+int main() {
   // The original RST showed "int main() { ... }"
   // This is a complete main for a runnable example.
-  auto counts = cudaq::sample(ghz{}, 3); 
+  auto counts = cudaq::sample(ghz{}, 3);
   std::cout << "cudaq_ir_simple.cpp: ghz(3) counts:" << std::endl;
   counts.dump();
-  return 0; 
+  return 0;
 }
 // [End CUDA_IR_Simple_CPP_Content]
