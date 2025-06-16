@@ -12,8 +12,10 @@
 
 int main() {
   cudaq::qvector<3> q(1);
+  // [Begin Create Op]
   create(q[0]);
 
   return 0;
 }
+// [End Create Op]
 
