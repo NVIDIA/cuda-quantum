@@ -12,7 +12,7 @@
 
 int main() {
   cudaq::qubit qubit;
-
+  // [Begin H Op]
   // Apply the unitary transformation
   // H = (1 / sqrt(2)) * | 1   1 |
   //                     | 1  -1 |
@@ -20,4 +20,5 @@ int main() {
 
   return 0;
 }
+// [End H Op]
 
