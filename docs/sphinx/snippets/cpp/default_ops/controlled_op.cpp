@@ -12,6 +12,7 @@
 
 int main() {
   // Allocate qubits in a |0> state.
+  // [Begin Controlled Op]
   cudaq::qubit ctrl_1, ctrl_2, target;
   // Create a superposition.
   h(ctrl_1);
@@ -35,4 +36,5 @@ int main() {
 
   return 0;
 }
+// [End Controlled Op]
 
