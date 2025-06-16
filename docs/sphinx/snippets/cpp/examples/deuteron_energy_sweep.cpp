@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// Compile and run with: `nvq++ deuteron_energy_sweep.cpp && ./a.out`
+
 #include <cmath>
 #include <cudaq.h>
 #include <cudaq/spin_op.h>
@@ -32,3 +42,4 @@ int main() {
   return 0;
 }
 // [End Deuteron Sweep C++]
+
