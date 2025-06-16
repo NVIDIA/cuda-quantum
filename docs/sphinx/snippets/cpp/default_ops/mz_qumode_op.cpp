@@ -12,8 +12,10 @@
 
 int main() {
   cudaq::qvector<3> qumodes(2);
+  // [Begin MZ Op]
   mz(qumodes);
 
   return 0;
 }
+// [End MZ Op]
 
