@@ -321,10 +321,8 @@ jobs:
     steps:
       - name: Create multi-arch manifest
         run: |
-          docker buildx imagetools create \
-            -t ghcr.io/${{ github.repository_owner }}/cuda-quantum:latest \
-            ghcr.io/${{ github.repository_owner }}/cuda-quantum:amd64 \
-            ghcr.io/${{ github.repository_owner }}/cuda-quantum:arm64
+          docker buildx inspect ghcr.io/${{ github.repository_owner }}/cuda-quantum:amd64 \
+          docker buildx inspect ghcr.io/${{ github.repository_owner }}/cuda-quantum:arm64
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
