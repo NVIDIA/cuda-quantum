@@ -20,7 +20,7 @@ struct ansatz_h2 {
     x<cudaq::ctrl>(q[1], q[0]);
   }
 };
-
+// [End H2 Ansatz C++]
 int main() {
   cudaq::spin_op h =
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
