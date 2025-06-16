@@ -35,18 +35,25 @@ void bindCountResources(py::module &mod) {
 
         auto ctx = std::make_unique<ExecutionContext>("resourcecount", 1);
         ctx->kernelName = kernelName;
-        // ctx->choice = choice;
+        // Indicate that this is not an async exec
+        ctx->asyncExec = false;
 
-        cudaq::setResourceCountingSimulator();
+        // Use the resource counter simulator
+        __internal__::switchToResourceCounterSimulator();
+        // Set the choice function for the simulator
+        __internal__::setChoiceFunction(choice);
 
+        // Set the platform
         platform.set_exec_ctx(ctx.get());
 
         pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
 
-        cudaq::resetSimulator();
+        // Save and clone counts data
+        auto counts = resource_counts(*__internal__::getResourceCounts());
+        // Switch simulators back
+        __internal__::stopUsingResourceCounterSimulator();
 
-        // return ctx->resourceCounts;
-        return resource_counts();
+        return counts;
       },
       R"#(Performs resource counting on the given quantum kernel
 expression and returns an accounting of how many times each gate

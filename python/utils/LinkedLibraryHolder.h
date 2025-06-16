@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/ResourceCounts.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/host_config.h"
 #include <filesystem>
@@ -18,7 +19,11 @@
 
 namespace nvqir {
 class CircuitSimulator;
-}
+void switchToResourceCounterSimulator();
+void stopUsingResourceCounterSimulator();
+void setChoiceFunction(std::function<bool()> choice);
+cudaq::resource_counts *getResourceCounts();
+} // namespace nvqir
 
 namespace cudaq {
 
@@ -106,8 +111,11 @@ public:
   void resetTarget();
 };
 
-/// @brief Set the current simulator to the resource counter
-void setResourceCountingSimulator();
+namespace __internal__ {
+void switchToResourceCounterSimulator();
+void stopUsingResourceCounterSimulator();
+void setChoiceFunction(std::function<bool()> choice);
+cudaq::resource_counts *getResourceCounts();
+} // namespace __internal__
 
-void resetSimulator();
 } // namespace cudaq
