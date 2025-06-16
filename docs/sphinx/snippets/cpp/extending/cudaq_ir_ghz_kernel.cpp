@@ -26,7 +26,6 @@ struct ghz_for_ir_tool_demo { // Renamed from ghz to avoid potential naming
     // mz(q);`
   }
 };
-// [End CUDA_IR_GHZ_Kernel_Struct_CPP]
 
 int main() {
   auto counts = cudaq::sample(ghz_for_ir_tool_demo{});
@@ -35,4 +34,5 @@ int main() {
   counts.dump();
   return 0;
 }
+// [End CUDA_IR_GHZ_Kernel_Struct_CPP]
 
