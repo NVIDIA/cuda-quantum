@@ -31,13 +31,15 @@ This operation implements the transformation defined by the Pauli-X matrix. It i
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/x_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin X Op]
+       :end-before: [End X Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/x_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin X Op]
+       :end-before: [End X Op]
 
 :code:`y`
 ---------------------
@@ -48,13 +50,15 @@ This operation implements the transformation defined by the Pauli-Y matrix.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/y_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin Y Op]
+       :end-before: [End Y Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/y_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin Y Op]
+       :end-before: [End Y Op]
 
 :code:`z`
 ---------------------
@@ -65,13 +69,15 @@ This operation implements the transformation defined by the Pauli-Z matrix.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/z_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin Z Op]
+       :end-before: [End Z Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/z_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin Z Op]
+       :end-before: [End Z Op]
 
 :code:`h`
 ---------------------
@@ -82,13 +88,15 @@ This operation is a rotation by π about the X+Z axis, and enables one to create
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/h_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin H Op]
+       :end-before: [End H Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/h_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin H Op]
+       :end-before: [End H Op]
        
 :code:`r1`
 ---------------------
@@ -99,13 +107,15 @@ This operation is an arbitrary rotation about the :code:`|1>` state.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/r1_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin R1 Op]
+       :end-before: [End R1 Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/r1_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin R1 Op]
+       :end-before: [End R1 Op]
 
 :code:`rx`
 ---------------------
@@ -116,13 +126,15 @@ This operation is an arbitrary rotation about the X axis.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/rx_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin Rx Op]
+       :end-before: [End Rx Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/rx_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin Rx Op]
+       :end-before: [End Rx Op]
 
 :code:`ry`
 ---------------------
@@ -133,14 +145,15 @@ This operation is an arbitrary rotation about the Y axis.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/ry_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin Ry Op]
+       :end-before: [End Ry Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/ry_op.cpp
        :language: cpp
-       :lines: 5-11
-
+       :start-after: [Begin Ry Op]
+       :end-before: [End Ry Op]
 :code:`rz`
 ---------------------
 
@@ -150,13 +163,15 @@ This operation is an arbitrary rotation about the Z axis.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/rz_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin Rz Op]
+       :end-before: [End Rz Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/rz_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin Rz Op]
+       :end-before: [End Rz Op]
 
 :code:`s`
 ---------------------
@@ -167,13 +182,15 @@ This operation applies to its target a rotation by π/2 about the Z axis.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/s_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin S Op]
+       :end-before: [End S Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/s_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin S Op]
+       :end-before: [End S Op]
 
 :code:`t`
 ---------------------
@@ -184,13 +201,15 @@ This operation applies to its target a π/4 rotation about the Z axis.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/t_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin T Op]
+       :end-before: [End T Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/t_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin T Op]
+       :end-before: [End T Op]
 
 :code:`swap`
 ---------------------
@@ -201,13 +220,15 @@ This operation swaps the states of two qubits.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/swap_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin Swap Op]
+       :end-before: [End Swap Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/swap_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin Swap Op]
+       :end-before: [End Swap Op]
 
 :code:`u3`
 ---------------------
@@ -218,13 +239,15 @@ This operation applies the universal three-parameters operator to target qubit. 
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/u3_op.py
        :language: python
-       :lines: 4-9
+       :start-after: [Begin U3 Op]
+       :end-before: [End U3 Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/u3_op.cpp
        :language: cpp
-       :lines: 5-11
+       :start-after: [Begin U3 Op]
+       :end-before: [End U3 Op]
 
 Adjoint and Controlled Operations
 ==================================
@@ -236,7 +259,8 @@ Adjoint and Controlled Operations
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/adjoint_op.py
        :language: python
-       :lines: 4-14
+       :start-after: [Begin Adjoint Op]
+       :end-before: [End Adjoint Op]
 
 .. tab:: C++
 
@@ -245,8 +269,8 @@ Adjoint and Controlled Operations
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/adjoint_op.cpp
        :language: cpp
-       :lines: 5-17
-
+       :start-after: [Begin Adjoint Op]
+       :end-before: [End Adjoint Op]
 .. tab:: Python
 
     The :code:`ctrl` method of any gate can be used to apply the transformation
@@ -255,7 +279,8 @@ Adjoint and Controlled Operations
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/controlled_op.py
        :language: python
-       :lines: 4-21
+       :start-after: [Begin Controlled Op]
+       :end-before: [End Controlled Op]
 
 .. tab:: C++
 
@@ -265,7 +290,8 @@ Adjoint and Controlled Operations
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/controlled_op.cpp
        :language: cpp
-       :lines: 5-25
+       :start-after: [Begin Controlled Op]
+       :end-before: [End Controlled Op]
 
 Following common convention, by default the transformation is applied to the target qubit(s)
 if all control qubits are in a :code:`|1>` state. 
@@ -278,7 +304,8 @@ control qubit:
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/negated_control.cpp
        :language: cpp
-       :lines: 4-9
+       :start-after: [Begin Negated Control]
+       :end-before: [End Negated Control]
 
 This notation is only supported in the context of applying a controlled operation and is only valid for control qubits. For example, negating either of the target qubits in the
 :code:`swap` operation is not allowed.
@@ -298,13 +325,15 @@ This is a non-linear transformation, and no template overloads are available.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/mz_op.py
        :language: python
-       :lines: 4-7
+       :start-after: [Begin MZ Op]
+       :end-before: [End MZ Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/mz_op.cpp
        :language: cpp
-       :lines: 5-8
+       :start-after: [Begin MZ Op]
+       :end-before: [End MZ Op]
 
 :code:`mx`
 ---------------------
@@ -317,13 +346,15 @@ This is a non-linear transformation, and no template overloads are available.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/mx_op.py
        :language: python
-       :lines: 4-7
+       :start-after: [Begin MX Op]
+       :end-before: [End MX Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/mx_op.cpp
        :language: cpp
-       :lines: 5-8
+       :start-after: [Begin MX Op]
+       :end-before: [End MX Op]
 
 :code:`my`
 ---------------------
@@ -336,13 +367,15 @@ This is a non-linear transformation, and no template overloads are available.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/my_op.py
        :language: python
-       :lines: 4-7
+       :start-after: [Begin MY Op]
+       :end-before: [End MY Op]
         
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/my_op.cpp
        :language: cpp
-       :lines: 5-8
+       :start-after: [Begin MY Op]
+       :end-before: [End MY Op]
 
 User-Defined Custom Operations
 ==============================
@@ -362,7 +395,8 @@ Custom operations are supported on qubits only (`qudit` with `level = 2`).
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/custom_op.py
        :language: python
-       :lines: 4-17
+       :start-after: [Begin Custom Op]
+       :end-before: [End Custom Op]
         
 .. tab:: C++
 
@@ -373,7 +407,8 @@ Custom operations are supported on qubits only (`qudit` with `level = 2`).
     
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/custom_op.cpp
        :language: cpp
-       :lines: 5-23
+       :start-after: [Begin Custom Op]
+       :end-before: [End Custom Op]
 
 For multi-qubit operations, the matrix is interpreted with MSB qubit ordering,
 i.e. big-endian convention. The following example shows two different custom
@@ -420,13 +455,15 @@ where :math:`d` is the qudit level.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/create_op.py
        :language: python
-       :lines: 4-7
+       :start-after: [Begin Create Op]
+       :end-before: [End Create Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/create_op.cpp
        :language: cpp
-       :lines: 5-8
+       :start-after: [Begin Create Op]
+       :end-before: [End Create Op]
 
 :code:`annihilate`
 ---------------------
@@ -442,13 +479,15 @@ where :math:`d` is the qudit level.
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/annihilate_op.py
        :language: python
-       :lines: 4-7
+       :start-after: [Begin Annihilate Op]
+       :end-before: [End Annihilate Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/annihilate_op.cpp
        :language: cpp
-       :lines: 5-8
+       :start-after: [Begin Annihilate Op]
+       :end-before: [End Annihilate Op]
 
 :code:`phase_shift`
 ---------------------
@@ -464,13 +503,15 @@ is defined  by
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/phase_shift_op.py
        :language: python
-       :lines: 4-7
+       :start-after: [Begin Phase Shift Op]
+       :end-before: [End Phase Shift Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/phase_shift_op.cpp
        :language: cpp
-       :lines: 5-8
+       :start-after: [Begin Phase Shift Op]
+       :end-before: [End Phase Shift Op]
 
 :code:`beam_splitter`
 ---------------------
@@ -487,13 +528,15 @@ and :math:`a_2^\dagger`) of two qumodes, the beam splitter operator is defined b
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/beam_splitter_op.py
        :language: python
-       :lines: 4-7
+       :start-after: [Begin Beam Splitter Op]
+       :end-before: [End Beam Splitter Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/beam_splitter_op.cpp
        :language: cpp
-       :lines: 5-8
+       :start-after: [Begin Beam Splitter Op]
+       :end-before: [End Beam Splitter Op]
 
 :code:`mz`
 ---------------------
@@ -504,10 +547,12 @@ This operation returns the measurement results of the input qumode(s).
 
     .. literalinclude:: /../sphinx/snippets/python/default_ops/mz_qumode_op.py
        :language: python
-       :lines: 4-7
+       :start-after: [Begin MZ Op]
+       :end-before: [End MZ Op]
 
 .. tab:: C++
 
     .. literalinclude:: /../sphinx/snippets/cpp/default_ops/mz_qumode_op.cpp
        :language: cpp
-       :lines: 5-8
+       :start-after: [Begin MZ Op]
+       :end-before: [End MZ Op]
