@@ -1791,22 +1791,22 @@ public:
     return *this;
   }
 
-  /// @brief Create a super-operator represents the left multiplication of the
-  /// input product operator
+  /// @brief Create a super-operator that represents the left multiplication of
+  /// the input product operator
   /// @param op Product operator to be applied to the left
   /// @return Super-operator
   static super_op
   left_multiply(const cudaq::product_op<cudaq::matrix_handler> &op);
 
-  /// @brief Create a super-operator represents the right multiplication of the
-  /// input product operator
+  /// @brief Create a super-operator that represents the right multiplication of
+  /// the input product operator
   /// @param op Product operator to be applied to the right
   /// @return Super-operator
   static super_op
   right_multiply(const cudaq::product_op<cudaq::matrix_handler> &op);
 
-  /// @brief Create a super-operator represents the simultaneous left and right
-  /// multiplication action
+  /// @brief Create a super-operator that represents the simultaneous left and
+  /// right multiplication action
   /// @param leftOp Operator to be applied on the left
   /// @param rightOp Operator to be applied on the right
   /// @return Super-operator
@@ -1814,21 +1814,21 @@ public:
   left_right_multiply(const cudaq::product_op<cudaq::matrix_handler> &leftOp,
                       const cudaq::product_op<cudaq::matrix_handler> &rightOp);
 
-  /// @brief Create a super-operator represents the left multiplication of the
-  /// input sum operator
+  /// @brief Create a super-operator that represents the left multiplication of
+  /// the input sum operator
   /// @param op Sum operator to be applied to the left
   /// @return Super-operator
   static super_op left_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op);
 
-  /// @brief Create a super-operator represents the right multiplication of the
-  /// input sum operator
+  /// @brief Create a super-operator that represents the right multiplication of
+  /// the input sum operator
   /// @param op Sum operator to be applied to the right
   /// @return Super-operator
   static super_op
   right_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op);
 
-  /// @brief Create a super-operator represents the simultaneous left and right
-  /// multiplication action
+  /// @brief Create a super-operator that represents the simultaneous left and
+  /// right multiplication action
   /// @param leftOp Operator to be applied on the left
   /// @param rightOp Operator to be applied on the right
   /// @return Super-operator

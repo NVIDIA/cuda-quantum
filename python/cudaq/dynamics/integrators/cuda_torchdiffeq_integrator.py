@@ -135,11 +135,17 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
                     (math.prod(self.dimensions)**2 * self.batchSize
                     ) == self.state.getTensor().get_num_elements())
 
-            self.stepper = cuDensityMatTimeStepper(
-                self.schedule_, self.hamiltonian, self.collapse_operators,
-                list(self.dimensions), self.is_density_state
-            ) if self.super_op is None else cuDensityMatSuperOpTimeStepper(
-                self.super_op, self.schedule_, list(self.dimensions))
+            if self.super_op is None:
+                # Create a stepper based on the provided Hamiltonian and collapse operators
+                self.stepper = cuDensityMatTimeStepper(self.schedule_,
+                                                       self.hamiltonian,
+                                                       self.collapse_operators,
+                                                       list(self.dimensions),
+                                                       self.is_density_state)
+            else:
+                # Create a stepper based on the provided super-operator
+                self.stepper = cuDensityMatSuperOpTimeStepper(
+                    self.super_op, self.schedule_, list(self.dimensions))
 
         if t <= self.t:
             raise ValueError(
