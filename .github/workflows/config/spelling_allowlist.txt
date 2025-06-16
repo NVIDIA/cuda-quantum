@@ -3,6 +3,7 @@ AFQMC
 API
 APIs
 AST
+AUTH
 Aer
 AlmaLinux
 Anyon
@@ -239,6 +240,7 @@ hadamard
 hamiltonian
 heisenberg
 homogenous
+https
 iff
 increment
 incrementing
