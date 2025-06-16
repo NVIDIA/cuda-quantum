@@ -105,6 +105,13 @@ else
     done    
 fi
 
+# Temporary solution until we stop reading backends names from configuration file.
+# This avoids duplicate testing during container validation in the publishing task.
+for backend_to_remove in nvidia-fp64 nvidia-mgpu nvidia-mqpu-fp64 nvidia-mqpu-mps nvidia-mqpu
+do
+    requested_backends=$(echo "$requested_backends" | grep -vx "$backend_to_remove")
+done
+
 echo
 echo "Installed backends:"
 echo "$installed_backends"
