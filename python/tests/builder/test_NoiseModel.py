@@ -558,6 +558,7 @@ def test_custom_op():
 
 def test_apply_noise_custom():
     cudaq.set_target('density-matrix-cpu')
+    cudaq.set_random_seed(13)
 
     class CustomNoiseChannelBad(cudaq.KrausChannel):
         # NEEDS num_parameters member, but it is missing, so this is Bad
@@ -677,6 +678,7 @@ def test_apply_noise_custom():
 @pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
 def test_apply_noise_builtin(target: str):
     cudaq.set_target(target)
+    cudaq.set_random_seed(13)
 
     noise = cudaq.NoiseModel()
 
@@ -775,6 +777,7 @@ def test_apply_noise_builtin(target: str):
 @pytest.mark.parametrize('target', ['density-matrix-cpu'])
 def test_noise_observe_reset(target: str):
     cudaq.set_target(target)
+    cudaq.set_random_seed(13)
     noise_model = cudaq.NoiseModel()
     # Amplitude damping channel with `1.0` probability of the qubit
     # decaying to the ground state.
@@ -795,6 +798,8 @@ def test_noise_observe_reset(target: str):
                                      noise_model=noise_model)
         assert np.isclose(result_noiseless.expectation(), -1.)
         assert np.isclose(result_noisy.expectation(), 1.)
+
+    cudaq.reset_target()
 
 
 # leave for gdb debugging
