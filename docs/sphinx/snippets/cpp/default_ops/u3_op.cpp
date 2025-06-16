@@ -12,7 +12,7 @@
 
 int main() {
   cudaq::qubit qubit;
-
+  // [Begin U3 Op]
   // Apply the unitary transformation
   // U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
   //             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
@@ -20,4 +20,5 @@ int main() {
 
   return 0;
 }
+// [End U3 Op]
 
