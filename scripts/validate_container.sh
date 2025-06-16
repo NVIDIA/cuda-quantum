@@ -59,6 +59,19 @@ installed_backends=`\
     do basename $file | cut -d "." -f 1; \
     done`
 
+declare -A backend_options=()
+for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); do
+    backend=$(basename "$file" .yml)
+
+    opts=$(
+        grep -oP 'option-flags:\s*\[\K[^\]]+' "$file" \
+        | sed 's/, */,/g' \
+        | tr '\n' ' ' \
+        | sed 's/ $//')
+
+    backend_options["$backend"]="$opts"
+done
+
 # remote_rest targets are automatically filtered, 
 # so is execution on the photonics backend and the stim backend
 # This will test all NVIDIA-derivative targets in the legacy mode,
@@ -104,13 +117,6 @@ else
         fi
     done    
 fi
-
-# Temporary solution until we stop reading backends names from configuration file.
-# This avoids duplicate testing during container validation in the publishing task.
-for backend_to_remove in nvidia-fp64 nvidia-mgpu nvidia-mqpu-fp64 nvidia-mqpu-mps nvidia-mqpu
-do
-    requested_backends=$(echo "$requested_backends" | grep -vx "$backend_to_remove")
-done
 
 echo
 echo "Installed backends:"
@@ -228,13 +234,8 @@ do
         echo "Testing on $t target..."
         
         # All target options to test for targets that support multiple configurations.
-        declare -A target_options=(
-            [nvidia]="fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu"
-            [tensornet]="fp32 fp64"
-            [tensornet-mps]="fp32 fp64"
-        )
-        if [[ -n "${target_options[$t]}" ]]; then
-            for opt in ${target_options[$t]}; do
+        if [[ -n "${backend_options[$t]}" ]]; then
+            for opt in ${backend_options[$t]}; do
                 echo "  Testing $t target option: ${opt}"
                 nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${opt}"
                 if [ ! $? -eq 0 ]; then
