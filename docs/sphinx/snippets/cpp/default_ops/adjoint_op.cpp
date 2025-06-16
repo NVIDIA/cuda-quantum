@@ -13,7 +13,7 @@
 int main() {
   // Allocate a qubit in a |0> state.
   cudaq::qubit qubit;
-
+  // [Begin Adjoint Op]
   // Apply the unitary transformation defined by the matrix
   // T = | 1      0     |
   //     | 0  exp(iπ/4) |
@@ -28,4 +28,4 @@ int main() {
 
   return 0;
 }
-
+// [End Adjoint Op]
