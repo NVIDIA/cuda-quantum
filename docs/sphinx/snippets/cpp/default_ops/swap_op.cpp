@@ -10,7 +10,7 @@
 
 int main() {
   cudaq::qubit qubit_1, qubit_2;
-
+  // [Begin Swap Op]
   // Apply the unitary transformation
   // Swap = | 1 0 0 0 |
   //        | 0 0 1 0 |
@@ -20,4 +20,5 @@ int main() {
 
   return 0;
 }
+// [End Swap Op]
 
