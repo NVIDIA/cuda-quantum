@@ -39,11 +39,10 @@ auto kernel_var_alloc = []() __qpu__ {
          i[2], k_int, pi_val);
 };
 // [End Variable Allocation C++]
-
+// [Begin Variable Allocation C++ Execution]
 int main() {
-  // [Begin Variable Allocation C++ Execution]
   cudaq::sample(kernel_var_alloc);
-  // [End Variable Allocation C++ Execution]
   return 0;
 }
+// [End Variable Allocation C++ Execution]
 
