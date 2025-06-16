@@ -8,33 +8,39 @@
 
 #pragma once
 
+#include "common/ResourceCounts.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/Gates.h"
-
-using namespace cudaq;
 
 namespace nvqir {
 
 class ResourceCounter : public nvqir::CircuitSimulatorBase<double> {
 protected:
+  cudaq::resource_counts resourceCounts;
+  std::function<bool()> choice;
+
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override {
-    executionContext->resourceCounts.addQubit();
+    // executionContext->resourceCounts.addQubit();
+    resourceCounts.addQubit();
   }
 
   void applyGate(const GateApplicationTask &task) override {
     cudaq::info("Applying {} with {} controls", task.operationName,
                 task.controls.size());
-    auto gate =
-        resource_counts::GateData{task.operationName, task.controls.size()};
-    executionContext->resourceCounts.append(gate);
+    auto gate = cudaq::resource_counts::GateData{task.operationName,
+                                                 task.controls.size()};
+    // executionContext->resourceCounts.append(gate);
+    resourceCounts.append(gate);
   }
 
   /// @brief Measure the qubit and return the result. Collapse the
   /// state vector.
   bool measureQubit(const std::size_t index) override {
-    assert(executionContext->choice);
-    auto measure = executionContext->choice();
+    // assert(executionContext->choice);
+    // auto measure = executionContext->choice();
+    assert(choice);
+    auto measure = choice();
     cudaq::info("Measure of {} returned {}", index, measure);
     return measure;
   }
@@ -65,7 +71,22 @@ public:
 
   void deallocateStateImpl() override {}
 
-  void setToZeroState() override {}
+  void setToZeroState() override { resourceCounts.clear(); }
+
+  void setExecutionContext(cudaq::ExecutionContext *context) override {
+    if (context->name != "resourcecount")
+      throw std::runtime_error(
+          "Illegal use of resource counter simulator! (Did you attempt to run "
+          "a kernel inside of a choice function?)");
+    this->CircuitSimulatorBase::setExecutionContext(context);
+  }
+
+  cudaq::resource_counts *getResourceCounts() { return &resourceCounts; }
+
+  void setChoiceFunction(std::function<bool()> choice) {
+    assert(choice);
+    this->choice = choice;
+  }
 };
 
 } // namespace nvqir

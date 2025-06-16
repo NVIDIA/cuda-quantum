@@ -35,7 +35,7 @@ void bindCountResources(py::module &mod) {
 
         auto ctx = std::make_unique<ExecutionContext>("resourcecount", 1);
         ctx->kernelName = kernelName;
-        ctx->choice = choice;
+        // ctx->choice = choice;
 
         cudaq::setResourceCountingSimulator();
 
@@ -45,7 +45,8 @@ void bindCountResources(py::module &mod) {
 
         cudaq::resetSimulator();
 
-        return ctx->resourceCounts;
+        // return ctx->resourceCounts;
+        return resource_counts();
       },
       R"#(Performs resource counting on the given quantum kernel
 expression and returns an accounting of how many times each gate

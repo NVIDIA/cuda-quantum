@@ -61,7 +61,7 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
-cudaq::resource_counts* getResourceCounts();
+cudaq::resource_counts *getResourceCounts();
 } // namespace nvqir
 
 namespace cudaq {
@@ -527,7 +527,8 @@ public:
         pm.addPass(mlir::createCanonicalizerPass());
         std::function<void(std::string, size_t)> f = [&](std::string gate,
                                                          size_t count) {
-          executionContext->resourceCounts.append(gate, count);
+          nvqir::getResourceCounts()->append(gate, count);
+          // executionContext->resourceCounts.append(gate, count);
         };
         cudaq::opt::ResourceCountPreprocessOptions opt{f};
         pm.addNestedPass<mlir::func::FuncOp>(

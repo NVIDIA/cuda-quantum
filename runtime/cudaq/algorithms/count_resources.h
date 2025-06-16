@@ -16,14 +16,11 @@
 #include "cudaq/host_config.h"
 
 namespace nvqir {
-class CircuitSimulator;
-}
-
-extern "C" {
-void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
-void __nvqir__resetCircuitSimulator();
-nvqir::CircuitSimulator *__nvqir__getResourceCounterCircuitSimulator();
-}
+void switchToResourceCounterSimulator();
+void stopUsingResourceCounterSimulator();
+void setChoiceFunction(std::function<bool()> choice);
+cudaq::resource_counts *getResourceCounts();
+} // namespace nvqir
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
@@ -60,10 +57,6 @@ auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel,
     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
   }
 
-  // Use the resource counter simulator
-  auto *resource_counter = __nvqir__getResourceCounterCircuitSimulator();
-  __nvqir__setCircuitSimulator(resource_counter);
-
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
@@ -72,19 +65,26 @@ auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel,
   auto ctx = std::make_unique<ExecutionContext>("resourcecount", 1);
   ctx->kernelName = kernelName;
   ctx->hasConditionalsOnMeasureResults = hasConditionalFeedback;
-  ctx->choice = choice;
 
   // Indicate that this is not an async exec
   ctx->asyncExec = false;
+
+  // Use the resource counter simulator
+  nvqir::switchToResourceCounterSimulator();
+  // Set the choice function for the simulator
+  nvqir::setChoiceFunction(choice);
 
   // Set the platform
   platform.set_exec_ctx(ctx.get());
 
   kernel(std::forward<Args>(args)...);
 
-  // Reset the simulator, forcing nvqir to reinitialize the default simulator
-  __nvqir__resetCircuitSimulator();
+  // Save and clone counts data
+  auto counts = resource_counts(*nvqir::getResourceCounts());
+  // Switch simulators back
+  nvqir::stopUsingResourceCounterSimulator();
 
-  return ctx->resourceCounts;
+  // return ctx->resourceCounts;
+  return counts;
 }
 } // namespace cudaq

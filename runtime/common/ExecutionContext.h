@@ -127,14 +127,5 @@ public:
   /// @brief Whether or not to simply concatenate measurements in execution
   /// order.
   bool explicitMeasurements = false;
-
-  /// @brief Counts of resources (gates and qubits) used when in resource
-  /// counting mode
-  resource_counts resourceCounts;
-
-  /// @brief The choice function is used in resource counting mode to
-  /// determine the result of measurements in case control flow depends
-  /// on measurement results.
-  std::function<bool()> choice = nullptr;
 };
 } // namespace cudaq

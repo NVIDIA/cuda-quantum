@@ -12,6 +12,8 @@
 #include "common/PluginUtils.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
+// TODO: do we want to avoid including this here?
+#include "resourcecounter/ResourceCounter.h"
 #include <cmath>
 #include <complex>
 #include <sstream>
@@ -34,7 +36,9 @@
 
 // Is the library initialized?
 thread_local bool initialized = false;
+thread_local bool using_resource_counter = false;
 thread_local nvqir::CircuitSimulator *simulator;
+thread_local nvqir::ResourceCounter *resource_counter_simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
 
@@ -70,15 +74,6 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
   externSimGenerator = std::make_unique<ExternallyProvidedSimGenerator>(sim);
   cudaq::info("[runtime] Setting the circuit simulator to {}.", sim->name());
 }
-
-void __nvqir__resetCircuitSimulator() {
-  simulator = nullptr;
-  if (externSimGenerator) {
-    auto ptr = externSimGenerator.release();
-    delete ptr;
-  }
-  cudaq::info("[runtime] Resetting the circuit simulator.");
-}
 }
 
 namespace nvqir {
@@ -87,6 +82,11 @@ namespace nvqir {
 /// already.
 /// @return
 CircuitSimulator *getCircuitSimulatorInternal() {
+  if (using_resource_counter) {
+    assert(resource_counter_simulator);
+    return resource_counter_simulator;
+  }
+
   if (simulator)
     return simulator;
 
@@ -99,6 +99,29 @@ CircuitSimulator *getCircuitSimulatorInternal() {
       GetCircuitSimulatorSymbol);
   cudaq::info("Creating the {} backend.", simulator->name());
   return simulator;
+}
+
+void switchToResourceCounterSimulator() {
+  if (!resource_counter_simulator)
+    resource_counter_simulator = new ResourceCounter();
+
+  using_resource_counter = true;
+}
+
+void stopUsingResourceCounterSimulator() {
+  using_resource_counter = false;
+  resource_counter_simulator->setToZeroState();
+}
+
+void setChoiceFunction(std::function<bool()> choice) {
+  assert(resource_counter_simulator);
+  resource_counter_simulator->setChoiceFunction(choice);
+}
+
+cudaq::resource_counts *getResourceCounts() {
+  assert(resource_counter_simulator);
+  resource_counter_simulator->flushGateQueue();
+  return resource_counter_simulator->getResourceCounts();
 }
 
 void setRandomSeed(std::size_t seed) {
