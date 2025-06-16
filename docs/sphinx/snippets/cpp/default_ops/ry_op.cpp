@@ -12,7 +12,7 @@
 
 int main() {
   cudaq::qubit qubit;
-
+  // [Begin Ry Op]
   // Apply the unitary transformation
   // Ry(θ) = | cos(θ/2)  -sin(θ/2) |
   //         | sin(θ/2)   cos(θ/2) |
@@ -20,4 +20,5 @@ int main() {
 
   return 0;
 }
+// [End Ry Op]
 
