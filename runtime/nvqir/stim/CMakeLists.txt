@@ -59,13 +59,7 @@ add_custom_command(
   POST_BUILD
   # Don't fail if nm is not available. We have it available in at least one CI
   # environment, and that is all that is necessary for this sanity check.
-  COMMAND bash -c "
-    if [[ -x nm ]] && nm -D $<TARGET_FILE:${LIBRARY_NAME}> | grep stim | grep -q -v getCircuitSimulator_stim; then 
-      echo 'ERROR: Found exported symbols from stim namespace in $<TARGET_FILE:${LIBRARY_NAME}>.' >&2;
-      echo 'The version script is not working correctly.' >&2;
-      exit 1;
-     fi
-  "
+  COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/verify_linkage.sh $<TARGET_FILE:${LIBRARY_NAME}>
   VERBATIM
   COMMENT "Verifying that no stim namespace symbols are exported in ${LIBRARY_NAME}..."
 )
