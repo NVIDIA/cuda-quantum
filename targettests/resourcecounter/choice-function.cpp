@@ -13,6 +13,7 @@
 // ```
 
 #include <cudaq.h>
+#include <cudaq/algorithms/resource_estimation.h>
 
 // Basic check that the choice function works to determine the path taken
 struct mykernel {
@@ -33,8 +34,8 @@ struct mykernel {
 
 int main() {
   auto kernel = mykernel{};
-  auto gateCountsTrue = cudaq::count_resources([](){ return true; }, kernel);
-  auto gateCountsFalse = cudaq::count_resources([](){ return false; }, kernel);
+  auto gateCountsTrue = cudaq::estimate_resources([](){ return true; }, kernel);
+  auto gateCountsFalse = cudaq::estimate_resources([](){ return false; }, kernel);
 
   printf("True path\n");
   gateCountsTrue.dump();

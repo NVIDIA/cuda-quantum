@@ -13,8 +13,9 @@
 // ```
 
 #include <cudaq.h>
+#include <cudaq/algorithms/resource_estimation.h>
 
-// Tests that count_resources works with sample
+// Tests that estimate_resources works with sample
 struct mykernel {
   auto operator()() __qpu__ {
     cudaq::qubit q;
@@ -28,7 +29,7 @@ struct mykernel {
 int main() {
   auto kernel = mykernel{};
   auto counts1 = cudaq::sample(5, kernel);
-  auto gateCounts = cudaq::count_resources([](){ return true; }, kernel);
+  auto gateCounts = cudaq::estimate_resources(kernel);
   auto counts2 = cudaq::sample(10, kernel);
 
   

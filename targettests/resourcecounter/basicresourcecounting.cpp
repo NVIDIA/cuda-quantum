@@ -13,6 +13,7 @@
 // ```
 
 #include <cudaq.h>
+#include <cudaq/algorithms/resource_estimation.h>
 
 struct mykernel {
   auto operator()() __qpu__ {
@@ -32,7 +33,7 @@ struct mykernel {
 
 int main() {
   auto kernel = mykernel{};
-  auto gateCounts = cudaq::count_resources([](){ return true; }, kernel);
+  auto gateCounts = cudaq::estimate_resources(kernel);
 
   gateCounts.dump();
   // CHECK: Total # of gates: 9, total # of qubits: 1

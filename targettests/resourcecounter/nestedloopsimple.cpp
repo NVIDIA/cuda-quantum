@@ -13,6 +13,7 @@
 // ```
 
 #include <cudaq.h>
+#include <cudaq/algorithms/resource_estimation.h>
 
 template <std::size_t N>
 struct mykernel {
@@ -31,7 +32,7 @@ struct mykernel {
 
 int main() {
   auto kernel = mykernel<10>{};
-  auto counts = cudaq::count_resources([&](){ return true; }, kernel);
+  auto counts = cudaq::estimate_resources(kernel);
 
   counts.dump();
   // CHECK: Total # of gates: 54

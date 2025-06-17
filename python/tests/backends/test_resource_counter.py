@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-
 import cudaq
 
 
@@ -27,18 +26,20 @@ def test_resource_counter():
             m3 = mz(p)
 
     def choice():
-        return True
+        return False
 
     cudaq.set_target("quantinuum", emulate=True)
 
     counts1 = cudaq.sample(mykernel, shots_count=5)
-    counts2 = cudaq.count_resources(choice, mykernel)
-    counts3 = cudaq.sample(mykernel, shots_count=10)
+    counts2 = cudaq.estimate_resources(mykernel)
+    counts3 = cudaq.estimate_resources(mykernel, choice=choice)
+    counts4 = cudaq.sample(mykernel, shots_count=10)
 
     assert counts1.count("00") + counts1.count("11") == 5
     assert counts2.count("h") == 1
     assert counts2.count("x") == 1
-    assert counts3.count("00") + counts3.count("11") == 10
+    assert counts3.count("h") == 1
+    assert counts4.count("00") + counts4.count("11") == 10
 
 
 # leave for gdb debugging

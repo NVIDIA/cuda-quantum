@@ -57,6 +57,8 @@ std::size_t resource_counts::count(const std::string &gate) const {
   }
 }
 
+std::size_t resource_counts::count() const { return totalGates; }
+
 void resource_counts::dump(std::ostream &os) const {
   os << "Total # of gates: " << totalGates;
   os << ", total # of qubits: " << numQubits;

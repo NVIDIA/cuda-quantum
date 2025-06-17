@@ -23,8 +23,9 @@ namespace py = pybind11;
 namespace cudaq {
 void bindCountResources(py::module &mod) {
   mod.def(
-      "count_resources",
-      [&](std::function<bool()> choice, py::object kernel, py::args args) {
+      "estimate_resources",
+      [&](py::object kernel, py::args args,
+          std::optional<std::function<bool()>> choice) {
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
         auto &platform = cudaq::get_platform();
@@ -42,7 +43,9 @@ void bindCountResources(py::module &mod) {
         // Use the resource counter simulator
         __internal__::switchToResourceCounterSimulator();
         // Set the choice function for the simulator
-        __internal__::setChoiceFunction(choice);
+        if (!choice)
+          choice = []() { return true; };
+        __internal__::setChoiceFunction(*choice);
 
         // Set the platform
         platform.set_exec_ctx(ctx.get());
@@ -56,6 +59,7 @@ void bindCountResources(py::module &mod) {
 
         return counts;
       },
+      py::arg("kernel"), py::kw_only(), py::arg("choice") = std::nullopt,
       R"#(Performs resource counting on the given quantum kernel
 expression and returns an accounting of how many times each gate
 was applied, in addition to the total number of gates and qubits used.
@@ -63,7 +67,8 @@ was applied, in addition to the total number of gates and qubits used.
 Args:
   choice (Any): A choice function called to determine the outcome of
     measurements, in case control flow depends on measurements. Should
-    only return either `True` or `False`
+    only return either `True` or `False`. Invoking the kernel within
+    the choice function is forbidden. Default: returns true.
   kernel (:class:`Kernel`): The :class:`Kernel` to count resources on
   *arguments (Optional[Any]): The concrete values to evaluate the kernel 
     function at. Leave empty if the kernel doesn't accept any arguments.

@@ -13,6 +13,7 @@
 // ```
 
 #include <cudaq.h>
+#include <cudaq/algorithms/resource_estimation.h>
 
 // Tests that the choice function works properly for a loop condition
 struct mykernel {
@@ -31,7 +32,7 @@ struct mykernel {
 int main() {
   auto kernel = mykernel{};
   int i = 0;
-  auto counts = cudaq::count_resources([&](){ return ++i >= 10; }, kernel);
+  auto counts = cudaq::estimate_resources([&](){ return ++i >= 10; }, kernel);
   counts.dump();
 
   // CHECK: Total # of gates: 11
