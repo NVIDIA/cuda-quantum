@@ -57,8 +57,10 @@ target_link_options(${LIBRARY_NAME} PRIVATE
 add_custom_command(
   TARGET ${LIBRARY_NAME}
   POST_BUILD
+  # Don't fail if nm is not available. We have it available in at least one CI
+  # environment, and that is all that is necessary for this sanity check.
   COMMAND bash -c "
-    if nm -D $<TARGET_FILE:${LIBRARY_NAME}> | grep stim | grep -q -v getCircuitSimulator_stim; then 
+    if [[ -x nm ]] && nm -D $<TARGET_FILE:${LIBRARY_NAME}> | grep stim | grep -q -v getCircuitSimulator_stim; then 
       echo 'ERROR: Found exported symbols from stim namespace in $<TARGET_FILE:${LIBRARY_NAME}>.' >&2;
       echo 'The version script is not working correctly.' >&2;
       exit 1;
