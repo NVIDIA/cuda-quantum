@@ -40,7 +40,8 @@ Returns:
             "`cudaq.run` only supports kernels that return a value.")
 
     if shots_count < 0:
-        raise RuntimeError("Invalid shots_count. Must be non-negative.")
+        raise RuntimeError(
+            "Invalid `shots_count`. Must be a non-negative number.")
 
     target = cudaq_runtime.get_target()
     num_qpus = target.num_qpus()

@@ -902,7 +902,7 @@ def test_run_errors():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple, 2, shots_count=-1).get()
-    assert 'Invalid shots_count. Must be non-negative.' in repr(e)
+    assert 'Invalid `shots_count`. Must be a non-negative number.' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple, shots_count=100).get()
