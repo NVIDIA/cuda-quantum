@@ -35,9 +35,6 @@ Returns:
   A handle, which can be waited on via a `get()` method, which returns an array
   of `kernel` return values. The length of the list is equal to `shots_count`.
   """
-    # Default construct the result array (allocate memory buffer)
-    #results = np.array([kernel.returnType() for _ in range(shots_count)])
-
     if kernel.returnType is None:
         raise RuntimeError(
             "`cudaq.run` only supports kernels that return a value.")
