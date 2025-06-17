@@ -165,6 +165,9 @@ Operators
     :members:
     :special-members: __init__
 
+.. autoclass:: cudaq.SuperOperator
+   :members:
+
 .. automethod:: cudaq.operators.define
 .. automethod:: cudaq.operators.instantiate
 

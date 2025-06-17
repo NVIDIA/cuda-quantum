@@ -189,6 +189,25 @@ In the above code snippet, we map the cavity light field to degree index 1 and t
 The description of composite quantum system dynamics is independent from the Hilbert space of the system components.
 The latter is specified by the dimension map that is provided to the `cudaq.evolve` call. 
 
+Builtin operators support both dense and multi-diagonal sparse formats. 
+Depending on the sparsity of operator matrix and/or the sub-system dimension, CUDA-Q will
+either use the dense or multi-diagonal data formats for optimal performance.
+
+Specifically, the following environment variable options are applicable to the :code:`dynamics` target. 
+Any environment variables must be set prior to setting the target or running "`import cudaq`".
+
+.. list-table:: **Additional environment variable options for the `dynamics` target**
+  :widths: 20 30 50
+
+  * - Option
+    - Value
+    - Description
+  * - ``CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION``
+    - Non-negative number
+    - The minimum sub-system dimension on which the operator acts to activate multi-diagonal data format. For example, if a minimum dimension configuration of `N` is set, all operators acting on degrees of freedom (sub-system) whose dimension is less than or equal to `N` would always use the dense format. The final data format to be used depends on the next configuration. The default is 4.
+  * - ``CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL``
+    - Non-negative number
+    - The maximum number of diagonals for multi-diagonal representation. If the operator matrix has more diagonals than this value, the dense format will be used. Default is 1, i.e., operators with only one diagonal line (center, lower, or upper) will use the multi-diagonal sparse storage. 
 
 Time-Dependent Dynamics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -287,6 +306,35 @@ Compile and Run C++ program
     .. code:: bash 
 
         nvq++ --target dynamics dynamics.cpp -o dynamics && ./dynamics
+
+Super-operator Representation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _generic_rhs:
+
+In the previous examples, we assumed that the system dynamics is driven by a `Lindblad` master equation, which is specified by the Hamiltonian operator and the collapse operators.
+
+However, we may want to simulate an arbitrary state evolution equation, whereby the right-hand-side of the differential equation is provided as a generic super-operator.
+
+CUDA-Q provides a `SuperOperator` (Python) / `super_op` (C++) class that can be used to represent the right-hand-side of the evolution equation. A super-operator can be constructed as a linear combination (sum) of left and/or right multiplication actions of `Operator` instances.
+
+As an example, we will look at specifying the Schrodinger's equation :math:`\frac{d|\Psi\rangle}{dt} = -i H |\Psi\rangle` as a super-operator.
+
+.. tab:: Python
+
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin SuperOperator]
+        :end-before: [End SuperOperator]
+
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin SuperOperator]
+        :end-before: [End SuperOperator]
+
+The super-operator, once constructed, can be used in the `evolve` API instead of the Hamiltonian and collapse operators as shown in the above examples.
 
 Numerical Integrators
 ^^^^^^^^^^^^^^^^^^^^^^^^

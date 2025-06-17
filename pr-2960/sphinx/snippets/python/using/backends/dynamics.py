@@ -176,6 +176,31 @@ time_dependence = parameter_values(numpy.linspace(0, 1, 100))
 cudaq.evolve(system_operator, system_dimensions, time_dependence, initial_state)
 #[End Schedule2]
 
+#[Begin SuperOperator]
+import cudaq
+from cudaq import spin, Schedule, RungeKuttaIntegrator
+import numpy as np
+
+hamiltonian = 2.0 * np.pi * 0.1 * spin.x(0)
+steps = np.linspace(0, 1, 10)
+schedule = Schedule(steps, ["t"])
+dimensions = {0: 2}
+# initial state
+psi0 = cudaq.dynamics.InitialState.ZERO
+# Create a super-operator that represents the evolution of the system
+# under the Hamiltonian `-iH|psi>`, where `H` is the Hamiltonian.
+se_super_op = cudaq.SuperOperator()
+# Apply `-iH|psi>` super-operator
+se_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
+evolution_result = cudaq.evolve(se_super_op,
+                                dimensions,
+                                schedule,
+                                psi0,
+                                observables=[spin.z(0)],
+                                store_intermediate_results=True,
+                                integrator=RungeKuttaIntegrator())
+#[End SuperOperator]
+
 import cudaq
 from cudaq import operators, spin, Schedule, RungeKuttaIntegrator
 
