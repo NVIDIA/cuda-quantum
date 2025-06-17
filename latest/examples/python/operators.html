@@ -880,7 +880,7 @@
 <section id="Pauli-Words-and-Exponentiating-Pauli-Words">
 <h2>Pauli Words and Exponentiating Pauli Words<a class="headerlink" href="#Pauli-Words-and-Exponentiating-Pauli-Words" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">pauli_word</span></code> type specifies a string of Pauli operations (e.g. ‘XYXZ’) and is convenient for applying operations based on exponentiated Pauli words. The code below demonstrates how a list of Pauli words, along with their coefficients, are provided as kernel inputs and converted into operators by the <code class="docutils literal notranslate"><span class="pre">exp_pauli</span></code> function.</p>
-<p>The cell below applies the following operation: <span class="math notranslate nohighlight">\(e^{i(0.432XZY +0.324IXX)}\)</span></p>
+<p>The cell below applies the following operation: <span class="math notranslate nohighlight">\(e^{i(0.324IXX)}.e^{i(0.432XYZ)}\)</span></p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
