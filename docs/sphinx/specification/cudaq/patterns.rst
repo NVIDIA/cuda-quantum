@@ -14,37 +14,19 @@ control :math:`V`.
 
 **[3]** The CUDA-Q specification requires the following syntax for this pattern:
 
-.. tab:: C++ 
+.. tab:: C++
 
-  .. code-block:: cpp
+  .. literalinclude:: /../snippets/cpp/patterns/compute_action_example.cpp
+     :language: cpp
+     :start-after: [Begin Compute Action C++ Snippet]
+     :end-before: [End Compute Action C++ Snippet]
 
-      // Will invoke U V U^dag
-      cudaq::compute_action (
-          [&](){ 
-            /*U_code*/ 
-          }, 
-          [&]() { 
-            /*V_code*/ 
-          } 
-      ); 
+.. tab:: Python
 
-.. tab:: Python 
-
-  .. code-block:: python 
-
-    def computeF():
-       ... 
-    
-    def actionF():
-       ...
-
-    # Can take user-defined functions
-    cudaq.compute_action(computeF, actionF)
-
-    # Can take Pythonic CUDA-Q lambda kernels
-    computeL = lambda : (h(q), x(q), ry(-np.pi, q[0]))
-    cudaq.compute_action(computeL, actionF)
-
+  .. literalinclude:: /../snippets/python/patterns/compute_action_example.py
+     :language: python
+     :start-after: [Begin Compute Action Python Snippet]
+     :end-before: [End Compute Action Python Snippet]
 
 **[4]** Compiler implementations must add the uncompute segment
 and optimize on any controlled versions of this block of code. 
