@@ -190,7 +190,7 @@ psi0 = cudaq.dynamics.InitialState.ZERO
 # Create a super-operator that represents the evolution of the system
 # under the Hamiltonian `-iH|psi>`, where `H` is the Hamiltonian.
 se_super_op = cudaq.SuperOperator()
-# Apply `-iH|psi>` superop
+# Apply `-iH|psi>` super-operator
 se_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
 evolution_result = cudaq.evolve(se_super_op,
                                 dimensions,

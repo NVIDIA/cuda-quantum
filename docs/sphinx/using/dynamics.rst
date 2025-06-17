@@ -312,7 +312,7 @@ Super-operator Representation
 
 .. _generic_rhs:
 
-In the previous examples, we assumed that the system dynamics is driven by a Lindblad master equation, which is specified by the Hamiltonian operator and the collapse operators.
+In the previous examples, we assumed that the system dynamics is driven by a `Lindblad` master equation, which is specified by the Hamiltonian operator and the collapse operators.
 
 However, we may want to simulate an arbitrary state evolution equation, whereby the right-hand-side of the differential equation is provided as a generic super-operator.
 
