@@ -875,8 +875,10 @@ jobs:
           bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
-          # Grab the line where "Testing on nvidia target..." starts
-          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | cut -d: -f1)
+          # Grab the first line where "Testing on nvidia target..." starts
+          # The first should be okay, since any target being tested against
+          # nvidia should be using all the options for the validation script.
+          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
 
           # From that line, extract the block until the next "Testing on" or EOF
           nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
@@ -1018,8 +1020,10 @@ jobs:
           bash -l scripts/validate_container.sh | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
-          # Grab the line where "Testing on nvidia target..." starts
-          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | cut -d: -f1)
+          # Grab the first line where "Testing on nvidia target..." starts
+          # The first should be okay, since any target being tested against
+          # nvidia should be using all the options for the validation script.
+          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
 
           # From that line, extract the block until the next "Testing on" or EOF
           nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
@@ -1031,6 +1035,7 @@ jobs:
             echo "$nvidia_block"
             exit 1
           fi
+
   wheel_validation_piponly:
     name: Wheel validation, pip only
     needs: [assets, cudaq_wheels, cudaq_metapackages]
