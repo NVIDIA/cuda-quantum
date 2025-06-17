@@ -6,6 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# An example of non-ideal qubit topology with certain qubits marked offline/excluded
+
 # The format of the file is as follows:
 # 1. You must specify the number of nodes
 Number of nodes: 5

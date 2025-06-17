@@ -548,7 +548,11 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
 
     SmallVector<APInt, 32> edgeVector;
     for (unsigned int i = 0; i < qubitCardinality; i++) {
-      auto neighbors = d.getNeighbours(Device::Qubit(i));
+      auto qubit = Device::Qubit(i);
+      if (d.isQubitExcluded(qubit))
+        continue;
+
+      auto neighbors = d.getNeighbours(qubit);
       numEdges += neighbors.size();
       for (auto neighbor : neighbors) {
         edgeVector.emplace_back(64, i);
