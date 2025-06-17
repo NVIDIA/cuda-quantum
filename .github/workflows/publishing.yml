@@ -875,10 +875,17 @@ jobs:
           bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
-          relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
-          tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
-          if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-            echo "::error::Missing tests for nvidia-mgpu backend."
+          # Grab the line where "Testing on nvidia target..." starts
+          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | cut -d: -f1)
+
+          # From that line, extract the block until the next "Testing on" or EOF
+          nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
+
+          # Check if "fp32,mgpu" is present
+          if ! echo "$nvidia_block" | grep -q "fp32,mgpu"; then
+            echo "::error::Missing tests for nvidia fp32,mgpu backend."
+            echo "Observed target options:"
+            echo "$nvidia_block"
             exit 1
           fi
 
@@ -1011,13 +1018,19 @@ jobs:
           bash -l scripts/validate_container.sh | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
-          relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
-          tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
-          if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
-            echo "::error::Missing tests for nvidia-mgpu backend."
+          # Grab the line where "Testing on nvidia target..." starts
+          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | cut -d: -f1)
+
+          # From that line, extract the block until the next "Testing on" or EOF
+          nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
+
+          # Check if "fp32,mgpu" is present
+          if ! echo "$nvidia_block" | grep -q "fp32,mgpu"; then
+            echo "::error::Missing tests for nvidia fp32,mgpu backend."
+            echo "Observed target options:"
+            echo "$nvidia_block"
             exit 1
           fi
-
   wheel_validation_piponly:
     name: Wheel validation, pip only
     needs: [assets, cudaq_wheels, cudaq_metapackages]
