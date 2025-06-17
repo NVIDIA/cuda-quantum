@@ -33,7 +33,7 @@ This includes all gate counts.)#")
           "terminal.\n")
       .def(
           "count",
-          [](resource_counts &self, const std::string gate) {
+          [](resource_counts &self, const std::string &gate) {
             return self.count(gate);
           },
           "Get the number of occurrences of a given gate")

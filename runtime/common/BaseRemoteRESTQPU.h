@@ -524,11 +524,10 @@ public:
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
-      if (executionContext->name == "resourcecount") {
+      if (executionContext->name == "resource-count") {
         std::function<void(std::string, size_t)> f = [&](std::string gate,
                                                          size_t count) {
           nvqir::getResourceCounts()->append(gate, count);
-          // executionContext->resourceCounts.append(gate, count);
         };
         cudaq::opt::ResourceCountPreprocessOptions opt{f};
         pm.addNestedPass<mlir::func::FuncOp>(
@@ -624,7 +623,7 @@ public:
     } else
       modules.emplace_back(kernelName, moduleOp);
 
-    if (emulate || executionContext->name == "resourcecount") {
+    if (emulate || executionContext->name == "resource-count") {
       // If we are in emulation mode, we need to first get a full QIR
       // representation of the code. Then we'll map to an LLVM Module, create a
       // JIT ExecutionEngine pointer and use that for execution
@@ -737,7 +736,7 @@ public:
       return;
     }
 
-    if (executionContext->name == "resourcecount" && jitEngines.size() == 1) {
+    if (executionContext->name == "resource-count" && jitEngines.size() == 1) {
       cudaq::getExecutionManager()->setExecutionContext(executionContext);
       invokeJITKernelAndRelease(jitEngines[0], kernelName);
       cudaq::getExecutionManager()->resetExecutionContext();

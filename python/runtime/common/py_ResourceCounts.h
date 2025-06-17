@@ -7,8 +7,6 @@
  ******************************************************************************/
 #include <pybind11/pybind11.h>
 
-#include "utils/LinkedLibraryHolder.h"
-
 namespace py = pybind11;
 
 namespace cudaq {

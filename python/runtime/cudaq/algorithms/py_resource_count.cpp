@@ -31,9 +31,10 @@ void bindCountResources(py::module &mod) {
         auto kernelName = kernel.attr("name").cast<std::string>();
         auto kernelMod = kernel.attr("module").cast<MlirModule>();
         args = simplifiedValidateInputArguments(args);
-        std::unique_ptr<OpaqueArguments> argData(toOpaqueArgs(args, kernelMod, kernelName));
+        std::unique_ptr<OpaqueArguments> argData(
+            toOpaqueArgs(args, kernelMod, kernelName));
 
-        auto ctx = std::make_unique<ExecutionContext>("resourcecount", 1);
+        auto ctx = std::make_unique<ExecutionContext>("resource-count", 1);
         ctx->kernelName = kernelName;
         // Indicate that this is not an async exec
         ctx->asyncExec = false;

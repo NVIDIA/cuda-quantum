@@ -20,28 +20,22 @@ protected:
   std::function<bool()> choice;
 
   /// @brief Grow the state vector by one qubit.
-  void addQubitToState() override {
-    // executionContext->resourceCounts.addQubit();
-    resourceCounts.addQubit();
-  }
+  void addQubitToState() override { resourceCounts.addQubit(); }
 
   void applyGate(const GateApplicationTask &task) override {
-    cudaq::info("Applying {} with {} controls", task.operationName,
-                task.controls.size());
+    CUDAQ_INFO("Applying {} with {} controls", task.operationName,
+               task.controls.size());
     auto gate = cudaq::resource_counts::GateData{task.operationName,
                                                  task.controls.size()};
-    // executionContext->resourceCounts.append(gate);
     resourceCounts.append(gate);
   }
 
   /// @brief Measure the qubit and return the result. Collapse the
   /// state vector.
   bool measureQubit(const std::size_t index) override {
-    // assert(executionContext->choice);
-    // auto measure = executionContext->choice();
     assert(choice);
     auto measure = choice();
-    cudaq::info("Measure of {} returned {}", index, measure);
+    CUDAQ_INFO("Measure of {} returned {}", index, measure);
     return measure;
   }
 
@@ -57,7 +51,9 @@ public:
 
   /// @brief Reset the qubit
   /// @param index 0-based index of qubit to reset
-  void resetQubit(const std::size_t index) override {}
+  void resetQubit(const std::size_t index) override {
+    resourceCounts.append("reset");
+  }
 
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
@@ -74,7 +70,7 @@ public:
   void setToZeroState() override { resourceCounts.clear(); }
 
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-    if (context->name != "resourcecount")
+    if (context->name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");

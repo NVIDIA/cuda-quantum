@@ -57,12 +57,11 @@ auto count_resources(std::function<bool()> choice, QuantumKernel &&kernel,
     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
   }
 
-  // Run this SHOTS times
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
   auto hasConditionalFeedback = cudaq::kernelHasConditionalFeedback(kernelName);
   // Create the execution context.
-  auto ctx = std::make_unique<ExecutionContext>("resourcecount", 1);
+  auto ctx = std::make_unique<ExecutionContext>("resource-count", 1);
   ctx->kernelName = kernelName;
   ctx->hasConditionalsOnMeasureResults = hasConditionalFeedback;
 

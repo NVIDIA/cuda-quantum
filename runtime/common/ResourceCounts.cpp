@@ -18,14 +18,14 @@
 
 namespace cudaq {
 
-void resource_counts::append(GateData gate, size_t count) {
+void resource_counts::append(const GateData &gate, size_t count) {
   std::string gatestr("c", gate.controls);
   gatestr += gate.name;
 
   append(gatestr, count);
 }
 
-void resource_counts::append(const std::string gate, size_t count) {
+void resource_counts::append(const std::string &gate, size_t count) {
   auto iter = gateCounts.find(gate);
   if (iter != gateCounts.end()) {
     iter->second += count;
@@ -36,7 +36,7 @@ void resource_counts::append(const std::string gate, size_t count) {
   totalGates += count;
 }
 
-std::size_t resource_counts::count(const GateData gate) const {
+std::size_t resource_counts::count(const GateData &gate) const {
   std::string gatestr("c", gate.controls);
   gatestr += gate.name;
 
@@ -48,7 +48,7 @@ std::size_t resource_counts::count(const GateData gate) const {
   }
 }
 
-std::size_t resource_counts::count(const std::string gate) const {
+std::size_t resource_counts::count(const std::string &gate) const {
   auto iter = gateCounts.find(gate);
   if (iter != gateCounts.end()) {
     return iter->second;
