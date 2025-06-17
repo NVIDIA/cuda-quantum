@@ -897,19 +897,19 @@ def test_run_errors():
         return 1
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple_no_return, 2).get()
+        cudaq.run_async(simple_no_return, 2)
     assert '`cudaq.run` only supports kernels that return a value.' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple, 2, shots_count=-1).get()
+        cudaq.run_async(simple, 2, shots_count=-1)
     assert 'Invalid `shots_count`. Must be a non-negative number.' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple, shots_count=100).get()
+        cudaq.run_async(simple, shots_count=100)
     assert 'Invalid number of arguments passed to run:0 expected 1' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
-        print(cudaq.run_async(simple_no_args, 2, shots_count=100)).get()
+        print(cudaq.run_async(simple_no_args, 2, shots_count=100))
     assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
 
 
