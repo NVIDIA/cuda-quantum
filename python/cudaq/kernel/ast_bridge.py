@@ -2192,6 +2192,12 @@ class PyASTBridge(ast.NodeVisitor):
                 stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
                                         TypeAttr.get(structTy)).result
 
+                if len(ctorArgs) != len(structTys):
+                    self.emitFatalError(
+                        f'constructor struct type {node.func.id} requires '
+                        f'{len(structTys)} arguments, but was given {len(ctorArgs)}.',
+                        node)
+
                 # loop over each type and `compute_ptr` / store
 
                 for i, ty in enumerate(structTys):
@@ -3989,6 +3995,12 @@ class PyASTBridge(ast.NodeVisitor):
         ]
 
         structTys = [v.type for v in elementValues]
+
+        if len(elementValues) != len(structTys):
+            self.emitFatalError(
+                f'tuple constructor requires {len(structTys)} arguments, '
+                f'but was given {len(elementValues)}.', node)
+
         structTy = cc.StructType.getNamed(self.ctx, "tuple", structTys)
         stackSlot = cc.AllocaOp(cc.PointerType.get(self.ctx, structTy),
                                 TypeAttr.get(structTy)).result

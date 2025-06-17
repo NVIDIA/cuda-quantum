@@ -570,7 +570,7 @@ py::object readPyObject(mlir::Type ty, char *arg) {
 
 /// @brief Convert raw return of kernel to python object.
 py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
-                         mlir::Type ty, char *data, std::size_t size) {
+                         mlir::Type ty, char *data) {
   auto isRunContext = module->hasAttr(runtime::enableCudaqRun);
 
   return llvm::TypeSwitch<mlir::Type, py::object>(ty)
@@ -634,8 +634,7 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
           // Read vector elements.
           py::list list;
           for (char *i = v->begin; i < v->end; i += eleByteSize)
-            list.append(
-                convertResult(module, kernelFuncOp, eleTy, i, eleByteSize));
+            list.append(convertResult(module, kernelFuncOp, eleTy, i));
           return list;
         }
 
@@ -655,8 +654,7 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
         py::list list;
         std::size_t byteLength = v->length * eleByteSize;
         for (std::size_t i = 0; i < byteLength; i += eleByteSize)
-          list.append(convertResult(module, kernelFuncOp, eleTy, v->data + i,
-                                    eleByteSize));
+          list.append(convertResult(module, kernelFuncOp, eleTy, v->data + i));
         return list;
       })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
@@ -674,9 +672,8 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
               throw std::runtime_error(
                   "Unsupported element type in struct type.");
             }
-            auto eleByteSize = byteSize(eleTy);
-            list.append(convertResult(module, kernelFuncOp, eleTy,
-                                      data + offsets[i], eleByteSize));
+            list.append(
+                convertResult(module, kernelFuncOp, eleTy, data + offsets[i]));
           }
           return py::tuple(list);
         }
@@ -705,10 +702,9 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
             throw std::runtime_error(
                 "Unsupported element type in struct type.");
           }
-          auto eleByteSize = byteSize(eleTy);
           if (i < fieldNames.size())
-            kwargs[fieldNames[i]] = convertResult(
-                module, kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
+            kwargs[fieldNames[i]] =
+                convertResult(module, kernelFuncOp, eleTy, data + offsets[i]);
           else
             throw std::runtime_error("Field name and value mismatch when "
                                      "returning an object of dataclass " +
@@ -737,8 +733,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   auto rawReturn = ((char *)rawArgs) + returnOffset;
   auto funcOp = cudaq::getKernelFuncOp(module, name);
 
-  auto returnValue =
-      convertResult(mod, funcOp, returnTy, rawReturn, size - returnOffset);
+  auto returnValue = convertResult(mod, funcOp, returnTy, rawReturn);
   std::free(rawArgs);
   return returnValue;
 }
