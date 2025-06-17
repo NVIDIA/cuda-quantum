@@ -527,6 +527,16 @@ struct ThreeQubitOpCSD : public Decomposer {
     Eigen::Matrix4cd s_inv = s_inv_diag.asDiagonal();
 
     components.v2 = (Q12.adjoint() * components.u1 * c_inv);
+
+    /// Verify if decomposition matches the original matrix
+    Eigen::Matrix8cd reconstructedmatrix;
+    reconstructedmatrix.block<4,4>(0, 0) = components.u1 * components.c * components.v1;
+    reconstructedmatrix.block<4,4>(0, 4) = components.u1 * components.s * components.v2;
+    reconstructedmatrix.block<4,4>(4, 0) = -components.u2 * components.s * components.v1;
+    reconstructedmatrix.block<4,4>(4, 4) = components.u2 * components.c * components.v2;
+    reconstructedmatrix = reconstructedmatrix * phase;
+
+    assert(reconstructedmatrix.isApprox(targetMatrix, TOL));
   }
 
   void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
