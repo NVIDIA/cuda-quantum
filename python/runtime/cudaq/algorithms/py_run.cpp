@@ -10,7 +10,11 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include <future>
 #include <pybind11/complex.h>
+#include <pybind11/functional.h>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <string>
 #include <tuple>
@@ -26,8 +30,7 @@ std::vector<py::object> readRunResults(mlir::ModuleOp module,
   std::vector<py::object> ret;
   std::size_t byteSize = results.lengthInBytes / count;
   for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize) {
-    py::object obj =
-        convertResult(module, kernelFuncOp, ty, results.data + i, byteSize);
+    py::object obj = convertResult(module, kernelFuncOp, ty, results.data + i);
     ret.push_back(obj);
   }
   return ret;
@@ -122,10 +125,108 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
   return results;
 }
 
+// Internal struct representing buffer to be filled asynchronously.
+// When the `ready` future is set, the content of the buffer is filled.
+struct async_run_result {
+  std::future<void> ready;
+  std::vector<py::object> *results;
+  std::string *error;
+};
+
+/// @brief Run `cudaq::run_async` on the provided kernel.
+async_run_result pyRunAsync(py::object &kernel, py::args args,
+                            std::size_t shots_count,
+                            std::optional<noise_model> noise_model,
+                            std::size_t qpu_id) {
+  kernel.inc_ref();
+  auto &platform = get_platform();
+  auto numQPUs = platform.num_qpus();
+  if (qpu_id >= numQPUs)
+    throw std::runtime_error("qpu_id (" + std::to_string(qpu_id) +
+                             ") exceeds the number of available QPUs (" +
+                             std::to_string(numQPUs) + ")");
+
+  auto [name, module, argData, func] =
+      details::getKernelLaunchParameters(kernel, args);
+
+  auto mod = unwrap(module);
+  mod->setAttr(runtime::enableCudaqRun, mlir::UnitAttr::get(mod->getContext()));
+
+  if (noise_model.has_value() && platform.is_remote())
+    throw std::runtime_error(
+        "Noise model is not supported on remote platforms.");
+
+  async_run_result result;
+  std::promise<void> promise;
+  result.ready = promise.get_future();
+  result.results = new std::vector<py::object>();
+  result.error = new std::string();
+
+  if (shots_count == 0) {
+    promise.set_value();
+    return result;
+  }
+
+  // Release GIL to allow c++ threads.
+  py::gil_scoped_release gil_release{};
+
+  QuantumTask wrapped = detail::make_copyable_function(
+      [p = std::move(promise), resultPtr = result.results,
+       errorPtr = result.error, shots_count, argData, name, module, func,
+       noise_model = std::move(noise_model)]() mutable {
+        auto &platform = get_platform();
+
+        // Launch the kernel in the appropriate context.
+        if (noise_model.has_value())
+          platform.set_noise(&noise_model.value());
+
+        py::gil_scoped_acquire gil{};
+        try {
+          auto results = details::pyRunTheKernel(name, module, func, *argData,
+                                                 platform, shots_count);
+          delete argData;
+          // Swap the new vector with the `results`, the new vector will be
+          // deleted when `results` does out of scope.
+          std::swap(*resultPtr, results);
+        } catch (std::runtime_error &e) {
+          auto message = std::string(e.what());
+          std::swap(*errorPtr, message);
+        }
+        p.set_value();
+        platform.reset_noise();
+      });
+  platform.enqueueAsyncTask(qpu_id, wrapped);
+  return result;
+}
+
 /// @brief Bind the run cudaq function.
 void bindPyRun(py::module &mod) {
   mod.def("run", &pyRun, py::arg("kernel"), py::kw_only(),
           py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
           R"#()#");
+}
+
+/// @brief Bind the run_async cudaq function.
+void bindPyRunAsync(py::module &mod) {
+  py::class_<async_run_result>(mod, "AsyncRunResult", "")
+      .def(
+          "get",
+          [](async_run_result &self) {
+            py::gil_scoped_release gil_release{};
+            self.ready.get();
+            py::gil_scoped_acquire gil{};
+            auto err = *self.error;
+            if (!err.empty()) {
+              delete self.error;
+              throw std::runtime_error(err);
+            }
+            auto ret = *self.results;
+            delete self.results;
+            return ret;
+          },
+          "");
+  mod.def("run_async_internal", &pyRunAsync, py::arg("kernel"), py::kw_only(),
+          py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
+          py::arg("qpu_id") = 0, R"#()#");
 }
 } // namespace cudaq
