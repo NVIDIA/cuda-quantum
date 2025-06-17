@@ -57,8 +57,6 @@ target_link_options(${LIBRARY_NAME} PRIVATE
 add_custom_command(
   TARGET ${LIBRARY_NAME}
   POST_BUILD
-  # Don't fail if nm is not available. We have it available in at least one CI
-  # environment, and that is all that is necessary for this sanity check.
   COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/verify_linkage.sh $<TARGET_FILE:${LIBRARY_NAME}>
   VERBATIM
   COMMENT "Verifying that no stim namespace symbols are exported in ${LIBRARY_NAME}..."

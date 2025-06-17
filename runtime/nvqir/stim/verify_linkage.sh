@@ -10,7 +10,8 @@
 set -e
 TARGET_LIB="$1"
 
-# If nm is not available, don't fail. We have it available in at least one CI environment, and that is all that is necessary for this sanity check.
+# If nm is not available, don't fail. We have it available in at least one CI
+# environment, and that is all that is necessary for this sanity check.
 if [ ! -x "$(command -v nm)" ]; then
   echo "INFO: nm could not be found, skipping Stim symbol check."
   exit 0
