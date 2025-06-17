@@ -152,7 +152,6 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
         SmallVector<StringRef>(names.begin(), names.end())));
-    cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
@@ -900,7 +899,7 @@ std::string getASM(const std::string &name, MlirModule module,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
   pm.addPass(cudaq::opt::createGetConcreteMatrix());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
-  pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+  pm.addPass(cudaq::opt::createApplySpecialization());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
