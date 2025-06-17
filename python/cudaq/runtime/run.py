@@ -39,10 +39,11 @@ Returns:
     #results = np.array([kernel.returnType() for _ in range(shots_count)])
 
     if kernel.returnType is None:
-        raise ValueError("cudaq.run only supports kernels that return a value.")
+        raise RuntimeError(
+            "`cudaq.run` only supports kernels that return a value.")
 
     if shots_count < 0:
-        raise ValueError("Invalid shots_count. Must be non-negative.")
+        raise RuntimeError("Invalid shots_count. Must be non-negative.")
 
     target = cudaq_runtime.get_target()
     num_qpus = target.num_qpus()
