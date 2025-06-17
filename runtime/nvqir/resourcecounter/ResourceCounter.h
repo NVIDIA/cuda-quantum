@@ -77,7 +77,7 @@ public:
     this->CircuitSimulatorBase::setExecutionContext(context);
   }
 
-  cudaq::resource_counts *getResourceCounts() { return &resourceCounts; }
+  cudaq::resource_counts *getResourceCounts() { return &this->resourceCounts; }
 
   void setChoiceFunction(std::function<bool()> choice) {
     assert(choice);
