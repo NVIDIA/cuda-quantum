@@ -286,32 +286,32 @@ jobs:
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ompi
 
-  dispatch:
-    name: Dispatch deployments
-    needs: [metadata, devdeps, wheeldeps, openmpi]
-    if: github.event_name != 'workflow_dispatch'
-    runs-on: ubuntu-latest
+  # dispatch:
+  #   name: Dispatch deployments
+  #   needs: [metadata, devdeps, wheeldeps, openmpi]
+  #   if: github.event_name != 'workflow_dispatch'
+  #   runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        platform: [linux/amd64, linux/arm64]
+  #   strategy:
+  #     matrix:
+  #       platform: [linux/amd64, linux/arm64]
 
-    steps:
-      - name: Dispatch ${{ matrix.platform }} deployment
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-          script: |
-            github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'deployments.yml',
-              ref: '${{ needs.metadata.outputs.pull_request_base || github.ref_name }}',
-              inputs: {
-                platforms: '${{ matrix.platform }}',
-                cache_base: '${{ needs.metadata.outputs.cache_base }}'
-              }
-            })
+  #   steps:
+  #     - name: Dispatch ${{ matrix.platform }} deployment
+  #       uses: actions/github-script@v7
+  #       with:
+  #         github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+  #         script: |
+  #           github.rest.actions.createWorkflowDispatch({
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             workflow_id: 'deployments.yml',
+  #             ref: '${{ needs.metadata.outputs.pull_request_base || github.ref_name }}',
+  #             inputs: {
+  #               platforms: '${{ matrix.platform }}',
+  #               cache_base: '${{ needs.metadata.outputs.cache_base }}'
+  #             }
+  #           })
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
