@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Compile and run with:
 
 import cudaq
 
@@ -18,7 +17,6 @@ def test_resource_counter():
         q = cudaq.qubit()
         p = cudaq.qubit()
 
-        # Alias them
         h(q)
 
         m1 = mz(q)
