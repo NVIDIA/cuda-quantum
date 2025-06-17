@@ -174,7 +174,7 @@ jobs:
     if: needs.metadata.outputs.build_dependencies == 'true'
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        platform: [linux/amd64, linux/arm64]
         toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
@@ -182,7 +182,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platforms: ${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
       build_config_id: ${{ matrix.toolchain }}
       build_args: |
@@ -267,7 +267,7 @@ jobs:
     if: needs.metadata.outputs.build_dependencies == 'true'
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
@@ -275,7 +275,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}
       build_args: |
@@ -304,7 +304,7 @@ jobs:
               workflow_id: 'deployments.yml',
               ref: '${{ needs.metadata.outputs.pull_request_base || github.ref_name }}',
               inputs: {
-                platforms: 'linux/arm64,linux/amd64',
+                platforms: 'linux/arm64 linux/amd64',
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',
               },
             })
@@ -331,7 +331,6 @@ jobs:
   coverage:
     name: Update code coverage
     needs: [metadata, config]
-    if: needs.metadata.outputs.multi_platform != ''
     strategy:
       matrix:
         platform: [amd64]
@@ -342,7 +341,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', fromJson(needs.metadata.outputs.multi_platform).ids[0], matrix.toolchain)] }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: false
 
   extdevdeps:
@@ -350,7 +349,7 @@ jobs:
     needs: [metadata, config, openmpi]
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
@@ -358,7 +357,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
@@ -395,7 +394,7 @@ jobs:
     needs: [metadata, config, ext_config]
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
@@ -404,7 +403,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
-      platforms: ${{ matrix.platform }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       cuda_version: ${{ matrix.cuda_version }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
