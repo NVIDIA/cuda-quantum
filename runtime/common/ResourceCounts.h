@@ -20,15 +20,16 @@ using CountsDictionary = std::unordered_map<std::string, std::size_t>;
 
 class resource_counts {
 private:
+  /// @brief A dictionary mapping gate names to the number of times
+  /// they've appeared.
   CountsDictionary gateCounts;
 
   /// @brief Keep track of the total number of gates. We keep this
   /// here so we don't have to keep recomputing it.
   std::size_t totalGates = 0;
 
+  /// @brief Keep track of the total number of qubits used.
   std::size_t numQubits = 0;
-
-  std::string trace = "";
 
 public:
   struct GateData {
