@@ -30,6 +30,15 @@ set (STIM_DEPENDENCIES libstim fmt::fmt-header-only cudaq-common)
 # So override that here.
 target_compile_options(libstim PRIVATE -Wno-all)
 
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map "
+{
+  global:
+    *;
+  local:
+    *4stim*;
+};
+")
+
 target_include_directories(${LIBRARY_NAME}
     PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -38,6 +47,26 @@ target_include_directories(${LIBRARY_NAME}
 
 target_link_libraries(${LIBRARY_NAME}
   PRIVATE ${STIM_DEPENDENCIES})
+
+target_link_options(${LIBRARY_NAME} PRIVATE 
+  "-Wl,--version-script,${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map")
+
+# Add a post-build check to verify that no unwanted Stim symbols are exported.
+# This is important to allow users to import both `cudaq` and `stim` into the same
+# Python environment (even if they are using different versions of Stim).
+add_custom_command(
+  TARGET ${LIBRARY_NAME}
+  POST_BUILD
+  COMMAND bash -c "
+    if nm -D $<TARGET_FILE:${LIBRARY_NAME}> | grep stim | grep -q -v getCircuitSimulator_stim; then 
+      echo 'ERROR: Found exported symbols from stim namespace in $<TARGET_FILE:${LIBRARY_NAME}>.' >&2;
+      echo 'The version script is not working correctly.' >&2;
+      exit 1;
+     fi
+  "
+  VERBATIM
+  COMMENT "Verifying that no stim namespace symbols are exported in ${LIBRARY_NAME}..."
+)
 
 set_target_properties(${LIBRARY_NAME}
     PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")
