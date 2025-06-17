@@ -85,4 +85,10 @@ public:
   }
 };
 
+ResourceCounter *getResourceCounterSimulator();
+
+void setChoiceFunction(std::function<bool()> choice);
+
+cudaq::resource_counts *getResourceCounts();
+
 } // namespace nvqir

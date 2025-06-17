@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,15 +7,24 @@
  ******************************************************************************/
 
 #include "ResourceCounter.h"
-#include "nvqir/CircuitSimulator.h"
 
-#ifndef __NVQIR_ResourceCounter_TOGGLE_CREATE
-/// Register this Simulator with NVQIR.
-NVQIR_REGISTER_SIMULATOR(nvqir::ResourceCounter, resourcecounter)
-#endif
+namespace nvqir {
+// Should be alive for the whole runtime, so won't leak memory
+thread_local ResourceCounter *resource_counter_simulator;
 
-extern "C" {
-nvqir::CircuitSimulator *__nvqir__getResourceCounterCircuitSimulator() {
-  return new nvqir::ResourceCounter();
+ResourceCounter *getResourceCounterSimulator() {
+  if (!resource_counter_simulator)
+    resource_counter_simulator = new nvqir::ResourceCounter();
+
+  return resource_counter_simulator;
 }
+
+void setChoiceFunction(std::function<bool()> choice) {
+  getResourceCounterSimulator()->setChoiceFunction(choice);
 }
+
+cudaq::resource_counts *getResourceCounts() {
+  getResourceCounterSimulator()->flushGateQueue();
+  return getResourceCounterSimulator()->getResourceCounts();
+}
+} // namespace nvqir

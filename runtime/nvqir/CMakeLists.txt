@@ -15,6 +15,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 set(NVQIR_RUNTIME_SRC
   QIRTypes.cpp
   NVQIR.cpp
+  resourcecounter/ResourceCounter.cpp
   ../cudaq/qis/state.cpp
 )
 
@@ -39,7 +40,6 @@ install(TARGETS ${LIBRARY_NAME}
 
 add_subdirectory(qpp)
 add_subdirectory(stim)
-add_subdirectory(resourcecounter)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   add_subdirectory(custatevec)

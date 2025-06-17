@@ -38,7 +38,6 @@
 thread_local bool initialized = false;
 thread_local bool using_resource_counter = false;
 thread_local nvqir::CircuitSimulator *simulator;
-thread_local nvqir::ResourceCounter *resource_counter_simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
 
@@ -82,10 +81,8 @@ namespace nvqir {
 /// already.
 /// @return
 CircuitSimulator *getCircuitSimulatorInternal() {
-  if (using_resource_counter) {
-    assert(resource_counter_simulator);
-    return resource_counter_simulator;
-  }
+  if (using_resource_counter)
+    return getResourceCounterSimulator();
 
   if (simulator)
     return simulator;
@@ -101,27 +98,11 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   return simulator;
 }
 
-void switchToResourceCounterSimulator() {
-  if (!resource_counter_simulator)
-    resource_counter_simulator = new ResourceCounter();
-
-  using_resource_counter = true;
-}
+void switchToResourceCounterSimulator() { using_resource_counter = true; }
 
 void stopUsingResourceCounterSimulator() {
   using_resource_counter = false;
-  resource_counter_simulator->setToZeroState();
-}
-
-void setChoiceFunction(std::function<bool()> choice) {
-  assert(resource_counter_simulator);
-  resource_counter_simulator->setChoiceFunction(choice);
-}
-
-cudaq::resource_counts *getResourceCounts() {
-  assert(resource_counter_simulator);
-  resource_counter_simulator->flushGateQueue();
-  return resource_counter_simulator->getResourceCounts();
+  getResourceCounterSimulator()->setToZeroState();
 }
 
 void setRandomSeed(std::size_t seed) {
