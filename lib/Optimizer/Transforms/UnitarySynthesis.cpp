@@ -23,7 +23,6 @@
 #include <unsupported/Eigen/KroneckerProduct>
 #include <unsupported/Eigen/MatrixFunctions>
 
-#define EIGEN_USE_LAPACKE
 namespace cudaq::opt {
 #define GEN_PASS_DEF_UNITARYSYNTHESIS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
@@ -435,7 +434,7 @@ struct TwoQubitOpKAK : public Decomposer {
   }
 };
 
-/// This logic is based on the Cosine-Sine Decomposition proposed in:
+/// This logic is based on the Cosine-Sine Decomposition:
 /// https://arxiv.org/pdf/quant-ph/0404089
 /// And explanation given in:
 /// https://nhigham.com/2020/10/27/what-is-the-cs-decomposition/
