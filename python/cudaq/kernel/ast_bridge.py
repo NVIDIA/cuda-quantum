@@ -3997,6 +3997,10 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Map tuples in the Python AST to equivalents in MLIR.
         """
+        if self.verbose:
+            print("[Visit Tuple = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
+
         self.generic_visit(node)
         self.currentNode = node
 

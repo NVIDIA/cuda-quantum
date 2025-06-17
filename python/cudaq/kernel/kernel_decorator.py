@@ -488,12 +488,6 @@ class PyKernelDecorator(object):
                 mlirType = self.argTypes[i]
                 continue
 
-            if self.isCastable(mlirType, self.argTypes[i]):
-                processedArgs.append(
-                    self.castPyPrimitiveType(self.argTypes[i], arg))
-                mlirType = self.argTypes[i]
-                continue
-
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:
                 emitFatalError(
