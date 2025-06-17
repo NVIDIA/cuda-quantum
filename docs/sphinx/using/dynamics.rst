@@ -307,6 +307,35 @@ Compile and Run C++ program
 
         nvq++ --target dynamics dynamics.cpp -o dynamics && ./dynamics
 
+Super-operator Representation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _generic_rhs:
+
+In the previous examples, we assumed that the system dynamics is driven by a Lindblad master equation, which is specified by the Hamiltonian operator and the collapse operators.
+
+However, we may want to simulate an arbitrary state evolution equation, whereby the right-hand-side of the differential equation is provided as a generic super-operator.
+
+CUDA-Q provides a `SuperOperator` (Python) / `super_op` (C++) class that can be used to represent the right-hand-side of the evolution equation. A super-operator can be constructed as a linear combination (sum) of left and/or right multiplication actions of `Operator` instances.
+
+As an example, we will look at specifying the Schrodinger's equation :math:`\frac{d|\Psi\rangle}{dt} = -i H |\Psi\rangle` as a super-operator.
+
+.. tab:: Python
+
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin SuperOperator]
+        :end-before: [End SuperOperator]
+
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin SuperOperator]
+        :end-before: [End SuperOperator]
+
+The super-operator, once constructed, can be used in the `evolve` API instead of the Hamiltonian and collapse operators as shown in the above examples.
+
 Numerical Integrators
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
