@@ -56,11 +56,11 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
   return {kernelName, kernelMod, argData, funcOp};
 }
 
-std::vector<py::object> pyRunTheKernel(const std::string &name,
-                                       MlirModule module, func::FuncOp funcOp,
-                                       cudaq::OpaqueArguments &runtimeArgs,
-                                       cudaq::quantum_platform &platform,
-                                       std::size_t shots_count) {
+RunResultSpan pyRunTheKernel(const std::string &name, MlirModule module,
+                             func::FuncOp funcOp,
+                             cudaq::OpaqueArguments &runtimeArgs,
+                             cudaq::quantum_platform &platform,
+                             std::size_t shots_count) {
 
   auto returnTypes = funcOp.getResultTypes();
   if (returnTypes.empty() || returnTypes.size() > 1)
@@ -87,6 +87,16 @@ std::vector<py::object> pyRunTheKernel(const std::string &name,
       platform, name, shots_count);
 
   std::free(rawArgs);
+  return results;
+}
+
+std::vector<py::object> pyReadResults(RunResultSpan results, MlirModule module,
+                                      func::FuncOp funcOp,
+                                      std::size_t shots_count) {
+  auto mod = unwrap(module);
+  auto returnTypes = funcOp.getResultTypes();
+  auto returnTy = returnTypes[0];
+
   return readRunResults(mod, funcOp, returnTy, results, shots_count);
 }
 
@@ -114,14 +124,14 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
     platform.set_noise(&noise_model.value());
   }
 
-  auto results = details::pyRunTheKernel(name, module, func, *argData, platform,
-                                         shots_count);
+  auto span = details::pyRunTheKernel(name, module, func, *argData, platform,
+                                      shots_count);
   delete argData;
+  auto results = details::pyReadResults(span, module, func, shots_count);
 
   if (noise_model.has_value())
     platform.reset_noise();
 
-  mod->removeAttr(runtime::enableCudaqRun);
   return results;
 }
 
@@ -157,45 +167,76 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
         "Noise model is not supported on remote platforms.");
 
   async_run_result result;
-  std::promise<void> promise;
-  result.ready = promise.get_future();
   result.results = new std::vector<py::object>();
   result.error = new std::string();
 
   if (shots_count == 0) {
+    std::promise<void> promise;
+    result.ready = promise.get_future();
     promise.set_value();
     return result;
   }
 
-  // Release GIL to allow c++ threads.
-  py::gil_scoped_release gil_release{};
+  std::promise<details::RunResultSpan> spanPromise;
+  auto spanFuture = spanPromise.get_future();
 
-  QuantumTask wrapped = detail::make_copyable_function(
-      [p = std::move(promise), resultPtr = result.results,
-       errorPtr = result.error, shots_count, argData, name, module, func,
-       noise_model = std::move(noise_model)]() mutable {
-        auto &platform = get_platform();
+  std::promise<std::string> errorPromise;
+  auto errorFuture = errorPromise.get_future();
 
-        // Launch the kernel in the appropriate context.
-        if (noise_model.has_value())
-          platform.set_noise(&noise_model.value());
+  // Run the kernel and compute results span.
+  {
+    // Release GIL to allow c++ threads, all code inside the scope is c++, so
+    // there is no need to re-acquire the GIL inside the thread.
+    py::gil_scoped_release gil_release{};
+    QuantumTask wrapped = detail::make_copyable_function(
+        [sp = std::move(spanPromise), ep = std::move(errorPromise),
+         errorPtr = result.error, shots_count, argData, name, module, func,
+         noise_model = std::move(noise_model)]() mutable {
+          auto &platform = get_platform();
 
-        py::gil_scoped_acquire gil{};
-        try {
-          auto results = details::pyRunTheKernel(name, module, func, *argData,
-                                                 platform, shots_count);
-          delete argData;
-          // Swap the new vector with the `results`, the new vector will be
-          // deleted when `results` does out of scope.
-          std::swap(*resultPtr, results);
-        } catch (std::runtime_error &e) {
-          auto message = std::string(e.what());
-          std::swap(*errorPtr, message);
-        }
-        p.set_value();
-        platform.reset_noise();
-      });
-  platform.enqueueAsyncTask(qpu_id, wrapped);
+          // Launch the kernel in the appropriate context.
+          if (noise_model.has_value())
+            platform.set_noise(&noise_model.value());
+
+          try {
+            auto span = details::pyRunTheKernel(name, module, func, *argData,
+                                                platform, shots_count);
+            delete argData;
+            sp.set_value(span);
+            ep.set_value("");
+          } catch (std::runtime_error &e) {
+            auto message = std::string(e.what());
+            sp.set_value({});
+            ep.set_value(message);
+          }
+          platform.reset_noise();
+        });
+    platform.enqueueAsyncTask(qpu_id, wrapped);
+  }
+
+  // Convert results after the span is computed.
+  {
+    // Release GIL to allow c++ threads, re-acquire for conversion of the
+    // results to python objects.
+    py::gil_scoped_release gil_release{};
+    auto resultFuture =
+        std::async(std::launch::deferred,
+                   [sf = std::move(spanFuture), ef = std::move(errorFuture),
+                    errorPtr = result.error, resultsPtr = result.results,
+                    module, func, shots_count]() mutable {
+                     auto error = ef.get();
+                     std::swap(*errorPtr, error);
+                     if (error.empty()) {
+                       auto span = sf.get();
+                       py::gil_scoped_acquire gil{};
+                       auto results = details::pyReadResults(span, module, func,
+                                                             shots_count);
+                       std::swap(*resultsPtr, results);
+                     }
+                   });
+    result.ready = std::move(resultFuture);
+  }
+
   return result;
 }
 
@@ -212,9 +253,7 @@ void bindPyRunAsync(py::module &mod) {
       .def(
           "get",
           [](async_run_result &self) {
-            py::gil_scoped_release gil_release{};
             self.ready.get();
-            py::gil_scoped_acquire gil{};
             auto err = *self.error;
             if (!err.empty()) {
               delete self.error;
