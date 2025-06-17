@@ -523,8 +523,8 @@ public:
         cudaq::info("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
+      pm.addPass(mlir::createCanonicalizerPass());
       if (executionContext->name == "resourcecount") {
-        pm.addPass(mlir::createCanonicalizerPass());
         std::function<void(std::string, size_t)> f = [&](std::string gate,
                                                          size_t count) {
           nvqir::getResourceCounts()->append(gate, count);
