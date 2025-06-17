@@ -74,8 +74,6 @@ done
 
 # remote_rest targets are automatically filtered, 
 # so is execution on the photonics backend and the stim backend
-# This will test all NVIDIA-derivative targets in the legacy mode,
-# i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc., are treated as standalone targets.
 available_backends=`\
     echo "default"
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
@@ -198,7 +196,7 @@ do
             echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
             continue
         # Skip long-running tests, not suitable for cutensornet-based backends.
-        elif [[ "$t" == "tensornet" || "$t" == "tensornet-mps" || "$t" == "nvidia-mqpu-mps" ]] && [[ " ${tensornet_backend_skipped_tests[*]} " =~ " $ex " ]]; then
+        elif [[ "$t" == "tensornet" || "$t" == "tensornet-mps" ]] && [[ " ${tensornet_backend_skipped_tests[*]} " =~ " $ex " ]]; then
             let "skipped+=1"
             echo "Skipping $t target."
             echo ":white_flag: $filename: Issue https://github.com/NVIDIA/cuda-quantum/issues/884. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
