@@ -6,14 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os, time
-
-import pytest
-import numpy as np
-from typing import Callable, List, Tuple
+import os
 from dataclasses import dataclass
 
 import cudaq
+import numpy as np
+import pytest
 
 
 def is_close(actual, expected):
@@ -659,7 +657,7 @@ def test_run_errors():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_no_return, 2)
-    assert 'cudaq.run only supports kernels that return a value.' in repr(e)
+    assert '`cudaq.run` only supports kernels that return a value.' in repr(e)
 
     with pytest.raises(TypeError) as e:
         cudaq.run(simple, 2, shots_count=-1)
