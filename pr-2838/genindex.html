@@ -423,6 +423,10 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="applications/python/mps_encoding.html">Approximate State Preparation using MPS Sequential Encoding</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/mps_encoding.html#Ran's-approach">Ran’s approach</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/backends/backends.html">   Backends</a><ul>
@@ -1237,6 +1241,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7details17KernelBuilderType17KernelBuilderTypeERRNSt8functionIFN4mlir4TypeEPN4mlir11MLIRContextEEEE">cudaq::details::KernelBuilderType::KernelBuilderType (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20diag_matrix_callbackE">cudaq::diag_matrix_callback (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args">cudaq::draw (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3dynE">cudaq::dyn (C++ member)</a>
@@ -1433,7 +1439,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_handler20commutation_behaviorE">cudaq::matrix_handler::commutation_behavior (C++ struct)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_handler6defineENSt6stringENSt6vectorINSt7int64_tEEERR15matrix_callbackRKNSt13unordered_mapINSt6stringENSt6stringEEE">cudaq::matrix_handler::define (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_handler6defineENSt6stringENSt6vectorINSt7int64_tEEERR15matrix_callbackRRNSt13unordered_mapINSt6stringENSt6stringEEE">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_handler6defineENSt6stringENSt6vectorINSt7int64_tEEERR15matrix_callbackRKNSt13unordered_mapINSt6stringENSt6stringEEE">cudaq::matrix_handler::define (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_handler6defineENSt6stringENSt6vectorINSt7int64_tEEERR15matrix_callbackRR20diag_matrix_callbackRKNSt13unordered_mapINSt6stringENSt6stringEEE">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_handler6defineENSt6stringENSt6vectorINSt7int64_tEEERR15matrix_callbackRRNSt13unordered_mapINSt6stringENSt6stringEEE">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq14matrix_handler7degreesEv">cudaq::matrix_handler::degrees (C++ function)</a>
 </li>
@@ -1463,6 +1469,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_handler7squeezeENSt6size_tE">cudaq::matrix_handler::squeeze (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq14matrix_handler18to_diagonal_matrixERNSt13unordered_mapINSt6size_tENSt7int64_tEEERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">cudaq::matrix_handler::to_diagonal_matrix (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq14matrix_handler9to_matrixERNSt13unordered_mapINSt6size_tENSt7int64_tEEERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">cudaq::matrix_handler::to_matrix (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq14matrix_handler9to_stringEb">cudaq::matrix_handler::to_string (C++ function)</a>
@@ -1474,6 +1482,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9matrix_opE">cudaq::matrix_op (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_op_termE">cudaq::matrix_op_term (C++ type)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22mdiag_operator_handlerE">cudaq::mdiag_operator_handler (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpiE">cudaq::mpi (C++ type)</a>
 </li>
@@ -1585,10 +1595,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli111num_targetsE">cudaq::pauli1::num_targets (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli16pauli1ERKNSt6vectorIN5cudaq4realEEE">cudaq::pauli1::pauli1 (C++ function)</a>
@@ -2020,6 +2030,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15SimulationState6TensorE">cudaq::SimulationState::Tensor (C++ struct)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq12spin_handlerE">cudaq::spin_handler (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq12spin_handler18to_diagonal_matrixERNSt13unordered_mapINSt6size_tENSt7int64_tEEERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">cudaq::spin_handler::to_diagonal_matrix (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq12spin_handler9to_matrixERKNSt6stringENSt7complexIdEEb">cudaq::spin_handler::to_matrix (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq12spin_handler9to_matrixERNSt13unordered_mapINSt6size_tENSt7int64_tEEERKNSt13unordered_mapINSt6stringENSt7complexIdEEEE">[1]</a>
 </li>

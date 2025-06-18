@@ -16,6 +16,7 @@
 
 #include <cudaq.h>
 #include <fstream>
+#include "math.h"
 
 // Define a simple quantum kernel to execute on Quantum Machines OPX.
 struct all_h {
@@ -25,13 +26,15 @@ struct all_h {
     for (int i = 0; i < 4; i++) {
       h(q[i]);
     }
+    s(q[0]);
+    r1(M_PI / 2, q[1]);
     auto result = mz(q);
   }
 };
 
 int main() {
-  // Submit asynchronously (e.g., continue executing
-  // code in the file until the job has been returned).
+  // Submit asynchronously (e.g., continue executing code in the file until 
+  // the job has been returned).
   auto future = cudaq::sample_async(all_h{});
   // ... classical code to execute in the meantime ...
 
