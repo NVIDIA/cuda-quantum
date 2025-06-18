@@ -11,5 +11,5 @@ namespace py = pybind11;
 
 namespace cudaq {
 /// @brief Bind `cudaq.ResourceCounts` to python.
-void bindResourceCounts(py::module &mod);
+void bindResource(py::module &mod);
 } // namespace cudaq

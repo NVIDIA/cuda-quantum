@@ -511,9 +511,7 @@ void stopUsingResourceCounterSimulator() {
 void setChoiceFunction(std::function<bool()> choice) {
   nvqir::setChoiceFunction(choice);
 }
-cudaq::resource_counts *getResourceCounts() {
-  return nvqir::getResourceCounts();
-}
+cudaq::Resources *getResourceCounts() { return nvqir::getResourceCounts(); }
 } // namespace __internal__
 
 } // namespace cudaq

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/ResourceCounts.h"
+#include "common/Resources.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/host_config.h"
 #include <filesystem>
@@ -22,7 +22,7 @@ class CircuitSimulator;
 void switchToResourceCounterSimulator();
 void stopUsingResourceCounterSimulator();
 void setChoiceFunction(std::function<bool()> choice);
-cudaq::resource_counts *getResourceCounts();
+cudaq::Resources *getResourceCounts();
 } // namespace nvqir
 
 namespace cudaq {
@@ -115,7 +115,7 @@ namespace __internal__ {
 void switchToResourceCounterSimulator();
 void stopUsingResourceCounterSimulator();
 void setChoiceFunction(std::function<bool()> choice);
-cudaq::resource_counts *getResourceCounts();
+cudaq::Resources *getResourceCounts();
 } // namespace __internal__
 
 } // namespace cudaq

@@ -23,7 +23,7 @@ void setChoiceFunction(std::function<bool()> choice) {
   getResourceCounterSimulator()->setChoiceFunction(choice);
 }
 
-cudaq::resource_counts *getResourceCounts() {
+cudaq::Resources *getResourceCounts() {
   getResourceCounterSimulator()->flushGateQueue();
   return getResourceCounterSimulator()->getResourceCounts();
 }

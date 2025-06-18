@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/ResourceCounts.h"
+#include "common/Resources.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
@@ -46,7 +46,7 @@ void bindCountResources(py::module &mod) {
         if (!choice) {
           auto seed = cudaq::get_random_seed();
           std::mt19937 gen(seed);
-          std::uniform_int_distribution<> rand(0,1);
+          std::uniform_int_distribution<> rand(0, 1);
           choice = [&]() { return rand(gen); };
         }
         __internal__::setChoiceFunction(*choice);
@@ -57,7 +57,7 @@ void bindCountResources(py::module &mod) {
         pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
 
         // Save and clone counts data
-        auto counts = resource_counts(*__internal__::getResourceCounts());
+        auto counts = Resources(*__internal__::getResourceCounts());
         // Switch simulators back
         __internal__::stopUsingResourceCounterSimulator();
 

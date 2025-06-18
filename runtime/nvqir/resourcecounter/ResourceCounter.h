@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/ResourceCounts.h"
+#include "common/Resources.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/Gates.h"
 
@@ -16,7 +16,7 @@ namespace nvqir {
 
 class ResourceCounter : public nvqir::CircuitSimulatorBase<double> {
 protected:
-  cudaq::resource_counts resourceCounts;
+  cudaq::Resources resourceCounts;
   std::function<bool()> choice;
 
   /// @brief Grow the state vector by one qubit.
@@ -25,9 +25,7 @@ protected:
   void applyGate(const GateApplicationTask &task) override {
     CUDAQ_INFO("Applying {} with {} controls", task.operationName,
                task.controls.size());
-    auto gate = cudaq::resource_counts::GateData{task.operationName,
-                                                 task.controls.size()};
-    resourceCounts.append(gate);
+    resourceCounts.appendInstruction(task.operationName, task.controls.size());
   }
 
   /// @brief Measure the qubit and return the result. Collapse the
@@ -52,7 +50,7 @@ public:
   /// @brief Reset the qubit
   /// @param index 0-based index of qubit to reset
   void resetQubit(const std::size_t index) override {
-    resourceCounts.append("reset");
+    resourceCounts.appendInstruction("reset", 0);
   }
 
   /// @brief Sample the multi-qubit state.
@@ -77,7 +75,7 @@ public:
     this->CircuitSimulatorBase::setExecutionContext(context);
   }
 
-  cudaq::resource_counts *getResourceCounts() { return &this->resourceCounts; }
+  cudaq::Resources *getResourceCounts() { return &this->resourceCounts; }
 
   void setChoiceFunction(std::function<bool()> choice) {
     assert(choice);
@@ -89,6 +87,6 @@ ResourceCounter *getResourceCounterSimulator();
 
 void setChoiceFunction(std::function<bool()> choice);
 
-cudaq::resource_counts *getResourceCounts();
+cudaq::Resources *getResourceCounts();
 
 } // namespace nvqir

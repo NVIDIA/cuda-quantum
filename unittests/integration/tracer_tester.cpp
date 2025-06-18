@@ -25,11 +25,8 @@ CUDAQ_TEST(TracerTester, checkBell) {
   // Count how many hadamards we have
   EXPECT_EQ(1, resources.count("h"));
 
-  // Count how many x gates we have
-  EXPECT_EQ(1, resources.count("x"));
-
-  // Count how many ctrl-x gates we have
-  EXPECT_EQ(1, resources.count("cx"));
+  // Count how many ctrl-x gates we have with one control
+  EXPECT_EQ(1, resources.count_controls("x", /*controls*/ 1));
 
   // Count how many rx gates we have
   EXPECT_EQ(0, resources.count("rx"));
@@ -50,7 +47,9 @@ CUDAQ_TEST(TracerTester, checkGHZ) {
   // How many hadamards?
   EXPECT_EQ(1, resources.count("h"));
   // How many ctrl-x operations with 1 ctrl qubit
-  EXPECT_EQ(9, resources.count("cx"));
+  EXPECT_EQ(9, resources.count_controls("x", /*nControls*/ 1));
+  // How many x operations, any number of controls
+  EXPECT_EQ(9, resources.count("x"));
 }
 
 CUDAQ_TEST(TracerTester, checkLargeTrace) {

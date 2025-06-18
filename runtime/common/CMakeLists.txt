@@ -19,7 +19,6 @@ set(COMMON_RUNTIME_SRC
   SampleResult.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
-  ResourceCounts.cpp
   Resources.cpp
   ServerHelper.cpp
   Trace.cpp

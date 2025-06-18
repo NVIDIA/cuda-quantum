@@ -262,8 +262,8 @@ def ResourceCountPreprocess : Pass<"resource-count-preprocess", "mlir::func::Fun
   }];
 
   let options = [
-    Option<"countGate", "count-gate", "std::function<void(std::string,size_t)>",
-           /*default=*/"[](std::string str,size_t count){}",
+    Option<"countGate", "count-gate", "std::function<void(std::string,size_t,size_t)>",
+           /*default=*/"[](std::string str,size_t nControls, size_t count){}",
            "Closure that will handle gate counts">,
     Option<"dumpPreprocessed", "dump-preprocessed", "bool",
            /*default=*/"false",

@@ -16,7 +16,7 @@
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
-#include "runtime/common/py_ResourceCounts.h"
+#include "runtime/common/py_Resources.h"
 #include "runtime/common/py_SampleResult.h"
 #include "runtime/cudaq/algorithms/py_draw.h"
 #include "runtime/cudaq/algorithms/py_evolve.h"
@@ -100,7 +100,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
 
   cudaq::bindRuntimeTarget(cudaqRuntime, *holder.get());
   cudaq::bindMeasureCounts(cudaqRuntime);
-  cudaq::bindResourceCounts(cudaqRuntime);
+  cudaq::bindResource(cudaqRuntime);
   cudaq::bindObserveResult(cudaqRuntime);
   cudaq::bindComplexMatrix(cudaqRuntime);
   cudaq::bindScalarWrapper(cudaqRuntime);

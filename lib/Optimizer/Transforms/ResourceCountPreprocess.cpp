@@ -53,14 +53,11 @@ struct ResourceCountPreprocessPass
 
     size_t controls = opi.getControls().size();
 
-    std::string gatestr(controls, 'c');
-    gatestr += name;
-
     if (dumpPreprocessed)
-      llvm::outs() << "Preprocessing " << gatestr << " for " << to_add
-                   << " counts\n";
+      llvm::outs() << "Preprocessing " << name << "(" << controls << ")"
+                   << " for " << to_add << " counts\n";
 
-    countGate(gatestr, to_add);
+    countGate(name.str(), controls, to_add);
     to_erase.insert(op);
     return true;
   }

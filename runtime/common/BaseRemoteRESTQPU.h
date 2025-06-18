@@ -14,7 +14,7 @@
 #include "common/Executor.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
-#include "common/ResourceCounts.h"
+#include "common/Resources.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
@@ -61,7 +61,7 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
-cudaq::resource_counts *getResourceCounts();
+cudaq::Resources *getResourceCounts();
 } // namespace nvqir
 
 namespace cudaq {
@@ -525,10 +525,11 @@ public:
       }
       pm.addPass(mlir::createCanonicalizerPass());
       if (executionContext->name == "resource-count") {
-        std::function<void(std::string, size_t)> f = [&](std::string gate,
-                                                         size_t count) {
-          nvqir::getResourceCounts()->append(gate, count);
-        };
+        std::function<void(std::string, size_t, size_t)> f =
+            [&](std::string gate, size_t nControls, size_t count) {
+              nvqir::getResourceCounts()->appendInstruction(gate, nControls,
+                                                            count);
+            };
         cudaq::opt::ResourceCountPreprocessOptions opt{f};
         pm.addNestedPass<mlir::func::FuncOp>(
             opt::createResourceCountPreprocess(opt));

@@ -49,7 +49,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/common/py_EvolveResult.cpp
     ../runtime/common/py_ObserveResult.cpp
     ../runtime/common/py_SampleResult.cpp
-    ../runtime/common/py_ResourceCounts.cpp
+    ../runtime/common/py_Resources.cpp
     ../runtime/common/py_CustomOpRegistry.cpp
     ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
