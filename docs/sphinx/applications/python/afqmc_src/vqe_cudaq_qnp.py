@@ -72,7 +72,7 @@ class VQE(object):
 
         # changed self.target to `nvidia`` to pass CI job, as it expects a string
         # literal
-        # cudaq.set_target("`nvidia`")  # `nvidia` or `nvidia-mgpu`
+        # cudaq.set_target("`nvidia`")
 
         kernel, thetas = cudaq.make_kernel(list)
         # Allocate n qubits.
