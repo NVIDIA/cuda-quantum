@@ -452,6 +452,7 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
 std::pair<bool, std::optional<Device>> deviceFromString(llvm::StringRef deviceString) {
   std::size_t deviceDim[2];
   deviceDim[0] = deviceDim[1] = 0;
+  SmallVector<unsigned> excludedQubits;
 
   // Get device
   StringRef deviceTopoStr =
@@ -494,24 +495,58 @@ std::pair<bool, std::optional<Device>> deviceFromString(llvm::StringRef deviceSt
   } else {
     if (deviceString.consume_front("(")) {
       deviceString = deviceString.ltrim();
+      
+      // Parse first dimension
       deviceString.consumeInteger(/*Radix=*/10, deviceDim[0]);
       deviceString = deviceString.ltrim();
-      if (deviceString.consume_front(","))
-        deviceString.consumeInteger(/*Radix=*/10, deviceDim[1]);
-      deviceString = deviceString.ltrim();
+      
+      // Parse second dimension if present
+      unsigned argCount = 1;
+      while (deviceString.consume_front(",")) {
+        if (argCount == 3) {
+          llvm::errs() << "Too many arguments provided for device\n";
+          return std::make_pair(false, std::nullopt);
+        }
+        deviceString = deviceString.ltrim();
+        if (deviceString.front() != '[') {
+          deviceString.consumeInteger(/*Radix=*/10, deviceDim[1]);
+          deviceString = deviceString.ltrim();
+        } else if (deviceString.consume_front("[")) {
+          deviceString = deviceString.ltrim();
+          while (!deviceString.empty() && deviceString.front() != ']') {
+            unsigned qubit = 0;
+            if (!deviceString.consumeInteger(/*Radix=*/10, qubit)) {
+              excludedQubits.push_back(qubit);
+              deviceString = deviceString.ltrim();
+              if (deviceString.consume_front(","))
+                deviceString = deviceString.ltrim();
+            } else {
+              llvm::errs() << "Invalid excluded qubit number in list\n";
+              return std::make_pair(false, std::nullopt);
+            }
+          }
+          if (!deviceString.consume_front("]")) {
+            llvm::errs() << "Missing closing ']' in excluded qubits list\n";
+            return std::make_pair(false, std::nullopt);
+          }
+        }
+        ++argCount;
+      }
+
       if (!deviceString.consume_front(")")) {
         llvm::errs() << "Missing closing ')' in device option\n";
         return std::make_pair(false, std::nullopt);
       }
     }
+
     if (deviceTopoStr == "path") {
-      return std::make_pair(true, Device::path(deviceDim[0]));
+      return std::make_pair(false, Device::path(deviceDim[0], excludedQubits));
     } else if (deviceTopoStr == "ring") {
-      return std::make_pair(true, Device::ring(deviceDim[0]));
+      return std::make_pair(false, Device::ring(deviceDim[0], excludedQubits));
     } else if (deviceTopoStr == "star") {
-      return std::make_pair(true, Device::star(deviceDim[0], deviceDim[1]));
+      return std::make_pair(false, Device::star(deviceDim[0], deviceDim[1], excludedQubits));
     } else if (deviceTopoStr == "grid") {
-      return std::make_pair(true, Device::grid(deviceDim[0], deviceDim[1]));
+      return std::make_pair(false, Device::grid(deviceDim[0], deviceDim[1], excludedQubits));
     } else if (deviceTopoStr == "bypass") {
       return std::make_pair(true, std::nullopt);
     } else {
