@@ -128,6 +128,7 @@ jobs:
         with:
           endpoint: builder_context
           version: v0.19.0
+          buildkitd-config: none # hard-coded to run on ubuntu-latest
           driver-opts: |
             image=moby/buildkit:v0.19.0
 
@@ -210,6 +211,7 @@ jobs:
         with:
           endpoint: builder_context
           version: v0.19.0
+          buildkitd-config: none # hard-coded to run on ubuntu-latest
           driver-opts: |
             image=moby/buildkit:v0.19.0
 
