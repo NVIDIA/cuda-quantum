@@ -36,6 +36,11 @@ target_link_libraries(${LIBRARY_NAME}
     fmt::fmt-header-only 
 )
 
+if (CUDA_FOUND AND CUSTATEVEC_ROOT)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE gpu-emulated-qpu)
+  add_target_config("${CMAKE_SOURCE_DIR}/runtime/cudaq/platform/default/nvidia")
+endif()
+
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 add_target_config(remote-mqpu)
 add_target_config(nvqc)
