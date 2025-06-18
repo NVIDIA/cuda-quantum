@@ -591,6 +591,23 @@ if (CUDAQ_ENABLE_PYTHON)
   add_subdirectory(python)
 endif()
 
+# ==============================================================================
+# Apply Stim patches
+execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/Stim/ apply ../customizations/Stim/arm_neon.diff --ignore-whitespace
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_PATCH_RESULT
+                  ERROR_QUIET)
+if (NOT GIT_PATCH_RESULT EQUAL "0")
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/Stim/ apply ../customizations/Stim/arm_neon.diff --ignore-whitespace
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_PATCH_RESULT)
+endif()
+if (NOT GIT_PATCH_RESULT EQUAL "0")
+  message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+endif()
+# End Stim patches
+# ==============================================================================
+
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
