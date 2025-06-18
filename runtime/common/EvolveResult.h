@@ -16,21 +16,40 @@
 
 namespace cudaq {
 
+/// @brief Specify what intermediate results should be saved during the
+/// evolution process.
+// Note: We make this a class to allow for implicit conversion from
+// `bool` to `IntermediateResultSave`, where `true` means save all
+// intermediate results and `false` means save none. This will allow for
+// backward compatibility with existing code that uses `bool` to specify whether
+// to save intermediate results.
 class IntermediateResultSave {
 private:
   enum class UnderlyingTy : int { None, All, ExpectationValue };
   int m_value;
 
 public:
+  // Constants to specify what intermediate results to save.
+  /// Save no intermediate results.
   static constexpr int None = static_cast<int>(UnderlyingTy::None);
+  /// Save all intermediate results, including states and expectation values.
   static constexpr int All = static_cast<int>(UnderlyingTy::All);
+  /// Save only expectation values at each time step.
   static constexpr int ExpectationValue =
       static_cast<int>(UnderlyingTy::ExpectationValue);
 
+  /// @brief Construct an `IntermediateResultSave` object with the specified
+  /// value.
+  /// @param val
   constexpr IntermediateResultSave(int val) : m_value(val) {}
-  constexpr IntermediateResultSave(bool val)
+  /// @brief Construct an `IntermediateResultSave` object from a boolean value.
+  /// @param val
+  [[deprecated("overload provided for compatibility with the boolean value - "
+               "please migrate to the new `IntermediateResultSave` enumeration "
+               "values.")]] constexpr IntermediateResultSave(bool val)
       : m_value(val ? static_cast<int>(UnderlyingTy::All)
                     : static_cast<int>(UnderlyingTy::None)) {}
+  /// Convert the `IntermediateResultSave` object to an integer value.
   constexpr operator int() const { return m_value; }
 };
 
