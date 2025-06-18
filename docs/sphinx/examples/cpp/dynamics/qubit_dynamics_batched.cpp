@@ -43,7 +43,8 @@ int main() {
   // Run the simulation without collapse operators (ideal evolution)
   auto evolve_results =
       cudaq::evolve(hamiltonian, dimensions, schedule, {psi0, psi1}, integrator,
-                    {}, {cudaq::spin_op::y(0), cudaq::spin_op::z(0)}, true);
+                    {}, {cudaq::spin_op::y(0), cudaq::spin_op::z(0)},
+                    cudaq::IntermediateResultSave::ExpectationValue);
 
   // Lambda to extract expectation values for a given observable index
   auto get_expectation = [](int idx, auto &result) -> std::vector<double> {

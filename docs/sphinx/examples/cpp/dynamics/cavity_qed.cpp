@@ -90,7 +90,8 @@ int main() {
   // number and atom excitation probability) are recorded.
   cudaq::evolve_result evolve_result =
       cudaq::evolve(hamiltonian, dimensions, schedule, rho0, integrator, {},
-                    {cavity_occ_op, atom_occ_op}, true);
+                    {cavity_occ_op, atom_occ_op},
+                    cudaq::IntermediateResultSave::ExpectationValue);
 
   // Adding dissipation
   // To simulate a realistic scenario, we introduce decay (dissipation).
@@ -100,7 +101,8 @@ int main() {
   // Evolve with the collapse operator to incorporate the effect of decay.
   cudaq::evolve_result evolve_result_decay =
       cudaq::evolve(hamiltonian, dimensions, schedule, rho0, integrator,
-                    {collapse_operator}, {cavity_occ_op, atom_occ_op}, true);
+                    {collapse_operator}, {cavity_occ_op, atom_occ_op},
+                    cudaq::IntermediateResultSave::ExpectationValue);
 
   // Lambda to extract expectation values for a given observable index
   // Here, index 0 corresponds to the cavity photon number and index 1

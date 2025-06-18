@@ -38,16 +38,15 @@ steps = np.linspace(0, 10, 101)
 schedule = Schedule(steps, ["time"])
 
 # Run the simulation.
-evolution_results = cudaq.evolve(hamiltonian,
-                                 dimensions,
-                                 schedule,
-                                 sic_states,
-                                 observables=[spin.x(0),
-                                              spin.y(0),
-                                              spin.z(0)],
-                                 collapse_operators=[],
-                                 store_intermediate_results=True,
-                                 integrator=RungeKuttaIntegrator())
+evolution_results = cudaq.evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    sic_states,
+    observables=[spin.x(0), spin.y(0), spin.z(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=RungeKuttaIntegrator())
 
 get_result = lambda idx, res: [
     exp_vals[idx].expectation() for exp_vals in res.expectation_values()

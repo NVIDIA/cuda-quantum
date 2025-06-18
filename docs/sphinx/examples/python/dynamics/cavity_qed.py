@@ -41,15 +41,15 @@ steps = np.linspace(0, 10, 201)
 schedule = Schedule(steps, ["time"])
 
 # First, evolve the system without any collapse operators (ideal).
-evolution_result = cudaq.evolve(hamiltonian,
-                                dimensions,
-                                schedule,
-                                rho0,
-                                observables=[boson.number(1),
-                                             boson.number(0)],
-                                collapse_operators=[],
-                                store_intermediate_results=True,
-                                integrator=ScipyZvodeIntegrator())
+evolution_result = cudaq.evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    rho0,
+    observables=[boson.number(1), boson.number(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=ScipyZvodeIntegrator())
 
 # Then, evolve the system with a collapse operator modeling cavity decay (leaking photons)
 evolution_result_decay = cudaq.evolve(
@@ -59,7 +59,7 @@ evolution_result_decay = cudaq.evolve(
     rho0,
     observables=[boson.number(1), boson.number(0)],
     collapse_operators=[np.sqrt(0.1) * a],
-    store_intermediate_results=True,
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
     integrator=ScipyZvodeIntegrator())
 
 get_result = lambda idx, res: [

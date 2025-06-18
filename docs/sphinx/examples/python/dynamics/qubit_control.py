@@ -42,16 +42,15 @@ schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
 # First, we run the simulation without any collapse operators (no decoherence).
-evolution_result = cudaq.evolve(hamiltonian,
-                                dimensions,
-                                schedule,
-                                rho0,
-                                observables=[spin.x(0),
-                                             spin.y(0),
-                                             spin.z(0)],
-                                collapse_operators=[],
-                                store_intermediate_results=True,
-                                integrator=ScipyZvodeIntegrator())
+evolution_result = cudaq.evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    rho0,
+    observables=[spin.x(0), spin.y(0), spin.z(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=ScipyZvodeIntegrator())
 
 # Now, run the simulation with qubit decoherence
 gamma_sm = 4.0
@@ -66,7 +65,7 @@ evolution_result_decay = cudaq.evolve(
         np.sqrt(gamma_sm) * spin.plus(0),
         np.sqrt(gamma_sz) * spin.z(0)
     ],
-    store_intermediate_results=True,
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
     integrator=ScipyZvodeIntegrator())
 
 get_result = lambda idx, res: [
