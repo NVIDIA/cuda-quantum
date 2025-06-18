@@ -60,8 +60,9 @@ resource_counts run_estimate_resources(KernelFunctor &&wrappedKernel,
 /// circuit simulation, it only traces the quantum operation calls and returns
 /// a `resource_counts` type that allows the programmer to query the number and
 /// types of operations in the kernel. By default, any measurement will return
-/// `true`. To handle branching on measurements, supply a choice function to
-/// the overloaded version of this function.
+/// `true` or `false` with 50% probability. To estimate resources for specific
+/// paths based on measurements, supply a choice function to the overloaded
+/// version of this function.
 #if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
@@ -73,7 +74,10 @@ template <
 resource_counts estimate_resources(QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
-  auto choice = []() { return true; };
+  auto seed = cudaq::get_random_seed();
+  std::mt19937 gen(seed);
+  std::uniform_int_distribution<> rand(0,1);
+  auto choice = [&]() { return rand(gen); };
   return details::run_estimate_resources(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, choice);

@@ -42,9 +42,25 @@ int main() {
   // CHECK-LABEL: True path
   // CHECK-DAG: h :  1
   // CHECK-DAG: x :  1
+
   printf("False path\n");
   gateCountsFalse.dump();
   // CHECK-LABEL: False path
+  // CHECK-DAG: h :  1
+
+  cudaq::set_random_seed(0);
+  printf("True default path\n");
+  auto defaultTrueCounts = cudaq::estimate_resources(kernel);
+  defaultTrueCounts.dump();
+  // CHECK-LABEL: True default path
+  // CHECK-DAG: h :  1
+  // CHECK-DAG: x :  1
+
+  cudaq::set_random_seed(1);
+  printf("False default path\n");
+  auto defaultFalseCounts = cudaq::estimate_resources(kernel);
+  defaultFalseCounts.dump();
+  // CHECK-LABEL: False default path
   // CHECK-DAG: h :  1
 
   return 0;

@@ -43,8 +43,12 @@ void bindCountResources(py::module &mod) {
         // Use the resource counter simulator
         __internal__::switchToResourceCounterSimulator();
         // Set the choice function for the simulator
-        if (!choice)
-          choice = []() { return true; };
+        if (!choice) {
+          auto seed = cudaq::get_random_seed();
+          std::mt19937 gen(seed);
+          std::uniform_int_distribution<> rand(0,1);
+          choice = [&]() { return rand(gen); };
+        }
         __internal__::setChoiceFunction(*choice);
 
         // Set the platform
@@ -68,7 +72,8 @@ Args:
   choice (Any): A choice function called to determine the outcome of
     measurements, in case control flow depends on measurements. Should
     only return either `True` or `False`. Invoking the kernel within
-    the choice function is forbidden. Default: returns true.
+    the choice function is forbidden. Default: returns `True` or `False`
+    with 50% probability.
   kernel (:class:`Kernel`): The :class:`Kernel` to count resources on
   *arguments (Optional[Any]): The concrete values to evaluate the kernel 
     function at. Leave empty if the kernel doesn't accept any arguments.
