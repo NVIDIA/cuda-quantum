@@ -189,8 +189,8 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
     // there is no need to re-acquire the GIL inside the thread.
     py::gil_scoped_release gil_release{};
     QuantumTask wrapped = detail::make_copyable_function(
-        [sp = std::move(spanPromise), ep = std::move(errorPromise),
-         errorPtr = result.error, shots_count, argData, name, module, func,
+        [sp = std::move(spanPromise), ep = std::move(errorPromise), shots_count,
+         argData, name, module, func,
          noise_model = std::move(noise_model)]() mutable {
           auto &platform = get_platform();
 
