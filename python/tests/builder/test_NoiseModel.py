@@ -15,6 +15,14 @@ import cudaq
 import random
 
 
+@pytest.fixture(autouse=True)
+def do_something():
+    cudaq.reset_target()
+    yield
+    cudaq.__clearKernelRegistries()
+    cudaq.reset_target()
+
+
 @pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
 def test_depolarization_channel(target: str):
     """Tests the depolarization channel in the case of a non-zero probability."""
@@ -96,7 +104,6 @@ def test_depolarization_channel_simple(target: str):
     got_one_probability = noisy_counts.probability("1")
     assert np.isclose(got_zero_probability, want_probability, atol=.2)
     assert np.isclose(got_one_probability, want_probability, atol=.2)
-    cudaq.reset_target()
 
 
 def test_amplitude_damping_simple():
@@ -137,7 +144,6 @@ def test_amplitude_damping_simple():
     noisy_counts = future.get()
     got_counts = noisy_counts["0"]
     assert (got_counts == want_counts)
-    cudaq.reset_target()
 
 
 @pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
@@ -174,7 +180,6 @@ def test_phase_flip_simple(target: str):
     noisy_counts = cudaq.sample(kernel, noise_model=noise)
     got_zero_counts = noisy_counts["0"]
     assert got_zero_counts == want_counts
-    cudaq.reset_target()
 
 
 @pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
@@ -217,7 +222,6 @@ def test_bit_flip_simple(target: str):
     noisy_counts.dump()
     got_one_zero_counts = noisy_counts["10"]
     assert got_one_zero_counts == want_counts
-    cudaq.reset_target()
 
 
 def test_kraus_channel():
@@ -253,7 +257,6 @@ def test_kraus_channel():
     assert (got_count_length == want_count_length)
     assert ('0' in counts)
     assert ('1' in counts)
-    cudaq.reset_target()
 
 
 def test_row_major():
@@ -279,7 +282,6 @@ def test_row_major():
     noisy_counts.dump()
     # Decay to |0> ~ error_prob
     assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.2)
-    cudaq.reset_target()
 
 
 def test_column_major():
@@ -308,7 +310,6 @@ def test_column_major():
     noisy_counts.dump()
     # Decay to |0> ~ error_prob
     assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.2)
-    cudaq.reset_target()
 
 
 def test_noise_u3():
@@ -334,7 +335,6 @@ def test_noise_u3():
     noisy_counts.dump()
     # Decay to |0> ~ error_prob
     assert np.isclose(noisy_counts.probability("0"), error_prob, atol=.1)
-    cudaq.reset_target()
 
 
 @pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
@@ -354,7 +354,6 @@ def test_all_qubit_channel(target: str):
     noisy_counts.dump()
     # Decay to |000>
     assert np.isclose(noisy_counts.probability("0" * num_qubits), 1.0)
-    cudaq.reset_target()
 
 
 def test_all_qubit_channel_with_control():
@@ -401,7 +400,6 @@ def test_all_qubit_channel_with_control():
         noisy_counts.dump()
         # All tests have some noisy states beside the bell pair.
         assert (len(noisy_counts) > 2)
-    cudaq.reset_target()
 
 
 def test_all_qubit_channel_with_control_prefix():
@@ -448,7 +446,6 @@ def test_all_qubit_channel_with_control_prefix():
         noisy_counts.dump()
         # All tests have some noisy states beside the bell pair.
         assert (len(noisy_counts) > 2)
-    cudaq.reset_target()
 
 
 def test_callback_channel():
@@ -475,7 +472,6 @@ def test_callback_channel():
     future = cudaq.sample_async(kernel, shots_count=shots, noise_model=noise)
     noisy_counts = future.get()
     assert np.isclose(noisy_counts.probability("00100"), 1.0)
-    cudaq.reset_target()
 
 
 def test_callback_channel_with_params():
@@ -512,7 +508,6 @@ def test_callback_channel_with_params():
     noisy_counts.dump()
     # Due to our custom setup, a negative angle will have no noise.
     assert np.isclose(noisy_counts.probability("1"), 1.0)
-    cudaq.reset_target()
 
 
 def check_custom_op_noise(noise_model):
@@ -528,7 +523,6 @@ def check_custom_op_noise(noise_model):
     counts = cudaq.sample(basic, shots_count=shots, noise_model=noise_model)
     counts.dump()
     assert np.isclose(counts.probability("0"), 1.0)
-    cudaq.reset_target()
 
 
 def test_custom_op():
@@ -672,8 +666,6 @@ def test_apply_noise_custom():
     counts.dump()
     assert len(counts) == 2 and '0' in counts and '1' in counts
 
-    cudaq.reset_target()
-
 
 @pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
 def test_apply_noise_builtin(target: str):
@@ -771,8 +763,6 @@ def test_apply_noise_builtin(target: str):
     assert len(counts) == 4
     print(counts)
 
-    cudaq.reset_target()
-
 
 @pytest.mark.parametrize('target', ['density-matrix-cpu'])
 def test_noise_observe_reset(target: str):
@@ -798,8 +788,6 @@ def test_noise_observe_reset(target: str):
                                      noise_model=noise_model)
         assert np.isclose(result_noiseless.expectation(), -1.)
         assert np.isclose(result_noisy.expectation(), 1.)
-
-    cudaq.reset_target()
 
 
 # leave for gdb debugging
