@@ -365,6 +365,9 @@ def evolve(
             f"Invalid argument `schedule` for target {target_name}.")
 
     if isinstance(store_intermediate_results, bool):
+        warnings.warn(
+            "deprecated - use an `IntermediateResultSave` enum value instead",
+            DeprecationWarning)
         store_intermediate_results = IntermediateResultSave.ALL if store_intermediate_results else IntermediateResultSave.NONE
 
     if target_name in analog_targets:
@@ -579,6 +582,9 @@ def evolve_async(
             f"Invalid argument `schedule` for target {target_name}.")
 
     if isinstance(store_intermediate_results, bool):
+        warnings.warn(
+            "deprecated - use an `IntermediateResultSave` enum value instead",
+            DeprecationWarning)
         store_intermediate_results = IntermediateResultSave.ALL if store_intermediate_results else IntermediateResultSave.NONE
 
     if target_name in analog_targets:

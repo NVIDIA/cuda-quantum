@@ -7,7 +7,7 @@
 # ============================================================================ #
 import os, pytest
 import cudaq
-from cudaq import operators
+from cudaq import operators, boson
 
 if cudaq.num_available_gpus() == 0:
     pytest.skip("Skipping GPU tests", allow_module_level=True)
@@ -59,7 +59,7 @@ def test_euler_integrator():
         schedule,
         psi0,
         observables=[hamiltonian],
-        collapse_operators=[np.sqrt(decay_rate) * operators.annihilate(0)],
+        collapse_operators=[np.sqrt(decay_rate) * boson.annihilate(0)],
         store_intermediate_results=cudaq.IntermediateResultSave.
         EXPECTATION_VALUE,
         integrator=RungeKuttaIntegrator(order=1, max_step_size=0.01))
@@ -92,7 +92,7 @@ def test_save_all_intermediate_states():
         schedule,
         psi0,
         observables=[hamiltonian],
-        collapse_operators=[np.sqrt(decay_rate) * operators.annihilate(0)],
+        collapse_operators=[np.sqrt(decay_rate) * boson.annihilate(0)],
         store_intermediate_results=cudaq.IntermediateResultSave.ALL,
         integrator=RungeKuttaIntegrator(order=1, max_step_size=0.01))
 

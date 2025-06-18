@@ -8,6 +8,7 @@
 import uuid
 import cudaq
 from cudaq.operators import *
+from cudaq.operators.boson import annihilate, create, number
 from cudaq.dynamics import *
 from cudaq.dynamics.integrators import *
 import numpy as np
