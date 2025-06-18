@@ -9,7 +9,7 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"

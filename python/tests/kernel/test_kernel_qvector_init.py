@@ -287,7 +287,7 @@ def test_kernel_dtype_complex64_params_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_simulation_dtype_complex_params_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
@@ -358,7 +358,7 @@ def test_kernel_amplitudes_complex_from_capture():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_simulation_dtype_np_array_from_capture_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 

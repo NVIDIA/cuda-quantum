@@ -900,7 +900,7 @@ def test_state_capture():
 
 @skipIfNvidiaFP64NotInstalled
 def test_from_state0():
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     kernel, initState = cudaq.make_kernel(list[complex])
     qubits = kernel.qalloc(initState)
@@ -1396,7 +1396,7 @@ def test_u3_ctrl():
 @skipIfNvidiaFP64NotInstalled
 def test_builder_rotate_state():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [0., 0., 0., 1.]
 

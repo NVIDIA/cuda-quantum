@@ -35,7 +35,7 @@ def test_state_vector_simple_py_float():
     # Create a state on GPU
     expected = cp.array([.707107, 0, 0, .707107])
 
-    # We are using the nvidia-fp32 target by default, it requires
+    # We are using the nvidia target, it requires
     # cupy overlaps to also have complex f32 data types, this
     # should throw since we are using float data types only
     with pytest.raises(RuntimeError) as error:

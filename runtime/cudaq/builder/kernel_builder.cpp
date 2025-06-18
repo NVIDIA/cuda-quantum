@@ -407,6 +407,17 @@ void control(ImplicitLocOpBuilder &builder, std::string &name,
                         control.getValue(), values);
 }
 
+void control(ImplicitLocOpBuilder &builder, std::string &name,
+             std::string &quakeCode, const std::vector<QuakeValue> &controls,
+             std::vector<QuakeValue> &values) {
+  SmallVector<Value> controlValues;
+  for (auto &c : controls)
+    controlValues.push_back(c.getValue());
+
+  applyControlOrAdjoint(builder, name, quakeCode, /*isAdjoint*/ false,
+                        controlValues, values);
+}
+
 void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, std::vector<QuakeValue> &values) {
   applyControlOrAdjoint(builder, name, quakeCode, /*isAdjoint*/ true, {},

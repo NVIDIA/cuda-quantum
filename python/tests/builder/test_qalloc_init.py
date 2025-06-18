@@ -25,7 +25,7 @@ skipIfNvidiaNotInstalled = pytest.mark.skipif(
 def test_kernel_float_params_f64():
 
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
@@ -57,7 +57,7 @@ def test_kernel_float_params_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_float_capture_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
@@ -89,7 +89,7 @@ def test_kernel_float_capture_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_float_np_array_from_capture_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
@@ -121,7 +121,7 @@ def test_kernel_float_np_array_from_capture_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_float_definition_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
@@ -152,7 +152,7 @@ def test_kernel_float_definition_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_complex_params_rotate_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [0. + 0j, 0., 0., 1.]
 
@@ -174,7 +174,7 @@ def test_kernel_complex_params_rotate_f64():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_complex_force_kron():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [0. + 0j] * 1024
     c[1023] = 1j
@@ -215,7 +215,7 @@ def test_kernel_complex_params_rotate_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_complex_params_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
@@ -247,7 +247,7 @@ def test_kernel_complex_params_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_complex_capture_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
@@ -279,7 +279,7 @@ def test_kernel_complex_capture_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_complex_np_array_from_capture_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
@@ -311,7 +311,7 @@ def test_kernel_complex_np_array_from_capture_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_complex_definition_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)])
@@ -342,7 +342,7 @@ def test_kernel_complex_definition_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_dtype_complex_params_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
     a = np.array(c, dtype=complex)
@@ -359,7 +359,7 @@ def test_kernel_dtype_complex_params_f64():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_dtype_complex128_params_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
     a = np.array(c, dtype=np.complex128)
@@ -395,7 +395,7 @@ def test_kernel_amplitudes_complex_params_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_simulation_dtype_np_array_from_capture_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
@@ -427,7 +427,7 @@ def test_kernel_simulation_dtype_np_array_from_capture_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_simulation_dtype_np_array_capture_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
@@ -468,7 +468,7 @@ def test_kernel_simulation_dtype_np_array_capture_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_error_invalid_array_size_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     kernel = cudaq.make_kernel()
 
@@ -480,7 +480,7 @@ def test_kernel_error_invalid_array_size_f64():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_error_invalid_list_size_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     kernel = cudaq.make_kernel()
 
@@ -519,7 +519,7 @@ def test_kernel_error_invalid_list_size_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_error_np_array_not_normalized_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     kernel = cudaq.make_kernel()
 
@@ -531,7 +531,7 @@ def test_kernel_error_np_array_not_normalized_f64():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_error_list_not_normalized_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     kernel = cudaq.make_kernel()
 
@@ -570,7 +570,7 @@ def test_kernel_error_list_not_normalized_f32():
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_error_invalid_initializer_f64():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     kernel = cudaq.make_kernel()
 

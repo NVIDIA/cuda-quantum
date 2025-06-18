@@ -175,7 +175,7 @@ module attributes {quake.mangled_name_map = {
 // ALT:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // ALT:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_2]][0] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<i32>
 // ALT:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
-// ALT:           %[[VAL_8:.*]] = call @__nvqpp__mlirgen__ghz(%[[VAL_7]]) : (i32) -> f64
+// ALT:           %[[VAL_8:.*]] = cc.noinline_call @__nvqpp__mlirgen__ghz(%[[VAL_7]]) : (i32) -> f64
 // ALT:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
 // ALT:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>
 // ALT:           %[[VAL_10:.*]] = call @__nvqpp_zeroDynamicResult() : () -> !cc.struct<{!cc.ptr<i8>, i64}>
@@ -411,7 +411,7 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // HYBRID:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_2]][0] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<i32>
 // HYBRID:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
-// HYBRID:           %[[VAL_8:.*]] = call @__nvqpp__mlirgen__ghz(%[[VAL_7]]) : (i32) -> f64
+// HYBRID:           %[[VAL_8:.*]] = cc.noinline_call @__nvqpp__mlirgen__ghz(%[[VAL_7]]) : (i32) -> f64
 // HYBRID:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
 // HYBRID:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>
 // HYBRID:           %[[VAL_10:.*]] = call @__nvqpp_zeroDynamicResult() : () -> !cc.struct<{!cc.ptr<i8>, i64}>

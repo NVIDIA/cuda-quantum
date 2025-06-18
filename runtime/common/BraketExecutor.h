@@ -12,7 +12,7 @@
 #include "common/Executor.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include "cudaq.h"
 #include <aws/braket/BraketClient.h>
 #include <aws/core/Aws.h>

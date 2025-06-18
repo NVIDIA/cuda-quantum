@@ -850,6 +850,30 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
 #endif
 
 #ifndef CUDAQ_BACKEND_STIM
+CUDAQ_TEST(BuilderTester, checkKernelControlOnMultipleQubits) {
+  auto [x_kernel, t] = cudaq::make_kernel<cudaq::qubit>();
+  x_kernel.x(t);
+
+  auto kernel = cudaq::make_kernel();
+  auto controls = kernel.qalloc(2);
+  auto target = kernel.qalloc();
+
+  // |11> controls, |0> target
+  kernel.x(controls);
+
+  kernel.control(x_kernel, controls, target);
+  kernel.mz(controls);
+  kernel.mz(target);
+
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+
+  EXPECT_EQ(counts.size(), 1);
+  EXPECT_TRUE(counts.begin()->first == "111");
+}
+#endif
+
+#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   auto kernel = cudaq::make_kernel();
   auto q = kernel.qalloc();
