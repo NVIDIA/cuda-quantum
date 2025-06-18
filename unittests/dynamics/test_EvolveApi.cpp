@@ -26,7 +26,8 @@ TEST(EvolveAPITester, checkSimple) {
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
   cudaq::integrators::runge_kutta integrator(1, 0.001);
   auto result = cudaq::evolve(ham, dims, schedule, initialState, integrator, {},
-                              {cudaq::spin_op::z(0)}, true);
+                              {cudaq::spin_op::z(0)},
+                              cudaq::IntermediateResultSave::ExpectationValue);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
 
@@ -54,10 +55,10 @@ TEST(EvolveAPITester, checkCavityModel) {
   auto psi0 = cudaq::state::from_data(psi0_);
   constexpr double decay_rate = 0.1;
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto result =
-      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
-                    {std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)},
-                    {hamiltonian}, true);
+  auto result = cudaq::evolve(
+      hamiltonian, dimensions, schedule, psi0, integrator,
+      {std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)}, {hamiltonian},
+      cudaq::IntermediateResultSave::ExpectationValue);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -98,9 +99,9 @@ TEST(EvolveAPITester, checkTimeDependent) {
   auto collapseOperator =
       cudaq::scalar_operator(td_function) * cudaq::boson_op::annihilate(0);
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto result =
-      cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
-                    {collapseOperator}, {hamiltonian}, true);
+  auto result = cudaq::evolve(hamiltonian, dimensions, schedule, psi0,
+                              integrator, {collapseOperator}, {hamiltonian},
+                              cudaq::IntermediateResultSave::ExpectationValue);
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), numSteps);
   std::vector<double> theoryResults;
@@ -139,7 +140,8 @@ TEST(EvolveAPITester, checkBatchedSimple) {
 
   // Run the simulation without collapse operators (ideal evolution)
   auto results = cudaq::evolve(hamiltonian, dimensions, schedule, {psi0, psi1},
-                               integrator, {}, {cudaq::spin_op::z(0)}, true);
+                               integrator, {}, {cudaq::spin_op::z(0)},
+                               cudaq::IntermediateResultSave::ExpectationValue);
   EXPECT_EQ(results.size(), 2);
   EXPECT_TRUE(results[0].expectation_values.has_value());
   EXPECT_EQ(results[0].expectation_values.value().size(), numSteps);
@@ -197,9 +199,9 @@ TEST(EvolveAPITester, checkCavityModelBatchedState) {
   auto collapseOperator =
       cudaq::scalar_operator(td_function) * cudaq::boson_op::annihilate(0);
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results =
-      cudaq::evolve(hamiltonian, dimensions, schedule, initialStates,
-                    integrator, {collapseOperator}, {hamiltonian}, true);
+  auto results = cudaq::evolve(hamiltonian, dimensions, schedule, initialStates,
+                               integrator, {collapseOperator}, {hamiltonian},
+                               cudaq::IntermediateResultSave::ExpectationValue);
   EXPECT_EQ(results.size(), numStates);
   for (int i = 0; i < numStates; ++i) {
     auto &result = results[i];

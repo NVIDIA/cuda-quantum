@@ -75,8 +75,9 @@ int main() {
   // We evolve the system under the defined Hamiltonian. No collapsed operators
   // are provided (closed system evolution). The evolution returns expectation
   // values for all defined observables at each time step.
-  auto evolution_result = cudaq::evolve(hamiltonian, dimensions, schedule, rho0,
-                                        integrator, {}, observables, true);
+  auto evolution_result =
+      cudaq::evolve(hamiltonian, dimensions, schedule, rho0, integrator, {},
+                    observables, cudaq::IntermediateResultSave::All);
   // [End Evolve]
   // [Begin Print]
   // Extract and print results
@@ -229,8 +230,9 @@ int main() {
 
   // Evolve multi-qubit system
   auto psi0 = std::complex<double>(1.0, 0.0);
-  auto multi_result = evolve(H_multi, dimensions, multi_schedule, psi0,
-                             integrator, {}, {}, true);
+  auto multi_result =
+      evolve(H_multi, dimensions, multi_schedule, psi0, integrator, {}, {},
+             cudaq::IntermediateResultSave::All);
 
   return 0;
 }
