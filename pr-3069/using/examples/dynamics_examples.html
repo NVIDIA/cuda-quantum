@@ -201,6 +201,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#cross-resonance">Cross Resonance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#gate-calibration">Gate Calibration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ion-trap">Ion Trap</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#landau-zener">Landau Zener</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pulse">Pulse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#qubit-control">Qubit Control</a></li>
@@ -1242,9 +1243,158 @@
 </pre></div>
 </div>
 </section>
+<section id="ion-trap">
+<h2>Ion Trap<a class="headerlink" href="#ion-trap" title="Permalink to this heading">¶</a></h2>
+<div class="highlight-python notranslate" id="id5"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Tutorial: Creating a GHZ State with Trapped Ions</span>
+
+<span class="sd">This example shows how to prepare a GHZ (`Greenberger-Horne-Zeilinger`) state </span>
+<span class="sd">using trapped ions and CUDA-Q. We&#39;ll use the effective spin model from the </span>
+<span class="sd">famous `Sørensen-Mølmer` paper.</span>
+
+<span class="sd">What we&#39;re doing:</span>
+<span class="sd">- Start with N ions all in ground state `|gg...g⟩`</span>
+<span class="sd">- Apply an effective Hamiltonian H = 4χJ_x²  </span>
+<span class="sd">- Watch the system evolve into a GHZ superposition: `(|gg...g⟩ + |ee...e⟩)/√2`</span>
+
+<span class="sd">This tutorial uses the simplified effective model (`Eq. 2` from the paper).</span>
+
+<span class="sd">Reference:</span>
+<span class="sd">Mølmer, Klaus, and Anders `Sørensen`. &quot;`Multiparticle` entanglement of hot trapped ions.&quot; Physical Review Letters 82.9 (1999): 1835.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+
+<span class="c1"># Physical parameters, these come from the `Sørensen-Mølmer` paper</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Trap frequency (our reference)</span>
+<span class="n">delta</span> <span class="o">=</span> <span class="mf">0.9</span> <span class="o">*</span> <span class="n">nu</span>  <span class="c1"># Laser detuning</span>
+<span class="n">Omega</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">nu</span>  <span class="c1"># Laser strength</span>
+<span class="n">eta</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># How strongly lasers couple to motion</span>
+
+<span class="c1"># The effective coupling strength (this is the key parameter!)</span>
+<span class="n">chi</span> <span class="o">=</span> <span class="p">(</span><span class="n">eta</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">Omega</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nu</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">nu</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">delta</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+<span class="n">N</span> <span class="o">=</span> <span class="mi">8</span>  <span class="c1"># Number of ions (start small!)</span>
+<span class="n">evolution_time</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">chi</span>  <span class="c1"># How long to evolve</span>
+<span class="n">num_steps</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># Time resolution</span>
+
+<span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)}</span>  <span class="c1"># Each ion is a 2-level system</span>
+
+<span class="c1"># collective spin operator J_x</span>
+<span class="n">J_x</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+    <span class="n">J_x</span> <span class="o">+=</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<span class="n">J_x</span> <span class="o">/=</span> <span class="mi">2</span>  <span class="c1"># Normalize</span>
+
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">chi</span> <span class="o">*</span> <span class="n">J_x</span> <span class="o">*</span> <span class="n">J_x</span>
+
+<span class="c1"># Set up initial state and time evolution</span>
+<span class="c1"># Start with all ions in ground state `|gg...g⟩`</span>
+<span class="n">initial_state_vector</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+<span class="n">initial_state_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># |00...0⟩ = `|gg...g⟩`</span>
+<span class="n">initial_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">initial_state_vector</span><span class="p">)</span>
+
+<span class="c1"># Set up time points for evolution</span>
+<span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">evolution_time</span><span class="p">,</span> <span class="n">num_steps</span><span class="p">)</span>
+<span class="n">chi_times</span> <span class="o">=</span> <span class="n">chi</span> <span class="o">*</span> <span class="n">times</span>  <span class="c1"># Dimensionless time χt</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
+
+<span class="c1"># Create observables to track the populations</span>
+<span class="c1"># We want to measure the probability of being in `|gg...g⟩` and `|ee...e⟩`</span>
+
+<span class="c1"># Projector onto `|gg...g⟩ = |00...0⟩`</span>
+<span class="n">P_ground</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">P_ground</span> <span class="o">=</span> <span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">-</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># `|0⟩⟨0|`</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">P_ground</span> <span class="o">=</span> <span class="n">P_ground</span> <span class="o">*</span> <span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">-</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+
+<span class="c1"># Projector onto `|ee...e⟩ = |11...1⟩`</span>
+<span class="n">P_excited</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">P_excited</span> <span class="o">=</span> <span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># `|1⟩⟨1|`</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">P_excited</span> <span class="o">=</span> <span class="n">P_excited</span> <span class="o">*</span> <span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+
+<span class="n">observables</span> <span class="o">=</span> <span class="p">[</span><span class="n">P_ground</span><span class="p">,</span> <span class="n">P_excited</span><span class="p">]</span>
+
+<span class="c1"># Run the simulation!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Running time evolution...&quot;</span><span class="p">)</span>
+<span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+    <span class="n">hamiltonian</span><span class="p">,</span>
+    <span class="n">dimensions</span><span class="p">,</span>
+    <span class="n">schedule</span><span class="p">,</span>
+    <span class="n">initial_state</span><span class="p">,</span>
+    <span class="n">observables</span><span class="o">=</span><span class="n">observables</span><span class="p">,</span>
+    <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>  <span class="c1"># No decoherence for this tutorial</span>
+    <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">integrator</span><span class="o">=</span><span class="n">RungeKuttaIntegrator</span><span class="p">())</span>
+
+<span class="c1"># Extract the results</span>
+<span class="n">exp_vals</span> <span class="o">=</span> <span class="n">evolution_result</span><span class="o">.</span><span class="n">expectation_values</span><span class="p">()</span>
+<span class="n">pop_ground</span> <span class="o">=</span> <span class="p">[</span><span class="n">exp_vals</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">))]</span>
+<span class="n">pop_excited</span> <span class="o">=</span> <span class="p">[</span><span class="n">exp_vals</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">))]</span>
+
+<span class="c1"># The GHZ state appears at a special time: χt = π/8</span>
+<span class="n">ghz_chi_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span>
+<span class="n">ghz_time_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">chi_times</span> <span class="o">-</span> <span class="n">ghz_chi_t</span><span class="p">))</span>
+<span class="n">ghz_pop_ground</span> <span class="o">=</span> <span class="n">pop_ground</span><span class="p">[</span><span class="n">ghz_time_idx</span><span class="p">]</span>
+<span class="n">ghz_pop_excited</span> <span class="o">=</span> <span class="n">pop_excited</span><span class="p">[</span><span class="n">ghz_time_idx</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Results at GHZ time (χt = </span><span class="si">{</span><span class="n">ghz_chi_t</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;P(|</span><span class="si">{</span><span class="s1">&#39;g&#39;</span><span class="o">*</span><span class="n">N</span><span class="si">}</span><span class="s2">⟩) = </span><span class="si">{</span><span class="n">ghz_pop_ground</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;P(|</span><span class="si">{</span><span class="s1">&#39;e&#39;</span><span class="o">*</span><span class="n">N</span><span class="si">}</span><span class="s2">⟩) = </span><span class="si">{</span><span class="n">ghz_pop_excited</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total in extremes: </span><span class="si">{</span><span class="n">ghz_pop_ground</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ghz_pop_excited</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Check GHZ state quality</span>
+<span class="c1"># For perfect GHZ state: `P(gg) = P(ee) = 0.5`</span>
+<span class="n">ghz_quality</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span>
+    <span class="n">ghz_pop_ground</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># Distance from ideal probability</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GHZ state quality: </span><span class="si">{</span><span class="n">ghz_quality</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> (1.0 = perfect)&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Perfect GHZ would have P(gg) = P(ee) = 0.5&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">chi_times</span><span class="p">,</span>
+         <span class="n">pop_ground</span><span class="p">,</span>
+         <span class="s1">&#39;b-&#39;</span><span class="p">,</span>
+         <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+         <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;|</span><span class="si">{</span><span class="s1">&#39;g&#39;</span><span class="o">*</span><span class="n">N</span><span class="si">}</span><span class="s2">⟩ (all ground)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">chi_times</span><span class="p">,</span>
+         <span class="n">pop_excited</span><span class="p">,</span>
+         <span class="s1">&#39;r-&#39;</span><span class="p">,</span>
+         <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+         <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;|</span><span class="si">{</span><span class="s1">&#39;e&#39;</span><span class="o">*</span><span class="n">N</span><span class="si">}</span><span class="s2">⟩ (all excited)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ghz_chi_t</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">,</span>
+            <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;GHZ time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Perfect GHZ&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Dimensionless time (χt)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Population&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Evolution to GHZ State (</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s2"> trapped ions)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;ghz_trapped_ions.png&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
 <section id="landau-zener">
 <h2>Landau Zener<a class="headerlink" href="#landau-zener" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate" id="id5"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<div class="highlight-python notranslate" id="id6"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">boson</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
@@ -1328,7 +1478,7 @@
 </section>
 <section id="pulse">
 <h2>Pulse<a class="headerlink" href="#pulse" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate" id="id6"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<div class="highlight-python notranslate" id="id7"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">boson</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
@@ -1435,7 +1585,7 @@
 </section>
 <section id="qubit-control">
 <h2>Qubit Control<a class="headerlink" href="#qubit-control" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate" id="id7"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<div class="highlight-python notranslate" id="id8"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
@@ -1549,7 +1699,7 @@
 </section>
 <section id="qubit-dynamics">
 <h2>Qubit Dynamics<a class="headerlink" href="#qubit-dynamics" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate" id="id8"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<div class="highlight-python notranslate" id="id9"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
@@ -1634,7 +1784,7 @@
 </section>
 <section id="silicon-spin-qubit">
 <h2>Silicon Spin Qubit<a class="headerlink" href="#silicon-spin-qubit" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate" id="id9"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<div class="highlight-python notranslate" id="id10"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">boson</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
@@ -1694,7 +1844,7 @@
 </section>
 <section id="tensor-callback">
 <h2>Tensor Callback<a class="headerlink" href="#tensor-callback" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate" id="id10"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<div class="highlight-python notranslate" id="id11"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">MatrixOperatorElement</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">boson</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
@@ -1773,7 +1923,7 @@
 </section>
 <section id="transmon-resonator">
 <h2>Transmon Resonator<a class="headerlink" href="#transmon-resonator" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate" id="id11"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<div class="highlight-python notranslate" id="id12"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">operators</span><span class="p">,</span> <span class="n">spin</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScipyZvodeIntegrator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
