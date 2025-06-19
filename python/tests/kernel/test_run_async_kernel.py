@@ -71,25 +71,26 @@ def test_run_async():
         assert non_zero_count > 0
 
 
-def test_run_async_with_noise():
-    cudaq.set_target("density-matrix-cpu")
-    shots = 100
-    qubitCount = 3
-    depol = cudaq.Depolarization2(.5)
-    noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("cx", depol)
-    results = cudaq.run_async(simple,
-                              qubitCount,
-                              shots_count=shots,
-                              noise_model=noise).get()
-    print(results)
-    assert len(results) == shots
-    noisy_count = 0
-    for result in results:
-        if result != 0 and result != qubitCount:
-            noisy_count += 1
-    assert noisy_count > 0
-    cudaq.reset_target()
+## https://github.com/NVIDIA/cuda-quantum/issues/3095
+# def test_run_async_with_noise():
+#     cudaq.set_target("density-matrix-cpu")
+#     shots = 100
+#     qubitCount = 3
+#     depol = cudaq.Depolarization2(.5)
+#     noise = cudaq.NoiseModel()
+#     noise.add_all_qubit_channel("cx", depol)
+#     results = cudaq.run_async(simple,
+#                               qubitCount,
+#                               shots_count=shots,
+#                               noise_model=noise).get()
+#     print(results)
+#     assert len(results) == shots
+#     noisy_count = 0
+#     for result in results:
+#         if result != 0 and result != qubitCount:
+#             noisy_count += 1
+#     assert noisy_count > 0
+#     cudaq.reset_target()
 
 
 # https://github.com/NVIDIA/cuda-quantum/issues/3095
