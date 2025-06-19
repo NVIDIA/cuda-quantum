@@ -91,6 +91,7 @@ def test_run_async_with_noise():
     assert noisy_count > 0
     cudaq.reset_target()
 
+
 # https://github.com/NVIDIA/cuda-quantum/issues/3095
 # def test_return_bool():
 
@@ -113,7 +114,6 @@ def test_run_async_with_noise():
 #     assert results[0] == True
 #     assert results[1] == True
 
-
 # def test_return_int():
 
 #     @cudaq.kernel
@@ -134,7 +134,6 @@ def test_run_async_with_noise():
 #     assert len(results) == 2
 #     assert results[0] == 3
 #     assert results[1] == 3
-
 
 # def test_return_int8():
 
@@ -157,7 +156,6 @@ def test_run_async_with_noise():
 #     assert results[0] == 3
 #     assert results[1] == 3
 
-
 # def test_return_int16():
 
 #     @cudaq.kernel
@@ -178,7 +176,6 @@ def test_run_async_with_noise():
 #     assert len(results) == 2
 #     assert results[0] == 3
 #     assert results[1] == 3
-
 
 # def test_return_int32():
 
@@ -201,7 +198,6 @@ def test_run_async_with_noise():
 #     assert results[0] == 3
 #     assert results[1] == 3
 
-
 # def test_return_int64():
 
 #     @cudaq.kernel
@@ -223,7 +219,6 @@ def test_run_async_with_noise():
 #     assert results[0] == 3
 #     assert results[1] == 3
 
-
 # def test_return_float():
 
 #     @cudaq.kernel
@@ -243,7 +238,6 @@ def test_run_async_with_noise():
 #     assert len(results) == 2
 #     assert results[0] == 3.0
 #     assert results[1] == 3.0
-
 
 # def test_return_float32():
 
@@ -268,7 +262,6 @@ def test_run_async_with_noise():
 #     assert results[0] == 3.0
 #     assert results[1] == 3.0
 
-
 # def test_return_float64():
 
 #     @cudaq.kernel
@@ -288,7 +281,6 @@ def test_run_async_with_noise():
 #     assert len(results) == 2
 #     assert results[0] == 3.0
 #     assert results[1] == 3.0
-
 
 # def test_return_list_from_device_kernel():
 
@@ -330,7 +322,6 @@ def test_run_async_with_noise():
 #     assert len(results) == 1
 #     assert results[0] == 15  # 4+1 + 5+1 + 6+1 = 15
 
-
 # def test_return_list_bool():
 
 #     @cudaq.kernel
@@ -369,7 +360,6 @@ def test_run_async_with_noise():
 #                         [True, False, True]).get()
 #     assert list_err_msg in str(e.value)
 
-
 # def test_return_list_int():
 
 #     @cudaq.kernel
@@ -388,7 +378,6 @@ def test_run_async_with_noise():
 #     with pytest.raises(RuntimeError) as e:
 #         cudaq.run_async(simple_list_int, 2, [-13, 5, 42], shots_count=2).get()
 #     assert list_err_msg in str(e.value)
-
 
 # def test_return_list_int8():
 
@@ -409,7 +398,6 @@ def test_run_async_with_noise():
 #         cudaq.run_async(simple_list_int8, 2, [-13, 5, 42], shots_count=2).get()
 #     assert list_err_msg in str(e.value)
 
-
 # def test_return_list_int16():
 
 #     @cudaq.kernel
@@ -428,7 +416,6 @@ def test_run_async_with_noise():
 #     with pytest.raises(RuntimeError) as e:
 #         cudaq.run_async(simple_list_int16, 2, [-13, 5, 42], shots_count=2).get()
 #     assert list_err_msg in str(e.value)
-
 
 # def test_return_list_int32():
 
@@ -449,7 +436,6 @@ def test_run_async_with_noise():
 #         cudaq.run_async(simple_list_int32, 2, [-13, 5, 42], shots_count=2).get()
 #     assert list_err_msg in str(e.value)
 
-
 # def test_return_list_int64():
 
 #     @cudaq.kernel
@@ -468,7 +454,6 @@ def test_run_async_with_noise():
 #     with pytest.raises(RuntimeError) as e:
 #         cudaq.run_async(simple_list_int64, 2, [-13, 5, 42], shots_count=2).get()
 #     assert list_err_msg in str(e.value)
-
 
 # def test_return_list_float():
 
@@ -491,7 +476,6 @@ def test_run_async_with_noise():
 #                         shots_count=2).get()
 #     assert list_err_msg in str(e.value)
 
-
 # def test_return_list_float32():
 
 #     @cudaq.kernel
@@ -512,7 +496,6 @@ def test_run_async_with_noise():
 #                         2, [-13.2, 5.0, 42.99],
 #                         shots_count=2).get()
 #     assert list_err_msg in str(e.value)
-
 
 # def test_return_list_float64():
 
@@ -535,11 +518,9 @@ def test_run_async_with_noise():
 #                         shots_count=2).get()
 #     assert list_err_msg in str(e.value)
 
-
 # # Test tuples
 # # TODO: Define spec for using tuples in kernels
 # # https://github.com/NVIDIA/cuda-quantum/issues/3031
-
 
 # def test_return_tuple_int_float():
 
@@ -583,7 +564,6 @@ def test_run_async_with_noise():
 #         cudaq.run_async(simple_tuple_int_float_error, 2, (-13, 11.5))
 #     assert 'Use of tuples is not supported in kernels' in str(e.value)
 
-
 # def test_return_tuple_float_int():
 
 #     @cudaq.kernel
@@ -604,7 +584,6 @@ def test_run_async_with_noise():
 #         cudaq.run_async(simple_tuple_float_int, 2, (42.3, 13))
 #     assert 'Use of tuples is not supported in kernels' in str(e.value)
 
-
 # def test_return_tuple_bool_int():
 
 #     @cudaq.kernel
@@ -624,7 +603,6 @@ def test_run_async_with_noise():
 #         cudaq.run_async(simple_tuple_bool_int, 2, (True, 13))
 #     assert 'Use of tuples is not supported in kernels' in str(e.value)
 
-
 # def test_return_tuple_int_bool():
 
 #     @cudaq.kernel
@@ -643,7 +621,6 @@ def test_run_async_with_noise():
 #     with pytest.raises(RuntimeError) as e:
 #         cudaq.run_async(simple_tuple_int_bool, 2, (-13, True))
 #     assert 'Use of tuples is not supported in kernels' in str(e.value)
-
 
 # def test_return_tuple_int32_bool():
 
@@ -673,7 +650,6 @@ def test_run_async_with_noise():
 #         cudaq.run_async(simple_tuple_int32_bool, 2, (-13, True))
 #     assert 'Use of tuples is not supported in kernels' in str(e.value)
 
-
 # def test_return_tuple_bool_int_float():
 
 #     @cudaq.kernel
@@ -693,7 +669,6 @@ def test_run_async_with_noise():
 #     with pytest.raises(RuntimeError) as e:
 #         cudaq.run_async(simple_tuple_bool_int_float, 2, (True, 13, 42.3))
 #     assert 'Use of tuples is not supported in kernels' in str(e.value)
-
 
 # def test_return_dataclass_int_bool():
 
@@ -747,7 +722,6 @@ def test_run_async_with_noise():
 #     assert 'constructor struct type MyClass requires 2 arguments, but was given 0.' in repr(
 #         e)
 
-
 # def test_return_dataclass_bool_int():
 
 #     @dataclass
@@ -781,7 +755,6 @@ def test_run_async_with_noise():
 #     assert results[1] == MyClass(True, 17)
 #     assert results[0].x == True
 #     assert results[0].y == 17
-
 
 # def test_return_dataclass_float_int():
 
@@ -817,7 +790,6 @@ def test_run_async_with_noise():
 #     assert results[0].x == 42.5
 #     assert results[0].y == 17
 
-
 # def test_return_dataclass_list_int_bool():
 
 #     @dataclass
@@ -836,7 +808,6 @@ def test_run_async_with_noise():
 #     # assert results[0] == MyClass([0,1], 18)
 #     # assert results[1] == MyClass([0,1], 18)
 
-
 # def test_return_dataclass_tuple_bool():
 
 #     @dataclass
@@ -854,7 +825,6 @@ def test_run_async_with_noise():
 #     # assert len(results) == 2
 #     # assert results[0] == MyClass((0, True), 19)
 #     # assert results[1] == MyClass((0, True), 19)
-
 
 # def test_return_dataclass_dataclass_bool():
 
@@ -878,7 +848,6 @@ def test_run_async_with_noise():
 #     # assert len(results) == 2
 #     # assert results[0] == MyClass2(MyClass1(0,True), 20)
 #     # assert results[1] == MyClass2(MyClass1(0,True), 20)
-
 
 # def test_run_errors():
 
@@ -911,7 +880,6 @@ def test_run_async_with_noise():
 #     with pytest.raises(RuntimeError) as e:
 #         print(cudaq.run_async(simple_no_args, 2, shots_count=100))
 #     assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
-
 
 # def test_modify_struct():
 
@@ -953,7 +921,6 @@ def test_run_async_with_noise():
 #     assert results[0] == Foo(True, 3.14, 100)
 #     assert results[1] == Foo(True, 3.14, 100)
 
-
 # def test_create_and_modify_struct():
 
 #     @dataclass
@@ -991,7 +958,6 @@ def test_run_async_with_noise():
 #     results = cudaq.run_async(kernel, 2, shots_count=1).get()
 #     assert len(results) == 1
 #     assert results[0] == Bar(True, True, 4.14)
-
 
 # leave for gdb debugging
 if __name__ == "__main__":
