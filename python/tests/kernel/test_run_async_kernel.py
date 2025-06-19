@@ -92,7 +92,6 @@ def test_run_async():
 #     assert noisy_count > 0
 #     cudaq.reset_target()
 
-
 # https://github.com/NVIDIA/cuda-quantum/issues/3095
 # def test_return_bool():
 
