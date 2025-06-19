@@ -16,11 +16,13 @@
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
+#include "runtime/common/py_Resources.h"
 #include "runtime/common/py_SampleResult.h"
 #include "runtime/cudaq/algorithms/py_draw.h"
 #include "runtime/cudaq/algorithms/py_evolve.h"
 #include "runtime/cudaq/algorithms/py_observe_async.h"
 #include "runtime/cudaq/algorithms/py_optimizer.h"
+#include "runtime/cudaq/algorithms/py_resource_count.h"
 #include "runtime/cudaq/algorithms/py_run.h"
 #include "runtime/cudaq/algorithms/py_sample_async.h"
 #include "runtime/cudaq/algorithms/py_state.h"
@@ -98,6 +100,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
 
   cudaq::bindRuntimeTarget(cudaqRuntime, *holder.get());
   cudaq::bindMeasureCounts(cudaqRuntime);
+  cudaq::bindResource(cudaqRuntime);
   cudaq::bindObserveResult(cudaqRuntime);
   cudaq::bindComplexMatrix(cudaqRuntime);
   cudaq::bindScalarWrapper(cudaqRuntime);
@@ -119,6 +122,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindPyRun(cudaqRuntime);
   cudaq::bindPyRunAsync(cudaqRuntime);
   cudaq::bindPyTranslate(cudaqRuntime);
+  cudaq::bindCountResources(cudaqRuntime);
   cudaq::bindSampleAsync(cudaqRuntime);
   cudaq::bindObserveAsync(cudaqRuntime);
   cudaq::bindVQE(cudaqRuntime);

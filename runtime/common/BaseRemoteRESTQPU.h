@@ -14,6 +14,7 @@
 #include "common/Executor.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
+#include "common/Resources.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
@@ -60,6 +61,7 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
+cudaq::Resources *getResourceCounts();
 } // namespace nvqir
 
 namespace cudaq {
@@ -522,6 +524,17 @@ public:
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
+      if (executionContext->name == "resource-count") {
+        std::function<void(std::string, size_t, size_t)> f =
+            [&](std::string gate, size_t nControls, size_t count) {
+              nvqir::getResourceCounts()->appendInstruction(gate, nControls,
+                                                            count);
+            };
+        cudaq::opt::ResourceCountPreprocessOptions opt{f};
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createResourceCountPreprocess(opt));
+        pm.addPass(mlir::createCanonicalizerPass());
+      }
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
@@ -611,7 +624,7 @@ public:
     } else
       modules.emplace_back(kernelName, moduleOp);
 
-    if (emulate) {
+    if (emulate || executionContext->name == "resource-count") {
       // If we are in emulation mode, we need to first get a full QIR
       // representation of the code. Then we'll map to an LLVM Module, create a
       // JIT ExecutionEngine pointer and use that for execution
@@ -717,6 +730,14 @@ public:
     // After performing lowerQuakeCode, check to see if we are simply drawing
     // the circuit. If so, perform the trace here and then return.
     if (executionContext->name == "tracer" && jitEngines.size() == 1) {
+      cudaq::getExecutionManager()->setExecutionContext(executionContext);
+      invokeJITKernelAndRelease(jitEngines[0], kernelName);
+      cudaq::getExecutionManager()->resetExecutionContext();
+      jitEngines.clear();
+      return;
+    }
+
+    if (executionContext->name == "resource-count" && jitEngines.size() == 1) {
       cudaq::getExecutionManager()->setExecutionContext(executionContext);
       invokeJITKernelAndRelease(jitEngines[0], kernelName);
       cudaq::getExecutionManager()->resetExecutionContext();
