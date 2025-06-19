@@ -47,6 +47,10 @@ public:
 
   bool canHandleObserve() override { return false; }
 
+  std::size_t calculateStateDim(const std::size_t numQubits) override {
+    return numQubits;
+  }
+
   /// @brief Reset the qubit
   /// @param index 0-based index of qubit to reset
   void resetQubit(const std::size_t index) override {
