@@ -107,25 +107,32 @@ def test_three_qubit_op():
 
 
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
-@pytest.mark.parametrize("target", ['density-matrix-cpu', 'nvidia', 'qpp-cpu'])
-def test_simulators(target):
-    """Test simulation of custom operation on all available simulation targets."""
+@pytest.mark.parametrize(
+    "target, options", [('density-matrix-cpu', []),
+                        ('nvidia', ['fp32', 'fp64', 'mqpu,fp32', 'mqpu,fp64']),
+                        ('qpp-cpu', [])])
+def test_simulators(target, options):
+    """Test simulation of custom operation on all available simulation targets and options."""
 
-    def can_set_target(name):
+    def can_set_target(name, opt=None):
         target_installed = True
         try:
-            cudaq.set_target(name)
+            if opt:
+                cudaq.set_target(name, option=opt)
+            else:
+                cudaq.set_target(name)
         except RuntimeError:
             target_installed = False
         return target_installed
 
-    if can_set_target(target):
-        test_basic()
-        test_cnot_gate()
-        test_three_qubit_op()
-        cudaq.reset_target()
-    else:
-        pytest.skip("target not available")
+    for opt in options or [None]:
+        if can_set_target(target, opt):
+            test_basic()
+            test_cnot_gate()
+            test_three_qubit_op()
+            cudaq.reset_target()
+        else:
+            pytest.skip(f"target {target} with option {opt} not available")
 
     cudaq.reset_target()
 
