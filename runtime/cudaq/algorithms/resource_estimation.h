@@ -47,6 +47,8 @@ Resources run_estimate_resources(KernelFunctor &&wrappedKernel,
 
   wrappedKernel();
 
+  platform.reset_exec_ctx();
+
   // Save and clone counts data
   auto counts = Resources(*nvqir::getResourceCounts());
   // Switch simulators back
