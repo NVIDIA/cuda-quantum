@@ -326,10 +326,10 @@ class QuakeValue(object):
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             if cc.StdvecType.isinstance(self.mlirValue.type):
                 eleTy = cc.StdvecType.getElementType(self.mlirValue.type)
-                arrTy = cc.ArrayType.get(self.ctx, eleTy)
-                arrPtrTy = cc.PointerType.get(self.ctx, arrTy)
+                arrTy = cc.ArrayType.get(eleTy)
+                arrPtrTy = cc.PointerType.get(arrTy)
                 vecPtr = cc.StdvecDataOp(arrPtrTy, self.mlirValue).result
-                elePtrTy = cc.PointerType.get(self.ctx, eleTy)
+                elePtrTy = cc.PointerType.get(eleTy)
                 eleAddr = None
                 i64Ty = IntegerType.get_signless(64)
                 if isinstance(idx, QuakeValue):
@@ -355,7 +355,7 @@ class QuakeValue(object):
                                                                     idx)).result
                 else:
                     raise RuntimeError("invalid idx passed to QuakeValue.")
-                op = quake.ExtractRefOp(quake.RefType.get(self.ctx),
+                op = quake.ExtractRefOp(quake.RefType.get(),
                                         self.mlirValue,
                                         -1,
                                         index=processedIdx)
