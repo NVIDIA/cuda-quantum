@@ -34,6 +34,13 @@ Heisenberg Model
 .. literalinclude:: ../../examples/python/dynamics/heisenberg_model.py
    :language: python
 
+Ion Trap
+------------------
+.. _ion_trap:
+
+.. literalinclude:: ../../examples/python/dynamics/ion_trap.py
+   :language: python
+
 Landau Zener
 -------------------
 .. _landau_zener:
