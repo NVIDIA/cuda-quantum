@@ -55,6 +55,14 @@ public:
       addEdgeImpl(dst, src);
   }
 
+  void removeEdge(Node src, Node dst, bool undirected = true) {
+    assert(src.isValid() && "Invalid source node");
+    assert(dst.isValid() && "Invalid destination node");
+    removeEdgeImpl(src, dst);
+    if (undirected)
+      removeEdgeImpl(dst, src);
+  }
+
   std::size_t getNumNodes() const { return nodeOffsets.size(); }
 
   std::size_t getNumEdges() const { return edges.size(); }
@@ -123,6 +131,18 @@ private:
     std::transform(nodeOffsets.begin() + src.index, nodeOffsets.end(),
                    nodeOffsets.begin() + src.index,
                    [](Offset offset) { return offset + 1; });
+  }
+
+  void removeEdgeImpl(Node src, Node dst) {
+    auto neighbours = getNeighbours(src);
+    auto it = std::find(neighbours.begin(), neighbours.end(), dst);
+    if (it != neighbours.end()) {
+      edges.erase(it);
+
+      std::transform(nodeOffsets.begin() + src.index + 1, nodeOffsets.end(),
+                    nodeOffsets.begin() + src.index + 1,
+                    [](Offset offset) { return offset - 1; });
+    }
   }
 
   /// Each entry in this vector contains the starting index in the edge array
