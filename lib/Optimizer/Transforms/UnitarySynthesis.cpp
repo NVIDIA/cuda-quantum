@@ -434,6 +434,150 @@ struct TwoQubitOpKAK : public Decomposer {
   }
 };
 
+/// This logic is based on the Cosine-Sine Decomposition:
+/// https://arxiv.org/pdf/quant-ph/0404089
+/// And explanation given in:
+/// https://nhigham.com/2020/10/27/what-is-the-cs-decomposition/
+
+/// Result for 3-q CSD decomposition
+struct CSDComponents {
+  /// This struct is defined to support the decomposition of a 3-qubit unitary
+  /// and hence has 4x4 sized matrices.
+  Eigen::Matrix4cd u1;
+  Eigen::Matrix4cd u2;
+  Eigen::Matrix4cd v1;
+  Eigen::Matrix4cd v2;
+  Eigen::Matrix4cd c;
+  Eigen::Matrix4cd s;
+  std::vector<std::complex<double>> theta;
+};
+
+/// CSD decomposition allows to express arbitrary n-qubit unitary (Q) in the
+/// form: Q = (u1⊕ u2) x ([C, -S], [S, C]) x (v1⊕ v2) where, u1, u2,
+/// v1, v2 are (n-1)-qubit unitaries.
+struct ThreeQubitOpCSD : public Decomposer {
+  Eigen::Matrix8cd targetMatrix;
+  CSDComponents components;
+  /// Updates to the global phase
+  std::complex<double> phase;
+
+  void decompose() override {
+    /// Convert to special unitary to maintain gloabl phase
+    /// appropriately for future recursive decomposition
+    phase = std::pow(targetMatrix.determinant(), 0.125);
+    auto specialUnitary = targetMatrix / phase;
+
+    Eigen::Matrix4cd Q11 = specialUnitary.block<4, 4>(0, 0);
+    Eigen::Matrix4cd Q12 = specialUnitary.block<4, 4>(0, 4);
+    Eigen::Matrix4cd Q21 = specialUnitary.block<4, 4>(4, 0);
+    Eigen::Matrix4cd Q22 = specialUnitary.block<4, 4>(4, 4);
+
+    /// Stack Q11 and Q12 before decomposing to link the generated SVDs
+    Eigen::MatrixXcd Qx1(8, 4);
+    Qx1 << Q11, Q21;
+
+    /// Compute SVD of stacked matrix
+    Eigen::JacobiSVD<Eigen::MatrixXcd> svd(Qx1, Eigen::ComputeFullU |
+                                                    Eigen::ComputeFullV);
+    Eigen::Matrix4cd U1 = svd.matrixU().block<4, 4>(0, 0);
+    Eigen::Matrix4cd U2 = svd.matrixU().block<4, 4>(4, 0);
+    Eigen::Matrix4cd V1 = svd.matrixV();
+    Eigen::Vector4d svalues = svd.singularValues();
+
+    /// JacobiSVD does not guarantee ordering of Singular Values.
+    /// Hence sort the values and rearrange U1, U2 and V1 as necessary.
+    std::vector<int> reorder(svalues.size());
+    for (int i = 0; i < svalues.size(); i++) {
+      reorder[i] = i;
+    }
+
+    std::sort(reorder.begin(), reorder.end(),
+              [&svalues](int i, int j) { return svalues(i) > svalues(j); });
+
+    Eigen::PermutationMatrix<4> reordermatrix;
+    reordermatrix.indices() = Eigen::Map<Eigen::VectorXi>(reorder.data(), 4);
+
+    components.u1 = U1 * reordermatrix;
+    components.u2 = U2 * reordermatrix;
+    components.v1 = V1 * reordermatrix;
+
+    Eigen::Vector4d svalues_sorted = reordermatrix.transpose() * svalues;
+
+    Eigen::Matrix4cd C = Eigen::Matrix4cd::Zero();
+    Eigen::Matrix4cd S = Eigen::Matrix4cd::Zero();
+
+    /// Create C and S matrices from singularvalues
+    /// Clamp the singular values to avoid errors from floating point
+    for (int i = 0; i < 4; i++) {
+      double theta = std::acos(std::min(svalues_sorted[i], 1.0));
+      C(i, i) = std::cos(theta);
+      S(i, i) = std::sin(theta);
+    }
+
+    components.c = C;
+    components.s = S;
+
+    /// Compute V2 from existing components
+    Eigen::Vector4d s_inv_diag;
+    for (int i = 0; i < 4; i++) {
+      s_inv_diag(i) = (std::abs(components.s(i, i).real()) < TOL)
+                          ? 0
+                          : (1.0 / components.s(i, i).real());
+    }
+    Eigen::Matrix4cd s_inv = s_inv_diag.asDiagonal();
+
+    components.v2 = (Q12.adjoint() * components.u1 * c_inv);
+
+    /// Verify if decomposition matches the original matrix
+    Eigen::Matrix8cd reconstructedmatrix;
+    reconstructedmatrix.block<4,4>(0, 0) = components.u1 * components.c * components.v1;
+    reconstructedmatrix.block<4,4>(0, 4) = components.u1 * components.s * components.v2;
+    reconstructedmatrix.block<4,4>(4, 0) = -components.u2 * components.s * components.v1;
+    reconstructedmatrix.block<4,4>(4, 4) = components.u2 * components.c * components.v2;
+    reconstructedmatrix = reconstructedmatrix * phase;
+
+    assert(reconstructedmatrix.isApprox(targetMatrix, TOL));
+  }
+
+  void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
+                            PatternRewriter &rewriter,
+                            std::string funcName) override {
+
+    auto u1 = TwoQubitOpKAK(components.u1);
+    u1.emitDecomposedFuncOp(customOp, rewriter, funcName + "u1");
+    auto u2 = TwoQubitOpKAK(components.u2);
+    u2.emitDecomposedFuncOp(customOp, rewriter, funcName + "u2");
+    auto v1 = TwoQubitOpKAK(components.v1);
+    v1.emitDecomposedFuncOp(customOp, rewriter, funcName + "v1");
+    auto v2 = TwoQubitOpKAK(components.v2);
+    v2.emitDecomposedFuncOp(customOp, rewriter, funcName + "v2");
+    auto parentModule = customOp->getParentOfType<ModuleOp>();
+    Location loc = customOp->getLoc();
+    auto targets = customOp->getTargets();
+    auto funcTy =
+        FunctionType::get(parentModule.getContext(), targets.getTypes(), {});
+    auto insPt = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+    auto func =
+        rewriter.create<func::FuncOp>(parentModule->getLoc(), funcName, funcTy);
+    func.setPrivate();
+    auto *block = func.addEntryBlock();
+    rewriter.setInsertionPointToStart(block);
+    auto arguments = func.getArguments();
+    FloatType floatTy = rewriter.getF64Type();
+
+    rewriter.create<quake::ApplyOp>(
+        loc, TypeRange{},
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "v1"), false,
+        ValueRange{}, ValueRange{arguments[0], arguments[1]});
+    rewriter.create<quake : XOp>(loc, arguments[2], arguments[1]);
+    rewriter.create<quake::ApplyOp>(
+        loc, TypeRange{},
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "v2"), false,
+        ValueRange{}, ValueRange{arguments[0], arguments[1]});
+  }
+}
+
 class CustomUnitaryPattern
     : public OpRewritePattern<quake::CustomUnitarySymbolOp> {
 public:
@@ -470,6 +614,10 @@ public:
         auto kak = TwoQubitOpKAK(unitary);
         kak.emitDecomposedFuncOp(customOp, rewriter, funcName);
       } break;
+      case 8: {
+        auto csd = ThreeQubitOpCSD(unitary);
+        csd.emitDecomposedFuncOp(customOp, rewriter, funcName);
+      }
       default:
         customOp.emitWarning(
             "Decomposition of only 1 and 2 qubit custom operations supported.");
