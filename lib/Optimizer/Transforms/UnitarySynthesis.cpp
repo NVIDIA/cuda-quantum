@@ -456,7 +456,8 @@ struct CSDComponents {
 /// form: Q = (u1⊕ u2) x ([C, -S], [S, C]) x (v1⊕ v2) where, u1, u2,
 /// v1, v2 are (n-1)-qubit unitaries.
 struct ThreeQubitOpCSD : public Decomposer {
-  Eigen::Matrix8cd targetMatrix;
+  // Eigen::Matrix8cd targetMatrix;
+  Eigen::Matrix<std::complex<double>, 8, 8> targetMatrix;
   CSDComponents components;
   /// Updates to the global phase
   std::complex<double> phase;
@@ -467,10 +468,10 @@ struct ThreeQubitOpCSD : public Decomposer {
     phase = std::pow(targetMatrix.determinant(), 0.125);
     auto specialUnitary = targetMatrix / phase;
 
-    Eigen::Matrix4cd Q11 = specialUnitary.block<4, 4>(0, 0);
-    Eigen::Matrix4cd Q12 = specialUnitary.block<4, 4>(0, 4);
-    Eigen::Matrix4cd Q21 = specialUnitary.block<4, 4>(4, 0);
-    Eigen::Matrix4cd Q22 = specialUnitary.block<4, 4>(4, 4);
+    Eigen::Matrix4cd Q11 = specialUnitary.template block<4, 4>(0, 0);
+    Eigen::Matrix4cd Q12 = specialUnitary.template block<4, 4>(0, 4);
+    Eigen::Matrix4cd Q21 = specialUnitary.template block<4, 4>(4, 0);
+    Eigen::Matrix4cd Q22 = specialUnitary.template block<4, 4>(4, 4);
 
     /// Stack Q11 and Q12 before decomposing to link the generated SVDs
     Eigen::MatrixXcd Qx1(8, 4);
