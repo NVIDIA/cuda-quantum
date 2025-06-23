@@ -76,7 +76,9 @@ enum class noise_model_type {
   pauli1,
   pauli2,
   depolarization1,
-  depolarization2
+  depolarization2,
+  global_disable,
+  global_enable
 };
 
 // Keep the noise_model_type and noise_model_strings in sync. We don't use
@@ -95,7 +97,9 @@ static constexpr const char *noise_model_strings[] = {
     "pauli1",
     "pauli2",
     "depolarization1",
-    "depolarization2"};
+    "depolarization2",
+    "global_disable",
+    "global_enable"};
 
 std::string get_noise_model_type_name(noise_model_type type);
 
@@ -979,6 +983,36 @@ public:
       : depolarization2(std::vector<cudaq::real>{probability}) {}
   REGISTER_KRAUS_CHANNEL(
       noise_model_strings[(int)noise_model_type::depolarization2])
+};
+
+class global_disable : public kraus_channel {
+public:
+  // These would ideally be 0, but the template meta programming would need
+  // fixing to allow that.
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  global_disable(const std::vector<cudaq::real> p) : kraus_channel() {
+    noise_type = cudaq::noise_model_type::global_disable;
+  }
+  global_disable(const real probability)
+      : global_disable(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::global_disable])
+};
+
+class global_enable : public kraus_channel {
+public:
+  // These would ideally be 0, but the template meta programming would need
+  // fixing to allow that.
+  constexpr static std::size_t num_parameters = 1;
+  constexpr static std::size_t num_targets = 1;
+  global_enable(const std::vector<cudaq::real> p) : kraus_channel() {
+    noise_type = cudaq::noise_model_type::global_enable;
+  }
+  global_enable(const real probability)
+      : global_enable(std::vector<cudaq::real>{probability}) {}
+  REGISTER_KRAUS_CHANNEL(
+      noise_model_strings[(int)noise_model_type::global_enable])
 };
 
 } // namespace cudaq
