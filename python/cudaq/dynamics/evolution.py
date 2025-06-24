@@ -19,7 +19,7 @@ from cudaq.kernel.kernel_builder import PyKernel, make_kernel
 from cudaq.kernel.register_op import register_operation
 from cudaq.kernel.utils import ahkPrefix
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from ..operators import NumericType, Operator, RydbergHamiltonian
+from ..operators import NumericType, Operator, RydbergHamiltonian, SuperOperator
 from .helpers import InitialState, InitialStateArgT, IntermediateResultSave
 from .integrator import BaseIntegrator
 from .schedule import Schedule
@@ -315,7 +315,7 @@ def evolve_single(
 
 # Top level API for the CUDA-Q master equation solver.
 def evolve(
-    hamiltonian: Operator,
+    hamiltonian: Operator | SuperOperator,
     dimensions: Mapping[int, int] = {},
     schedule: Schedule = None,
     initial_state: InitialStateArgT | Sequence[InitialStateArgT] = None,

@@ -23,6 +23,7 @@ set(CUDAQ_OPS_SRC
   evaluation.cpp
   handler.cpp
   helpers.cpp
+  super_op.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_OPS_SRC})
