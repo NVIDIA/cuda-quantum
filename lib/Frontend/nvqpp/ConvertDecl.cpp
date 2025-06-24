@@ -487,8 +487,13 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
       db.AddSourceRange(clang::CharSourceRange::getCharRange(range));
       raisedError = false;
     }
-  if (!hasTerminator(builder.getBlock()))
-    builder.create<func::ReturnOp>(toLocation(x));
+  if (!hasTerminator(builder.getBlock())) {
+    auto loc = toLocation(x);
+    SmallVector<Value> dummyResults;
+    for (auto ty : funcTy.getResults())
+      dummyResults.push_back(builder.create<cc::UndefOp>(loc, ty));
+    builder.create<func::ReturnOp>(loc, dummyResults);
+  }
   builder.clearInsertionPoint();
   return true;
 }
