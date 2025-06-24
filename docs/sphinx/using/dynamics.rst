@@ -88,7 +88,13 @@ Specifically, we need to set up the simulation by providing:
 3. Retrieve and plot the results
 
 Once the simulation is complete, we can retrieve the final state and the expectation values
-as well as intermediate values at each time step (with `store_intermediate_results=True`).
+as well as intermediate values at each time step (with `store_intermediate_results=cudaq.IntermediateResultSave.ALL`).
+
+.. note::
+    
+    Storing intermediate states can be memory-intensive, especially for large systems.
+    If you only need the intermediate expectation values, you can set `store_intermediate_results` to 
+    `cudaq.IntermediateResultSave.EXPECTATION_VALUES` (Python) / `cudaq::IntermediateResultSave::ExpectationValue` (C++) instead.
 
 For example, we can plot the Pauli expectation value for the above simulation as follows.
 
@@ -443,15 +449,6 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
 .. note::
     Not all integrators are capable of handling distributed state. Errors will be raised if parallel execution is activated 
     but the selected integrator does not support distributed state. 
-
-.. warning:: 
-    As of cuQuantum version 24.11, there are a couple of `known limitations <https://docs.nvidia.com/cuda/cuquantum/24.11.0/cudensitymat/index.html>`__ for parallel execution:
-
-    - Computing the expectation value of a mixed quantum state is not supported. Thus, `collapse_operators` are not supported if expectation calculation is required.
-
-    - Some combinations of quantum states and quantum many-body operators are not supported. Errors will be raised in those cases. 
-
-
 
 Examples
 ^^^^^^^^^^^^^

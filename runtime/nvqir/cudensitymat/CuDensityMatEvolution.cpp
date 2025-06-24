@@ -57,7 +57,7 @@ static evolve_result
 evolveSingleImpl(const std::vector<int64_t> &dims, const schedule &schedule,
                  base_integrator &integrator,
                  const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-                 bool storeIntermediateResults) {
+                 IntermediateResultSave storeIntermediateResults) {
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -73,7 +73,7 @@ evolveSingleImpl(const std::vector<int64_t> &dims, const schedule &schedule,
   for (const auto &step : schedule) {
     integrator.integrate(step.real());
     auto [t, currentState] = integrator.getState();
-    if (storeIntermediateResults) {
+    if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
       std::vector<double> expVals;
 
       for (auto &expectation : expectations) {
@@ -85,18 +85,24 @@ evolveSingleImpl(const std::vector<int64_t> &dims, const schedule &schedule,
         expVals.emplace_back(expVal.front().real());
       }
       expectationVals.emplace_back(std::move(expVals));
-      intermediateStates.emplace_back(currentState);
+      if (storeIntermediateResults == cudaq::IntermediateResultSave::All)
+        intermediateStates.emplace_back(currentState);
     }
   }
 
   if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
     cudaq::dynamics::dumpPerfTrace();
 
-  if (storeIntermediateResults) {
+  if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
     return evolve_result(intermediateStates, expectationVals);
   } else {
     // Only final state is needed
     auto [finalTime, finalState] = integrator.getState();
+
+    if (storeIntermediateResults ==
+        cudaq::IntermediateResultSave::ExpectationValue)
+      return evolve_result({finalState}, expectationVals);
+
     std::vector<double> expVals;
     auto *cudmState = asCudmState(finalState);
     for (auto &expectation : expectations) {
@@ -127,7 +133,8 @@ evolve_result evolveSingle(
     const state &initialState, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
     const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-    bool storeIntermediateResults, std::optional<int> shotsCount) {
+    IntermediateResultSave storeIntermediateResults,
+    std::optional<int> shotsCount) {
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -171,7 +178,8 @@ evolve_result evolveSingle(
     InitialState initial_state, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators,
     const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-    bool store_intermediate_results, std::optional<int> shots_count) {
+    IntermediateResultSave store_intermediate_results,
+    std::optional<int> shots_count) {
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
   auto cudmState = CuDensityMatState::createInitialState(
@@ -185,7 +193,7 @@ static std::vector<evolve_result>
 evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
                   std::size_t batchSize, base_integrator &integrator,
                   const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-                  bool storeIntermediateResults) {
+                  IntermediateResultSave storeIntermediateResults) {
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -261,7 +269,8 @@ std::vector<evolve_result> evolveBatched(
     const std::vector<state> &initialStates, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
     const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-    bool storeIntermediateResults, std::optional<int> shotsCount) {
+    IntermediateResultSave storeIntermediateResults,
+    std::optional<int> shotsCount) {
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -288,7 +297,8 @@ evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
              const schedule &schedule, const state &initialState,
              base_integrator &integrator,
              const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-             bool storeIntermediateResults, std::optional<int> shotsCount) {
+             IntermediateResultSave storeIntermediateResults,
+             std::optional<int> shotsCount) {
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -315,7 +325,8 @@ evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
              const schedule &schedule, InitialState initial_state,
              base_integrator &integrator,
              const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-             bool storeIntermediateResults, std::optional<int> shotsCount) {
+             IntermediateResultSave storeIntermediateResults,
+             std::optional<int> shotsCount) {
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
@@ -339,7 +350,8 @@ evolveBatched(const super_op &superOp,
               const schedule &schedule, const std::vector<state> &initialStates,
               base_integrator &integrator,
               const std::vector<sum_op<cudaq::matrix_handler>> &observables,
-              bool storeIntermediateResults, std::optional<int> shotsCount) {
+              IntermediateResultSave storeIntermediateResults,
+              std::optional<int> shotsCount) {
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();

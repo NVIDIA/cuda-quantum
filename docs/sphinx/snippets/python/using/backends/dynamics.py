@@ -46,15 +46,14 @@ steps = np.linspace(0, t_final, n_steps)
 schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
-evolution_result = cudaq.evolve(hamiltonian,
-                                dimensions,
-                                schedule,
-                                rho0,
-                                observables=[spin.x(0),
-                                             spin.y(0),
-                                             spin.z(0)],
-                                collapse_operators=[],
-                                store_intermediate_results=True)
+evolution_result = cudaq.evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    rho0,
+    observables=[spin.x(0), spin.y(0), spin.z(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.ALL)
 #[End Evolve]
 
 #[Begin Plot]
@@ -230,14 +229,15 @@ cudaq.set_target("dynamics")
 psi0 = cudaq.dynamics.InitialState.ZERO
 
 # Run the simulation
-evolution_result = cudaq.evolve(H,
-                                dimensions,
-                                schedule,
-                                psi0,
-                                observables=[],
-                                collapse_operators=[],
-                                store_intermediate_results=True,
-                                integrator=RungeKuttaIntegrator())
+evolution_result = cudaq.evolve(
+    H,
+    dimensions,
+    schedule,
+    psi0,
+    observables=[],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=RungeKuttaIntegrator())
 
 cudaq.mpi.finalize()
 #[End MPI]
