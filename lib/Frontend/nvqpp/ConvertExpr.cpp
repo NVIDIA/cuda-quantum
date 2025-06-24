@@ -1056,9 +1056,9 @@ bool QuakeBridgeVisitor::TraverseConditionalOperator(
     };
   };
 
-  auto ifOp = builder.create<cc::IfOp>(
-      loc, TypeRange{resultTy}, condVal,
-      thenElseLambda(x->getTrueExpr()), thenElseLambda(x->getFalseExpr()));
+  auto ifOp = builder.create<cc::IfOp>(loc, TypeRange{resultTy}, condVal,
+                                       thenElseLambda(x->getTrueExpr()),
+                                       thenElseLambda(x->getFalseExpr()));
 
   if (!result)
     return result;
