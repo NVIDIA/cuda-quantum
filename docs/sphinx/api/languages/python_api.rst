@@ -151,6 +151,7 @@ Dynamics
 
 .. autoclass:: cudaq.dynamics.helpers.InitialState
 .. autoclass:: cudaq.InitialStateType
+.. autoclass:: cudaq.IntermediateResultSave
 
 Operators
 =============================
