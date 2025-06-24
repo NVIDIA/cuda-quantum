@@ -40,7 +40,8 @@ int main() {
   // Run the simulation without collapse operators (ideal evolution)
   auto evolve_result =
       cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator, {},
-                    {cudaq::spin_op::y(0), cudaq::spin_op::z(0)}, true);
+                    {cudaq::spin_op::y(0), cudaq::spin_op::z(0)},
+                    cudaq::IntermediateResultSave::ExpectationValue);
 
   constexpr double decay_rate = 0.05;
   auto collapse_operator = std::sqrt(decay_rate) * cudaq::spin_op::x(0);
@@ -48,7 +49,8 @@ int main() {
   // Evolve with collapse operators
   cudaq::evolve_result evolve_result_decay = cudaq::evolve(
       hamiltonian, dimensions, schedule, psi0, integrator, {collapse_operator},
-      {cudaq::spin_op::y(0), cudaq::spin_op::z(0)}, true);
+      {cudaq::spin_op::y(0), cudaq::spin_op::z(0)},
+      cudaq::IntermediateResultSave::ExpectationValue);
 
   // Lambda to extract expectation values for a given observable index
   auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
