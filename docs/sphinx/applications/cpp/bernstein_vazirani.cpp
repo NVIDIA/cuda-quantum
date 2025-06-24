@@ -74,7 +74,8 @@ std::string asString(const std::vector<bool> &bitvector) {
 int main(int argc, char *argv[]) {
   auto seed = 1 < argc ? atoi(argv[1]) : time(NULL);
 
-  // The number of qubits can be >32 when targeting the `nvidia` with option `mgpu` backend.
+  // The number of qubits can be >32 when targeting the `nvidia` with option
+  // `mgpu` backend.
   const int nr_qubits = SIZE;
   const int nr_shots = 100;
   auto bitvector = random_bits<nr_qubits>(seed);
