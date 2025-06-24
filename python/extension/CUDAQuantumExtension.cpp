@@ -34,6 +34,7 @@
 #include "runtime/cudaq/operators/py_matrix_op.h"
 #include "runtime/cudaq/operators/py_scalar_op.h"
 #include "runtime/cudaq/operators/py_spin_op.h"
+#include "runtime/cudaq/operators/py_super_op.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_qubit_qis.h"
@@ -106,6 +107,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindBosonWrapper(cudaqRuntime);
   cudaq::bindOperatorsWrapper(cudaqRuntime);
   cudaq::bindHandlersWrapper(cudaqRuntime);
+  cudaq::bindSuperOperatorWrapper(cudaqRuntime);
   cudaq::bindQIS(cudaqRuntime);
   cudaq::bindOptimizerWrapper(cudaqRuntime);
   cudaq::bindNoise(cudaqRuntime);
