@@ -361,9 +361,12 @@ SET_TARGET_BACKEND=true
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
-# Check availability of NVIDA GPU(s)
+# Check availability of NVIDIA GPU(s)
 gpu_found=$(query_gpu)
 if ${gpu_found} && [ -f "${install_dir}/lib/libnvqir-custatevec-fp32.so" ]; then
+	# Set the default target name to "nvidia".
+	# This will make sure that the target configuration yml file is processed.
+	TARGET_CONFIG="nvidia"
 	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
 fi
 
