@@ -203,6 +203,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#pulse">Pulse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
@@ -657,9 +658,10 @@
 <li class="toctree-l3"><a class="reference internal" href="platform.html">11. Platform</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq-run">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq-observe">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.5. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="examples.html">13. Example Programs</a><ul>
@@ -735,6 +737,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.IntermediateResultSave"><code class="docutils literal notranslate"><span class="pre">IntermediateResultSave</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
@@ -1179,8 +1182,101 @@ information and can be persisted to file and loaded from file at a later time. A
 and when remote queue jobs are completed, one can invoke <code class="code docutils literal notranslate"><span class="pre">get()</span></code> and the results will
 be retrieved and returned.</p>
 </section>
+<section id="cudaq-run">
+<h2><span class="section-number">12.2. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code><a class="headerlink" href="#cudaq-run" title="Permalink to this heading">¶</a></h2>
+<p><strong>[1]</strong> The <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code> API allows programmers to execute a kernel a specified number
+of times and retrieve all the individual values returned. Unlike <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code>, which
+collects measurement statistics as a counts dictionary mapping bit strings to frequencies, <code class="code docutils literal notranslate"><span class="pre">run</span></code>
+preserves each individual return value from every execution. Use <code class="code docutils literal notranslate"><span class="pre">sample</span></code> when you need
+quantum state measurement statistics, and use <code class="code docutils literal notranslate"><span class="pre">run</span></code> when you need to analyze individual
+return values from each circuit execution.</p>
+<p><strong>[2]</strong> The CUDA-Q model provides this functionality via template functions within the
+<code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> namespace with the following structure:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Run a kernel for specified number of shots</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">QuantumKernel</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">ARGS</span><span class="o">&gt;</span>
+<span class="w">  </span><span class="k">requires</span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">is_void_v</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">invoke_result_t</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">QuantumKernel</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">ARGS</span><span class="o">&gt;</span><span class="p">...</span><span class="o">&gt;&gt;</span><span class="p">)</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">invoke_result_t</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">QuantumKernel</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">ARGS</span><span class="o">&gt;</span><span class="p">...</span><span class="o">&gt;&gt;</span>
+<span class="n">run</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">shots</span><span class="p">,</span><span class="w"> </span><span class="n">QuantumKernel</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">ARGS</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">args</span><span class="p">);</span>
+
+<span class="c1">// Run a kernel with noise model for specified number of shots</span>
+<span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">QuantumKernel</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">ARGS</span><span class="o">&gt;</span>
+<span class="w">  </span><span class="k">requires</span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">is_void_v</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">invoke_result_t</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">QuantumKernel</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">ARGS</span><span class="o">&gt;</span><span class="p">...</span><span class="o">&gt;&gt;</span><span class="p">)</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">invoke_result_t</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">QuantumKernel</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">ARGS</span><span class="o">&gt;</span><span class="p">...</span><span class="o">&gt;&gt;</span>
+<span class="n">run</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">shots</span><span class="p">,</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise_model</span><span class="p">,</span><span class="w"> </span><span class="n">QuantumKernel</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">ARGS</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">args</span><span class="p">);</span>
+</pre></div>
+</div>
+<p><strong>[3]</strong> This function takes as input the number of shots, a quantum kernel instance, and the
+concrete arguments with which the kernel should be invoked. CUDA-Q kernel passed to this
+function must be an entry-point kernel and must return a non-void value.</p>
+<p><strong>[4]</strong> Overloaded function exists for specifying a noise model to apply during execution.</p>
+<p><strong>[5]</strong> The function returns a <code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> containing the return values from each execution
+of the kernel. The vector has a length equal to the number of specified shots, with each element
+representing the return value of a single kernel execution.</p>
+<p><strong>[6]</strong> Programmers can extract the result information in the following manner:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">numQubits</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Quantum code that returns an int</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">numQubits</span><span class="p">);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// some logic...</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">// Run the kernel 100 times with 4 qubits</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">run</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">);</span>
+
+<span class="c1">// Process the results</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">results</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Result: %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">result</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">numQubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="c1"># Quantum code that returns an int</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">numQubits</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="c1"># some logic...</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+<span class="c1"># Run the kernel 100 times with 4 qubits</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+
+<span class="c1"># Process the results</span>
+<span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Result: </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><strong>[7]</strong> The <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code> function supports a variety of return types from the quantum kernel:</p>
+<ul class="simple">
+<li><p>Scalar types: <code class="code docutils literal notranslate"><span class="pre">bool</span></code>, <code class="code docutils literal notranslate"><span class="pre">int</span></code>, <code class="code docutils literal notranslate"><span class="pre">float</span></code>, and their variants (<code class="code docutils literal notranslate"><span class="pre">int8/16/32/64</span></code>, <code class="code docutils literal notranslate"><span class="pre">float32/64</span></code>)</p></li>
+<li><p>User-defined data structures (via custom structs in C++ or <code class="code docutils literal notranslate"><span class="pre">dataclass</span></code> in Python)</p></li>
+</ul>
+<p><strong>[8]</strong> There are specific requirements on input quantum kernels for the use of the
+<code class="code docutils literal notranslate"><span class="pre">run</span></code> function which must be enforced by compiler implementations:</p>
+<ul class="simple">
+<li><p>The kernel must be an entry-point kernel</p></li>
+<li><p>The kernel must return a non-void value</p></li>
+<li><p>Currently, the kernel can’t return lists or tuples directly</p></li>
+</ul>
+<p><strong>[9]</strong> CUDA-Q also provides an asynchronous version of this function
+(<code class="code docutils literal notranslate"><span class="pre">cudaq::run_async</span></code>) which returns a <code class="code docutils literal notranslate"><span class="pre">std::future</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">QuantumKernel</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">ARGS</span><span class="o">&gt;</span>
+<span class="w">  </span><span class="k">requires</span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">is_void_v</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">invoke_result_t</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">QuantumKernel</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">ARGS</span><span class="o">&gt;</span><span class="p">...</span><span class="o">&gt;&gt;</span><span class="p">)</span>
+<span class="n">std</span><span class="o">::</span><span class="n">future</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">invoke_result_t</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">QuantumKernel</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">ARGS</span><span class="o">&gt;</span><span class="p">...</span><span class="o">&gt;&gt;&gt;</span>
+<span class="n">run_async</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">qpu_id</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">shots</span><span class="p">,</span><span class="w"> </span><span class="n">QuantumKernel</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">ARGS</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">args</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Programmers can asynchronously launch kernel executions on any <code class="code docutils literal notranslate"><span class="pre">qpu_id</span></code> and retrieve results
+when ready using the returned future’s <code class="code docutils literal notranslate"><span class="pre">get()</span></code> method.</p>
+</section>
 <section id="cudaq-observe">
-<h2><span class="section-number">12.2. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code><a class="headerlink" href="#cudaq-observe" title="Permalink to this heading">¶</a></h2>
+<h2><span class="section-number">12.3. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code><a class="headerlink" href="#cudaq-observe" title="Permalink to this heading">¶</a></h2>
 <p><strong>[1]</strong> A common task in variational algorithms is the computation of the expected
 value of a given observable with respect to a parameterized quantum circuit
 (<span class="math notranslate nohighlight">\(\langle H \rangle(𝚹) = \langle \psi(𝚹)|H|\psi(𝚹) \rangle\)</span>).</p>
@@ -1232,7 +1328,7 @@ generated and used as part of that expectation value computation. The
 <code class="code docutils literal notranslate"><span class="pre">sample_result</span></code> data for each term in the provided <code class="code docutils literal notranslate"><span class="pre">spin_op</span></code>.
 This return type can be used in the following way.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">C++</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// I only care about the expected value, discard</span>
 <span class="c1">// the fine-grain data produced</span>
 <span class="kt">double</span><span class="w"> </span><span class="n">expVal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">spinOp</span><span class="p">,</span><span class="w"> </span><span class="n">args</span><span class="p">...);</span>
@@ -1246,7 +1342,7 @@ This return type can be used in the following way.</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">Python</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># I require the result with all generated data</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spinOp</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
 <span class="n">expVal</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
@@ -1259,7 +1355,7 @@ This return type can be used in the following way.</p>
 </div>
 <p>Here is an example of the utility of the <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> function:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">C++</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">ansatz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="kt">double</span><span class="w"> </span><span class="n">theta</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
@@ -1281,7 +1377,7 @@ This return type can be used in the following way.</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">Python</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">ansatz</span><span class="p">(</span><span class="n">theta</span> <span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1319,7 +1415,7 @@ and when remote queue jobs are completed, one can invoke <code class="code docut
 be retrieved and returned.</p>
 </section>
 <section id="cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">
-<h2><span class="section-number">12.3. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)<a class="headerlink" href="#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries" title="Permalink to this heading">¶</a></h2>
+<h2><span class="section-number">12.4. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)<a class="headerlink" href="#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries" title="Permalink to this heading">¶</a></h2>
 <p>The primary use case for <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> is to leverage it as
 the core of a broader objective function optimization workflow.
 <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> produces the expected value of a specified
@@ -1384,7 +1480,7 @@ objective function (e.g. the expected value from <code class="code docutils lite
 </div>
 </section>
 <section id="cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">
-<h2><span class="section-number">12.4. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)<a class="headerlink" href="#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries" title="Permalink to this heading">¶</a></h2>
+<h2><span class="section-number">12.5. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)<a class="headerlink" href="#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries" title="Permalink to this heading">¶</a></h2>
 <p>Typical optimization use cases will require the computation of gradients for the specified
 objective function. The gradient is a vector over all ansatz circuit
 parameters <span class="math notranslate nohighlight">\(∂H(𝚹) / ∂𝚹_i\)</span>. There are a number of potential strategies for

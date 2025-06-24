@@ -47,14 +47,15 @@ steps = np.linspace(-2.0, 2.0, 5000)
 schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
-evolution_result = cudaq.evolve(hamiltonian,
-                                dimensions,
-                                schedule,
-                                psi0,
-                                observables=[boson.number(0)],
-                                collapse_operators=[],
-                                store_intermediate_results=True,
-                                integrator=ScipyZvodeIntegrator())
+evolution_result = cudaq.evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    psi0,
+    observables=[boson.number(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=ScipyZvodeIntegrator())
 
 prob1 = [
     exp_vals[0].expectation()

@@ -203,6 +203,7 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#pulse">Pulse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
@@ -657,9 +658,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/platform.html">11. Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-run">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.5. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -735,6 +737,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.IntermediateResultSave"><code class="docutils literal notranslate"><span class="pre">IntermediateResultSave</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#operators">Operators</a><ul>
@@ -949,15 +952,14 @@ with <code class="code docutils literal notranslate"><span class="pre">cudaq.evo
 <span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
 
 <span class="c1"># Run the simulation.</span>
-<span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span>
-                                <span class="n">dimensions</span><span class="p">,</span>
-                                <span class="n">schedule</span><span class="p">,</span>
-                                <span class="n">rho0</span><span class="p">,</span>
-                                <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                             <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                             <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
-                                <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
-                                <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+    <span class="n">hamiltonian</span><span class="p">,</span>
+    <span class="n">dimensions</span><span class="p">,</span>
+    <span class="n">schedule</span><span class="p">,</span>
+    <span class="n">rho0</span><span class="p">,</span>
+    <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+    <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">store_intermediate_results</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">IntermediateResultSave</span><span class="o">.</span><span class="n">ALL</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -993,7 +995,7 @@ with <code class="code docutils literal notranslate"><span class="pre">cudaq.evo
 <span class="w">    </span><span class="c1">// expectation values for all defined observables at each time step.</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span>
 <span class="w">        </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">,</span><span class="w"> </span><span class="n">dimensions</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="n">psi0</span><span class="p">,</span><span class="w"> </span><span class="n">integrator</span><span class="p">,</span><span class="w"> </span><span class="p">{},</span>
-<span class="w">                      </span><span class="n">observables</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<span class="w">                      </span><span class="n">observables</span><span class="p">,</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">IntermediateResultSave</span><span class="o">::</span><span class="n">All</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>
@@ -1016,7 +1018,13 @@ the <code class="code docutils literal notranslate"><span class="pre">store_inte
 <li><p>Retrieve and plot the results</p></li>
 </ol>
 <p>Once the simulation is complete, we can retrieve the final state and the expectation values
-as well as intermediate values at each time step (with <code class="code docutils literal notranslate"><span class="pre">store_intermediate_results=True</span></code>).</p>
+as well as intermediate values at each time step (with <code class="code docutils literal notranslate"><span class="pre">store_intermediate_results=cudaq.IntermediateResultSave.ALL</span></code>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Storing intermediate states can be memory-intensive, especially for large systems.
+If you only need the intermediate expectation values, you can set <code class="code docutils literal notranslate"><span class="pre">store_intermediate_results</span></code> to
+<code class="code docutils literal notranslate"><span class="pre">cudaq.IntermediateResultSave.EXPECTATION_VALUES</span></code> (Python) / <code class="code docutils literal notranslate"><span class="pre">cudaq::IntermediateResultSave::ExpectationValue</span></code> (C++) instead.</p>
+</div>
 <p>For example, we can plot the Pauli expectation value for the above simulation as follows.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
@@ -1464,7 +1472,8 @@ the desired value for each parameter:</p>
 <span class="w">    </span><span class="n">sup</span><span class="w"> </span><span class="o">+=</span>
 <span class="w">        </span><span class="n">cudaq</span><span class="o">::</span><span class="n">super_op</span><span class="o">::</span><span class="n">left_multiply</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">-1.0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ham</span><span class="p">);</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">sup</span><span class="p">,</span><span class="w"> </span><span class="n">dims</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="n">initialState</span><span class="p">,</span><span class="w"> </span><span class="n">integrator</span><span class="p">,</span>
-<span class="w">                                </span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)},</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<span class="w">                                </span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)},</span>
+<span class="w">                                </span><span class="n">cudaq</span><span class="o">::</span><span class="n">IntermediateResultSave</span><span class="o">::</span><span class="n">All</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>
@@ -1579,14 +1588,15 @@ To enable parallel execution, the application must initialize MPI as follows.</p
 <span class="n">psi0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">InitialState</span><span class="o">.</span><span class="n">ZERO</span>
 
 <span class="c1"># Run the simulation</span>
-<span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">H</span><span class="p">,</span>
-                                <span class="n">dimensions</span><span class="p">,</span>
-                                <span class="n">schedule</span><span class="p">,</span>
-                                <span class="n">psi0</span><span class="p">,</span>
-                                <span class="n">observables</span><span class="o">=</span><span class="p">[],</span>
-                                <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
-                                <span class="n">store_intermediate_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                <span class="n">integrator</span><span class="o">=</span><span class="n">RungeKuttaIntegrator</span><span class="p">())</span>
+<span class="n">evolution_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+    <span class="n">H</span><span class="p">,</span>
+    <span class="n">dimensions</span><span class="p">,</span>
+    <span class="n">schedule</span><span class="p">,</span>
+    <span class="n">psi0</span><span class="p">,</span>
+    <span class="n">observables</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">store_intermediate_results</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">IntermediateResultSave</span><span class="o">.</span><span class="n">EXPECTATION_VALUE</span><span class="p">,</span>
+    <span class="n">integrator</span><span class="o">=</span><span class="n">RungeKuttaIntegrator</span><span class="p">())</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
 </pre></div>
@@ -1608,14 +1618,6 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
 <p class="admonition-title">Note</p>
 <p>Not all integrators are capable of handling distributed state. Errors will be raised if parallel execution is activated
 but the selected integrator does not support distributed state.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>As of cuQuantum version 24.11, there are a couple of <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/24.11.0/cudensitymat/index.html">known limitations</a> for parallel execution:</p>
-<ul class="simple">
-<li><p>Computing the expectation value of a mixed quantum state is not supported. Thus, <code class="code docutils literal notranslate"><span class="pre">collapse_operators</span></code> are not supported if expectation calculation is required.</p></li>
-<li><p>Some combinations of quantum states and quantum many-body operators are not supported. Errors will be raised in those cases.</p></li>
-</ul>
 </div>
 </section>
 <section id="examples">

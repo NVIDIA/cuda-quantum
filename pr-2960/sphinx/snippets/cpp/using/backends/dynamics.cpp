@@ -79,7 +79,7 @@ int main() {
     // expectation values for all defined observables at each time step.
     auto evolution_result =
         cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator, {},
-                      observables, true);
+                      observables, cudaq::IntermediateResultSave::All);
     // [End Evolve]
     // [Begin Print]
     // Extract and print results
@@ -232,7 +232,8 @@ int main() {
     sup +=
         cudaq::super_op::left_multiply(std::complex<double>(0.0, -1.0) * ham);
     auto result = cudaq::evolve(sup, dims, schedule, initialState, integrator,
-                                {cudaq::spin_op::z(0)}, true);
+                                {cudaq::spin_op::z(0)},
+                                cudaq::IntermediateResultSave::All);
     // [End SuperOperator]
   }
   return 0;

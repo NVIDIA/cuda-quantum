@@ -339,6 +339,109 @@ information and can be persisted to file and loaded from file at a later time. A
 and when remote queue jobs are completed, one can invoke :code:`get()` and the results will 
 be retrieved and returned. 
 
+:code:`cudaq::run`
+-------------------------
+**[1]** The :code:`cudaq::run` API allows programmers to execute a kernel a specified number 
+of times and retrieve all the individual values returned. Unlike :code:`cudaq::sample`, which 
+collects measurement statistics as a counts dictionary mapping bit strings to frequencies, :code:`run` 
+preserves each individual return value from every execution. Use :code:`sample` when you need 
+quantum state measurement statistics, and use :code:`run` when you need to analyze individual 
+return values from each circuit execution.
+
+**[2]** The CUDA-Q model provides this functionality via template functions within the
+:code:`cudaq` namespace with the following structure:
+
+.. code-block:: cpp
+
+    // Run a kernel for specified number of shots 
+    template <typename QuantumKernel, typename... ARGS>
+      requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>)
+    std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
+    run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args);
+
+    // Run a kernel with noise model for specified number of shots
+    template <typename QuantumKernel, typename... ARGS>
+      requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>)
+    std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
+    run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args);
+
+**[3]** This function takes as input the number of shots, a quantum kernel instance, and the
+concrete arguments with which the kernel should be invoked. CUDA-Q kernel passed to this
+function must be an entry-point kernel and must return a non-void value.
+
+**[4]** Overloaded function exists for specifying a noise model to apply during execution.
+
+**[5]** The function returns a :code:`std::vector` containing the return values from each execution 
+of the kernel. The vector has a length equal to the number of specified shots, with each element 
+representing the return value of a single kernel execution.
+
+**[6]** Programmers can extract the result information in the following manner:
+
+.. tab:: C++
+
+  .. code-block:: cpp
+
+      auto kernel = [](int numQubits) __qpu__ {
+        // Quantum code that returns an int
+        cudaq::qvector q(numQubits);
+        h(q);
+        // some logic...
+        return result;
+      };
+      
+      // Run the kernel 100 times with 4 qubits
+      auto results = cudaq::run(100, kernel, 4);
+  
+      // Process the results
+      for (const auto& result : results) {
+        printf("Result: %d\n", result);
+      }
+
+.. tab:: Python
+
+  .. code-block:: python
+
+    @cudaq.kernel
+    def kernel(numQubits: int) -> int:
+        # Quantum code that returns an int
+        q = cudaq.qvector(numQubits)
+        h(q)
+        # some logic...
+        return result
+    
+    # Run the kernel 100 times with 4 qubits
+    results = cudaq.run(kernel, 4, shots_count=100)
+    
+    # Process the results
+    for result in results:
+        print(f"Result: {result}")
+
+**[7]** The :code:`cudaq::run` function supports a variety of return types from the quantum kernel:
+
+- Scalar types: :code:`bool`, :code:`int`, :code:`float`, and their variants (:code:`int8/16/32/64`, :code:`float32/64`)
+- User-defined data structures (via custom structs in C++ or :code:`dataclass` in Python)
+
+**[8]** There are specific requirements on input quantum kernels for the use of the
+:code:`run` function which must be enforced by compiler implementations:
+
+- The kernel must be an entry-point kernel
+- The kernel must return a non-void value
+- Currently, the kernel can't return lists or tuples directly
+
+**[9]** CUDA-Q also provides an asynchronous version of this function
+(:code:`cudaq::run_async`) which returns a :code:`std::future`:
+
+.. code-block:: cpp
+
+    template <typename QuantumKernel, typename... ARGS>
+      requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>)
+    std::future<std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>>
+    run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel, ARGS &&...args);
+
+Programmers can asynchronously launch kernel executions on any :code:`qpu_id` and retrieve results 
+when ready using the returned future's :code:`get()` method.
+
+
 :code:`cudaq::observe`
 -------------------------
 **[1]** A common task in variational algorithms is the computation of the expected
@@ -669,4 +772,3 @@ default :code:`std::vector<double>` signature):
 
     // Print the results
     printf("Optimizer found %lf at [%lf,%lf]\n", min_val, opt_params[0], opt_params[1]);
-
