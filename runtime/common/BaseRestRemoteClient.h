@@ -916,7 +916,7 @@ public:
           " operation is not supported with cudaq target nvqc!");
 
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {
-        "tensornet", "nvidia-mgpu", "nvidia-mqpu"};
+        "tensornet", "nvidia-mgpu"};
     {
       // Print out a message if users request a multi-GPU deployment while
       // setting the backend to a single-GPU one. Only print once in case this
