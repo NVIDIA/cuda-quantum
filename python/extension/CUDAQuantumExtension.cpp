@@ -100,7 +100,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
 
   cudaq::bindRuntimeTarget(cudaqRuntime, *holder.get());
   cudaq::bindMeasureCounts(cudaqRuntime);
-  cudaq::bindResource(cudaqRuntime);
+  cudaq::bindResources(cudaqRuntime);
   cudaq::bindObserveResult(cudaqRuntime);
   cudaq::bindComplexMatrix(cudaqRuntime);
   cudaq::bindScalarWrapper(cudaqRuntime);

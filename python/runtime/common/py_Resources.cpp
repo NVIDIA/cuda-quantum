@@ -17,11 +17,9 @@
 
 namespace cudaq {
 
-void bindResourceCounts(py::module &mod) {
+void bindResources(py::module &mod) {
   using namespace cudaq;
 
-  // TODO Bind the variants of this functions that take the register name
-  // as input.
   py::class_<Resources>(
       mod, "Resources",
       R"#(A data-type containing the results of a call to :func:`estimate_resources`. 
