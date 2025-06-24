@@ -344,6 +344,16 @@ jobs:
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: false
 
+  debug_config_output:
+    name: Debug config.outputs.json
+    needs: config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump config.outputs.json
+        run: |
+          echo "Full config.outputs.json:"
+          echo '${{ toJson(needs.config.outputs.json) }}'
+
   extdevdeps:
     name: Create dev environment
     needs: [metadata, config, openmpi]
