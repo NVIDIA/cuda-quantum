@@ -211,7 +211,7 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
   for (const auto &step : schedule) {
     integrator.integrate(step.real());
     auto [t, currentState] = integrator.getState();
-    if (storeIntermediateResults) {
+    if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
       auto *cudmState = asCudmState(currentState);
       std::vector<std::vector<double>> expVals(batchSize);
       for (auto &expectation : expectations) {
@@ -223,16 +223,21 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
           expVals[i].emplace_back(expVal[i].real());
         }
       }
-      auto states = CuDensityMatState::splitBatchedState(*cudmState);
-      assert(states.size() == batchSize);
+
+      if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
+        auto states = CuDensityMatState::splitBatchedState(*cudmState);
+        assert(states.size() == batchSize);
+        for (int i = 0; i < batchSize; ++i) {
+          intermediateStates[i].emplace_back(cudaq::state(states[i]));
+        }
+      }
       for (int i = 0; i < batchSize; ++i) {
         expectationVals[i].emplace_back(expVals[i]);
-        intermediateStates[i].emplace_back(cudaq::state(states[i]));
       }
     }
   }
 
-  if (storeIntermediateResults) {
+  if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
     std::vector<evolve_result> results;
     for (int i = 0; i < batchSize; ++i) {
       results.emplace_back(
@@ -243,6 +248,20 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
     // Only final state is needed
     auto [finalTime, finalState] = integrator.getState();
     auto *cudmState = asCudmState(finalState);
+    auto states = CuDensityMatState::splitBatchedState(*cudmState);
+    assert(states.size() == batchSize);
+
+    if (storeIntermediateResults ==
+        cudaq::IntermediateResultSave::ExpectationValue) {
+      std::vector<evolve_result> results;
+      for (int i = 0; i < batchSize; ++i) {
+        results.emplace_back(
+            evolve_result({cudaq::state(states[i])}, expectationVals[i]));
+      }
+      return results;
+    }
+
+    // Compute final expectation values
     std::vector<std::vector<double>> expVals(batchSize);
     for (auto &expectation : expectations) {
       expectation.prepare(cudmState->get_impl());
@@ -253,8 +272,7 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
         expVals[i].emplace_back(expVal[i].real());
       }
     }
-    auto states = CuDensityMatState::splitBatchedState(*cudmState);
-    assert(states.size() == batchSize);
+
     std::vector<evolve_result> results;
     for (int i = 0; i < batchSize; ++i) {
       results.emplace_back(evolve_result(cudaq::state(states[i]), expVals[i]));

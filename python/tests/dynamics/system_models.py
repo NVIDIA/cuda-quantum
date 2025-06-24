@@ -501,13 +501,15 @@ class TestCavityModelSuperOperator(TestSystem):
         # -0.5 * rho * L_dagger * L
         me_super_op += cudaq.SuperOperator.right_multiply(-0.5 * L_dagger * L)
 
-        evolution_result = cudaq.evolve(me_super_op,
-                                        dimensions,
-                                        schedule,
-                                        rho0_,
-                                        observables=[hamiltonian],
-                                        store_intermediate_results=True,
-                                        integrator=integrator())
+        evolution_result = cudaq.evolve(
+            me_super_op,
+            dimensions,
+            schedule,
+            rho0_,
+            observables=[hamiltonian],
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator())
         expectation_values = []
         for exp_vals in evolution_result.expectation_values():
             expectation_values.append(exp_vals[0].expectation())
@@ -527,13 +529,15 @@ class TestInitialStateEnumSuperOperator(TestSystem):
         se_super_op = cudaq.SuperOperator()
         # Apply `-iH|psi>` superop
         se_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
-        evolution_result = cudaq.evolve(se_super_op,
-                                        dimensions,
-                                        schedule,
-                                        psi0,
-                                        observables=[spin.z(0)],
-                                        store_intermediate_results=True,
-                                        integrator=integrator())
+        evolution_result = cudaq.evolve(
+            se_super_op,
+            dimensions,
+            schedule,
+            psi0,
+            observables=[spin.z(0)],
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator())
         expectation_values = []
         for exp_vals in evolution_result.expectation_values():
             expectation_values.append(exp_vals[0].expectation())
@@ -573,13 +577,15 @@ class TestCavityModelBatchedInputStateSuperOperator(TestSystem):
         # -0.5 * rho * L_dagger * L
         me_super_op += cudaq.SuperOperator.right_multiply(-0.5 * L_dagger * L)
 
-        evolution_results = cudaq.evolve(me_super_op,
-                                         dimensions,
-                                         schedule,
-                                         initial_states,
-                                         observables=[hamiltonian],
-                                         store_intermediate_results=True,
-                                         integrator=integrator())
+        evolution_results = cudaq.evolve(
+            me_super_op,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[hamiltonian],
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator())
         for i in range(num_states):
             expectation_values = []
             for exp_vals in evolution_results[i].expectation_values():

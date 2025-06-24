@@ -202,7 +202,8 @@ evolve_result evolve(const super_op &super_op,
                      const schedule &schedule, const state &initial_state,
                      base_integrator &integrator,
                      const std::initializer_list<ObserveOpTy> &observables = {},
-                     bool store_intermediate_results = false,
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
                      std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
@@ -226,7 +227,8 @@ evolve_result evolve(const super_op &super_op,
                      const schedule &schedule, InitialState initial_state,
                      base_integrator &integrator,
                      const std::initializer_list<ObserveOpTy> &observables = {},
-                     bool store_intermediate_results = false,
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
                      std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
@@ -320,7 +322,8 @@ evolve(const super_op &super_op, const cudaq::dimension_map &dimensions,
        const schedule &schedule, const std::vector<state> &initial_states,
        base_integrator &integrator,
        std::initializer_list<ObserveOpTy> observables = {},
-       bool store_intermediate_results = false,
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveBatched(
@@ -428,7 +431,8 @@ evolve_async(const super_op &super_op, const cudaq::dimension_map &dimensions,
              const schedule &schedule, const state &initial_state,
              base_integrator &integrator,
              std::initializer_list<ObserveOpTy> observables = {},
-             bool store_intermediate_results = false,
+             IntermediateResultSave store_intermediate_results =
+                 IntermediateResultSave::None,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
 #if defined(CUDAQ_ANALOG_TARGET)
   // Clone the integrator to extend its lifetime.
