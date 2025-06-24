@@ -1750,6 +1750,113 @@ private:
   std::optional<std::pair<scalar_operator, std::vector<double>>> delta_local;
 };
 
+// https://en.wikipedia.org/wiki/Superoperator
+// 'super_op' is a linear operator acting on a vector space of linear
+// operators.
+/// @brief Representation of generic operator action on the state.
+// For example, a given operator might be applied to the density matrix as a
+// left multiplication or a right multiplication.
+class super_op {
+public:
+  // A super_op term is a pair of left/right multiplication operators.
+  // If the first (second) operator of the pair is missing (null), it represents
+  // the right (left) multiplication. If both are present, it represents a
+  // multiplication on both side (`A * rho * B`, `A` and `B` are the first and
+  // second operators in the pair).
+  using term =
+      std::pair<std::optional<cudaq::product_op<cudaq::matrix_handler>>,
+                std::optional<cudaq::product_op<cudaq::matrix_handler>>>;
+  /// @brief Default constructor
+  super_op() = default;
+
+  /// @brief Combine the given super-operator into this
+  /// @param superOp Input super-operator to combine
+  /// @return This super-operator after accumulating terms from the other
+  /// super-operator
+  super_op &operator+=(const super_op &superOp);
+
+  /// @brief Multiply this super-operator by a scalar
+  /// @tparam T Scalar type
+  /// @param coeff Multiplication coefficient
+  /// @return This super-operator after being scaled by the input scalar
+  template <typename T>
+  super_op &operator*=(T coeff) {
+    for (auto &[l_op, r_op] : m_terms) {
+      if (l_op.has_value())
+        l_op->operator*=(coeff);
+
+      assert(r_op.has_value());
+      r_op->operator*=(coeff);
+    }
+    return *this;
+  }
+
+  /// @brief Create a super-operator that represents the left multiplication of
+  /// the input product operator
+  /// @param op Product operator to be applied to the left
+  /// @return Super-operator
+  static super_op
+  left_multiply(const cudaq::product_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the right multiplication of
+  /// the input product operator
+  /// @param op Product operator to be applied to the right
+  /// @return Super-operator
+  static super_op
+  right_multiply(const cudaq::product_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the simultaneous left and
+  /// right multiplication action
+  /// @param leftOp Operator to be applied on the left
+  /// @param rightOp Operator to be applied on the right
+  /// @return Super-operator
+  static super_op
+  left_right_multiply(const cudaq::product_op<cudaq::matrix_handler> &leftOp,
+                      const cudaq::product_op<cudaq::matrix_handler> &rightOp);
+
+  /// @brief Create a super-operator that represents the left multiplication of
+  /// the input sum operator
+  /// @param op Sum operator to be applied to the left
+  /// @return Super-operator
+  static super_op left_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the right multiplication of
+  /// the input sum operator
+  /// @param op Sum operator to be applied to the right
+  /// @return Super-operator
+  static super_op
+  right_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the simultaneous left and
+  /// right multiplication action
+  /// @param leftOp Operator to be applied on the left
+  /// @param rightOp Operator to be applied on the right
+  /// @return Super-operator
+  static super_op
+  left_right_multiply(const cudaq::sum_op<cudaq::matrix_handler> &leftOp,
+                      const cudaq::sum_op<cudaq::matrix_handler> &rightOp);
+
+  /// @brief Super-operator term iterator
+  using const_iterator = std::vector<term>::const_iterator;
+
+  /// @brief Get iterator to beginning of operator terms
+  const_iterator begin() const;
+
+  /// @brief Get iterator to end of operator terms
+  const_iterator end() const;
+
+private:
+  /// @brief Construct a super-operator from a term
+  /// @param term Super-operator term
+  super_op(term &&term);
+  /// @brief Construct a super-operator from a list of terms
+  /// @param terms Super-operator term
+  super_op(std::vector<term> &&terms);
+
+private:
+  std::vector<term> m_terms;
+};
+
 // type aliases for convenience
 /// @brief Typedef for a map of parameters.
 /// This typedef defines `parameter_map` as a map of strings to complex
