@@ -737,6 +737,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.IntermediateResultSave"><code class="docutils literal notranslate"><span class="pre">IntermediateResultSave</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
@@ -1069,7 +1070,7 @@ Total elapsed time (s) =  21.523745890706778
 <p>The parameter shift rule is a common technique to compute the gradient for parameterized circuits. It is obtained by computing two expectation values for each parameter corresponding to a small forward and backward shift in the ith parameter. These results are used to estimate finite difference contribution to the gradient.</p>
 <p><img alt="parametershift.png" src="../../_images/parametershift.png" /></p>
 <p>This procedure can become cost prohibitive as the number of parameters becomes large.</p>
-<p>Each of the expectation values needed to evaluate a parameter shift gradient can be computed independently. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> backend is designed for parallel computations across multiple simulated QPUs. The function below uses <code class="docutils literal notranslate"><span class="pre">cudaq.observe_asynch</span></code> to distribute all of the expectation values evaluations across as many GPUs that are available. First, try it with <code class="docutils literal notranslate"><span class="pre">num_qpus</span></code> set to 1.</p>
+<p>Each of the expectation values needed to evaluate a parameter shift gradient can be computed independently. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> with option <code class="docutils literal notranslate"><span class="pre">mqpu,fp32</span></code> backend is designed for parallel computations across multiple simulated QPUs. The function below uses <code class="docutils literal notranslate"><span class="pre">cudaq.observe_asynch</span></code> to distribute all of the expectation values evaluations across as many GPUs that are available. First, try it with <code class="docutils literal notranslate"><span class="pre">num_qpus</span></code> set to 1.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
@@ -1077,7 +1078,7 @@ Total elapsed time (s) =  21.523745890706778
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
 <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">parameter_count</span><span class="p">)</span>
 
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s2">&quot;mqpu,fp32&quot;</span><span class="p">)</span>
 
 <span class="n">num_qpus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
 
