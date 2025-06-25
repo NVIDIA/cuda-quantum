@@ -55,14 +55,15 @@ def testMpiRun():
     psi0 = cudaq.dynamics.InitialState.ZERO
 
     # Run the simulation
-    evolution_result = cudaq.evolve(H,
-                                    dimensions,
-                                    schedule,
-                                    psi0,
-                                    observables=[avg_magnetization_op],
-                                    collapse_operators=[],
-                                    store_intermediate_results=False,
-                                    integrator=RungeKuttaIntegrator())
+    evolution_result = cudaq.evolve(
+        H,
+        dimensions,
+        schedule,
+        psi0,
+        observables=[avg_magnetization_op],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+        integrator=RungeKuttaIntegrator())
 
 
 # leave for gdb debugging

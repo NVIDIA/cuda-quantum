@@ -88,7 +88,13 @@ Specifically, we need to set up the simulation by providing:
 3. Retrieve and plot the results
 
 Once the simulation is complete, we can retrieve the final state and the expectation values
-as well as intermediate values at each time step (with `store_intermediate_results=True`).
+as well as intermediate values at each time step (with `store_intermediate_results=cudaq.IntermediateResultSave.ALL`).
+
+.. note::
+    
+    Storing intermediate states can be memory-intensive, especially for large systems.
+    If you only need the intermediate expectation values, you can set `store_intermediate_results` to 
+    `cudaq.IntermediateResultSave.EXPECTATION_VALUES` (Python) / `cudaq::IntermediateResultSave::ExpectationValue` (C++) instead.
 
 For example, we can plot the Pauli expectation value for the above simulation as follows.
 
@@ -307,6 +313,35 @@ Compile and Run C++ program
 
         nvq++ --target dynamics dynamics.cpp -o dynamics && ./dynamics
 
+Super-operator Representation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _generic_rhs:
+
+In the previous examples, we assumed that the system dynamics is driven by a `Lindblad` master equation, which is specified by the Hamiltonian operator and the collapse operators.
+
+However, we may want to simulate an arbitrary state evolution equation, whereby the right-hand-side of the differential equation is provided as a generic super-operator.
+
+CUDA-Q provides a `SuperOperator` (Python) / `super_op` (C++) class that can be used to represent the right-hand-side of the evolution equation. A super-operator can be constructed as a linear combination (sum) of left and/or right multiplication actions of `Operator` instances.
+
+As an example, we will look at specifying the Schrodinger's equation :math:`\frac{d|\Psi\rangle}{dt} = -i H |\Psi\rangle` as a super-operator.
+
+.. tab:: Python
+
+  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
+        :language: python
+        :start-after: [Begin SuperOperator]
+        :end-before: [End SuperOperator]
+
+.. tab:: C++
+
+  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin SuperOperator]
+        :end-before: [End SuperOperator]
+
+The super-operator, once constructed, can be used in the `evolve` API instead of the Hamiltonian and collapse operators as shown in the above examples.
+
 Numerical Integrators
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -414,15 +449,6 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
 .. note::
     Not all integrators are capable of handling distributed state. Errors will be raised if parallel execution is activated 
     but the selected integrator does not support distributed state. 
-
-.. warning:: 
-    As of cuQuantum version 24.11, there are a couple of `known limitations <https://docs.nvidia.com/cuda/cuquantum/24.11.0/cudensitymat/index.html>`__ for parallel execution:
-
-    - Computing the expectation value of a mixed quantum state is not supported. Thus, `collapse_operators` are not supported if expectation calculation is required.
-
-    - Some combinations of quantum states and quantum many-body operators are not supported. Errors will be raised in those cases. 
-
-
 
 Examples
 ^^^^^^^^^^^^^

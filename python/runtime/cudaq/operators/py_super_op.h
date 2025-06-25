@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#pragma once
-
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 
 namespace cudaq {
-void bindRunAsync(py::module &mod);
+/// @brief Wrapper function for exposing the bindings of super-operator to
+/// python.
+void bindSuperOperatorWrapper(py::module &mod);
 } // namespace cudaq

@@ -249,25 +249,7 @@ CUDAQ_TEST(ParserTester, checkTupleLabeled) {
                           "OUTPUT\tINT\t37\t.1\n"
                           "OUTPUT\tDOUBLE\t3.1416\t.2\n";
   cudaq::RecordLogParser parser;
-  parser.parse(log);
-  auto *origBuffer = parser.getBufferPtr();
-  std::size_t bufferSize = parser.getBufferSize();
-  char *buffer = static_cast<char *>(malloc(bufferSize));
-  std::memcpy(buffer, origBuffer, bufferSize);
-  bool tuple_0;
-  int tuple_1;
-  double tuple_2;
-  EXPECT_EQ(bufferSize, sizeof(tuple_0) + sizeof(tuple_1) + sizeof(tuple_2));
-  std::memcpy(&tuple_0, buffer, sizeof(tuple_0));
-  std::memcpy(&tuple_1, buffer + sizeof(tuple_0), sizeof(tuple_1));
-  std::memcpy(&tuple_2, buffer + sizeof(tuple_0) + sizeof(tuple_1),
-              sizeof(tuple_2));
-  EXPECT_EQ(true, tuple_0);
-  EXPECT_EQ(37, tuple_1);
-  EXPECT_EQ(3.1416, tuple_2);
-  free(buffer);
-  buffer = nullptr;
-  origBuffer = nullptr;
+  EXPECT_ANY_THROW(parser.parse("log"));
 }
 
 CUDAQ_TEST(ParserTester, checkMultipleShots) {

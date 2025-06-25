@@ -43,14 +43,15 @@ psi0 = cudaq.dynamics.InitialState.ZERO
 # `psi0 = cudaq.dynamics.InitialState.UNIFORM`
 
 # Run the simulation
-evolution_result = cudaq.evolve(H,
-                                dimensions,
-                                schedule,
-                                psi0,
-                                observables=[avg_magnetization_op],
-                                collapse_operators=[],
-                                store_intermediate_results=True,
-                                integrator=RungeKuttaIntegrator())
+evolution_result = cudaq.evolve(
+    H,
+    dimensions,
+    schedule,
+    psi0,
+    observables=[avg_magnetization_op],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=RungeKuttaIntegrator())
 
 exp_val = [
     exp_vals[0].expectation()

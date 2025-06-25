@@ -1,4 +1,4 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,13 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#pragma once
+// RUN: cudaq-quake %cpp_std -verify -D CUDAQ_REMOTE_SIM=1 %s
 
-#include <pybind11/pybind11.h>
+#include <cudaq.h>
 
-namespace py = pybind11;
+__qpu__ void k() {
+  // expected-error@+2 {{variable has invalid storage class}}
+  // expected-error@+1 {{statement not supported}}
+  static int i = 0;
+}
 
-namespace cudaq {
-void bindPyRun(py::module &mod);
-void bindPyRunAsync(py::module &mod);
-} // namespace cudaq
+__qpu__ void l() {
+  // expected-error@+2 {{variable has invalid storage class}}
+  // expected-error@+1 {{statement not supported}}
+  extern int i;
+}

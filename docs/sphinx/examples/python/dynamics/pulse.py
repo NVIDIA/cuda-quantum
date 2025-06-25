@@ -55,14 +55,15 @@ schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
 # First, we run the simulation without any collapse operators (no decoherence).
-evolution_result = cudaq.evolve(hamiltonian,
-                                dimensions,
-                                schedule,
-                                psi0,
-                                observables=[boson.number(0)],
-                                collapse_operators=[],
-                                store_intermediate_results=True,
-                                integrator=ScipyZvodeIntegrator())
+evolution_result = cudaq.evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    psi0,
+    observables=[boson.number(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=ScipyZvodeIntegrator())
 
 pop1 = [
     exp_vals[0].expectation()
