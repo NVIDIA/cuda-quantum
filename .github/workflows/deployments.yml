@@ -330,6 +330,14 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
+      - name: Debug config.outputs.json
+        run: |
+          echo "Full config.outputs.json:"
+          echo "${{ steps.read_json.outputs.result }}" \
+            | sed 's/^"//;s/"$//' \
+            | jq -rR 'fromjson?' \
+            | jq
+
   coverage:
     name: Update code coverage
     needs: [metadata, config]
@@ -345,18 +353,6 @@ jobs:
       platform: linux/${{ matrix.platform }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: false
-
-  debug_config_output:
-    name: Debug config.outputs.json
-    needs: config
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dump config.outputs.json
-        run: |
-          echo '${{ toJson(needs.config.outputs.json) }}' \
-            | sed 's/^"//;s/"$//' \
-            | jq -rR 'fromjson?' \
-            | jq
 
   extdevdeps:
     name: Create dev environment
