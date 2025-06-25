@@ -581,11 +581,27 @@ bool QuakeBridgeVisitor::VisitParmVarDecl(clang::ParmVarDecl *x) {
       "symbol table, but this parameter wasn't found.");
 }
 
+static bool isImplicitlyGlobalStorageClass(clang::StorageClass sc) {
+  switch (sc) {
+  case clang::SC_Extern:
+  case clang::SC_Static:
+  case clang::SC_PrivateExtern:
+    return true;
+  default:
+    return false;
+  }
+}
+
 // A variable declaration may or may not have an initializer. This custom
 // traversal makes sure that the type of the variable is visited and pushed so
 // that VisitVarDecl has the variable's type, whether an initialization
 // expression is present or not.
 bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
+  auto storageClass = x->getStorageClass();
+  if (isImplicitlyGlobalStorageClass(storageClass)) {
+    reportClangError(x, mangler, "variable has invalid storage class");
+    return false;
+  }
   [[maybe_unused]] auto typeStackDepth = typeStack.size();
   for (unsigned i = 0; i < x->getNumTemplateParameterLists(); i++) {
     if (auto *tpl = x->getTemplateParameterList(i)) {
