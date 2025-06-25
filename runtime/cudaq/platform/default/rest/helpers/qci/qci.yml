@@ -1,0 +1,29 @@
+name: qci
+description: "CUDA-Q target for Quantum Circuits, Inc."
+
+config:
+
+  # Tell DefaultQuantumPlatform to use REST with QCI's endpoints.
+  platform-qpu: remote_rest
+
+  # Tell NVQ++ to generate glue code to set the target backend name.
+  gen-target-backend: true
+
+  # Library mode must be off for remote backends.
+  library-mode: false
+
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+
+  # Lower the generated IR to base + feed forward.
+  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,expand-measurements,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition)"
+  codegen-emission: qir-adaptive
+
+target-arguments:
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine
+    help-string: >
+      Specify a QCI QPU identifier. Omit or specify "simulator" for QCI's
+      hardware simulator.
