@@ -83,6 +83,7 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
   spanIn.data = nullptr;
   spanIn.lengthInBytes = 0;
 }
+
 } // namespace details
 
 #if CUDAQ_USE_STD20

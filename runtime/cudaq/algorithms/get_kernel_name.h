@@ -15,6 +15,7 @@
 
 namespace cudaq {
 namespace details {
+
 #ifdef CUDAQ_LIBRARY_MODE
 template <typename QuantumKernel>
 QuantumKernel createQKernel(QuantumKernel &&kernel) {
@@ -59,7 +60,7 @@ std::string getKernelName(QuantumKernel &&kernel) {
     auto key = cudaq::registry::__cudaq_getLinkableKernelKey(&qKernel);
     auto name = cudaq::registry::getLinkableKernelNameOrNull(key);
     if (!name)
-      throw std::runtime_error("Cannot determine kernel name in get_state");
+      return __internal__::demangle_kernel(typeid(kernel).name());
     return name;
   }
 }
