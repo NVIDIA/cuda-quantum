@@ -25,11 +25,17 @@ class Matrix;
 
 namespace pybind11 {
 class module_;
-}
-
+template <typename T, int ExtraFlags>
+class array_t;
+} // namespace pybind11
 namespace cudaq {
 
 class complex_matrix;
+
+namespace details {
+pybind11::array_t<std::complex<double>, 0x0010>
+cmat_to_numpy(const complex_matrix &cmat);
+} // namespace details
 
 complex_matrix operator*(const complex_matrix &, const complex_matrix &);
 std::vector<std::complex<double>>
@@ -197,17 +203,13 @@ public:
   std::size_t rows() const { return dimensions.first; }
   std::size_t cols() const { return dimensions.second; }
   std::size_t size() const { return get_size(dimensions); }
-  value_type *get_data() const { return data; }
 
   const EigenMatrix as_eigen() const;
 
+  // 0x0010 is the default flags for pybind11::array_t
+  friend pybind11::array_t<std::complex<double>, 0x0010>
+  cudaq::details::cmat_to_numpy(const complex_matrix &cmat);
   friend void bindComplexMatrix(pybind11::module_ &mod);
-  friend void bindMatrixOperator(pybind11::module_ &mod);
-  friend void bindBosonOperator(pybind11::module_ &mod);
-  friend void bindFermionOperator(pybind11::module_ &mod);
-  friend void bindSpinOperator(pybind11::module_ &mod);
-  friend void bindOperatorHandlers(pybind11::module_ &mod);
-  friend void bindScalarOperator(pybind11::module_ &mod);
 
 private:
   complex_matrix(const complex_matrix::value_type *v,

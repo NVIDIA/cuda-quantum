@@ -30,7 +30,7 @@ py::array pyGetUnitary(py::object &kernel, py::args args) {
     delete argData;
   });
   // Return as numpy array (dim, dim), complex128
-  return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.get_data());
+  return details::cmat_to_numpy(cmat);
 }
 
 /// @brief Bind the get_unitary cudaq function
