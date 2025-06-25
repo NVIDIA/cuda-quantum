@@ -151,6 +151,7 @@ Dynamics
 
 .. autoclass:: cudaq.dynamics.helpers.InitialState
 .. autoclass:: cudaq.InitialStateType
+.. autoclass:: cudaq.IntermediateResultSave
 
 Operators
 =============================
@@ -164,6 +165,9 @@ Operators
 .. autoclass:: cudaq.operators.RydbergHamiltonian
     :members:
     :special-members: __init__
+
+.. autoclass:: cudaq.SuperOperator
+   :members:
 
 .. automethod:: cudaq.operators.define
 .. automethod:: cudaq.operators.instantiate
