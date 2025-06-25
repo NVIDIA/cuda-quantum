@@ -957,6 +957,48 @@ def test_create_and_modify_struct():
     assert results[0] == Bar(True, True, 4.14)
 
 
+def test_issue_3086():
+
+    @cudaq.kernel
+    def kernel_branch_return(cond: bool) -> int:
+        if cond:
+            return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel_branch_return, True, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 1
+    assert results[1] == 1
+    results = cudaq.run(kernel_branch_return, False, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == -1
+    assert results[1] == -1
+
+    @dataclass
+    class Foo:
+        x: bool
+        y: int
+
+    @cudaq.kernel
+    def bar(n: int, cond: bool) -> Foo:
+        q = cudaq.qvector(n)
+        if cond:
+            return Foo(True, 1)
+        else:
+            return Foo(False, -1)
+
+    results = cudaq.run(bar, 2, True, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == Foo(True, 1)
+    assert results[1] == Foo(True, 1)
+
+    results = cudaq.run(bar, 2, False, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == Foo(False, -1)
+    assert results[1] == Foo(False, -1)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

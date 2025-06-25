@@ -1097,7 +1097,10 @@ class PyASTBridge(ast.NodeVisitor):
                 [self.visit(n) for n in node.body[startIdx:]]
                 # Add the return operation
                 if not self.hasTerminator(self.entry):
-                    ret = func.ReturnOp([])
+                    if self.knownResultType is None:
+                        func.ReturnOp([])
+                    else:
+                        func.ReturnOp([cc.UndefOp(self.knownResultType)])
                 self.buildingEntryPoint = False
                 self.symbolTable.popScope()
 
