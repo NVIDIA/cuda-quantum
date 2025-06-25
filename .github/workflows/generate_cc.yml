@@ -54,15 +54,39 @@ jobs:
 
       - name: Set up QEMU
         shell: bash
-        env:
-          QEMU_USER_STATIC_PACKAGE: qemu-user-static_10.0.2+ds-1_amd64.deb
-          REPO_DATE: 20250601T025158Z
-          PACKAGE_SHA256: 681cf3d95306b0d06de06efa5ab015270c1151f5b9810b15639821a8fe486a78
         run: |
-          # temporarily use Debian qemu-user-static until Ubuntu fixes theirs
+          export QEMU_VERSION=10.0.2+ds-1
+          export REPO_DATE=20250601T025158Z
+
+          if echo "${{ inputs.platform }}" | grep -iq 'arm'; then
+            export QEMU_ARCH="arm64"
+            export QEMU_USER_STATIC_PACKAGE=qemu-user-static_${QEMU_VERSION}_${QEMU_ARCH}.deb
+            export QEMU_USER_BINFMT_PACKAGE=qemu-user-binfmt_${QEMU_VERSION}_${QEMU_ARCH}.deb
+            export QEMU_USER_PACKAGE=qemu-user_${QEMU_VERSION}_${QEMU_ARCH}.deb
+
+            export QEMU_USER_STATIC_PACKAGE_SHA256=ea73f5e6abb82a923d91d1d8445871d09041e914fe59445c44bbc678f6000aca
+            export QEMU_USER_BINFMT_PACKAGE_SHA256=a0f4096e6fdf7e7f5ab81f076853c4cb6dbf3088f6b71e079ad06449b8382730
+            export QEMU_USER_PACKAGE_SHA256=2ad5d75a56df6cb228aad1071486bb820e5cd9bd8e46b81f0193267acb63168f
+          else
+            export QEMU_ARCH="amd64"
+            export QEMU_USER_STATIC_PACKAGE=qemu-user-static_${QEMU_VERSION}_${QEMU_ARCH}.deb
+            export QEMU_USER_BINFMT_PACKAGE=qemu-user-binfmt_${QEMU_VERSION}_${QEMU_ARCH}.deb
+            export QEMU_USER_PACKAGE=qemu-user_${QEMU_VERSION}_${QEMU_ARCH}.deb
+
+            export QEMU_USER_STATIC_PACKAGE_SHA256=681cf3d95306b0d06de06efa5ab015270c1151f5b9810b15639821a8fe486a78
+            export QEMU_USER_BINFMT_PACKAGE_SHA256=99cee71a829cbc8f8ac632558f0a47deab2c996b323e54bb001b4bf8ff54cff9
+            export QEMU_USER_PACKAGE_SHA256=d50840ea2abcaf4fbb7c5a5f35794348b2458f41d66adbd95c1138e4f63f6ce9
+          fi
+
+          wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_BINFMT_PACKAGE}
+          wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_PACKAGE}
           wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_STATIC_PACKAGE}
-          echo "${PACKAGE_SHA256} ${QEMU_USER_STATIC_PACKAGE}" | sha256sum -c
-          sudo dpkg -i ${QEMU_USER_STATIC_PACKAGE}
+
+          echo "${QEMU_USER_STATIC_PACKAGE_SHA256} ${QEMU_USER_STATIC_PACKAGE}" | sha256sum -c
+          echo "${QEMU_USER_BINFMT_PACKAGE_SHA256} ${QEMU_USER_BINFMT_PACKAGE}" | sha256sum -c
+          echo "${QEMU_USER_PACKAGE_SHA256} ${QEMU_USER_PACKAGE}" | sha256sum -c
+
+          sudo dpkg -i ${QEMU_USER_PACKAGE} ${QEMU_USER_BINFMT_PACKAGE} ${QEMU_USER_STATIC_PACKAGE}
 
       - name: Set up context for buildx
         run: |
