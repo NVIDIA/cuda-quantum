@@ -56,11 +56,16 @@ jobs:
       - name: Set up QEMU
         shell: bash
         env:
-          QEMU_USER_STATIC_PACKAGE: qemu-user-static_7.2+dfsg-7+deb12u12_amd64.deb
-          REPO_DATE: 20250130T084806Z
-          PACKAGE_SHA256: 1a2696081c1f30d464f79fd300196822397c77f05440ea9ce6dc8e9658b595ec
+          REPO_DATE: 20250601T025158Z
         run: |
-          # temporarily use Debian qemu-user-static until Ubuntu fixes theirs
+          if echo "${{ inputs.platform }}" | grep -iq 'arm'; then
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_arm64.deb"
+            PACKAGE_SHA256="a646003b125d0ee4e01b1b7c06459353d5b6397fe75c74c660aa6b3746cc8e6d"
+          else
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_amd64.deb"
+            PACKAGE_SHA256="835d4364555a2769d832a26337dc2c1fa2549daf235cf285a2d3d3caf94880e1"
+          fi
+
           wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_STATIC_PACKAGE}
           echo "${PACKAGE_SHA256} ${QEMU_USER_STATIC_PACKAGE}" | sha256sum -c
           sudo dpkg -i ${QEMU_USER_STATIC_PACKAGE}
@@ -208,11 +213,16 @@ jobs:
       - name: Set up QEMU
         shell: bash
         env:
-          QEMU_USER_STATIC_PACKAGE: qemu-user-static_7.2+dfsg-7+deb12u12_amd64.deb
-          REPO_DATE: 20250130T084806Z
-          PACKAGE_SHA256: 1a2696081c1f30d464f79fd300196822397c77f05440ea9ce6dc8e9658b595ec
+          REPO_DATE: 20250601T025158Z
         run: |
-          # temporarily use Debian qemu-user-static until Ubuntu fixes theirs
+          if echo "${{ inputs.platform }}" | grep -iq 'arm'; then
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_arm64.deb"
+            PACKAGE_SHA256="a646003b125d0ee4e01b1b7c06459353d5b6397fe75c74c660aa6b3746cc8e6d"
+          else
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_amd64.deb"
+            PACKAGE_SHA256="835d4364555a2769d832a26337dc2c1fa2549daf235cf285a2d3d3caf94880e1"
+          fi
+
           wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_STATIC_PACKAGE}
           echo "${PACKAGE_SHA256} ${QEMU_USER_STATIC_PACKAGE}" | sha256sum -c
           sudo dpkg -i ${QEMU_USER_STATIC_PACKAGE}
