@@ -55,9 +55,9 @@ jobs:
       - name: Set up QEMU
         shell: bash
         env:
-          QEMU_USER_STATIC_PACKAGE: qemu-user-static_7.2+dfsg-7+deb12u12_amd64.deb
-          REPO_DATE: 20250130T084806Z
-          PACKAGE_SHA256: 1a2696081c1f30d464f79fd300196822397c77f05440ea9ce6dc8e9658b595ec
+          QEMU_USER_STATIC_PACKAGE: qemu-user-static_10.0.2+ds-1_amd64.deb
+          REPO_DATE: 20250601T025158Z
+          PACKAGE_SHA256: 681cf3d95306b0d06de06efa5ab015270c1151f5b9810b15639821a8fe486a78
         run: |
           # temporarily use Debian qemu-user-static until Ubuntu fixes theirs
           wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_STATIC_PACKAGE}

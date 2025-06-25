@@ -439,11 +439,11 @@ jobs:
           REPO_DATE: 20250601T025158Z
         run: |
           if echo "${{ inputs.platform }}" | grep -iq 'arm'; then
-            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_arm64.deb"
-            PACKAGE_SHA256="a646003b125d0ee4e01b1b7c06459353d5b6397fe75c74c660aa6b3746cc8e6d"
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_10.0.2+ds-1_arm64.deb"
+            PACKAGE_SHA256="ea73f5e6abb82a923d91d1d8445871d09041e914fe59445c44bbc678f6000aca"
           else
-            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_amd64.deb"
-            PACKAGE_SHA256="835d4364555a2769d832a26337dc2c1fa2549daf235cf285a2d3d3caf94880e1"
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_10.0.2+ds-1_amd64.deb"
+            PACKAGE_SHA256="681cf3d95306b0d06de06efa5ab015270c1151f5b9810b15639821a8fe486a78"
           fi
 
           wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_STATIC_PACKAGE}
@@ -617,11 +617,11 @@ jobs:
           REPO_DATE: 20250601T025158Z
         run: |
           if echo "${{ inputs.platform }}" | grep -iq 'arm'; then
-            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_arm64.deb"
-            PACKAGE_SHA256="a646003b125d0ee4e01b1b7c06459353d5b6397fe75c74c660aa6b3746cc8e6d"
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_10.0.2+ds-1_arm64.deb"
+            PACKAGE_SHA256="ea73f5e6abb82a923d91d1d8445871d09041e914fe59445c44bbc678f6000aca"
           else
-            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_amd64.deb"
-            PACKAGE_SHA256="835d4364555a2769d832a26337dc2c1fa2549daf235cf285a2d3d3caf94880e1"
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_10.0.2+ds-1_amd64.deb"
+            PACKAGE_SHA256="681cf3d95306b0d06de06efa5ab015270c1151f5b9810b15639821a8fe486a78"
           fi
 
           wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_STATIC_PACKAGE}
@@ -743,11 +743,11 @@ jobs:
           REPO_DATE: 20250601T025158Z
         run: |
           if echo "${{ inputs.platform }}" | grep -iq 'arm'; then
-            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_arm64.deb"
-            PACKAGE_SHA256="a646003b125d0ee4e01b1b7c06459353d5b6397fe75c74c660aa6b3746cc8e6d"
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_10.0.2+ds-1_arm64.deb"
+            PACKAGE_SHA256="ea73f5e6abb82a923d91d1d8445871d09041e914fe59445c44bbc678f6000aca"
           else
-            QEMU_USER_STATIC_PACKAGE="qemu-user-static_7.2+dfsg-7+deb12u13_amd64.deb"
-            PACKAGE_SHA256="835d4364555a2769d832a26337dc2c1fa2549daf235cf285a2d3d3caf94880e1"
+            QEMU_USER_STATIC_PACKAGE="qemu-user-static_10.0.2+ds-1_amd64.deb"
+            PACKAGE_SHA256="681cf3d95306b0d06de06efa5ab015270c1151f5b9810b15639821a8fe486a78"
           fi
 
           wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_STATIC_PACKAGE}
