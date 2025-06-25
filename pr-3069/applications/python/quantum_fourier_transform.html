@@ -515,6 +515,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#quick-start">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#super-operator-representation">Super-operator Representation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#examples">Examples</a></li>
@@ -746,6 +747,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SuperOperator"><code class="docutils literal notranslate"><span class="pre">SuperOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.define"><code class="docutils literal notranslate"><span class="pre">operators.define()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.instantiate"><code class="docutils literal notranslate"><span class="pre">operators.instantiate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#spin-operators">Spin Operators</a></li>
@@ -957,7 +959,7 @@ R_k = \begin{bmatrix}
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#Can be changed to &#39;nvidia&#39; for single gpu, &#39;nvidia-mgpu&#39; for multi-GPU or quantum hardware.</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Can be changed to &#39;nvidia&#39; for single gpu, &#39;nvidia&#39; with option &#39;mgpu&#39; for multi-GPU or quantum hardware.</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 
 <span class="c1"># The state to which the QFT operation is applied to. The zeroth element in the list is the zeroth qubit.</span>
@@ -1011,7 +1013,7 @@ q2 : ┤ x ├──────────────────────
 <p>We provided one implementation of the Quantum Fourier Transform above. To demonstrate some of the other features of CUDA-Q, let’s define a new kernel for the Quantum Fourier Transform, which we’ll call <code class="docutils literal notranslate"><span class="pre">quantum_fourier_transform2</span></code>. Pay attention to how the kernel definition differs from the example above.</p>
 <p>Since the Quantum Fourier Transform is a unitary operator, its inverse is its adjoint. Therefore, once we have implemented the Quantum Fourier Transform as a kernel in CUDA-Q, we can use the built-in <code class="docutils literal notranslate"><span class="pre">adjoint</span></code> operation to create the Inverse Quantum Fourier Transform.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define kernels for the Quantum Fourier Transform and the Inverse Quantum Fourier Transform</span>
@@ -1038,7 +1040,7 @@ q2 : ┤ x ├──────────────────────
 </div>
 <p>Let’s see that this approach gives us the same results as the section above.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1102,7 +1104,7 @@ q2 : ┤ x ├─────────────────────●
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>

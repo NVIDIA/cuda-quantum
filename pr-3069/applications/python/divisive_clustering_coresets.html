@@ -515,6 +515,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#quick-start">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#super-operator-representation">Super-operator Representation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#examples">Examples</a></li>
@@ -746,6 +747,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SuperOperator"><code class="docutils literal notranslate"><span class="pre">SuperOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.define"><code class="docutils literal notranslate"><span class="pre">operators.define()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.instantiate"><code class="docutils literal notranslate"><span class="pre">operators.instantiate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#spin-operators">Spin Operators</a></li>
@@ -1662,7 +1664,7 @@ RuntimeError: NLOpt runtime error: nlopt failure
 </div>
 <p>To compute a problem with 34 qubits, we need to pool the memory of multiple GPUs. If you have multiple GPUs available, try the code below to run the same computation on 4 GPUs. You do not need to wait for the code to finish, just note how it does not fail immediately due to memory issues.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># target = &#39;nvidia-mgpu&#39;</span>
@@ -1672,7 +1674,7 @@ RuntimeError: NLOpt runtime error: nlopt failure
 <span class="k">except</span><span class="p">:</span>
     <span class="n">gpu_count</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="k">if</span> <span class="n">gpu_count</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">:</span>
-    <span class="o">!</span>mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">4</span><span class="w"> </span>python3<span class="w"> </span>divisive_clustering_src/main_divisive_clustering.py<span class="w"> </span>--target<span class="w"> </span>nvidia-mgpu<span class="w"> </span>--M<span class="w"> </span><span class="m">34</span>
+    <span class="o">!</span>mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">4</span><span class="w"> </span>python3<span class="w"> </span>divisive_clustering_src/main_divisive_clustering.py<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>mgpu<span class="w"> </span>--M<span class="w"> </span><span class="m">34</span>
 <span class="k">else</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span>
         <span class="sa">f</span><span class="s1">&#39;Not enough GPUs found on this system (</span><span class="si">{</span><span class="n">gpu_count</span><span class="si">}</span><span class="s1">) to run this step&#39;</span><span class="p">)</span>
@@ -1692,7 +1694,7 @@ Using BFL2 method to generate coresets
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
