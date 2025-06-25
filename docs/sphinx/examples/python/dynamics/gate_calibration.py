@@ -67,14 +67,15 @@ def cost_function(amps):
         boson.annihilate(0) - boson.create(0))
 
     # We optimize for a X(pi/2) rotation
-    evolution_result = cudaq.evolve(hamiltonian,
-                                    dimensions,
-                                    schedule,
-                                    psi0,
-                                    observables=[],
-                                    collapse_operators=[],
-                                    store_intermediate_results=False,
-                                    integrator=ScipyZvodeIntegrator())
+    evolution_result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        psi0,
+        observables=[],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+        integrator=ScipyZvodeIntegrator())
     final_state = evolution_result.final_state()
 
     overlap = np.abs(final_state.overlap(target_state))
