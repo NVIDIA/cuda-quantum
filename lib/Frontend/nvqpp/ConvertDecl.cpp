@@ -330,16 +330,23 @@ bool QuakeBridgeVisitor::traverseAnyRecordDecl(D *x) {
   }
   return false;
 }
+
 bool QuakeBridgeVisitor::TraverseRecordDecl(clang::RecordDecl *x) {
   if (traverseAnyRecordDecl(x))
     return true;
   return Base::TraverseRecordDecl(x);
 }
+
 bool QuakeBridgeVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl *x) {
   if (traverseAnyRecordDecl(x))
     return true;
+  if (x->isUnion()) {
+    reportClangError(x, mangler, "union types are not allowed in kernels");
+    return false;
+  }
   return Base::TraverseCXXRecordDecl(x);
 }
+
 bool QuakeBridgeVisitor::TraverseClassTemplateSpecializationDecl(
     clang::ClassTemplateSpecializationDecl *x) {
   if (traverseAnyRecordDecl(x))
