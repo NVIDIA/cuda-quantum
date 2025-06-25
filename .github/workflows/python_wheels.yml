@@ -122,9 +122,16 @@ jobs:
           echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:latest
+        shell: bash
+        env:
+          QEMU_USER_STATIC_PACKAGE: qemu-user-static_7.2+dfsg-7+deb12u12_amd64.deb
+          REPO_DATE: 20250130T084806Z
+          PACKAGE_SHA256: 1a2696081c1f30d464f79fd300196822397c77f05440ea9ce6dc8e9658b595ec
+        run: |
+          # temporarily use Debian qemu-user-static until Ubuntu fixes theirs
+          wget -q http://snapshot.debian.org/archive/debian/${REPO_DATE}/pool/main/q/qemu/${QEMU_USER_STATIC_PACKAGE}
+          echo "${PACKAGE_SHA256} ${QEMU_USER_STATIC_PACKAGE}" | sha256sum -c
+          sudo dpkg -i ${QEMU_USER_STATIC_PACKAGE}
 
       - name: Set up context for buildx
         run: |
