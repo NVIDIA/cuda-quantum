@@ -262,8 +262,7 @@ public:
   /// Only supported for noise backends. By default do nothing
   virtual void applyNoise(const cudaq::kraus_channel &channel,
                           const std::vector<std::size_t> &targets) {
-    CUDAQ_WARN("kraus_channel application not supported on {} simulator.",
-               name());
+    CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
   }
 
   /// @brief Apply a custom operation described by a matrix of data
