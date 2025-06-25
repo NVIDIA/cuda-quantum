@@ -11,7 +11,7 @@ from ...util.timing_helper import ScopeTimer
 from typing import Sequence, Mapping
 from ...operators import Operator
 from ..schedule import Schedule
-from ...mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, State
+from ...mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, State, SuperOperator
 import warnings
 
 has_cupy = True
@@ -34,15 +34,22 @@ class cuDensityMatTimeStepper(BaseTimeStepper[State]):
             raise ImportError(
                 'CUDA-Q is missing dynamics support. Please check your installation'
             )
-
-        if not has_cupy:
-            raise ImportError('CuPy is required to use integrators.')
         self.stepper = bindings.TimeStepper(schedule, dims, ham, collapsed_ops,
                                             is_master_equation)
 
     def compute(self, state: State, current_time: float):
         action_result = self.stepper.compute(state, current_time)
         return action_result
+
+
+class cuDensityMatSuperOpTimeStepper(cuDensityMatTimeStepper):
+    # Time-stepper which takes super-operator as system dynamics
+    def __init__(self, super_op, schedule, dims):
+        if not has_dynamics:
+            raise ImportError(
+                'CUDA-Q is missing dynamics support. Please check your installation'
+            )
+        self.stepper = bindings.TimeStepper(schedule, dims, super_op)
 
 
 class RungeKuttaIntegrator(BaseIntegrator[State]):
@@ -89,14 +96,17 @@ class RungeKuttaIntegrator(BaseIntegrator[State]):
     def set_system(self,
                    dimensions: Mapping[int, int],
                    schedule: Schedule,
-                   hamiltonian: Operator,
+                   hamiltonian: Operator | SuperOperator,
                    collapse_operators: Sequence[Operator] = []):
         system_ = bindings.SystemDynamics()
         system_.modeExtents = [dimensions[d] for d in range(len(dimensions))]
-        system_.hamiltonian = hamiltonian
-        system_.collapseOps = [
-            MatrixOperator(c_op) for c_op in collapse_operators
-        ]
+        if isinstance(hamiltonian, SuperOperator):
+            system_.superOp = hamiltonian
+        else:
+            system_.hamiltonian = hamiltonian
+            system_.collapseOps = [
+                MatrixOperator(c_op) for c_op in collapse_operators
+            ]
         schedule_ = bindings.Schedule(schedule._steps,
                                       list(schedule._parameters))
         # Handle the legacy (deprecated) `nsteps` parameter.
