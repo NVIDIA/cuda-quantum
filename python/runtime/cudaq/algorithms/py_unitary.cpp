@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/algorithms/unitary.h"
 #include "runtime/cudaq/algorithms/py_draw.h"
@@ -22,7 +23,7 @@ namespace cudaq {
 py::array pyGetUnitary(py::object &kernel, py::args args) {
   // Prepare kernel launch parameters (see py_draw.cpp for pattern)
   auto [kernelName, kernelMod, argData] =
-      getKernelLaunchParameters(kernel, args);
+      details::getKernelLaunchParameters(kernel, args);
 
   // Compute the unitary
   auto cmat = details::get_unitary_cmat([&]() mutable {

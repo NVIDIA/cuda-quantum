@@ -90,4 +90,5 @@ void bindComplexMatrix(py::module &mod) {
           [](const complex_matrix &m) { return details::cmat_to_numpy(m); },
           "Convert :class:`ComplexMatrix` to numpy.ndarray.");
 }
+
 } // namespace cudaq

@@ -28,6 +28,7 @@ class module_;
 template <typename T, int ExtraFlags>
 class array_t;
 } // namespace pybind11
+
 namespace cudaq {
 
 class complex_matrix;

@@ -17,6 +17,7 @@
 
 namespace cudaq {
 
+namespace details {
 std::tuple<std::string, MlirModule, OpaqueArguments *>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::len(kernel.attr("arguments")) != args.size())
@@ -35,10 +36,12 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
   return {kernelName, kernelMod, argData};
 }
 
+} // namespace details
+
 /// @brief Run `cudaq::draw` on the provided kernel.
 std::string pyDraw(py::object &kernel, py::args args) {
   auto [kernelName, kernelMod, argData] =
-      getKernelLaunchParameters(kernel, args);
+      details::getKernelLaunchParameters(kernel, args);
 
   return details::extractTrace([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
@@ -52,7 +55,7 @@ std::string pyDraw(std::string format, py::object &kernel, py::args args) {
     return pyDraw(kernel, args);
   } else if (format == "latex") {
     auto [kernelName, kernelMod, argData] =
-        getKernelLaunchParameters(kernel, args);
+        details::getKernelLaunchParameters(kernel, args);
 
     return details::extractTraceLatex([&]() mutable {
       pyAltLaunchKernel(kernelName, kernelMod, *argData, {});

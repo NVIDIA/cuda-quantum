@@ -123,6 +123,7 @@ inline complex_matrix unitary_from_trace(const Trace &trace) {
     }
 
     // Get vector of all qubit indices that this gate operates on
+    // The control qubits are expected to be at the start of the vector,
     std::vector<std::size_t> inst_qubits;
     inst_qubits.reserve(inst.controls.size() + inst.targets.size());
     for (const auto &control : inst.controls) {
@@ -150,27 +151,6 @@ template <typename QuantumKernel, typename... Args>
 complex_matrix get_unitary_cmat(QuantumKernel &&kernel, Args &&...args) {
   auto trace = traceFromKernel(kernel, std::forward<Args>(args)...);
   return unitary_from_trace(trace);
-}
-
-/// @brief Execute a quantum kernel and return its unitary as a flat
-/// std::vector.
-/// @tparam QuantumKernel The functor type of the quantum kernel.
-/// @param kernel The quantum kernel to execute.
-/// @param args Arguments to pass to the kernel.
-/// @returns A std::vector<std::complex<double>> representing the unitary in
-/// row-major order.
-template <typename QuantumKernel, typename... Args>
-std::vector<std::complex<double>> get_unitary(QuantumKernel &&kernel,
-                                              Args &&...args) {
-  auto U = get_unitary_cmat(std::forward<QuantumKernel>(kernel),
-                            std::forward<Args>(args)...);
-  // Flatten to row-major std::vector
-  std::vector<std::complex<double>> result;
-  result.reserve(U.rows() * U.cols());
-  for (std::size_t i = 0; i < U.rows(); ++i)
-    for (std::size_t j = 0; j < U.cols(); ++j)
-      result.push_back(U(i, j));
-  return result;
 }
 
 } // namespace cudaq::details
