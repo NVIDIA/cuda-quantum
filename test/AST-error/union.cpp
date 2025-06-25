@@ -11,7 +11,7 @@
 #include <cudaq.h>
 #include <iostream>
 
-// expected-error@+1{{union types not allowed in kernels}}
+// expected-error@+1{{union types are not allowed in kernels}}
 union test_union {
   int foo;
   short story;
