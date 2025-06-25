@@ -151,6 +151,29 @@ def test_swap_two_qubits():
     np.testing.assert_allclose(U, SWAP, atol=1e-12)
 
 
+def test_swap_nonadjacent_qubits():
+    qubit_cnt = 5
+    ind1, ind2 = 1, 4
+
+    @cudaq.kernel
+    def k():
+        q = cudaq.qvector(qubit_cnt)
+        swap(q[1], q[4])
+
+    U = cudaq.get_unitary(k)
+    # build expected swap matrix
+    N = 2**qubit_cnt
+    EXPECTED = np.zeros((N, N), dtype=np.complex128)
+    for idx in range(N):
+        bits = [(idx >> j) & 1 for j in range(qubit_cnt)][::-1]
+        bits[ind1], bits[ind2] = bits[ind2], bits[ind1]
+        j = sum(bit << jdx for jdx, bit in enumerate(bits[::-1]))
+        EXPECTED[j, idx] = 1
+    print(U, U.shape)
+    print(EXPECTED, EXPECTED.shape)
+    np.testing.assert_allclose(U, EXPECTED, atol=1e-12)
+
+
 def test_cnot_two_qubits_opposite():
 
     @cudaq.kernel
