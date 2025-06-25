@@ -201,6 +201,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#pulse">Pulse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
@@ -511,6 +512,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../dynamics.html#quick-start">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dynamics.html#super-operator-representation">Super-operator Representation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../dynamics.html#numerical-integrators">Numerical Integrators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../dynamics.html#examples">Examples</a></li>
@@ -733,6 +735,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.IntermediateResultSave"><code class="docutils literal notranslate"><span class="pre">IntermediateResultSave</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#operators">Operators</a><ul>
@@ -741,6 +744,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.operators.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.operators.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.SuperOperator"><code class="docutils literal notranslate"><span class="pre">SuperOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.operators.define"><code class="docutils literal notranslate"><span class="pre">operators.define()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.operators.instantiate"><code class="docutils literal notranslate"><span class="pre">operators.instantiate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#spin-operators">Spin Operators</a></li>
@@ -873,13 +877,13 @@ alternating time-bins in a circuit composed of two delay lines in series.</p>
 <p>Programmers of CUDA-Q may access the ORCA API from either C++ or Python. There is an environment
 variable <code class="docutils literal notranslate"><span class="pre">ORCA_ACCESS_URL</span></code> that can be set so that the ORCA target can look for it during
 configuration.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="p">|</span>:spellcheck-disable:<span class="p">|</span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_ACCESS_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;ORCA API Server&gt;&quot;</span><span class="p">|</span>:spellcheck-enable:<span class="p">|</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_ACCESS_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;ORCA API Server&gt;&quot;</span>
 </pre></div>
 </div>
 <p>Sometimes the requests to the PT-1 require an authentication token. This token can be set as an
-environment variable named <code class="docutils literal notranslate"><span class="pre">ORCA_AUTH_TOKEN</span></code>. For example, if the token is <code class="code docutils literal notranslate"><span class="pre">AbCdEf123456</span></code>,
+environment variable named <code class="docutils literal notranslate"><span class="pre">ORCA_AUTH_TOKEN</span></code>. For example, if the token is <code class="code docutils literal notranslate"><span class="pre">token123</span></code>,
 you can set the environment variable as follows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="p">|</span>:spellcheck-disable:<span class="p">|</span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_AUTH_TOKEN</span><span class="o">=</span><span class="s2">&quot;AbCdEf123456&quot;</span><span class="p">|</span>:spellcheck-enable:<span class="p">|</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_AUTH_TOKEN</span><span class="o">=</span><span class="s2">&quot;token123&quot;</span>
 </pre></div>
 </div>
 </section>
