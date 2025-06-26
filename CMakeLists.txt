@@ -593,7 +593,7 @@ endif()
 
 # ==============================================================================
 # Apply Stim patches
-execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/Stim/ apply ../customizations/Stim/arm_neon.diff --ignore-whitespace
+execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/Stim/ apply ../customizations/Stim/arm_neon.diff --ignore-whitespace --reverse --check
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                   RESULT_VARIABLE GIT_PATCH_RESULT
                   ERROR_QUIET)
