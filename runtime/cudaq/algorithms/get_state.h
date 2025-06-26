@@ -14,11 +14,11 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/platform/qpu_state.h"
+#include "cudaq/qis/kernel_utils.h"
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
 #include "cudaq/utils/registry.h"
-#include "get_kernel_name.h"
 #include <complex>
 #include <vector>
 

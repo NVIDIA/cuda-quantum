@@ -10,8 +10,8 @@
 
 #include "common/ExecutionContext.h"
 #include "cudaq/concepts.h"
-#include "cudaq/qis/qkernel.h"
 #include "cudaq/utils/registry.h"
+#include "qkernel.h"
 
 namespace cudaq {
 namespace details {
