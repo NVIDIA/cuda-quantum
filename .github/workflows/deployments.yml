@@ -417,16 +417,63 @@ jobs:
       build_docs: ${{ matrix.cuda_version == '11.8' }}
       environment: ghcr-deployment
 
-  # After creating the docker images, we need to stitch the multi-arch images together.
-  stitch:
-    name: Stitch multi-arch image
+  digest_config:
+    name: Aggregate digests
     needs: docker_images
     runs-on: ubuntu-latest
 
+    outputs:
+      json: "${{ steps.read.outputs.result }}"
+
     steps:
-      - name: Create multi-arch manifest
+      - name: Read matrix outputs
+        id: read
+        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        with:
+          matrix-step-name: docker_images
+
+      - name: Print full digest config JSON
         run: |
-          docker buildx inspect nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest-base
+          echo "Received matrix outputs:"
+          echo '${{ steps.read.outputs.result }}' | jq .
+
+  stitch:
+    name: Stitch multi-arch manifests
+    needs: digest_config
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create multi-arch images
+        run: |
+          set -euo pipefail
+
+          DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
+          echo "DIGESTS_JSON = $DIGESTS_JSON"
+          echo "$DIGESTS_JSON" | jq .
+
+          for cuda in 11.8 12.0; do
+            echo "Processing CUDA $cuda..."
+            refs=""
+            for arch in amd64 arm64; do
+              key="${arch}-cu${cuda}"
+              echo "Looking up key: $key"
+
+              digest=$(echo "$DIGESTS_JSON" | jq -r ".[\"$key\"].digest")
+              if [[ -z "$digest" || "$digest" == "null" ]]; then
+                echo "::error::Missing digest for key $key"
+                exit 1
+              fi
+
+              echo "Found digest for $key: $digest"
+              refs="$refs ghcr.io/nvidia/cuda-quantum@$digest"
+            done
+
+            echo "Creating manifest for cu${cuda}-latest-base"
+            echo "Refs: $refs"
+            docker buildx imagetools create \
+              --tag ghcr.io/nvidia/cuda-quantum:cu${cuda}-latest-base \
+              $refs
+          done
 
   python_wheels:
     name: Create Python wheels

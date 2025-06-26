@@ -617,6 +617,15 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
+      - name: Write matrix outputs
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        with:
+          matrix-step-name: docker_images
+          matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}
+          outputs: |
+            digest: ${{ steps.cudaq_build.outputs.digest }}
+            image_tag: ${{ steps.cudaq_metadata.outputs.tags }}
+
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
         uses: actions/cache/save@v4
