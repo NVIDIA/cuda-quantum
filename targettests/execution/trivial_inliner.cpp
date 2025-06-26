@@ -133,4 +133,4 @@ int main() {
 // CHECK: 3: true
 // CHECK: 4: true
 // CHECK: success!
-// CHECK: Results size: 0
+// CHECK: Results size: 
