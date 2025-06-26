@@ -334,7 +334,7 @@ jobs:
         run: |
           echo "Full config.outputs.json:"
           echo "${{ steps.read_json.outputs.result }}" \
-            | python3 -c 'import sys, json; print(json.dumps(json.loads(json.loads(sys.stdin.read())), indent=2))'
+            | python3 -c 'import sys, json; print(json.dumps(json.loads(sys.stdin.read()), indent=2))'
 
   coverage:
     name: Update code coverage
