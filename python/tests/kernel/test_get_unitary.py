@@ -169,8 +169,6 @@ def test_swap_nonadjacent_qubits():
         bits[ind1], bits[ind2] = bits[ind2], bits[ind1]
         j = sum(bit << jdx for jdx, bit in enumerate(bits[::-1]))
         EXPECTED[j, idx] = 1
-    print(U, U.shape)
-    print(EXPECTED, EXPECTED.shape)
     np.testing.assert_allclose(U, EXPECTED, atol=1e-12)
 
 
