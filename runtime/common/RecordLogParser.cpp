@@ -169,14 +169,14 @@ void cudaq::RecordLogParser::preallocateArray() {
 }
 
 void cudaq::RecordLogParser::preallocateTuple() {
-  if (dataLayoutInfo.first == 0)
+  if (!dataLayoutInfo.first.has_value())
     throw std::runtime_error(
         "Data layout information missing for the struct / tuple type.");
   if (dataLayoutInfo.second.size() != containerMeta.tupleTypes.size())
     throw std::runtime_error("Tuple size mismatch in kernel and label.");
   containerMeta.dataOffset = bufferHandler.getBufferSize();
   // Directly allocate memory for the tuple, update offsets
-  bufferHandler.resizeBuffer(dataLayoutInfo.first);
+  bufferHandler.resizeBuffer(dataLayoutInfo.first.value());
   containerMeta.tupleOffsets = dataLayoutInfo.second;
 }
 

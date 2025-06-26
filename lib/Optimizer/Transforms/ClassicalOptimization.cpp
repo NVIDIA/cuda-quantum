@@ -123,6 +123,7 @@ static void createClassicalOptimizationPipeline(OpPassManager &pm,
                                                 bool allowBreak,
                                                 bool allowClosedInterval) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createSROA());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
 

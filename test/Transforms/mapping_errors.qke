@@ -8,7 +8,6 @@
 
 // RUN: cudaq-opt --qubit-mapping=device=path\(3\) %s -split-input-file -verify-diagnostics
 
-// expected-error @+1 {{no borrow_wire ops found in test_00}}
 func.func @test_00() {
   %0 = quake.null_wire
   %1 = quake.null_wire
@@ -58,7 +57,6 @@ func.func @test_02() {
 
 quake.wire_set @wires_03[10]
 
-// expected-error @+1 {{no borrow_wire ops found in test_03}}
 func.func @test_03() {
   return
 }

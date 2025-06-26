@@ -452,16 +452,33 @@ public:
     if (!func->hasAttr(cudaq::entryPointAttrName))
       func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
     auto moduleOp = builder.create<mlir::ModuleOp>();
-    moduleOp.push_back(func.clone());
     moduleOp->setAttrs(m_module->getAttrDictionary());
+    auto mangledNameMap = m_module->getAttrOfType<mlir::DictionaryAttr>(
+        cudaq::runtime::mangledNameMap);
 
     for (auto &op : m_module.getOps()) {
       // Add any global symbols, including global constant arrays.
       // Global constant arrays can be created during compilation,
       // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`,
       // and `get-concrete-matrix` passes.
-      if (auto globalOp = dyn_cast<cudaq::cc::GlobalOp>(op))
-        moduleOp.push_back(globalOp.clone());
+      if (auto lfunc = dyn_cast<mlir::func::FuncOp>(op)) {
+        bool skip = lfunc.getName().ends_with(".thunk");
+        if (!skip)
+          for (auto &entry : mangledNameMap)
+            if (lfunc.getName() ==
+                cast<mlir::StringAttr>(entry.getValue()).getValue()) {
+              skip = true;
+              break;
+            }
+        if (!skip) {
+          auto clonedFunc = lfunc.clone();
+          if (clonedFunc.getName() != func.getName())
+            clonedFunc.setPrivate();
+          moduleOp.push_back(std::move(clonedFunc));
+        }
+      } else {
+        moduleOp.push_back(op.clone());
+      }
     }
 
     // Lambda to apply a specific pipeline to the given ModuleOp
