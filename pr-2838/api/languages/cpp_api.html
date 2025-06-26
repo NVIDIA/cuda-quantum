@@ -201,6 +201,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#pulse">Pulse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
@@ -511,6 +512,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#quick-start">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#super-operator-representation">Super-operator Representation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/dynamics.html#examples">Examples</a></li>
@@ -654,9 +656,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/platform.html">11. Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-run">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.5. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -732,6 +735,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.IntermediateResultSave"><code class="docutils literal notranslate"><span class="pre">IntermediateResultSave</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#operators">Operators</a><ul>
@@ -740,6 +744,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.operators.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.operators.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.operators.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.SuperOperator"><code class="docutils literal notranslate"><span class="pre">SuperOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.operators.define"><code class="docutils literal notranslate"><span class="pre">operators.define()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.operators.instantiate"><code class="docutils literal notranslate"><span class="pre">operators.instantiate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#spin-operators">Spin Operators</a></li>
@@ -5258,6 +5263,24 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext20explicitMeasurementsE">
 <span class="target" id="classcudaq_1_1ExecutionContext_1a446b7349d57ff400cf0121e5f29962be"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">explicitMeasurements</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext20explicitMeasurementsE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Whether or not to simply concatenate measurements in execution order. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1ae3f00ca492659c5715faa185edecff1e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">msm_probabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Probability of occurrence of each error mechanism (column) in Measurement Syndrome Matrix (0-1 range). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext15msm_prob_err_idE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a9a7627c0aa37bcf0938be2941795b2aa"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">msm_prob_err_id</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext15msm_prob_err_idE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Error mechanism ID. From a probability perspective, each error mechanism ID is independent of all other error mechanism ID. For all errors with the <em>same</em> ID, only one of them can happen. That is - the errors containing the same ID are correlated with each other. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext14msm_dimensionsE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a676ed0f74e3f9f671c1066e5476b8f22"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">msm_dimensions</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext14msm_dimensionsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The number of rows and columns of a Measurement Syndrome Matrix. Note: Measurement Syndrome Matrix is defined in <a class="reference external" href="https://arxiv.org/pdf/2407.13826">https://arxiv.org/pdf/2407.13826</a>. </p>
 </dd></dl>
 
 </div>
