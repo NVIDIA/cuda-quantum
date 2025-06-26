@@ -314,7 +314,8 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
                                     "coefficients for the terms.");
       }
       const auto coeffVal = hamiltonian.begin()->get_coefficient().evaluate();
-      batchedProductTermCoeffs.emplace_back(coeffVal);
+      batchedProductTermCoeffs.emplace_back(std::complex<double>(0.0, -1.0) *
+                                            coeffVal);
 
       if (hamiltonian.begin()->get_term_id() !=
           hamiltonians[0].begin()->get_term_id()) {
