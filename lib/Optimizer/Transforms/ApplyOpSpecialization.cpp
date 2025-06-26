@@ -86,7 +86,6 @@ private:
                 module.lookupSymbol<func::FuncOp>(calleeName)) {
           SmallVector<Value> newArgs;
           newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
-          bool arithConsts = false;
           IRMapping mapper;
           SmallVector<arith::ConstantOp> moveConsts;
           for (auto [idx, v] : llvm::enumerate(newArgs)) {
@@ -95,11 +94,10 @@ private:
               moveConsts.push_back(newConst);
               mapper.map(genericFunc.getArgument(idx), newConst);
               LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
-              arithConsts = true;
             }
           }
 
-          if (arithConsts) {
+          if (!moveConsts.empty()) {
             // Possible code size improvement: this could avoid cloning
             // duplicates by appending the position and constant value into the
             // new cloned function's name.
