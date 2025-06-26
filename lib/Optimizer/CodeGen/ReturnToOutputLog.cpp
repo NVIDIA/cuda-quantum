@@ -39,7 +39,7 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto fn = ret->getParentOfType<func::FuncOp>();
     // If the containing function is not an entry-point kernel, or it was marked
-    // private by the JIT, it has already been processed then we're done.
+    // private by the JIT, or it has already been processed then we're done.
     if (!fn || !fn->hasAttr(cudaq::entryPointAttrName) || fn.isPrivate() ||
         ret->hasAttr("cc.cudaq.run"))
       return failure();
