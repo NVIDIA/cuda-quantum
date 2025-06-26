@@ -43,7 +43,7 @@ struct ApplyVariants {
     bool rv = false;
 
     auto checkAndSet = [&](bool &bit0, bool bit1) {
-      rv = !bit0 & bit1;
+      rv |= !bit0 & bit1;
       bit0 = bit0 | bit1;
     };
 
@@ -178,7 +178,9 @@ namespace {
 /// Replace an apply op with a call to the correct variant function.
 struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
   using Base = OpRewritePattern<quake::ApplyOp>;
-  using Base::Base;
+
+  explicit ApplyOpPattern(MLIRContext *ctx, bool cp, unsigned &ctr)
+      : Base(ctx), constantProp(cp), counter(ctr) {}
 
   LogicalResult matchAndRewrite(quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
@@ -193,10 +195,51 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
       newArgs.push_back(consOp);
     }
     newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+
+    if (constantProp) {
+      // If some of the arguments in getArgs() are constants, then materialize
+      // those constants in a clone of the variant. The specialized variant will
+      // then be able to perform better constant propagation even if not
+      // inlined.
+      auto module = apply->getParentOfType<ModuleOp>();
+      if (func::FuncOp genericFunc =
+              module.lookupSymbol<func::FuncOp>(calleeName)) {
+        bool arithConsts = false;
+        IRMapping mapper;
+        SmallVector<Value> otherArgs;
+        for (auto [idx, v] : llvm::enumerate(newArgs)) {
+          if (auto c = v.getDefiningOp<arith::ConstantOp>()) {
+            mapper.map(genericFunc.getArgument(idx), v);
+            LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
+            arithConsts = true;
+          } else {
+            otherArgs.emplace_back(v);
+          }
+        }
+
+        if (arithConsts) {
+          // Possible code size improvement: this could avoid cloning duplicates
+          // by appending the position and constant value into the new cloned
+          // function's name.
+          newArgs = otherArgs;
+          func::FuncOp newFunc = genericFunc.clone(mapper);
+          calleeName += std::string{"_"} + std::to_string(counter++);
+          newFunc.setName(calleeName);
+          newFunc.setPrivate();
+          module.push_back(newFunc);
+          LLVM_DEBUG(llvm::dbgs() << "apply specialization including constant "
+                                     "propagation of arguments\n"
+                                  << newFunc << '\n');
+        }
+      }
+    }
     rewriter.replaceOpWithNewOp<func::CallOp>(apply, apply.getResultTypes(),
                                               calleeName, newArgs);
     return success();
   }
+
+  const bool constantProp;
+  unsigned &counter;
 };
 
 class ApplySpecializationPass
@@ -638,7 +681,8 @@ public:
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<ApplyOpPattern>(ctx);
+    unsigned counter = 0;
+    patterns.insert<ApplyOpPattern>(ctx, constantPropagation, counter);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After apply specialization:\n"

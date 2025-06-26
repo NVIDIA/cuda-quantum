@@ -314,8 +314,8 @@ public:
       trailingData = t;
       args.push_back(a);
     }
-    auto call = builder.create<func::CallOp>(loc, funcTy.getResults(),
-                                             funcOp.getName(), args);
+    auto call = builder.create<cudaq::cc::NoInlineCallOp>(
+        loc, funcTy.getResults(), funcOp.getName(), args);
     const bool hasVectorResult =
         funcTy.getNumResults() == 1 &&
         isa<cudaq::cc::SpanLikeType>(funcTy.getResult(0));

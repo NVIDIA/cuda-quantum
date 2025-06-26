@@ -67,6 +67,7 @@ jobs:
         with:
           endpoint: builder_context
           version: v0.19.0
+          buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             image=moby/buildkit:v0.19.0
 
@@ -96,6 +97,12 @@ jobs:
           run: |
             cd $CUDAQ_REPO_ROOT
             python3 -m pip install iqm-client==16.1
+            python3 -m pytest -v build/python/tests/interop/
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=test_in_devenv.yml::Python interop tests failed with status $pytest_status."
+              exit 1
+            fi
             ctest --output-on-failure --test-dir build -E "ctest-nvqpp|ctest-targettests"
             ctest_status=$?
             $LLVM_INSTALL_PREFIX/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
@@ -205,6 +212,7 @@ jobs:
         with:
           endpoint: builder_context
           version: v0.19.0
+          buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             image=moby/buildkit:v0.19.0
 
@@ -223,7 +231,7 @@ jobs:
 
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
-            --build-arg base_image=$base_image 
+            --build-arg base_image=$base_image
 
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main

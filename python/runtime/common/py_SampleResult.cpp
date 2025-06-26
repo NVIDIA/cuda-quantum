@@ -11,7 +11,7 @@
 
 #include "py_SampleResult.h"
 
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 
 #include <sstream>
 

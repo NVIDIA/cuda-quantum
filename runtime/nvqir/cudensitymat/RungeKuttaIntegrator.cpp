@@ -72,11 +72,17 @@ void runge_kutta::integrate(double targetTime) {
     }
 
     auto liouvillian =
-        cudaq::dynamics::Context::getCurrentContext()
-            ->getOpConverter()
-            .constructLiouvillian(m_system.hamiltonian, m_system.collapseOps,
-                                  m_system.modeExtents, params,
-                                  castSimState.is_density_matrix());
+        m_system.superOp.has_value()
+            ? cudaq::dynamics::Context::getCurrentContext()
+                  ->getOpConverter()
+                  .constructLiouvillian(m_system.superOp.value(),
+                                        m_system.modeExtents, params)
+            : cudaq::dynamics::Context::getCurrentContext()
+                  ->getOpConverter()
+                  .constructLiouvillian(m_system.hamiltonian,
+                                        m_system.collapseOps,
+                                        m_system.modeExtents, params,
+                                        castSimState.is_density_matrix());
     m_stepper = std::make_unique<CuDensityMatTimeStepper>(
         castSimState.get_handle(), liouvillian);
   }

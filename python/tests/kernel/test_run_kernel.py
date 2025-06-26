@@ -6,14 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os, time
-
-import pytest
-import numpy as np
-from typing import Callable, List, Tuple
+import os
+import time
 from dataclasses import dataclass
 
 import cudaq
+import numpy as np
+import pytest
+
+list_err_msg = 'does not yet support returning `list` from entry-point kernels'
 
 
 def is_close(actual, expected):
@@ -73,50 +74,6 @@ def test_simple_run_ghz_with_noise():
                         qubitCount,
                         shots_count=shots,
                         noise_model=noise)
-    print(results)
-    assert len(results) == shots
-    noisy_count = 0
-    for result in results:
-        if result != 0 and result != qubitCount:
-            noisy_count += 1
-    assert noisy_count > 0
-    cudaq.reset_target()
-
-
-def test_run_async():
-    shots = 100
-    qubitCounts = [4, 5, 6, 7, 8]
-    resultHandles = []
-    for qubitCount in qubitCounts:
-        resultHandles.append(
-            cudaq.run_async(simple, qubitCount, shots_count=shots))
-        print(f"({time.time()}) Launch async run for {qubitCount} qubits")
-
-    for i in range(len(qubitCounts)):
-        results = resultHandles[i].get()
-        qubitCount = qubitCounts[i]
-        print(f"({time.time()}) Result for {qubitCount} qubits: {results}")
-        assert len(results) == shots
-        non_zero_count = 0
-        for result in results:
-            assert result == 0 or result == qubitCount  # 00..0 or 1...11
-            if result == qubitCount:
-                non_zero_count += 1
-
-        assert non_zero_count > 0
-
-
-def test_run_async_with_noise():
-    cudaq.set_target("density-matrix-cpu")
-    shots = 100
-    qubitCount = 3
-    depol = cudaq.Depolarization2(.5)
-    noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("cx", depol)
-    results = cudaq.run_async(simple,
-                              qubitCount,
-                              shots_count=shots,
-                              noise_model=noise).get()
     print(results)
     assert len(results) == shots
     noisy_count = 0
@@ -325,55 +282,83 @@ def test_return_float64():
     assert results[1] == 3.0
 
 
+def test_return_list_from_device_kernel():
+
+    @cudaq.kernel
+    def kernel_that_returns_list() -> list[int]:
+        return [1, 2, 3]
+
+    @cudaq.kernel
+    def entry_point_kernel() -> int:
+        result = kernel_that_returns_list()
+        return len(result)
+
+    results = cudaq.run(entry_point_kernel, shots_count=2)
+
+    assert len(results) == 2
+    assert results[0] == 3
+    assert results[1] == 3
+
+    @cudaq.kernel
+    def incrementer(i: int) -> int:
+        return i + 1
+
+    @cudaq.kernel
+    def kernel_with_list_arg(arg: list[int]) -> list[int]:
+        result = arg
+        for i in result:
+            incrementer(i)
+        return result
+
+    @cudaq.kernel
+    def caller_kernel(arg: list[int]) -> int:
+        values = kernel_with_list_arg(arg)
+        result = 0
+        for v in values:
+            result += v
+        return result
+
+    results = cudaq.run(caller_kernel, [4, 5, 6], shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 15  # 4+1 + 5+1 + 6+1 = 15
+
+
 def test_return_list_bool():
 
     @cudaq.kernel
     def simple_list_bool_no_args() -> list[bool]:
         return [True, False, True]
 
-    results = cudaq.run(simple_list_bool_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == [True, False, True]
-    assert results[1] == [True, False, True]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_bool_no_args, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_bool(n: int) -> list[bool]:
         qubits = cudaq.qvector(n)
         return [True, False, True]
 
-    results = cudaq.run(simple_list_bool, 2, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == [True, False, True]
-    assert results[1] == [True, False, True]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_bool, 2, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_bool_args(n: int, t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_bool_args,
-                        2, [True, False, True],
-                        shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [True, False, True]
-    # assert results[1] == [True, False, True]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_bool_args, 2, [True, False, True])
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_bool_args_no_broadcast(t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(2)
         return t
 
-    results = cudaq.run(simple_list_bool_args_no_broadcast, [True, False, True],
-                        shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [True, False, True]
-    # assert results[1] == [True, False, True]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_bool_args_no_broadcast, [True, False, True])
+    assert list_err_msg in str(e.value)
 
 
 def test_return_list_int():
@@ -382,23 +367,18 @@ def test_return_list_int():
     def simple_list_int_no_args() -> list[int]:
         return [-13, 5, 42]
 
-    results = cudaq.run(simple_list_int_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == [-13, 5, 42]
-    assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int_no_args, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_int(n: int, t: list[int]) -> list[int]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_int, 2, [-13, 5, 42], shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int, 2, [-13, 5, 42], shots_count=2)
+    assert list_err_msg in str(e.value)
 
 
 def test_return_list_int8():
@@ -407,23 +387,18 @@ def test_return_list_int8():
     def simple_list_int8_no_args() -> list[np.int8]:
         return [-13, 5, 42]
 
-    results = cudaq.run(simple_list_int8_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == [-13, 5, 42]
-    assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int8_no_args, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_int8, 2, [-13, 5, 42], shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int8, 2, [-13, 5, 42], shots_count=2)
+    assert list_err_msg in str(e.value)
 
 
 def test_return_list_int16():
@@ -432,23 +407,18 @@ def test_return_list_int16():
     def simple_list_int16_no_args() -> list[np.int16]:
         return [-13, 5, 42]
 
-    results = cudaq.run(simple_list_int16_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == [-13, 5, 42]
-    assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int16_no_args, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_int16, 2, [-13, 5, 42], shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int16, 2, [-13, 5, 42], shots_count=2)
+    assert list_err_msg in str(e.value)
 
 
 def test_return_list_int32():
@@ -457,23 +427,18 @@ def test_return_list_int32():
     def simple_list_int32_no_args() -> list[np.int32]:
         return [-13, 5, 42]
 
-    results = cudaq.run(simple_list_int32_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == [-13, 5, 42]
-    assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int32_no_args, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_int32(n: int, t: list[np.int32]) -> list[np.int32]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_int32, 2, [-13, 5, 42], shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int32, 2, [-13, 5, 42], shots_count=2)
+    assert list_err_msg in str(e.value)
 
 
 def test_return_list_int64():
@@ -482,23 +447,18 @@ def test_return_list_int64():
     def simple_list_int64_no_args() -> list[np.int64]:
         return [-13, 5, 42]
 
-    results = cudaq.run(simple_list_int64_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == [-13, 5, 42]
-    assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int64_no_args, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_int64(n: int, t: list[np.int64]) -> list[np.int64]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_int64, 2, [-13, 5, 42], shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [-13, 5, 42]
-    # assert results[1] == [-13, 5, 42]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_int64, 2, [-13, 5, 42], shots_count=2)
+    assert list_err_msg in str(e.value)
 
 
 def test_return_list_float():
@@ -507,25 +467,18 @@ def test_return_list_float():
     def simple_list_float_no_args() -> list[float]:
         return [-13.2, 5., 42.99]
 
-    results = cudaq.run(simple_list_float_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == [-13.2, 5.0, 42.99]
-    assert results[1] == [-13.2, 5.0, 42.99]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_float_no_args, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_float(n: int, t: list[float]) -> list[float]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_float,
-                        2, [-13.2, 5.0, 42.99],
-                        shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [-13.2, 5.0, 42.99]
-    # assert results[1] == [-13.2, 5.0, 42.99]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_float, 2, [-13.2, 5.0, 42.99], shots_count=2)
+    assert list_err_msg in str(e.value)
 
 
 def test_return_list_float32():
@@ -534,25 +487,18 @@ def test_return_list_float32():
     def simple_list_float32_no_args() -> list[np.float32]:
         return [-13.2, 5., 42.99]
 
-    results = cudaq.run(simple_list_float32_no_args, shots_count=2)
-    assert len(results) == 2
-    assert is_close_array(results[0], [-13.2, 5.0, 42.99])
-    assert is_close_array(results[1], [-13.2, 5.0, 42.99])
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_float32_no_args, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_float32(n: int, t: list[np.float32]) -> list[np.float32]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_float32,
-                        2, [-13.2, 5.0, 42.99],
-                        shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [-13.2, 5.0, 42.99]
-    # assert results[1] == [-13.2, 5.0, 42.99]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_float32, 2, [-13.2, 5.0, 42.99], shots_count=2)
+    assert list_err_msg in str(e.value)
 
 
 def test_return_list_float64():
@@ -561,25 +507,18 @@ def test_return_list_float64():
     def simple_list_float64_no_args() -> list[np.float64]:
         return [-13.2, 5., 42.99]
 
-    results = cudaq.run(simple_list_float64_no_args, shots_count=2)
-    assert len(results) == 2
-    assert results[0] == [-13.2, 5.0, 42.99]
-    assert results[1] == [-13.2, 5.0, 42.99]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_float64_no_args, shots_count=2)
+    assert list_err_msg in str(e.value)
 
     @cudaq.kernel
     def simple_list_float64(n: int, t: list[np.float64]) -> list[np.float64]:
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_float64,
-                        2, [-13.2, 5.0, 42.99],
-                        shots_count=2)
-    #FIXME: Non-const size of stdvec - ReturnToOutputLog does not create output.
-    #https://github.com/NVIDIA/cuda-quantum/issues/2963
-    assert len(results) == 0
-    # assert len(results) == 2
-    # assert results[0] == [-13.2, 5.0, 42.99]
-    # assert results[1] == [-13.2, 5.0, 42.99]
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_list_float64, 2, [-13.2, 5.0, 42.99], shots_count=2)
+    assert list_err_msg in str(e.value)
 
 
 # Test tuples
@@ -923,7 +862,7 @@ def test_run_errors():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_no_return, 2)
-    assert 'cudaq.run only supports kernels that return a value.' in repr(e)
+    assert '`cudaq.run` only supports kernels that return a value.' in repr(e)
 
     with pytest.raises(TypeError) as e:
         cudaq.run(simple, 2, shots_count=-1)
