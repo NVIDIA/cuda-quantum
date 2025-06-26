@@ -15,7 +15,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 #define DEBUG_TYPE "return-to-output-log"
@@ -37,6 +37,13 @@ public:
   // appropriate label information.
   LogicalResult matchAndRewrite(func::ReturnOp ret,
                                 PatternRewriter &rewriter) const override {
+    auto fn = ret->getParentOfType<func::FuncOp>();
+    // If the containing function is not an entry-point kernel, or it was marked
+    // private by the JIT, it has already been processed then we're done.
+    if (!fn || !fn->hasAttr(cudaq::entryPointAttrName) || fn.isPrivate() ||
+        ret->hasAttr("cc.cudaq.run"))
+      return failure();
+
     auto loc = ret.getLoc();
     // For each operand:
     for (auto operand : ret.getOperands())
@@ -225,17 +232,7 @@ struct ReturnToOutputLogPass
     RewritePatternSet patterns(ctx);
     patterns.insert<ReturnRewrite>(ctx);
     LLVM_DEBUG(llvm::dbgs() << "Before return to output logging:\n" << module);
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                           func::FuncDialect>();
-    target.addDynamicallyLegalOp<func::ReturnOp>([&](func::ReturnOp ret) {
-      // Legal if return is not in an entry-point or does not return a value.
-      if (auto fn = ret->getParentOfType<func::FuncOp>())
-        return !fn->hasAttr(cudaq::entryPointAttrName) ||
-               ret->hasAttr("cc.cudaq.run");
-      return true;
-    });
-    if (failed(applyPartialConversion(module, target, std::move(patterns))))
+    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After return to output logging:\n" << module);
   }
