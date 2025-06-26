@@ -207,6 +207,17 @@ public:
     if (!context)
       return;
 
+    // This check ensures that a kernel is not called whilst actively being
+    // used for resource counting (implying that the kernel was somehow
+    // invoked from inside the choice function). This check may want to
+    // be expanded more broadly to ensure that the execution context is
+    // always fully reset, implying the end of the invocation, being being
+    // set again, signaling a new invocation.
+    if (executionContext && executionContext->name == "resource-count")
+      throw std::runtime_error(
+          "Illegal use of resource counter simulator! (Did you attempt to run "
+          "a kernel inside of a choice function?)");
+
     cudaq::info("Remote Rest QPU setting execution context to {}",
                 context->name);
 
@@ -737,7 +748,8 @@ public:
       return;
     }
 
-    if (executionContext->name == "resource-count" && jitEngines.size() == 1) {
+    if (executionContext->name == "resource-count") {
+      assert(jitEngines.size() == 1);
       cudaq::getExecutionManager()->setExecutionContext(executionContext);
       invokeJITKernelAndRelease(jitEngines[0], kernelName);
       cudaq::getExecutionManager()->resetExecutionContext();

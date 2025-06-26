@@ -10,6 +10,7 @@
 // Compile and run with:
 // ```
 // RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std %s -o %t && %t | FileCheck %s
 // ```
 
 #include <cudaq.h>
@@ -39,11 +40,9 @@ int main() {
     auto gateCounts = cudaq::estimate_resources(choice, kernel);
     gateCounts.dump();
   } catch (std::runtime_error error) {
-    assert(!strcmp(error.what(), "Illegal use of resource counter simulator! (Did you attempt to run a kernel inside of a choice function?)"));
-    exception_thrown = true;
+    printf("Error caught: \"%s\"\n", error.what());
+    // CHECK: Error caught: "Illegal use of resource counter simulator! (Did you attempt to run a kernel inside of a choice function?)"
   }
-
-  assert(exception_thrown);
 
   return 0;
 }
