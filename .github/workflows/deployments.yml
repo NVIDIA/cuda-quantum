@@ -333,8 +333,7 @@ jobs:
       - name: Debug config.outputs.json
         run: |
           echo "Full config.outputs.json:"
-          echo "${{ steps.read_json.outputs.result }}" \
-            | python3 -c 'import sys, json; print(json.dumps(json.loads(sys.stdin.read()), indent=2))'
+          echo "${{ steps.read_json.outputs.result }}"
 
   coverage:
     name: Update code coverage
