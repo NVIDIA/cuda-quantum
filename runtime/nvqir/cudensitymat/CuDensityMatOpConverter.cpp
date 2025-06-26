@@ -272,6 +272,69 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
   }
 }
 
+cudensitymatOperator_t
+cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
+    const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
+    const std::vector<int64_t> &modeExtents,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) {
+  LOG_API_TIME();
+  if (hamiltonians.empty()) {
+    throw std::invalid_argument(
+        "Cannot construct Liouvillian operator from an empty list of "
+        "Hamiltonians.");
+  }
+  const auto batchSize = hamiltonians.size();
+  const auto numberProductTerms = hamiltonians[0].num_terms();
+  if (numberProductTerms > 1) {
+    throw std::invalid_argument("TODO");
+  }
+  for (const auto &hamiltonian : hamiltonians) {
+    // TODO: lift this in the future
+    if (hamiltonian.num_terms() != numberProductTerms) {
+      throw std::invalid_argument(
+          "All Hamiltonians must have the same number of product terms.");
+    }
+  }
+  cudensitymatOperator_t cudmOperator;
+  HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
+      m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
+      &cudmOperator));
+  for (std::size_t termIdx = 0; termIdx < numberProductTerms; ++termIdx) {
+    const auto degrees = hamiltonians[0].begin()->degrees();
+    std::vector<std::complex<double>> batchedProductTermCoeffs;
+    for (const auto &hamiltonian : hamiltonians) {
+      // TODO: lift this in the future
+      if (hamiltonian.begin()->degrees() != degrees) {
+        throw std::invalid_argument(
+            "All Hamiltonians must have the same structure.");
+      }
+      if (!hamiltonian.begin()->get_coefficient().is_constant()) {
+        // TODO: lift this in the future
+        throw std::invalid_argument("All Hamiltonians must have constant "
+                                    "coefficients for the terms.");
+      }
+      const auto coeffVal = hamiltonian.begin()->get_coefficient().evaluate();
+      batchedProductTermCoeffs.emplace_back(coeffVal);
+
+      if (hamiltonian.begin()->get_term_id() !=
+          hamiltonians[0].begin()->get_term_id()) {
+        throw std::invalid_argument("Not yet supported");
+      }
+    }
+    cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
+        cudaq::dynamics::createArrayGpu(batchedProductTermCoeffs));
+    auto cudmProductTerm = convertProductOpToCudensitymat(
+        *hamiltonians[0].begin(), parameters, modeExtents);
+    HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
+        m_handle, cudmOperator, cudmProductTerm, /*duality=*/0,
+        /*batchSize=*/batchSize,
+        /*staticCoefficients=*/staticCoefficients_d, nullptr,
+        cudensitymatScalarCallbackNone));
+  }
+
+  return cudmOperator;
+}
+
 void cudaq::dynamics::CuDensityMatOpConverter::clearCallbackContext() {
   m_scalarCallbacks.clear();
   m_tensorCallbacks.clear();
@@ -488,6 +551,44 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
   }
 
   return cudmOperator;
+}
+
+cudensitymatOperatorTerm_t
+cudaq::dynamics::CuDensityMatOpConverter::convertProductOpToCudensitymat(
+    const product_op<cudaq::matrix_handler> &productOp,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &modeExtents) {
+
+  std::vector<cudensitymatElementaryOperator_t> elemOps;
+  std::vector<std::vector<std::size_t>> allDegrees;
+  for (const auto &component : productOp) {
+    // No need to check type
+    // just call to_matrix on it
+    if (const auto *elemOp =
+            dynamic_cast<const cudaq::matrix_handler *>(&component)) {
+      auto cudmElemOp =
+          createElementaryOperator(*elemOp, parameters, modeExtents);
+      elemOps.emplace_back(cudmElemOp);
+      allDegrees.emplace_back(elemOp->degrees());
+    } else {
+      // Catch anything that we don't know
+      throw std::runtime_error("Unhandled type!");
+    }
+  }
+  // Note: the order of operator application is the opposite of the writing:
+  // i.e., ABC means C to be applied first.
+  std::reverse(elemOps.begin(), elemOps.end());
+  std::reverse(allDegrees.begin(), allDegrees.end());
+  if (elemOps.empty()) {
+    // Constant term (no operator)
+    cudaq::product_op<cudaq::matrix_handler> constantTerm =
+        cudaq::sum_op<cudaq::matrix_handler>::identity(0);
+    cudensitymatElementaryOperator_t cudmElemOp = createElementaryOperator(
+        *constantTerm.begin(), parameters, modeExtents);
+    return createProductOperatorTerm({cudmElemOp}, modeExtents, {{0}}, {});
+  } else {
+    return createProductOperatorTerm(elemOps, modeExtents, allDegrees, {});
+  }
 }
 
 std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>

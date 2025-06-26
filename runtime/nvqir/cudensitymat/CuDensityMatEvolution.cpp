@@ -397,4 +397,53 @@ evolveBatched(const super_op &superOp,
   return evolveBatchedImpl(dims, schedule, initialStates.size(), integrator,
                            observables, storeIntermediateResults);
 }
+
+std::vector<evolve_result>
+evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
+              const cudaq::dimension_map &dimensions, const schedule &schedule,
+              const std::vector<state> &initial_states,
+              base_integrator &integrator,
+              const std::vector<std::vector<sum_op<cudaq::matrix_handler>>>
+                  &collapse_operators,
+              const std::vector<sum_op<cudaq::matrix_handler>> &observables,
+              IntermediateResultSave store_intermediate_results,
+              std::optional<int> shots_count) {
+  LOG_API_TIME();
+
+  if (!collapse_operators.empty() &&
+      hamiltonians.size() != collapse_operators.size()) {
+    throw std::runtime_error("Number of Hamiltonian operators must match "
+                             "number of collapse operators.");
+  }
+
+  if (initial_states.size() != hamiltonians.size()) {
+    throw std::runtime_error(
+        "Number of initial states must match number of Hamiltonian operators.");
+  }
+
+  cudensitymatHandle_t handle =
+      dynamics::Context::getCurrentContext()->getHandle();
+  std::vector<int64_t> dims;
+  for (const auto &[id, dim] : convertToOrderedMap(dimensions))
+    dims.emplace_back(dim);
+
+  auto batchedLiouvillian = cudaq::dynamics::Context::getCurrentContext()
+                                ->getOpConverter()
+                                .constructLiouvillian(hamiltonians, dims);
+  auto stepper =
+      std::make_unique<CuDensityMatTimeStepper>(handle, batchedLiouvillian);
+  integrator_helper::init_stepper(integrator, std::move(stepper));
+
+  std::vector<CuDensityMatState *> states;
+  for (auto &initialState : initial_states) {
+    states.emplace_back(asCudmState(const_cast<state &>(initialState)));
+  }
+  auto batchedState = CuDensityMatState::createBatchedState(
+      handle, states, dims, false);
+  integrator.setState(cudaq::state(batchedState.release()), 0.0);
+
+  return evolveBatchedImpl(dims, schedule, initial_states.size(), integrator,
+                           observables, store_intermediate_results);
+}
+
 } // namespace cudaq::__internal__
