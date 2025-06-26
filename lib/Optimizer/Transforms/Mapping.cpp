@@ -604,9 +604,17 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       addOpAndUsersToList(user, opsToMoveToEnd);
   }
 
+  // TODO: This pass must be composable. Specifically, it must *not* generate
+  // fatal errors when it sees something in the IR that it isn't going to apply
+  // the mapping algorithm to.
+  // Alternatively, fatal errors may be placed under a pass option so they can
+  // be disabled to make the pass properly composable.
+  // Composability is essential as the requirements change and ad lib
+  // assumptions cease to be correct.
   void runOnOperation() override {
-
     auto func = getOperation();
+    if (func.empty())
+      return;
     auto &blocks = func.getBlocks();
 
     // Current limitations:
@@ -634,9 +642,12 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     StringRef inputWireSet;
     std::optional<std::uint32_t> highestIdentity;
     auto walkResult = func.walk([&](quake::BorrowWireOp borrowOp) {
-      if (inputWireSet.empty())
+      if (inputWireSet.empty()) {
         inputWireSet = borrowOp.getSetName();
-      else if (!borrowOp.getSetName().equals(inputWireSet)) {
+      } else if (!borrowOp.getSetName().equals(inputWireSet)) {
+        // Why is this here? It's entirely possible to have disjoint wire sets,
+        // where the sets are for fundamentally distinct purposes in the target
+        // model.
         func.emitOpError("function cannot use multiple WireSets");
         return WalkResult::interrupt();
       }
@@ -650,8 +661,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
     if (!highestIdentity) {
-      func.emitOpError("no borrow_wire ops found in " + func.getName());
-      signalPassFailure();
+      LLVM_DEBUG(llvm::dbgs()
+                 << "no borrow_wire ops found in " << func.getName() << '\n');
       return;
     }
 
