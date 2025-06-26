@@ -24,6 +24,10 @@ auto float_test = [](float f) __qpu__ { return f; };
 auto double_test = [](double d) __qpu__ { return d; };
 auto bool_test = [](bool b) __qpu__ { return b; };
 
+struct empty {};
+
+auto kernel = []() __qpu__ { return empty{}; };
+
 int main() {
   int c = 0;
   {
@@ -92,7 +96,11 @@ int main() {
       for (auto i : results)
         printf("%d: %s\n", c++, i ? "true" : "false");
       printf("success!\n");
-    } 
+    }
+  }
+  {
+    auto results = cudaq::run(5, kernel);
+    printf("Results size: %lu\n", results.size());
   }
   return 0;
 }
@@ -125,3 +133,4 @@ int main() {
 // CHECK: 3: true
 // CHECK: 4: true
 // CHECK: success!
+// CHECK: Results size: 0
