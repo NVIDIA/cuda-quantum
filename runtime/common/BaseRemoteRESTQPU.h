@@ -470,8 +470,12 @@ public:
               skip = true;
               break;
             }
-        if (!skip)
-          moduleOp.push_back(lfunc.clone());
+        if (!skip) {
+          auto clonedFunc = lfunc.clone();
+          if (clonedFunc.getName() != func.getName())
+            clonedFunc.setPrivate();
+          moduleOp.push_back(std::move(clonedFunc));
+        }
       } else {
         moduleOp.push_back(op.clone());
       }
