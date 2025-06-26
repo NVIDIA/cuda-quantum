@@ -315,7 +315,9 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         // Only specific instructions are allowed at the top level, depending on
         // the specific profile
         bool isValidBaseProfileInstruction =
-            llvm::isa<llvm::CallBase, llvm::BranchInst, llvm::ReturnInst>(inst);
+            llvm::isa<llvm::CallBase>(inst) ||
+            llvm::isa<llvm::BranchInst>(inst) ||
+            llvm::isa<llvm::ReturnInst>(inst);
         // By default, the adaptive profile supports the same set of
         // instructions as the base profile. Extra/optional
         // instructions/capabilities can be enabled in the target config. For
@@ -345,11 +347,13 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
           };
 
           const bool isValidIntExtension =
-              integerComputations &&
-              (isValidIntegerBinaryInst(inst) ||
-               llvm::isa<llvm::ICmpInst, llvm::ZExtInst, llvm::SExtInst,
-                         llvm::TruncInst, llvm::SelectInst, llvm::PHINode>(
-                   inst));
+              integerComputations && (isValidIntegerBinaryInst(inst) ||
+                                      llvm::isa<llvm::ICmpInst>(inst) ||
+                                      llvm::isa<llvm::ZExtInst>(inst) ||
+                                      llvm::isa<llvm::SExtInst>(inst) ||
+                                      llvm::isa<llvm::TruncInst>(inst) ||
+                                      llvm::isa<llvm::SelectInst>(inst) ||
+                                      llvm::isa<llvm::PHINode>(inst));
 
           const auto isValidFloatBinaryInst = [](const auto &inst) {
             if (!llvm::isa<llvm::BinaryOperator>(inst))
@@ -363,16 +367,10 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
           };
 
           const bool isValidFloatExtension =
-              (inst.getOpcode() == llvm::Instruction::FNeg) ||
-              (floatComputations &&
-               (isValidFloatBinaryInst(inst) ||
-                llvm::isa<llvm::FPExtInst, llvm::FPTruncInst>(inst)));
-
-          const bool isQubitExtension =
-              llvm::isa<llvm::BitCastInst, llvm::LoadInst>(inst);
-
-          if (!isValidIntExtension && !isValidFloatExtension &&
-              !isQubitExtension) {
+              floatComputations && (isValidFloatBinaryInst(inst) ||
+                                    llvm::isa<llvm::FPExtInst>(inst) ||
+                                    llvm::isa<llvm::FPTruncInst>(inst));
+          if (!isValidIntExtension && !isValidFloatExtension) {
             llvm::errs() << "error - invalid instruction found: " << inst
                          << '\n';
             return mlir::failure();
@@ -387,8 +385,7 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
             auto constExpr = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg);
             if (constExpr &&
                 constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
-                constExpr->getOpcode() != llvm::Instruction::IntToPtr &&
-                constExpr->getOpcode() != llvm::Instruction::BitCast) {
+                constExpr->getOpcode() != llvm::Instruction::IntToPtr) {
               llvm::errs() << "error - invalid instruction found: "
                            << *constExpr << '\n';
               return mlir::failure();
