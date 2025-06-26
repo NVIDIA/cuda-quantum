@@ -151,6 +151,13 @@ public:
   /// @brief Get iterator to end of operator terms
   const_iterator end() const { return const_iterator(this, this->num_terms()); }
 
+  /// @brief Operator to get the product term at a particular index.
+  product_op<HandlerTy> operator[](std::size_t idx) const {
+    if (idx >= this->num_terms())
+      throw std::out_of_range("Index out of range in sum_op::operator[]");
+    return product_op<HandlerTy>(this->coefficients[idx], this->terms[idx]);
+  }
+
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.

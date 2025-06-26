@@ -285,9 +285,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
   }
   const auto batchSize = hamiltonians.size();
   const auto numberProductTerms = hamiltonians[0].num_terms();
-  if (numberProductTerms > 1) {
-    throw std::invalid_argument("TODO");
-  }
+
   for (const auto &hamiltonian : hamiltonians) {
     // TODO: lift this in the future
     if (hamiltonian.num_terms() != numberProductTerms) {
@@ -300,32 +298,43 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
       m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
       &cudmOperator));
   for (std::size_t termIdx = 0; termIdx < numberProductTerms; ++termIdx) {
-    const auto degrees = hamiltonians[0].begin()->degrees();
+    std::vector<cudaq::product_op<cudaq::matrix_handler>> prodTerms;
     std::vector<std::complex<double>> batchedProductTermCoeffs;
     for (const auto &hamiltonian : hamiltonians) {
-      // TODO: lift this in the future
-      if (hamiltonian.begin()->degrees() != degrees) {
-        throw std::invalid_argument(
-            "All Hamiltonians must have the same structure.");
+      prodTerms.emplace_back(hamiltonian[termIdx]);
+      const auto coeffVal = hamiltonian[termIdx].get_coefficient();
+      if (!coeffVal.is_constant()) {
+        // TODO
+        throw std::runtime_error("Non constant is not supported yet.");
       }
-      if (!hamiltonian.begin()->get_coefficient().is_constant()) {
-        // TODO: lift this in the future
-        throw std::invalid_argument("All Hamiltonians must have constant "
-                                    "coefficients for the terms.");
-      }
-      const auto coeffVal = hamiltonian.begin()->get_coefficient().evaluate();
       batchedProductTermCoeffs.emplace_back(std::complex<double>(0.0, -1.0) *
-                                            coeffVal);
-
-      if (hamiltonian.begin()->get_term_id() !=
-          hamiltonians[0].begin()->get_term_id()) {
-        throw std::invalid_argument("Not yet supported");
-      }
+                                            coeffVal.evaluate());
     }
+
+    const auto allSameDegrees = std::all_of(
+        prodTerms.begin(), prodTerms.end(), [&](const auto &prodTerm) {
+          return prodTerm.degrees() == prodTerms[0].degrees();
+        });
+    if (!allSameDegrees) {
+      // TODO
+      throw std::invalid_argument(
+          "All product terms must have the same degrees.");
+    }
+
+    const auto allSameOp = std::all_of(
+        prodTerms.begin(), prodTerms.end(), [&](const auto &prodTerm) {
+          return prodTerm.get_term_id() == prodTerms[0].get_term_id();
+        });
+    if (!allSameOp) {
+      // TODO
+      throw std::invalid_argument(
+          "All product terms must have the same operator.");
+    }
+
     cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
         cudaq::dynamics::createArrayGpu(batchedProductTermCoeffs));
-    auto cudmProductTerm = convertProductOpToCudensitymat(
-        *hamiltonians[0].begin(), parameters, modeExtents);
+    auto cudmProductTerm =
+        convertProductOpToCudensitymat(prodTerms[0], parameters, modeExtents);
     HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
         m_handle, cudmOperator, cudmProductTerm, /*duality=*/0,
         /*batchSize=*/batchSize,
