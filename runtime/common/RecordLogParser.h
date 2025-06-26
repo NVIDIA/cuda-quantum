@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstring>
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 
@@ -336,6 +337,7 @@ private:
   /// Tracks container metadata during decoding
   details::ContainerMetadata containerMeta;
   /// Data layout information
-  std::pair<std::size_t, std::vector<std::size_t>> dataLayoutInfo = {0, {}};
+  std::pair<std::optional<std::size_t>, std::vector<std::size_t>>
+      dataLayoutInfo = {std::nullopt, {}};
 };
 } // namespace cudaq

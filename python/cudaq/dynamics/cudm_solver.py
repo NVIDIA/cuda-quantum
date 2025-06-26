@@ -9,7 +9,6 @@
 from __future__ import annotations
 from typing import Sequence, Mapping, Optional
 
-from ..runtime.observe import observe
 from .schedule import Schedule
 from ..operators import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -18,12 +17,12 @@ from .integrator import BaseIntegrator
 from .integrators.builtin_integrators import RungeKuttaIntegrator
 from ..util.timing_helper import ScopeTimer
 from . import nvqir_dynamics_bindings as bindings
-from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator
+from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, SuperOperator
 
 
 # Master-equation solver using `CuDensityMatState`
 def evolve_dynamics(
-    hamiltonian: Operator,
+    hamiltonian: Operator | SuperOperator,
     dimensions: Mapping[int, int],
     schedule: Schedule,
     initial_state: InitialStateArgT | Sequence[cudaq_runtime.State],
@@ -52,10 +51,22 @@ def evolve_dynamics(
     if integrator is None:
         # Default integrator if not provided.
         integrator = RungeKuttaIntegrator()
+    has_collapse_operators = False
+    if isinstance(hamiltonian, SuperOperator):
+        if len(collapse_operators) > 0:
+            raise ValueError(
+                "'collapse_operators' must be empty when supplying the super-operator"
+            )
+        integrator.set_system(dimensions, schedule, hamiltonian)
+        for (left_op, right_op) in hamiltonian:
+            if right_op is not None:
+                has_collapse_operators = True
+    else:
+        has_collapse_operators = len(collapse_operators) > 0
+        collapse_operators = [MatrixOperator(op) for op in collapse_operators]
+        integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
+                              collapse_operators)
 
-    collapse_operators = [MatrixOperator(op) for op in collapse_operators]
-    integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
-                          collapse_operators)
     hilbert_space_dims_list = list(hilbert_space_dims)
     expectation_op = [
         bindings.CuDensityMatExpectation(MatrixOperator(observable),
@@ -69,18 +80,17 @@ def evolve_dynamics(
         batch_size = len(initial_state)
         initial_state = bindings.createBatchedState(initial_state,
                                                     hilbert_space_dims_list,
-                                                    len(collapse_operators) > 0)
+                                                    has_collapse_operators)
         is_batched_evolve = True
     else:
         if isinstance(initial_state, InitialState):
-            has_collapse_operators = len(collapse_operators) > 0
             initial_state = bindings.createInitialState(initial_state,
                                                         dimensions,
                                                         has_collapse_operators)
         else:
-            initial_state = bindings.initializeState(
-                initial_state, hilbert_space_dims_list,
-                len(collapse_operators) > 0, 1)
+            initial_state = bindings.initializeState(initial_state,
+                                                     hilbert_space_dims_list,
+                                                     has_collapse_operators, 1)
     integrator.set_state(initial_state, schedule._steps[0])
 
     exp_vals = [[] for _ in range(batch_size)]
