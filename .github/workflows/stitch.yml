@@ -1,7 +1,7 @@
 name: Stitch Cached Images
 
 on:
-  workflow_dispatch:
+  push:
 
 jobs:
   stitch:
