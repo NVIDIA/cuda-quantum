@@ -833,10 +833,17 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
   }];
 
   let options = [
-    Option<"extendedLayerSize", "extendedLayerSize", "unsigned", /*default=*/"20", "Extended layer size">,
-    Option<"extendedLayerWeight", "extendedLayerWeight", "float", /*default=*/"0.5", "Extended layer weight">,
-    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5", "Decay delta">,
-    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5", "Number of rounds before decay is reset">
+    Option<"extendedLayerSize", "extendedLayerSize", "unsigned",
+           /*default=*/"20", "Extended layer size">,
+    Option<"extendedLayerWeight", "extendedLayerWeight", "float",
+           /*default=*/"0.5", "Extended layer weight">,
+    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5",
+           "Decay delta">,
+    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5",
+           "Number of rounds before decay is reset">,
+    Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
+           "Run the pass in a non-composable way, which may cause immediate "
+           "internal compiler errors">
   ];
 }
 
@@ -849,7 +856,11 @@ def MappingPrep: Pass<"qubit-mapping-prep", "mlir::ModuleOp"> {
 
   let options = [
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
-      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), "
+      "file(/path/to/file), bypass">,
+    Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
+           "Run the pass in a non-composable way, which may cause immediate "
+           "internal compiler errors">
   ];
 }
 
