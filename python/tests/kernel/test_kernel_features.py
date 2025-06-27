@@ -2300,6 +2300,65 @@ q5 : ─────┤ x ├
     assert circuit == expected_str
 
 
+def test_attribute_access_on_call_results():
+    """Test that attribute access on call results works correctly."""
+    from dataclasses import dataclass
+
+    @dataclass
+    class M:
+        i: int
+        j: int
+
+    @cudaq.kernel
+    def test_attribute_on_call() -> int:
+        """Test accessing attribute on dataclass constructor call result."""
+        return M(6, 9).i
+
+    @cudaq.kernel
+    def test_attribute_on_call_with_qubits() -> int:
+        """Test accessing attribute on dataclass constructor call result with qubits."""
+        q = cudaq.qvector(5)
+        return M(6, 9).i
+
+    @cudaq.kernel
+    def test_attribute_on_call_in_assignment() -> int:
+        """Test accessing attribute on dataclass constructor call result in assignment."""
+        foo = M(6, 9).i
+        return foo
+
+    @cudaq.kernel
+    def test_attribute_on_call_in_expression() -> int:
+        """Test accessing attribute on dataclass constructor call result in expression."""
+        return M(6, 9).i + M(3, 4).j
+
+    # Test that all kernels compile and run successfully
+    result1 = cudaq.run(test_attribute_on_call)[0]
+    assert result1 == 6
+
+    result2 = cudaq.run(test_attribute_on_call_with_qubits)[0]
+    assert result2 == 6
+
+    result3 = cudaq.run(test_attribute_on_call_in_assignment)[0]
+    assert result3 == 6
+
+    result4 = cudaq.run(test_attribute_on_call_in_expression)[0]
+    assert result4 == 10  # 6 + 4
+
+    # Test with different dataclass
+    @dataclass
+    class Point:
+        x: float
+        y: float
+
+    @cudaq.kernel
+    def test_point_attribute() -> float:
+        """Test accessing attribute on different dataclass."""
+        return Point(3.14, 2.71).x
+
+    result5 = cudaq.run(test_point_attribute)[0]
+    assert abs(result5 - 3.14) < 1e-6
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
