@@ -159,8 +159,13 @@ public:
         auto simName = getOpt(description, "backend");
         if (simName.empty())
           simName = "custatevec-fp32";
-        std::string configStr =
-            fmt::format("target;nvqc;simulator;{}", simName);
+        auto option = getOpt(description, "option");
+        std::string configStr;
+        if (option.empty()) {
+          configStr = fmt::format("target;nvqc;simulator;{}", simName);
+        } else {
+          configStr = fmt::format("target;nvqc;simulator;{};option;{}", simName, option);
+        }
         auto getOptAndSetConfig = [&](const std::string &key) {
           auto val = getOpt(description, key);
           if (!val.empty())
@@ -173,7 +178,7 @@ public:
         auto numQpusStr = getOpt(description, "nqpus");
         int numQpus = numQpusStr.empty() ? 1 : std::stoi(numQpusStr);
 
-        if (simName.find("nvidia-mqpu") != std::string::npos && numQpus > 1) {
+        if (simName.find("nvidia") != std::string::npos && numQpus > 1 && (option.empty() || option.find("mqpu") != std::string::npos)) {
           // If the backend simulator is an MQPU simulator (like nvidia-mqpu),
           // then use "nqpus" to determine the number of GPUs to request for the
           // backend. This allows us to seamlessly translate requests for MQPU
@@ -216,6 +221,7 @@ public:
       } else {
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         auto sims = cudaq::split(getOpt(description, "backend"), ',');
+        auto options = cudaq::split(getOpt(description, "option"), ';');
         // Default to qpp simulator if none provided.
         if (sims.empty())
           sims.emplace_back("qpp");
@@ -239,22 +245,25 @@ public:
         }
 
         // List of simulator names must either be one or the same length as the
-        // URL list. If one simulator name is provided, assuming that all the
+        // URL list and options list. If one simulator name is provided, assuming that all the
         // URL should be using the same simulator.
-        if (sims.size() > 1 && sims.size() != urls.size())
+        if (sims.size() > 1 && sims.size() != urls.size() && sims.size() != options.size()) {
           throw std::runtime_error(fmt::format(
-              "Invalid number of remote backend simulators provided: "
-              "receiving {}, expecting {}.",
-              sims.size(), urls.size()));
+              "Invalid number of remote backend simulators and/or options provided: "
+              "receiving simulators {} and options {}, expecting equal number of simulators and options (if provided) which is {}.",
+              sims.size(), options.size(), urls.size()));
         platformQPUs.clear();
         threadToQpuId.clear();
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
+          const auto optionName = options.size() == 1
+                                      ? options.front()
+                                      : options[qId];
           // Populate the information and add the QPUs
           auto qpu = cudaq::registry::get<cudaq::QPU>("RemoteSimulatorQPU");
           qpu->setId(qId);
           const std::string configStr =
-              fmt::format("url;{};simulator;{}", formatUrl(urls[qId]), simName);
+              fmt::format("url;{};simulator;{};option;{}", formatUrl(urls[qId]), simName, optionName);
           qpu->setTargetBackend(configStr);
           threadToQpuId[std::hash<std::thread::id>{}(
               qpu->getExecutionThreadId())] = qId;
