@@ -427,9 +427,10 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
   for (const auto &[id, dim] : convertToOrderedMap(dimensions))
     dims.emplace_back(dim);
 
-  auto batchedLiouvillian = cudaq::dynamics::Context::getCurrentContext()
-                                ->getOpConverter()
-                                .constructLiouvillian(hamiltonians, dims);
+  auto batchedLiouvillian =
+      cudaq::dynamics::Context::getCurrentContext()
+          ->getOpConverter()
+          .constructLiouvillian(hamiltonians, {}, dims, {}, false);
   auto stepper =
       std::make_unique<CuDensityMatTimeStepper>(handle, batchedLiouvillian);
   integrator_helper::init_stepper(integrator, std::move(stepper));

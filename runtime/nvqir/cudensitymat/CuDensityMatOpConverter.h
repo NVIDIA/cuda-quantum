@@ -26,8 +26,16 @@ public:
   /// @return The converted operator.
   cudensitymatOperator_t convertToCudensitymatOperator(
       const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const sum_op<cudaq::matrix_handler> &op,
+      const std::vector<sum_op<cudaq::matrix_handler>> &ops,
       const std::vector<int64_t> &modeExtents);
+  cudensitymatOperator_t convertToCudensitymatOperator(
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const sum_op<cudaq::matrix_handler> &op,
+      const std::vector<int64_t> &modeExtents) {
+    return convertToCudensitymatOperator(
+        parameters, std::vector<sum_op<cudaq::matrix_handler>>{op},
+        modeExtents);
+  }
 
   /// @brief Construct a Liouvillian operator.
   /// @param ham The Hamiltonian operator.
@@ -37,12 +45,20 @@ public:
   /// @param isMasterEquation Whether the Liouvillian is a master equation.
   /// @return The constructed Liouvillian operator.
   cudensitymatOperator_t constructLiouvillian(
-      const sum_op<cudaq::matrix_handler> &ham,
+      const std::vector<sum_op<cudaq::matrix_handler>> &hamOperators,
       const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
       const std::vector<int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool isMasterEquation);
-
+  cudensitymatOperator_t constructLiouvillian(
+      const sum_op<cudaq::matrix_handler> &ham,
+      const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
+      const std::vector<int64_t> &modeExtents,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      bool isMasterEquation) {
+    return constructLiouvillian({ham}, collapseOperators, modeExtents,
+                                parameters, isMasterEquation);
+  }
   /// @brief  Construct a Liouvillian operator from a super operator.
   /// @param superOp The super operator.
   /// @param modeExtents The extents of the modes.
@@ -51,18 +67,6 @@ public:
   cudensitymatOperator_t constructLiouvillian(
       const super_op &superOp, const std::vector<int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters);
-
-  /// @brief Construct a batched Liouvillian operator from a list of
-  /// Hamiltonians.
-  /// @param hamiltonians The list of Hamiltonian operators.
-  /// @param modeExtents The extents of the modes.
-  /// @param parameters The parameters of the operators.
-  /// @return The constructed batched Liouvillian operator.
-  cudensitymatOperator_t constructLiouvillian(
-      const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
-      const std::vector<int64_t> &modeExtents,
-      const std::unordered_map<std::string, std::complex<double>> &parameters =
-          {});
 
   /// @brief Clear the current callback context
   // Callback context may contain Python objects, hence needs to be clear before
@@ -76,10 +80,6 @@ private:
       const product_op<cudaq::matrix_handler> &productOp,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &modeExtents);
-  cudensitymatElementaryOperator_t createBatchedElementaryOp(
-      const std::vector<cudaq::matrix_handler> &elementaryOps,
-      const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents);
   cudensitymatOperatorTerm_t createBatchedProductTerm(
       const std::vector<product_op<cudaq::matrix_handler>> &prodTerms,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -91,7 +91,7 @@ private:
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &modeExtents);
   cudensitymatElementaryOperator_t createElementaryOperator(
-      const cudaq::matrix_handler &elemOp,
+      const std::vector<cudaq::matrix_handler> &elemOps,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &modeExtents);
   cudensitymatOperatorTerm_t createProductOperatorTerm(

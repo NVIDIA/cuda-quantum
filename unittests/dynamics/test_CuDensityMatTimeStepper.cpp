@@ -354,9 +354,10 @@ TEST_F(CuDensityMatTimeStepperTest, BatchedOperatorSimple) {
       (2.0 * M_PI * 0.2 * cudaq::spin_op::x(0));
   cudaq::sum_op<cudaq::matrix_handler> ham2(ham_2);
   auto ham2Mat = ham_2.to_matrix({{0, 2}});
-  auto batchedLiouvillian = cudaq::dynamics::Context::getCurrentContext()
-                                ->getOpConverter()
-                                .constructLiouvillian({ham1, ham2}, dims);
+  auto batchedLiouvillian =
+      cudaq::dynamics::Context::getCurrentContext()
+          ->getOpConverter()
+          .constructLiouvillian({ham1, ham2}, {}, dims, {}, false);
 
   auto time_stepper =
       std::make_unique<CuDensityMatTimeStepper>(handle_, batchedLiouvillian);
