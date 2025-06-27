@@ -9,7 +9,7 @@
 from . import boson
 from . import fermion
 from . import spin
-
+from .super_op import SuperOperator
 from .custom import *
 from .definitions import *
 from .manipulation import OperatorArithmetics

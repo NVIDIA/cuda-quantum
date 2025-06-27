@@ -1036,6 +1036,7 @@ bool QuakeBridgeVisitor::TraverseConditionalOperator(
   if (!TraverseStmt(x->getCond()))
     return false;
   auto condVal = popValue();
+  Type resultTy = builder.getI64Type();
 
   // Create shared lambda for the x->getTrueExpr() and x->getFalseExpr()
   // expressions
@@ -1049,16 +1050,19 @@ bool QuakeBridgeVisitor::TraverseConditionalOperator(
         result = false;
         return;
       }
-      builder.create<cc::ContinueOp>(loc, TypeRange{}, popValue());
+      Value resultVal = popValue();
+      builder.create<cc::ContinueOp>(loc, TypeRange{}, resultVal);
+      resultTy = resultVal.getType();
     };
   };
 
-  auto ifOp = builder.create<cc::IfOp>(
-      loc, TypeRange{condVal.getType()}, condVal,
-      thenElseLambda(x->getTrueExpr()), thenElseLambda(x->getFalseExpr()));
+  auto ifOp = builder.create<cc::IfOp>(loc, TypeRange{resultTy}, condVal,
+                                       thenElseLambda(x->getTrueExpr()),
+                                       thenElseLambda(x->getFalseExpr()));
 
   if (!result)
     return result;
+  ifOp.getResult(0).setType(resultTy);
   return pushValue(ifOp.getResult(0));
 }
 

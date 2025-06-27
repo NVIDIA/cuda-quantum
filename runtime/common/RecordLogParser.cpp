@@ -169,20 +169,15 @@ void cudaq::RecordLogParser::preallocateArray() {
 }
 
 void cudaq::RecordLogParser::preallocateTuple() {
+  if (!dataLayoutInfo.first.has_value())
+    throw std::runtime_error(
+        "Data layout information missing for the struct / tuple type.");
+  if (dataLayoutInfo.second.size() != containerMeta.tupleTypes.size())
+    throw std::runtime_error("Tuple size mismatch in kernel and label.");
   containerMeta.dataOffset = bufferHandler.getBufferSize();
-  if (dataLayoutInfo.first == 0) {
-    // Packed data allocation since alignment info is not provided
-    for (auto ty : containerMeta.tupleTypes) {
-      cudaq::details::DataHandlerBase &dh = getDataHandler(ty);
-      containerMeta.tupleOffsets.push_back(dh.allocateTuple(bufferHandler));
-    }
-  } else {
-    if (dataLayoutInfo.second.size() != containerMeta.tupleTypes.size())
-      throw std::runtime_error("Tuple size mismatch in kernel and label.");
-    // Directly allocate memory for the tuple, update offsets
-    bufferHandler.resizeBuffer(dataLayoutInfo.first);
-    containerMeta.tupleOffsets = dataLayoutInfo.second;
-  }
+  // Directly allocate memory for the tuple, update offsets
+  bufferHandler.resizeBuffer(dataLayoutInfo.first.value());
+  containerMeta.tupleOffsets = dataLayoutInfo.second;
 }
 
 void cudaq::RecordLogParser::processSingleRecord(const std::string &recValue,
