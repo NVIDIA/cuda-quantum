@@ -607,9 +607,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
   // TODO: This pass must be composable. Specifically, it must *not* generate
   // fatal errors when it sees something in the IR that it isn't going to apply
   // the mapping algorithm to.
-  // Alternatively, fatal errors may be placed under a pass option so they can
-  // be disabled to make the pass properly composable.
-  // Composability is essential as the requirements change and ad lib
+  // The solution to be realized is that fatal errors will be placed under a
+  // pass option so they can be disabled to make the pass properly composable.
+  // Composability is essential as the requirements will change and ad lib
   // assumptions cease to be correct.
   void runOnOperation() override {
     auto func = getOperation();
@@ -661,6 +661,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
     if (!highestIdentity) {
+      if (nonComposable) {
+        func.emitOpError("no borrow_wire ops found in " + func.getName());
+        signalPassFailure();
+      }
       LLVM_DEBUG(llvm::dbgs()
                  << "no borrow_wire ops found in " << func.getName() << '\n');
       return;
@@ -926,15 +930,8 @@ struct MappingPipelineOptions
   DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerWeight);
   DECLARE_SUB_OPTION(MappingFuncOptions, decayDelta);
   DECLARE_SUB_OPTION(MappingFuncOptions, roundsDecayReset);
+  PassOptions::Option<bool> nonComposable{*this, "raise-fatal-errors"};
 };
-
-// Helper macro to set MappingFuncOptions field if the corresponding field in
-// MappingPipelineOptions is set.
-#define SET_IF_EXISTS(_NEW_OPTS_STRUCT, _ORIG_STRUCT, _FIELD)                  \
-  do {                                                                         \
-    if (_ORIG_STRUCT._FIELD.hasValue())                                        \
-      _NEW_OPTS_STRUCT._FIELD = _ORIG_STRUCT._FIELD;                           \
-  } while (0)
 
 /// Register the mapping pipeline. Route the appropriate options to the
 /// appropriate pass in the pass pipeline.
@@ -942,17 +939,24 @@ void registerMappingPipeline() {
   PassPipelineRegistration<cudaq::opt::MappingPipelineOptions>(
       "qubit-mapping", "Perform qubit mapping pass pipeline.",
       [](OpPassManager &pm, const MappingPipelineOptions &opt) {
+        auto setIt = [](auto &to, const auto &from) {
+          if (from.hasValue())
+            to = from;
+        };
+
         // Add the prep pass
-        MappingPrepOptions prepOpt;
-        SET_IF_EXISTS(prepOpt, opt, device);
-        pm.addPass(cudaq::opt::createMappingPrep(prepOpt));
+        MappingPrepOptions prepOpts;
+        setIt(prepOpts.device, opt.device);
+        setIt(prepOpts.nonComposable, opt.nonComposable);
+        pm.addPass(cudaq::opt::createMappingPrep(prepOpts));
 
         // Add the per-function pass
         MappingFuncOptions funcOpts;
-        SET_IF_EXISTS(funcOpts, opt, extendedLayerSize);
-        SET_IF_EXISTS(funcOpts, opt, extendedLayerWeight);
-        SET_IF_EXISTS(funcOpts, opt, decayDelta);
-        SET_IF_EXISTS(funcOpts, opt, roundsDecayReset);
+        setIt(funcOpts.extendedLayerSize, opt.extendedLayerSize);
+        setIt(funcOpts.extendedLayerWeight, opt.extendedLayerWeight);
+        setIt(funcOpts.decayDelta, opt.decayDelta);
+        setIt(funcOpts.roundsDecayReset, opt.roundsDecayReset);
+        setIt(funcOpts.nonComposable, opt.nonComposable);
         pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingFunc(funcOpts));
       });
 }
