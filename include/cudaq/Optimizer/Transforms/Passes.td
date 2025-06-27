@@ -913,6 +913,12 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def PhasePolynomialPreprocess: Pass<"phase-polynomial-preprocess", "mlir::func::FuncOp"> {
+  let summary = "Isolate subcircuits representable by a single phase polynomial.";
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
   let summary = "Promote single qubit allocations.";
   let description = [{
