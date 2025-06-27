@@ -1439,39 +1439,46 @@ class PyASTBridge(ast.NodeVisitor):
             # Visit the call first to get the result on the stack
             self.visit(node.value)
             if len(self.valueStack) == 0:
-                self.emitFatalError("Call expression did not produce a value", node)
-            
+                self.emitFatalError("Call expression did not produce a value",
+                                    node)
+
             # Get the call result from the stack
             call_result = self.popValue()
-            
+
             # Handle attribute access on the call result
             if cc.PointerType.isinstance(call_result.type):
                 eleType = cc.PointerType.getElementType(call_result.type)
                 if cc.StructType.isinstance(eleType):
                     # Handle struct member extraction from call result
-                    structIdx, memberTy = self.getStructMemberIdx(node.attr, eleType)
+                    structIdx, memberTy = self.getStructMemberIdx(
+                        node.attr, eleType)
                     eleAddr = cc.ComputePtrOp(
                         cc.PointerType.get(self.ctx, memberTy), call_result, [],
-                        DenseI32ArrayAttr.get([structIdx], context=self.ctx)).result
-                    
+                        DenseI32ArrayAttr.get([structIdx],
+                                              context=self.ctx)).result
+
                     if self.attributePushPointerValue:
                         self.pushValue(eleAddr)
                         return
-                    
+
                     # Load the value
                     eleAddr = cc.LoadOp(eleAddr).result
                     self.pushValue(eleAddr)
                     return
             elif cc.StructType.isinstance(call_result.type):
                 # Handle direct struct member extraction
-                structIdx, memberTy = self.getStructMemberIdx(node.attr, call_result.type)
+                structIdx, memberTy = self.getStructMemberIdx(
+                    node.attr, call_result.type)
                 self.pushValue(
                     quake.GetMemberOp(
                         memberTy, call_result,
-                        IntegerAttr.get(self.getIntegerType(32), structIdx)).result)
+                        IntegerAttr.get(self.getIntegerType(32),
+                                        structIdx)).result)
                 return
             else:
-                self.emitFatalError(f"Cannot access attribute '{node.attr}' on type {call_result.type}", node)
+                self.emitFatalError(
+                    f"Cannot access attribute '{node.attr}' on type {call_result.type}",
+                    node)
 
     def visit_Call(self, node):
         """
