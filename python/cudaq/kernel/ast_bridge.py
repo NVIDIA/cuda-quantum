@@ -1465,16 +1465,6 @@ class PyASTBridge(ast.NodeVisitor):
                     eleAddr = cc.LoadOp(eleAddr).result
                     self.pushValue(eleAddr)
                     return
-            elif cc.StructType.isinstance(call_result.type):
-                # Handle direct struct member extraction
-                structIdx, memberTy = self.getStructMemberIdx(
-                    node.attr, call_result.type)
-                self.pushValue(
-                    quake.GetMemberOp(
-                        memberTy, call_result,
-                        IntegerAttr.get(self.getIntegerType(32),
-                                        structIdx)).result)
-                return
             else:
                 self.emitFatalError(
                     f"Cannot access attribute '{node.attr}' on type {call_result.type}",
