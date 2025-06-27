@@ -22,13 +22,13 @@ struct K9 {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__K9() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 3 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_4:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_5:.*]] = arith.constant 5 : i64
-// CHECK:           %[[VAL_6:.*]] = arith.constant 6 : i64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 3 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 5 : i64
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 6 : i64
 // CHECK:           %[[VAL_7:.*]] = call @__quantum__rt__qubit_allocate_array(%[[VAL_6]]) : (i64) -> !cc.ptr<!llvm.struct<"Array", opaque>>
 // CHECK:           %[[VAL_8:.*]] = cc.alloca !cc.array<i8 x 5>
 // CHECK:           %[[VAL_9:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_7]], %[[VAL_3]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
@@ -111,8 +111,8 @@ __qpu__ bool kernel_of_truth() { return true; }
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_truth._Z15kernel_of_truthv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant true
-// CHECK:           %[[VAL_1:.*]] = cc.string_literal "i1" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant true
+// CHECK-DAG:       %[[VAL_1:.*]] = cc.string_literal "i1" : !cc.ptr<!cc.array<i8 x 3>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__bool_record_output(%[[VAL_0]], %[[VAL_2]]) : (i1, !cc.ptr<i8>) -> ()
 // CHECK:           return {cc.cudaq.run} %[[VAL_0]] : i1
@@ -123,9 +123,9 @@ __qpu__ int kernel_of_corn() { return 0xDeadBeef; }
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_of_corn._Z14kernel_of_cornv() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant -559038737 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant -559038737 : i32
-// CHECK:           %[[VAL_2:.*]] = cc.string_literal "i32" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant -559038737 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant -559038737 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = cc.string_literal "i32" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__int_record_output(%[[VAL_0]], %[[VAL_3]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           return {cc.cudaq.run} %[[VAL_1]] : i32
@@ -139,8 +139,8 @@ public:
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffDiver() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 4.200000e+01 : f64
-// CHECK:           %[[VAL_1:.*]] = cc.string_literal "f64" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 4.200000e+01 : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = cc.string_literal "f64" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__double_record_output(%[[VAL_0]], %[[VAL_2]]) : (f64, !cc.ptr<i8>) -> ()
 // CHECK:           return {cc.cudaq.run} %[[VAL_0]] : f64
@@ -165,9 +165,9 @@ public:
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffClimber() -> i8 attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 99 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 99 : i8
-// CHECK:           %[[VAL_2:.*]] = cc.string_literal "i8" : !cc.ptr<!cc.array<i8 x 3>>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 99 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 99 : i8
+// CHECK-DAG:       %[[VAL_2:.*]] = cc.string_literal "i8" : !cc.ptr<!cc.array<i8 x 3>>
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__int_record_output(%[[VAL_0]], %[[VAL_3]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           return {cc.cudaq.run} %[[VAL_1]] : i8
@@ -178,8 +178,8 @@ __qpu__ unsigned long long this_is_not_a_drill() { return 123400000ull; }
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_not_a_drill._Z19this_is_not_a_drillv() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 123400000 : i64
-// CHECK:           %[[VAL_1:.*]] = cc.string_literal "i64" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 123400000 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = cc.string_literal "i64" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__int_record_output(%[[VAL_0]], %[[VAL_2]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           return {cc.cudaq.run} %[[VAL_0]] : i64
@@ -195,9 +195,9 @@ struct Soap {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_this_is_a_hammer._Z16this_is_a_hammerv() -> i16 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 2387 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 2387 : i16
-// CHECK:           %[[VAL_2:.*]] = cc.string_literal "i16" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2387 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2387 : i16
+// CHECK-DAG:       %[[VAL_2:.*]] = cc.string_literal "i16" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           call @__quantum__rt__int_record_output(%[[VAL_0]], %[[VAL_3]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           return {cc.cudaq.run} %[[VAL_1]] : i16
@@ -210,10 +210,10 @@ struct CliffHanger {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CliffHanger() -> !cc.struct<"Soap" {i1, i32} [64,4]> attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant true
-// CHECK:           %[[VAL_2:.*]] = arith.constant 747 : i32
-// CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<"Soap" {i1, i32} [64,4]>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant true
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 747 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = cc.alloca !cc.struct<"Soap" {i1, i32} [64,4]>
 // CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.struct<"Soap" {i1, i32} [64,4]>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_4]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.struct<"Soap" {i1, i32} [64,4]>>) -> !cc.ptr<i32>
@@ -244,11 +244,11 @@ __qpu__ std::vector<float> unary_test_list(int count) {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unary_test_list._Z15unary_test_listi(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32) -> !cc.stdvec<f32> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f32
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f32
-// CHECK:           %[[VAL_3:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_4:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.alloca i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f32
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.cast signed %[[VAL_6]] : (i32) -> i64
@@ -291,11 +291,11 @@ __qpu__ std::vector<bool> unary_test_list2(int count) {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unary_test_list2._Z16unary_test_list2i(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32) -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, "qir-api"} {
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_3:.*]] = arith.constant true
-// CHECK:           %[[VAL_4:.*]] = arith.constant false
-// CHECK:           %[[VAL_5:.*]] = cc.alloca i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant true
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant false
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.cast signed %[[VAL_6]] : (i32) -> i64
