@@ -840,7 +840,9 @@ protected:
   virtual void applyNoiseChannel(const std::string_view gateName,
                                  const std::vector<std::size_t> &controls,
                                  const std::vector<std::size_t> &targets,
-                                 const std::vector<double> &params) {}
+                                 const std::vector<double> &params) {
+    CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
+  }
 
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
