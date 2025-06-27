@@ -32,17 +32,18 @@ jobs:
 
           BASE="ghcr.io/nvidia/cuda-quantum"
 
-          for cuda in 11.8 12.0; do
+          for cuda_full in 11.8 12.0; do
+            cuda_major="${cuda_full%%.*}"  # Extracts '11' from '11.8', '12' from '12.0'
             refs=""
             for arch in amd64 arm64; do
-              key="${arch}-cu${cuda}"
+              key="${arch}-cu${cuda_full}"
               digest="${DIGESTS[$key]}"
               ref="$BASE@$digest"
               echo "Using ref: $ref"
               refs="$refs $ref"
             done
 
-            stitched_tag="$BASE:cu${cuda}-latest-base"
+            stitched_tag="$BASE:cu${cuda_major}-latest-base"
             echo "Creating manifest for $stitched_tag"
             docker buildx imagetools create \
               --tag "$stitched_tag" \

@@ -487,10 +487,12 @@ jobs:
               refs="$refs ghcr.io/nvidia/cuda-quantum@$digest"
             done
 
-            echo "Creating manifest for cu${cuda}-latest-base"
+            cuda_major="${cuda%%.*}" # Extracts '11' from '11.8', '12' from '12.0'
+            stitched_tag="ghcr.io/nvidia/cuda-quantum:cu${cuda_major}-latest-base"
+            echo "Creating manifest for $stitched_tag"
             echo "Refs: $refs"
             docker buildx imagetools create \
-              --tag ghcr.io/nvidia/cuda-quantum:cu${cuda}-latest-base \
+              --tag "$stitched_tag" \
               $refs
           done
 
