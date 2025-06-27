@@ -14,6 +14,7 @@
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
+#include "cudaq/qis/kernel_utils.h"
 #include <cstdint>
 
 extern "C" {
@@ -125,7 +126,7 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
 #endif
   // Launch the kernel in the appropriate context.
   auto &platform = cudaq::get_platform();
-  std::string kernelName{cudaq::getKernelName(kernel)};
+  std::string kernelName{details::getKernelName(kernel)};
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
       kernelName, shots);
@@ -178,7 +179,7 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
 #endif
   // Launch the kernel in the appropriate context.
   platform.set_noise(&noise_model);
-  std::string kernelName{cudaq::getKernelName(kernel)};
+  std::string kernelName{details::getKernelName(kernel)};
   details::RunResultSpan span = details::runTheKernel(
       [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
       kernelName, shots);
@@ -233,7 +234,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         p.set_value(std::move(res));
         return;
 #endif
-        const std::string kernelName{cudaq::getKernelName(kernel)};
+        const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
             kernelName, shots);
@@ -263,7 +264,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         p.set_value(std::move(res));
         return;
 #endif
-        const std::string kernelName{cudaq::getKernelName(kernel)};
+        const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               std::apply(
@@ -341,7 +342,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
         return;
 #endif
         platform.set_noise(&noise_model);
-        const std::string kernelName{cudaq::getKernelName(kernel)};
+        const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
             kernelName, shots);
@@ -379,7 +380,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
         return;
 #endif
         platform.set_noise(&noise_model);
-        const std::string kernelName{cudaq::getKernelName(kernel)};
+        const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               std::apply(
