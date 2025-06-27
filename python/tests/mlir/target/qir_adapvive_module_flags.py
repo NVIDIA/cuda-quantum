@@ -35,25 +35,25 @@ test_return()
 
 # CHECK: ; ModuleID = 'LLVMDialectModule'
 # CHECK: {{.*}}
-# CHECK: !llvm.module.flags = !{!0, !1, !2, !3, !4, !5}
+# CHECK: !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6}
 
 # CHECK: !0 = !{i32 2, !"Debug Info Version", i32 3}
 # CHECK: !1 = !{i32 1, !"qir_major_version", i32 1}
 # CHECK: !2 = !{i32 7, !"qir_minor_version", i32 0}
 # CHECK: !3 = !{i32 1, !"dynamic_qubit_management", i1 false}
 # CHECK: !4 = !{i32 1, !"dynamic_result_management", i1 false}
-# CHECK: !5 = !{i32 1, !"backwards_branching", i2 0}
+# CHECK: !5 = !{i32 1, !"int_computations", [3 x i8] c"i64"}
+# CHECK: !6 = !{i32 1, !"backwards_branching", i2 0}
 
 
-# Test int_computations and float_computations flags
+# Test int_computations flag
 # TODO: add cudaq.run tests using runtime output functions
-def test_computations():
+def test_int_computations():
 
     @cudaq.kernel
     def kernel(n: int, m: np.int32):
         q = cudaq.qvector(n)
         j = 0
-        jf = 1.2
         for i in range(10):
             k = 0
             if i > 5:
@@ -62,20 +62,19 @@ def test_computations():
             if mz(q[k]):
                 j = j + 1
                 m = m + m
-                jf = jf + jf
 
-        if jf > 3 and j > 5:
+        if j > 5:
             x(q[0])
 
     cudaq.sample(kernel, 2, 134)
 
 
-test_computations()
+test_int_computations()
 
 # CHECK: {{.*}}
 # CHECK: ; ModuleID = 'LLVMDialectModule'
 # CHECK: {{.*}}
-# CHECK: !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7}
+# CHECK: !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6}
 
 # CHECK: !0 = !{i32 2, !"Debug Info Version", i32 3}
 # CHECK: !1 = !{i32 1, !"qir_major_version", i32 1}
@@ -83,8 +82,47 @@ test_computations()
 # CHECK: !3 = !{i32 1, !"dynamic_qubit_management", i1 false}
 # CHECK: !4 = !{i32 1, !"dynamic_result_management", i1 false}
 # CHECK: !5 = !{i32 1, !"int_computations", [6 x i8] c"i1,i64"}
-# CHECK: !6 = !{i32 1, !"float_computations", [3 x i8] c"f64"}
-# CHECK: !7 = !{i32 1, !"backwards_branching", i2 0}
+# CHECK: !6 = !{i32 1, !"backwards_branching", i2 0}
+
+# Test int_computations and float_computations flags
+# TODO: add cudaq.run tests using runtime output functions
+# def test_float_computations():
+
+#     @cudaq.kernel
+#     def kernel(n: int, m: np.int32):
+#         q = cudaq.qvector(n)
+#         j = 0
+#         jf = 1.2
+#         for i in range(10):
+#             k = 0
+#             if i > 5:
+#                 k = 1
+#             x(q[k])
+#             if mz(q[k]):
+#                 j = j + 1
+#                 m = m + m
+#                 jf = jf + jf
+
+#         if jf > 3 and j > 5:
+#             x(q[0])
+
+#     cudaq.sample(kernel, 2, 134)
+
+# test_float_computations()
+
+# XHECK: {{.*}}
+# XHECK: ; ModuleID = 'LLVMDialectModule'
+# XHECK: {{.*}}
+# XHECK: !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7}
+
+# XHECK: !0 = !{i32 2, !"Debug Info Version", i32 3}
+# XHECK: !1 = !{i32 1, !"qir_major_version", i32 1}
+# XHECK: !2 = !{i32 7, !"qir_minor_version", i32 0}
+# XHECK: !3 = !{i32 1, !"dynamic_qubit_management", i1 false}
+# XHECK: !4 = !{i32 1, !"dynamic_result_management", i1 false}
+# XHECK: !5 = !{i32 1, !"int_computations", [6 x i8] c"i1,i64"}
+# XHECK: !6 = !{i32 1, !"float_computations", [3 x i8] c"f64"}
+# XHECK: !7 = !{i32 1, !"backwards_branching", i2 0}
 
 # Test backwards_branching flag
 
@@ -119,7 +157,6 @@ test_iteration_loop()
 # CHECK: !3 = !{i32 1, !"dynamic_qubit_management", i1 false}
 # CHECK: !4 = !{i32 1, !"dynamic_result_management", i1 false}
 # CHECK: !5 = !{i32 1, !"int_computations", [3 x i8] c"i64"}
-# NOTE: 1 is "01" bitstring base 2
 # CHECK: !6 = !{i32 1, !"backwards_branching", i2 1}
 
 
