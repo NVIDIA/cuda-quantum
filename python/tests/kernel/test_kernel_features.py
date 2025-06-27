@@ -23,6 +23,57 @@ def do_something():
     cudaq.__clearKernelRegistries()
 
 
+def test_argument_int():
+
+    @cudaq.kernel
+    def kernel(n: int):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int8):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int16):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int32):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int64):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+    @cudaq.kernel
+    def kernel(n: np.int64):
+        qubits = cudaq.qvector(n)
+
+    counts = cudaq.sample(kernel, 2)
+    assert len(counts) == 1
+    assert '00' in counts
+
+
 def test_adjoint():
     """Test that adjoint can be called on kernels and operations."""
 
@@ -106,6 +157,35 @@ def test_control():
     counts = cudaq.sample(test)
     assert len(counts) == 1
     assert '110' in counts
+
+
+def test_multi_control_gates():
+    """Test that a multi-controlled X (Toffoli) gate works with the multi-control API."""
+
+    @cudaq.kernel
+    def mcx_kernel():
+        q = cudaq.qvector(3)
+        # State |110>
+        x(q[0])
+        x(q[1])
+        x.ctrl([q[0], q[1]], q[2])
+        mz(q)
+
+    counts = cudaq.sample(mcx_kernel)
+    assert len(counts) == 1
+    assert '111' in counts
+
+    @cudaq.kernel
+    def mcx_kernel_neg():
+        q = cudaq.qvector(3)
+        # State |100>
+        x(q[0])
+        x.ctrl([q[0], q[1]], q[2])
+        mz(q)
+
+    counts = cudaq.sample(mcx_kernel_neg)
+    assert len(counts) == 1
+    assert '100' in counts
 
 
 def test_grover():
@@ -470,7 +550,35 @@ def test_simple_return_types():
     assert ret == 8
 
     @cudaq.kernel
-    def qernel(a: float, b: float) -> float:
+    def kernel(a: int, b: int) -> np.int32:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert ret == 8
+
+    @cudaq.kernel
+    def kernel(a: int, b: int) -> np.int64:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert ret == 8
+
+    @cudaq.kernel
+    def kernel(a: float, b: float) -> float:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert np.isclose(ret, 8., atol=1e-12)
+
+    @cudaq.kernel
+    def kernel(a: float, b: float) -> np.float32:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert np.isclose(ret, 8., atol=1e-12)
+
+    @cudaq.kernel
+    def kernel(a: float, b: float) -> np.float64:
         return a * b
 
     ret = kernel(2, 4)
@@ -487,6 +595,51 @@ def test_simple_return_types():
         return True
 
     assert boolKernel()
+
+
+def test_tuple_creation_and_access():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        t = (-42, True, 13.5)
+        return t[0]
+
+    ret = kernel()
+    assert ret == -42
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        t = (-42, True, 13.5)
+        return t[1]
+
+    ret = kernel()
+    assert ret == True
+
+    @cudaq.kernel
+    def kernel() -> float:
+        t = (-42, True, 13.5)
+        return t[2]
+
+    ret = kernel()
+    assert np.isclose(ret, 13.5, atol=1e-12)
+
+    @cudaq.kernel
+    def kernel() -> float:
+        t = (-42, True, 13.5)
+        return t[3]
+
+    with pytest.raises(RuntimeError) as e:
+        ret = kernel()
+    assert 'tuple index is out of range: 3' in repr(e)
+
+    @cudaq.kernel
+    def kernel(i: int) -> float:
+        t = (-42, True, 13.5)
+        return t[i]
+
+    with pytest.raises(RuntimeError) as e:
+        ret = kernel()
+    assert 'non-constant subscript value on a tuple is not supported' in repr(e)
 
 
 def test_list_creation():
@@ -520,7 +673,6 @@ def test_list_creation():
         for i in myList:
             x(q[i])
 
-    print(kernel3)
     counts = cudaq.sample(kernel3, 5)
     assert len(counts) == 1
     assert '1' * 5 in counts
@@ -532,10 +684,62 @@ def test_list_creation():
         for i in casted:
             x(q[i])
 
-    print(kernel4)
     counts = cudaq.sample(kernel4, list(range(5)))
     assert len(counts) == 1
     assert '1' * 5 in counts
+
+
+def test_string_argument_error():
+
+    @cudaq.kernel
+    def kernel(n: int, s: str):
+        qubits = cudaq.qvector(n)
+        exp_pauli(2.2, qubits, 'YY')
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, "aaa")
+    assert 'str is not a sup' in repr(e)
+
+
+def test_list_string_argument_error():
+
+    @cudaq.kernel
+    def kernel(n: int, s: list[str]):
+        qubits = cudaq.qvector(n)
+        exp_pauli(2.2, qubits, 'YY')
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, 2, ["aaa"])
+    assert 'str is not a sup' in repr(e)
+
+
+def test_list_list_string_argument_error():
+
+    @cudaq.kernel
+    def kernel(n: int, s: list[list[str]]):
+        qubits = cudaq.qvector(n)
+        exp_pauli(2.2, qubits, 'YY')
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, 2, [["aaa"]])
+    assert 'str is not a sup' in repr(e)
+
+
+def test_broadcast():
+
+    @cudaq.kernel
+    def kernel(l: list[list[int]]):
+        q = cudaq.qvector(2)
+        for inner in l:
+            for i in inner:
+                x(q[i])
+
+    #FIXME: update broadcast detection logic to allow this case.
+    # https://github.com/NVIDIA/cuda-quantum/issues/2895
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, [[0, 1]])
+    assert 'Invalid runtime argument type. Argument of type list[int] was provided' in repr(
+        e)
 
 
 def test_list_creation_with_cast():
@@ -1518,8 +1722,8 @@ def test_u3_adj():
 
         # implement Rx gate with U3
         u3(1.1, -np.pi / 2, np.pi / 2, q)
-        # rx.adj(angle) = u3.adj(angle, pi/2, -pi/2)
-        u3.adj(1.1, np.pi / 2, -np.pi / 2, q)
+        # rx.adj(angle) = u3.adj(angle, -pi/2, pi/2)
+        u3.adj(1.1, -np.pi / 2, np.pi / 2, q)
 
         # implement Ry gate with U3
         u3(1.1, 0, 0, q)
@@ -2061,6 +2265,39 @@ def test_in_comparator():
     assert len(c) == 1 and '1' in c
     c = cudaq.sample(kernel, 20)
     assert len(c) == 1 and '0' in c
+
+
+def test_negative_indices_for_a_slice():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(6)
+        h(qubits[0:3])
+        controls = qubits[0:-1]
+        target = qubits[-1]
+
+        x.ctrl(controls, target)
+
+    # test here is that it compiles and runs
+    cudaq.sample(kernel)
+    circuit = cudaq.draw(kernel)
+    print(circuit)
+    expected_str = '''     ╭───╮     
+q0 : ┤ h ├──●──
+     ├───┤  │  
+q1 : ┤ h ├──●──
+     ├───┤  │  
+q2 : ┤ h ├──●──
+     ╰───╯  │  
+q3 : ───────●──
+            │  
+q4 : ───────●──
+          ╭─┴─╮
+q5 : ─────┤ x ├
+          ╰───╯
+'''
+
+    assert circuit == expected_str
 
 
 # leave for gdb debugging

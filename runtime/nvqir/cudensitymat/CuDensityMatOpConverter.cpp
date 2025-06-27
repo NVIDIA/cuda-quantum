@@ -8,6 +8,7 @@
 
 #include "CuDensityMatOpConverter.h"
 #include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
 #include "common/Logger.h"
 #include <iostream>
 #include <map>
@@ -53,24 +54,6 @@ flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix) {
   return flatMatrix;
 }
 
-void *createArrayGpu(const std::vector<std::complex<double>> &cpuArray) {
-  void *gpuArray{nullptr};
-  const std::size_t array_size = cpuArray.size() * sizeof(std::complex<double>);
-  if (array_size > 0) {
-    HANDLE_CUDA_ERROR(cudaMalloc(&gpuArray, array_size));
-    HANDLE_CUDA_ERROR(cudaMemcpy(gpuArray,
-                                 static_cast<const void *>(cpuArray.data()),
-                                 array_size, cudaMemcpyHostToDevice));
-  }
-  return gpuArray;
-}
-
-// Function to destroy a previously created array copy in GPU memory
-void destroyArrayGpu(void *gpuArray) {
-  if (gpuArray)
-    HANDLE_CUDA_ERROR(cudaFree(gpuArray));
-}
-
 cudaq::product_op<cudaq::matrix_handler>
 computeDagger(const cudaq::matrix_handler &op) {
   const std::string daggerOpName = op.to_string(false) + "_dagger";
@@ -88,7 +71,27 @@ computeDagger(const cudaq::matrix_handler &op) {
       auto originalMat = op.to_matrix(dims, params);
       return originalMat.adjoint();
     };
-    cudaq::matrix_handler::define(daggerOpName, {-1}, std::move(func));
+
+    auto dia_func =
+        [op](const std::vector<int64_t> &dimensions,
+             const std::unordered_map<std::string, std::complex<double>>
+                 &params) {
+          cudaq::dimension_map dims;
+          if (dimensions.size() != op.degrees().size())
+            throw std::runtime_error("Dimension mismatched");
+
+          for (std::size_t i = 0; i < dimensions.size(); ++i) {
+            dims[op.degrees()[i]] = dimensions[i];
+          }
+          auto diaMat = op.to_diagonal_matrix(dims, params);
+          for (auto &offset : diaMat.second)
+            offset *= -1;
+          for (auto &element : diaMat.first)
+            element = std::conj(element);
+          return diaMat;
+        };
+    cudaq::matrix_handler::define(daggerOpName, {-1}, std::move(func),
+                                  std::move(dia_func));
   } catch (...) {
     // Nothing, this has been define
   }
@@ -130,7 +133,62 @@ computeDagger(const cudaq::product_op<cudaq::matrix_handler> &productOp) {
   daggerProduct *= computeDagger(productOp.get_coefficient());
   return daggerProduct;
 }
+
+cudaq::sum_op<cudaq::matrix_handler>
+computeDagger(const cudaq::sum_op<cudaq::matrix_handler> &sumOp) {
+  cudaq::sum_op<cudaq::matrix_handler> daggerSum =
+      cudaq::sum_op<cudaq::matrix_handler>::empty();
+  for (const cudaq::product_op<cudaq::matrix_handler> &prodOp : sumOp)
+    daggerSum += computeDagger(prodOp);
+
+  return daggerSum;
+}
+
 } // namespace
+
+cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
+    cudensitymatHandle_t handle)
+    : m_handle(handle) {
+  const auto getIntEnvVarIfPresent =
+      [](const char *envName) -> std::optional<int> {
+    if (auto *envVal = std::getenv(envName)) {
+      const std::string envValStr(envVal);
+      const char *nptr = envValStr.data();
+      char *endptr = nullptr;
+      errno = 0; // reset errno to 0 before call
+      auto envIntVal = strtol(nptr, &endptr, 10);
+
+      if (nptr == endptr || errno != 0 || envIntVal < 0)
+        throw std::runtime_error(fmt::format(
+            "Invalid {} setting. Expected a non-negative number. Got: '{}'",
+            envName, envValStr));
+
+      return envIntVal;
+    }
+    // The environment variable is not set.
+    return std::nullopt;
+  };
+
+  {
+    const auto minDim =
+        getIntEnvVarIfPresent("CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION");
+    if (minDim.has_value()) {
+      cudaq::info("Setting multi-diagonal min dimension to {}.",
+                  minDim.value());
+      m_minDimensionDiag = minDim.value();
+    }
+  }
+
+  {
+    const auto maxDiags = getIntEnvVarIfPresent(
+        "CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL");
+    if (maxDiags.has_value()) {
+      cudaq::info("Setting multi-diagonal max number of diagonals to {}.",
+                  maxDiags.value());
+      m_maxDiagonalsDiag = maxDiags.value();
+    }
+  }
+}
 
 cudensitymatOperator_t
 cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
@@ -139,6 +197,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     const std::vector<int64_t> &modeExtents,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool isMasterEquation) {
+  LOG_API_TIME();
   if (!isMasterEquation && collapseOperators.empty()) {
     cudaq::info("Construct state vector Liouvillian");
     auto liouvillian = ham * std::complex<double>(0.0, -1.0);
@@ -213,6 +272,11 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
   }
 }
 
+void cudaq::dynamics::CuDensityMatOpConverter::clearCallbackContext() {
+  m_scalarCallbacks.clear();
+  m_tensorCallbacks.clear();
+}
+
 cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
   for (auto term : m_operatorTerms)
     cudensitymatDestroyOperatorTerm(term);
@@ -220,8 +284,9 @@ cudaq::dynamics::CuDensityMatOpConverter::~CuDensityMatOpConverter() {
   for (auto op : m_elementaryOperators)
     cudensitymatDestroyElementaryOperator(op);
 
-  for (auto *buffer : m_deviceBuffers)
-    cudaFree(buffer);
+  for (auto *buffer : m_deviceBuffers) {
+    cudaq::dynamics::DeviceAllocator::free(buffer);
+  }
 }
 
 cudensitymatElementaryOperator_t
@@ -268,27 +333,54 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     wrappedTensorCallback = wrapTensorCallback(elemOp, keys);
   }
 
-  auto flatMatrix =
-      flattenMatrixColumnMajor(elemOp.to_matrix(dimensions, parameters));
+  const auto [diags, offsets] =
+      elemOp.to_diagonal_matrix(dimensions, parameters);
+  const bool shouldUseDia = [&]() {
+    if (diags.empty())
+      return false;
+    const auto dim = std::accumulate(
+        subspaceExtents.begin(), subspaceExtents.end(), 1,
+        std::multiplies<decltype(subspaceExtents)::value_type>());
+    if (dim < m_minDimensionDiag)
+      return false;
+    return offsets.size() <= m_maxDiagonalsDiag;
+  }();
 
-  if (flatMatrix.empty())
-    throw std::invalid_argument("Input matrix (flat matrix) cannot be empty.");
+  auto *elementaryMat_d = [&]() {
+    if (shouldUseDia)
+      return cudaq::dynamics::createArrayGpu(diags);
+    auto flatMatrix =
+        flattenMatrixColumnMajor(elemOp.to_matrix(dimensions, parameters));
 
-  if (subspaceExtents.empty())
-    throw std::invalid_argument("subspaceExtents cannot be empty.");
+    if (flatMatrix.empty())
+      throw std::invalid_argument(
+          "Input matrix (flat matrix) cannot be empty.");
 
-  auto *elementaryMat_d = createArrayGpu(flatMatrix);
+    if (subspaceExtents.empty())
+      throw std::invalid_argument("subspaceExtents cannot be empty.");
+
+    return cudaq::dynamics::createArrayGpu(flatMatrix);
+  }();
+
   cudensitymatElementaryOperator_t cudmElemOp = nullptr;
-
-  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
-      m_handle, static_cast<int32_t>(subspaceExtents.size()),
-      subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
-      CUDA_C_64F, elementaryMat_d, wrappedTensorCallback, &cudmElemOp));
+  if (shouldUseDia) {
+    const std::vector<int32_t> diagonalOffsets(offsets.begin(), offsets.end());
+    HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+        m_handle, static_cast<int32_t>(subspaceExtents.size()),
+        subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_MULTIDIAGONAL,
+        offsets.size(), diagonalOffsets.data(), CUDA_C_64F, elementaryMat_d,
+        wrappedTensorCallback, &cudmElemOp));
+  } else {
+    HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
+        m_handle, static_cast<int32_t>(subspaceExtents.size()),
+        subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
+        CUDA_C_64F, elementaryMat_d, wrappedTensorCallback, &cudmElemOp));
+  }
 
   if (!cudmElemOp) {
     std::cerr << "[ERROR] cudmElemOp is NULL in createElementaryOperator !"
               << std::endl;
-    destroyArrayGpu(elementaryMat_d);
+    cudaq::dynamics::destroyArrayGpu(elementaryMat_d);
     throw std::runtime_error("Failed to create elementary operator.");
   }
   m_elementaryOperators.emplace(cudmElemOp);
@@ -430,9 +522,20 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
     // i.e., ABC means C to be applied first.
     std::reverse(elemOps.begin(), elemOps.end());
     std::reverse(allDegrees.begin(), allDegrees.end());
-    result.emplace_back(std::make_pair(
-        productOp.get_coefficient(),
-        createProductOperatorTerm(elemOps, modeExtents, allDegrees, {})));
+    if (elemOps.empty()) {
+      // Constant term (no operator)
+      cudaq::product_op<cudaq::matrix_handler> constantTerm =
+          cudaq::sum_op<cudaq::matrix_handler>::identity(0);
+      cudensitymatElementaryOperator_t cudmElemOp = createElementaryOperator(
+          *constantTerm.begin(), parameters, modeExtents);
+      result.emplace_back(std::make_pair(
+          productOp.get_coefficient(),
+          createProductOperatorTerm({cudmElemOp}, modeExtents, {{0}}, {})));
+    } else {
+      result.emplace_back(std::make_pair(
+          productOp.get_coefficient(),
+          createProductOperatorTerm(elemOps, modeExtents, allDegrees, {})));
+    }
   }
   return result;
 }
@@ -570,7 +673,8 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Callback param name {}, value {}", context->paramNames[i],
+        cudaq::debug("Callback param name {}, batch size {}, value {}",
+                     context->paramNames[i], batchSize,
                      param_map[context->paramNames[i]]);
       }
 
@@ -648,20 +752,16 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
         std::cerr << "Dimension map is empty!" << std::endl;
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
       }
-
-      complex_matrix matrix_data = storedOp.to_matrix(dimensions, param_map);
-
-      std::size_t rows = matrix_data.rows();
-      std::size_t cols = matrix_data.cols();
-
-      if (rows != cols) {
-        std::cerr << "Non-square matrix encountered: " << rows << "x" << cols
-                  << std::endl;
-        return CUDENSITYMAT_STATUS_INVALID_VALUE;
-      }
-
-      const std::vector<std::complex<double>> flatMatrix =
-          flattenMatrixColumnMajor(matrix_data);
+      const std::vector<std::complex<double>> flatMatrix = [&]() {
+        if (sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE) {
+          complex_matrix matrix_data =
+              storedOp.to_matrix(dimensions, param_map);
+          return flattenMatrixColumnMajor(matrix_data);
+        }
+        auto [mDiagData, _] =
+            storedOp.to_diagonal_matrix(dimensions, param_map);
+        return mDiagData;
+      }();
 
       if (data_type == CUDA_C_64F) {
         memcpy(tensor_storage, flatMatrix.data(),
@@ -692,4 +792,123 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
       reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
 
   return wrappedCallback;
+}
+
+cudensitymatOperator_t
+cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
+    const super_op &superOp, const std::vector<int64_t> &modeExtents,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) {
+  LOG_API_TIME();
+  cudensitymatOperator_t liouvillian;
+  HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
+      m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
+      &liouvillian));
+  // Append an operator term to the operator (super-operator)
+  // Handle the Hamiltonian
+  const std::map<std::string, std::complex<double>> sortedParameters(
+      parameters.begin(), parameters.end());
+  auto ks = std::views::keys(sortedParameters);
+  const std::vector<std::string> keys{ks.begin(), ks.end()};
+  for (const auto &[leftOpOpt, rightOpOpt] : superOp) {
+    if (leftOpOpt.has_value()) {
+      if (rightOpOpt.has_value()) {
+        scalar_operator coeff =
+            leftOpOpt->get_coefficient() * rightOpOpt->get_coefficient();
+        // L * rho * R
+        std::vector<cudensitymatElementaryOperator_t> elemOps;
+        std::vector<std::vector<std::size_t>> allDegrees;
+        std::vector<std::vector<int>> all_action_dual_modalities;
+
+        for (const auto &component : leftOpOpt.value()) {
+          if (const auto *elemOp =
+                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
+            auto cudmElemOp =
+                createElementaryOperator(*elemOp, parameters, modeExtents);
+            elemOps.emplace_back(cudmElemOp);
+            allDegrees.emplace_back(elemOp->degrees());
+            all_action_dual_modalities.emplace_back(
+                std::vector<int>(elemOp->degrees().size(), 0));
+          } else {
+            // Catch anything that we don't know
+            throw std::runtime_error("Unhandled type!");
+          }
+        }
+
+        for (const auto &component : rightOpOpt.value()) {
+          if (const auto *elemOp =
+                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
+            auto cudmElemOp =
+                createElementaryOperator(*elemOp, parameters, modeExtents);
+            elemOps.emplace_back(cudmElemOp);
+            allDegrees.emplace_back(elemOp->degrees());
+            all_action_dual_modalities.emplace_back(
+                std::vector<int>(elemOp->degrees().size(), 1));
+          } else {
+            // Catch anything that we don't know
+            throw std::runtime_error("Unhandled type!");
+          }
+        }
+
+        cudensitymatOperatorTerm_t term = createProductOperatorTerm(
+            elemOps, modeExtents, allDegrees, all_action_dual_modalities);
+
+        cudensitymatWrappedScalarCallback_t wrappedCallback =
+            cudensitymatScalarCallbackNone;
+        if (coeff.is_constant()) {
+          const auto coeffVal = coeff.evaluate();
+          HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+              m_handle, liouvillian, term, 0,
+              make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
+              wrappedCallback));
+        } else {
+          wrappedCallback = wrapScalarCallback(coeff, keys);
+          HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+              m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
+              wrappedCallback));
+        }
+      } else {
+        for (auto &[coeff, term] : convertToCudensitymat(
+                 leftOpOpt.value(), parameters, modeExtents)) {
+          cudensitymatWrappedScalarCallback_t wrappedCallback =
+              cudensitymatScalarCallbackNone;
+          if (coeff.is_constant()) {
+            const auto coeffVal = coeff.evaluate();
+            HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+                m_handle, liouvillian, term, 0,
+                make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
+                wrappedCallback));
+          } else {
+            wrappedCallback = wrapScalarCallback(coeff, keys);
+            HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+                m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
+                wrappedCallback));
+          }
+        }
+      }
+    } else {
+      if (rightOpOpt.has_value()) {
+        for (auto &[coeff, term] : convertToCudensitymat(
+                 rightOpOpt.value(), parameters, modeExtents)) {
+          cudensitymatWrappedScalarCallback_t wrappedCallback =
+              cudensitymatScalarCallbackNone;
+          if (coeff.is_constant()) {
+            const auto coeffVal = coeff.evaluate();
+            HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+                m_handle, liouvillian, term, 1,
+                make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
+                wrappedCallback));
+          } else {
+            wrappedCallback = wrapScalarCallback(coeff, keys);
+            HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+                m_handle, liouvillian, term, 1, make_cuDoubleComplex(1.0, 0.0),
+                wrappedCallback));
+          }
+        }
+      } else {
+        throw std::runtime_error("Invalid super-operator term encountered: no "
+                                 "operation action is specified.");
+      }
+    }
+  }
+  return liouvillian;
 }

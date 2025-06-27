@@ -15,7 +15,7 @@ from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
-                           SymbolTable)
+                           SymbolTable, UnitAttr)
 from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage
@@ -94,7 +94,7 @@ class PyKernelDecorator(object):
         # in the kernel definition
         for name, var in self.globalScopedVars.items():
             if isinstance(var, type) and hasattr(var, '__annotations__'):
-                globalRegisteredTypes[name] = (var, var.__annotations__)
+                globalRegisteredTypes.registerClass(name, var)
 
         # Once the kernel is compiled to MLIR, we
         # want to know what capture variables, if any, were
@@ -273,6 +273,14 @@ class PyKernelDecorator(object):
         self.compile()
         return str(self.module)
 
+    def enable_return_to_log(self):
+        """
+        Enable translation from `return` statements to QIR output log
+        """
+        self.compile()
+        self.module.operation.attributes.__setitem__(
+            'quake.cudaq_run', UnitAttr.get(context=self.module.context))
+
     def _repr_svg_(self):
         """
         Return the SVG representation of `self` (:class:`PyKernelDecorator`).
@@ -296,39 +304,82 @@ class PyKernelDecorator(object):
         except ImportError:
             return None
 
-    def isCastable(self, fromTy, toTy):
+    def isCastablePyType(self, fromTy, toTy):
+        if IntegerType.isinstance(toTy) and IntegerType(toTy).width != 1:
+            return IntegerType.isinstance(fromTy) and IntegerType(
+                fromTy).width != 1
+
         if F64Type.isinstance(toTy):
             return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
         if F32Type.isinstance(toTy):
             return F64Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
+        if F64Type.isinstance(toTy):
+            return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
+
         if ComplexType.isinstance(toTy):
             floatToType = ComplexType(toTy).element_type
             if ComplexType.isinstance(fromTy):
                 floatFromType = ComplexType(fromTy).element_type
-                return self.isCastable(floatFromType, floatToType)
+                return self.isCastablePyType(floatFromType, floatToType)
 
-            return fromTy == floatToType or self.isCastable(fromTy, floatToType)
+            return fromTy == floatToType or self.isCastablePyType(
+                fromTy, floatToType)
+
+        # Support passing `list[int]` to a `list[float]` argument
+        # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
+        if cc.StdvecType.isinstance(fromTy):
+            if cc.StdvecType.isinstance(toTy):
+                fromEleTy = cc.StdvecType.getElementType(fromTy)
+                toEleTy = cc.StdvecType.getElementType(toTy)
+
+                return self.isCastablePyType(fromEleTy, toEleTy)
 
         return False
 
-    def castPyList(self, fromEleTy, toEleTy, list):
-        if self.isCastable(fromEleTy, toEleTy):
-            if F64Type.isinstance(toEleTy):
-                return [float(i) for i in list]
+    def castPyType(self, fromTy, toTy, value):
+        if self.isCastablePyType(fromTy, toTy):
+            if IntegerType.isinstance(toTy):
+                intToTy = IntegerType(toTy)
+                if intToTy.width == 1:
+                    return bool(value)
+                if intToTy.width == 8:
+                    return np.int8(value)
+                if intToTy.width == 16:
+                    return np.int16(value)
+                if intToTy.width == 32:
+                    return np.int32(value)
+                if intToTy.width == 64:
+                    return int(value)
 
-            if F32Type.isinstance(toEleTy):
-                return [np.float32(i) for i in list]
+            if F64Type.isinstance(toTy):
+                return float(value)
 
-            if ComplexType.isinstance(toEleTy):
-                floatToType = ComplexType(toEleTy).element_type
+            if F32Type.isinstance(toTy):
+                return np.float32(value)
+
+            if ComplexType.isinstance(toTy):
+                floatToType = ComplexType(toTy).element_type
 
                 if F64Type.isinstance(floatToType):
-                    return [complex(i) for i in list]
+                    return complex(value)
 
-                return [np.complex64(i) for i in list]
-        return list
+                return np.complex64(value)
+
+            # Support passing `list[int]` to a `list[float]` argument
+            # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
+            if cc.StdvecType.isinstance(fromTy):
+                if cc.StdvecType.isinstance(toTy):
+                    fromEleTy = cc.StdvecType.getElementType(fromTy)
+                    toEleTy = cc.StdvecType.getElementType(toTy)
+
+                    if self.isCastablePyType(fromEleTy, toEleTy):
+                        return [
+                            self.castPyType(fromEleTy, toEleTy, element)
+                            for element in value
+                        ]
+        return value
 
     def createStorage(self):
         ctx = None if self.module == None else self.module.context
@@ -388,6 +439,17 @@ class PyKernelDecorator(object):
             location=j['location'],
             overrideGlobalScopedVars=overrideDict)
 
+    def __convertStringsToPauli__(self, arg):
+        if isinstance(arg, str):
+            # Only allow `pauli_word` as string input
+            emitErrorIfInvalidPauli(arg)
+            return cudaq_runtime.pauli_word(arg)
+
+        if issubclass(type(arg), list):
+            return [self.__convertStringsToPauli__(a) for a in arg]
+
+        return arg
+
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to MLIR 
@@ -414,34 +476,17 @@ class PyKernelDecorator(object):
             if isinstance(arg, PyKernelDecorator):
                 arg.compile()
 
-            if isinstance(arg, str):
-                # Only allow `pauli_word` as string input
-                emitErrorIfInvalidPauli(arg)
-                arg = cudaq_runtime.pauli_word(arg)
-
-            if issubclass(type(arg), list):
-                if all(isinstance(a, str) for a in arg):
-                    [emitErrorIfInvalidPauli(a) for a in arg]
-                    arg = [cudaq_runtime.pauli_word(a) for a in arg]
-
+            arg = self.__convertStringsToPauli__(arg)
             mlirType = mlirTypeFromPyType(type(arg),
                                           self.module.context,
                                           argInstance=arg,
                                           argTypeToCompareTo=self.argTypes[i])
 
-            # Support passing `list[int]` to a `list[float]` argument
-            # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
-            if cc.StdvecType.isinstance(mlirType):
-                if cc.StdvecType.isinstance(self.argTypes[i]):
-                    argEleTy = cc.StdvecType.getElementType(mlirType)  # actual
-                    eleTy = cc.StdvecType.getElementType(
-                        self.argTypes[i])  # formal
-
-                    if self.isCastable(argEleTy, eleTy):
-                        processedArgs.append(
-                            self.castPyList(argEleTy, eleTy, arg))
-                        mlirType = self.argTypes[i]
-                        continue
+            if self.isCastablePyType(mlirType, self.argTypes[i]):
+                processedArgs.append(
+                    self.castPyType(mlirType, self.argTypes[i], arg))
+                mlirType = self.argTypes[i]
+                continue
 
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:

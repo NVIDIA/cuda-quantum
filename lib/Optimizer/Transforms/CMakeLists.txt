@@ -20,7 +20,7 @@ add_cudaq_library(OptTransforms
   ClassicalOptimization.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
-  ConstPropComplex.cpp
+  ConstantPropagation.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
   DelayMeasurements.cpp

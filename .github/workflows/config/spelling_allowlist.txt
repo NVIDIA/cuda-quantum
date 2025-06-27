@@ -266,6 +266,7 @@ lossy
 lvalue
 makefiles
 merchantability
+mps
 multithreaded
 mutex
 namespace
@@ -276,6 +277,7 @@ nullary
 observables
 optimizer
 optimizers
+pagerank
 parallelization
 parallelize
 parallelizing
@@ -344,6 +346,7 @@ toolchains
 toolset
 transmon
 trotterization
+uccsd
 unary
 uncomputation
 uncompute
@@ -362,5 +365,6 @@ vertices
 vqe
 waveforms
 wavefunction
+wf
 workflow
 zener

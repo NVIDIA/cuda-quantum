@@ -9,7 +9,6 @@
 #pragma once
 
 #include "common/EvolveResult.h"
-#include "common/KernelWrapper.h"
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
@@ -54,7 +53,8 @@ evolve_result evolve(state initial_state, QuantumKernel &&kernel,
 template <typename QuantumKernel>
 evolve_result evolve(state initial_state, std::vector<QuantumKernel> &kernels,
                      const std::vector<std::vector<spin_op>> &observables = {},
-                     int shots_count = -1) {
+                     int shots_count = -1,
+                     bool save_intermediate_states = true) {
   std::vector<state> intermediate_states = {};
   std::vector<std::vector<observe_result>> expectation_values = {};
   int step_idx = -1;
@@ -62,8 +62,14 @@ evolve_result evolve(state initial_state, std::vector<QuantumKernel> &kernels,
     if (intermediate_states.size() == 0) {
       intermediate_states.push_back(get_state(kernel, initial_state));
     } else {
-      intermediate_states.push_back(
-          get_state(kernel, intermediate_states.back()));
+      auto new_state = get_state(kernel, intermediate_states.back());
+      if (save_intermediate_states) {
+        intermediate_states.push_back(new_state);
+      } else {
+        // If we are not saving intermediate results, we just update the last
+        // state.
+        std::swap(intermediate_states.back(), new_state);
+      }
     }
     if (observables.size() > 0) {
       std::vector<observe_result> expectations = {};
@@ -116,17 +122,18 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
              const std::vector<std::vector<spin_op>> &observables = {},
              std::size_t qpu_id = 0,
              std::optional<cudaq::noise_model> noise_model = std::nullopt,
-             int shots_count = -1) {
+             int shots_count = -1, bool save_intermediate_states = true) {
   auto &platform = cudaq::get_platform();
   std::promise<evolve_result> promise;
   auto f = promise.get_future();
 
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), kernels, initial_state, observables, noise_model,
-       shots_count, &platform]() mutable {
+       shots_count, &platform, save_intermediate_states]() mutable {
         if (noise_model.has_value())
           platform.set_noise(&noise_model.value());
-        p.set_value(evolve(initial_state, kernels, observables, shots_count));
+        p.set_value(evolve(initial_state, kernels, observables, shots_count,
+                           save_intermediate_states));
         if (noise_model.has_value())
           platform.set_noise(nullptr);
       });
@@ -157,13 +164,64 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
   return f;
 }
 
+// Helper to migrate an input state to the current device if necessary
+state migrateState(const state &inputState);
+
 evolve_result evolveSingle(
     const sum_op<cudaq::matrix_handler> &hamiltonian,
     const cudaq::dimension_map &dimensions, const schedule &schedule,
     const state &initial_state, base_integrator &integrator,
     const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
-    bool store_intermediate_results = false,
+    IntermediateResultSave store_intermediate_results =
+        IntermediateResultSave::None,
+    std::optional<int> shots_count = std::nullopt);
+
+evolve_result evolveSingle(
+    const sum_op<cudaq::matrix_handler> &hamiltonian,
+    const cudaq::dimension_map &dimensions, const schedule &schedule,
+    InitialState initial_state, base_integrator &integrator,
+    const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
+    IntermediateResultSave store_intermediate_results =
+        IntermediateResultSave::None,
+    std::optional<int> shots_count = std::nullopt);
+
+std::vector<evolve_result> evolveBatched(
+    const sum_op<cudaq::matrix_handler> &hamiltonian,
+    const cudaq::dimension_map &dimensions, const schedule &schedule,
+    const std::vector<state> &initial_states, base_integrator &integrator,
+    const std::vector<sum_op<cudaq::matrix_handler>> &collapse_operators = {},
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
+    IntermediateResultSave store_intermediate_results =
+        IntermediateResultSave::None,
+    std::optional<int> shots_count = std::nullopt);
+
+evolve_result
+evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
+             const schedule &schedule, const state &initialState,
+             base_integrator &integrator,
+             const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
+             IntermediateResultSave store_intermediate_results =
+                 IntermediateResultSave::None,
+             std::optional<int> shotsCount = std::nullopt);
+
+evolve_result
+evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
+             const schedule &schedule, InitialState initialState,
+             base_integrator &integrator,
+             const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
+             IntermediateResultSave store_intermediate_results =
+                 IntermediateResultSave::None,
+             std::optional<int> shotsCount = std::nullopt);
+
+std::vector<evolve_result> evolveBatched(
+    const super_op &superOp, const cudaq::dimension_map &dimensions,
+    const schedule &schedule, const std::vector<state> &initial_states,
+    base_integrator &integrator,
+    const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
+    IntermediateResultSave store_intermediate_results =
+        IntermediateResultSave::None,
     std::optional<int> shots_count = std::nullopt);
 
 evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,

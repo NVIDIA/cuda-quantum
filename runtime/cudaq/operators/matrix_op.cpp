@@ -71,6 +71,23 @@ void matrix_handler::define(std::string operator_id,
       std::unordered_map<std::string, std::string>(parameter_descriptions));
 }
 
+void matrix_handler::define(std::string operator_id,
+                            std::vector<std::int64_t> expected_dimensions,
+                            matrix_callback &&create,
+                            diag_matrix_callback &&diag_create,
+                            const std::unordered_map<std::string, std::string>
+                                &parameter_descriptions) {
+  auto defn = Definition(
+      operator_id, std::move(expected_dimensions), std::move(create),
+      std::move(diag_create),
+      std::unordered_map<std::string, std::string>(parameter_descriptions));
+  auto result =
+      matrix_handler::defined_ops.insert({operator_id, std::move(defn)});
+  if (!result.second)
+    throw std::runtime_error("a matrix operator with name " + operator_id +
+                             " is already defined");
+}
+
 bool matrix_handler::remove_definition(const std::string &operator_id) {
   return matrix_handler::defined_ops.erase(operator_id);
 }
@@ -124,8 +141,9 @@ const std::vector<int64_t> &matrix_handler::get_expected_dimensions() const {
 
 // private helpers
 
-std::string matrix_handler::op_code_to_string(
-    std::unordered_map<std::size_t, std::int64_t> &dimensions) const {
+std::string matrix_handler::canonical_form(
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
+    std::vector<std::int64_t> &relevant_dims) const {
   auto it = matrix_handler::defined_ops.find(this->op_code);
   assert(it != matrix_handler::defined_ops
                    .end()); // should be validated upon instantiation
@@ -137,6 +155,7 @@ std::string matrix_handler::op_code_to_string(
       if (entry == dimensions.end())
         throw std::runtime_error("missing dimension for degree " +
                                  std::to_string(this->targets[i]));
+      relevant_dims.push_back(entry->second);
     } else {
       if (entry == dimensions.end())
         dimensions[this->targets[i]] = expected_dim;
@@ -144,6 +163,7 @@ std::string matrix_handler::op_code_to_string(
         throw std::runtime_error(
             "invalid dimension for degree " + std::to_string(this->targets[i]) +
             ", expected dimension is " + std::to_string(expected_dim));
+      relevant_dims.push_back(expected_dim);
     }
   }
   return this->op_code;
@@ -261,7 +281,24 @@ matrix_handler::matrix_handler(const T &other,
     // the to_matrix method on the spin op will check the dimensions, so we
     // allow arbitrary here
     std::vector<std::int64_t> required_dimensions(this->targets.size(), -1);
-    matrix_handler::define(this->op_code, std::move(required_dimensions), func);
+
+    if constexpr (std::is_base_of_v<mdiag_operator_handler, T>) {
+      auto dia_func =
+          [other](const std::vector<std::int64_t> &dimensions,
+                  const std::unordered_map<std::string, std::complex<double>>
+                      &_none) {
+            std::unordered_map<std::size_t, std::int64_t> dims;
+            auto targets = other.degrees();
+            for (auto i = 0; i < dimensions.size(); ++i)
+              dims[targets[i]] = dimensions[i];
+            return other.to_diagonal_matrix(dims, _none);
+          };
+      matrix_handler::define(this->op_code, std::move(required_dimensions),
+                             func, std::move(dia_func));
+    } else {
+      matrix_handler::define(this->op_code, std::move(required_dimensions),
+                             func);
+    }
   }
 }
 
@@ -352,6 +389,40 @@ complex_matrix matrix_handler::to_matrix(
   }
 
   return it->second.generate_matrix(relevant_dimensions, parameters);
+}
+
+mdiag_sparse_matrix matrix_handler::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
+  auto it = matrix_handler::defined_ops.find(this->op_code);
+  assert(it != matrix_handler::defined_ops
+                   .end()); // should be validated upon instantiation
+
+  if (!it->second.has_dia_generator())
+    return mdiag_sparse_matrix();
+  std::vector<std::int64_t> relevant_dimensions;
+  relevant_dimensions.reserve(this->targets.size());
+  for (auto i = 0; i < this->targets.size(); ++i) {
+    auto entry = dimensions.find(this->targets[i]);
+    auto expected_dim = it->second.expected_dimensions[i];
+    if (expected_dim <= 0) {
+      if (entry == dimensions.end())
+        throw std::runtime_error("missing dimension for degree " +
+                                 std::to_string(this->targets[i]));
+      relevant_dimensions.push_back(entry->second);
+    } else {
+      if (entry == dimensions.end())
+        dimensions[this->targets[i]] = expected_dim;
+      else if (entry->second != expected_dim)
+        throw std::runtime_error(
+            "invalid dimension for degree " + std::to_string(this->targets[i]) +
+            ", expected dimension is " + std::to_string(expected_dim));
+      relevant_dimensions.push_back(expected_dim);
+    }
+  }
+
+  return it->second.generate_dia_matrix(relevant_dimensions, parameters);
 }
 
 std::string matrix_handler::to_string(bool include_degrees) const {

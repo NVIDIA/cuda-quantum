@@ -6,17 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from enum import Enum
 
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-
-
-class InitialState(Enum):
-    """
-    Enum to specify the initial quantum state.
-    """
-    ZERO = 1
-    UNIFORM = 2
-
+# Enum to specify the initial quantum state.
+InitialState = cudaq_runtime.InitialStateType
 
 InitialStateArgT = cudaq_runtime.State | InitialState
+
+
+class IntermediateResultSave(Enum):
+    '''
+    Enum to specify how intermediate results should be saved during the dynamics evolution.
+    '''
+    # Options for saving intermediate results.
+    # NONE: Do not save any intermediate results.
+    NONE = 1
+    # ALL: Save all intermediate results.
+    ALL = 2
+    # EXPECTATION_VALUE: Save only the expectation values of the observables.
+    EXPECTATION_VALUE = 3

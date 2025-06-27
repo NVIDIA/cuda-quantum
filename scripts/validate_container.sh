@@ -105,6 +105,13 @@ else
     done    
 fi
 
+# Temporary solution until we stop reading backends names from configuration file.
+# This avoids duplicate testing during container validation in the publishing task.
+for backend_to_remove in nvidia-fp64 nvidia-mgpu nvidia-mqpu-fp64 nvidia-mqpu-mps nvidia-mqpu
+do
+    requested_backends=$(echo "$requested_backends" | grep -vx "$backend_to_remove")
+done
+
 echo
 echo "Installed backends:"
 echo "$installed_backends"
@@ -219,16 +226,17 @@ do
         fi
 
         echo "Testing on $t target..."
-        if [ "$t" == "nvidia" ]; then
-            # For the unified 'nvidia' target, we validate all target options as well.
-            # Note: this overlaps some legacy standalone targets (e.g., nvidia-mqpu, nvidia-mgpu, etc.),
-            # but we want to make sure all supported configurations in the unified 'nvidia' target are validated.
-            declare -a optionArray=("fp32" "fp64" "fp32,mqpu" "fp64,mqpu" "fp32,mgpu" "fp64,mgpu")
-            arraylength=${#optionArray[@]}
-            for (( i=0; i<${arraylength}; i++ ));
-            do
-                echo "  Testing $t target option: ${optionArray[$i]}"
-                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${optionArray[$i]}"
+        
+        # All target options to test for targets that support multiple configurations.
+        declare -A target_options=(
+            [nvidia]="fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu"
+            [tensornet]="fp32 fp64"
+            [tensornet-mps]="fp32 fp64"
+        )
+        if [[ -n "${target_options[$t]}" ]]; then
+            for opt in ${target_options[$t]}; do
+                echo "  Testing $t target option: ${opt}"
+                nvq++ $nvqpp_extra_options $ex $target_flag --target-option "${opt}"
                 if [ ! $? -eq 0 ]; then
                     let "failed+=1"
                     echo "  :x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"

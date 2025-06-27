@@ -150,7 +150,8 @@ Dynamics
 .. autoclass:: cudaq.dynamics.integrator.BaseIntegrator
 
 .. autoclass:: cudaq.dynamics.helpers.InitialState
-.. autofunction:: cudaq.dynamics.cudm_state.to_cupy_array
+.. autoclass:: cudaq.InitialStateType
+.. autoclass:: cudaq.IntermediateResultSave
 
 Operators
 =============================
@@ -164,6 +165,9 @@ Operators
 .. autoclass:: cudaq.operators.RydbergHamiltonian
     :members:
     :special-members: __init__
+
+.. autoclass:: cudaq.SuperOperator
+   :members:
 
 .. automethod:: cudaq.operators.define
 .. automethod:: cudaq.operators.instantiate

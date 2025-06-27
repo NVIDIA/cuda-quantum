@@ -21,6 +21,16 @@
 
 namespace cudaq {
 
+#define PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
+  template <typename T,                                                        \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
+                             std::true_type>>
+
+#define PROPERTY_AGNOSTIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
+  template <typename T,                                                        \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
+                             std::false_type>>
+
 // private methods
 
 #if !defined(NDEBUG)
@@ -145,19 +155,16 @@ product_op<fermion_handler>::find_insert_at(const fermion_handler &other) {
 }
 
 template <typename HandlerTy>
-template <typename T,
-          std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                               !product_op<T>::supports_inplace_mult,
-                           std::false_type>>
+PROPERTY_AGNOSTIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
 void product_op<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   this->operators.insert(pos, other);
 }
 
 template <typename HandlerTy>
-template <typename T, std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                           product_op<T>::supports_inplace_mult,
-                                       std::true_type>>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
 void product_op<HandlerTy>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->degree == other.degree) {
@@ -170,9 +177,8 @@ void product_op<HandlerTy>::insert(T &&other) {
 }
 
 template <>
-template <typename T, std::enable_if_t<std::is_same<spin_handler, T>::value &&
-                                           product_op<T>::supports_inplace_mult,
-                                       std::true_type>>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(spin_handler,
+                                      product_op<T>::supports_inplace_mult)
 void product_op<spin_handler>::insert(T &&other) {
   auto pos = this->find_insert_at(other);
   if (pos != this->operators.begin() && (pos - 1)->degree == other.degree) {
@@ -323,9 +329,9 @@ INSTANTIATE_PRODUCT_EVALUATE_METHODS(matrix_handler,
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(spin_handler,
                                      operator_handler::canonical_evaluation);
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(boson_handler,
-                                     operator_handler::matrix_evaluation);
+                                     operator_handler::canonical_evaluation);
 INSTANTIATE_PRODUCT_EVALUATE_METHODS(fermion_handler,
-                                     operator_handler::matrix_evaluation);
+                                     operator_handler::canonical_evaluation);
 
 // read-only properties
 
@@ -653,6 +659,24 @@ complex_matrix product_op<HandlerTy>::to_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const {
+  auto terms = std::move(
+      this->transform(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+
+  auto matrix =
+      HandlerTy::to_matrix(terms[0].encoding, terms[0].relevant_dimensions,
+                           terms[0].coefficient, invert_order);
+  return matrix;
+}
+
+template <>
+complex_matrix product_op<matrix_handler>::to_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
   auto evaluated =
       this->transform(operator_arithmetics<operator_handler::matrix_evaluation>(
           dimensions, parameters));
@@ -664,22 +688,6 @@ complex_matrix product_op<HandlerTy>::to_matrix(
     cudaq::detail::permute_matrix(evaluated.matrix, permutation);
   }
   return std::move(evaluated.matrix);
-}
-
-template <>
-complex_matrix product_op<spin_handler>::to_matrix(
-    std::unordered_map<std::size_t, std::int64_t> dimensions,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool invert_order) const {
-  auto terms = std::move(
-      this->transform(
-              operator_arithmetics<operator_handler::canonical_evaluation>(
-                  dimensions, parameters))
-          .terms);
-  assert(terms.size() == 1);
-  auto matrix =
-      spin_handler::to_matrix(terms[0].second, terms[0].first, invert_order);
-  return matrix;
 }
 
 #define INSTANTIATE_PRODUCT_EVALUATIONS(HandlerTy)                             \
@@ -1412,7 +1420,7 @@ product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) const {
   if (pad_identities == 0) {
     // No padding here (only covers the operators we have),
     // and does not include the coefficient
-    return std::move(terms[0].second);
+    return std::move(terms[0].encoding);
   } else {
     auto degrees = this->degrees();
     if (degrees.size() != 0) {
@@ -1426,7 +1434,7 @@ product_op<HandlerTy>::get_pauli_word(std::size_t pad_identities) const {
     }
     std::string str(pad_identities, 'I');
     for (std::size_t i = 0; i < degrees.size(); ++i)
-      str[degrees[i]] = terms[0].second[i];
+      str[degrees[i]] = terms[0].encoding[i];
     return str;
   }
 }
@@ -1451,7 +1459,7 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
   // needs to be from smallest to largest degree, and it necessarily must
   // include all consecutive degrees starting from 0 (even if the operator
   // doesn't act on them).
-  auto pauli_str = std::move(term.second);
+  auto pauli_str = std::move(term.encoding);
   std::vector<bool> bsf(term_size << 1, 0);
   for (std::size_t i = 0; i < degrees.size(); ++i) {
     auto op = pauli_str[i];
@@ -1467,7 +1475,9 @@ std::vector<bool> product_op<HandlerTy>::get_binary_symplectic_form() const {
   return bsf; // always little endian order by definition of the bsf
 }
 
-HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
+template <typename HandlerTy>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
 csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -1478,9 +1488,31 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
                   dimensions, parameters))
           .terms);
   assert(terms.size() == 1);
-  auto matrix = spin_handler::to_sparse_matrix(terms[0].second, terms[0].first,
-                                               invert_order);
-  return cudaq::detail::to_csr_spmatrix(matrix, 1ul << terms[0].second.size());
+
+  auto matrix = HandlerTy::to_sparse_matrix(terms[0].encoding,
+                                            terms[0].relevant_dimensions,
+                                            terms[0].coefficient, invert_order);
+  return cudaq::detail::to_csr_spmatrix(
+      matrix, 1ul << terms[0].relevant_dimensions.size());
+}
+
+template <typename HandlerTy>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
+mdiag_sparse_matrix product_op<HandlerTy>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto terms = std::move(
+      this->transform(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+  auto matrix = HandlerTy::to_diagonal_matrix(
+      terms[0].encoding, terms[0].relevant_dimensions, terms[0].coefficient,
+      invert_order);
+  return matrix;
 }
 
 template std::size_t product_op<spin_handler>::num_qubits() const;
@@ -1490,6 +1522,26 @@ template std::vector<bool>
 product_op<spin_handler>::get_binary_symplectic_form() const;
 template csr_spmatrix product_op<spin_handler>::to_sparse_matrix(
     std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix product_op<fermion_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template csr_spmatrix product_op<boson_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template mdiag_sparse_matrix product_op<spin_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template mdiag_sparse_matrix product_op<fermion_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template mdiag_sparse_matrix product_op<boson_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 

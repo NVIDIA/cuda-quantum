@@ -20,6 +20,7 @@ struct SystemDynamics {
   std::vector<std::int64_t> modeExtents;
   sum_op<cudaq::matrix_handler> hamiltonian;
   std::vector<sum_op<cudaq::matrix_handler>> collapseOps;
+  std::optional<super_op> superOp;
   std::unordered_map<std::string, std::complex<double>> parameters;
 
   SystemDynamics(
@@ -29,7 +30,9 @@ struct SystemDynamics {
       const std::unordered_map<std::string, std::complex<double>> &params = {})
       : modeExtents(extents), hamiltonian(ham), collapseOps(cOps),
         parameters(params) {}
-
+  SystemDynamics(const std::vector<std::int64_t> extents,
+                 const super_op &superOperator)
+      : modeExtents(extents), superOp(superOperator) {}
   SystemDynamics() : hamiltonian(cudaq::matrix_op::empty()){};
 };
 
@@ -67,6 +70,16 @@ public:
                                    const SystemDynamics &system,
                                    const cudaq::schedule &schedule) {
     integrator.m_system = system;
+    integrator.m_schedule = schedule;
+    integrator.m_stepper.reset();
+  }
+
+  static void init_system_dynamics(base_integrator &integrator,
+                                   const super_op &superOp,
+                                   std::vector<std::int64_t> modeExtents,
+                                   const cudaq::schedule &schedule) {
+    SystemDynamics systemDynamics(modeExtents, superOp);
+    integrator.m_system = systemDynamics;
     integrator.m_schedule = schedule;
     integrator.m_stepper.reset();
   }

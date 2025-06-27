@@ -230,6 +230,8 @@ public:
   // Stmt nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
+  bool TraverseDeclStmt(clang::DeclStmt *x, DataRecursionQueue *q = nullptr);
+
   bool VisitBreakStmt(clang::BreakStmt *x);
   bool TraverseCompoundStmt(clang::CompoundStmt *x,
                             DataRecursionQueue *q = nullptr);
@@ -280,6 +282,8 @@ public:
 
   bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr *x);
   bool VisitBinaryOperator(clang::BinaryOperator *x);
+  bool visitMathLibFunc(clang::CallExpr *x, clang::FunctionDecl *func,
+                        mlir::Location loc, llvm::StringRef funcName);
   bool VisitCallExpr(clang::CallExpr *x);
   bool TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
                                 DataRecursionQueue *q = nullptr);
@@ -444,13 +448,19 @@ public:
   mlir::Value floatingPointCoercion(mlir::Location loc, mlir::Type toType,
                                     mlir::Value value);
 
+  mlir::SmallVector<mlir::Value>
+  convertKernelArgs(mlir::Location loc, std::size_t dropFrontNum,
+                    const mlir::SmallVector<mlir::Value> &args,
+                    mlir::ArrayRef<mlir::Type> kernelArgTys,
+                    clang::CallExpr *x);
+
   /// Load the value referenced by an addressable value, if \p val is an address
   /// type. Otherwise, just returns \p val.
   mlir::Value loadLValue(mlir::Value val) {
     auto valTy = val.getType();
-    if (valTy.isa<cudaq::cc::PointerType>())
+    if (isa<cudaq::cc::PointerType>(valTy))
       return builder.create<cudaq::cc::LoadOp>(val.getLoc(), val);
-    if (valTy.isa<mlir::LLVM::LLVMPointerType>())
+    if (isa<mlir::LLVM::LLVMPointerType>(valTy))
       return builder.create<mlir::LLVM::LoadOp>(val.getLoc(), val);
     return val;
   }

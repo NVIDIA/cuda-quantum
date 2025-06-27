@@ -29,9 +29,6 @@ void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 
-std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
-std::unique_ptr<mlir::Pass>
-createApplyOpSpecializationPass(bool computeActionOpt);
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
@@ -44,7 +41,6 @@ std::unique_ptr<mlir::Pass>
 createQuakeSynthesizer(std::string_view, const void *,
                        std::size_t startingArgIdx = 0,
                        bool sameAddressSpace = false);
-std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
 
 std::unique_ptr<mlir::Pass>
 createPySynthCallableBlockArgs(const llvm::SmallVector<llvm::StringRef> &,

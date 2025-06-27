@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,16 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/platform/quera/QuEraBaseQPU.h"
+#include <pybind11/pybind11.h>
+
+namespace py = pybind11;
 
 namespace cudaq {
-
-class PyQuEraRemoteRESTQPU : public cudaq::QuEraBaseQPU {
-public:
-  PyQuEraRemoteRESTQPU() : QuEraBaseQPU() {}
-  PyQuEraRemoteRESTQPU(PyQuEraRemoteRESTQPU &&) = delete;
-  virtual ~PyQuEraRemoteRESTQPU() = default;
-};
+/// @brief Wrapper function for exposing the bindings of super-operator to
+/// python.
+void bindSuperOperatorWrapper(py::module &mod);
 } // namespace cudaq
-
-CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::PyQuEraRemoteRESTQPU, quera)

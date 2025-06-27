@@ -9,7 +9,6 @@
 #pragma once
 
 #include "common/EvolveResult.h"
-#include "common/KernelWrapper.h"
 #include "cudaq/algorithms/base_integrator.h"
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/host_config.h"
@@ -80,7 +79,42 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        base_integrator &integrator,
        std::initializer_list<CollapseOpTy> collapse_operators = {},
        std::initializer_list<ObserveOpTy> observables = {},
-       bool store_intermediate_results = false,
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
+       std::optional<int> shots_count = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  return cudaq::__internal__::evolveSingle(
+      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
+      initial_state, integrator,
+      cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
+#else
+template <typename HamTy,
+          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
+                                      cudaq::operator_type<CollapseOpTy> &&
+                                      cudaq::operator_type<ObserveOpTy>>>
+#endif
+evolve_result
+evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
+       const schedule &schedule, InitialState initial_state,
+       base_integrator &integrator,
+       std::initializer_list<CollapseOpTy> collapse_operators = {},
+       std::initializer_list<ObserveOpTy> observables = {},
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
@@ -110,13 +144,95 @@ evolve_result evolve(const HamTy &hamiltonian,
                      base_integrator &integrator,
                      const std::vector<CollapseOpTy> &collapse_operators = {},
                      const std::vector<ObserveOpTy> &observables = {},
-                     bool store_intermediate_results = false,
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
                      std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
   return cudaq::__internal__::evolveSingle(
       cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
       initial_state, integrator,
       cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type HamTy, operator_type CollapseOpTy,
+          operator_type ObserveOpTy>
+#else
+template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
+                                      cudaq::operator_type<CollapseOpTy> &&
+                                      cudaq::operator_type<ObserveOpTy>>>
+#endif
+evolve_result evolve(const HamTy &hamiltonian,
+                     const cudaq::dimension_map &dimensions,
+                     const schedule &schedule, InitialState initial_state,
+                     base_integrator &integrator,
+                     const std::vector<CollapseOpTy> &collapse_operators = {},
+                     const std::vector<ObserveOpTy> &observables = {},
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
+                     std::optional<int> shots_count = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  return cudaq::__internal__::evolveSingle(
+      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
+      initial_state, integrator,
+      cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type ObserveOpTy>
+#else
+template <typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
+#endif
+evolve_result evolve(const super_op &super_op,
+                     const cudaq::dimension_map &dimensions,
+                     const schedule &schedule, const state &initial_state,
+                     base_integrator &integrator,
+                     const std::initializer_list<ObserveOpTy> &observables = {},
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
+                     std::optional<int> shots_count = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  return cudaq::__internal__::evolveSingle(
+      super_op, dimensions, schedule, initial_state, integrator,
+      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type ObserveOpTy>
+#else
+template <typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
+#endif
+evolve_result evolve(const super_op &super_op,
+                     const cudaq::dimension_map &dimensions,
+                     const schedule &schedule, InitialState initial_state,
+                     base_integrator &integrator,
+                     const std::initializer_list<ObserveOpTy> &observables = {},
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
+                     std::optional<int> shots_count = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  return cudaq::__internal__::evolveSingle(
+      super_op, dimensions, schedule, initial_state, integrator,
       cudaq::__internal__::convertOps(observables), store_intermediate_results);
 #else
   static_assert(
@@ -143,16 +259,16 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        base_integrator &integrator,
        std::initializer_list<CollapseOpTy> collapse_operators = {},
        std::initializer_list<ObserveOpTy> observables = {},
-       bool store_intermediate_results = false,
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
-  std::vector<evolve_result> results;
-  for (const auto &initial_state : initial_states)
-    results.emplace_back(evolve(hamiltonian, dimensions, schedule,
-                                initial_state, integrator, collapse_operators,
-                                observables, store_intermediate_results,
-                                shots_count));
-  return results;
+  return cudaq::__internal__::evolveBatched(
+      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
+      initial_states, integrator,
+      cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results,
+      shots_count);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -178,16 +294,42 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        base_integrator &integrator,
        const std::vector<CollapseOpTy> &collapse_operators = {},
        const std::vector<ObserveOpTy> &observables = {},
-       bool store_intermediate_results = false,
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
        std::optional<int> shots_count = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
-  std::vector<evolve_result> results;
-  for (const auto &initial_state : initial_states)
-    results.emplace_back(evolve(
-        hamiltonian, dimensions, schedule, initial_states, integrator,
-        collapse_operators, initial_state, integrator, collapse_operators,
-        observables, store_intermediate_results, shots_count));
-  return results;
+  return cudaq::__internal__::evolveBatched(
+      cudaq::__internal__::convertOp(hamiltonian), dimensions, schedule,
+      initial_states, integrator,
+      cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results,
+      shots_count);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type ObserveOpTy>
+#else
+template <typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
+#endif
+std::vector<evolve_result>
+evolve(const super_op &super_op, const cudaq::dimension_map &dimensions,
+       const schedule &schedule, const std::vector<state> &initial_states,
+       base_integrator &integrator,
+       std::initializer_list<ObserveOpTy> observables = {},
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
+       std::optional<int> shots_count = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  return cudaq::__internal__::evolveBatched(
+      super_op, dimensions, schedule, initial_states, integrator,
+      cudaq::__internal__::convertOps(observables), store_intermediate_results,
+      shots_count);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -213,7 +355,8 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              base_integrator &integrator,
              std::initializer_list<CollapseOpTy> collapse_operators = {},
              std::initializer_list<ObserveOpTy> observables = {},
-             bool store_intermediate_results = false,
+             IntermediateResultSave store_intermediate_results =
+                 IntermediateResultSave::None,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
 #if defined(CUDAQ_ANALOG_TARGET)
   // Clone the integrator to extend its lifetime.
@@ -225,7 +368,8 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        obs = std::move(observableOperators)]() {
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
-        return evolve(hamiltonian, dimensions, schedule, initial_state,
+        state localizedState = cudaq::__internal__::migrateState(initial_state);
+        return evolve(hamiltonian, dimensions, schedule, localizedState,
                       *cloneIntegrator, cOps, obs, store_intermediate_results,
                       shots_count);
       },
@@ -253,7 +397,8 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              base_integrator &integrator,
              const std::vector<CollapseOpTy> &collapse_operators = {},
              const std::vector<ObserveOpTy> &observables = {},
-             bool store_intermediate_results = false,
+             IntermediateResultSave store_intermediate_results =
+                 IntermediateResultSave::None,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
 #if defined(CUDAQ_ANALOG_TARGET)
   // Clone the integrator to extend its lifetime.
@@ -262,11 +407,48 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
       [=]() {
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
-        return evolve(hamiltonian, dimensions, schedule, initial_state,
+        state localizedState = cudaq::__internal__::migrateState(initial_state);
+        return evolve(hamiltonian, dimensions, schedule, localizedState,
                       *cloneIntegrator, collapse_operators, observables,
                       store_intermediate_results, shots_count);
       },
       qpu_id);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type ObserveOpTy>
+#else
+template <typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
+#endif
+async_evolve_result
+evolve_async(const super_op &super_op, const cudaq::dimension_map &dimensions,
+             const schedule &schedule, const state &initial_state,
+             base_integrator &integrator,
+             std::initializer_list<ObserveOpTy> observables = {},
+             IntermediateResultSave store_intermediate_results =
+                 IntermediateResultSave::None,
+             std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  // Clone the integrator to extend its lifetime.
+  auto cloneIntegrator = integrator.clone();
+  auto observableOperators = cudaq::__internal__::convertOps(observables);
+  return __internal__::evolve_async(
+      [=, obs = std::move(observableOperators)]() {
+        ExecutionContext context("evolve");
+        cudaq::get_platform().set_exec_ctx(&context, qpu_id);
+        state localizedState = cudaq::__internal__::migrateState(initial_state);
+        return evolve(super_op, dimensions, schedule, localizedState,
+                      *cloneIntegrator, obs, store_intermediate_results,
+                      shots_count);
+      },
+      qpu_id);
+
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "

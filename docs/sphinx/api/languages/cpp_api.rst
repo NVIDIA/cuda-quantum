@@ -14,6 +14,8 @@ Operators
 
 .. doxygenclass:: cudaq::matrix_callback
 
+.. doxygenclass:: cudaq::diag_matrix_callback
+
 .. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
 
     Alias for a tuple containing vectors for complex values, indices, and sizes.
@@ -24,7 +26,13 @@ Operators
     - ``std::vector<std::size_t>``: Indices.
     - ``std::vector<std::size_t>``: Sizes.
 
+.. cpp:type:: mdiag_sparse_matrix = std::pair<std::vector<std::complex<double>>, std::vector<std::int64_t>>
+
+    Alias for a pair, in the multi-diagonal representation, containing vectors for complex values and diagonal offsets.  
+
 .. doxygenclass:: cudaq::operator_handler
+
+.. doxygenclass:: cudaq::mdiag_operator_handler
 
 .. doxygenclass:: cudaq::spin_handler
     :members:
@@ -317,13 +325,11 @@ Platform
 
 .. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
 
+.. doxygenclass:: cudaq::AnalogRemoteRESTQPU    
+
 .. doxygenclass:: cudaq::FermioniqBaseQPU
 
 .. doxygenclass:: cudaq::OrcaRemoteRESTQPU
-
-.. doxygenclass:: cudaq::PasqalBaseQPU
-
-.. doxygenclass:: cudaq::QuEraBaseQPU
 
 .. doxygenclass:: cudaq::quantum_platform
     :members:

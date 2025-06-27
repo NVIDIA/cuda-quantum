@@ -1,0 +1,55 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir %s | FileCheck %s
+
+func.func private @simp3()
+
+func.func @simp5() -> !cc.ptr<i8> {
+  %0 = func.constant @simp3 : () -> ()
+  %1 = cc.cast %0 : (() -> ()) -> !cc.ptr<i8>
+  func.return %1 : !cc.ptr<i8>
+}
+
+// CHECK-LABEL: declare void @simp3()
+
+// CHECK-LABEL: define nonnull i8* @simp5() local_unnamed_addr
+// CHECK:         ret i8* bitcast (void ()* @simp3 to i8*)
+// CHECK:       }
+
+func.func @cup(%0 : complex<f32>) -> complex<f64> {
+  %1 = cc.cast %0 : (complex<f32>) -> complex<f64>
+  return %1 : complex<f64>
+}
+
+func.func @cdown(%0 : complex<f64>) -> complex<f32> {
+  %1 = cc.cast %0 : (complex<f64>) -> complex<f32>
+  return %1 : complex<f32>
+}
+
+// CHECK-LABEL: define { double, double } @cup({ float, float }
+// CHECK-SAME:    %[[VAL_0:.*]])
+// CHECK:         %[[VAL_1:.*]] = extractvalue { float, float } %[[VAL_0]], 0
+// CHECK:         %[[VAL_2:.*]] = extractvalue { float, float } %[[VAL_0]], 1
+// CHECK:         %[[VAL_3:.*]] = fpext float %[[VAL_1]] to double
+// CHECK:         %[[VAL_4:.*]] = fpext float %[[VAL_2]] to double
+// CHECK:         %[[VAL_5:.*]] = insertvalue { double, double } undef, double %[[VAL_3]], 0
+// CHECK:         %[[VAL_6:.*]] = insertvalue { double, double } %[[VAL_5]], double %[[VAL_4]], 1
+// CHECK:         ret { double, double } %[[VAL_6]]
+// CHECK:       }
+
+// CHECK-LABEL: define { float, float } @cdown({ double, double }
+// CHECK-SAME:    %[[VAL_0:.*]])
+// CHECK:         %[[VAL_1:.*]] = extractvalue { double, double } %[[VAL_0]], 0
+// CHECK:         %[[VAL_2:.*]] = extractvalue { double, double } %[[VAL_0]], 1
+// CHECK:         %[[VAL_3:.*]] = fptrunc double %[[VAL_1]] to float
+// CHECK:         %[[VAL_4:.*]] = fptrunc double %[[VAL_2]] to float
+// CHECK:         %[[VAL_5:.*]] = insertvalue { float, float } undef, float %[[VAL_3]], 0
+// CHECK:         %[[VAL_6:.*]] = insertvalue { float, float } %[[VAL_5]], float %[[VAL_4]], 1
+// CHECK:         ret { float, float } %[[VAL_6]]
+// CHECK:       }

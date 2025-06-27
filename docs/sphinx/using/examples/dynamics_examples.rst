@@ -2,6 +2,10 @@ CUDA-Q Dynamics
 ===============
 .. _dynamics_examples:
 
+
+This page contains a number of examples that use CUDA-Q dynamics to simulate a range of fundamental physical systems and specific qubit modalities. All example problems simulate systems of very low dimension so that the code can be run quickly on any device. For small problems, the GPU will not provide a significant performance advantage over the CPU. The GPU will start to outperform the CPU for cases where the total dimension of all subsystems is O(1000).
+
+
 Cavity QED
 ---------------
 .. _cavity_qed:
@@ -28,6 +32,13 @@ Heisenberg Model
 .. _heisenberg_model:
 
 .. literalinclude:: ../../examples/python/dynamics/heisenberg_model.py
+   :language: python
+
+Ion Trap
+------------------
+.. _ion_trap:
+
+.. literalinclude:: ../../examples/python/dynamics/ion_trap.py
    :language: python
 
 Landau Zener

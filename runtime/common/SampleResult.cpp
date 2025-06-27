@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "MeasureCounts.h"
+#include "SampleResult.h"
 #include "cudaq/spin_op.h"
 
 #include <algorithm>
@@ -366,7 +366,10 @@ bool sample_result::has_expectation(const std::string_view registerName) const {
 }
 
 double sample_result::expectation(const std::string_view registerName) const {
-  const auto &result = retrieve_result(registerName.data());
+  auto [found, result] = try_retrieve_result(registerName.data());
+  if (!found)
+    return 0.0;
+
   if (result.expectationValue.has_value())
     return result.expectationValue.value();
 

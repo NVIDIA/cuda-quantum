@@ -136,10 +136,10 @@ Returns:
             def computeExpVal(term):
                 nonlocal sum
                 if term.is_identity():
-                    sum += term.get_coefficient().real
+                    sum += term.evaluate_coefficient().real
                 else:
                     sum += res.expectation(
-                        term.term_id) * term.get_coefficient().real
+                        term.term_id) * term.evaluate_coefficient().real
 
             for term in localOp:
                 computeExpVal(term)
@@ -147,6 +147,9 @@ Returns:
 
         observeResult = cudaq_runtime.ObserveResult(expVal, localOp, res)
         if not isinstance(spin_operator, list):
+            if noise_model != None:
+                cudaq_runtime.unset_noise()
+
             return observeResult
 
         results = []

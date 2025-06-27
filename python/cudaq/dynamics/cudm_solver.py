@@ -7,42 +7,39 @@
 # ============================================================================ #
 
 from __future__ import annotations
-from typing import Sequence, Mapping, List, Optional
+from typing import Sequence, Mapping, Optional
 
-from .cudm_helpers import CuDensityMatOpConversion, constructLiouvillian
 from .schedule import Schedule
 from ..operators import Operator
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
-from .cudm_helpers import cudm, CudmStateType
-from .cudm_state import CuDensityMatState, as_cudm_state
-from .helpers import InitialState, InitialStateArgT
+from .helpers import InitialState, InitialStateArgT, IntermediateResultSave
 from .integrator import BaseIntegrator
-from .integrators.builtin_integrators import RungeKuttaIntegrator, cuDensityMatTimeStepper
-import cupy
-import math
+from .integrators.builtin_integrators import RungeKuttaIntegrator
 from ..util.timing_helper import ScopeTimer
+from . import nvqir_dynamics_bindings as bindings
+from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, SuperOperator
 
 
 # Master-equation solver using `CuDensityMatState`
 def evolve_dynamics(
-        hamiltonian: Operator,
-        dimensions: Mapping[int, int],
-        schedule: Schedule,
-        initial_state: InitialStateArgT,
-        collapse_operators: Sequence[Operator] = [],
-        observables: Sequence[Operator] = [],
-        store_intermediate_results=False,
-        integrator: Optional[BaseIntegrator] = None
-) -> cudaq_runtime.EvolveResult:
-    if cudm is None:
-        raise ImportError(
-            "[dynamics target] Failed to import cuquantum density module. Please check your installation."
-        )
-
+    hamiltonian: Operator | SuperOperator,
+    dimensions: Mapping[int, int],
+    schedule: Schedule,
+    initial_state: InitialStateArgT | Sequence[cudaq_runtime.State],
+    collapse_operators: Sequence[Operator] = [],
+    observables: Sequence[Operator] = [],
+    store_intermediate_results: IntermediateResultSave = IntermediateResultSave.
+    NONE,
+    integrator: Optional[BaseIntegrator] = None
+) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     # Reset the schedule
     schedule.reset()
     hilbert_space_dims = tuple(dimensions[d] for d in range(len(dimensions)))
 
+    if not isinstance(store_intermediate_results, IntermediateResultSave):
+        raise TypeError(
+            "store_intermediate_results must be an instance of IntermediateResultSave"
+        )
     # Check that the integrator can support distributed state if this is a distributed simulation.
     if cudaq_runtime.mpi.is_initialized() and cudaq_runtime.mpi.num_ranks(
     ) > 1 and integrator is not None and not integrator.support_distributed_state(
@@ -51,115 +48,88 @@ def evolve_dynamics(
             f"Integrator {type(integrator).__name__} does not support distributed state."
         )
 
-    if isinstance(initial_state, InitialState):
-        has_collapse_operators = len(collapse_operators) > 0
-        initial_state = CuDensityMatState.create_initial_state(
-            initial_state, hilbert_space_dims, has_collapse_operators)
-    else:
-        with ScopeTimer("evolve.as_cudm_state") as timer:
-            initial_state = as_cudm_state(initial_state)
-
-    if not isinstance(initial_state, CuDensityMatState):
-        raise ValueError("Unknown type")
-
-    if not initial_state.is_initialized():
-        with ScopeTimer("evolve.init_state") as timer:
-            initial_state.init_state(hilbert_space_dims)
-
-    is_density_matrix = initial_state.is_density_matrix()
-    me_solve = False
-    if not is_density_matrix:
-        if len(collapse_operators) == 0:
-            me_solve = False
-        else:
-            with ScopeTimer("evolve.initial_state.to_dm") as timer:
-                initial_state = initial_state.to_dm()
-            me_solve = True
-    else:
-        # Always solve the master equation if the input is a density matrix
-        me_solve = True
-
-    with ScopeTimer("evolve.hamiltonian._transform") as timer:
-        ham_term = hamiltonian._transform(
-            CuDensityMatOpConversion(dimensions, schedule))
-    linblad_terms = []
-    for c_op in collapse_operators:
-        with ScopeTimer("evolve.collapse_operators._transform") as timer:
-            linblad_terms.append(
-                c_op._transform(CuDensityMatOpConversion(dimensions, schedule)))
-
-    with ScopeTimer("evolve.constructLiouvillian") as timer:
-        liouvillian = constructLiouvillian(hilbert_space_dims, ham_term,
-                                           linblad_terms, me_solve)
-
-    initial_state = initial_state.get_impl()
-    cudm_ctx = initial_state._ctx
-    stepper = cuDensityMatTimeStepper(liouvillian, cudm_ctx)
     if integrator is None:
-        integrator = RungeKuttaIntegrator(stepper)
+        # Default integrator if not provided.
+        integrator = RungeKuttaIntegrator()
+    has_collapse_operators = False
+    if isinstance(hamiltonian, SuperOperator):
+        if len(collapse_operators) > 0:
+            raise ValueError(
+                "'collapse_operators' must be empty when supplying the super-operator"
+            )
+        integrator.set_system(dimensions, schedule, hamiltonian)
+        for (left_op, right_op) in hamiltonian:
+            if right_op is not None:
+                has_collapse_operators = True
     else:
-        integrator.set_system(dimensions, schedule, hamiltonian,
+        has_collapse_operators = len(collapse_operators) > 0
+        collapse_operators = [MatrixOperator(op) for op in collapse_operators]
+        integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
                               collapse_operators)
+
+    hilbert_space_dims_list = list(hilbert_space_dims)
     expectation_op = [
-        cudm.Operator(
-            hilbert_space_dims,
-            (observable._transform(CuDensityMatOpConversion(dimensions)), 1.0))
+        bindings.CuDensityMatExpectation(MatrixOperator(observable),
+                                         hilbert_space_dims_list)
         for observable in observables
     ]
+
+    batch_size = 1
+    is_batched_evolve = False
+    if isinstance(initial_state, Sequence):
+        batch_size = len(initial_state)
+        initial_state = bindings.createBatchedState(initial_state,
+                                                    hilbert_space_dims_list,
+                                                    has_collapse_operators)
+        is_batched_evolve = True
+    else:
+        if isinstance(initial_state, InitialState):
+            initial_state = bindings.createInitialState(initial_state,
+                                                        dimensions,
+                                                        has_collapse_operators)
+        else:
+            initial_state = bindings.initializeState(initial_state,
+                                                     hilbert_space_dims_list,
+                                                     has_collapse_operators, 1)
     integrator.set_state(initial_state, schedule._steps[0])
-    exp_vals = []
-    intermediate_states = []
+
+    exp_vals = [[] for _ in range(batch_size)]
+    intermediate_states = [[] for _ in range(batch_size)]
     for step_idx, parameters in enumerate(schedule):
         if step_idx > 0:
             with ScopeTimer("evolve.integrator.integrate") as timer:
                 integrator.integrate(schedule.current_step)
         # If we store intermediate values, compute them for each step.
         # Otherwise, just for the last step.
-        if store_intermediate_results or step_idx == (len(schedule) - 1):
-            step_exp_vals = []
-            for obs_idx, obs in enumerate(expectation_op):
-                _, state = integrator.get_state()
-                with ScopeTimer("evolve.prepare_expectation") as timer:
-                    obs.prepare_expectation(cudm_ctx, state)
-                with ScopeTimer("evolve.compute_expectation") as timer:
-                    exp_val = obs.compute_expectation(schedule.current_step, (),
-                                                      state)
-                step_exp_vals.append(float(cupy.real(exp_val[0])))
-            exp_vals.append(step_exp_vals)
-        if store_intermediate_results:
+        if store_intermediate_results != IntermediateResultSave.NONE or step_idx == (
+                len(schedule) - 1):
+            step_exp_vals = [[] for _ in range(batch_size)]
             _, state = integrator.get_state()
-            state_length = state.storage.size
-            if is_density_matrix and not CuDensityMatState.is_multi_process():
-                dimension = int(math.sqrt(state_length))
-                with ScopeTimer("evolve.intermediate_states.append") as timer:
-                    intermediate_states.append(
-                        cudaq_runtime.State.from_data(
-                            state.storage.reshape((dimension, dimension))))
-            else:
-                dimension = state_length
-                with ScopeTimer("evolve.intermediate_states.append") as timer:
-                    intermediate_states.append(
-                        cudaq_runtime.State.from_data(
-                            state.storage.reshape((dimension,))))
+            for obs_idx, obs in enumerate(expectation_op):
+                obs.prepare(state)
+                exp_val = obs.compute(state, schedule.current_step)
+                for i in range(batch_size):
+                    step_exp_vals[i].append(exp_val[i])
 
-    if store_intermediate_results:
-        return cudaq_runtime.EvolveResult(intermediate_states, exp_vals)
+            for i in range(batch_size):
+                exp_vals[i].append(step_exp_vals[i])
+            # Store all intermediate states if requested. Otherwise, only the last state.
+            if store_intermediate_results == IntermediateResultSave.ALL or step_idx == (
+                    len(schedule) - 1):
+                split_states = bindings.splitBatchedState(state)
+                for i in range(batch_size):
+                    intermediate_states[i].append(split_states[i])
+
+    bindings.clearContext()
+    results = [
+        cudaq_runtime.EvolveResult(state, exp_val)
+        for state, exp_val in zip(intermediate_states, exp_vals)
+    ] if (store_intermediate_results != IntermediateResultSave.NONE) else [
+        cudaq_runtime.EvolveResult(state[-1], exp_val[-1])
+        for state, exp_val in zip(intermediate_states, exp_vals)
+    ]
+
+    if is_batched_evolve:
+        return results
     else:
-        _, state = integrator.get_state()
-        state_length = state.storage.size
-
-        # Only reshape the data into a density matrix is this is a single-GPU state.
-        # In a multi-GPU state, the density matrix is sliced, hence we cannot reshape each slice into a density matrix form.
-        # The data is returned as a flat buffer in this case.
-        if is_density_matrix and not CuDensityMatState.is_multi_process():
-            dimension = int(math.sqrt(state_length))
-            with ScopeTimer("evolve.final_state") as timer:
-                final_state = cudaq_runtime.State.from_data(
-                    state.storage.reshape((dimension, dimension)))
-        else:
-            dimension = state_length
-            with ScopeTimer("evolve.final_state") as timer:
-                final_state = cudaq_runtime.State.from_data(
-                    state.storage.reshape((dimension,)))
-
-        return cudaq_runtime.EvolveResult(final_state, exp_vals[-1])
+        return results[0]

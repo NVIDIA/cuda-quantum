@@ -114,6 +114,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v9.2.2-52
+
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -190,6 +195,11 @@ jobs:
         with:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
           fetch-depth: 1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v9.2.2-52
 
       - name: Set up context for buildx
         run: |
@@ -705,7 +715,29 @@ jobs:
           export PASQAL_PROJECT_ID='${{ secrets.PASQAL_PROJECT_ID }}'
           export PASQAL_MACHINE_TARGET="EMU_FREE" # Speedup queuing time
           set +e # Allow script to keep going through errors
+          echo "### Generating Pasqal auth token" >> $GITHUB_STEP_SUMMARY
+          PASQAL_AUTH_TOKEN=$(python3 -c "from pasqal_cloud import SDK; import os; import sys; sdk = SDK(username=os.environ.get('PASQAL_USERNAME'), password=os.environ.get('PASQAL_PASSWORD')); sys.stdout.write(str(sdk.user_token()))")
+          export PASQAL_AUTH_TOKEN
           test_err_sum=0
+          cpp_tests="docs/sphinx/targets/cpp/pasqal.cpp"
+          for filename in $cpp_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            nvq++ --target pasqal  --pasqal-machine $PASQAL_MACHINE_TARGET  $filename
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out 1> /dev/null
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
+          done
           python_tests="docs/sphinx/targets/python/pasqal.py"
           for filename in $python_tests; do
             [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
@@ -813,10 +845,9 @@ jobs:
 
           # Test all remote-sim tests
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
-            # unsupport_args and compile_errors are compile error tests
-            # nested_vectors: Compiler fails to synthesize nested vector parameters (https://github.com/NVIDIA/cuda-quantum/issues/2001)
+            # unsupport_args is compile error test
             # qvector_init_from_state, qvector_init_from_state_lazy, test_trotter: New argument synthesis is not executed for nvqc (https://github.com/NVIDIA/cuda-quantum/issues/2146)
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]] && [[ "$filename" != *"qvector_init_from_state_lazy"* ]] && [[ "$filename" != *"test_trotter"* ]]; then
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]] && [[ "$filename" != *"qvector_init_from_state_lazy"* ]] && [[ "$filename" != *"test_trotter"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs

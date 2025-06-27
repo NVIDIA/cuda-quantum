@@ -31,7 +31,15 @@ enum class pauli;
                                  std::is_same<HandlerTy, T>::value,            \
                              bool> = true>
 
-// utility functions for backward compatibility
+#define PROPERTY_SPECIFIC_TEMPLATE(property)                                   \
+  template <typename T = HandlerTy,                                            \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
+                             std::true_type> = std::true_type()>
+
+#define PROPERTY_AGNOSTIC_TEMPLATE(property)                                   \
+  template <typename T = HandlerTy,                                            \
+            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
+                             std::false_type> = std::false_type()>
 
 #define SPIN_OPS_BACKWARD_COMPATIBILITY(deprecation_message)                   \
   template <typename T = HandlerTy,                                            \
@@ -805,8 +813,26 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
-  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   csr_spmatrix to_sparse_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
+
+  /// @brief Return the multi-diagonal matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
+  mdiag_sparse_matrix to_diagonal_matrix(
       std::unordered_map<std::size_t, std::int64_t> dimensions = {},
       const std::unordered_map<std::string, std::complex<double>> &parameters =
           {},
@@ -890,16 +916,10 @@ private:
   typename std::vector<HandlerTy>::const_iterator
   find_insert_at(const HandlerTy &other);
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 !product_op<T>::supports_inplace_mult,
-                             std::false_type> = std::false_type()>
+  PROPERTY_AGNOSTIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   void insert(T &&other);
 
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, T>::value &&
-                                 product_op<T>::supports_inplace_mult,
-                             std::true_type> = std::true_type()>
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   void insert(T &&other);
 
   void aggregate_terms();
@@ -1648,8 +1668,26 @@ public:
   /// @arg `parameters` : A map of the parameter names to their concrete,
   /// complex values.
   /// @arg `invert_order`: if set to true, the ordering convention is reversed.
-  HANDLER_SPECIFIC_TEMPLATE(spin_handler)
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
   csr_spmatrix to_sparse_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
+
+  /// @brief Return the multi-diagonal matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
+  mdiag_sparse_matrix to_diagonal_matrix(
       std::unordered_map<std::size_t, std::int64_t> dimensions = {},
       const std::unordered_map<std::string, std::complex<double>> &parameters =
           {},
@@ -1710,6 +1748,113 @@ private:
   scalar_operator phase;
   scalar_operator delta_global;
   std::optional<std::pair<scalar_operator, std::vector<double>>> delta_local;
+};
+
+// https://en.wikipedia.org/wiki/Superoperator
+// 'super_op' is a linear operator acting on a vector space of linear
+// operators.
+/// @brief Representation of generic operator action on the state.
+// For example, a given operator might be applied to the density matrix as a
+// left multiplication or a right multiplication.
+class super_op {
+public:
+  // A super_op term is a pair of left/right multiplication operators.
+  // If the first (second) operator of the pair is missing (null), it represents
+  // the right (left) multiplication. If both are present, it represents a
+  // multiplication on both side (`A * rho * B`, `A` and `B` are the first and
+  // second operators in the pair).
+  using term =
+      std::pair<std::optional<cudaq::product_op<cudaq::matrix_handler>>,
+                std::optional<cudaq::product_op<cudaq::matrix_handler>>>;
+  /// @brief Default constructor
+  super_op() = default;
+
+  /// @brief Combine the given super-operator into this
+  /// @param superOp Input super-operator to combine
+  /// @return This super-operator after accumulating terms from the other
+  /// super-operator
+  super_op &operator+=(const super_op &superOp);
+
+  /// @brief Multiply this super-operator by a scalar
+  /// @tparam T Scalar type
+  /// @param coeff Multiplication coefficient
+  /// @return This super-operator after being scaled by the input scalar
+  template <typename T>
+  super_op &operator*=(T coeff) {
+    for (auto &[l_op, r_op] : m_terms) {
+      if (l_op.has_value())
+        l_op->operator*=(coeff);
+
+      assert(r_op.has_value());
+      r_op->operator*=(coeff);
+    }
+    return *this;
+  }
+
+  /// @brief Create a super-operator that represents the left multiplication of
+  /// the input product operator
+  /// @param op Product operator to be applied to the left
+  /// @return Super-operator
+  static super_op
+  left_multiply(const cudaq::product_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the right multiplication of
+  /// the input product operator
+  /// @param op Product operator to be applied to the right
+  /// @return Super-operator
+  static super_op
+  right_multiply(const cudaq::product_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the simultaneous left and
+  /// right multiplication action
+  /// @param leftOp Operator to be applied on the left
+  /// @param rightOp Operator to be applied on the right
+  /// @return Super-operator
+  static super_op
+  left_right_multiply(const cudaq::product_op<cudaq::matrix_handler> &leftOp,
+                      const cudaq::product_op<cudaq::matrix_handler> &rightOp);
+
+  /// @brief Create a super-operator that represents the left multiplication of
+  /// the input sum operator
+  /// @param op Sum operator to be applied to the left
+  /// @return Super-operator
+  static super_op left_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the right multiplication of
+  /// the input sum operator
+  /// @param op Sum operator to be applied to the right
+  /// @return Super-operator
+  static super_op
+  right_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the simultaneous left and
+  /// right multiplication action
+  /// @param leftOp Operator to be applied on the left
+  /// @param rightOp Operator to be applied on the right
+  /// @return Super-operator
+  static super_op
+  left_right_multiply(const cudaq::sum_op<cudaq::matrix_handler> &leftOp,
+                      const cudaq::sum_op<cudaq::matrix_handler> &rightOp);
+
+  /// @brief Super-operator term iterator
+  using const_iterator = std::vector<term>::const_iterator;
+
+  /// @brief Get iterator to beginning of operator terms
+  const_iterator begin() const;
+
+  /// @brief Get iterator to end of operator terms
+  const_iterator end() const;
+
+private:
+  /// @brief Construct a super-operator from a term
+  /// @param term Super-operator term
+  super_op(term &&term);
+  /// @brief Construct a super-operator from a list of terms
+  /// @param terms Super-operator term
+  super_op(std::vector<term> &&terms);
+
+private:
+  std::vector<term> m_terms;
 };
 
 // type aliases for convenience

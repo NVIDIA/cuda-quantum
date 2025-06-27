@@ -28,10 +28,10 @@ bool ignoredClass(clang::RecordDecl *x) {
     // Kernels don't support allocators, although they are found in
     // std::vector.
     if (isInNamespace(x, "std"))
-      return name.equals("allocator_traits") || name.equals("iterator_traits");
+      return name == "allocator_traits" || name == "iterator_traits";
     // Skip non-standard GNU helper classes.
     if (isInNamespace(x, "__gnu_cxx"))
-      return name.equals("__alloc_traits");
+      return name == "__alloc_traits";
   }
   return false;
 }
@@ -132,10 +132,10 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
   if (isInNamespace(x, "cudaq")) {
     // Types from the `cudaq` namespace.
     // A qubit is a qudit<LEVEL=2>.
-    if (name.equals("qudit") || name.equals("qubit"))
+    if (name == "qudit" || name == "qubit")
       return pushType(quake::RefType::get(ctx));
     // qreg<SIZE,LEVEL>, qarray<SIZE,LEVEL>, qspan<SIZE,LEVEL>
-    if (name.equals("qspan") || name.equals("qreg") || name.equals("qarray")) {
+    if (name == "qspan" || name == "qreg" || name == "qarray") {
       // If the first template argument is not `std::dynamic_extent` then we
       // have a constant sized VeqType.
       if (auto *tempSpec =
@@ -155,13 +155,13 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(quake::VeqType::getUnsized(ctx));
     }
     // qvector<LEVEL>, qview<LEVEL>
-    if (name.equals("qvector") || name.equals("qview"))
+    if (name == "qvector" || name == "qview")
       return pushType(quake::VeqType::getUnsized(ctx));
-    if (name.equals("state"))
+    if (name == "state")
       return pushType(quake::StateType::get(ctx));
-    if (name.equals("pauli_word"))
+    if (name == "pauli_word")
       return pushType(cc::CharspanType::get(ctx));
-    if (name.equals("qkernel")) {
+    if (name == "qkernel") {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the function's signature.
       if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
@@ -175,7 +175,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     }
   }
   if (isInNamespace(x, "std")) {
-    if (name.equals("vector")) {
+    if (name == "vector") {
       auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the vector's element type.
       if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
@@ -191,13 +191,13 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(cc::StdvecType::get(ctx, ty));
     }
     // std::vector<bool>   =>   cc.stdvec<i1>
-    if (name.equals("_Bit_reference") || name.equals("__bit_reference")) {
+    if (name == "_Bit_reference" || name == "__bit_reference") {
       // Reference to a bit in a std::vector<bool>. Promote to a value.
       return pushType(builder.getI1Type());
     }
-    if (name.equals("_Bit_type"))
+    if (name == "_Bit_type")
       return pushType(builder.getI64Type());
-    if (name.equals("complex")) {
+    if (name == "complex") {
       auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the complex's element type.
       if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
@@ -205,7 +205,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto memTy = popType();
       return pushType(ComplexType::get(memTy));
     }
-    if (name.equals("initializer_list")) {
+    if (name == "initializer_list") {
       auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0, the initializer list's element type.
       if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
@@ -213,7 +213,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto memTy = popType();
       return pushType(cc::ArrayType::get(memTy));
     }
-    if (name.equals("function")) {
+    if (name == "function") {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the function's signature.
       if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
@@ -221,7 +221,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto fnTy = cast<FunctionType>(popType());
       return pushType(cc::CallableType::get(ctx, fnTy));
     }
-    if (name.equals("reference_wrapper")) {
+    if (name == "reference_wrapper") {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the function's signature.
       if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
@@ -231,7 +231,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
         return pushType(refTy);
       return pushType(cc::PointerType::get(ctx, refTy));
     }
-    if (name.equals("basic_string")) {
+    if (name == "basic_string") {
       if (allowUnknownRecordType) {
         // Kernel argument list contains a `std::string` type. Intercept it and
         // generate a clang diagnostic when returning out of determining the
@@ -241,13 +241,13 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       TODO_x(toLocation(x), x, mangler, "std::string type");
       return false;
     }
-    if (name.equals("__wrap_iter")) {
+    if (name == "__wrap_iter") {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
         return false;
       return true;
     }
-    if (name.equals("pair")) {
+    if (name == "pair") {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       SmallVector<Type> members;
       for (unsigned i = 0; i < 2; ++i) {
@@ -258,7 +258,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto [width, align] = getWidthAndAlignment(x);
       return pushType(cc::StructType::get(ctx, members, width, align));
     }
-    if (name.equals("tuple")) {
+    if (name == "tuple") {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       auto &templateArg = cts->getTemplateArgs()[0];
       if (templateArg.getKind() != clang::TemplateArgument::Pack)
@@ -291,7 +291,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
   }
 
   if (isInNamespace(x, "__gnu_cxx")) {
-    if (name.equals("__promote") || name.equals("__promote_2")) {
+    if (name == "__promote" || name == "__promote_2") {
       // Recover the typedef in this class. Then find the canonical type
       // resolved for that typedef and push that as the type.
       [[maybe_unused]] unsigned depth = typeStack.size();
@@ -305,7 +305,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       assert(typeStack.size() == depth + 1);
       return true;
     }
-    if (name.equals("__normal_iterator")) {
+    if (name == "__normal_iterator") {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
         return false;
@@ -330,16 +330,23 @@ bool QuakeBridgeVisitor::traverseAnyRecordDecl(D *x) {
   }
   return false;
 }
+
 bool QuakeBridgeVisitor::TraverseRecordDecl(clang::RecordDecl *x) {
   if (traverseAnyRecordDecl(x))
     return true;
   return Base::TraverseRecordDecl(x);
 }
+
 bool QuakeBridgeVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl *x) {
   if (traverseAnyRecordDecl(x))
     return true;
+  if (x->isUnion()) {
+    reportClangError(x, mangler, "union types are not allowed in kernels");
+    return false;
+  }
   return Base::TraverseCXXRecordDecl(x);
 }
+
 bool QuakeBridgeVisitor::TraverseClassTemplateSpecializationDecl(
     clang::ClassTemplateSpecializationDecl *x) {
   if (traverseAnyRecordDecl(x))
@@ -487,8 +494,13 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
       db.AddSourceRange(clang::CharSourceRange::getCharRange(range));
       raisedError = false;
     }
-  if (!hasTerminator(builder.getBlock()))
-    builder.create<func::ReturnOp>(toLocation(x));
+  if (!hasTerminator(builder.getBlock())) {
+    auto loc = toLocation(x);
+    SmallVector<Value> dummyResults;
+    for (auto ty : funcTy.getResults())
+      dummyResults.push_back(builder.create<cc::UndefOp>(loc, ty));
+    builder.create<func::ReturnOp>(loc, dummyResults);
+  }
   builder.clearInsertionPoint();
   return true;
 }
@@ -515,8 +527,7 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
     if (isKernelEntryPoint(x))
       return generateCudaqKernelName(x);
     // create a special name for 'std::move()' so we can erase it.
-    if (isInNamespace(x, "std") && x->getIdentifier() &&
-        x->getName().equals("move"))
+    if (isInNamespace(x, "std") && x->getIdentifier() && x->getName() == "move")
       return std::string(cudaq::stdMoveBuiltin);
     return cxxMangledDeclName(x);
   }();
@@ -577,11 +588,27 @@ bool QuakeBridgeVisitor::VisitParmVarDecl(clang::ParmVarDecl *x) {
       "symbol table, but this parameter wasn't found.");
 }
 
+static bool isImplicitlyGlobalStorageClass(clang::StorageClass sc) {
+  switch (sc) {
+  case clang::SC_Extern:
+  case clang::SC_Static:
+  case clang::SC_PrivateExtern:
+    return true;
+  default:
+    return false;
+  }
+}
+
 // A variable declaration may or may not have an initializer. This custom
 // traversal makes sure that the type of the variable is visited and pushed so
 // that VisitVarDecl has the variable's type, whether an initialization
 // expression is present or not.
 bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
+  auto storageClass = x->getStorageClass();
+  if (isImplicitlyGlobalStorageClass(storageClass)) {
+    reportClangError(x, mangler, "variable has invalid storage class");
+    return false;
+  }
   [[maybe_unused]] auto typeStackDepth = typeStack.size();
   for (unsigned i = 0; i < x->getNumTemplateParameterLists(); i++) {
     if (auto *tpl = x->getTemplateParameterList(i)) {
