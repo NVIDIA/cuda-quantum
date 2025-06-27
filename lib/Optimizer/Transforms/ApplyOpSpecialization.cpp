@@ -87,6 +87,7 @@ private:
           SmallVector<Value> newArgs;
           newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
           IRMapping mapper;
+          SmallVector<Value> preservedArgs;
           SmallVector<arith::ConstantOp> moveConsts;
           for (auto [idx, v] : llvm::enumerate(newArgs)) {
             if (auto c = v.getDefiningOp<arith::ConstantOp>()) {
@@ -94,6 +95,8 @@ private:
               moveConsts.push_back(newConst);
               mapper.map(genericFunc.getArgument(idx), newConst);
               LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
+            } else {
+              preservedArgs.push_back(v);
             }
           }
 
@@ -109,9 +112,15 @@ private:
             for (auto c : moveConsts)
               entry.push_front(c);
             module.push_back(newFunc);
-            auto *ctx = apply.getContext();
-            apply->setAttr(apply.getCalleeAttrName(),
-                           SymbolRefAttr::get(ctx, calleeName));
+            OpBuilder builder(apply);
+            auto newApply = builder.create<quake::ApplyOp>(
+                apply.getLoc(), apply.getResultTypes(),
+                SymbolRefAttr::get(apply->getContext(), calleeName),
+                apply.getIndirectCallee(), apply.getIsAdj(),
+                apply.getControls(), preservedArgs);
+            apply->replaceAllUsesWith(newApply.getResults());
+            apply->dropAllReferences();
+            apply->erase();
             LLVM_DEBUG(llvm::dbgs()
                        << "apply specialization including constant "
                           "propagation of arguments\n"
