@@ -552,11 +552,14 @@ public:
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
+      // Each pass may run in a separate thread, so we have to make sure to grab
+      // this reference in this thread
+      auto resource_counts = nvqir::getResourceCounts();
       if (executionContext->name == "resource-count") {
         std::function<void(std::string, size_t, size_t)> f =
             [&](std::string gate, size_t nControls, size_t count) {
-              nvqir::getResourceCounts()->appendInstruction(gate, nControls,
-                                                            count);
+              cudaq::info("Appending: {}", gate);
+              resource_counts->appendInstruction(gate, nControls, count);
             };
         cudaq::opt::ResourceCountPreprocessOptions opt{f};
         pm.addNestedPass<mlir::func::FuncOp>(
