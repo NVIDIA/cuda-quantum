@@ -267,8 +267,8 @@ class PyKernel(object):
     def __init__(self, argTypeList):
         self.ctx = Context()
         register_all_dialects(self.ctx)
-        quake.register_dialect(self.ctx)
-        cc.register_dialect(self.ctx)
+        quake.register_dialect(context=self.ctx)
+        cc.register_dialect(context=self.ctx)
         cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
 
         self.conditionalOnMeasure = False
@@ -452,7 +452,7 @@ class PyKernel(object):
         return the slot address.
         """
         if not cc.PointerType.isinstance(value.type):
-            slot = cc.AllocaOp(cc.PointerType.get(self.ctx, value.type),
+            slot = cc.AllocaOp(cc.PointerType.get(value.type, self.ctx),
                                TypeAttr.get(value.type)).result
             cc.StoreOp(value, slot)
             return slot
@@ -519,14 +519,14 @@ class PyKernel(object):
         if cc.StdvecType.isinstance(mlirType):
             size = self.getConstantInt(len(arg))
             eleTy = cc.StdvecType.getElementType(mlirType)
-            arrTy = cc.ArrayType.get(self.ctx, eleTy)
-            alloca = cc.AllocaOp(cc.PointerType.get(self.ctx, arrTy),
+            arrTy = cc.ArrayType.get(eleTy, context=self.ctx)
+            alloca = cc.AllocaOp(cc.PointerType.get(arrTy, self.ctx),
                                  TypeAttr.get(eleTy),
                                  seqSize=size).result
 
             def body(idx):
                 eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(self.ctx, eleTy), alloca, [idx],
+                    cc.PointerType.get(eleTy, self.ctx), alloca, [idx],
                     DenseI32ArrayAttr.get([-2147483648],
                                           context=self.ctx)).result
                 element = arg[body.counter]
@@ -549,7 +549,7 @@ class PyKernel(object):
 
             body.counter = 0
             self.createInvariantForLoop(size, body)
-            return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, eleTy),
+            return cc.StdvecInitOp(cc.StdvecType.get(eleTy, self.ctx),
                                    alloca,
                                    length=size).result
 
@@ -741,10 +741,10 @@ class PyKernel(object):
             qubits = kernel.qalloc(10)
         ```
         """
-        with self.insertPoint, self.loc:
+        with self.ctx, self.insertPoint, self.loc:
             # If the initializer is an integer, create `veq<N>`
             if isinstance(initializer, int):
-                veqTy = quake.VeqType.get(self.ctx, initializer)
+                veqTy = quake.VeqType.get(initializer)
                 return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
 
             if isinstance(initializer, list):
@@ -789,7 +789,7 @@ class PyKernel(object):
                     raise RuntimeError(
                         "invalid input state for qalloc (not normalized)")
 
-                veqTy = quake.VeqType.get(self.ctx, int(numQubits))
+                veqTy = quake.VeqType.get(int(numQubits))
                 qubits = quake.AllocaOp(veqTy).result
                 data = self.capturedDataStorage.storeArray(initializer)
 
@@ -803,7 +803,7 @@ class PyKernel(object):
                 i64Ty = self.getIntegerType()
                 numQubits = quake.GetNumberOfQubitsOp(i64Ty, statePtr).result
 
-                veqTy = quake.VeqType.get(self.ctx)
+                veqTy = quake.VeqType.get()
                 qubits = quake.AllocaOp(veqTy, size=numQubits).result
                 init = quake.InitializeStateOp(veqTy, qubits, statePtr).result
                 return self.__createQuakeValue(init)
@@ -811,7 +811,7 @@ class PyKernel(object):
             # If the initializer is a QuakeValue, see if it is
             # an integer or a `stdvec` type
             if isinstance(initializer, QuakeValue):
-                veqTy = quake.VeqType.get(self.ctx)
+                veqTy = quake.VeqType.get()
                 if IntegerType.isinstance(initializer.mlirValue.type):
                     # This is an integer size
                     return self.__createQuakeValue(
@@ -825,7 +825,7 @@ class PyKernel(object):
                     eleTy = cc.StdvecType.getElementType(value.type)
                     numQubits = math.CountTrailingZerosOp(size).result
                     qubits = quake.AllocaOp(veqTy, size=numQubits).result
-                    ptrTy = cc.PointerType.get(self.ctx, eleTy)
+                    ptrTy = cc.PointerType.get(eleTy)
                     data = cc.StdvecDataOp(ptrTy, value).result
                     init = quake.InitializeStateOp(veqTy, qubits, data).result
                     return self.__createQuakeValue(init)
@@ -841,7 +841,7 @@ class PyKernel(object):
                         numQubits = quake.GetNumberOfQubitsOp(i64Ty,
                                                               statePtr).result
 
-                        veqTy = quake.VeqType.get(self.ctx)
+                        veqTy = quake.VeqType.get()
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result
                         init = quake.InitializeStateOp(veqTy, qubits,
                                                        statePtr).result
@@ -849,7 +849,7 @@ class PyKernel(object):
 
             # If no initializer, create a single qubit
             if initializer == None:
-                qubitTy = quake.RefType.get(self.ctx)
+                qubitTy = quake.RefType.get()
                 return self.__createQuakeValue(quake.AllocaOp(qubitTy).result)
 
             raise RuntimeError(
@@ -869,7 +869,7 @@ class PyKernel(object):
         as a string, e.g. `XXYX` for a 4-qubit term. The angle parameter 
         can be provided as a concrete float or a `QuakeValue`.
         """
-        with self.insertPoint, self.loc:
+        with self.ctx, self.insertPoint, self.loc:
             quantumVal = None
             qubitsList = []
             pauliWordVal = None
@@ -886,8 +886,7 @@ class PyKernel(object):
 
                 if isinstance(arg, str):
                     retTy = cc.PointerType.get(
-                        self.ctx,
-                        cc.ArrayType.get(self.ctx, IntegerType.get_signless(8),
+                        cc.ArrayType.get(IntegerType.get_signless(8),
                                          int(len(arg) + 1)))
                     pauliWordVal = cc.CreateStringLiteralOp(retTy, arg)
                 elif isinstance(arg, QuakeValue) and quake.VeqType.isinstance(
@@ -909,9 +908,10 @@ class PyKernel(object):
                 thetaVal = theta.mlirValue
 
             if len(qubitsList) > 0:
-                quantumVal = quake.ConcatOp(quake.VeqType.get(
-                    self.ctx), [quantumVal] if quantumVal is not None else [] +
-                                            qubitsList).result
+                quantumVal = quake.ConcatOp(
+                    quake.VeqType.get(),
+                    [quantumVal] if quantumVal is not None else [] +
+                    qubitsList).result
             quake.ExpPauliOp([], [thetaVal], [], [quantumVal],
                              pauli=pauliWordVal)
 
@@ -944,7 +944,7 @@ class PyKernel(object):
             kernel.u3(np.pi, np.pi, np.pi / 2, q)
         ```
         """
-        with self.insertPoint, self.loc:
+        with self.ctx, self.insertPoint, self.loc:
             parameters = [
                 get_parameter_value(self, p) for p in [theta, phi, delta]
             ]
@@ -957,7 +957,7 @@ class PyKernel(object):
             size = quake.VeqSizeOp(self.getIntegerType(), target.mlirValue)
 
             def body(idx):
-                extracted = quake.ExtractRefOp(quake.RefType.get(self.ctx),
+                extracted = quake.ExtractRefOp(quake.RefType.get(),
                                                target.mlirValue,
                                                -1,
                                                index=idx).result
@@ -1045,7 +1045,7 @@ class PyKernel(object):
         """
         Reset the provided qubit or qubits.
         """
-        with self.insertPoint, self.loc:
+        with self.ctx, self.insertPoint, self.loc:
             if not quake.VeqType.isinstance(target.mlirValue.type):
                 quake.ResetOp([], target.mlirValue)
                 return
@@ -1054,7 +1054,7 @@ class PyKernel(object):
             if quake.VeqType.hasSpecifiedSize(target.mlirValue.type):
                 size = quake.VeqType.getSize(target.mlirValue.type)
                 for i in range(size):
-                    extracted = quake.ExtractRefOp(quake.RefType.get(self.ctx),
+                    extracted = quake.ExtractRefOp(quake.RefType.get(),
                                                    target.mlirValue, i).result
                     quake.ResetOp([], extracted)
                 return
@@ -1092,15 +1092,15 @@ class PyKernel(object):
             kernel.mz(target=qubit))
         ```
         """
-        with self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1, context=self.ctx)
+        with self.ctx, self.insertPoint, self.loc:
+            i1Ty = IntegerType.get_signless(1)
             qubitTy = target.mlirValue.type
             retTy = i1Ty
-            measTy = quake.MeasureType.get(self.ctx)
-            stdvecTy = cc.StdvecType.get(self.ctx, i1Ty)
+            measTy = quake.MeasureType.get()
+            stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
-                measTy = cc.StdvecType.get(self.ctx, measTy)
+                measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MzOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
@@ -1138,15 +1138,15 @@ class PyKernel(object):
             kernel.mx(qubit))
         ```
         """
-        with self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1, context=self.ctx)
+        with self.ctx, self.insertPoint, self.loc:
+            i1Ty = IntegerType.get_signless(1)
             qubitTy = target.mlirValue.type
             retTy = i1Ty
-            measTy = quake.MeasureType.get(self.ctx)
-            stdvecTy = cc.StdvecType.get(self.ctx, i1Ty)
+            measTy = quake.MeasureType.get()
+            stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
-                measTy = cc.StdvecType.get(self.ctx, measTy)
+                measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MxOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
@@ -1185,15 +1185,15 @@ class PyKernel(object):
             kernel.my(qubit))
         ```
         """
-        with self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1, context=self.ctx)
+        with self.ctx, self.insertPoint, self.loc:
+            i1Ty = IntegerType.get_signless(1)
             qubitTy = target.mlirValue.type
             retTy = i1Ty
-            measTy = quake.MeasureType.get(self.ctx)
-            stdvecTy = cc.StdvecType.get(self.ctx, i1Ty)
+            measTy = quake.MeasureType.get()
+            stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
-                measTy = cc.StdvecType.get(self.ctx, measTy)
+                measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MyOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
