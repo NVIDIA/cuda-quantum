@@ -1,0 +1,53 @@
+name: Stitch Cached Images
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stitch:
+    name: Pull & Stitch Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stitch multi-arch images from SHA digests
+        run: |
+          set -euo pipefail
+
+          declare -A DIGESTS=(
+            [arm64-cu11.8]="sha256:2ffb9d9b1a622a505f5e64280fb9b7ad9a42e3c1263f2cc8d9b65138bf03609d"
+            [amd64-cu11.8]="sha256:fed5a2c5d12d14dd9ca4ff23d331ca86679bda30a9a883357f5ba5d6c2b357e9"
+            [amd64-cu12.0]="sha256:4362674062926bb166d068583d193c017097f2ca0e2a2194687b7d774469d67c"
+            [arm64-cu12.0]="sha256:0b05ee85c8c7dbaa35a75b81b2c3b466bcbd1113921bf89121ca3e2c45ecd488"
+          )
+
+          BASE="ghcr.io/nvidia/cuda-quantum"
+
+          for cuda in 11.8 12.0; do
+            refs=""
+            for arch in amd64 arm64; do
+              key="${arch}-cu${cuda}"
+              digest="${DIGESTS[$key]}"
+              ref="$BASE@$digest"
+              echo "Using ref: $ref"
+              refs="$refs $ref"
+            done
+
+            stitched_tag="$BASE:cu${cuda}-latest-base"
+            echo "Creating manifest for $stitched_tag"
+            docker buildx imagetools create \
+              --tag "$stitched_tag" \
+              $refs
+
+            echo "Inspecting $stitched_tag"
+            docker buildx imagetools inspect "$stitched_tag"
+          done
