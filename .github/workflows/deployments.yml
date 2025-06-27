@@ -458,7 +458,7 @@ jobs:
               key="${arch}-cu${cuda}"
               echo "Looking up key: $key"
 
-              digest=$(echo "$DIGESTS_JSON" | jq -r ".[\"$key\"].digest")
+              digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
               if [[ -z "$digest" || "$digest" == "null" ]]; then
                 echo "::error::Missing digest for key $key"
                 exit 1
