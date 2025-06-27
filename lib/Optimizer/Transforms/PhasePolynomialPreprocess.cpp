@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Transforms/Passes.h"
+#include "Subcircuit.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "Subcircuit.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_PHASEPOLYNOMIALPREPROCESS
@@ -23,35 +23,37 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-class PhasePolynomialPreprocessPass : public cudaq::opt::impl::PhasePolynomialPreprocessBase<PhasePolynomialPreprocessPass> {
+class PhasePolynomialPreprocessPass
+    : public cudaq::opt::impl::PhasePolynomialPreprocessBase<
+          PhasePolynomialPreprocessPass> {
   using PhasePolynomialPreprocessBase::PhasePolynomialPreprocessBase;
 
-    SetVector<Operation *> processed;
-    SmallVector<Subcircuit> subcircuits;
+  SetVector<Operation *> processed;
+  SmallVector<Subcircuit> subcircuits;
 
 public:
-    // AXIS-SPECIFIC: could allow controlled y and z here
-    bool isControlledOp(Operation *op) {
-        return isa<quake::XOp>(op) && op->getNumOperands() == 2;
+  // AXIS-SPECIFIC: could allow controlled y and z here
+  bool isControlledOp(Operation *op) {
+    return isa<quake::XOp>(op) && op->getNumOperands() == 2;
+  }
+
+  void runOnOperation() override {
+    func::FuncOp func = getOperation();
+
+    func.walk([&](Operation *op) {
+      if (!isControlledOp(op) || ::processed(op))
+        return;
+
+      Subcircuit subcircuit(op);
+      subcircuits.push_back(subcircuit);
+    });
+
+    for (auto subcircuit : subcircuits) {
+      llvm::outs() << "Calculated subcircuit: \n";
+      for (auto *op : subcircuit.getOps())
+        op->dump();
+      llvm::outs() << "\n";
     }
-
-    void runOnOperation() override {
-        func::FuncOp func = getOperation();
-        
-        func.walk([&](Operation *op) {
-            if (!isControlledOp(op) || ::processed(op))
-                return;
-
-            Subcircuit subcircuit(op);
-            subcircuits.push_back(subcircuit);
-        });
-
-        for (auto subcircuit : subcircuits) {
-            llvm::outs() << "Calculated subcircuit: \n";
-            for (auto *op : subcircuit.getOps())
-                op->dump();
-            llvm::outs() << "\n";
-        }
-    }
+  }
 };
-}
+} // namespace

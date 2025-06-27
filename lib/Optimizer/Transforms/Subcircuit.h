@@ -9,241 +9,234 @@ using namespace mlir;
 #define RAW_GATE_OPS GATE_OPS(RAW)
 #define RAW_QUANTUM_OPS QUANTUM_OPS(RAW)
 // AXIS-SPECIFIC: Defines which operations break a circuit into subcircuits
-#define CIRCUIT_BREAKERS(MACRO) MACRO(YOp), MACRO(ZOp), MACRO(HOp), MACRO(R1Op), MACRO(RxOp), MACRO(PhasedRxOp), MACRO(RyOp), \
-      MACRO(U2Op), MACRO(U3Op)
+#define CIRCUIT_BREAKERS(MACRO)                                                \
+  MACRO(YOp), MACRO(ZOp), MACRO(HOp), MACRO(R1Op), MACRO(RxOp),                \
+      MACRO(PhasedRxOp), MACRO(RyOp), MACRO(U2Op), MACRO(U3Op)
 #define RAW_CIRCUIT_BREAKERS CIRCUIT_BREAKERS(RAW)
 
-
 unsigned calculateSkip(Operation *op) {
-    auto i = 0;
-    for (auto type : op->getOperandTypes()) {
-        if (isa<quake::WireType>(type))
-            return i;
-        i++;
-    }
+  auto i = 0;
+  for (auto type : op->getOperandTypes()) {
+    if (isa<quake::WireType>(type))
+      return i;
+    i++;
+  }
 
-    return i;
+  return i;
 }
 
 Value getNextOperand(Value v) {
-    auto result = dyn_cast<OpResult>(v);
-    auto op = result.getDefiningOp();
-    auto skip = calculateSkip(op);
-    auto operandIDX = result.getResultNumber() + skip;
-    return op->getOperand(operandIDX);
+  auto result = dyn_cast<OpResult>(v);
+  auto op = result.getDefiningOp();
+  auto skip = calculateSkip(op);
+  auto operandIDX = result.getResultNumber() + skip;
+  return op->getOperand(operandIDX);
 }
 
 // TODO: Handle block arguments
 OpResult getNextResult(OpResult v) {
-    assert(v.hasOneUse());
-    auto correspondingOperand = v.getUses().begin();
-    auto op = correspondingOperand.getUser();
-    auto skip = calculateSkip(op);
-    auto resultIDX = correspondingOperand.getOperand()->getOperandNumber() - skip;
-    return op->getResult(resultIDX);
+  assert(v.hasOneUse());
+  auto correspondingOperand = v.getUses().begin();
+  auto op = correspondingOperand.getUser();
+  auto skip = calculateSkip(op);
+  auto resultIDX = correspondingOperand.getOperand()->getOperandNumber() - skip;
+  return op->getResult(resultIDX);
 }
 
-inline bool processed(Operation *op) {
-    return op->hasAttr("processed");
-}
+inline bool processed(Operation *op) { return op->hasAttr("processed"); }
 
 inline void markProcessed(Operation *op) {
-    op->setAttr("processed", OpBuilder(op).getUnitAttr());
+  op->setAttr("processed", OpBuilder(op).getUnitAttr());
 }
 
 class Subcircuit {
 protected:
-    SetVector<Value> seen;
-    SetVector<Operation *> ops;
-    SetVector<Value> termination_points;
-    SetVector<Value> anchor_points;
+  SetVector<Value> seen;
+  SetVector<Operation *> ops;
+  SetVector<Value> termination_points;
+  SetVector<Value> anchor_points;
 
-    bool isAfterTerminationPoint(Value wire) {
-        return isTerminationPoint(wire.getDefiningOp());
+  bool isAfterTerminationPoint(Value wire) {
+    return isTerminationPoint(wire.getDefiningOp());
+  }
+
+  bool isTerminationPoint(Operation *op) {
+    // The operation is already part of another subcircuit
+    if (processed(op))
+      return true;
+
+    if (isa<RAW_CIRCUIT_BREAKERS>(op))
+      return true;
+
+    if (isa<quake::NullWireOp>(op))
+      return true;
+
+    auto opi = dyn_cast<quake::OperatorInterface>(op);
+    assert(opi);
+    // Only allow single control
+    if (opi.getControls().size() > 1)
+      return true;
+    return false;
+  }
+
+  void maybeAddAnchorPoint(Value v) {
+    if (!seen.contains(v))
+      anchor_points.insert(v);
+  }
+
+  void calculateSubcircuitForQubitForward(OpResult v) {
+    seen.insert(v);
+    if (!v.hasOneUse()) {
+      termination_points.insert(v);
+      return;
+    }
+    Operation *op = v.getUses().begin().getUser();
+
+    if (isTerminationPoint(op)) {
+      termination_points.insert(v);
+      return;
     }
 
-    bool isTerminationPoint(Operation *op) {
-        // The operation is already part of another subcircuit
-        if (processed(op))
-            return true;
+    ops.insert(op);
 
-        if (isa<RAW_CIRCUIT_BREAKERS>(op))
-            return true;
+    // Controlled not, figure out whether we are tracking the control
+    // or target, and add an anchor point to the other qubit
+    if (op->getResults().size() > 1) {
+      auto control = op->getResult(0);
+      auto target = op->getResult(1);
+      // Is this the control or target qubit?
+      if (v.getResultNumber() == 0) {
+        // Tracking the control qubit
+        calculateSubcircuitForQubitForward(control);
+        maybeAddAnchorPoint(target);
+      } else {
+        // Tracking the target qubit
+        maybeAddAnchorPoint(control);
+        calculateSubcircuitForQubitForward(target);
+      }
+    } else {
+      // Otherwise, single qubit gate, just follow result
+      calculateSubcircuitForQubitForward(getNextResult(v));
+    }
+  }
 
-        if (isa<quake::NullWireOp>(op))
-            return true;
-        
-        auto opi = dyn_cast<quake::OperatorInterface>(op);
-        assert(opi);
-        // Only allow single control
-        if (opi.getControls().size() > 1)
-            return true;
-        return false;
+  void calculateSubcircuitForQubitBackward(Value v) {
+    seen.insert(v);
+    Operation *op = v.getDefiningOp();
+
+    if (isTerminationPoint(op)) {
+      termination_points.insert(v);
+      return;
     }
 
-    void maybeAddAnchorPoint(Value v) {
-        if (!seen.contains(v))
-            anchor_points.insert(v);
+    ops.insert(op);
+
+    // Controlled not, figure out whether we are tracking the control
+    // or target, and add an anchor point to the other qubit
+    // Use getResults() as Rz has two operands but only one result
+    if (op->getResults().size() > 1) {
+      auto control = op->getOperand(0);
+      auto target = op->getOperand(1);
+      // Is this the control or target qubit?
+      if (v == target) {
+        // Tracking the control qubit
+        calculateSubcircuitForQubitBackward(control);
+        maybeAddAnchorPoint(target);
+      } else {
+        // Tracking the target qubit
+        maybeAddAnchorPoint(control);
+        calculateSubcircuitForQubitBackward(target);
+      }
+    } else {
+      // Otherwise, single qubit gate, just follow operand
+      calculateSubcircuitForQubitBackward(getNextOperand(v));
     }
+  }
 
-    void calculateSubcircuitForQubitForward(OpResult v) {
-        seen.insert(v);
-        if (!v.hasOneUse()) {
-            termination_points.insert(v);
-            return;
-        }
-        Operation *op = v.getUses().begin().getUser();
+  void calculateInitialSubcircuit(Operation *op) {
+    // AXIS-SPECIFIC: This could be any controlled operation
+    auto cnot = dyn_cast<quake::XOp>(op);
+    assert(cnot && cnot.getWires().size() == 2);
 
-        if (isTerminationPoint(op)) {
-            termination_points.insert(v);
-            return;
-        }
+    auto result = cnot->getResult(0);
+    auto operand = cnot->getOperand(0);
+    ops.insert(cnot);
+    anchor_points.insert(cnot->getResult(1));
+    calculateSubcircuitForQubitForward(result);
+    calculateSubcircuitForQubitBackward(operand);
 
-        ops.insert(op);
-
-        // Controlled not, figure out whether we are tracking the control
-        // or target, and add an anchor point to the other qubit
-        if (op->getResults().size() > 1) {
-            auto control = op->getResult(0);
-            auto target = op->getResult(1);
-            // Is this the control or target qubit?
-            if (v.getResultNumber() == 0) {
-                // Tracking the control qubit
-                calculateSubcircuitForQubitForward(control);
-                maybeAddAnchorPoint(target);
-            } else {
-                // Tracking the target qubit
-                maybeAddAnchorPoint(control);
-                calculateSubcircuitForQubitForward(target);
-            }
-        } else {
-            // Otherwise, single qubit gate, just follow result
-            calculateSubcircuitForQubitForward(getNextResult(v));
-        }
+    while (!anchor_points.empty()) {
+      auto next = anchor_points.back();
+      anchor_points.pop_back();
+      calculateSubcircuitForQubitForward(dyn_cast<OpResult>(next));
+      seen.remove(next);
+      calculateSubcircuitForQubitBackward(next);
     }
+  }
 
-    void calculateSubcircuitForQubitBackward(Value v) {
-        seen.insert(v);
-        Operation *op = v.getDefiningOp();
+  // Prune operations after a termination point from the subcircuit
+  void pruneWire(Value wire) {
+    if (termination_points.contains(wire))
+      termination_points.remove(wire);
+    if (!wire.hasOneUse())
+      return;
+    Operation *op = wire.getUses().begin().getUser();
 
-        if (isTerminationPoint(op)) {
-            termination_points.insert(v);
-            return;
-        }
+    ops.remove(op);
 
-        ops.insert(op);
+    // TODO: According to the paper, if the op is a CNot and the wire we are
+    // pruning along is the target, then we do not have to prune along the
+    // control wire. However, this prevents placing each subcircuit in a
+    // separate block, so it is currently not supported auto opi =
+    // dyn_cast<quake::OperatorInterface>(op); assert(opi); auto controls =
+    // opi.getControls(); if (controls.size() > 0 &&
+    //     std::find(controls.begin(), controls.end(), wire) == controls.end())
+    //     { pruneSubcircuit(opi.getWires()[1]); return;
+    // }
 
-        // Controlled not, figure out whether we are tracking the control
-        // or target, and add an anchor point to the other qubit
-        // Use getResults() as Rz has two operands but only one result
-        if (op->getResults().size() > 1) {
-            auto control = op->getOperand(0);
-            auto target = op->getOperand(1);
-            // Is this the control or target qubit?
-            if (v == target) {
-                // Tracking the control qubit
-                calculateSubcircuitForQubitBackward(control);
-                maybeAddAnchorPoint(target);
-            } else {
-                // Tracking the target qubit
-                maybeAddAnchorPoint(control);
-                calculateSubcircuitForQubitBackward(target);
-            }
-        } else {
-            // Otherwise, single qubit gate, just follow operand
-            calculateSubcircuitForQubitBackward(getNextOperand(v));
-        }
+    for (auto result : op->getResults()) {
+      pruneWire(result);
+      // Adjust termination border
+      for (auto operand : op->getOperands())
+        if (ops.contains(operand.getDefiningOp()))
+          termination_points.insert(operand);
     }
+  }
 
-    void calculateInitialSubcircuit(Operation *op) {
-        // AXIS-SPECIFIC: This could be any controlled operation
-        auto cnot = dyn_cast<quake::XOp>(op);
-        assert(cnot && cnot.getWires().size() == 2);
-
-        auto result = cnot->getResult(0);
-        auto operand = cnot->getOperand(0);
-        ops.insert(cnot);
-        anchor_points.insert(cnot->getResult(1));
-        calculateSubcircuitForQubitForward(result);
-        calculateSubcircuitForQubitBackward(operand);
-
-        while (!anchor_points.empty()) {
-            auto next = anchor_points.back();
-            anchor_points.pop_back();
-            calculateSubcircuitForQubitForward(dyn_cast<OpResult>(next));
-            seen.remove(next);
-            calculateSubcircuitForQubitBackward(next);
-        }
+  void pruneSubcircuit() {
+    // The termination boundary should be defined by the first
+    // termination point seen along each wire in the subcircuit
+    // (this means that it is important to build subcircuits
+    // by inspecting controlled gates in topological order)
+    for (auto wire : termination_points) {
+      if (!isAfterTerminationPoint(wire))
+        pruneWire(wire);
     }
-
-    // Prune operations after a termination point from the subcircuit
-    void pruneWire(Value wire) {
-        if (termination_points.contains(wire))
-            termination_points.remove(wire);
-        if (!wire.hasOneUse())
-            return;
-        Operation *op = wire.getUses().begin().getUser();        
-
-        ops.remove(op);
-
-        // TODO: According to the paper, if the op is a CNot and the wire we are pruning along is the target, then we do not have to prune along the control wire. However, this prevents placing each subcircuit in a separate block, so it is currently not supported
-        // auto opi = dyn_cast<quake::OperatorInterface>(op);
-        // assert(opi);
-        // auto controls = opi.getControls();
-        // if (controls.size() > 0 &&
-        //     std::find(controls.begin(), controls.end(), wire) == controls.end()) {
-        //     pruneSubcircuit(opi.getWires()[1]);
-        //     return;
-        // }
-
-        for (auto result : op->getResults()) {
-            pruneWire(result);
-            // Adjust termination border
-            for (auto operand : op->getOperands())
-                if (ops.contains(operand.getDefiningOp()))
-                    termination_points.insert(operand);
-        }
-    }
-
-    void pruneSubcircuit() {
-        // The termination boundary should be defined by the first
-        // termination point seen along each wire in the subcircuit
-        // (this means that it is important to build subcircuits
-        // by inspecting controlled gates in topological order)
-        for (auto wire : termination_points) {
-            if (!isAfterTerminationPoint(wire))
-                pruneWire(wire);
-        }
-    }
+  }
 
 public:
-    /// @brief Constructs a subcircuit with a phase polynomial starting from a cnot
-    Subcircuit(Operation *cnot) {
-        calculateInitialSubcircuit(cnot);
-        pruneSubcircuit();
-        for (auto *op : ops)
-            markProcessed(op);
-    }
+  /// @brief Constructs a subcircuit with a phase polynomial starting from a
+  /// cnot
+  Subcircuit(Operation *cnot) {
+    calculateInitialSubcircuit(cnot);
+    pruneSubcircuit();
+    for (auto *op : ops)
+      markProcessed(op);
+  }
 
-    SetVector<Value> getInitialWires() {
-        SetVector<Value> initial;
-        for (auto wire : termination_points)
-            if (isAfterTerminationPoint(wire))
-                initial.insert(wire);
-        return initial;
-    }
+  SetVector<Value> getInitialWires() {
+    SetVector<Value> initial;
+    for (auto wire : termination_points)
+      if (isAfterTerminationPoint(wire))
+        initial.insert(wire);
+    return initial;
+  }
 
-    bool isInSubcircuit(Operation *op) {
-        return ops.contains(op);
-    }
+  bool isInSubcircuit(Operation *op) { return ops.contains(op); }
 
-    // TODO: would be nice to make Subcircuit iterable directly
-    SetVector<Operation *> getOps() {
-        return ops;
-    }
+  // TODO: would be nice to make Subcircuit iterable directly
+  SetVector<Operation *> getOps() { return ops; }
 
-    /// @brief returns the number of wires in the subcircuit
-    size_t numWires() {
-        return getInitialWires().size();
-    }
+  /// @brief returns the number of wires in the subcircuit
+  size_t numWires() { return getInitialWires().size(); }
 };
