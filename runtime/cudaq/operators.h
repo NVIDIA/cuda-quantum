@@ -1036,6 +1036,13 @@ public:
     return const_iterator(this, this->operators.size());
   }
 
+  /// @brief Operator to get the operator at a particular index.
+  HandlerTy operator[](std::size_t idx) const {
+    if (idx >= this->operators.size())
+      throw std::out_of_range("Index out of range in product_op::operator[]");
+    return this->operators[idx];
+  }
+
   // read-only properties
 
 #if !defined(NDEBUG)

@@ -76,6 +76,15 @@ private:
       const product_op<cudaq::matrix_handler> &productOp,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &modeExtents);
+  cudensitymatElementaryOperator_t createBatchedElementaryOp(
+      const std::vector<cudaq::matrix_handler> &elementaryOps,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &modeExtents);
+  cudensitymatOperatorTerm_t createBatchedProductTerm(
+      const std::vector<product_op<cudaq::matrix_handler>> &prodTerms,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &modeExtents);
+
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
   convertToCudensitymat(
       const sum_op<cudaq::matrix_handler> &op,

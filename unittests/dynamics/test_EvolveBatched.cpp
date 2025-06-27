@@ -135,3 +135,57 @@ TEST(BatchedEvolveTester, checkMultiTerms) {
     EXPECT_NEAR((double)expVals1, (double)expVals2, 1e-3);
   }
 }
+
+TEST(BatchedEvolveTester, checkDifferentOperators) {
+  const cudaq::dimension_map dims = {{0, 2}};
+  cudaq::product_op<cudaq::matrix_handler> ham_1 =
+      (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0)); // X
+  cudaq::sum_op<cudaq::matrix_handler> ham1(ham_1);
+
+  cudaq::product_op<cudaq::matrix_handler> ham_2 =
+      (2.0 * M_PI * 0.1 * cudaq::spin_op::z(0)); // Z
+  cudaq::sum_op<cudaq::matrix_handler> ham2(ham_2);
+
+  constexpr int numSteps = 10;
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
+
+  cudaq::product_op<cudaq::matrix_handler> pauliX_t = cudaq::spin_op::x(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliX(pauliX_t);
+  auto initialState1 =
+      cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
+  auto initialState2 =
+      cudaq::state::from_data(std::vector<std::complex<double>>{M_SQRT1_2, M_SQRT1_2});
+
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto results = cudaq::__internal__::evolveBatched(
+      {ham1, ham2}, dims, schedule, {initialState1, initialState2}, integrator,
+      {}, {pauliZ, pauliX}, cudaq::IntermediateResultSave::ExpectationValue);
+
+  EXPECT_EQ(results.size(), 2);
+  EXPECT_TRUE(results[0].expectation_values.has_value());
+  EXPECT_EQ(results[0].expectation_values.value().size(), numSteps);
+  EXPECT_TRUE(results[1].expectation_values.has_value());
+  EXPECT_EQ(results[1].expectation_values.value().size(), numSteps);
+
+  std::vector<double> theoryResults;
+  for (const auto &t : schedule) {
+    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
+    theoryResults.emplace_back(expected);
+  }
+
+  int count = 0;
+  for (auto expVals : results[0].expectation_values.value()) {
+    EXPECT_EQ(expVals.size(), 2);
+    EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
+  }
+
+  count = 0;
+  for (auto expVals : results[1].expectation_values.value()) {
+    EXPECT_EQ(expVals.size(), 2);
+    EXPECT_NEAR((double)expVals[1], theoryResults[count++], 1e-3);
+  }
+}

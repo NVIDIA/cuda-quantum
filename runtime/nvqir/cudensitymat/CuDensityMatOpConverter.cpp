@@ -321,20 +321,22 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
           "All product terms must have the same degrees.");
     }
 
-    const auto allSameOp = std::all_of(
-        prodTerms.begin(), prodTerms.end(), [&](const auto &prodTerm) {
-          return prodTerm.get_term_id() == prodTerms[0].get_term_id();
-        });
-    if (!allSameOp) {
-      // TODO
-      throw std::invalid_argument(
-          "All product terms must have the same operator.");
-    }
+    auto cudmProductTerm = [&]() {
+      const auto allSameOp = std::all_of(
+          prodTerms.begin(), prodTerms.end(), [&](const auto &prodTerm) {
+            return prodTerm.get_term_id() == prodTerms[0].get_term_id();
+          });
+      if (!allSameOp) {
+        return createBatchedProductTerm(prodTerms, parameters, modeExtents);
+      }
 
+      return convertProductOpToCudensitymat(prodTerms[0], parameters,
+                                            modeExtents);
+    }();
     cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
         cudaq::dynamics::createArrayGpu(batchedProductTermCoeffs));
-    auto cudmProductTerm =
-        convertProductOpToCudensitymat(prodTerms[0], parameters, modeExtents);
+    m_deviceBuffers.emplace(staticCoefficients_d);
+
     HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
         m_handle, cudmOperator, cudmProductTerm, /*duality=*/0,
         /*batchSize=*/batchSize,
@@ -561,6 +563,85 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
   }
 
   return cudmOperator;
+}
+
+cudensitymatElementaryOperator_t
+cudaq::dynamics::CuDensityMatOpConverter::createBatchedElementaryOp(
+    const std::vector<cudaq::matrix_handler> &elemenetaryOps,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &modeExtents) {
+  auto subspaceExtents =
+      getSubspaceExtents(modeExtents, elemenetaryOps[0].degrees());
+  cudaq::dimension_map dimensions = convertDimensions(modeExtents);
+  cudensitymatWrappedTensorCallback_t wrappedTensorCallback =
+      cudensitymatTensorCallbackNone;
+  // Multiply all extents to find the dimension of the tensor
+  const int64_t totalDim =
+      std::accumulate(subspaceExtents.begin(), subspaceExtents.end(), 1,
+                      std::multiplies<int64_t>());
+  std::vector<std::complex<double>> tensorData;
+  const auto batchSize = elemenetaryOps.size();
+  tensorData.reserve(totalDim * totalDim * batchSize);
+  // TODO: support tensor callbacks
+  // TODO: support batched sparse (multi-diagonal), currently, treat all as
+  // dense.
+  for (const auto &elemenetaryOp : elemenetaryOps) {
+    const auto flatMatrix = flattenMatrixColumnMajor(
+        elemenetaryOp.to_matrix(dimensions, parameters));
+    tensorData.insert(tensorData.end(), flatMatrix.begin(), flatMatrix.end());
+  }
+  auto *batchedElementaryMats_d = cudaq::dynamics::createArrayGpu(tensorData);
+
+  cudensitymatElementaryOperator_t cudmElemOp = nullptr;
+
+  HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperatorBatch(
+      m_handle, static_cast<int32_t>(subspaceExtents.size()),
+      subspaceExtents.data(), batchSize, CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0,
+      nullptr, CUDA_C_64F, batchedElementaryMats_d, wrappedTensorCallback,
+      &cudmElemOp));
+
+  m_elementaryOperators.emplace(cudmElemOp);
+  m_deviceBuffers.emplace(batchedElementaryMats_d);
+  return cudmElemOp;
+}
+
+cudensitymatOperatorTerm_t
+cudaq::dynamics::CuDensityMatOpConverter::createBatchedProductTerm(
+    const std::vector<product_op<cudaq::matrix_handler>> &prodTerms,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    const std::vector<int64_t> &modeExtents) {
+  if (prodTerms.empty())
+    throw std::invalid_argument("Product terms cannot be empty. At least one "
+                                "product term is required.");
+  // Note: all these product terms must be acting on the same degrees.
+  assert(std::all_of(prodTerms.begin(), prodTerms.end(),
+                     [&](const product_op<cudaq::matrix_handler> &prodTerm) {
+                       return prodTerm.degrees() == prodTerms[0].degrees();
+                     }));
+  // The number of elementary operators in each product
+  // term must be the same.
+  assert(std::all_of(prodTerms.begin(), prodTerms.end(),
+                     [&](const product_op<cudaq::matrix_handler> &prodTerm) {
+                       return prodTerm.num_ops() == prodTerms[0].num_ops();
+                     }));
+  const auto numOps = prodTerms[0].num_ops();
+  const auto batchSize = prodTerms.size();
+  std::vector<cudensitymatElementaryOperator_t> elemOps;
+  std::vector<std::vector<std::size_t>> allDegrees;
+  for (std::size_t i = 0; i < numOps; ++i) {
+    std::vector<cudaq::matrix_handler> elementaryOps;
+    elementaryOps.reserve(batchSize);
+    for (const auto &prodTerm : prodTerms) {
+      elementaryOps.emplace_back(prodTerm[i]);
+    }
+    auto cudmElemOp =
+        createBatchedElementaryOp(elementaryOps, parameters, modeExtents);
+    elemOps.emplace_back(cudmElemOp);
+    allDegrees.emplace_back(elementaryOps[0].degrees());
+  }
+  std::reverse(elemOps.begin(), elemOps.end());
+  std::reverse(allDegrees.begin(), allDegrees.end());
+  return createProductOperatorTerm(elemOps, modeExtents, allDegrees, {});
 }
 
 cudensitymatOperatorTerm_t
