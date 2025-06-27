@@ -125,7 +125,7 @@ private:
                        << "apply specialization including constant "
                           "propagation of arguments\n"
                        << newFunc << '\n');
-	    apply = newApply;
+            apply = newApply;
           }
         }
       }
