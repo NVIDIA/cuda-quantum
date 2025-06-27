@@ -100,7 +100,6 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
-          set -x
           if ${{ github.event_name == 'workflow_dispatch' }}; then 
             defaults="${{ (inputs.update_registry_cache && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}"
             requested_platforms=`echo "${{ inputs.platforms }}" | tr + , | sed "s#default#$defaults#g"`
@@ -142,7 +141,6 @@ jobs:
           echo "multi_platform=$(echo $multi_platform)" >> $GITHUB_OUTPUT
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
           echo "environment=$environment" >> $GITHUB_OUTPUT
-          set +x
 
       - name: Upload deployment info
         uses: actions/upload-artifact@v4
@@ -329,11 +327,6 @@ jobs:
         id: read_json
         with:
           matrix-step-name: dev_environment
-
-      - name: Debug config.outputs.json
-        run: |
-          echo "Full config.outputs.json:"
-          echo "${{ steps.read_json.outputs.result }}"
 
   coverage:
     name: Update code coverage
