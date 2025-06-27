@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 from ..integrator import BaseTimeStepper, BaseIntegrator
-from .builtin_integrators import cuDensityMatTimeStepper
+from .builtin_integrators import cuDensityMatTimeStepper, cuDensityMatSuperOpTimeStepper
 from ...mlir._mlir_libs._quakeDialects import cudaq_runtime
 import math
 
@@ -119,9 +119,14 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
     def integrate(self, t):
         if self.stepper is None:
-            if self.hamiltonian is None or self.collapse_operators is None or self.dimensions is None:
+            if self.dimensions is None:
                 raise ValueError(
-                    "Hamiltonian and collapse operators are required for integrator if no stepper is provided"
+                    "System dimension data is required for integrator if no stepper is provided"
+                )
+            if (self.hamiltonian is None or self.collapse_operators
+                    is None) and (self.super_op is None):
+                raise ValueError(
+                    "System dynamics, provided as Hamiltonian and collapse operators or a super-operator, is required for integrator if no stepper is provided"
                 )
             self.schedule_ = bindings.Schedule(self.schedule._steps,
                                                list(self.schedule._parameters))
@@ -130,11 +135,17 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
                     (math.prod(self.dimensions)**2 * self.batchSize
                     ) == self.state.getTensor().get_num_elements())
 
-            self.stepper = cuDensityMatTimeStepper(self.schedule_,
-                                                   self.hamiltonian,
-                                                   self.collapse_operators,
-                                                   list(self.dimensions),
-                                                   self.is_density_state)
+            if self.super_op is None:
+                # Create a stepper based on the provided Hamiltonian and collapse operators
+                self.stepper = cuDensityMatTimeStepper(self.schedule_,
+                                                       self.hamiltonian,
+                                                       self.collapse_operators,
+                                                       list(self.dimensions),
+                                                       self.is_density_state)
+            else:
+                # Create a stepper based on the provided super-operator
+                self.stepper = cuDensityMatSuperOpTimeStepper(
+                    self.super_op, self.schedule_, list(self.dimensions))
 
         if t <= self.t:
             raise ValueError(
