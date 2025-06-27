@@ -13,8 +13,7 @@
 #include "cudaq/utils/registry.h"
 #include "qkernel.h"
 
-namespace cudaq {
-namespace details {
+namespace cudaq::details {
 
 #ifdef CUDAQ_LIBRARY_MODE
 template <typename QuantumKernel>
@@ -65,5 +64,4 @@ std::string getKernelName(QuantumKernel &&kernel) {
   }
 }
 
-} // namespace details
-} // namespace cudaq
+} // namespace cudaq::details
