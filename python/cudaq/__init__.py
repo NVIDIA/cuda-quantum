@@ -153,6 +153,7 @@ AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult
 vqe = cudaq_runtime.vqe
 draw = cudaq_runtime.draw
+get_unitary = cudaq_runtime.get_unitary
 run = cudaq_runtime.run
 translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG
