@@ -489,11 +489,6 @@ jobs:
               $refs
           done
 
-      - name: Inspect pushed manifest
-        run: |
-          docker buildx imagetools inspect ghcr.io/nvidia/cuda-quantum:cu11.8-latest-base
-          docker buildx imagetools inspect ghcr.io/nvidia/cuda-quantum:cu12.0-latest-base
-
   python_wheels:
     name: Create Python wheels
     needs: [metadata, config]
