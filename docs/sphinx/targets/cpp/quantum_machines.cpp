@@ -14,9 +14,9 @@
 // ```
 // Assumes a valid set of credentials have been set prior to execution.
 
+#include "math.h"
 #include <cudaq.h>
 #include <fstream>
-#include "math.h"
 
 // Define a simple quantum kernel to execute on Quantum Machines OPX.
 struct all_h {
@@ -33,7 +33,7 @@ struct all_h {
 };
 
 int main() {
-  // Submit asynchronously (e.g., continue executing code in the file until 
+  // Submit asynchronously (e.g., continue executing code in the file until
   // the job has been returned).
   auto future = cudaq::sample_async(all_h{});
   // ... classical code to execute in the meantime ...

@@ -15,8 +15,7 @@
 #include <stdlib.h>
 
 std::string mockPort = "62448";
-std::string backendStringTemplate =
-    "quantum_machines;url;http://localhost:{}";
+std::string backendStringTemplate = "quantum_machines;url;http://localhost:{}";
 
 CUDAQ_TEST(QuantumMachinesTester, minimal3Hadamard) {
   auto backendString =
@@ -45,10 +44,10 @@ CUDAQ_TEST(QuantumMachinesTester, resetAndH) {
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(3);
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     kernel.reset(qubit[0]);
   }
-  for(int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     kernel.h(qubit[1]);
   }
 
@@ -68,7 +67,7 @@ CUDAQ_TEST(QuantumMachinesTester, gates) {
 
   int qubit_count = 5;
   auto qvector = kernel.qalloc(qubit_count);
-  for(int i = 0; i < qubit_count; i++) {
+  for (int i = 0; i < qubit_count; i++) {
     kernel.reset(qvector[i]);
   }
   kernel.t(qvector[0]);
@@ -81,7 +80,6 @@ CUDAQ_TEST(QuantumMachinesTester, gates) {
   counts.dump();
   EXPECT_EQ(counts.size(), 8);
 }
-
 
 int main(int argc, char **argv) {
   setenv("QUANTUM_MACHINES_API_KEY", "00000000000000000000000000000000", 0);
