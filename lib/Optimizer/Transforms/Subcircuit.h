@@ -228,13 +228,11 @@ public:
       markProcessed(op);
     start = cnot;
 
-    for (auto wire : termination_points) {
-      wire.dump();
+    for (auto wire : termination_points)
       if (isAfterTerminationPoint(wire))
         initial_wires.insert(wire);
       else
         terminal_wires.insert(wire);
-    }
   }
 
   SetVector<Value> getInitialWires() { return initial_wires; }
