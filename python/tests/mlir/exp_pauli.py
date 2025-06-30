@@ -73,7 +73,7 @@ def test_exp_pauli():
     print(cudaq.translate(kernel_ancilla_exp_pauli, format='qir'))
 
 
-# CHECK-LABEL: define void @__nvqpp__mlirgen__kernel_ancilla_exp_pauli({ double*, i64 } 
+# CHECK-LABEL: define void @__nvqpp__mlirgen__kernel_ancilla_exp_pauli({ double*, i64 }
 # CHECK-SAME:    %[[VAL_0:.*]]) local_unnamed_addr {
 # CHECK:         %[[VAL_1:.*]] = alloca [1 x { i8*, i64 }], align 8
 # CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]* @__quantum__rt__qubit_allocate()
@@ -109,4 +109,3 @@ def test_exp_pauli():
 # CHECK:         call void @__quantum__rt__qubit_release(%[[VAL_3]]* %[[VAL_2]])
 # CHECK:         ret void
 # CHECK:       }
-
