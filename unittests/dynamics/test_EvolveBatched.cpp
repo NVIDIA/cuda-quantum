@@ -191,7 +191,8 @@ TEST(BatchedEvolveTester, checkDifferentOperators) {
 }
 
 TEST(BatchedEvolveTester, checkBatchedCollapseOps) {
-  std::vector<double> decayRates = {0.05, 0.1};
+  // Batching the decay rates
+  std::vector<double> decayRates = {0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4};
   constexpr int N = 10;
   constexpr int numSteps = 101;
   cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
