@@ -159,6 +159,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Show GITHUB_OUTPUT
+        run: cat "$GITHUB_OUTPUT"
+
       - name: Trigger assets creation
         id: assets_creation
         if: inputs.assets_from_run == ''
