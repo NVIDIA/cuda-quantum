@@ -865,7 +865,7 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
-def PhasePolynomialPreprocess: Pass<"phase-polynomial-preprocess", "mlir::func::FuncOp"> {
+def PhasePolynomialPreprocess: Pass<"phase-polynomial-preprocess", "mlir::ModuleOp"> {
   let summary = "Isolate subcircuits representable by a single phase polynomial.";
 
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
