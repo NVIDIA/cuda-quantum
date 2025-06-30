@@ -489,6 +489,51 @@ jobs:
               $refs
           done
 
+  summary:
+    name: Write deployment summary
+    needs: digest_config
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create image summary
+        id: summary
+        run: |
+          DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
+
+          for cuda in 11.8 12.0; do
+            cuda_major="${cuda%%.*}"
+            artifact_name="image_cu${cuda_major}_publishing"
+            info_file="$artifact_name.txt"
+
+            dev_tag="cu${cuda_major}-latest-base"
+            cudaq_digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"amd64-cu${cuda}\"]")
+            dev_digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"amd64-cu${cuda}-dev\"]")
+            deps_digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"amd64-cu${cuda}-ext\"]")
+
+            {
+              echo "source-sha: ${{ github.sha }}"
+              echo "cuda-quantum-image: ghcr.io/nvidia/cuda-quantum@$cudaq_digest"
+              echo "cuda-quantum-dev-image: ghcr.io/nvidia/cuda-quantum-dev@$dev_digest"
+              echo "cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@$deps_digest"
+              echo "platforms: linux/arm64,linux/amd64"
+              echo "cuda-version: $cuda"
+              grep -E 'nvidia-mgpu-(repo|commit)' .github/workflows/config/gitlab_commits.txt || true
+            } | tee "$info_file"
+
+            echo "Created $info_file"
+          done
+
+      - name: Upload stitched manifest info artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stitched-image-summaries
+          path: image_cu*_publishing.txt
+          retention-days: 30
+          if-no-files-found: error
+
   python_wheels:
     name: Create Python wheels
     needs: [metadata, config]
