@@ -189,3 +189,55 @@ TEST(BatchedEvolveTester, checkDifferentOperators) {
     EXPECT_NEAR((double)expVals[1], theoryResults[count++], 1e-3);
   }
 }
+
+TEST(BatchedEvolveTester, checkBatchedCollapseOps) {
+  std::vector<double> decayRates = {0.05, 0.1};
+  constexpr int N = 10;
+  constexpr int numSteps = 101;
+  cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
+  auto hamiltonian = cudaq::boson_op::number(0);
+  const cudaq::dimension_map dimensions{{0, N}};
+  std::vector<std::complex<double>> psi0_(N, 0.0);
+  psi0_.back() = 1.0;
+  auto psi0 = cudaq::state::from_data(psi0_);
+  constexpr double decay_rate = 0.1;
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> batchedHams;
+  std::vector<std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
+      batchedCollapsedOps;
+  std::vector<cudaq::state> initialStates;
+  for (const auto &decayRate : decayRates) {
+    // Same hamiltonian, but different collapse operators
+    batchedHams.emplace_back(cudaq::sum_op<cudaq::matrix_handler>(hamiltonian));
+    batchedCollapsedOps.emplace_back(
+        std::vector<cudaq::sum_op<cudaq::matrix_handler>>{
+            cudaq::sum_op<cudaq::matrix_handler>(
+                std::sqrt(decayRate) * cudaq::boson_op::annihilate(0))});
+    initialStates.emplace_back(psi0);
+  }
+
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto results = cudaq::__internal__::evolveBatched(
+      batchedHams, dimensions, schedule, initialStates, integrator,
+      batchedCollapsedOps, {cudaq::sum_op<cudaq::matrix_handler>(hamiltonian)},
+      cudaq::IntermediateResultSave::ExpectationValue);
+  EXPECT_EQ(results.size(), decayRates.size());
+  std::vector<std::vector<double>> theoryResults;
+  for (const auto &t : schedule) {
+    std::vector<double> expectedResults;
+    for (const auto &decayRate : decayRates) {
+      expectedResults.emplace_back((N - 1) * std::exp(-decayRate * t.real()));
+    }
+    theoryResults.emplace_back(expectedResults);
+  }
+
+  for (std::size_t i = 0; i < results.size(); ++i) {
+    EXPECT_TRUE(results[i].expectation_values.has_value());
+    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : results[i].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+    }
+  }
+}

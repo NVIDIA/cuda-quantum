@@ -88,7 +88,8 @@ private:
       const std::vector<std::vector<std::size_t>> &degrees,
       const std::vector<std::vector<int>> &dualModalities);
 
-  std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
+  std::vector<std::pair<std::vector<cudaq::scalar_operator>,
+                        cudensitymatOperatorTerm_t>>
   computeLindbladTerms(
       const std::vector<sum_op<cudaq::matrix_handler>> &batchedCollapseOps,
       const std::vector<int64_t> &modeExtents,
@@ -117,6 +118,11 @@ private:
   cudensitymatWrappedTensorCallback_t
   wrapTensorCallback(const matrix_handler &matrixOp,
                      const std::vector<std::string> &paramNames);
+  void appendToCudensitymatOperator(
+      cudensitymatOperator_t &cudmOperator,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<sum_op<cudaq::matrix_handler>> &ops,
+      const std::vector<int64_t> &modeExtents, int32_t duality);
 
 private:
   cudensitymatHandle_t m_handle;
