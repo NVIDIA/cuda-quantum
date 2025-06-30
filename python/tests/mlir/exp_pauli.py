@@ -76,9 +76,9 @@ def test_exp_pauli():
 # CHECK-LABEL: define void @__nvqpp__mlirgen__kernel_ancilla_exp_pauli({ double*, i64 }
 # CHECK-SAME:    %[[VAL_0:.*]]) local_unnamed_addr {
 # CHECK:         %[[VAL_1:.*]] = alloca [1 x { i8*, i64 }], align 8
-# CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]* @__quantum__rt__qubit_allocate()
+# CHECK:         %[[VAL_2:.*]] = tail call %Qubit* @__quantum__rt__qubit_allocate()
 # CHECK:         %[[VAL_4:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 1
-# CHECK:         %[[VAL_5:.*]] = tail call %[[VAL_6:.*]]* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_4]])
+# CHECK:         %[[VAL_5:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_4]])
 # CHECK:         %[[VAL_7:.*]] = icmp sgt i64 %[[VAL_4]], 0
 # CHECK:         br i1 %[[VAL_7]], label %[[VAL_8:.*]], label %[[VAL_9:.*]]
 # CHECK:       .lr.ph:                                           ; preds = %[[VAL_10:.*]]
@@ -88,24 +88,24 @@ def test_exp_pauli():
 # CHECK:         %[[VAL_13:.*]] = phi i64 [ 0, %[[VAL_8]] ], [ %[[VAL_14:.*]], %[[VAL_12]] ]
 # CHECK:         %[[VAL_15:.*]] = getelementptr double, double* %[[VAL_11]], i64 %[[VAL_13]]
 # CHECK:         %[[VAL_16:.*]] = load double, double* %[[VAL_15]], align 8
-# CHECK:         %[[VAL_17:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_6]]* %[[VAL_5]], i64 %[[VAL_13]])
-# CHECK:         %[[VAL_18:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_17]], align 8
-# CHECK:         tail call void @__quantum__qis__rx(double %[[VAL_16]], %[[VAL_3]]* %[[VAL_18]])
+# CHECK:         %[[VAL_17:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_5]], i64 %[[VAL_13]])
+# CHECK:         %[[VAL_18:.*]] = load %Qubit*, %Qubit** %[[VAL_17]], align 8
+# CHECK:         tail call void @__quantum__qis__rx(double %[[VAL_16]], %Qubit* %[[VAL_18]])
 # CHECK:         %[[VAL_14]] = add nuw nsw i64 %[[VAL_13]], 1
 # CHECK:         %[[VAL_19:.*]] = icmp eq i64 %[[VAL_14]], %[[VAL_4]]
 # CHECK:         br i1 %[[VAL_19]], label %[[VAL_9]], label %[[VAL_12]]
 # CHECK:       ._crit_edge:                                      ; preds = %[[VAL_12]], %[[VAL_10]]
-# CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_2]])
-# CHECK:         %[[VAL_20:.*]] = tail call %[[VAL_6]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
-# CHECK:         %[[VAL_21:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_6]]* %[[VAL_20]], i64 0)
-# CHECK:         store %[[VAL_3]]* %[[VAL_2]], %[[VAL_3]]** %[[VAL_21]], align 8
+# CHECK:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_2]])
+# CHECK:         %[[VAL_20:.*]] = tail call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+# CHECK:         %[[VAL_21:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_20]], i64 0)
+# CHECK:         store %Qubit* %[[VAL_2]], %Qubit** %[[VAL_21]], align 8
 # CHECK:         %[[VAL_22:.*]] = getelementptr inbounds [1 x { i8*, i64 }], [1 x { i8*, i64 }]* %[[VAL_1]], i64 0, i64 0, i32 0
 # CHECK:         store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @cstr.58495900, i64 0, i64 0), i8** %[[VAL_22]], align 8
 # CHECK:         %[[VAL_23:.*]] = getelementptr inbounds [1 x { i8*, i64 }], [1 x { i8*, i64 }]* %[[VAL_1]], i64 0, i64 0, i32 1
 # CHECK:         store i64 3, i64* %[[VAL_23]], align 8
 # CHECK:         %[[VAL_24:.*]] = bitcast [1 x { i8*, i64 }]* %[[VAL_1]] to i8*
-# CHECK:         call void @__quantum__qis__exp_pauli__ctl(double 2.310000e+01, %[[VAL_6]]* %[[VAL_20]], %[[VAL_6]]* %[[VAL_5]], i8* nonnull %[[VAL_24]])
-# CHECK:         call void @__quantum__rt__qubit_release_array(%[[VAL_6]]* %[[VAL_5]])
-# CHECK:         call void @__quantum__rt__qubit_release(%[[VAL_3]]* %[[VAL_2]])
+# CHECK:         call void @__quantum__qis__exp_pauli__ctl(double 2.310000e+01, %Array* %[[VAL_20]], %Array* %[[VAL_5]], i8* nonnull %[[VAL_24]])
+# CHECK-DAG:     call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_5]])
+# CHECK-DAG:     call void @__quantum__rt__qubit_release(%Qubit* %[[VAL_2]])
 # CHECK:         ret void
 # CHECK:       }
