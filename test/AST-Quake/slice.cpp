@@ -30,3 +30,9 @@ struct SliceTest {
 // CHECK:           call @{{.*}}other{{.*}}(%[[VAL_14]]) : (!quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
+
+__qpu__ bool issue_3092() {
+  cudaq::qvector qubits(6);
+  x(qubits[3]);
+  return mz(qubits.slice(3, 1))[0];
+}
