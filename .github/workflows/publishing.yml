@@ -146,21 +146,18 @@ jobs:
             cudaq_version=${release_version:-0.0.0}
           fi
 
-          echo "release_title=$release_title" >> $GITHUB_OUTPUT
-          echo "release_version=$release_version" >> $GITHUB_OUTPUT
-          echo "releases='$releases'" >> $GITHUB_OUTPUT
-          echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
-          echo "docker_images=$(echo $docker_images)" >> $GITHUB_OUTPUT
-          echo "python_wheels=$(echo $python_wheels)" >> $GITHUB_OUTPUT
-          echo "installers=$(echo $installers)" >> $GITHUB_OUTPUT
-          echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
-          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
-          echo "docs_archive=$docs_archive" >> $GITHUB_OUTPUT
+          echo "release_title=$release_title" | tee -a $GITHUB_OUTPUT
+          echo "release_version=$release_version" | tee -a $GITHUB_OUTPUT
+          echo "releases='$releases'" | tee -a $GITHUB_OUTPUT
+          echo "github_commit=$github_commit" | tee -a $GITHUB_OUTPUT
+          echo "docker_images=$(echo $docker_images)" | tee -a $GITHUB_OUTPUT
+          echo "python_wheels=$(echo $python_wheels)" | tee -a $GITHUB_OUTPUT
+          echo "installers=$(echo $installers)" | tee -a $GITHUB_OUTPUT
+          echo "artifacts_url=$artifacts_url" | tee -a $GITHUB_OUTPUT
+          echo "cudaq_version=$cudaq_version" | tee -a $GITHUB_OUTPUT
+          echo "docs_archive=$docs_archive" | tee -a $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
-
-      - name: Show GITHUB_OUTPUT
-        run: cat "$GITHUB_OUTPUT"
 
       - name: Trigger assets creation
         id: assets_creation
