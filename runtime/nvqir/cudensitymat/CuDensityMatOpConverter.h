@@ -46,19 +46,11 @@ public:
   /// @return The constructed Liouvillian operator.
   cudensitymatOperator_t constructLiouvillian(
       const std::vector<sum_op<cudaq::matrix_handler>> &hamOperators,
-      const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
+      const std::vector<std::vector<sum_op<cudaq::matrix_handler>>>
+          &collapseOperators,
       const std::vector<int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool isMasterEquation);
-  cudensitymatOperator_t constructLiouvillian(
-      const sum_op<cudaq::matrix_handler> &ham,
-      const std::vector<sum_op<cudaq::matrix_handler>> &collapseOperators,
-      const std::vector<int64_t> &modeExtents,
-      const std::unordered_map<std::string, std::complex<double>> &parameters,
-      bool isMasterEquation) {
-    return constructLiouvillian({ham}, collapseOperators, modeExtents,
-                                parameters, isMasterEquation);
-  }
   /// @brief  Construct a Liouvillian operator from a super operator.
   /// @param superOp The super operator.
   /// @param modeExtents The extents of the modes.
@@ -76,10 +68,6 @@ public:
   ~CuDensityMatOpConverter();
 
 private:
-  cudensitymatOperatorTerm_t convertProductOpToCudensitymat(
-      const product_op<cudaq::matrix_handler> &productOp,
-      const std::unordered_map<std::string, std::complex<double>> &parameters,
-      const std::vector<int64_t> &modeExtents);
   cudensitymatOperatorTerm_t createBatchedProductTerm(
       const std::vector<product_op<cudaq::matrix_handler>> &prodTerms,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -102,7 +90,7 @@ private:
 
   std::vector<std::pair<cudaq::scalar_operator, cudensitymatOperatorTerm_t>>
   computeLindbladTerms(
-      const sum_op<cudaq::matrix_handler> &collapseOp,
+      const std::vector<sum_op<cudaq::matrix_handler>> &batchedCollapseOps,
       const std::vector<int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters);
 

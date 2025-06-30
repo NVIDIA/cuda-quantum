@@ -132,7 +132,7 @@ TEST_F(CuDensityMatTimeStepperTest, TimeSteppingWithLindblad) {
   auto cudm_lindblad_op =
       cudaq::dynamics::Context::getCurrentContext()
           ->getOpConverter()
-          .constructLiouvillian(zero_op, {c_op}, dims, {}, true);
+          .constructLiouvillian({zero_op}, {{c_op}}, dims, {}, true);
 
   auto time_stepper =
       std::make_unique<CuDensityMatTimeStepper>(handle_, cudm_lindblad_op);
@@ -327,7 +327,7 @@ TEST_F(CuDensityMatTimeStepperTest, ComputeOperatorOrderDensityMatrix) {
   std::cout << "Expected result:\n" << expectedResult.to_string() << "\n";
   auto cudmOp = cudaq::dynamics::Context::getCurrentContext()
                     ->getOpConverter()
-                    .constructLiouvillian(op, {}, dims, {}, true);
+                    .constructLiouvillian({op}, {}, dims, {}, true);
   auto time_stepper =
       std::make_unique<CuDensityMatTimeStepper>(handle_, cudmOp);
   auto outputState = time_stepper->compute(inputState, 0.0, {});

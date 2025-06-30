@@ -54,7 +54,7 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
             auto liouvillian = cudaq::dynamics::Context::getCurrentContext()
                                    ->getOpConverter()
                                    .constructLiouvillian(
-                                       hamiltonian, collapse_ops, modeExtents,
+                                       {hamiltonian}, {collapse_ops}, modeExtents,
                                        params, is_master_equation);
             return PyCuDensityMatTimeStepper(
                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
