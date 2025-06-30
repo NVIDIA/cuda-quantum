@@ -482,7 +482,14 @@ jobs:
                   exit 1
                 fi
 
-                refs="$refs ghcr.io/nvidia/cuda-quantum@$digest"
+                # Registry must match where the digest was pushed
+                if [[ "$image" == "dev-image" ]]; then
+                  registry="ghcr.io/nvidia/cuda-quantum-dev"
+                else
+                  registry="ghcr.io/nvidia/cuda-quantum"
+                fi
+
+                refs="$refs $registry@$digest"
               done
 
               cuda_major="${cuda%%.*}"
@@ -496,16 +503,15 @@ jobs:
               fi
 
               echo "Creating manifest for $stitched_tag"
+              echo "Refs: $refs"
               docker buildx imagetools create \
                 --tag "$stitched_tag" \
                 $refs
 
               digest=$(docker buildx imagetools inspect "$stitched_tag" --format '{{json .Manifest.Digest}}' | tr -d '"')
-
               stitched_output=$(echo "$stitched_output" | jq --arg key "$stitched_key" --arg val "$digest" '. + {($key): $val}')
             done
           done
-
           echo "$stitched_output" > stitched_digests.json
           echo "stitched_json=$(cat stitched_digests.json)" >> $GITHUB_OUTPUT
 
