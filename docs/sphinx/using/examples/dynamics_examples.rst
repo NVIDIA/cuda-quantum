@@ -14,6 +14,7 @@ Download the notebooks below here: https://github.com/NVIDIA/cuda-quantum/tree/m
       Introduction to CUDA-Q Dynamics (Time Dependent Hamiltonians) <../../examples/python/dynamics/dynamics_intro_2.ipynb>
       Superconducting Qubits <../../examples/python/dynamics/superconducting.ipynb>
       Spin Qubits <../../examples/python/dynamics/spinqubits.ipynb>
+      Trapped Ion Qubits <../../examples/python/dynamics/iontrap.ipynb>
       Control <../../examples/python/dynamics/control.ipynb>
       Multi-GPU Multi-Node <../../examples/python/dynamics/mgmn.ipynb>
 
