@@ -33,8 +33,7 @@ Value getNextOperand(Value v) {
   return op->getOperand(operandIDX);
 }
 
-// TODO: Handle block arguments
-OpResult getNextResult(OpResult v) {
+OpResult getNextResult(Value v) {
   assert(v.hasOneUse());
   auto correspondingOperand = v.getUses().begin();
   auto op = correspondingOperand.getUser();
@@ -51,20 +50,22 @@ inline void markProcessed(Operation *op) {
 
 class Subcircuit {
 protected:
-  SetVector<Value> seen;
   SetVector<Operation *> ops;
+  SetVector<Value> initial_wires;
+  SetVector<Value> terminal_wires;
+  Operation *start;
+  // TODO: these three are really intermediate state
+  // for constructing the subcircuit, it would be nice
+  // to turn them into shared arguments instead
   SetVector<Value> termination_points;
   SetVector<Value> anchor_points;
+  SetVector<Value> seen;
 
   bool isAfterTerminationPoint(Value wire) {
     return isTerminationPoint(wire.getDefiningOp());
   }
 
   bool isTerminationPoint(Operation *op) {
-    // The operation is already part of another subcircuit
-    if (processed(op))
-      return true;
-
     if (isa<RAW_CIRCUIT_BREAKERS>(op))
       return true;
 
@@ -72,7 +73,10 @@ protected:
       return true;
 
     auto opi = dyn_cast<quake::OperatorInterface>(op);
-    assert(opi);
+
+    if (!opi)
+      return true;
+
     // Only allow single control
     if (opi.getControls().size() > 1)
       return true;
@@ -92,7 +96,7 @@ protected:
     }
     Operation *op = v.getUses().begin().getUser();
 
-    if (isTerminationPoint(op)) {
+    if (isTerminationPoint(op) || processed(op)) {
       termination_points.insert(v);
       return;
     }
@@ -124,7 +128,7 @@ protected:
     seen.insert(v);
     Operation *op = v.getDefiningOp();
 
-    if (isTerminationPoint(op)) {
+    if (isTerminationPoint(op) || processed(op)) {
       termination_points.insert(v);
       return;
     }
@@ -209,7 +213,7 @@ protected:
     // (this means that it is important to build subcircuits
     // by inspecting controlled gates in topological order)
     for (auto wire : termination_points) {
-      if (!isAfterTerminationPoint(wire))
+      if (!isAfterTerminationPoint(wire) && wire.hasOneUse())
         pruneWire(wire);
     }
   }
@@ -222,15 +226,20 @@ public:
     pruneSubcircuit();
     for (auto *op : ops)
       markProcessed(op);
+    start = cnot;
+
+    for (auto wire : termination_points) {
+      wire.dump();
+      if (isAfterTerminationPoint(wire))
+        initial_wires.insert(wire);
+      else
+        terminal_wires.insert(wire);
+    }
   }
 
-  SetVector<Value> getInitialWires() {
-    SetVector<Value> initial;
-    for (auto wire : termination_points)
-      if (isAfterTerminationPoint(wire))
-        initial.insert(wire);
-    return initial;
-  }
+  SetVector<Value> getInitialWires() { return initial_wires; }
+
+  SetVector<Value> getTerminalWires() { return terminal_wires; }
 
   bool isInSubcircuit(Operation *op) { return ops.contains(op); }
 
@@ -239,4 +248,6 @@ public:
 
   /// @brief returns the number of wires in the subcircuit
   size_t numWires() { return getInitialWires().size(); }
+
+  Operation *getStart() { return start; }
 };
