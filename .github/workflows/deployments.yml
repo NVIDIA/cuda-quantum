@@ -435,6 +435,9 @@ jobs:
     needs: digest_config
     runs-on: ubuntu-latest
 
+    outputs:
+      stitched_json: ${{ steps.stitch.outputs.stitched_json }}
+
     steps:
       - name: Login to GitHub CR
         uses: docker/login-action@v3
@@ -456,42 +459,60 @@ jobs:
             image=moby/buildkit:v0.19.0
 
       - name: Create multi-arch images
+        id: stitch
         run: |
           set -euo pipefail
 
           DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
-          echo "DIGESTS_JSON = $DIGESTS_JSON"
           echo "$DIGESTS_JSON" | jq .
 
-          for cuda in 11.8 12.0; do
-            echo "Processing CUDA $cuda..."
-            refs=""
-            for arch in amd64 arm64; do
-              key="${arch}-cu${cuda}"
-              echo "Looking up key: $key"
+          stitched_output="{}"
 
-              digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
-              if [[ -z "$digest" || "$digest" == "null" ]]; then
-                echo "::error::Missing digest for key $key"
-                exit 1
+          for image in image dev-image; do
+            for cuda in 11.8 12.0; do
+              echo "Processing CUDA $cuda..."
+              refs=""
+              for arch in amd64 arm64; do
+                key="${arch}-cu${cuda}-${image}"
+                echo "Looking up key: $key"
+
+                digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
+                if [[ -z "$digest" || "$digest" == "null" ]]; then
+                  echo "::error::Missing digest for key $key"
+                  exit 1
+                fi
+
+                refs="$refs ghcr.io/nvidia/cuda-quantum@$digest"
+              done
+
+              cuda_major="${cuda%%.*}"
+
+              if [[ "$image" == "dev-image" ]]; then
+                stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda_major}-latest-base"
+                stitched_key="dev-cu${cuda_major}"
+              else
+                stitched_tag="ghcr.io/nvidia/cuda-quantum:cu${cuda_major}-latest-base"
+                stitched_key="base-cu${cuda_major}"
               fi
 
-              echo "Found digest for $key: $digest"
-              refs="$refs ghcr.io/nvidia/cuda-quantum@$digest"
-            done
+              echo "Creating manifest for $stitched_tag"
+              docker buildx imagetools create \
+                --tag "$stitched_tag" \
+                $refs
 
-            cuda_major="${cuda%%.*}" # Extracts '11' from '11.8', '12' from '12.0'
-            stitched_tag="ghcr.io/nvidia/cuda-quantum:cu${cuda_major}-latest-base"
-            echo "Creating manifest for $stitched_tag"
-            echo "Refs: $refs"
-            docker buildx imagetools create \
-              --tag "$stitched_tag" \
-              $refs
+              digest=$(docker buildx imagetools inspect "$stitched_tag" --format '{{json .Manifest.Digest}}' | tr -d '"')
+
+              stitched_output=$(echo "$stitched_output" | jq --arg key "$stitched_key" --arg val "$digest" '. + {($key): $val}')
+            done
           done
+
+          echo "$stitched_output" > stitched_digests.json
+          echo "stitched_json=$(cat stitched_digests.json)" >> $GITHUB_OUTPUT
 
   summary:
     name: Write deployment summary
-    needs: digest_config
+    needs: [digest_config, ext_config, stitch]
+
     runs-on: ubuntu-latest
 
     steps:
@@ -501,28 +522,25 @@ jobs:
       - name: Create image summary
         id: summary
         run: |
-          DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
+          STITCHED_JSON='${{ needs.stitch.outputs.stitched_json }}'
 
           for cuda in 11.8 12.0; do
             cuda_major="${cuda%%.*}"
             artifact_name="image_cu${cuda_major}_publishing"
             info_file="$artifact_name.txt"
 
-            dev_tag="cu${cuda_major}-latest-base"
-            cudaq_digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"amd64-cu${cuda}\"]")
-            dev_digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"amd64-cu${cuda}-dev\"]")
-            deps_digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"amd64-cu${cuda}-ext\"]")
+            cudaq_digest=$(echo "$STITCHED_JSON" | jq -r ".base-cu${cuda_major}")
+            dev_digest=$(echo "$STITCHED_JSON" | jq -r ".dev-cu${cuda_major}")
 
             {
               echo "source-sha: ${{ github.sha }}"
               echo "cuda-quantum-image: ghcr.io/nvidia/cuda-quantum@$cudaq_digest"
               echo "cuda-quantum-dev-image: ghcr.io/nvidia/cuda-quantum-dev@$dev_digest"
-              echo "cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@$deps_digest"
+              echo "cuda-quantum-devdeps-image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}"
               echo "platforms: linux/arm64,linux/amd64"
               echo "cuda-version: $cuda"
               grep -E 'nvidia-mgpu-(repo|commit)' .github/workflows/config/gitlab_commits.txt || true
             } | tee "$info_file"
-
             echo "Created $info_file"
           done
 

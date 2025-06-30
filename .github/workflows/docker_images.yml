@@ -345,6 +345,15 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
+      - name: Write matrix outputs
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        with:
+          matrix-step-name: docker_images
+          matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}-dev-image
+          outputs: |
+            digest: ${{ steps.docker_build.outputs.digest }}
+            image_tag: ${{ steps.metadata.outputs.tags }}
+
       - name: Install Cosign
         if: inputs.environment
         uses: sigstore/cosign-installer@v3.3.0
@@ -621,7 +630,7 @@ jobs:
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         with:
           matrix-step-name: docker_images
-          matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}
+          matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}-image
           outputs: |
             digest: ${{ steps.cudaq_build.outputs.digest }}
             image_tag: ${{ steps.cudaq_metadata.outputs.tags }}
