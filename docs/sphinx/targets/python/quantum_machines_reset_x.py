@@ -1,10 +1,8 @@
 import cudaq
 
-# simplest example of quantum machines target run:
-# select a number of qubits (make sure you have this number of qubits available on your computer)
-# and run a Hadamard on each of them.
+# Test resetting and applying an X gate on the quantum machines target.
 # The default executor is mock, use executor name to run on another backend (real or simulator).
-# Configure the address of the QOperator server in the URL argument, and set the API key.
+# Configure the address of the QOperator server in the `url` argument, and set the `api_key`.
 cudaq.set_target("quantum_machines",
                  url="http://host.docker.internal:8080",
                  api_key="1234567890",
