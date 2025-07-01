@@ -495,7 +495,7 @@ jobs:
             refs="$arm64_image $amd64_image"
 
             docker buildx imagetools create --tag "$stitched_tag" $refs
-            digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }'
+            digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
             stitched_key="devdeps-cu${cuda_major}"
             stitched_output=$(echo "$stitched_output" | jq --arg key "$stitched_key" --arg val "$digest" '. + {($key): $val}')
           done
@@ -541,7 +541,7 @@ jobs:
                 --tag "$stitched_tag" \
                 $refs
 
-              digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }'
+              digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
               stitched_output=$(echo "$stitched_output" | jq --arg key "$stitched_key" --arg val "$digest" '. + {($key): $val}')
             done
           done
