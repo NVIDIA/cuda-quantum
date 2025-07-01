@@ -788,7 +788,7 @@ def test_return_dataclass_float_int():
 
 def test_return_dataclass_list_int_bool():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: list[int]
         y: bool
@@ -807,7 +807,7 @@ def test_return_dataclass_list_int_bool():
 
 def test_return_dataclass_tuple_bool():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: tuple[int, bool]
         y: bool
@@ -826,12 +826,12 @@ def test_return_dataclass_tuple_bool():
 
 def test_return_dataclass_dataclass_bool():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass1:
         x: int
         y: bool
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass2:
         x: MyClass1
         y: bool
@@ -883,7 +883,7 @@ def test_run_errors():
 
 def test_modify_struct():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: int
         y: bool
@@ -900,7 +900,7 @@ def test_modify_struct():
     assert results[0] == MyClass(42, True)
     assert results[1] == MyClass(42, True)
 
-    @dataclass
+    @dataclass(frozen=True)
     class Foo:
         x: bool
         y: float
