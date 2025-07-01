@@ -945,7 +945,7 @@ class PyASTBridge(ast.NodeVisitor):
             stepVal = arith.FPToSIOp(self.getIntegerType(), stepVal).result
 
         return startVal, endVal, stepVal, isDecrementing
-    
+
     def __visitStructAttribute(self, node, structValue):
         """
         Handle struct member extraction from either a pointer to struct or direct struct value.
@@ -955,10 +955,12 @@ class PyASTBridge(ast.NodeVisitor):
             # Handle pointer to struct - use ComputePtrOp
             eleType = cc.PointerType.getElementType(structValue.type)
             if cc.StructType.isinstance(eleType):
-                structIdx, memberTy = self.getStructMemberIdx(node.attr, eleType)
-                eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(memberTy), structValue, [],
-                    DenseI32ArrayAttr.get([structIdx])).result
+                structIdx, memberTy = self.getStructMemberIdx(
+                    node.attr, eleType)
+                eleAddr = cc.ComputePtrOp(cc.PointerType.get(memberTy),
+                                          structValue, [],
+                                          DenseI32ArrayAttr.get([structIdx
+                                                                ])).result
 
                 if self.attributePushPointerValue:
                     self.pushValue(eleAddr)
@@ -970,25 +972,26 @@ class PyASTBridge(ast.NodeVisitor):
                 return
         elif cc.StructType.isinstance(structValue.type):
             # Handle direct struct value - use ExtractValueOp (more efficient)
-            structIdx, memberTy = self.getStructMemberIdx(node.attr, structValue.type)
+            structIdx, memberTy = self.getStructMemberIdx(
+                node.attr, structValue.type)
             extractedValue = cc.ExtractValueOp(
                 memberTy, structValue, [],
                 DenseI32ArrayAttr.get([structIdx])).result
-            
+
             if self.attributePushPointerValue:
                 # If we need a pointer, we have to create a temporary slot
-                tempSlot = cc.AllocaOp(
-                    cc.PointerType.get(memberTy),
-                    TypeAttr.get(memberTy)).result
+                tempSlot = cc.AllocaOp(cc.PointerType.get(memberTy),
+                                       TypeAttr.get(memberTy)).result
                 cc.StoreOp(extractedValue, tempSlot)
                 self.pushValue(tempSlot)
                 return
-            
+
             self.pushValue(extractedValue)
             return
         else:
             self.emitFatalError(
-                f"Cannot access attribute '{node.attr}' on type {structValue.type}")
+                f"Cannot access attribute '{node.attr}' on type {structValue.type}"
+            )
 
     def needsStackSlot(self, type):
         """
