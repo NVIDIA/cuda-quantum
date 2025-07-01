@@ -571,7 +571,7 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
 
   virtual LogicalResult initialize(MLIRContext *context) override {
     std::tie(deviceBypass, deviceInstance) = deviceFromString(device);
-    if (deviceInstance || deviceBypass) {
+    if (deviceInstance || deviceBypass || !nonComposable) {
       return success();
     }
 
@@ -643,7 +643,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
   virtual LogicalResult initialize(MLIRContext *context) override {
     std::tie(deviceBypass, deviceInstance) = deviceFromString(device);
-    if (deviceInstance || deviceBypass) {
+    if (deviceInstance || deviceBypass || !nonComposable) {
       return success();
     }
 
@@ -904,8 +904,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     // Place
     Placement placement(sources.size(), deviceInstance->getNumQubits());
     if (!identityPlacement(placement, *deviceInstance)) {
-      func.emitOpError("Not enough usable device qubits to map sources.");
-      signalPassFailure();
+      if (nonComposable) {
+        func.emitOpError("Not enough usable device qubits to map sources.");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "Not enough usable device qubits to map sources.");
       return;
     }
 
