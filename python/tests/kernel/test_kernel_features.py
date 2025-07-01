@@ -2313,6 +2313,14 @@ def test_attribute_access_on_call_results():
     def test_attribute_on_call() -> int:
         """Test accessing attribute on dataclass constructor call result."""
         return M(6, 9).i
+    
+    @cudaq.kernel
+    def nested_kernel() -> M:
+        return M(6, 9)
+    
+    @cudaq.kernel
+    def test_attribute_on_kernel_call() -> int:
+        return nested_kernel().i
 
     @cudaq.kernel
     def test_attribute_on_call_with_qubits() -> int:
@@ -2335,14 +2343,17 @@ def test_attribute_access_on_call_results():
     result1 = cudaq.run(test_attribute_on_call)[0]
     assert result1 == 6
 
-    result2 = cudaq.run(test_attribute_on_call_with_qubits)[0]
+    result2 = cudaq.run(test_attribute_on_kernel_call)[0]
     assert result2 == 6
 
-    result3 = cudaq.run(test_attribute_on_call_in_assignment)[0]
+    result3 = cudaq.run(test_attribute_on_call_with_qubits)[0]
     assert result3 == 6
 
-    result4 = cudaq.run(test_attribute_on_call_in_expression)[0]
-    assert result4 == 10  # 6 + 4
+    result4 = cudaq.run(test_attribute_on_call_in_assignment)[0]
+    assert result4 == 6
+
+    result5 = cudaq.run(test_attribute_on_call_in_expression)[0]
+    assert result5 == 10  # 6 + 4
 
     # Test with different dataclass
     @dataclass
