@@ -799,6 +799,15 @@ std::vector<measure_result> mz(QubitRange &q) {
   return b;
 }
 
+template <std::size_t Levels>
+std::vector<measure_result> mz(const qview<Levels> &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.emplace_back(mz(qq));
+  }
+  return b;
+}
+
 template <typename... Qs>
 std::vector<measure_result> mz(qubit &q, Qs &&...qs);
 
