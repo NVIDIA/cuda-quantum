@@ -689,8 +689,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // FIXME: Add the ability to handle multiple blocks.
     if (blocks.size() > 1) {
-      func.emitError("The mapper cannot handle multiple blocks");
-      signalPassFailure();
+      if (nonComposable) {
+        func.emitError("The mapper cannot handle multiple blocks");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "NYI: mapping with multiple blocks");
       return;
     }
 
@@ -702,11 +705,12 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     auto walkResult = func.walk([&](quake::BorrowWireOp borrowOp) {
       if (inputWireSet.empty()) {
         inputWireSet = borrowOp.getSetName();
-      } else if (!borrowOp.getSetName().equals(inputWireSet)) {
+      } else if (borrowOp.getSetName() != inputWireSet) {
         // Why is this here? It's entirely possible to have disjoint wire sets,
         // where the sets are for fundamentally distinct purposes in the target
         // model.
-        func.emitOpError("function cannot use multiple WireSets");
+        if (nonComposable)
+          func.emitOpError("function cannot use multiple WireSets");
         return WalkResult::interrupt();
       }
       highestIdentity = highestIdentity
@@ -715,7 +719,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return WalkResult::advance();
     });
     if (walkResult.wasInterrupted()) {
-      signalPassFailure();
+      if (nonComposable)
+        signalPassFailure();
+      LLVM_DEBUG(llvm::dbgs()
+                 << "NYI: multiple wire sets for a target machine");
       return;
     }
     if (!highestIdentity) {
@@ -732,8 +739,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     Block &block = *blocks.begin();
 
     if (deviceInstance->getNumUsableQubits() == 0) {
-      func.emitError("Trying to target an empty device.");
-      signalPassFailure();
+      if (nonComposable) {
+        func.emitError("Trying to target an empty device.");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "device cannot be empty");
       return;
     }
 
@@ -754,26 +764,35 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         sources[id] = qop;
         lastSource = &op;
       } else if (dyn_cast<quake::NullWireOp>(op)) {
-        op.emitOpError(
-            "the mapper requires borrow operations and prohibits null wires");
-        signalPassFailure();
+        if (nonComposable) {
+          op.emitOpError(
+              "the mapper requires borrow operations and prohibits null wires");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << "null_wire ops are not expected");
         return;
       } else if (dyn_cast<quake::AllocaOp>(op)) {
-        op.emitOpError("the mapper requires borrow operations and prohibits "
-                       "reference semantics");
-        signalPassFailure();
+        if (nonComposable) {
+          op.emitOpError("the mapper requires borrow operations and prohibits "
+                         "reference semantics");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << "quantum reference semantics not expected");
         return;
       } else if (quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
         if (!quake::isLinearValueForm(&op)) {
-          llvm::errs() << "This is not SSA form: " << op << '\n';
-          llvm::errs() << "isa<quake::NullWireOp>() = "
-                       << isa<quake::NullWireOp>(&op) << '\n';
-          llvm::errs() << "isAllReferences() = " << quake::isAllReferences(&op)
-                       << '\n';
-          llvm::errs() << "isWrapped() = " << quake::isWrapped(&op) << '\n';
-          func.emitError("The mapper requires value semantics.");
-          signalPassFailure();
+          if (nonComposable) {
+            llvm::errs() << "This is not SSA form: " << op << '\n';
+            llvm::errs() << "isa<quake::NullWireOp>() = "
+                         << isa<quake::NullWireOp>(&op) << '\n';
+            llvm::errs() << "isAllReferences() = "
+                         << quake::isAllReferences(&op) << '\n';
+            llvm::errs() << "isWrapped() = " << quake::isWrapped(&op) << '\n';
+            func.emitError("The mapper requires value semantics.");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs() << "operation is not in proper value form");
           return;
         }
 
@@ -788,9 +807,12 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         // qubits. N.B: Measurements do not have this restriction.
         auto wireOperands = quake::getQuantumOperands(&op);
         if (!op.hasTrait<QuantumMeasure>() && wireOperands.size() > 2) {
-          func.emitError("Cannot map a kernel with operators that use more "
-                         "than two qubits.");
-          signalPassFailure();
+          if (nonComposable) {
+            func.emitError("Cannot map a kernel with operators that use more "
+                           "than two qubits.");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs() << "operator with >2 qubits not expected");
           return;
         }
 
@@ -812,10 +834,13 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     if (sources.size() > deviceNumQubits) {
-      func.emitOpError("Too many qubits [" + std::to_string(sources.size()) +
-                       "] for device [" + std::to_string(deviceNumQubits) +
-                       "]");
-      signalPassFailure();
+      if (nonComposable) {
+        func.emitOpError("Too many qubits [" + std::to_string(sources.size()) +
+                         "] for device [" + std::to_string(deviceNumQubits) +
+                         "]");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
       return;
     }
 
