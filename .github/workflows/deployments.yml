@@ -328,6 +328,10 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
+      - name: Print config.outputs.json
+        run: |
+          echo '${{ steps.read_json.outputs.result }}'
+
   coverage:
     name: Update code coverage
     needs: [metadata, config]
@@ -389,6 +393,10 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
+      - name: Print ext_config.outputs.json
+        run: |
+          echo '${{ steps.read_json.outputs.result }}'
+
   docker_images:
     name: Create Docker images
     needs: [metadata, config, ext_config]
@@ -432,7 +440,7 @@ jobs:
 
   stitch:
     name: Stitch multi-arch manifests
-    needs: digest_config
+    needs: [digest_config, ext_config]
     runs-on: ubuntu-latest
 
     outputs:
@@ -466,7 +474,30 @@ jobs:
           DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
           echo "$DIGESTS_JSON" | jq .
 
-          stitched_output="{}"
+          EXT_JSON='${{ needs.ext_config.outputs.json }}'
+          echo "$EXT_JSON" | jq .
+
+
+
+          # stitched_output="{}"
+
+          # echo "Creating stitched manifest for cuda-quantum-devdeps..."
+          # for cuda in 11.8 12.0; do
+          #   key="arm64-cu${cuda}-ext"
+          #   arm64_image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
+          #   echo "CUDA $cuda arm64 image: $arm64_image"
+
+          #   key="amd64-cu${cuda}-ext"
+          #   amd64_image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")\
+          #   echo "CUDA $cuda amd64 image: $amd64_image"
+
+          #   stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:ext-cu${cuda}-latest"
+          # done
+
+          # echo "Creating stitched manifest for cuda-quantum..."
+
+
+          # echo "Creating stitched manifest for cuda-quantum-dev..."
 
           for image in image dev-image; do
             for cuda in 11.8 12.0; do
@@ -513,7 +544,8 @@ jobs:
             done
           done
           echo "$stitched_output" > stitched_digests.json
-          echo "stitched_json=$(cat stitched_digests.json)" >> $GITHUB_OUTPUT
+          stitched_json=$(jq -c . stitched_digests.json)
+          echo "stitched_json=$stitched_json" >> $GITHUB_OUTPUT
 
   summary:
     name: Write deployment summary
