@@ -957,6 +957,25 @@ def test_create_and_modify_struct():
     assert results[0] == Bar(True, True, 4.14)
 
 
+def test_unsupported_return_type():
+
+    @cudaq.kernel
+    def kerenl_with_no_args() -> complex:
+        return 1 + 2j
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kerenl_with_no_args, shots_count=2)
+    assert 'unsupported return type' in str(e.value)
+
+    @cudaq.kernel
+    def kernel_with_args(real: float, imag: float) -> complex:
+        return complex(real, imag)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel_with_args, 1.0, 2.0, shots_count=2)
+    assert 'unsupported return type' in str(e.value)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
