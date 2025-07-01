@@ -385,7 +385,8 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
             auto constExpr = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg);
             if (constExpr &&
                 constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
-                constExpr->getOpcode() != llvm::Instruction::IntToPtr) {
+                constExpr->getOpcode() != llvm::Instruction::IntToPtr &&
+                constExpr->getOpcode() != llvm::Instruction::BitCast) {
               llvm::errs() << "error - invalid instruction found: "
                            << *constExpr << '\n';
               return mlir::failure();
