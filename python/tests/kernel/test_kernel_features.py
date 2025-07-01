@@ -2313,11 +2313,11 @@ def test_attribute_access_on_call_results():
     def test_attribute_on_call() -> int:
         """Test accessing attribute on dataclass constructor call result."""
         return M(6, 9).i
-    
+
     @cudaq.kernel
     def nested_kernel() -> M:
         return M(6, 9)
-    
+
     @cudaq.kernel
     def test_attribute_on_kernel_call() -> int:
         return nested_kernel().i
