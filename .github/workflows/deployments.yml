@@ -495,7 +495,7 @@ jobs:
             refs="$arm64_image $amd64_image"
 
             docker buildx imagetools create --tag "$stitched_tag" $refs
-            digest=$(docker buildx imagetools inspect "$stitched_tag" --format '{{.Manifest.Digest}}')
+            digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }'
             stitched_key="devdeps-cu${cuda_major}"
             stitched_output=$(echo "$stitched_output" | jq --arg key "$stitched_key" --arg val "$digest" '. + {($key): $val}')
           done
@@ -541,7 +541,7 @@ jobs:
                 --tag "$stitched_tag" \
                 $refs
 
-              digest=$(docker buildx imagetools inspect "$stitched_tag" --format '{{.Manifest.Digest}}')
+              digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }'
               stitched_output=$(echo "$stitched_output" | jq --arg key "$stitched_key" --arg val "$digest" '. + {($key): $val}')
             done
           done
@@ -563,24 +563,33 @@ jobs:
         id: summary
         run: |
           STITCHED_JSON='${{ needs.stitch.outputs.stitched_json }}'
+          echo "$STITCHED_JSON" | jq .
+
+          pwd
+          ls -l
 
           for cuda in 11.8 12.0; do
             cuda_major="${cuda%%.*}"
             artifact_name="image_cu${cuda_major}_publishing"
             info_file="$artifact_name.txt"
 
-            cudaq_digest=$(echo "$STITCHED_JSON" | jq -r ".base-cu${cuda_major}")
-            dev_digest=$(echo "$STITCHED_JSON" | jq -r ".dev-cu${cuda_major}")
-            devdeps_digest=$(echo "$STITCHED_JSON" | jq -r ".devdeps-cu${cuda_major}")
+            key="base-cu${cuda_major}"
+            cudaq_digest=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$key]')
+
+            key="dev-cu${cuda_major}"
+            dev_digest=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$key]')
+
+            key="devdeps-cu${cuda_major}"
+            devdeps_digest=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$key]')
 
             {
               echo "source-sha: ${{ github.sha }}"
               echo "cuda-quantum-image: ghcr.io/nvidia/cuda-quantum@$cudaq_digest"
               echo "cuda-quantum-dev-image: ghcr.io/nvidia/cuda-quantum-dev@$dev_digest"
-              echo "cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-dev@$devdeps_digest"
+              echo "cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@$devdeps_digest"
               echo "platforms: linux/arm64,linux/amd64"
               echo "cuda-version: $cuda"
-              grep -E 'nvidia-mgpu-(repo|commit)' .github/workflows/config/gitlab_commits.txt || true
+              echo .github/workflows/config/gitlab_commits.txt
             } | tee "$info_file"
             echo "Created $info_file"
           done
