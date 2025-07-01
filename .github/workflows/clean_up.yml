@@ -82,7 +82,7 @@ jobs:
         with: 
           package-name: ${{ matrix.image_name }}
           package-type: 'container'
-          min-versions-to-keep: 200
+          min-versions-to-keep: 400
           delete-only-untagged-versions: 'true'
 
       - name: Log in to the container registry

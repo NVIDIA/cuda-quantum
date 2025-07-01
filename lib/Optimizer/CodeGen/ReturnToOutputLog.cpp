@@ -168,6 +168,12 @@ public:
                 genOutputLog(loc, rewriter, w, offset);
               }
             }
+        })
+        .Default([&](Type) {
+          // If we reach here, we don't know how to handle this type.
+          Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+          rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
+                                        ValueRange{one});
         });
   }
 

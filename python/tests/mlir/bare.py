@@ -19,8 +19,8 @@ with Context() as ctx:
         f = func.FuncOp('main', ([], []))
         entry_block = f.add_entry_block()
         with InsertionPoint(entry_block):
-            t = quake.RefType.get(ctx)
-            v = quake.VeqType.get(ctx, 10)
+            t = quake.RefType.get()
+            v = quake.VeqType.get(10)
             iTy = IntegerType.get_signless(64)
             iAttr = IntegerAttr.get(iTy, 43)
             s = arith.ConstantOp(iTy, iAttr)
@@ -29,7 +29,7 @@ with Context() as ctx:
             target = quake.AllocaOp(t)
 
             qveq = quake.AllocaOp(v)
-            dyn = quake.AllocaOp(quake.VeqType.get(ctx), size=s)
+            dyn = quake.AllocaOp(quake.VeqType.get(), size=s)
             quake.HOp([], [], [], [qubit])
             quake.XOp([], [], [qubit], [target])
             ret = func.ReturnOp([])

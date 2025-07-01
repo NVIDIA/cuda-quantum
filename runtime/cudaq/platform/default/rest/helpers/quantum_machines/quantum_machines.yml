@@ -6,32 +6,39 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: quantinuum
-description: "CUDA-Q target for Quantinuum."
+name: "quantum_machines"
+description: "CUDA-Q target for Quantum Machines."
+
 config:
   # Tell DefaultQuantumPlatform what QPU subtype to use
   platform-qpu: remote_rest
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-  # Add the rest-qpu library to the link list
-  link-libs: ["-lcudaq-rest-qpu"]
   # Define the lowering pipeline
-  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),quantinuum-gate-set-mapping"
-  # Tell the rest-qpu that we are generating Adaptive QIR.
-  codegen-emission: qir-adaptive[int_computations]
+  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),decomposition{enable-patterns=CHToCX,RzAdjToRz,CCZToCX,CR1ToCX,SwapToCX,CRxToCX,CRyToCX,CRzToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements),symbol-dce"
+  # Tell the rest-qpu that we are generating OpenQASM 2.0.
+  codegen-emission: qasm2
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 
 target-arguments:
   - key: url
+    required: true
+    type: string
+    platform-arg: url
+    help-string: "Specify Quantum Machine base server url."
+  - key: executor
     required: false
     type: string
-    platform-arg: url 
-    help-string: "Specify the URL."
-  - key: machine
+    platform-arg: executor
+    help-string: "Specify the executor to run. Default is mock"
+  - key: api_key
     required: false
     type: string
-    platform-arg: machine 
-    help-string: "Specify QPU."
+    platform-arg: api_key
+    help-string: "An API key to access the Qoperator server"
+  
