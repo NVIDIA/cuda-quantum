@@ -687,6 +687,8 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
 void __quantum__qis__trap(std::int64_t code) {
   if (code == 0)
     throw std::runtime_error("could not autogenerate the adjoint of a kernel");
+  if (code == 1)
+    throw std::runtime_error("unsupported return type from entry-point kernel");
   throw std::runtime_error("code generation failure for target");
 }
 
