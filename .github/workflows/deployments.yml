@@ -471,8 +471,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          DIGESTS_JSON="${{ needs.digest_config.outputs.json }}"
-          EXT_JSON="${{ needs.ext_config.outputs.json }}"
+          DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
+          EXT_JSON='${{ needs.ext_config.outputs.json }}'
           echo "$DIGESTS_JSON" | jq .
           echo "$EXT_JSON" | jq .
 
@@ -577,7 +577,7 @@ jobs:
               echo "source-sha: ${{ github.sha }}"
               echo "cuda-quantum-image: ghcr.io/nvidia/cuda-quantum@$cudaq_digest"
               echo "cuda-quantum-dev-image: ghcr.io/nvidia/cuda-quantum-dev@$dev_digest"
-              echo "cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-dev@$devdeps_digest
+              echo "cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-dev@$devdeps_digest"
               echo "platforms: linux/arm64,linux/amd64"
               echo "cuda-version: $cuda"
               grep -E 'nvidia-mgpu-(repo|commit)' .github/workflows/config/gitlab_commits.txt || true
