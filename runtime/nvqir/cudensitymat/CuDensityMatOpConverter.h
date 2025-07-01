@@ -17,7 +17,7 @@
 namespace cudaq::dynamics {
 class CuDensityMatOpConverter {
 public:
-  CuDensityMatOpConverter(cudensitymatHandle_t handle) : m_handle(handle){};
+  CuDensityMatOpConverter(cudensitymatHandle_t handle);
 
   /// @brief Convert a matrix operator to a `cudensitymat` matrix operator.
   /// @param parameters The parameters of the operator.
@@ -42,6 +42,10 @@ public:
       const std::vector<int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool isMasterEquation);
+
+  cudensitymatOperator_t constructLiouvillian(
+      const super_op &superOp, const std::vector<int64_t> &modeExtents,
+      const std::unordered_map<std::string, std::complex<double>> &parameters);
 
   /// @brief Clear the current callback context
   // Callback context may contain Python objects, hence needs to be clear before
@@ -105,5 +109,7 @@ private:
   std::unordered_set<cudensitymatOperatorTerm_t> m_operatorTerms;
   std::deque<ScalarCallBackContext> m_scalarCallbacks;
   std::deque<TensorCallBackContext> m_tensorCallbacks;
+  int m_minDimensionDiag = 4;
+  int m_maxDiagonalsDiag = 1;
 };
 } // namespace cudaq::dynamics

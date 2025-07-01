@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
@@ -795,6 +795,15 @@ std::vector<measure_result> mz(QubitRange &q) {
   std::vector<measure_result> b;
   for (auto &qq : q) {
     b.push_back(mz(qq));
+  }
+  return b;
+}
+
+template <std::size_t Levels>
+std::vector<measure_result> mz(const qview<Levels> &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.emplace_back(mz(qq));
   }
   return b;
 }

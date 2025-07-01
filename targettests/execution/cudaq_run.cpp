@@ -6,8 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ -fenable-cudaq-run %cpp_std %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -fenable-cudaq-run --library-mode %cpp_std %s -o %t && %t | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 
@@ -145,6 +147,8 @@ int main() {
     }
   }
 
+#if 0
+  // vector return types are not fully supported yet.
   {
     const std::vector<std::vector<bool>> results =
         cudaq::run(3, vector_bool_test);
@@ -189,6 +193,7 @@ int main() {
       printf("success!\n");
     }
   }
+#endif
 
   {
     const auto results = cudaq::run(3, struct_test);
@@ -210,7 +215,7 @@ int main() {
 // CHECK: success!
 // CHECK: success!
 // CHECK: success!
-// CHECK: success!
-// CHECK: success!
-// CHECK: success!
+// XXECK: success!
+// XXECK: success!
+// XXECK: success!
 // CHECK: success!

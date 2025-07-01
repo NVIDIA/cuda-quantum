@@ -9,7 +9,7 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Future.h"
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include "cudaq/platform/quantum_platform.h"
 
 #include <functional>

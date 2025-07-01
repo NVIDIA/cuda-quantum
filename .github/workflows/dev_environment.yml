@@ -210,6 +210,11 @@ jobs:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
           submodules: ${{ inputs.checkout_submodules }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v9.2.2-52
+
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -219,6 +224,7 @@ jobs:
         with:
           endpoint: builder_context
           version: v0.19.0
+          buildkitd-config: ${{ needs.metadata.outputs.runner != 'ubuntu-latest' && '/etc/buildkit/buildkitd.toml' || null }}
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0

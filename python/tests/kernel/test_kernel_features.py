@@ -159,6 +159,35 @@ def test_control():
     assert '110' in counts
 
 
+def test_multi_control_gates():
+    """Test that a multi-controlled X (Toffoli) gate works with the multi-control API."""
+
+    @cudaq.kernel
+    def mcx_kernel():
+        q = cudaq.qvector(3)
+        # State |110>
+        x(q[0])
+        x(q[1])
+        x.ctrl([q[0], q[1]], q[2])
+        mz(q)
+
+    counts = cudaq.sample(mcx_kernel)
+    assert len(counts) == 1
+    assert '111' in counts
+
+    @cudaq.kernel
+    def mcx_kernel_neg():
+        q = cudaq.qvector(3)
+        # State |100>
+        x(q[0])
+        x.ctrl([q[0], q[1]], q[2])
+        mz(q)
+
+    counts = cudaq.sample(mcx_kernel_neg)
+    assert len(counts) == 1
+    assert '100' in counts
+
+
 def test_grover():
     """Test that compute_action works in tandem with kernel composability."""
 
@@ -2236,6 +2265,39 @@ def test_in_comparator():
     assert len(c) == 1 and '1' in c
     c = cudaq.sample(kernel, 20)
     assert len(c) == 1 and '0' in c
+
+
+def test_negative_indices_for_a_slice():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(6)
+        h(qubits[0:3])
+        controls = qubits[0:-1]
+        target = qubits[-1]
+
+        x.ctrl(controls, target)
+
+    # test here is that it compiles and runs
+    cudaq.sample(kernel)
+    circuit = cudaq.draw(kernel)
+    print(circuit)
+    expected_str = '''     ╭───╮     
+q0 : ┤ h ├──●──
+     ├───┤  │  
+q1 : ┤ h ├──●──
+     ├───┤  │  
+q2 : ┤ h ├──●──
+     ╰───╯  │  
+q3 : ───────●──
+            │  
+q4 : ───────●──
+          ╭─┴─╮
+q5 : ─────┤ x ├
+          ╰───╯
+'''
+
+    assert circuit == expected_str
 
 
 # leave for gdb debugging

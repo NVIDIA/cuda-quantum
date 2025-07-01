@@ -57,11 +57,11 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
     purposes only.
   }];
 
-  let constructor = "cudaq::opt::createApplyOpSpecializationPass()";
-
   let options = [
-    Option<"computeActionOptimization", "compute-action-opt", "bool",
-      /*default=*/"true", "Enable the compute-action control optimization.">
+    Option<"computeActionOptimization", "compute-action", "bool",
+      /*default=*/"true", "Enable the compute-action control optimization.">,
+    Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
+      "Enable specialization and constant propagation from apply call sites.">
   ];
 }
 
@@ -193,7 +193,6 @@ def CombineMeasurements :
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
-
 def CombineQuantumAllocations :
     Pass<"combine-quantum-alloc", "mlir::func::FuncOp"> {
   let summary = "Combines quake alloca operations.";
@@ -218,16 +217,6 @@ def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
   let description = [{
     This is a greedy pass that will push constants from single and
     multidimensional array constants to their ultimate uses.
-
-    TODO: Merge const-prop-complex into this pass.
-  }];
-}
-
-def ConstPropComplex : Pass<"const-prop-complex", "mlir::func::FuncOp"> {
-  let summary = "Create and propagate complex constants.";
-  let description = [{
-    Rewrite the complex.CreateOp to complex.ConstantOp when possible.
-    Replace array pointer casts with element pointer casts.
   }];
 }
 
@@ -278,7 +267,8 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
 }
 
 def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
-  let summary = "Maps qubits and reorders operations based on dependency graph.";
+  let summary =
+    "Maps qubits and reorders operations based on dependency graph.";
   let description = [{
     A dependency graph is a Directed Acyclic Graph (DAG) where each node
     represents an operation, and each edge represents a "depends on" relation
@@ -318,6 +308,71 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
     Statistic<"numCycles", "num-cycles",
               "Length of kernel in cycles">,
   ];
+}
+
+def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
+  let summary =
+    "Remove unnecessary creation of new states from data";
+  let description = [{
+    Argument synthesis for state pointers for remote simulation substitutes state
+    argument by a new state created from materialized data. The new state is not
+    always necessary, and is not deleted from the heap. This pass:
+
+    - Replaces state by its data if possible
+    - Adds delete calls before exits if not possible to replace a new state
+
+    For example, the new state is replaced by its data if only used in `quake.init_state`
+    instruction:
+
+    Before DeleteStates (delete-states):
+    ```
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      %c8_i64 = arith.constant 8 : i64
+      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
+      %5 = quake.get_number_of_qubits %4 : (!cc.ptr<!quake.state>) -> i64
+      %6 = quake.alloca !quake.veq<?>[%5 : i64]
+      %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+
+      return
+    }
+    ```
+
+    After DeleteStates (delete-states):
+    ```
+    module {
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      %c8_i64 = arith.constant 8 : i64
+      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+      %3 = quake.alloca !quake.veq<3>
+      %4 = quake.init_state %3, %0 : (!quake.veq<3>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<3>
+      return
+    }
+    ```
+
+    Otherwise, if state is used in another instructions and cannot be easily
+    replaced, the new state is deleted before exits:
+
+    Before DeleteStates (delete-states):
+    ```  func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      ...
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
+      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
+      return
+    }
+    ```
+
+    After DeleteStates (delete-states):
+    ```
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      ...
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
+      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
+      quake.delete_state %3 : !cc.ptr<!quake.state>
+      return
+    }
+    ```
+  }];
 }
 
 def EraseNoise : Pass<"erase-noise"> {
@@ -739,10 +794,17 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
   let options = [
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
       "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
-    Option<"extendedLayerSize", "extendedLayerSize", "unsigned", /*default=*/"20", "Extended layer size">,
-    Option<"extendedLayerWeight", "extendedLayerWeight", "float", /*default=*/"0.5", "Extended layer weight">,
-    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5", "Decay delta">,
-    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5", "Number of rounds before decay is reset">
+    Option<"extendedLayerSize", "extendedLayerSize", "unsigned",
+           /*default=*/"20", "Extended layer size">,
+    Option<"extendedLayerWeight", "extendedLayerWeight", "float",
+           /*default=*/"0.5", "Extended layer weight">,
+    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5",
+           "Decay delta">,
+    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5",
+           "Number of rounds before decay is reset">,
+    Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
+           "Run the pass in a non-composable way, which may cause immediate "
+           "internal compiler errors">
   ];
 }
 
@@ -755,10 +817,13 @@ def MappingPrep: Pass<"qubit-mapping-prep", "mlir::ModuleOp"> {
 
   let options = [
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
-      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), "
+      "file(/path/to/file), bypass">,
+    Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
+           "Run the pass in a non-composable way, which may cause immediate "
+           "internal compiler errors">
   ];
 }
-
 
 def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
   let summary = "Converts memory-SSA to register-SSA form.";
@@ -810,190 +875,6 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   let options = [
     ListOption<"termBSF", "term-bsf", "unsigned",
       "The measurement bases as a Pauli tensor product represented in binary symplectic form.">
-  ];
-}
-
-def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
-  let summary =
-    "Remove unnecessary creation of new states from data";
-  let description = [{
-    Argument synthesis for state pointers for remote simulation substitutes state
-    argument by a new state created from materialized data. The new state is not
-    always necessary, and is not deleted from the heap. This pass:
-
-    - Replaces state by its data if possible
-    - Adds delete calls before exits if not possible to replace a new state
-
-    For example, the new state is replaced by its data if only used in `quake.init_state`
-    instruction:
-
-    Before DeleteStates (delete-states):
-    ```
-    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      %c8_i64 = arith.constant 8 : i64
-      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
-      %5 = quake.get_number_of_qubits %4 : (!cc.ptr<!quake.state>) -> i64
-      %6 = quake.alloca !quake.veq<?>[%5 : i64]
-      %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
-
-      return
-    }
-    ```
-
-    After DeleteStates (delete-states):
-    ```
-    module {
-    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      %c8_i64 = arith.constant 8 : i64
-      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
-      %3 = quake.alloca !quake.veq<3>
-      %4 = quake.init_state %3, %0 : (!quake.veq<3>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<3>
-      return
-    }
-    ```
-
-    Otherwise, if state is used in another instructions and cannot be easily
-    replaced, the new state is deleted before exits:
-
-    Before DeleteStates (delete-states):
-    ```  func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      ...
-      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
-      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
-      return
-    }
-    ```
-
-    After DeleteStates (delete-states):
-    ```
-    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-      ...
-      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
-      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
-      quake.delete_state %3 : !cc.ptr<!quake.state>
-      return
-    }
-    ```
-  }];
-}
-
-def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::FuncOp"> {
-  let summary =
-    "Replace `quake.init_state` instructions with call to the kernel generating the state";
-  let description = [{
-    This optimization replaces `quake.init_state`, `quake.get_number_of_qubits`,
-    and `quake.materialize_state` operations invoked on state pointers during
-    argument synthesis for quantum devices.
-
-    Before this optimization, argument synthesis for state pointers for quantum
-    devices substituted a state created from the `quake.materialize_state`
-    operation for the state argument.
-
-    The `quake.materialize_state` operation accepts symbols for the synthesized
-    kernels `@num_qubits` and `@init` that argument synthesis generated from
-    the original kernel call that generated the state, e.g.,
-    the `cudaq::get_state` call that refers to the result of a specific quantum
-    kernel being invoked with a set of parameters
-
-    For example, for the user code:
-      ```
-      state = cudaq::get_state(callee, args)
-      caller(state)
-      ```
-
-    The argument synthesis generated the following new kernels from the `callee`
-    and synthesized them to substitute their arguments with `args`:
-      ```
-      func.func @callee_num_qubits(arguments) -> i64
-      func.func @callee_init(qubits: !quake.veq<?>, arguments) -> !quake.veq<?>
-      ```
-
-    The argument synthesis also substituted the state argument in the `caller`
-    with:
-      ```
-      quake.materialize_state @callee_num_qubits @callee_init: !cc.ptr<!quake.state>
-      ```
-
-    This optimization performs the replacements for the the following operations 
-    that use a state produced by  `quake.materialize_state @num_qubits, @init`
-    operation:
-
-    - Replace `quake.get_number_of_qubits` operation by call to `@num_qubits`
-    - Replace `quake.init_state` operation by call to `@init`
-    - Clean up unused `quake.materialize_state` operation
-
-    For example:
-
-    Before ReplaceStateWithKernel (replace-state-with-kernel):
-    ```
-    func.func @foo() {
-      %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0: !cc.ptr<!quake.state>
-      %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!quake.state>) -> i64
-      %2 = quake.alloca !quake.veq<?>[%1 : i64]
-      %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
-      return
-    }
-    ```
-
-    After ReplaceStateWithKernel (replace-state-with-kernel):
-    ```
-    func.func @foo()  {
-      %1 = call @callee.num_qubits_0() : () -> i64
-      %2 = quake.alloca !quake.veq<?>[%1 : i64]
-      %3 = call @callee.init_0(%2) : (!quake.veq<?>) -> !quake.veq<?>
-      return
-    }
-    ```
-  }];
-}
-
-def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {
-  let summary =
-    "Convert state vector data into gates";
-  let description = [{
-    Convert quake representation that includes qubit initialization
-    from data into qubit initialization using gates.
-
-    For example:
-
-    ```mlir
-    module {
-      func.func @foo() attributes {
-        %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
-        %1 = quake.alloca !quake.veq<2>
-        %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
-        return
-      }
-      cc.global constant private @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
-    }
-    ```
-    Will be rewritten to:
-    ```mlir
-    module {
-      func.func @foo() attributes {
-        %0 = quake.alloca !quake.veq<2>
-        %c1_i64 = arith.constant 1 : i64
-        %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
-        %cst = arith.constant 0.000000e+00 : f64
-        quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
-        %c0_i64 = arith.constant 0 : i64
-        %2 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
-        %cst_0 = arith.constant 0.78539816339744839 : f64
-        quake.ry (%cst_0) %2 : (f64, !quake.ref) -> ()
-        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
-        %cst_1 = arith.constant 0.78539816339744839 : f64
-        quake.ry (%cst_1) %2 : (f64, !quake.ref) -> ()
-        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
-        return
-      }
-    }
-    ```
-  }];
-
-  let options = [
-    Option<"phaseThreshold", "threshold", "double",
-      /*default=*/"1e-10", "Threshold to trigger phase equalization">,
   ];
 }
 
@@ -1108,6 +989,76 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
+def ReplaceStateWithKernel : Pass<"replace-state-with-kernel", "mlir::func::FuncOp"> {
+  let summary =
+    "Replace `quake.init_state` instructions with call to the kernel generating the state";
+  let description = [{
+    This optimization replaces `quake.init_state`, `quake.get_number_of_qubits`,
+    and `quake.materialize_state` operations invoked on state pointers during
+    argument synthesis for quantum devices.
+
+    Before this optimization, argument synthesis for state pointers for quantum
+    devices substituted a state created from the `quake.materialize_state`
+    operation for the state argument.
+
+    The `quake.materialize_state` operation accepts symbols for the synthesized
+    kernels `@num_qubits` and `@init` that argument synthesis generated from
+    the original kernel call that generated the state, e.g.,
+    the `cudaq::get_state` call that refers to the result of a specific quantum
+    kernel being invoked with a set of parameters
+
+    For example, for the user code:
+      ```
+      state = cudaq::get_state(callee, args)
+      caller(state)
+      ```
+
+    The argument synthesis generated the following new kernels from the `callee`
+    and synthesized them to substitute their arguments with `args`:
+      ```
+      func.func @callee_num_qubits(arguments) -> i64
+      func.func @callee_init(qubits: !quake.veq<?>, arguments) -> !quake.veq<?>
+      ```
+
+    The argument synthesis also substituted the state argument in the `caller`
+    with:
+      ```
+      quake.materialize_state @callee_num_qubits @callee_init: !cc.ptr<!quake.state>
+      ```
+
+    This optimization performs the replacements for the the following operations 
+    that use a state produced by  `quake.materialize_state @num_qubits, @init`
+    operation:
+
+    - Replace `quake.get_number_of_qubits` operation by call to `@num_qubits`
+    - Replace `quake.init_state` operation by call to `@init`
+    - Clean up unused `quake.materialize_state` operation
+
+    For example:
+
+    Before ReplaceStateWithKernel (replace-state-with-kernel):
+    ```
+    func.func @foo() {
+      %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0: !cc.ptr<!quake.state>
+      %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!quake.state>) -> i64
+      %2 = quake.alloca !quake.veq<?>[%1 : i64]
+      %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+      return
+    }
+    ```
+
+    After ReplaceStateWithKernel (replace-state-with-kernel):
+    ```
+    func.func @foo()  {
+      %1 = call @callee.num_qubits_0() : () -> i64
+      %2 = quake.alloca !quake.veq<?>[%1 : i64]
+      %3 = call @callee.init_0(%2) : (!quake.veq<?>) -> !quake.veq<?>
+      return
+    }
+    ```
+  }];
+}
+
 def SROA : Pass<"cc-sroa"> {
   let summary = "Scalar replacement of aggregates.";
   let description = [{
@@ -1117,6 +1068,55 @@ def SROA : Pass<"cc-sroa"> {
     To be implemented: handling recursive compositions of aggregate types.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect"];
+}
+
+def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {
+  let summary =
+    "Convert state vector data into gates";
+  let description = [{
+    Convert quake representation that includes qubit initialization
+    from data into qubit initialization using gates.
+
+    For example:
+
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
+        %1 = quake.alloca !quake.veq<2>
+        %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+        return
+      }
+      cc.global constant private @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+    }
+    ```
+    Will be rewritten to:
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = quake.alloca !quake.veq<2>
+        %c1_i64 = arith.constant 1 : i64
+        %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst = arith.constant 0.000000e+00 : f64
+        quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
+        %c0_i64 = arith.constant 0 : i64
+        %2 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst_0 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_0) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        %cst_1 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_1) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        return
+      }
+    }
+    ```
+  }];
+
+  let options = [
+    Option<"phaseThreshold", "threshold", "double",
+      /*default=*/"1e-10", "Threshold to trigger phase equalization">,
+  ];
 }
 
 // UnitarySynthesis is a module pass because it may modify the `ModuleOp` by
@@ -1171,7 +1171,6 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
     The lower to CFG pass removed all structured operations from a function,
     lowering the body of the function completely to a primitive CFG.
   }];
-  let constructor = "cudaq::opt::createUnwindLoweringPass()";
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {

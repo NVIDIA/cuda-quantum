@@ -12,8 +12,8 @@
 #include "QIRTypes.h"
 #include "common/Environment.h"
 #include "common/Logger.h"
-#include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
+#include "common/SampleResult.h"
 #include "common/Timing.h"
 #include "cudaq/host_config.h"
 #include <cstdarg>
@@ -136,6 +136,19 @@ public:
   /// simulator.
   virtual void synchronize() {}
 
+  /// @brief For simulators that support generating an MSM, this returns the
+  /// number of rows and columns in the MSM (for a given noisy kernel)
+  virtual std::optional<std::pair<std::size_t, std::size_t>> generateMSMSize() {
+    return std::nullopt;
+  }
+
+  /// @brief For simulators that support generating an MSM, this generates the
+  /// MSM and stores the result in the execution context. The result is only
+  /// valid for a specific kernel with a specific noise profile.
+  /// Note: Measurement Syndrome Matrix is defined in
+  /// https://arxiv.org/pdf/2407.13826.
+  virtual void generateMSM() {}
+
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -249,8 +262,7 @@ public:
   /// Only supported for noise backends. By default do nothing
   virtual void applyNoise(const cudaq::kraus_channel &channel,
                           const std::vector<std::size_t> &targets) {
-    CUDAQ_WARN("kraus_channel application not supported on {} simulator.",
-               name());
+    CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
   }
 
   /// @brief Apply a custom operation described by a matrix of data
@@ -828,7 +840,9 @@ protected:
   virtual void applyNoiseChannel(const std::string_view gateName,
                                  const std::vector<std::size_t> &controls,
                                  const std::vector<std::size_t> &targets,
-                                 const std::vector<double> &params) {}
+                                 const std::vector<double> &params) {
+    CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
+  }
 
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
@@ -1181,6 +1195,16 @@ public:
     if (executionContext->name == "extract-state") {
       flushGateQueue();
       executionContext->simulationState = getSimulationState();
+    }
+
+    if (executionContext->name == "msm_size") {
+      flushGateQueue();
+      executionContext->msm_dimensions = generateMSMSize();
+    }
+
+    if (executionContext->name == "msm") {
+      flushGateQueue();
+      generateMSM();
     }
 
     // Deallocate the deferred qubits, but do so

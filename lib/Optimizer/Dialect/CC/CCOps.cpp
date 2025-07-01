@@ -261,8 +261,24 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
         }
       }
     }
+
+    // %5 = arith.constant ... : F1
+    // %6 = cc.cast %5 : (F1) -> F2
+    // ────────────────────────────
+    // %6 = arith.constant ... : F2
     if (auto attr = dyn_cast<FloatAttr>(optConst)) {
       auto val = attr.getValue();
+      if (ty == fltTy) {
+        float f = val.convertToDouble();
+        APFloat fval(f);
+        return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
+            .getResult();
+      }
+      if (ty == dblTy) {
+        APFloat fval{val.convertToDouble()};
+        return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
+            .getResult();
+      }
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
         if (getZint()) {
@@ -275,22 +291,13 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
           return builder.create<arith::ConstantIntOp>(loc, v, width)
               .getResult();
         }
-      } else if (ty == fltTy) {
-        float f = val.convertToDouble();
-        APFloat fval(f);
-        return builder.create<arith::ConstantFloatOp>(loc, fval, fltTy)
-            .getResult();
-      } else if (ty == dblTy) {
-        APFloat fval{val.convertToDouble()};
-        return builder.create<arith::ConstantFloatOp>(loc, fval, dblTy)
-            .getResult();
       }
     }
 
-    // %5 = complex.constant ... -> complex<T>
+    // %5 = complex.constant ... : complex<T>
     // %6 = cc.cast %5 : (complex<T>) -> complex<U>
     // ────────────────────────────────────────────
-    // %6 = complex.constant ... -> complex<U>
+    // %6 = complex.constant ... : complex<U>
     if (auto attr = dyn_cast<ArrayAttr>(optConst)) {
       auto eleTy = cast<ComplexType>(ty).getElementType();
       auto reFp = dyn_cast<FloatAttr>(attr[0]);
@@ -303,7 +310,8 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
           auto imPart = builder.getFloatAttr(eleTy, APFloat{imVal});
           auto cv = builder.getArrayAttr({rePart, imPart});
           return builder.create<complex::ConstantOp>(loc, ty, cv).getResult();
-        } else if (eleTy == dblTy) {
+        }
+        if (eleTy == dblTy) {
           double reVal = reFp.getValue().convertToDouble();
           double imVal = imFp.getValue().convertToDouble();
           auto rePart = builder.getFloatAttr(eleTy, APFloat{reVal});
@@ -333,6 +341,17 @@ LogicalResult cudaq::cc::CastOp::verify() {
     } else if ((isa<FloatType>(inTy) && isa<IntegerType>(outTy)) ||
                (isa<IntegerType>(inTy) && isa<FloatType>(outTy))) {
       // ok, do nothing.
+    } else if (isa<ComplexType>(inTy) && isa<ComplexType>(outTy)) {
+      auto inEleTy = cast<ComplexType>(inTy).getElementType();
+      auto outEleTy = cast<ComplexType>(outTy).getElementType();
+      if ((isa<IntegerType>(inEleTy) && isa<IntegerType>(outEleTy)) ||
+          (isa<FloatType>(inEleTy) && isa<IntegerType>(outEleTy)) ||
+          (isa<IntegerType>(inEleTy) && isa<FloatType>(outEleTy))) {
+      } else {
+        return emitOpError(
+            "signed (unsigned) may only be applied to complex of integer "
+            "to/from complex of integer or complex of float.");
+      }
     } else {
       return emitOpError("signed (unsigned) may only be applied to integer to "
                          "integer or integer to/from float.");
@@ -384,8 +403,17 @@ LogicalResult cudaq::cc::CastOp::verify() {
              isa<cc::PointerType, LLVM::LLVMPointerType>(outTy)) {
     // ok, pointer casts: bitcast, nop
   } else if (isa<ComplexType>(inTy) && isa<ComplexType>(outTy)) {
-    // ok, type conversion of a complex value
-    // NB: use complex.re or complex.im to convert (extract) a fp value.
+    auto inEleTy = cast<ComplexType>(inTy).getElementType();
+    auto outEleTy = cast<ComplexType>(outTy).getElementType();
+    if (isa<FloatType>(inEleTy) && isa<FloatType>(outEleTy)) {
+      // ok, type conversion of a complex floating-point value
+      // NB: use complex.re or complex.im to convert (extract) a fp value.
+    } else {
+      // TODO: For now, disable complex<int>. All variants of complex<int>
+      // require a signed/unsigned modifier. These include to/from complex<int>
+      // and to/from complex<fp>.
+      return emitOpError("invalid complex cast.");
+    }
   } else if (isa<FunctionType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
     // ok, type conversion of a function to an indirect callable
     // Folding will remove this.
@@ -485,12 +513,42 @@ struct FuseComplexCreate : public OpRewritePattern<complex::CreateOp> {
     return failure();
   }
 };
+
+struct FuseComplexRe : public OpRewritePattern<complex::ReOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(complex::ReOp reop,
+                                PatternRewriter &rewriter) const override {
+    auto comcon = reop.getReal().getDefiningOp<complex::ConstantOp>();
+    if (comcon) {
+      FloatType fltTy = reop.getType();
+      APFloat reVal = cast<FloatAttr>(comcon.getValue()[0]).getValue();
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(reop, reVal, fltTy);
+      return success();
+    }
+    return failure();
+  }
+};
+
+struct FuseComplexIm : public OpRewritePattern<complex::ImOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(complex::ImOp imop,
+                                PatternRewriter &rewriter) const override {
+    auto comcon = imop.getImaginary().getDefiningOp<complex::ConstantOp>();
+    if (comcon) {
+      FloatType fltTy = imop.getType();
+      APFloat imVal = cast<FloatAttr>(comcon.getValue()[1]).getValue();
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(imop, imVal, fltTy);
+      return success();
+    }
+    return failure();
+  }
+};
 } // namespace
 
 static void
 getArbitraryCustomCanonicalizationPatterns(RewritePatternSet &patterns,
                                            MLIRContext *context) {
-  patterns.add<FuseComplexCreate>(context);
+  patterns.add<FuseComplexCreate, FuseComplexRe, FuseComplexIm>(context);
 }
 
 void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
@@ -2273,6 +2331,46 @@ LogicalResult cudaq::cc::ConditionOp::verify() {
 MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
     std::optional<unsigned> index) {
   return getResultsMutable();
+}
+
+//===----------------------------------------------------------------------===//
+// NoInlineCallOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::NoInlineCallOp::verifySymbolUses(
+    SymbolTableCollection &symbolTable) {
+  // Check that the callee attribute was specified.
+  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
+  if (!fnAttr)
+    return emitOpError("requires a 'callee' symbol reference attribute");
+  auto fn = symbolTable.lookupNearestSymbolFrom<func::FuncOp>(*this, fnAttr);
+  if (!fn)
+    return emitOpError() << "'" << fnAttr.getValue()
+                         << "' does not reference a valid function";
+
+  // Verify that the operand and result types match the callee.
+  auto fnType = fn.getFunctionType();
+  if (fnType.getNumInputs() != getNumOperands())
+    return emitOpError("incorrect number of operands for callee");
+
+  for (unsigned i = 0, e = fnType.getNumInputs(); i != e; ++i)
+    if (getOperand(i).getType() != fnType.getInput(i))
+      return emitOpError("operand type mismatch: expected operand type ")
+             << fnType.getInput(i) << ", but provided "
+             << getOperand(i).getType() << " for operand number " << i;
+
+  if (fnType.getNumResults() != getNumResults())
+    return emitOpError("incorrect number of results for callee");
+
+  for (unsigned i = 0, e = fnType.getNumResults(); i != e; ++i)
+    if (getResult(i).getType() != fnType.getResult(i)) {
+      auto diag = emitOpError("result type mismatch at index ") << i;
+      diag.attachNote() << "      op result types: " << getResultTypes();
+      diag.attachNote() << "function result types: " << fnType.getResults();
+      return diag;
+    }
+
+  return success();
 }
 
 //===----------------------------------------------------------------------===//

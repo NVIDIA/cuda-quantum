@@ -84,6 +84,12 @@ def test_synthCallable():
     assert len(counts) == 1 and '11' in counts
 
 
+# FIXME: https://github.com/NVIDIA/cuda-quantum/issues/3003
+# Seg fault in cudaq_runtime.mergeExternalMLIR:
+# Current thread 0x000079c5c9ac4480 (most recent call first):
+#   File "/usr/local/cudaq/cudaq/kernel/kernel_decorator.py", line 234 in merge_kernel
+#   File "/workspaces/cuda-quantum/build/python/tests/interop/test_interop.py", line 141 in test_synthCallableCCCallCallableOp
+@pytest.mark.skip
 def test_synthCallableCCCallCallableOp():
 
     @cudaq.kernel

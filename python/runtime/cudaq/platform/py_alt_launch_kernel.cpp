@@ -121,14 +121,11 @@ OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
   return argData;
 }
 
-std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
-jitAndCreateArgs(const std::string &name, MlirModule module,
-                 cudaq::OpaqueArguments &runtimeArgs,
-                 const std::vector<std::string> &names, Type returnType,
-                 std::size_t startingArgIdx = 0) {
-  ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
+ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
+                           const std::vector<std::string> &names,
+                           std::size_t startingArgIdx = 0) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "jitKernel", name);
   auto mod = unwrap(module);
-  auto funcOp = getKernelFuncOp(module, name);
 
   // Do not cache the JIT if we are running with startingArgIdx > 0 because a)
   // we won't be executing right after JIT-ing, and b) we might get called later
@@ -147,15 +144,14 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   if (allowCache && jitCache->hasJITEngine(hashKey)) {
     jit = jitCache->getJITEngine(hashKey);
   } else {
-    ScopedTraceWithContext(cudaq::TIMING_JIT,
-                           "jitAndCreateArgs - execute passes", name);
+    ScopedTraceWithContext(cudaq::TIMING_JIT, "jitKernel - execute passes",
+                           name);
 
     auto cloned = mod.clone();
     auto context = cloned.getContext();
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
         SmallVector<StringRef>(names.begin(), names.end())));
-    cudaq::opt::addAggressiveEarlyInlining(pm);
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
@@ -218,6 +214,17 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
       jitCache->cache(hashKey, jit);
   }
 
+  return jit;
+}
+
+std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
+jitAndCreateArgs(const std::string &name, MlirModule module,
+                 cudaq::OpaqueArguments &runtimeArgs,
+                 const std::vector<std::string> &names, Type returnType,
+                 std::size_t startingArgIdx = 0) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
+  auto jit = jitKernel(name, module, names, startingArgIdx);
+
   // We need to append the return type to the OpaqueArguments here
   // so that we get a spot in the `rawArgs` memory for the
   // altLaunchKernel function to dump the result
@@ -273,6 +280,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
           });
         })
         .Case([&](cudaq::cc::StructType ty) {
+          auto funcOp = getKernelFuncOp(module, name);
           auto [size, offsets] = getTargetLayout(funcOp, ty);
           auto ourAllocatedArg = std::malloc(size);
           runtimeArgs.emplace_back(ourAllocatedArg,
@@ -395,13 +403,13 @@ void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
     // Remote simulator - use altLaunchKernel to support returning values.
     // TODO: after cudaq::run support this should be merged with the quantum
     // device case.
-    auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
+    std::unique_ptr<cudaq::ArgWrapper> wrapper(
+        new cudaq::ArgWrapper{mod, names, rawArgs});
     auto dynamicResult = cudaq::altLaunchKernel(
-        name.c_str(), thunk, reinterpret_cast<void *>(wrapper), size,
+        name.c_str(), thunk, reinterpret_cast<void *>(wrapper.get()), size,
         returnOffset);
     if (dynamicResult.data_buffer || dynamicResult.size)
       throw std::runtime_error("not implemented: support dynamic results");
-    delete wrapper;
   } else if (isQuantumDevice) {
     // Quantum devices or their emulation - we can use streamlinedLaunchKernel
     // as quantum platform do not support direct returns.
@@ -561,7 +569,7 @@ py::object readPyObject(mlir::Type ty, char *arg) {
 
 /// @brief Convert raw return of kernel to python object.
 py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
-                         mlir::Type ty, char *data, std::size_t size) {
+                         mlir::Type ty, char *data) {
   auto isRunContext = module->hasAttr(runtime::enableCudaqRun);
 
   return llvm::TypeSwitch<mlir::Type, py::object>(ty)
@@ -625,8 +633,7 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
           // Read vector elements.
           py::list list;
           for (char *i = v->begin; i < v->end; i += eleByteSize)
-            list.append(
-                convertResult(module, kernelFuncOp, eleTy, i, eleByteSize));
+            list.append(convertResult(module, kernelFuncOp, eleTy, i));
           return list;
         }
 
@@ -646,8 +653,7 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
         py::list list;
         std::size_t byteLength = v->length * eleByteSize;
         for (std::size_t i = 0; i < byteLength; i += eleByteSize)
-          list.append(convertResult(module, kernelFuncOp, eleTy, v->data + i,
-                                    eleByteSize));
+          list.append(convertResult(module, kernelFuncOp, eleTy, v->data + i));
         return list;
       })
       .Case([&](cudaq::cc::StructType ty) -> py::object {
@@ -665,9 +671,8 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
               throw std::runtime_error(
                   "Unsupported element type in struct type.");
             }
-            auto eleByteSize = byteSize(eleTy);
-            list.append(convertResult(module, kernelFuncOp, eleTy,
-                                      data + offsets[i], eleByteSize));
+            list.append(
+                convertResult(module, kernelFuncOp, eleTy, data + offsets[i]));
           }
           return py::tuple(list);
         }
@@ -696,10 +701,9 @@ py::object convertResult(mlir::ModuleOp module, mlir::func::FuncOp kernelFuncOp,
             throw std::runtime_error(
                 "Unsupported element type in struct type.");
           }
-          auto eleByteSize = byteSize(eleTy);
           if (i < fieldNames.size())
-            kwargs[fieldNames[i]] = convertResult(
-                module, kernelFuncOp, eleTy, data + offsets[i], eleByteSize);
+            kwargs[fieldNames[i]] =
+                convertResult(module, kernelFuncOp, eleTy, data + offsets[i]);
           else
             throw std::runtime_error("Field name and value mismatch when "
                                      "returning an object of dataclass " +
@@ -728,8 +732,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   auto rawReturn = ((char *)rawArgs) + returnOffset;
   auto funcOp = cudaq::getKernelFuncOp(module, name);
 
-  auto returnValue =
-      convertResult(mod, funcOp, returnTy, rawReturn, size - returnOffset);
+  auto returnValue = convertResult(mod, funcOp, returnTy, rawReturn);
   std::free(rawArgs);
   return returnValue;
 }
@@ -788,7 +791,6 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   // in their runtime.
   if (!isSimulator) {
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstPropComplex());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
     pm.addPass(cudaq::opt::createGlobalizeArrayValues());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -892,7 +894,7 @@ std::string getASM(const std::string &name, MlirModule module,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
   pm.addPass(cudaq::opt::createGetConcreteMatrix());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
-  pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+  pm.addPass(cudaq::opt::createApplySpecialization());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -1108,11 +1110,7 @@ void bindAltLaunchKernel(py::module &mod) {
   mod.def(
       "jitAndGetFunctionPointer",
       [](MlirModule mod, const std::string &funcName) {
-        OpaqueArguments runtimeArgs;
-        auto noneType = mlir::NoneType::get(unwrap(mod).getContext());
-        auto [jit, rawArgs, size, returnOffset] =
-            jitAndCreateArgs(funcName, mod, runtimeArgs, {}, noneType);
-
+        auto jit = jitKernel(funcName, mod, {});
         auto funcPtr = jit->lookup(funcName);
         if (!funcPtr) {
           throw std::runtime_error(

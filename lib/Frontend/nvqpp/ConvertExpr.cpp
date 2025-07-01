@@ -363,56 +363,6 @@ static void castToSameType(OpBuilder builder, Location loc,
   TODO_loc(loc, "conversion of operands in binary expression");
 }
 
-/// Generalized kernel argument morphing. When traversing the AST, the calling
-/// context's argument values that have already been created may be similar to
-/// but not identical to the callee's signature types. This function deals with
-/// adding the glue code to make the call strongly (exactly) type conforming.
-static SmallVector<Value> convertKernelArgs(OpBuilder &builder, Location loc,
-                                            std::size_t dropFrontNum,
-                                            const SmallVector<Value> &args,
-                                            ArrayRef<Type> kernelArgTys) {
-  SmallVector<Value> result;
-  assert(args.size() - dropFrontNum == kernelArgTys.size());
-  for (auto i = dropFrontNum, end = args.size(); i < end; ++i) {
-    auto v = args[i];
-    auto vTy = v.getType();
-    auto kTy = kernelArgTys[i - dropFrontNum];
-    if (vTy == kTy) {
-      result.push_back(v);
-      continue;
-    }
-    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(vTy)) {
-      if (ptrTy.getElementType() == kTy) {
-        // Promote pass-by-reference to pass-by-value.
-        auto load = builder.create<cudaq::cc::LoadOp>(loc, v);
-        result.push_back(load);
-        continue;
-      }
-      if (auto kPtrTy = dyn_cast<cudaq::cc::PointerType>(kTy))
-        if (auto vArrTy =
-                dyn_cast<cudaq::cc::ArrayType>(ptrTy.getElementType()))
-          if (kPtrTy.getElementType() == vArrTy.getElementType()) {
-            // ok, degenerate the array to a pointer to a scalar
-            result.push_back(builder.create<cudaq::cc::CastOp>(loc, kPtrTy, v));
-            continue;
-          }
-    }
-    if (auto vVecTy = dyn_cast<quake::VeqType>(vTy))
-      if (auto kVecTy = dyn_cast<quake::VeqType>(kTy)) {
-        // Both are Veq but the Veq are not identical. If the callee has a
-        // dynamic size, we can relax the size from the calling context.
-        if (vVecTy.hasSpecifiedSize() && !kVecTy.hasSpecifiedSize()) {
-          auto relax = builder.create<quake::RelaxSizeOp>(loc, kVecTy, v);
-          result.push_back(relax);
-          continue;
-        }
-      }
-    LLVM_DEBUG(llvm::dbgs() << "convert: " << v << "\nto:" << kTy << '\n');
-    TODO_loc(loc, "argument type conversion");
-  }
-  return result;
-}
-
 static clang::CXXRecordDecl *
 classDeclFromTemplateArgument(clang::FunctionDecl &func,
                               std::size_t argumentPosition,
@@ -616,6 +566,69 @@ Value QuakeBridgeVisitor::integerCoercion(Location loc,
   }
   assert(fromTy.getIntOrFloatBitWidth() > dstTy.getIntOrFloatBitWidth());
   return builder.create<cudaq::cc::CastOp>(loc, dstTy, srcVal);
+}
+
+/// Generalized kernel argument morphing. When traversing the AST, the calling
+/// context's argument values that have already been created may be similar to
+/// but not identical to the callee's signature types. This function deals with
+/// adding the glue code to make the call strongly (exactly) type conforming.
+SmallVector<Value> QuakeBridgeVisitor::convertKernelArgs(
+    Location loc, std::size_t dropFrontNum, const SmallVector<Value> &args,
+    ArrayRef<Type> kernelArgTys, clang::CallExpr *x) {
+  SmallVector<Value> result;
+  assert(args.size() - dropFrontNum == kernelArgTys.size());
+  for (auto i = dropFrontNum, end = args.size(); i < end; ++i) {
+    auto v = args[i];
+    auto vTy = v.getType();
+    auto kTy = kernelArgTys[i - dropFrontNum];
+    if (vTy == kTy) {
+      result.push_back(v);
+      continue;
+    }
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(vTy)) {
+      auto eleTy = ptrTy.getElementType();
+      if (eleTy == kTy) {
+        // Promote pass-by-reference to pass-by-value.
+        auto load = builder.create<cudaq::cc::LoadOp>(loc, v);
+        result.push_back(load);
+        continue;
+      }
+
+      // We've passed clang++'s semantics checks but the types are distinct.
+      if (isa<cudaq::cc::PointerType>(kTy)) {
+        result.push_back(builder.create<cudaq::cc::CastOp>(loc, kTy, v));
+        continue;
+      }
+      auto load = builder.create<cudaq::cc::LoadOp>(loc, v);
+      auto loadTy = load.getType();
+      Value castTo;
+      if (isa<IntegerType>(loadTy) && isa<IntegerType>(kTy)) {
+        castTo = integerCoercion(loc, x->getArg(i)->getType(), kTy, load);
+      } else if (isa<FloatType>(loadTy) && isa<FloatType>(kTy)) {
+        castTo = floatingPointCoercion(loc, kTy, load);
+      } else if (isa<FloatType>(loadTy) && isa<IntegerType>(kTy)) {
+        TODO_loc(loc, "implicit argument type conversion (fp to integral)");
+      } else if (isa<IntegerType>(loadTy) && isa<FloatType>(kTy)) {
+        TODO_loc(loc, "implicit argument type conversion (integral to fp)");
+      }
+      result.push_back(castTo);
+      continue;
+    }
+    if (auto vVecTy = dyn_cast<quake::VeqType>(vTy))
+      if (auto kVecTy = dyn_cast<quake::VeqType>(kTy)) {
+        // Both are Veq but the Veq are not identical. If the callee has a
+        // dynamic size, we can relax the size from the calling context.
+        if (vVecTy.hasSpecifiedSize() && !kVecTy.hasSpecifiedSize()) {
+          auto relax = builder.create<quake::RelaxSizeOp>(loc, kVecTy, v);
+          result.push_back(relax);
+          continue;
+        }
+      }
+
+    LLVM_DEBUG(llvm::dbgs() << "convert: " << v << "\nto:" << kTy << '\n');
+    TODO_loc(loc, "argument type conversion");
+  }
+  return result;
 }
 
 bool QuakeBridgeVisitor::TraverseCastExpr(clang::CastExpr *x,
@@ -1023,6 +1036,7 @@ bool QuakeBridgeVisitor::TraverseConditionalOperator(
   if (!TraverseStmt(x->getCond()))
     return false;
   auto condVal = popValue();
+  Type resultTy = builder.getI64Type();
 
   // Create shared lambda for the x->getTrueExpr() and x->getFalseExpr()
   // expressions
@@ -1036,16 +1050,19 @@ bool QuakeBridgeVisitor::TraverseConditionalOperator(
         result = false;
         return;
       }
-      builder.create<cc::ContinueOp>(loc, TypeRange{}, popValue());
+      Value resultVal = popValue();
+      builder.create<cc::ContinueOp>(loc, TypeRange{}, resultVal);
+      resultTy = resultVal.getType();
     };
   };
 
-  auto ifOp = builder.create<cc::IfOp>(
-      loc, TypeRange{condVal.getType()}, condVal,
-      thenElseLambda(x->getTrueExpr()), thenElseLambda(x->getFalseExpr()));
+  auto ifOp = builder.create<cc::IfOp>(loc, TypeRange{resultTy}, condVal,
+                                       thenElseLambda(x->getTrueExpr()),
+                                       thenElseLambda(x->getFalseExpr()));
 
   if (!result)
     return result;
+  ifOp.getResult(0).setType(resultTy);
   return pushValue(ifOp.getResult(0));
 }
 
@@ -1153,7 +1170,7 @@ bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
                                           Location loc, StringRef funcName) {
   // Handle any std::pow(N,M)
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
-      funcName == "pow") {
+      (funcName == "pow" || funcName == "powf")) {
     auto funcArity = func->getNumParams();
     SmallVector<Value> args = lastValues(funcArity);
     auto powFun = popValue();
@@ -1188,39 +1205,34 @@ bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
 
-  // Handle std::sqrt
-  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
-      funcName == "sqrt") {
+  auto floatOperator = [&]<typename Op>(Op, const char *dblName) -> bool {
     assert(func->getNumParams() == 1 && "must be unary");
     Value arg = popValue();
     [[maybe_unused]] auto funcConst = popValue();
     if (isa<IntegerType>(arg.getType()))
       arg = builder.create<cudaq::cc::CastOp>(
-          loc, builder.getF64Type(), arg,
+          loc,
+          funcName == dblName ? builder.getF64Type() : builder.getF32Type(),
+          arg,
           x->getArg(0)->getType()->isUnsignedIntegerOrEnumerationType()
               ? cudaq::cc::CastOpMode::Unsigned
               : cudaq::cc::CastOpMode::Signed);
-    return pushValue(builder.create<math::SqrtOp>(loc, arg));
-  }
+    return pushValue(builder.create<Op>(loc, arg));
+  };
+
+  // Handle std::sqrt
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "sqrt" || funcName == "sqrtf"))
+    return floatOperator(math::SqrtOp{}, "sqrt");
 
   // Handle std::round
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
-      funcName == "round") {
-    assert(func->getNumParams() == 1 && "must be unary");
-    Value arg = popValue();
-    [[maybe_unused]] auto funcConst = popValue();
-    if (isa<IntegerType>(arg.getType()))
-      arg = builder.create<cudaq::cc::CastOp>(
-          loc, builder.getF64Type(), arg,
-          x->getArg(0)->getType()->isUnsignedIntegerOrEnumerationType()
-              ? cudaq::cc::CastOpMode::Unsigned
-              : cudaq::cc::CastOpMode::Signed);
-    return pushValue(builder.create<math::RoundOp>(loc, arg));
-  }
+      (funcName == "round" || funcName == "roundf"))
+    return floatOperator(math::RoundOp{}, "round");
 
   // Handle std::abs
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
-      funcName == "abs") {
+      (funcName == "abs" || funcName == "fabs" || funcName == "fabsf")) {
     assert(func->getNumParams() == 1 && "must be unary");
     Value arg = popValue();
     [[maybe_unused]] auto funcConst = popValue();
@@ -1228,6 +1240,41 @@ bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
       return pushValue(builder.create<math::AbsIOp>(loc, arg));
     return pushValue(builder.create<math::AbsFOp>(loc, arg));
   }
+
+  // Handle std::sin
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "sin" || funcName == "sinf"))
+    return floatOperator(math::SinOp{}, "sin");
+
+  // Handle std::cos
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "cos" || funcName == "cosf"))
+    return floatOperator(math::CosOp{}, "cos");
+
+  // Handle std::tan
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "tan" || funcName == "tanf"))
+    return floatOperator(math::TanOp{}, "tan");
+
+  // Handle std::exp
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "exp" || funcName == "expf"))
+    return floatOperator(math::ExpOp{}, "exp");
+
+  // Handle std::log
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "log" || funcName == "logf"))
+    return floatOperator(math::LogOp{}, "log");
+
+  // Handle std::ceil
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "ceil" || funcName == "ceilf"))
+    return floatOperator(math::CeilOp{}, "ceil");
+
+  // Handle std::floor
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "floor" || funcName == "floorf"))
+    return floatOperator(math::FloorOp{}, "floor");
 
   return false;
 }
@@ -1926,7 +1973,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         assert(kernelFunc && "kernel call operator must be present");
         auto kernelTy = kernelFunc.getFunctionType();
         auto kernelArgs =
-            convertKernelArgs(builder, loc, 2, args, kernelTy.getInputs());
+            convertKernelArgs(loc, 2, args, kernelTy.getInputs(), x);
         inlinedStartControlNegations();
         builder.create<quake::ApplyOp>(loc, TypeRange{}, calleeSymbol,
                                        /*isAdjoint=*/false, ctrlValues,
@@ -1938,7 +1985,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto callableSym = func.getValueAttr();
         inlinedStartControlNegations();
         auto kernelArgs =
-            convertKernelArgs(builder, loc, 2, args, funcTy.getInputs());
+            convertKernelArgs(loc, 2, args, funcTy.getInputs(), x);
         builder.create<quake::ApplyOp>(loc, funcTy.getResults(), callableSym,
                                        /*isAdjoint=*/false, ctrlValues,
                                        kernelArgs);
@@ -1978,7 +2025,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto funcTy = ty.getSignature();
           inlinedStartControlNegations();
           auto kernelArgs =
-              convertKernelArgs(builder, loc, 2, args, funcTy.getInputs());
+              convertKernelArgs(loc, 2, args, funcTy.getInputs(), x);
           if (isKernelEntryPoint(callOperDecl)) {
             builder.create<quake::ApplyOp>(
                 loc, funcTy.getResults(), calleeSymbol,
@@ -2039,8 +2086,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto kernFunc = module.lookupSymbol<func::FuncOp>(kernelName);
         assert(kernFunc && "kernel call operator must be present");
         auto kernTy = kernFunc.getFunctionType();
-        auto kernArgs =
-            convertKernelArgs(builder, loc, 1, args, kernTy.getInputs());
+        auto kernArgs = convertKernelArgs(loc, 1, args, kernTy.getInputs(), x);
         return builder.create<quake::ApplyOp>(loc, TypeRange{}, kernelSymbol,
                                               /*isAdjoint=*/true, ValueRange{},
                                               kernArgs);
@@ -2048,8 +2094,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       if (auto func = kernelValue.getDefiningOp<func::ConstantOp>()) {
         auto kernSym = func.getValueAttr();
         auto funcTy = cast<FunctionType>(func.getType());
-        auto kernArgs =
-            convertKernelArgs(builder, loc, 1, args, funcTy.getInputs());
+        auto kernArgs = convertKernelArgs(loc, 1, args, funcTy.getInputs(), x);
         return builder.create<quake::ApplyOp>(loc, funcTy.getResults(), kernSym,
                                               /*isAdjoint=*/true, ValueRange{},
                                               kernArgs);
@@ -2086,7 +2131,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           }
           auto funcTy = ty.getSignature();
           auto kernelArgs =
-              convertKernelArgs(builder, loc, 1, args, funcTy.getInputs());
+              convertKernelArgs(loc, 1, args, funcTy.getInputs(), x);
           if (isKernelEntryPoint(callOperDecl)) {
             return builder.create<quake::ApplyOp>(
                 loc, funcTy.getResults(), kernelSymbol,
@@ -2279,7 +2324,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   auto mlirFuncTy = cast<FunctionType>(calleeOp.getType());
   auto funcResults = mlirFuncTy.getResults();
   auto convertedArgs =
-      convertKernelArgs(builder, loc, 0, args, mlirFuncTy.getInputs());
+      convertKernelArgs(loc, 0, args, mlirFuncTy.getInputs(), x);
   auto call = builder.create<func::CallIndirectOp>(loc, funcResults, calleeOp,
                                                    convertedArgs);
   if (call.getNumResults() > 0) {
@@ -2477,7 +2522,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         auto indirect = popValue();
         auto funcTy = cast<FunctionType>(indirect.getType());
         auto convertedArgs =
-            convertKernelArgs(builder, loc, 0, args, funcTy.getInputs());
+            convertKernelArgs(loc, 0, args, funcTy.getInputs(), x);
         auto call = builder.create<func::CallIndirectOp>(
             loc, funcTy.getResults(), indirect, convertedArgs);
         if (call.getResults().empty())
