@@ -140,8 +140,8 @@ private:
       edges.erase(it);
 
       std::transform(nodeOffsets.begin() + src.index + 1, nodeOffsets.end(),
-                    nodeOffsets.begin() + src.index + 1,
-                    [](Offset offset) { return offset - 1; });
+                     nodeOffsets.begin() + src.index + 1,
+                     [](Offset offset) { return offset - 1; });
     }
   }
 

@@ -95,7 +95,8 @@ public:
   ///
   ///  0 -- 1 -- ... -- N
   ///
-  static Device path(unsigned numQubits, mlir::SmallVector<unsigned> excluded = {}) {
+  static Device path(unsigned numQubits,
+                     mlir::SmallVector<unsigned> excluded = {}) {
     assert(numQubits > 0);
     Device device;
     device.topology.createNode();
@@ -116,7 +117,8 @@ public:
   ///  0 -- 1 -- ... -- N
   ///  |________________|
   ///
-  static Device ring(unsigned numQubits, mlir::SmallVector<unsigned> excluded = {}) {
+  static Device ring(unsigned numQubits,
+                     mlir::SmallVector<unsigned> excluded = {}) {
     assert(numQubits > 0);
     Device device;
     device.topology.createNode();
@@ -143,7 +145,8 @@ public:
   ///
   /// @param numQubits Number of qubits in topology
   /// @param centerQubit 0-based ID of center qubit (default 0)
-  static Device star(unsigned numQubits, unsigned centerQubit = 0, mlir::SmallVector<unsigned> excluded = {}) {
+  static Device star(unsigned numQubits, unsigned centerQubit = 0,
+                     mlir::SmallVector<unsigned> excluded = {}) {
     Device device;
 
     // Create nodes
@@ -173,7 +176,8 @@ public:
   ///  |    |    |
   ///  6 -- 7 -- 8
   ///
-  static Device grid(unsigned width, unsigned height, mlir::SmallVector<unsigned> excluded = {}) {
+  static Device grid(unsigned width, unsigned height,
+                     mlir::SmallVector<unsigned> excluded = {}) {
     Device device;
     for (unsigned i = 0u, end = width * height; i < end; ++i)
       device.topology.createNode();

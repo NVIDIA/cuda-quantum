@@ -385,7 +385,7 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
     logger.unindent();
     logger.startLine() << logLineComment;
   });
-  
+
   // The source ops can always be mapped - excluded qubits and related errors
   // are handled by the identity placement function.
   for (auto borrowWire : sources) {
@@ -449,7 +449,8 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
   LLVM_DEBUG(logger.startLine() << '\n' << logLineComment << '\n';);
 }
 
-std::pair<bool, std::optional<Device>> deviceFromString(llvm::StringRef deviceString) {
+std::pair<bool, std::optional<Device>>
+deviceFromString(llvm::StringRef deviceString) {
   std::size_t deviceDim[2];
   deviceDim[0] = deviceDim[1] = 0;
   SmallVector<unsigned> excludedQubits;
@@ -457,7 +458,7 @@ std::pair<bool, std::optional<Device>> deviceFromString(llvm::StringRef deviceSt
   // Get device
   StringRef deviceTopoStr =
       deviceString.take_front(deviceString.find_first_of('('));
-    
+
   // Trim the dimensions off of `deviceDef` if dimensions were provided in the
   // string
   if (deviceTopoStr.size() < deviceString.size())
@@ -487,7 +488,7 @@ std::pair<bool, std::optional<Device>> deviceFromString(llvm::StringRef deviceSt
     } else {
       llvm::errs() << "Filename must be provided in device option like "
                       "file(/full/path/to/device_file.txt): "
-                    << deviceString << '\n';
+                   << deviceString << '\n';
       return std::make_pair(false, std::nullopt);
     }
 
@@ -495,11 +496,11 @@ std::pair<bool, std::optional<Device>> deviceFromString(llvm::StringRef deviceSt
   } else {
     if (deviceString.consume_front("(")) {
       deviceString = deviceString.ltrim();
-      
+
       // Parse first dimension
       deviceString.consumeInteger(/*Radix=*/10, deviceDim[0]);
       deviceString = deviceString.ltrim();
-      
+
       // Parse second dimension if present
       unsigned argCount = 1;
       while (deviceString.consume_front(",")) {
@@ -544,9 +545,11 @@ std::pair<bool, std::optional<Device>> deviceFromString(llvm::StringRef deviceSt
     } else if (deviceTopoStr == "ring") {
       return std::make_pair(false, Device::ring(deviceDim[0], excludedQubits));
     } else if (deviceTopoStr == "star") {
-      return std::make_pair(false, Device::star(deviceDim[0], deviceDim[1], excludedQubits));
+      return std::make_pair(
+          false, Device::star(deviceDim[0], deviceDim[1], excludedQubits));
     } else if (deviceTopoStr == "grid") {
-      return std::make_pair(false, Device::grid(deviceDim[0], deviceDim[1], excludedQubits));
+      return std::make_pair(
+          false, Device::grid(deviceDim[0], deviceDim[1], excludedQubits));
     } else if (deviceTopoStr == "bypass") {
       return std::make_pair(true, std::nullopt);
     } else {
@@ -568,7 +571,7 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
 
   virtual LogicalResult initialize(MLIRContext *context) override {
     std::tie(deviceBypass, deviceInstance) = deviceFromString(device);
-    if(deviceInstance || deviceBypass) {
+    if (deviceInstance || deviceBypass) {
       return success();
     }
 
@@ -616,7 +619,8 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
     auto adjacency = getAdjacencyFromDevice(d, mod.getContext());
     OpBuilder builder(mod.getBodyRegion());
     auto wireSetOp = builder.create<quake::WireSetOp>(
-        builder.getUnknownLoc(), mappedWireSetName, d.getNumQubits(), adjacency);
+        builder.getUnknownLoc(), mappedWireSetName, d.getNumQubits(),
+        adjacency);
     wireSetOp.setPrivate();
     return wireSetOp;
   }
@@ -639,7 +643,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
   virtual LogicalResult initialize(MLIRContext *context) override {
     std::tie(deviceBypass, deviceInstance) = deviceFromString(device);
-    if(deviceInstance || deviceBypass) {
+    if (deviceInstance || deviceBypass) {
       return success();
     }
 
@@ -888,8 +892,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     });
 
     // Route
-    SabreRouter router(*deviceInstance, wireToVirtualQ, placement, extendedLayerSize,
-                       extendedLayerWeight, decayDelta, roundsDecayReset);
+    SabreRouter router(*deviceInstance, wireToVirtualQ, placement,
+                       extendedLayerSize, extendedLayerWeight, decayDelta,
+                       roundsDecayReset);
     router.route(*blocks.begin(), sources);
     sortTopologically(&block);
 
