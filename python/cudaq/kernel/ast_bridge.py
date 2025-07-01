@@ -957,8 +957,8 @@ class PyASTBridge(ast.NodeVisitor):
             if cc.StructType.isinstance(eleType):
                 structIdx, memberTy = self.getStructMemberIdx(node.attr, eleType)
                 eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(self.ctx, memberTy), structValue, [],
-                    DenseI32ArrayAttr.get([structIdx], context=self.ctx)).result
+                    cc.PointerType.get(memberTy), structValue, [],
+                    DenseI32ArrayAttr.get([structIdx])).result
 
                 if self.attributePushPointerValue:
                     self.pushValue(eleAddr)
@@ -973,12 +973,12 @@ class PyASTBridge(ast.NodeVisitor):
             structIdx, memberTy = self.getStructMemberIdx(node.attr, structValue.type)
             extractedValue = cc.ExtractValueOp(
                 memberTy, structValue, [],
-                DenseI32ArrayAttr.get([structIdx], context=self.ctx)).result
+                DenseI32ArrayAttr.get([structIdx])).result
             
             if self.attributePushPointerValue:
                 # If we need a pointer, we have to create a temporary slot
                 tempSlot = cc.AllocaOp(
-                    cc.PointerType.get(self.ctx, memberTy),
+                    cc.PointerType.get(memberTy),
                     TypeAttr.get(memberTy)).result
                 cc.StoreOp(extractedValue, tempSlot)
                 self.pushValue(tempSlot)
