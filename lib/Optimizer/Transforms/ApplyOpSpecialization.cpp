@@ -66,7 +66,8 @@ using ApplyOpAnalysisInfo = DenseMap<Operation *, ApplyVariants>;
 /// This analysis scans the IR for `ApplyOp`s to see which ones need to have
 /// variants created.
 struct ApplyOpAnalysis {
-  ApplyOpAnalysis(ModuleOp op) : module(op) {
+  ApplyOpAnalysis(ModuleOp op, bool constProp)
+      : module(op), constProp(constProp) {
     performAnalysis(op.getOperation());
   }
 
@@ -75,20 +76,92 @@ struct ApplyOpAnalysis {
 private:
   void performAnalysis(Operation *op) {
     op->walk([&](quake::ApplyOp apply) {
+      if (constProp) {
+        // If some of the arguments in getArgs() are constants, then materialize
+        // those constants in a clone of the variant. The specialized variant
+        // will then be able to perform better constant propagation even if not
+        // inlined.
+        auto calleeName = apply.getCallee()->getRootReference().str();
+        if (func::FuncOp genericFunc =
+                module.lookupSymbol<func::FuncOp>(calleeName)) {
+          SmallVector<Value> newArgs;
+          newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+          IRMapping mapper;
+          SmallVector<Value> preservedArgs;
+          SmallVector<Type> inputTys;
+          SmallVector<arith::ConstantOp> moveConsts;
+          bool updateSignature = false;
+          for (auto [idx, v] : llvm::enumerate(newArgs)) {
+            if (auto c = v.getDefiningOp<arith::ConstantOp>()) {
+              auto newConst = c.clone();
+              moveConsts.push_back(newConst);
+              mapper.map(genericFunc.getArgument(idx), newConst);
+              LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
+            } else {
+              if (auto relax = v.getDefiningOp<quake::RelaxSizeOp>()) {
+                // Also, specialize any relaxed veq types.
+                v = relax.getInputVec();
+                updateSignature = true;
+                LLVM_DEBUG(llvm::dbgs() << "specializing apply veq argument ("
+                                        << v.getType() << ")\n");
+              }
+              inputTys.push_back(v.getType());
+              preservedArgs.push_back(v);
+            }
+          }
+
+          if (!moveConsts.empty()) {
+            // Possible code size improvement: this could avoid cloning
+            // duplicates by appending the position and constant value into the
+            // new cloned function's name.
+            func::FuncOp newFunc = genericFunc.clone(mapper);
+            calleeName += std::string{"."} + std::to_string(counter++);
+            newFunc.setName(calleeName);
+            auto *ctx = apply->getContext();
+            if (updateSignature) {
+              newFunc.setFunctionType(
+                  FunctionType::get(ctx, inputTys, newFunc.getResultTypes()));
+              for (auto [arg, ty] :
+                   llvm::zip(newFunc.front().getArguments(), inputTys))
+                arg.setType(ty);
+            }
+            newFunc.setPrivate();
+            Block &entry = newFunc.front();
+            for (auto c : moveConsts)
+              entry.push_front(c);
+            module.push_back(newFunc);
+            OpBuilder builder(apply);
+            auto newApply = builder.create<quake::ApplyOp>(
+                apply.getLoc(), apply.getResultTypes(),
+                SymbolRefAttr::get(ctx, calleeName), apply.getIndirectCallee(),
+                apply.getIsAdj(), apply.getControls(), preservedArgs);
+            apply->replaceAllUsesWith(newApply.getResults());
+            apply->dropAllReferences();
+            apply->erase();
+            LLVM_DEBUG(llvm::dbgs()
+                       << "apply specialization including constant "
+                          "propagation of arguments\n"
+                       << newFunc << '\n');
+            apply = newApply;
+          }
+        }
+      }
+
       if (!apply.applyToVariant())
         return;
       ApplyVariants variant;
-      auto callee = lookupCallee(apply);
-      auto iter = infoMap.find(callee);
-      if (iter != infoMap.end())
-        variant = iter->second;
-      if (apply.getIsAdj() && !apply.getControls().empty())
-        variant.needsAdjointControlVariant = true;
-      else if (apply.getIsAdj())
-        variant.needsAdjointVariant = true;
-      else if (!apply.getControls().empty())
-        variant.needsControlVariant = true;
-      infoMap[callee.getOperation()] = variant;
+      if (auto callee = lookupCallee(apply)) {
+        auto iter = infoMap.find(callee);
+        if (iter != infoMap.end())
+          variant = iter->second;
+        if (apply.getIsAdj() && !apply.getControls().empty())
+          variant.needsAdjointControlVariant = true;
+        else if (apply.getIsAdj())
+          variant.needsAdjointVariant = true;
+        else if (!apply.getControls().empty())
+          variant.needsControlVariant = true;
+        infoMap[callee.getOperation()] = variant;
+      }
     });
 
     // Propagate the transitive closure over the call tree.
@@ -121,6 +194,8 @@ private:
 
   ModuleOp module;
   ApplyOpAnalysisInfo infoMap;
+  bool constProp;
+  unsigned counter = 0;
 };
 } // namespace
 
@@ -179,8 +254,8 @@ namespace {
 struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
   using Base = OpRewritePattern<quake::ApplyOp>;
 
-  explicit ApplyOpPattern(MLIRContext *ctx, bool cp, unsigned &ctr)
-      : Base(ctx), constantProp(cp), counter(ctr) {}
+  explicit ApplyOpPattern(MLIRContext *ctx, bool constProp)
+      : Base(ctx), constProp(constProp) {}
 
   LogicalResult matchAndRewrite(quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
@@ -194,52 +269,21 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
                                                      apply.getControls());
       newArgs.push_back(consOp);
     }
-    newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
-
-    if (constantProp) {
-      // If some of the arguments in getArgs() are constants, then materialize
-      // those constants in a clone of the variant. The specialized variant will
-      // then be able to perform better constant propagation even if not
-      // inlined.
-      auto module = apply->getParentOfType<ModuleOp>();
-      if (func::FuncOp genericFunc =
-              module.lookupSymbol<func::FuncOp>(calleeName)) {
-        bool arithConsts = false;
-        IRMapping mapper;
-        SmallVector<Value> otherArgs;
-        for (auto [idx, v] : llvm::enumerate(newArgs)) {
-          if (auto c = v.getDefiningOp<arith::ConstantOp>()) {
-            mapper.map(genericFunc.getArgument(idx), v);
-            LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
-            arithConsts = true;
-          } else {
-            otherArgs.emplace_back(v);
-          }
-        }
-
-        if (arithConsts) {
-          // Possible code size improvement: this could avoid cloning duplicates
-          // by appending the position and constant value into the new cloned
-          // function's name.
-          newArgs = otherArgs;
-          func::FuncOp newFunc = genericFunc.clone(mapper);
-          calleeName += std::string{"_"} + std::to_string(counter++);
-          newFunc.setName(calleeName);
-          newFunc.setPrivate();
-          module.push_back(newFunc);
-          LLVM_DEBUG(llvm::dbgs() << "apply specialization including constant "
-                                     "propagation of arguments\n"
-                                  << newFunc << '\n');
-        }
+    if (constProp) {
+      for (auto v : apply.getArgs()) {
+        if (auto c = v.getDefiningOp<arith::ConstantOp>())
+          continue;
+        newArgs.emplace_back(v);
       }
+    } else {
+      newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
     }
     rewriter.replaceOpWithNewOp<func::CallOp>(apply, apply.getResultTypes(),
                                               calleeName, newArgs);
     return success();
   }
 
-  const bool constantProp;
-  unsigned &counter;
+  const bool constProp;
 };
 
 class ApplySpecializationPass
@@ -249,7 +293,7 @@ public:
   using ApplySpecializationBase::ApplySpecializationBase;
 
   void runOnOperation() override {
-    ApplyOpAnalysis analysis(getOperation());
+    ApplyOpAnalysis analysis(getOperation(), constantPropagation);
     const auto &applyVariants = analysis.getAnalysisInfo();
     if (succeeded(step1(applyVariants)))
       step2();
@@ -681,8 +725,7 @@ public:
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
     RewritePatternSet patterns(ctx);
-    unsigned counter = 0;
-    patterns.insert<ApplyOpPattern>(ctx, constantPropagation, counter);
+    patterns.insert<ApplyOpPattern>(ctx, constantPropagation);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After apply specialization:\n"
