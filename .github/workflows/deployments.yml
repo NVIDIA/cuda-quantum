@@ -567,7 +567,7 @@ jobs:
 
           for cuda in 11.8 12.0; do
             cuda_major="${cuda%%.*}"
-            artifact_name="image_cu${cuda_major}_publishing"
+            artifact_name="image_cu${cuda_major}_publishing"            
             info_file="$artifact_name.txt"
 
             key="base-cu${cuda_major}"
@@ -591,11 +591,19 @@ jobs:
             echo "Created $info_file"
           done
 
-      - name: Upload stitched manifest info artifacts
+      - name: Upload image_cu11_publishing
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.summary.outputs.artifact_name }} # changing the artifact name requires updating other workflows
-          path: ${{ steps.summary.outputs.info_file }}
+          name: image_cu11_publishing
+          path: image_cu11_publishing.txt
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload image_cu12_publishing
+        uses: actions/upload-artifact@v4
+        with:
+          name: image_cu12_publishing
+          path: image_cu12_publishing.txt
           retention-days: 30
           if-no-files-found: error
 
