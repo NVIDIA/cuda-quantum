@@ -96,11 +96,11 @@ private:
       const std::unordered_map<std::string, std::complex<double>> &parameters);
 
   struct ScalarCallBackContext {
-    scalar_operator scalarOp;
+    std::vector<scalar_operator> scalarOps;
     std::vector<std::string> paramNames;
-    ScalarCallBackContext(const scalar_operator &scalar_op,
+    ScalarCallBackContext(const std::vector<scalar_operator> &scalar_ops,
                           const std::vector<std::string> &paramNames)
-        : scalarOp(scalar_op), paramNames(paramNames){};
+        : scalarOps(scalar_ops), paramNames(paramNames){};
   };
 
   struct TensorCallBackContext {
@@ -113,7 +113,7 @@ private:
   };
 
   cudensitymatWrappedScalarCallback_t
-  wrapScalarCallback(const scalar_operator &scalarOp,
+  wrapScalarCallback(const std::vector<scalar_operator> &scalarOps,
                      const std::vector<std::string> &paramNames);
   cudensitymatWrappedTensorCallback_t
   wrapTensorCallback(const matrix_handler &matrixOp,

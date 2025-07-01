@@ -445,14 +445,18 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
         "state vector).");
   }
 
+  std::unordered_map<std::string, std::complex<double>> params;
+  for (const auto &param : schedule.get_parameters()) {
+    params[param] = schedule.get_value_function()(param, 0.0);
+  }
   auto batchedLiouvillian =
       cudaq::dynamics::Context::getCurrentContext()
           ->getOpConverter()
-          .constructLiouvillian(hamiltonians, collapse_operators, dims, {},
+          .constructLiouvillian(hamiltonians, collapse_operators, dims, params,
                                 isDensityMat);
   auto stepper =
       std::make_unique<CuDensityMatTimeStepper>(handle, batchedLiouvillian);
-  integrator_helper::init_stepper(integrator, std::move(stepper));
+  integrator_helper::init_stepper(integrator, std::move(stepper), schedule);
 
   const bool isMasterEquation =
       !collapse_operators.empty() && !collapse_operators[0].empty();

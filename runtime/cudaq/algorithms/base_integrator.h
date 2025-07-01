@@ -85,8 +85,10 @@ public:
   }
 
   static void init_stepper(base_integrator &integrator,
-                           std::unique_ptr<base_time_stepper> &&stepper) {
+                           std::unique_ptr<base_time_stepper> &&stepper,
+                           const cudaq::schedule &schedule) {
     integrator.m_stepper = std::move(stepper);
+    integrator.m_schedule = schedule;
   }
 };
 } // namespace cudaq

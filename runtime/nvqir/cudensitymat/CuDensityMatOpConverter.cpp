@@ -286,7 +286,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
                   make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
                   wrappedCallback));
             } else {
-              wrappedCallback = wrapScalarCallback(coeff, keys);
+              wrappedCallback = wrapScalarCallback({coeff}, keys);
               HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
                   m_handle, liouvillian, term, 0,
                   make_cuDoubleComplex(1.0, 0.0), wrappedCallback));
@@ -295,22 +295,42 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
             const bool allConstant = std::all_of(
                 coeffs.begin(), coeffs.end(),
                 [](const auto &scalaOp) { return scalaOp.is_constant(); });
-            if (!allConstant) {
-              throw std::runtime_error("Not supported");
+            if (allConstant) {
+              std::vector<std::complex<double>> batchedProductTermCoeffs;
+              for (const auto &coeff : coeffs) {
+                batchedProductTermCoeffs.emplace_back(coeff.evaluate());
+              }
+              cuDoubleComplex *staticCoefficients_d =
+                  static_cast<cuDoubleComplex *>(
+                      cudaq::dynamics::createArrayGpu(
+                          batchedProductTermCoeffs));
+              m_deviceBuffers.emplace(staticCoefficients_d);
+              HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
+                  m_handle, liouvillian, term, /*duality=*/0,
+                  /*batchSize=*/batchSize,
+                  /*staticCoefficients=*/staticCoefficients_d, nullptr,
+                  cudensitymatScalarCallbackNone));
+            } else {
+              cuDoubleComplex *staticCoefficients_d =
+                  static_cast<cuDoubleComplex *>(
+                      cudaq::dynamics::createArrayGpu(
+                          std::vector<std::complex<double>>(
+                              batchSize, std::complex<double>(1.0, 0.0))));
+              m_deviceBuffers.emplace(staticCoefficients_d);
+
+              cuDoubleComplex *totalCoefficients_d =
+                  static_cast<cuDoubleComplex *>(
+                      cudaq::dynamics::createArrayGpu(
+                          std::vector<std::complex<double>>(
+                              batchSize, std::complex<double>(0.0, 0.0))));
+              m_deviceBuffers.emplace(totalCoefficients_d);
+              auto wrappedCallback = wrapScalarCallback(coeffs, keys);
+              HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
+                  m_handle, liouvillian, term, /*duality=*/0,
+                  /*batchSize=*/batchSize,
+                  /*staticCoefficients=*/staticCoefficients_d,
+                  /*totalCoefficients=*/totalCoefficients_d, wrappedCallback));
             }
-            std::vector<std::complex<double>> batchedProductTermCoeffs;
-            for (const auto &coeff : coeffs) {
-              batchedProductTermCoeffs.emplace_back(coeff.evaluate());
-            }
-            cuDoubleComplex *staticCoefficients_d =
-                static_cast<cuDoubleComplex *>(
-                    cudaq::dynamics::createArrayGpu(batchedProductTermCoeffs));
-            m_deviceBuffers.emplace(staticCoefficients_d);
-            HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
-                m_handle, liouvillian, term, /*duality=*/0,
-                /*batchSize=*/batchSize,
-                /*staticCoefficients=*/staticCoefficients_d, nullptr,
-                cudensitymatScalarCallbackNone));
           }
         }
       }
@@ -617,7 +637,7 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
             make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
             wrappedCallback));
       } else {
-        wrappedCallback = wrapScalarCallback(coeff, keys);
+        wrappedCallback = wrapScalarCallback({coeff}, keys);
         HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
             m_handle, cudmOperator, term, /*duality=*/duality, make_cuDoubleComplex(1.0, 0.0),
             wrappedCallback));
@@ -627,13 +647,19 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
     for (std::size_t termIdx = 0; termIdx < numberProductTerms; ++termIdx) {
       std::vector<cudaq::product_op<cudaq::matrix_handler>> prodTerms;
       std::vector<std::complex<double>> batchedProductTermCoeffs;
+      bool allConstant = true;
       for (const auto &hamiltonian : ops) {
         prodTerms.emplace_back(hamiltonian[termIdx]);
         const auto coeffVal = hamiltonian[termIdx].get_coefficient();
         if (!coeffVal.is_constant()) {
-          throw std::runtime_error("Non constant is not supported yet.");
+          allConstant = false;
         }
-        batchedProductTermCoeffs.emplace_back(coeffVal.evaluate());
+        if (allConstant) {
+          // If all coefficients are constant, we can evaluate them now
+          // and store them in the batchedProductTermCoeffs vector.
+          // This avoids the need for a callback.
+          batchedProductTermCoeffs.emplace_back(coeffVal.evaluate());
+        }
       }
 
       const auto allSameDegrees = std::all_of(
@@ -659,15 +685,39 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
         assert(convertedResults.size() == 1);
         return convertedResults[0].second;
       }();
-      cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
-          cudaq::dynamics::createArrayGpu(batchedProductTermCoeffs));
-      m_deviceBuffers.emplace(staticCoefficients_d);
+
       const auto batchSize = prodTerms.size();
-      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
-          m_handle, cudmOperator, cudmProductTerm, /*duality=*/duality,
-          /*batchSize=*/batchSize,
-          /*staticCoefficients=*/staticCoefficients_d, nullptr,
-          cudensitymatScalarCallbackNone));
+
+      if (allConstant) {
+        cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
+            cudaq::dynamics::createArrayGpu(batchedProductTermCoeffs));
+        m_deviceBuffers.emplace(staticCoefficients_d);
+        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
+            m_handle, cudmOperator, cudmProductTerm, /*duality=*/duality,
+            /*batchSize=*/batchSize,
+            /*staticCoefficients=*/staticCoefficients_d, nullptr,
+            cudensitymatScalarCallbackNone));
+      } else {
+        cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
+            cudaq::dynamics::createArrayGpu(std::vector<std::complex<double>>(
+                batchSize, std::complex<double>(1.0, 0.0))));
+        m_deviceBuffers.emplace(staticCoefficients_d);
+        std::vector<cudaq::scalar_operator> coeffs;
+        coeffs.reserve(batchSize);
+        for (const auto &hamiltonian : ops) {
+          coeffs.emplace_back(hamiltonian[termIdx].get_coefficient());
+        }
+        cuDoubleComplex *totalCoefficients_d = static_cast<cuDoubleComplex *>(
+            cudaq::dynamics::createArrayGpu(std::vector<std::complex<double>>(
+                batchSize, std::complex<double>(0.0, 0.0))));
+        m_deviceBuffers.emplace(totalCoefficients_d);
+        auto wrappedCallback = wrapScalarCallback(coeffs, keys);
+        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
+            m_handle, cudmOperator, cudmProductTerm, /*duality=*/duality,
+            /*batchSize=*/batchSize,
+            /*staticCoefficients=*/staticCoefficients_d,
+            /*totalCoefficients=*/totalCoefficients_d, wrappedCallback));
+      }
     }
   }
 }
@@ -937,13 +987,9 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
 
 cudensitymatWrappedScalarCallback_t
 cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
-    const scalar_operator &scalarOp,
+    const std::vector<scalar_operator> &scalarOps,
     const std::vector<std::string> &paramNames) {
-  if (scalarOp.is_constant())
-    throw std::runtime_error(
-        "scalar_operator does not have a valid generator function.");
-
-  m_scalarCallbacks.push_back(ScalarCallBackContext(scalarOp, paramNames));
+  m_scalarCallbacks.push_back(ScalarCallBackContext(scalarOps, paramNames));
   ScalarCallBackContext *storedCallbackContext = &m_scalarCallbacks.back();
   using WrapperFuncType =
       int32_t (*)(cudensitymatScalarCallback_t, double, int64_t, int32_t,
@@ -955,7 +1001,6 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
     try {
       ScalarCallBackContext *context =
           reinterpret_cast<ScalarCallBackContext *>(callback);
-      scalar_operator &storedOp = context->scalarOp;
       if (numParams != 2 * context->paramNames.size())
         throw std::runtime_error(
             fmt::format("[Internal Error] Invalid number of callback "
@@ -963,7 +1008,12 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
                         "representing {} complex values but received {}.",
                         2 * context->paramNames.size(),
                         context->paramNames.size(), numParams));
-
+      if (batchSize != context->scalarOps.size())
+        throw std::runtime_error(
+            fmt::format("[Internal Error] Invalid batch size encountered. "
+                        "Expected {} but received {}.",
+                        context->scalarOps.size(), batchSize));
+      auto *tdCoef = static_cast<std::complex<double> *>(scalarStorage);
       std::unordered_map<std::string, std::complex<double>> param_map;
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
@@ -972,11 +1022,12 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
                      context->paramNames[i], batchSize,
                      param_map[context->paramNames[i]]);
       }
-
-      std::complex<double> result = storedOp.evaluate(param_map);
-      cudaq::debug("Scalar callback evaluated result = {}", result);
-      auto *tdCoef = static_cast<std::complex<double> *>(scalarStorage);
-      *tdCoef = result;
+      for (int64_t i = 0; i < batchSize; ++i) {
+        scalar_operator &storedOp = context->scalarOps[i];
+        tdCoef[i] = storedOp.is_constant() ? storedOp.evaluate()
+                                           : storedOp.evaluate(param_map);
+        cudaq::debug("Scalar callback constant value = {}", tdCoef[i]);
+      }
       return CUDENSITYMAT_STATUS_SUCCESS;
     } catch (const std::exception &e) {
       std::cerr << "Error in scalar callback: " << e.what() << std::endl;
@@ -1156,7 +1207,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
               make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
               wrappedCallback));
         } else {
-          wrappedCallback = wrapScalarCallback(coeff, keys);
+          wrappedCallback = wrapScalarCallback({coeff}, keys);
           HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
               m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
               wrappedCallback));
@@ -1173,7 +1224,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
                 make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
                 wrappedCallback));
           } else {
-            wrappedCallback = wrapScalarCallback(coeff, keys);
+            wrappedCallback = wrapScalarCallback({coeff}, keys);
             HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
                 m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
                 wrappedCallback));
@@ -1193,7 +1244,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
                 make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
                 wrappedCallback));
           } else {
-            wrappedCallback = wrapScalarCallback(coeff, keys);
+            wrappedCallback = wrapScalarCallback({coeff}, keys);
             HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
                 m_handle, liouvillian, term, 1, make_cuDoubleComplex(1.0, 0.0),
                 wrappedCallback));

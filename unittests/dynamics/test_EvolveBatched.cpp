@@ -157,8 +157,8 @@ TEST(BatchedEvolveTester, checkDifferentOperators) {
   cudaq::sum_op<cudaq::matrix_handler> pauliX(pauliX_t);
   auto initialState1 =
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
-  auto initialState2 =
-      cudaq::state::from_data(std::vector<std::complex<double>>{M_SQRT1_2, M_SQRT1_2});
+  auto initialState2 = cudaq::state::from_data(
+      std::vector<std::complex<double>>{M_SQRT1_2, M_SQRT1_2});
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
   auto results = cudaq::__internal__::evolveBatched(
@@ -201,7 +201,6 @@ TEST(BatchedEvolveTester, checkBatchedCollapseOps) {
   std::vector<std::complex<double>> psi0_(N, 0.0);
   psi0_.back() = 1.0;
   auto psi0 = cudaq::state::from_data(psi0_);
-  constexpr double decay_rate = 0.1;
   std::vector<cudaq::sum_op<cudaq::matrix_handler>> batchedHams;
   std::vector<std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
       batchedCollapsedOps;
@@ -227,6 +226,138 @@ TEST(BatchedEvolveTester, checkBatchedCollapseOps) {
     std::vector<double> expectedResults;
     for (const auto &decayRate : decayRates) {
       expectedResults.emplace_back((N - 1) * std::exp(-decayRate * t.real()));
+    }
+    theoryResults.emplace_back(expectedResults);
+  }
+
+  for (std::size_t i = 0; i < results.size(); ++i) {
+    EXPECT_TRUE(results[i].expectation_values.has_value());
+    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : results[i].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+    }
+  }
+}
+
+TEST(BatchedEvolveTester, checkTimeDependentHamiltonian) {
+  const cudaq::dimension_map dims = {{0, 2}};
+  std::vector<double> resonanceFreqs = {0.05, 0.1, 0.15, 0.2,
+                                        0.25, 0.3, 0.35, 0.4};
+  auto td_function =
+      [](const std::unordered_map<std::string, std::complex<double>>
+             &parameters,
+         double f) { return f; };
+
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> batchedHams;
+  std::vector<cudaq::state> initialStates;
+  for (const auto &resonanceFreq : resonanceFreqs) {
+    batchedHams.emplace_back(cudaq::sum_op<cudaq::matrix_handler>(
+        2.0 * M_PI *
+        cudaq::scalar_operator(
+            [td_function, resonanceFreq](
+                const std::unordered_map<std::string, std::complex<double>>
+                    &parameters) {
+              return td_function(parameters, resonanceFreq);
+            }) *
+        cudaq::spin_op::x(0)));
+    initialStates.emplace_back(
+        cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0}));
+  }
+
+  constexpr int numSteps = 100;
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
+
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto results = cudaq::__internal__::evolveBatched(
+      batchedHams, dims, schedule, initialStates, integrator, {}, {pauliZ},
+      cudaq::IntermediateResultSave::ExpectationValue);
+
+  EXPECT_EQ(results.size(), resonanceFreqs.size());
+  std::vector<std::vector<double>> theoryResults;
+  for (const auto &t : schedule) {
+    std::vector<double> expectedResults;
+    for (const auto &resonanceFreq : resonanceFreqs) {
+      expectedResults.emplace_back(
+          std::cos(2 * 2.0 * M_PI * resonanceFreq * t.real()));
+    }
+    theoryResults.emplace_back(expectedResults);
+  }
+
+  for (std::size_t i = 0; i < results.size(); ++i) {
+    EXPECT_TRUE(results[i].expectation_values.has_value());
+    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : results[i].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+    }
+  }
+}
+
+TEST(BatchedEvolveTester, checkTimeDependentCollapsedOps) {
+  constexpr int N = 10;
+  constexpr int numSteps = 101;
+  cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
+  auto hamiltonian = cudaq::boson_op::number(0);
+  const cudaq::dimension_map dimensions{{0, N}};
+  std::vector<std::complex<double>> psi0_(N, 0.0);
+  psi0_.back() = 1.0;
+  auto psi0 = cudaq::state::from_data(psi0_);
+  std::vector<double> decayRates = {0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4};
+
+  auto td_function =
+      [](const std::unordered_map<std::string, std::complex<double>>
+             &parameters,
+         double decay_rate) {
+        auto entry = parameters.find("t");
+        if (entry == parameters.end())
+          throw std::runtime_error("Cannot find value of expected parameter");
+        const auto t = entry->second.real();
+        const auto result = std::sqrt(decay_rate * std::exp(-t));
+        return result;
+      };
+
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> batchedHams;
+  std::vector<std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
+      batchedCollapsedOps;
+  std::vector<cudaq::state> initialStates;
+  for (const auto &decayRate : decayRates) {
+    // Same hamiltonian, but different collapse operators
+    batchedHams.emplace_back(cudaq::sum_op<cudaq::matrix_handler>(hamiltonian));
+    batchedCollapsedOps.emplace_back(
+        std::vector<cudaq::sum_op<cudaq::matrix_handler>>{
+            cudaq::sum_op<cudaq::matrix_handler>(
+                cudaq::scalar_operator(
+                    [td_function, decayRate](
+                        const std::unordered_map<
+                            std::string, std::complex<double>> &parameters) {
+                      return td_function(parameters, decayRate);
+                    }) *
+                cudaq::boson_op::annihilate(0))});
+    initialStates.emplace_back(psi0);
+  }
+
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto results = cudaq::__internal__::evolveBatched(
+      batchedHams, dimensions, schedule, initialStates, integrator,
+      batchedCollapsedOps, {cudaq::sum_op<cudaq::matrix_handler>(hamiltonian)},
+      cudaq::IntermediateResultSave::ExpectationValue);
+
+  EXPECT_EQ(results.size(), decayRates.size());
+  std::vector<std::vector<double>> theoryResults;
+  for (const auto &t : schedule) {
+    std::vector<double> expectedResults;
+    for (const auto &decayRate : decayRates) {
+      expectedResults.emplace_back(
+          (N - 1) * std::exp(-decayRate * (1.0 - std::exp(-t.real()))));
     }
     theoryResults.emplace_back(expectedResults);
   }
