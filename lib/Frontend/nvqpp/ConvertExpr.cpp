@@ -3154,20 +3154,18 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     TODO_x(loc, x, mangler, "C++ constructor (non-default)");
   }
 
-  // Handle POD types with default constructors - just allocate memory
-  // No constructor call needed for POD types
-  if (parent->isPOD()) {
-    auto mem = builder.create<cc::AllocaOp>(loc, ctorTy);
-    return pushValue(mem);
-  }
-
-  // A regular C++ class constructor lowers as:
+  // A C++ constructor lowers as:
   //
   // 1) A unique object must be created, so the type must have a minimum of
   //    one byte.
   // 2) Allocate a new object.
-  // 3) Call the constructor passing the address of the allocation as `this`.
+  // 3) If not POD, call the constructor passing the address of the allocation
+  //    as `this`.
   auto mem = builder.create<cc::AllocaOp>(loc, ctorTy);
+
+  // No constructor call needed for POD types
+  if (parent->isPOD())
+    return pushValue(mem);
 
   // FIXME: Using Ctor_Complete for mangled name generation blindly here. Is
   // there a programmatic way of determining which enum to use from the AST?
