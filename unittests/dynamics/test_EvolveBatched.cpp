@@ -373,3 +373,140 @@ TEST(BatchedEvolveTester, checkTimeDependentCollapsedOps) {
     }
   }
 }
+
+TEST(BatchedEvolveTester, checkCallbackTensorOpSimple) {
+  auto tensorFunction =
+      [](const std::vector<int64_t> &dimensions,
+         const std::unordered_map<std::string, std::complex<double>>
+             &parameters) -> cudaq::complex_matrix {
+    cudaq::complex_matrix mat(2, 2);
+    mat[{0, 0}] = 0.0;
+    mat[{0, 1}] = 1.0;
+    mat[{1, 0}] = 1.0;
+    mat[{1, 1}] = 0.0;
+    return mat;
+  };
+
+  cudaq::matrix_handler::define("CustomPauliX", {2}, tensorFunction);
+  const std::vector<double> resonanceFreqs = {0.05, 0.1, 0.15, 0.2,
+                                              0.25, 0.3, 0.35, 0.4};
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> batchedHams;
+  std::vector<cudaq::state> initialStates;
+  for (const auto &resonanceFreq : resonanceFreqs) {
+    batchedHams.emplace_back(cudaq::sum_op<cudaq::matrix_handler>(
+        2.0 * M_PI * resonanceFreq *
+        cudaq::matrix_handler::instantiate("CustomPauliX", {0})));
+    initialStates.emplace_back(
+        cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0}));
+  }
+
+  const cudaq::dimension_map dims = {{0, 2}};
+  constexpr int numSteps = 100;
+  std::vector<double> steps = cudaq::linspace(0.0, 4.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  cudaq::integrators::runge_kutta integrator(4);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
+
+  auto results = cudaq::__internal__::evolveBatched(
+      batchedHams, dims, schedule, initialStates, integrator, {}, {pauliZ},
+      cudaq::IntermediateResultSave::ExpectationValue);
+
+  EXPECT_EQ(results.size(), resonanceFreqs.size());
+  std::vector<std::vector<double>> theoryResults;
+  for (const auto &t : schedule) {
+    std::vector<double> expectedResults;
+    for (const auto &resonanceFreq : resonanceFreqs) {
+      expectedResults.emplace_back(
+          std::cos(2 * 2.0 * M_PI * resonanceFreq * t.real()));
+    }
+    theoryResults.emplace_back(expectedResults);
+  }
+
+  for (std::size_t i = 0; i < results.size(); ++i) {
+    EXPECT_TRUE(results[i].expectation_values.has_value());
+    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : results[i].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+    }
+  }
+}
+
+TEST(BatchedEvolveTester, checkCallbackTensorOpDifferentFuncs) {
+  auto tensorFunction =
+      [](const std::vector<int64_t> &dimensions,
+         const std::unordered_map<std::string, std::complex<double>>
+             &parameters,
+         double resonantFreq) -> cudaq::complex_matrix {
+    cudaq::complex_matrix mat(2, 2);
+    mat[{0, 0}] = 0.0;
+    mat[{0, 1}] = 2.0 * M_PI * resonantFreq;
+    mat[{1, 0}] = 2.0 * M_PI * resonantFreq;
+    mat[{1, 1}] = 0.0;
+    return mat;
+  };
+
+  const std::vector<double> resonanceFreqs = {0.05, 0.1, 0.15, 0.2,
+                                              0.25, 0.3, 0.35, 0.4};
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> batchedHams;
+  std::vector<cudaq::state> initialStates;
+  int count = 0;
+  for (const auto &resonanceFreq : resonanceFreqs) {
+    const std::string opName = "CustomPauliX_" + std::to_string(count++);
+    cudaq::matrix_handler::define(
+        opName, {2},
+        [&](const std::vector<int64_t> &dimensions,
+            const std::unordered_map<std::string, std::complex<double>>
+                &parameters) {
+          return tensorFunction(dimensions, parameters, resonanceFreq);
+        });
+
+    batchedHams.emplace_back(cudaq::sum_op<cudaq::matrix_handler>(
+        cudaq::matrix_handler::instantiate(opName, {0})));
+    initialStates.emplace_back(
+        cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0}));
+  }
+
+  const cudaq::dimension_map dims = {{0, 2}};
+  constexpr int numSteps = 100;
+  std::vector<double> steps = cudaq::linspace(0.0, 4.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  cudaq::integrators::runge_kutta integrator(4);
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
+
+  auto results = cudaq::__internal__::evolveBatched(
+      batchedHams, dims, schedule, initialStates, integrator, {}, {pauliZ},
+      cudaq::IntermediateResultSave::ExpectationValue);
+
+  EXPECT_EQ(results.size(), resonanceFreqs.size());
+  std::vector<std::vector<double>> theoryResults;
+  for (const auto &t : schedule) {
+    std::vector<double> expectedResults;
+    for (const auto &resonanceFreq : resonanceFreqs) {
+      expectedResults.emplace_back(
+          std::cos(2 * 2.0 * M_PI * resonanceFreq * t.real()));
+    }
+    theoryResults.emplace_back(expectedResults);
+  }
+
+  for (std::size_t i = 0; i < results.size(); ++i) {
+    EXPECT_TRUE(results[i].expectation_values.has_value());
+    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : results[i].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+      std::cout << "Freq = " << resonanceFreqs[i]
+                << "; Result = " << (double)expVals[0]
+                << "; Expected = " << theoryResults[count - 1][i] << "\n";
+    }
+  }
+}
+ 
