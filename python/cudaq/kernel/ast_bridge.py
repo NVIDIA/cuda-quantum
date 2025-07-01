@@ -2210,7 +2210,6 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
                 else:
                     structTy = cc.StructType.getNamed(node.func.id, structTys)
-
                 # Disallow user specified methods on structs
                 if len({
                         k: v
