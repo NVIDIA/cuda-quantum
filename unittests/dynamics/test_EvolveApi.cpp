@@ -507,3 +507,48 @@ TEST(EvolveAPITester, checkCavityModelSuperOpBatchedState) {
     }
   }
 }
+
+TEST(EvolveAPITester, checkCallbackTensorOp) {
+  auto tensorFunction =
+      [](const std::vector<int64_t> &dimensions,
+         const std::unordered_map<std::string, std::complex<double>>
+             &parameters) -> cudaq::complex_matrix {
+    if (dimensions.empty())
+      throw std::runtime_error("Empty dimensions vector received!");
+
+    cudaq::complex_matrix mat(2, 2);
+    mat[{0, 0}] = 0.0;
+    mat[{0, 1}] = 2.0 * M_PI * 0.1;
+    mat[{1, 0}] = 2.0 * M_PI * 0.1;
+    mat[{1, 1}] = 0.0;
+    return mat;
+  };
+
+  cudaq::matrix_handler::define("CustomX", {2}, tensorFunction);
+  auto ham = cudaq::matrix_handler::instantiate("CustomX", {0});
+  const cudaq::dimension_map dims = {{0, 2}};
+  auto psi0 =
+      cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
+
+  constexpr int numSteps = 100;
+  std::vector<double> steps = cudaq::linspace(0.0, 4.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  cudaq::integrators::runge_kutta integrator(4);
+
+  auto result = cudaq::evolve(ham, dims, schedule, psi0, integrator, {},
+                              {cudaq::spin_op::z(0)},
+                              cudaq::IntermediateResultSave::ExpectationValue);
+
+  std::vector<double> theoryResults;
+  for (const auto &t : schedule) {
+    const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
+    theoryResults.emplace_back(expected);
+  }
+
+  int count = 0;
+  for (auto expVals : result.expectation_values.value()) {
+    EXPECT_EQ(expVals.size(), 1);
+    EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
+  }
+}
