@@ -8,17 +8,10 @@
 
 #pragma once
 
-#include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 
 namespace cudaq {
-void bindPyDraw(py::module &mod);
-
-namespace details {
-std::tuple<std::string, MlirModule, OpaqueArguments *>
-getKernelLaunchParameters(py::object &kernel, py::args args);
-} // namespace details
+void bindPyUnitary(py::module &mod);
 } // namespace cudaq
