@@ -48,7 +48,7 @@ def test_call_with_return_bool():
 def test_call_with_return_bool2():
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(frozen=True)
     class patch:
         data: cudaq.qview
         ancx: cudaq.qview

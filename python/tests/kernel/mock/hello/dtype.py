@@ -9,7 +9,7 @@ import cudaq
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class TestClass:
     i: int
     d: float

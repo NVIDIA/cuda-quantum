@@ -1924,7 +1924,7 @@ def test_capture_opaque_kernel():
 def test_custom_classical_kernel_type():
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(frozen=True)
     class CustomIntAndFloatType:
         integer: int
         floatingPoint: float
@@ -1944,7 +1944,7 @@ def test_custom_classical_kernel_type():
     counts.dump()
     assert len(counts) == 2 and '00' in counts and '11' in counts
 
-    @dataclass
+    @dataclass(frozen=True)
     class CustomIntAndListFloat:
         integer: int
         array: List[float]
@@ -1988,7 +1988,7 @@ def test_custom_classical_kernel_type():
 def test_custom_quantum_type():
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(frozen=True)
     class patch:
         data: cudaq.qview
         ancx: cudaq.qview
@@ -2026,7 +2026,7 @@ def test_custom_quantum_type():
 def test_disallow_hybrid_types():
     from dataclasses import dataclass
     # Ensure we don't allow hybrid type s
-    @dataclass
+    @dataclass(frozen=True)
     class hybrid:
         q: cudaq.qview
         i: int
@@ -2052,7 +2052,7 @@ def test_disallow_hybrid_types():
 def test_disallow_quantum_struct_return():
     from dataclasses import dataclass
     # Ensure we don't allow hybrid type s
-    @dataclass
+    @dataclass(frozen=True)
     class T:
         q: cudaq.qview
 
@@ -2070,11 +2070,11 @@ def test_disallow_quantum_struct_return():
 def test_disallow_recursive_quantum_struct():
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(frozen=True)
     class T:
         q: cudaq.qview
 
-    @dataclass
+    @dataclass(frozen=True)
     class Holder:
         t: T
 
@@ -2100,7 +2100,7 @@ def test_disallow_recursive_quantum_struct():
 def test_disallow_struct_with_methods():
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(frozen=True)
     class T:
         q: cudaq.qview
 
