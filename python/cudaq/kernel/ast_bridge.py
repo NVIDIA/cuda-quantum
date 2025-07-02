@@ -3987,7 +3987,13 @@ class PyASTBridge(ast.NodeVisitor):
             with InsertionPoint(elseBlock):
                 self.symbolTable.pushScope()
                 self.pushIfStmtBlockStack()
-                [self.visit(b) for b in node.orelse]
+                temp = []
+                for b in node.orelse:
+                    if isinstance(b, ast.Return):
+                        self.emitFatalError(
+                            f'Inner scope return is not yet supported. Please provide a return statement only in the outer (kernel) scope.',
+                            node)
+                    temp.append(self.visit(b))
                 if not self.hasTerminator(elseBlock):
                     cc.ContinueOp([])
                 self.popIfStmtBlockStack()
