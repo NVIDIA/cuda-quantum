@@ -13,6 +13,7 @@ import numpy as np
 import os
 import sys
 from collections import deque
+from typing import get_origin
 
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, load_intrinsic, gen_vector_of_complex_constant,
@@ -2173,6 +2174,13 @@ class PyASTBridge(ast.NodeVisitor):
                 # Handle User-Custom Struct Constructor
                 cls, annotations = globalRegisteredTypes.getClassAttributes(
                     node.func.id)
+
+                for var, typ in annotations.items():
+                    origin = get_origin(typ)
+                    if origin is list or typ is list:
+                        self.emitFatalError(f'list type is not yet supported.',
+                                            node)
+
                 # Alloca the struct
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
