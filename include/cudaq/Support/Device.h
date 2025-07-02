@@ -10,6 +10,7 @@
 
 #include "cudaq/ADT/GraphCSR.h"
 #include "cudaq/Support/Graph.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/Support/MemoryBuffer.h"
 
 namespace cudaq {
@@ -54,7 +55,7 @@ public:
           while (!line.empty()) {
             unsigned nodeNum = 0;
             if (!line.consumeInteger(/*Radix=*/10, nodeNum)) {
-              device.excludedQubits.push_back(Qubit(nodeNum));
+              device.excludedQubits.insert(Qubit(nodeNum));
             }
             line = line.ltrim(" \t\n\v\f\r,}");
           }
@@ -106,7 +107,7 @@ public:
     }
     for (auto excluded : excluded) {
       assert(excluded < numQubits && "Excluded qubit out of range");
-      device.excludedQubits.push_back(Qubit(excluded));
+      device.excludedQubits.insert(Qubit(excluded));
     }
     device.computeAllPairShortestPaths();
     return device;
@@ -129,7 +130,7 @@ public:
     }
     for (auto excluded : excluded) {
       assert(excluded < numQubits && "Excluded qubit out of range");
-      device.excludedQubits.push_back(Qubit(excluded));
+      device.excludedQubits.insert(Qubit(excluded));
     }
     device.computeAllPairShortestPaths();
     return device;
@@ -161,7 +162,7 @@ public:
     // Add excluded qubits
     for (auto excluded : excluded) {
       assert(excluded < numQubits && "Excluded qubit out of range");
-      device.excludedQubits.push_back(Qubit(excluded));
+      device.excludedQubits.insert(Qubit(excluded));
     }
 
     device.computeAllPairShortestPaths();
@@ -193,7 +194,7 @@ public:
     }
     for (auto excluded : excluded) {
       assert(excluded < width * height && "Excluded qubit out of range");
-      device.excludedQubits.push_back(Qubit(excluded));
+      device.excludedQubits.insert(Qubit(excluded));
     }
     device.computeAllPairShortestPaths();
     return device;
@@ -208,8 +209,7 @@ public:
 
   /// Returns true if the qubit is excluded from the device.
   bool isQubitExcluded(Qubit qubit) const {
-    return std::find(excludedQubits.begin(), excludedQubits.end(), qubit) !=
-           excludedQubits.end();
+    return excludedQubits.contains(qubit);
   }
 
   /// Returns the distance between two qubits.
@@ -301,7 +301,7 @@ private:
   GraphCSR topology;
 
   /// List of excluded qubits
-  mlir::SmallVector<Qubit> excludedQubits;
+  llvm::DenseSet<Qubit> excludedQubits;
 
   /// List of shortest path from/to every source/destination
   mlir::SmallVector<PathRef> shortestPaths;

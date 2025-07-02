@@ -46,11 +46,11 @@ constexpr StringRef mappedWireSetName("mapped_wireset");
 
 bool identityPlacement(Placement &placement, Device &device) {
   unsigned j = 0;
-  for (unsigned i = 0, end = placement.getNumVirtualQ(); i < end; ++i, ++j) {
-    while (j < placement.getNumDeviceQ() &&
+  for (unsigned i = 0, end = placement.getNumVirtualQubits(); i < end; ++i, ++j) {
+    while (j < placement.getNumDeviceQubits() &&
            device.isQubitExcluded(Placement::DeviceQ(j)))
       ++j;
-    if (j >= placement.getNumDeviceQ())
+    if (j >= placement.getNumDeviceQubits())
       return false;
     placement.map(Placement::VirtualQ(i), Placement::DeviceQ(j));
   }
@@ -908,7 +908,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         func.emitOpError("Not enough usable device qubits to map sources.");
         signalPassFailure();
       }
-      LLVM_DEBUG(llvm::dbgs() << "Not enough usable device qubits to map sources.");
+      LLVM_DEBUG(llvm::dbgs()
+                 << "Not enough usable device qubits to map sources.");
       return;
     }
 

@@ -154,3 +154,22 @@ private:
 };
 
 } // namespace cudaq
+
+// Specialization of DenseMapInfo for GraphCSR::Node to enable use in DenseMap/DenseSet
+namespace llvm {
+template <> struct DenseMapInfo<cudaq::GraphCSR::Node> {
+  static inline cudaq::GraphCSR::Node getEmptyKey() {
+    return cudaq::GraphCSR::Node(static_cast<unsigned>(-1));
+  }
+  static inline cudaq::GraphCSR::Node getTombstoneKey() {
+    return cudaq::GraphCSR::Node(static_cast<unsigned>(-2));
+  }
+  static unsigned getHashValue(const cudaq::GraphCSR::Node &Val) {
+    return static_cast<unsigned>(Val.index);
+  }
+  static bool isEqual(const cudaq::GraphCSR::Node &LHS,
+                      const cudaq::GraphCSR::Node &RHS) {
+    return LHS.index == RHS.index;
+  }
+};
+} // namespace llvm
