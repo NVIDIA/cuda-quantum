@@ -86,6 +86,9 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
 
 } // namespace details
 
+/// NOTE: The `run` API is not yet supported on the hardware targets, hence
+/// reusing the existing macro to disable it.
+#ifndef CUDAQ_QUANTUM_DEVICE
 #if CUDAQ_USE_STD20
 template <typename T>
 struct isVectorType : std::false_type {};
@@ -399,4 +402,6 @@ run_async(std::size_t qpu_id, std::size_t shots,
   platform.enqueueAsyncTask(qpu_id, wrapped);
   return fut;
 }
+#endif // CUDAQ_QUANTUM_DEVICE
+
 } // namespace cudaq
