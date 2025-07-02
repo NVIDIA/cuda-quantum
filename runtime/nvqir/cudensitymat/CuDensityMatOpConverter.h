@@ -52,12 +52,13 @@ public:
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       bool isMasterEquation);
   /// @brief  Construct a Liouvillian operator from a super operator.
-  /// @param superOp The super operator.
+  /// @param superOps The super operators.
   /// @param modeExtents The extents of the modes.
   /// @param parameters The parameters of the operators.
   /// @return The constructed Liouvillian operator.
   cudensitymatOperator_t constructLiouvillian(
-      const super_op &superOp, const std::vector<int64_t> &modeExtents,
+      const std::vector<super_op> &superOps,
+      const std::vector<int64_t> &modeExtents,
       const std::unordered_map<std::string, std::complex<double>> &parameters);
 
   /// @brief Clear the current callback context

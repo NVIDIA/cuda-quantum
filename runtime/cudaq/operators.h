@@ -1859,6 +1859,15 @@ public:
   /// @brief Get iterator to end of operator terms
   const_iterator end() const;
 
+  /// @brief Get a reference to a specific term in the super-operator
+  /// @param idx Index of the term to retrieve
+  /// @return Reference to the specified term
+  const term &operator[](std::size_t idx) const { return m_terms[idx]; }
+
+  /// @brief Get the number of terms in the super-operator
+  /// @return Number of terms
+  std::size_t num_terms() const { return m_terms.size(); }
+
 private:
   /// @brief Construct a super-operator from a term
   /// @param term Super-operator term

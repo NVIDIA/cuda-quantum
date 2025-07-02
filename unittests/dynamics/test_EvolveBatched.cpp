@@ -510,3 +510,218 @@ TEST(BatchedEvolveTester, checkCallbackTensorOpDifferentFuncs) {
   }
 }
  
+TEST(BatchedEvolveTester, checkSuperopSimple) {
+  const cudaq::dimension_map dims = {{0, 2}};
+  const std::vector<double> resonanceFreqs = {0.05, 0.1, 0.15, 0.2,
+                                              0.25, 0.3, 0.35, 0.4};
+  std::vector<cudaq::super_op> sups;
+  std::vector<cudaq::state> initialStates;
+  for (const auto &resonanceFreq : resonanceFreqs) {
+    cudaq::product_op<cudaq::matrix_handler> ham_ =
+        (2.0 * M_PI * resonanceFreq * cudaq::spin_op::x(0));
+    cudaq::sum_op<cudaq::matrix_handler> ham(ham_);
+    cudaq::super_op sup;
+    // Apply `-iH * psi` superop
+    sup +=
+        cudaq::super_op::left_multiply(std::complex<double>(0.0, -1.0) * ham);
+    sups.emplace_back(sup);
+    initialStates.emplace_back(
+        cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0}));
+  }
+
+  cudaq::integrators::runge_kutta integrator(4);
+  constexpr int numSteps = 10;
+  cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
+  auto results = cudaq::__internal__::evolveBatched(
+      sups, dims, schedule, initialStates, integrator, {pauliZ},
+      cudaq::IntermediateResultSave::ExpectationValue);
+
+  EXPECT_EQ(results.size(), resonanceFreqs.size());
+  std::vector<std::vector<double>> theoryResults;
+  for (const auto &t : schedule) {
+    std::vector<double> expectedResults;
+    for (const auto &resonanceFreq : resonanceFreqs) {
+      expectedResults.emplace_back(
+          std::cos(2 * 2.0 * M_PI * resonanceFreq * t.real()));
+    }
+    theoryResults.emplace_back(expectedResults);
+  }
+
+  for (std::size_t i = 0; i < results.size(); ++i) {
+    EXPECT_TRUE(results[i].expectation_values.has_value());
+    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : results[i].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+      std::cout << "Freq = " << resonanceFreqs[i]
+                << "; Result = " << (double)expVals[0]
+                << "; Expected = " << theoryResults[count - 1][i] << "\n";
+    }
+  }
+}
+
+TEST(BatchedEvolveTester, checkSuperopMasterEquation) {
+  constexpr int N = 10;
+  constexpr int numSteps = 101;
+  cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
+  auto ham = cudaq::boson_op::number(0);
+  const cudaq::dimension_map dimensions{{0, N}};
+  std::vector<std::complex<double>> rho0_(N * N, 0.0);
+  rho0_.back() = 1.0;
+  const std::vector<double> decayRates  {0.05, 0.1, 0.15, 0.2,
+                                         0.25, 0.3, 0.35, 0.4};
+
+  std::vector<cudaq::super_op> batchedSups;
+  std::vector<cudaq::state> initialStates;
+  
+  for (const auto &decayRate : decayRates) {
+    // Same hamiltonian, but different collapse operators
+    cudaq::super_op sup;
+    // Apply `-i[H, rho]` superop
+    sup += cudaq::super_op::left_multiply(std::complex<double>(0.0, -1.0) * ham);
+    sup += cudaq::super_op::right_multiply(std::complex<double>(0.0, 1.0) * ham);
+
+    auto td_function =
+        [decayRate](const std::unordered_map<std::string, std::complex<double>>
+                        &parameters) {
+          auto entry = parameters.find("t");
+          if (entry == parameters.end())
+            throw std::runtime_error("Cannot find value of expected parameter");
+          const auto t = entry->second.real();
+          const auto result = std::sqrt(decayRate * std::exp(-t));
+          return result;
+        };
+
+    auto L = cudaq::scalar_operator(td_function) * cudaq::boson_op::annihilate(0);
+    auto L_dagger =
+        cudaq::scalar_operator(td_function) * cudaq::boson_op::create(0);
+    // Lindblad terms
+    // L * rho * L_dagger
+    sup += cudaq::super_op::left_right_multiply(L, L_dagger);
+    // -0.5 * L_dagger * L * rho
+    sup += cudaq::super_op::left_multiply(-0.5 * L_dagger * L);
+    // -0.5 * rho * L_dagger * L
+    sup += cudaq::super_op::right_multiply(-0.5 * L_dagger * L);
+
+    batchedSups.emplace_back(sup);
+    initialStates.emplace_back(cudaq::state::from_data(rho0_));
+  }
+
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto results = cudaq::__internal__::evolveBatched(
+      batchedSups, dimensions, schedule, initialStates, integrator,
+      {cudaq::sum_op<cudaq::matrix_handler>(ham)},
+      cudaq::IntermediateResultSave::ExpectationValue);
+
+  EXPECT_EQ(results.size(), decayRates.size());
+  std::vector<std::vector<double>> theoryResults;
+  for (const auto &t : schedule) {
+    std::vector<double> expectedResults;
+    for (const auto &decayRate : decayRates) {
+      expectedResults.emplace_back(
+          (N - 1) * std::exp(-decayRate * (1.0 - std::exp(-t.real()))));
+    }
+    theoryResults.emplace_back(expectedResults);
+  }
+
+  for (std::size_t i = 0; i < results.size(); ++i) {
+    EXPECT_TRUE(results[i].expectation_values.has_value());
+    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : results[i].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+      std::cout << "Decay Rate = " << decayRates[i]
+                << "; Result = " << (double)expVals[0]
+                << "; Expected = " << theoryResults[count - 1][i] << "\n";
+    }
+  }
+}
+
+TEST(BatchedEvolveTester, checkParamSweep) {
+  const cudaq::dimension_map dims = {{0, 3}};
+  std::vector<double> amplitudes = cudaq::linspace(10.0, 30.0, 128);
+  std::vector<double> dragAmplitudes = cudaq::linspace(100, 150, 128);
+  const double sigma = 0.01;         // sigma of the Gaussian pulse
+  const double cutoff = 4.0 * sigma; // total length of drive pulse
+
+  const auto gaussian =
+      [sigma,
+       cutoff](const std::unordered_map<std::string, std::complex<double>>
+                   &parameters) {
+        auto entry = parameters.find("t");
+        if (entry == parameters.end())
+          throw std::runtime_error("Cannot find value of expected parameter");
+        const auto t = entry->second.real();
+        const auto val =
+            (std::exp(-((t - cutoff / 2) / sigma) * ((t - cutoff / 2) / sigma) /
+                      2) -
+             std::exp(-(cutoff / sigma) * (cutoff / sigma) / 8)) /
+            (1 - std::exp(-(cutoff / sigma) * (cutoff / sigma) / 8));
+        return val;
+      };
+
+  const auto drag_gaussian =
+      [sigma,
+       cutoff](const std::unordered_map<std::string, std::complex<double>>
+                   &parameters) {
+        auto entry = parameters.find("t");
+        if (entry == parameters.end())
+          throw std::runtime_error("Cannot find value of expected parameter");
+        const auto t = entry->second.real();
+        const auto val = -((t - cutoff / 2) / sigma) *
+                         std::exp(-((t - cutoff / 2) / sigma) *
+                                      ((t - cutoff / 2) / sigma) / 2 +
+                                  0.5);
+        return val;
+      };
+  constexpr int numSteps = 201;
+  std::vector<double> steps = cudaq::linspace(0.0, cutoff, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+  cudaq::state targetState =
+      cudaq::state::from_data(std::vector<std::complex<double>>{
+          1.0 / std::sqrt(2.0),
+          std::complex<double>(0.0, -1.0 / std::sqrt(2.0)), 0.0});
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> batchedHams;
+  std::vector<cudaq::state> initialStates;
+  for (const auto &amplitude : amplitudes) {
+    for (const auto &dragAmplitude : dragAmplitudes) {
+      batchedHams.emplace_back(-cudaq::sum_op<cudaq::matrix_handler>(
+          amplitude * cudaq::scalar_operator(gaussian) *
+              (cudaq::boson::create(0) + cudaq::boson::annihilate(0)) -
+          std::complex<double>(0.0, 1.0) * dragAmplitude *
+              cudaq::scalar_operator(drag_gaussian) *
+              (cudaq::boson::annihilate(0) - cudaq::boson::create(0))));
+      initialStates.emplace_back(cudaq::state::from_data(
+          std::vector<std::complex<double>>{1.0, 0.0, 0.0}));
+    }
+  }
+
+  cudaq::integrators::runge_kutta integrator(4);
+  auto results = cudaq::__internal__::evolveBatched(
+      batchedHams, dims, schedule, initialStates, integrator, {}, {},
+      cudaq::IntermediateResultSave::None);
+  EXPECT_EQ(results.size(), amplitudes.size() * dragAmplitudes.size());
+  int count = 0;
+  double maxOverlap = 0.0;
+
+  for (const auto &amplitude : amplitudes) {
+    for (const auto &dragAmplitude : dragAmplitudes) {
+      const auto &result = results[count++];
+      EXPECT_TRUE(result.states.has_value());
+      EXPECT_TRUE(result.states.value().size() == 1);
+      const auto overlap = targetState.overlap(result.states.value()[0]);
+      EXPECT_GT(overlap.real(), 0.0);
+      if (overlap.real() > maxOverlap) {
+        maxOverlap = overlap.real();
+      }
+    }
+  }
+
+  EXPECT_GT(maxOverlap, 0.98); // Expect a high overlap with the target state
+}

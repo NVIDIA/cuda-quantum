@@ -75,7 +75,7 @@ void runge_kutta::integrate(double targetTime) {
         m_system.superOp.has_value()
             ? cudaq::dynamics::Context::getCurrentContext()
                   ->getOpConverter()
-                  .constructLiouvillian(m_system.superOp.value(),
+                  .constructLiouvillian({m_system.superOp.value()},
                                         m_system.modeExtents, params)
             : cudaq::dynamics::Context::getCurrentContext()
                   ->getOpConverter()

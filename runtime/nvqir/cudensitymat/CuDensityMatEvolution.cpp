@@ -468,4 +468,72 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
                            observables, store_intermediate_results);
 }
 
+std::vector<evolve_result>
+evolveBatched(const std::vector<super_op> &superOps,
+              const cudaq::dimension_map &dimensions, const schedule &schedule,
+              const std::vector<state> &initial_states,
+              base_integrator &integrator,
+              const std::vector<sum_op<cudaq::matrix_handler>> &observables,
+              IntermediateResultSave store_intermediate_results,
+              std::optional<int> shots_count) {
+  LOG_API_TIME();
+  if (superOps.empty()) {
+    throw std::runtime_error("No super operators provided for evolution.");
+  }
+  if (initial_states.size() != superOps.size()) {
+    throw std::runtime_error(
+        "Number of initial states must match number of super operators.");
+  }
+
+  cudensitymatHandle_t handle =
+      dynamics::Context::getCurrentContext()->getHandle();
+  std::vector<int64_t> dims;
+  for (const auto &[id, dim] : convertToOrderedMap(dimensions))
+    dims.emplace_back(dim);
+
+  std::vector<CuDensityMatState *> states;
+  for (auto &initialState : initial_states) {
+    states.emplace_back(asCudmState(const_cast<state &>(initialState)));
+  }
+
+  const bool isDensityMat = states[0]->is_density_matrix();
+
+  const bool sameStateType =
+      std::all_of(states.begin(), states.end(), [&](CuDensityMatState *state) {
+        return state->is_density_matrix() == isDensityMat;
+      });
+
+  if (!sameStateType) {
+    throw std::invalid_argument(
+        "All initial states must be of the same type (density matrix or "
+        "state vector).");
+  }
+
+  std::unordered_map<std::string, std::complex<double>> params;
+  for (const auto &param : schedule.get_parameters()) {
+    params[param] = schedule.get_value_function()(param, 0.0);
+  }
+  auto batchedLiouvillian = cudaq::dynamics::Context::getCurrentContext()
+                                ->getOpConverter()
+                                .constructLiouvillian(superOps, dims, params);
+  auto stepper =
+      std::make_unique<CuDensityMatTimeStepper>(handle, batchedLiouvillian);
+  integrator_helper::init_stepper(integrator, std::move(stepper), schedule);
+
+  const bool has_right_apply = [&]() {
+    for (const auto &superOp : superOps) {
+      for (const auto &[leftOp, rightOp] : superOp) {
+        if (rightOp.has_value())
+          return true;
+      }
+    }
+    return false;
+  }();
+  auto batchedState = CuDensityMatState::createBatchedState(
+      handle, states, dims, has_right_apply);
+  integrator.setState(cudaq::state(batchedState.release()), 0.0);
+
+  return evolveBatchedImpl(dims, schedule, initial_states.size(), integrator,
+                           observables, store_intermediate_results);
+}
 } // namespace cudaq::__internal__

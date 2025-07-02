@@ -779,8 +779,15 @@ CuDensityMatState::splitBatchedState(CuDensityMatState &batchedState) {
       static_cast<std::complex<double> *>(batchedState.devicePtr);
   std::vector<CuDensityMatState *> splitStates;
   for (int i = 0; i < batchedState.batchSize; ++i) {
+    // Each split state needs to own its memory
+    // Allocate memory for the split state
+    void *splitStateMemPtr = cudaq::dynamics::DeviceAllocator::allocate(
+        stateSize * sizeof(std::complex<double>));
+    HANDLE_CUDA_ERROR(cudaMemcpy(splitStateMemPtr, ptr + i * stateSize,
+                                 stateSize * sizeof(std::complex<double>),
+                                 cudaMemcpyDefault));
     splitStates.emplace_back(
-        new CuDensityMatState(stateSize, ptr + i * stateSize));
+        new CuDensityMatState(stateSize, splitStateMemPtr));
   }
   return splitStates;
 }
