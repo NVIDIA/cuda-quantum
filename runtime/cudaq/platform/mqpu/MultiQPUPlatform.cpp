@@ -247,7 +247,7 @@ public:
         // List of simulator names must either be one or the same length as the
         // URL list and options list. If one simulator name is provided, assuming that all the
         // URL should be using the same simulator.
-        if (sims.size() > 1 && sims.size() != urls.size() && sims.size() != options.size()) {
+        if (sims.size() > 1 && sims.size() != urls.size() && sims.size() != options.size())
           throw std::runtime_error(fmt::format(
               "Invalid number of remote backend simulators and/or options provided: "
               "receiving simulators {} and options {}, expecting equal number of simulators and options (if provided) which is {}.",
