@@ -87,13 +87,26 @@ private:
           SmallVector<Value> newArgs;
           newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
           IRMapping mapper;
+          SmallVector<Value> preservedArgs;
+          SmallVector<Type> inputTys;
           SmallVector<arith::ConstantOp> moveConsts;
+          bool updateSignature = false;
           for (auto [idx, v] : llvm::enumerate(newArgs)) {
             if (auto c = v.getDefiningOp<arith::ConstantOp>()) {
               auto newConst = c.clone();
               moveConsts.push_back(newConst);
               mapper.map(genericFunc.getArgument(idx), newConst);
               LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
+            } else {
+              if (auto relax = v.getDefiningOp<quake::RelaxSizeOp>()) {
+                // Also, specialize any relaxed veq types.
+                v = relax.getInputVec();
+                updateSignature = true;
+                LLVM_DEBUG(llvm::dbgs() << "specializing apply veq argument ("
+                                        << v.getType() << ")\n");
+              }
+              inputTys.push_back(v.getType());
+              preservedArgs.push_back(v);
             }
           }
 
@@ -104,18 +117,32 @@ private:
             func::FuncOp newFunc = genericFunc.clone(mapper);
             calleeName += std::string{"."} + std::to_string(counter++);
             newFunc.setName(calleeName);
+            auto *ctx = apply->getContext();
+            if (updateSignature) {
+              newFunc.setFunctionType(
+                  FunctionType::get(ctx, inputTys, newFunc.getResultTypes()));
+              for (auto [arg, ty] :
+                   llvm::zip(newFunc.front().getArguments(), inputTys))
+                arg.setType(ty);
+            }
             newFunc.setPrivate();
             Block &entry = newFunc.front();
             for (auto c : moveConsts)
               entry.push_front(c);
             module.push_back(newFunc);
-            auto *ctx = apply.getContext();
-            apply->setAttr(apply.getCalleeAttrName(),
-                           SymbolRefAttr::get(ctx, calleeName));
+            OpBuilder builder(apply);
+            auto newApply = builder.create<quake::ApplyOp>(
+                apply.getLoc(), apply.getResultTypes(),
+                SymbolRefAttr::get(ctx, calleeName), apply.getIndirectCallee(),
+                apply.getIsAdj(), apply.getControls(), preservedArgs);
+            apply->replaceAllUsesWith(newApply.getResults());
+            apply->dropAllReferences();
+            apply->erase();
             LLVM_DEBUG(llvm::dbgs()
                        << "apply specialization including constant "
                           "propagation of arguments\n"
                        << newFunc << '\n');
+            apply = newApply;
           }
         }
       }

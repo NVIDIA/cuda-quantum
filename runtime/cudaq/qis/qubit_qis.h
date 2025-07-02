@@ -799,6 +799,15 @@ std::vector<measure_result> mz(QubitRange &q) {
   return b;
 }
 
+template <std::size_t Levels>
+std::vector<measure_result> mz(const qview<Levels> &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.emplace_back(mz(qq));
+  }
+  return b;
+}
+
 template <typename... Qs>
 std::vector<measure_result> mz(qubit &q, Qs &&...qs);
 
@@ -1237,7 +1246,7 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
 
   // per-spec, no noise model provided, emit warning, no application
   if (!noiseModel)
-    return details::warn("apply_noise called without a noise model provided.");
+    return details::warn("apply_noise called but no noise model provided.");
 
   std::vector<double> parameters;
   cudaq::tuple_for_each(paramTuple,
@@ -1311,7 +1320,7 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
 
   // per-spec, no noise model provided, emit warning, no application
   if (!noiseModel)
-    return details::warn("apply_noise called without a noise model provided. "
+    return details::warn("apply_noise called but no noise model provided. "
                          "skipping kraus channel application.");
 
   std::vector<QuditInfo> qubits;

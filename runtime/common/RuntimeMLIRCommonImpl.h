@@ -233,8 +233,7 @@ void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule) {
 
         // Collect information to set `if_functions` module flag.
         if (auto *call = dyn_cast<llvm::CallBase>(&inst)) {
-          auto name = call->getCalledFunction()->getName().str();
-          if (!name.starts_with("__quantum__"))
+          if (!call->getCalledFunction()->empty())
             hasIRFunctions = true;
         }
       }
@@ -550,10 +549,10 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
             auto constExpr = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg);
             if (constExpr &&
                 constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
-                constExpr->getOpcode() != llvm::Instruction::IntToPtr) {
-              llvm::errs()
-                  << "error - invalid instruction found in QIR profile: "
-                  << *constExpr << '\n';
+                constExpr->getOpcode() != llvm::Instruction::IntToPtr &&
+                constExpr->getOpcode() != llvm::Instruction::BitCast) {
+              llvm::errs() << "error - invalid instruction found in QIR profile: "
+                           << *constExpr << '\n';
               return mlir::failure();
             }
           }
