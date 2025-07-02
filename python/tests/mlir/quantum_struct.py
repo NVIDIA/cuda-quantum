@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 def test_quantum_struct():
 
-    @dataclass
+    @dataclass(frozen=True)
     class patch:
         q: cudaq.qview
         r: cudaq.qview

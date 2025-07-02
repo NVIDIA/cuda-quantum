@@ -2142,6 +2142,7 @@ class PyASTBridge(ast.NodeVisitor):
                         f'Invalid cast to integer: {value.type}', node)
 
             elif node.func.id == 'list':
+                print("In list() call ...")
                 if len(self.valueStack) == 2:
                     maybeIterableSize = self.popValue()
                     maybeIterable = self.popValue()

@@ -789,17 +789,17 @@ def test_return_dataclass_list_int_bool():
 
     @dataclass(frozen=True)
     class MyClass:
-        x: list[int]
+        x: list
         y: bool
 
     @cudaq.kernel
-    def simple_return_dataclass(n: int, t: MyClass) -> MyClass:
-        qubits = cudaq.qvector(n)
-        return t
+    def simple_return_dataclass() -> MyClass:
+        qubits = cudaq.qvector(2)
+        return MyClass([0,1], True)
 
     # TODO: Support recursive aggregate types in kernels.
-    # results = cudaq.run(simple_return_dataclass, 2, MyClass([0,1], 18), shots_count=2)
-    # assert len(results) == 2
+    results = cudaq.run(simple_return_dataclass, shots_count=2)
+    assert len(results) == 2
     # assert results[0] == MyClass([0,1], 18)
     # assert results[1] == MyClass([0,1], 18)
 

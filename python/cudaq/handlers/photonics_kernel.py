@@ -13,7 +13,7 @@ from typing import List
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
-@dataclass
+@dataclass(frozen=True)
 class PyQudit:
     """
     A data structure to represent `qudit` which models a general d-level 
