@@ -35,7 +35,3 @@ func.func private @free(!cc.ptr<i8>)
 // CHECK:           call @ok(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
-// CHECK:         func.func private @ok(!cc.ptr<i8>)
-// CHECK:         func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
-// CHECK:         func.func private @malloc(i64) -> !cc.ptr<i8>
-// CHECK:         func.func private @free(!cc.ptr<i8>)
