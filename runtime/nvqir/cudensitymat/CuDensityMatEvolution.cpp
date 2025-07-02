@@ -45,6 +45,67 @@ state migrateState(const state &inputState) {
   return state(new CuDensityMatState(dim, localizedState));
 }
 
+bool checkBatchingCompatibility(
+    const std::vector<sum_op<cudaq::matrix_handler>> &ops) {
+
+  if (ops.size() <= 1) {
+    return false;
+  }
+
+  // Check if all sum_ops has the same number of terms
+  const std::size_t num_terms = ops.front().num_terms();
+  for (std::size_t i = 1; i < ops.size(); ++i) {
+    if (ops[i].num_terms() != num_terms) {
+      return false;
+    }
+  }
+
+  // Split the sum_op to list of product_op
+  std::vector<std::vector<product_op<cudaq::matrix_handler>>> productOpsList(
+      ops.size());
+  for (auto &productOps : productOpsList) {
+    productOps.reserve(num_terms);
+  }
+  for (std::size_t i = 0; i < ops.size(); ++i) {
+    for (std::size_t j = 0; j < num_terms; ++j) {
+      productOpsList[i].emplace_back(ops[i][j]);
+    }
+  }
+
+  // Sort by degrees
+  for (auto &productOps : productOpsList) {
+    std::sort(productOps.begin(), productOps.end(),
+              [](const product_op<cudaq::matrix_handler> &a,
+                 const product_op<cudaq::matrix_handler> &b) {
+                return a.degrees() < b.degrees();
+              });
+  }
+
+  // Use the first product_op as a reference
+  auto &reference = productOpsList[0];
+  for (std::size_t i = 1; i < ops.size(); ++i) {
+    auto &current = productOpsList[i];
+    assert(current.size() == reference.size());
+    for (std::size_t j = 0; j < reference.size(); ++j) {
+      // Check if the degrees of the product_op match
+      if (current[j].degrees() != reference[j].degrees()) {
+        return false;
+      }
+      // Check if the number of elementary operators matches
+      if (current[j].num_ops() != reference[j].num_ops()) {
+        return false;
+      }
+      for (std::size_t k = 0; k < current[j].num_ops(); ++k) {
+        // Check if the elementary degrees match
+        if (current[j][k].degrees() != reference[j][k].degrees()) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 static CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
   auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
   auto *cudmState = dynamic_cast<CuDensityMatState *>(simState);
