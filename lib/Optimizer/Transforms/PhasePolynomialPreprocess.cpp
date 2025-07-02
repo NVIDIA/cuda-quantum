@@ -29,18 +29,7 @@ class PhasePolynomialPreprocessPass
           PhasePolynomialPreprocessPass> {
   using PhasePolynomialPreprocessBase::PhasePolynomialPreprocessBase;
 
-  // void markRounds(Value wire, int round) {
-  //   for (auto &uses : wire.getUses()) {
-  //     auto op = uses.getOwner();
-  //     if (op->hasAttr("round") &&
-  //     op->getAttrOfType<IntegerAttr>("round").getInt())
-  //         continue;
-  //     op->setAttr("round", IntegerAttr::get(mlir::IntegerType::get(),
-  //     round)); for (auto result : op->getResults())
-  //       markRounds(wire, round + 1);
-  //   }
-  // }
-
+  // TODO: I think this could potentially be generalized nicely
   class WireStepper {
     Value old_wire;
     Value new_wire;
@@ -99,6 +88,8 @@ class PhasePolynomialPreprocessPass
       clone->setOperand(opnum, new_wire);
 
       // For now, just copy over all classical constants
+      // TODO: make classical values arguments to the function instead,
+      // to allow non-constant rotation angles
       builder.setInsertionPointToStart(clone->getBlock());
       for (size_t i = 0; i < clone->getNumOperands(); i++) {
         auto dependency = clone->getOperand(i);
@@ -141,6 +132,9 @@ class PhasePolynomialPreprocessPass
     fun.setPrivate();
     auto entry = fun.addEntryBlock();
     OpBuilder builder(fun);
+    fun.getOperation()->setAttr("subcircuit", builder.getUnitAttr());
+    fun.getOperation()->setAttr(
+        "num_cnots", builder.getUI32IntegerAttr(subcircuit->numCNots()));
 
     DenseMap<Operation *, Operation *> cloned;
 
@@ -182,11 +176,6 @@ class PhasePolynomialPreprocessPass
   }
 
 public:
-  // AXIS-SPECIFIC: could allow controlled y and z here
-  bool isControlledOp(Operation *op) {
-    return isa<quake::XOp>(op) && op->getNumOperands() == 2;
-  }
-
   void runOnOperation() override {
     auto module = getOperation();
     size_t i = 0;
@@ -194,14 +183,15 @@ public:
 
     for (auto &op : module) {
       if (auto func = dyn_cast<func::FuncOp>(op)) {
-        // TODO: this is yucky, having to rewalk the function because we're
-        // mutating it as we go
         func.walk([&](quake::XOp op) {
-          if (!isControlledOp(op) || ::processed(op))
+          if (!::isControlledOp(op) || ::processed(op))
             return;
 
           auto *subcircuit = new Subcircuit(op);
           moveToFunc(subcircuit, i++);
+          // Add the subcircuit to erase from the function after we
+          // finish walking it, as we don't want to erase ops from a
+          // function we are currently walking
           subcircuits.insert(subcircuit);
         });
       }
