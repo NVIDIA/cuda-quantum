@@ -392,6 +392,17 @@ def EraseNopCalls : Pass<"erase-nop-calls"> {
   }];
 }
 
+def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
+  let summary = "Erase unneeded vector copy ctor idiom after inlining.";
+  let description = [{
+    After inlining, we may be left with a peculiar idiom of the callee creating
+    a vector on the stack, copying that vector to a temporary on the heap, and
+    the calling function copying the heap data to a new vector on the stack.
+    Since the callee is inlined, none of this is really required. The callee and
+    caller share a common stack frame, so one copy is plenty.
+  }];
+}
+
 def ExpandControlVeqs: Pass<"expand-control-veqs", "mlir::func::FuncOp"> {
   let summary = "Expands veqs used as controls into individual qubits.";
   let description = [{

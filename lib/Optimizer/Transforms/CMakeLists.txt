@@ -27,6 +27,7 @@ add_cudaq_library(OptTransforms
   DeleteStates.cpp
   EraseNoise.cpp
   EraseNopCalls.cpp
+  EraseVectorCopyCtor.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
   FactorQuantumAlloc.cpp
