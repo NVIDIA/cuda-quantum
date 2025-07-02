@@ -871,7 +871,7 @@ inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
   return ret;
 }
 
-inline int64_t to_integer(const std::string &arg) {
+inline std::int64_t to_integer(const std::string &arg) {
   std::string bitString{arg};
   std::reverse(bitString.begin(), bitString.end());
   return std::stoull(bitString, nullptr, 2);
