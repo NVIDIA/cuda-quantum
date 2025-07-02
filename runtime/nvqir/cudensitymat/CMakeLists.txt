@@ -66,6 +66,8 @@ add_library(${LIBRARY_NAME} SHARED
   CuDensityMatState.cpp
   CuDensityMatContext.cpp
   CuDensityMatOpConverter.cpp
+  CuDensityMatCallbackConverter.cpp
+  CuDensityMatSuperOpCtor.cpp
   CuDensityMatUtils.cpp
 )
 

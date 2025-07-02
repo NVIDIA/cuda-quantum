@@ -40,9 +40,12 @@ convertDimensions(const std::vector<int64_t> &modeExtents) {
   return dimensions;
 }
 
+} // namespace
+
 // Function to flatten a matrix into a 1D array (column major)
 std::vector<std::complex<double>>
-flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix) {
+cudaq::dynamics::CuDensityMatOpConverter::flattenMatrixColumnMajor(
+    const cudaq::complex_matrix &matrix) {
   std::vector<std::complex<double>> flatMatrix;
   flatMatrix.reserve(matrix.size());
   for (size_t col = 0; col < matrix.cols(); col++) {
@@ -53,98 +56,6 @@ flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix) {
 
   return flatMatrix;
 }
-
-cudaq::product_op<cudaq::matrix_handler>
-computeDagger(const cudaq::matrix_handler &op) {
-  const std::string daggerOpName = op.to_string(false) + "_dagger";
-  try {
-    auto func = [op](const std::vector<int64_t> &dimensions,
-                     const std::unordered_map<std::string, std::complex<double>>
-                         &params) {
-      cudaq::dimension_map dims;
-      if (dimensions.size() != op.degrees().size())
-        throw std::runtime_error("Dimension mismatched");
-
-      for (std::size_t i = 0; i < dimensions.size(); ++i) {
-        dims[op.degrees()[i]] = dimensions[i];
-      }
-      auto originalMat = op.to_matrix(dims, params);
-      return originalMat.adjoint();
-    };
-
-    auto dia_func =
-        [op](const std::vector<int64_t> &dimensions,
-             const std::unordered_map<std::string, std::complex<double>>
-                 &params) {
-          cudaq::dimension_map dims;
-          if (dimensions.size() != op.degrees().size())
-            throw std::runtime_error("Dimension mismatched");
-
-          for (std::size_t i = 0; i < dimensions.size(); ++i) {
-            dims[op.degrees()[i]] = dimensions[i];
-          }
-          auto diaMat = op.to_diagonal_matrix(dims, params);
-          for (auto &offset : diaMat.second)
-            offset *= -1;
-          for (auto &element : diaMat.first)
-            element = std::conj(element);
-          return diaMat;
-        };
-    cudaq::matrix_handler::define(daggerOpName, {-1}, std::move(func),
-                                  std::move(dia_func));
-  } catch (...) {
-    // Nothing, this has been define
-  }
-  return cudaq::matrix_handler::instantiate(daggerOpName, op.degrees());
-}
-
-cudaq::scalar_operator computeDagger(const cudaq::scalar_operator &scalar) {
-  if (scalar.is_constant()) {
-    return cudaq::scalar_operator(std::conj(scalar.evaluate()));
-  } else {
-    return cudaq::scalar_operator(
-        [scalar](
-            const std::unordered_map<std::string, std::complex<double>> &params)
-            -> std::complex<double> {
-          return std::conj(scalar.evaluate(params));
-        });
-  }
-}
-
-cudaq::product_op<cudaq::matrix_handler>
-computeDagger(const cudaq::product_op<cudaq::matrix_handler> &productOp) {
-  std::vector<cudaq::product_op<cudaq::matrix_handler>> daggerOps;
-  for (const auto &component : productOp) {
-    if (const auto *elemOp =
-            dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-      daggerOps.emplace_back(computeDagger(*elemOp));
-    } else {
-      throw std::runtime_error("Unhandled type!");
-    }
-  }
-  std::reverse(daggerOps.begin(), daggerOps.end());
-
-  if (daggerOps.empty())
-    throw std::runtime_error("Empty product operator");
-  cudaq::product_op<cudaq::matrix_handler> daggerProduct = daggerOps[0];
-  for (std::size_t i = 1; i < daggerOps.size(); ++i) {
-    daggerProduct *= daggerOps[i];
-  }
-  daggerProduct *= computeDagger(productOp.get_coefficient());
-  return daggerProduct;
-}
-
-cudaq::sum_op<cudaq::matrix_handler>
-computeDagger(const cudaq::sum_op<cudaq::matrix_handler> &sumOp) {
-  cudaq::sum_op<cudaq::matrix_handler> daggerSum =
-      cudaq::sum_op<cudaq::matrix_handler>::empty();
-  for (const cudaq::product_op<cudaq::matrix_handler> &prodOp : sumOp)
-    daggerSum += computeDagger(prodOp);
-
-  return daggerSum;
-}
-
-} // namespace
 
 cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
     cudensitymatHandle_t handle)
@@ -187,156 +98,6 @@ cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
                   maxDiags.value());
       m_maxDiagonalsDiag = maxDiags.value();
     }
-  }
-}
-
-cudensitymatOperator_t
-cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
-    const std::vector<sum_op<cudaq::matrix_handler>> &hamOperators,
-    const std::vector<std::vector<sum_op<cudaq::matrix_handler>>>
-        &collapseOperators,
-    const std::vector<int64_t> &modeExtents,
-    const std::unordered_map<std::string, std::complex<double>> &parameters,
-    bool isMasterEquation) {
-  LOG_API_TIME();
-  if (hamOperators.empty()) {
-    throw std::invalid_argument(
-        "Cannot construct Liouvillian operator from an empty list of "
-        "Hamiltonians.");
-  }
-  const auto batchSize = hamOperators.size();
-  const auto numberProductTerms = hamOperators[0].num_terms();
-  // Check if all Hamiltonians have the same number of product terms
-  for (const auto &hamiltonian : hamOperators) {
-    if (hamiltonian.num_terms() != numberProductTerms) {
-      throw std::invalid_argument(
-          "All Hamiltonians must have the same number of product terms.");
-    }
-  }
-
-  const bool noCollapseOperators =
-      collapseOperators.empty() ||
-      std::all_of(collapseOperators.begin(), collapseOperators.end(),
-                  [](const std::vector<sum_op<cudaq::matrix_handler>> &ops) {
-                    return ops.empty();
-                  });
-
-  if (!isMasterEquation && noCollapseOperators) {
-    cudaq::info("Construct state vector Liouvillian");
-    std::vector<sum_op<cudaq::matrix_handler>> liouvillians;
-    liouvillians.reserve(batchSize);
-    for (const auto &ham : hamOperators) {
-      liouvillians.emplace_back(ham * std::complex<double>(0.0, -1.0));
-    }
-    return convertToCudensitymatOperator(parameters, liouvillians, modeExtents);
-  } else {
-    cudaq::info("Construct density matrix Liouvillian");
-    cudensitymatOperator_t liouvillian;
-    HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-        m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
-        &liouvillian));
-    // Append an operator term to the operator (super-operator)
-    // Handle the Hamiltonian
-    const std::map<std::string, std::complex<double>> sortedParameters(
-        parameters.begin(), parameters.end());
-    auto ks = std::views::keys(sortedParameters);
-    const std::vector<std::string> keys{ks.begin(), ks.end()};
-    std::vector<sum_op<cudaq::matrix_handler>> leftHam;
-    std::vector<sum_op<cudaq::matrix_handler>> rightHam;
-    leftHam.reserve(batchSize);
-    rightHam.reserve(batchSize);
-    for (const auto &ham : hamOperators) {
-      leftHam.emplace_back(ham * std::complex<double>(0.0, -1.0));
-      rightHam.emplace_back(computeDagger(ham) *
-                            std::complex<double>(0.0, 1.0));
-    }
-    // -i constant (left multiplication)
-    appendToCudensitymatOperator(liouvillian, parameters, leftHam, modeExtents,
-                                 /*duality=*/0);
-    // +i constant (right multiplication, i.e., dual)
-    appendToCudensitymatOperator(liouvillian, parameters, rightHam, modeExtents,
-                                 /*duality=*/1);
-
-    // Check that all collapsed operator vectors have the same size
-    if (!collapseOperators.empty()) {
-      const auto collapseSize = collapseOperators[0].size();
-      for (const auto &collapseOperator : collapseOperators) {
-        if (collapseOperator.size() != collapseSize) {
-          throw std::invalid_argument(
-              "All collapse operator vectors must have the same size.");
-        }
-      }
-      // Handle collapsed operators
-      for (std::size_t i = 0; i < collapseSize; ++i) {
-        std::vector<sum_op<cudaq::matrix_handler>> batchedCollapseTerms;
-        for (const auto &collapseOperator : collapseOperators) {
-          batchedCollapseTerms.push_back(collapseOperator[i]);
-        }
-        for (auto &[coeffs, term] : computeLindbladTerms(
-                 batchedCollapseTerms, modeExtents, parameters)) {
-          assert(coeffs.size() == batchSize);
-          cudensitymatWrappedScalarCallback_t wrappedCallback =
-              cudensitymatScalarCallbackNone;
-          if (batchSize == 1) {
-            auto& coeff = coeffs[0];
-            if (coeff.is_constant()) {
-              const auto coeffVal = coeff.evaluate();
-              HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-                  m_handle, liouvillian, term, 0,
-                  make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
-                  wrappedCallback));
-            } else {
-              wrappedCallback = wrapScalarCallback({coeff}, keys);
-              HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-                  m_handle, liouvillian, term, 0,
-                  make_cuDoubleComplex(1.0, 0.0), wrappedCallback));
-            }
-          } else {
-            const bool allConstant = std::all_of(
-                coeffs.begin(), coeffs.end(),
-                [](const auto &scalaOp) { return scalaOp.is_constant(); });
-            if (allConstant) {
-              std::vector<std::complex<double>> batchedProductTermCoeffs;
-              for (const auto &coeff : coeffs) {
-                batchedProductTermCoeffs.emplace_back(coeff.evaluate());
-              }
-              cuDoubleComplex *staticCoefficients_d =
-                  static_cast<cuDoubleComplex *>(
-                      cudaq::dynamics::createArrayGpu(
-                          batchedProductTermCoeffs));
-              m_deviceBuffers.emplace(staticCoefficients_d);
-              HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
-                  m_handle, liouvillian, term, /*duality=*/0,
-                  /*batchSize=*/batchSize,
-                  /*staticCoefficients=*/staticCoefficients_d, nullptr,
-                  cudensitymatScalarCallbackNone));
-            } else {
-              cuDoubleComplex *staticCoefficients_d =
-                  static_cast<cuDoubleComplex *>(
-                      cudaq::dynamics::createArrayGpu(
-                          std::vector<std::complex<double>>(
-                              batchSize, std::complex<double>(1.0, 0.0))));
-              m_deviceBuffers.emplace(staticCoefficients_d);
-
-              cuDoubleComplex *totalCoefficients_d =
-                  static_cast<cuDoubleComplex *>(
-                      cudaq::dynamics::createArrayGpu(
-                          std::vector<std::complex<double>>(
-                              batchSize, std::complex<double>(0.0, 0.0))));
-              m_deviceBuffers.emplace(totalCoefficients_d);
-              auto wrappedCallback = wrapScalarCallback(coeffs, keys);
-              HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
-                  m_handle, liouvillian, term, /*duality=*/0,
-                  /*batchSize=*/batchSize,
-                  /*staticCoefficients=*/staticCoefficients_d,
-                  /*totalCoefficients=*/totalCoefficients_d, wrappedCallback));
-            }
-          }
-        }
-      }
-    }
-
-    return liouvillian;
   }
 }
 
@@ -602,7 +363,8 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
       m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
       &cudmOperator));
 
-  appendToCudensitymatOperator(cudmOperator, parameters, ops, modeExtents, /*duality=*/0);
+  appendToCudensitymatOperator(cudmOperator, parameters, ops, modeExtents,
+                               /*duality=*/0);
 
   return cudmOperator;
 }
@@ -648,8 +410,8 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
       } else {
         wrappedCallback = wrapScalarCallback({coeff}, keys);
         HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-            m_handle, cudmOperator, term, /*duality=*/duality, make_cuDoubleComplex(1.0, 0.0),
-            wrappedCallback));
+            m_handle, cudmOperator, term, /*duality=*/duality,
+            make_cuDoubleComplex(1.0, 0.0), wrappedCallback));
       }
     }
   } else {
@@ -820,588 +582,63 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymat(
   return result;
 }
 
-std::vector<
-    std::pair<std::vector<cudaq::scalar_operator>, cudensitymatOperatorTerm_t>>
-cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
-    const std::vector<sum_op<cudaq::matrix_handler>> &batchedCollapseOps,
-    const std::vector<int64_t> &modeExtents,
-    const std::unordered_map<std::string, std::complex<double>> &parameters) {
-  if (batchedCollapseOps.empty())
-    return {};
+void cudaq::dynamics::CuDensityMatOpConverter::appendBatchedTermToOperator(
+    cudensitymatOperator_t op, cudensitymatOperatorTerm_t term,
+    const std::vector<scalar_operator> coeffs,
+    const std::vector<std::string> &paramNames) {
+  const auto batchSize = coeffs.size();
+  cudensitymatWrappedScalarCallback_t wrappedCallback =
+      cudensitymatScalarCallbackNone;
 
-  const bool allSameNumberOfTerms = std::all_of(
-      batchedCollapseOps.begin(), batchedCollapseOps.end(),
-      [&](const sum_op<cudaq::matrix_handler> &collapseOp) {
-        return collapseOp.num_terms() == batchedCollapseOps[0].num_terms();
-      });
-
-  if (!allSameNumberOfTerms)
-    throw std::invalid_argument(
-        "All collapse operators must have the same structure.");
-  std::vector<std::pair<std::vector<cudaq::scalar_operator>,
-                        cudensitymatOperatorTerm_t>>
-      lindbladTerms;
-  std::vector<std::vector<product_op<matrix_handler>>>
-      batchedCollapsedProdTerms;
-  for (std::size_t termIdx = 0; termIdx < batchedCollapseOps[0].num_terms();
-       ++termIdx) {
-    std::vector<product_op<matrix_handler>> termOps;
-    for (const auto &collapseOp : batchedCollapseOps) {
-      termOps.push_back(collapseOp[termIdx]);
+  if (batchSize == 1) {
+    auto &coeff = coeffs[0];
+    if (coeff.is_constant()) {
+      const auto coeffVal = coeff.evaluate();
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+          m_handle, op, term, 0,
+          make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
+          wrappedCallback));
+    } else {
+      wrappedCallback = wrapScalarCallback({coeff}, paramNames);
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
+          m_handle, op, term, 0, make_cuDoubleComplex(1.0, 0.0),
+          wrappedCallback));
     }
-    batchedCollapsedProdTerms.emplace_back(std::move(termOps));
-  }
-
-  for (const auto &collapseOp : batchedCollapsedProdTerms) {
-    const auto allSameDegrees =
-        std::all_of(collapseOp.begin(), collapseOp.end(),
-                    [&](const product_op<matrix_handler> &prodOp) {
-                      return prodOp.degrees() == collapseOp[0].degrees();
-                    });
-    if (!allSameDegrees) {
-      throw std::invalid_argument("All product terms in a collapse operator "
-                                  "must have the same degrees.");
-    }
-
-    const auto allSameOps = std::all_of(
-        collapseOp.begin(), collapseOp.end(),
-        [&](const product_op<matrix_handler> &prodOp) {
-          return prodOp.get_term_id() == collapseOp[0].get_term_id();
+  } else {
+    const bool allConstant = std::all_of(
+        coeffs.begin(), coeffs.end(), [](const cudaq::scalar_operator &scalar) {
+          return scalar.is_constant();
         });
 
-    if (!allSameOps) {
-      throw std::invalid_argument(
-          "All product terms in a collapse operator must have the same "
-          "elementary operators.");
-    }
-  }
-  // If this is a batched, no callback coefficient is allowed.
-  if (batchedCollapsedProdTerms.size() > 1) {
-    for (const auto &collapseOp : batchedCollapsedProdTerms) {
-      for (const auto &prodOp : collapseOp) {
-        if (!prodOp.get_coefficient().is_constant()) {
-          throw std::runtime_error(
-              "Non constant coefficients are not supported in batched "
-              "collapsed operators.");
-        }
+    if (allConstant) {
+      std::vector<std::complex<double>> batchedCoeffs;
+      batchedCoeffs.reserve(batchSize);
+      for (const auto &coeff : coeffs) {
+        batchedCoeffs.push_back(coeff.evaluate());
       }
-    }
-  }
-  const auto batchedSize = batchedCollapseOps.size();
-  for (const auto &l_ops : batchedCollapsedProdTerms) {
-    for (const auto &r_ops : batchedCollapsedProdTerms) {
-      assert(l_ops.size() == batchedSize && r_ops.size() == batchedSize);
-      auto &l_op = l_ops[0];
-      auto &r_op = r_ops[0];
-
-      std::vector<scalar_operator> coeffs;
-      for (std::size_t i = 0; i < batchedSize; ++i) {
-        coeffs.push_back(l_ops[i].get_coefficient() *
-                         computeDagger(r_ops[i].get_coefficient()));
-      }
-      auto ldag = computeDagger(r_op);
-      {
-        // L * rho * L_dag
-        std::vector<cudensitymatElementaryOperator_t> elemOps;
-        std::vector<std::vector<std::size_t>> allDegrees;
-        std::vector<std::vector<int>> all_action_dual_modalities;
-
-        for (const auto &component : l_op) {
-          if (const auto *elemOp =
-                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-            auto cudmElemOp =
-                createElementaryOperator({*elemOp}, parameters, modeExtents);
-            elemOps.emplace_back(cudmElemOp);
-            allDegrees.emplace_back(elemOp->degrees());
-            all_action_dual_modalities.emplace_back(
-                std::vector<int>(elemOp->degrees().size(), 0));
-          } else {
-            // Catch anything that we don't know
-            throw std::runtime_error("Unhandled type!");
-          }
-        }
-
-        for (const auto &component : ldag) {
-          if (const auto *elemOp =
-                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-            auto cudmElemOp =
-                createElementaryOperator({*elemOp}, parameters, modeExtents);
-            elemOps.emplace_back(cudmElemOp);
-            allDegrees.emplace_back(elemOp->degrees());
-            all_action_dual_modalities.emplace_back(
-                std::vector<int>(elemOp->degrees().size(), 1));
-          } else {
-            // Catch anything that we don't know
-            throw std::runtime_error("Unhandled type!");
-          }
-        }
-
-        cudensitymatOperatorTerm_t D1_term = createProductOperatorTerm(
-            elemOps, modeExtents, allDegrees, all_action_dual_modalities);
-        lindbladTerms.emplace_back(std::make_pair(coeffs, D1_term));
-      }
-
-      product_op<matrix_handler> L_daggerTimesL = -0.5 * ldag * l_op;
-      std::vector<scalar_operator> L_daggerTimesL_coeffs;
-      for (std::size_t i = 0; i < batchedSize; ++i) {
-        L_daggerTimesL_coeffs.push_back(
-            -0.5 * l_ops[i].get_coefficient() *
-            computeDagger(r_ops[i].get_coefficient()));
-      }
-      {
-        std::vector<cudensitymatElementaryOperator_t> elemOps;
-        std::vector<std::vector<std::size_t>> allDegrees;
-        std::vector<std::vector<int>> all_action_dual_modalities_left;
-        std::vector<std::vector<int>> all_action_dual_modalities_right;
-        for (const auto &component : L_daggerTimesL) {
-          if (const auto *elemOp =
-                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-            auto cudmElemOp =
-                createElementaryOperator({*elemOp}, parameters, modeExtents);
-            elemOps.emplace_back(cudmElemOp);
-            allDegrees.emplace_back(elemOp->degrees());
-            all_action_dual_modalities_left.emplace_back(
-                std::vector<int>(elemOp->degrees().size(), 0));
-            all_action_dual_modalities_right.emplace_back(
-                std::vector<int>(elemOp->degrees().size(), 1));
-          } else {
-            // Catch anything that we don't know
-            throw std::runtime_error("Unhandled type!");
-          }
-        }
-        {
-          // For left side, we need to reverse the order
-          std::vector<cudensitymatElementaryOperator_t> d2Ops(elemOps);
-          std::reverse(d2Ops.begin(), d2Ops.end());
-          std::vector<std::vector<std::size_t>> d2Degrees(allDegrees);
-          std::reverse(d2Degrees.begin(), d2Degrees.end());
-          cudensitymatOperatorTerm_t D2_term = createProductOperatorTerm(
-              d2Ops, modeExtents, d2Degrees, all_action_dual_modalities_left);
-          lindbladTerms.emplace_back(
-              std::make_pair(L_daggerTimesL_coeffs, D2_term));
-        }
-        {
-          cudensitymatOperatorTerm_t D3_term =
-              createProductOperatorTerm(elemOps, modeExtents, allDegrees,
-                                        all_action_dual_modalities_right);
-          lindbladTerms.emplace_back(
-              std::make_pair(L_daggerTimesL_coeffs, D3_term));
-        }
-      }
-    }
-  }
-  return lindbladTerms;
-}
-
-cudensitymatWrappedScalarCallback_t
-cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
-    const std::vector<scalar_operator> &scalarOps,
-    const std::vector<std::string> &paramNames) {
-  m_scalarCallbacks.push_back(ScalarCallBackContext(scalarOps, paramNames));
-  ScalarCallBackContext *storedCallbackContext = &m_scalarCallbacks.back();
-  using WrapperFuncType =
-      int32_t (*)(cudensitymatScalarCallback_t, double, int64_t, int32_t,
-                  const double[], cudaDataType_t, void *);
-
-  auto wrapper = [](cudensitymatScalarCallback_t callback, double time,
-                    int64_t batchSize, int32_t numParams, const double params[],
-                    cudaDataType_t dataType, void *scalarStorage) -> int32_t {
-    try {
-      ScalarCallBackContext *context =
-          reinterpret_cast<ScalarCallBackContext *>(callback);
-      if (numParams != 2 * context->paramNames.size())
-        throw std::runtime_error(
-            fmt::format("[Internal Error] Invalid number of callback "
-                        "parameters encountered. Expected {} double params "
-                        "representing {} complex values but received {}.",
-                        2 * context->paramNames.size(),
-                        context->paramNames.size(), numParams));
-      if (batchSize != context->scalarOps.size())
-        throw std::runtime_error(
-            fmt::format("[Internal Error] Invalid batch size encountered. "
-                        "Expected {} but received {}.",
-                        context->scalarOps.size(), batchSize));
-      auto *tdCoef = static_cast<std::complex<double> *>(scalarStorage);
-      std::unordered_map<std::string, std::complex<double>> param_map;
-      for (size_t i = 0; i < context->paramNames.size(); ++i) {
-        param_map[context->paramNames[i]] =
-            std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Callback param name {}, batch size {}, value {}",
-                     context->paramNames[i], batchSize,
-                     param_map[context->paramNames[i]]);
-      }
-      for (int64_t i = 0; i < batchSize; ++i) {
-        scalar_operator &storedOp = context->scalarOps[i];
-        tdCoef[i] = storedOp.is_constant() ? storedOp.evaluate()
-                                           : storedOp.evaluate(param_map);
-        cudaq::debug("Scalar callback constant value = {}", tdCoef[i]);
-      }
-      return CUDENSITYMAT_STATUS_SUCCESS;
-    } catch (const std::exception &e) {
-      std::cerr << "Error in scalar callback: " << e.what() << std::endl;
-      return CUDENSITYMAT_STATUS_INTERNAL_ERROR;
-    }
-  };
-
-  cudensitymatWrappedScalarCallback_t wrappedCallback;
-  wrappedCallback.callback =
-      reinterpret_cast<cudensitymatScalarCallback_t>(storedCallbackContext);
-  wrappedCallback.device = CUDENSITYMAT_CALLBACK_DEVICE_CPU;
-  wrappedCallback.wrapper =
-      reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
-  return wrappedCallback;
-}
-
-cudensitymatWrappedTensorCallback_t
-cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
-    const std::vector<matrix_handler> &matrixOps,
-    const std::vector<std::string> &paramNames) {
-  m_tensorCallbacks.push_back(TensorCallBackContext(matrixOps, paramNames));
-  TensorCallBackContext *storedCallbackContext = &m_tensorCallbacks.back();
-  using WrapperFuncType = int32_t (*)(
-      cudensitymatTensorCallback_t, cudensitymatElementaryOperatorSparsity_t,
-      int32_t, const int64_t[], const int32_t[], double, int64_t, int32_t,
-      const double[], cudaDataType_t, void *, cudaStream_t);
-
-  auto wrapper = [](cudensitymatTensorCallback_t callback,
-                    cudensitymatElementaryOperatorSparsity_t sparsity,
-                    int32_t num_modes, const int64_t modeExtents[],
-                    const int32_t diagonal_offsets[], double time,
-                    int64_t batchSize, int32_t num_params,
-                    const double params[], cudaDataType_t data_type,
-                    void *tensor_storage, cudaStream_t stream) -> int32_t {
-    try {
-      auto *context = reinterpret_cast<TensorCallBackContext *>(callback);
-      std::vector<matrix_handler> &storedOps = context->tensorOps;
-
-      if (num_modes <= 0) {
-        std::cerr << "num_modes is invalid: " << num_modes << std::endl;
-        return CUDENSITYMAT_STATUS_INVALID_VALUE;
-      }
-
-      if (num_params != 2 * context->paramNames.size())
-        throw std::runtime_error(
-            fmt::format("[Internal Error] Invalid number of tensor callback "
-                        "parameters. Expected {} double values "
-                        "representing {} complex parameters but received "
-                        "{}.",
-                        std::to_string(2 * context->paramNames.size()),
-                        std::to_string(context->paramNames.size()),
-                        std::to_string(num_params)));
-      if (batchSize != storedOps.size())
-        throw std::runtime_error(fmt::format(
-            "[Internal Error] Invalid batch size encountered. "
-            "Expected {} but received {}.",
-            std::to_string(storedOps.size()), std::to_string(batchSize)));
-
-      std::unordered_map<std::string, std::complex<double>> param_map;
-      for (size_t i = 0; i < context->paramNames.size(); ++i) {
-        param_map[context->paramNames[i]] =
-            std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Tensor callback param name {}, value {}",
-                     context->paramNames[i], param_map[context->paramNames[i]]);
-      }
-
-      cudaq::dimension_map dimensions;
-      std::size_t totalDim = 1;
-      for (std::size_t i = 0; i < num_modes; ++i) {
-        dimensions[i] = modeExtents[i];
-        totalDim *= modeExtents[i];
-      }
-
-      if (dimensions.empty()) {
-        std::cerr << "Dimension map is empty!" << std::endl;
-        return CUDENSITYMAT_STATUS_INVALID_VALUE;
-      }
-      const std::size_t tensorSize =
-          sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE
-              ? totalDim * totalDim * batchSize
-              : totalDim * batchSize;
-      const std::vector<std::complex<double>> flatMatrix = [&]() {
-        std::vector<std::complex<double>> flatMatrix;
-        flatMatrix.reserve(tensorSize);
-        for (const auto &storedOp : storedOps) {
-          if (sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE) {
-            // Flatten the matrix in column-major order
-            complex_matrix matrix_data =
-                storedOp.to_matrix(dimensions, param_map);
-            auto flattened = flattenMatrixColumnMajor(matrix_data);
-            flatMatrix.insert(flatMatrix.end(), flattened.begin(),
-                              flattened.end());
-          } else {
-            // Diagonal matrix case
-            auto [mDiagData, _] =
-                storedOp.to_diagonal_matrix(dimensions, param_map);
-            flatMatrix.insert(flatMatrix.end(), mDiagData.begin(),
-                              mDiagData.end());
-          }
-        }
-
-        return flatMatrix;
-      }();
-
-      if (data_type == CUDA_C_64F) {
-        memcpy(tensor_storage, flatMatrix.data(),
-               flatMatrix.size() * sizeof(cuDoubleComplex));
-      } else if (data_type == CUDA_C_32F) {
-        std::vector<std::complex<float>> flatMatrix_float(flatMatrix.begin(),
-                                                          flatMatrix.end());
-
-        memcpy(tensor_storage, flatMatrix_float.data(),
-               flatMatrix_float.size() * sizeof(cuFloatComplex));
-      } else {
-        std::cerr << "Invalid CUDA data type: " << data_type << std::endl;
-        return CUDENSITYMAT_STATUS_INVALID_VALUE;
-      }
-
-      return CUDENSITYMAT_STATUS_SUCCESS;
-    } catch (const std::exception &e) {
-      std::cerr << "Error in tensor callback: " << e.what() << std::endl;
-      return CUDENSITYMAT_STATUS_INTERNAL_ERROR;
-    }
-  };
-
-  cudensitymatWrappedTensorCallback_t wrappedCallback;
-  wrappedCallback.callback =
-      reinterpret_cast<cudensitymatTensorCallback_t>(storedCallbackContext);
-  wrappedCallback.device = CUDENSITYMAT_CALLBACK_DEVICE_CPU;
-  wrappedCallback.wrapper =
-      reinterpret_cast<void *>(static_cast<WrapperFuncType>(wrapper));
-
-  return wrappedCallback;
-}
-
-cudensitymatOperator_t
-cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
-    const std::vector<super_op> &superOps,
-    const std::vector<int64_t> &modeExtents,
-    const std::unordered_map<std::string, std::complex<double>> &parameters) {
-
-  const auto appendTermHelper = [this](
-                                    cudensitymatOperator_t liouvillian,
-                                    cudensitymatOperatorTerm_t term,
-                                    const std::vector<scalar_operator> coeffs,
-                                    std::size_t batchSize, const std::vector<std::string>& keys) {
-    cudensitymatWrappedScalarCallback_t wrappedCallback =
-        cudensitymatScalarCallbackNone;
-
-    if (batchSize == 1) {
-      auto &coeff = coeffs[0];
-      if (coeff.is_constant()) {
-        const auto coeffVal = coeff.evaluate();
-        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-            m_handle, liouvillian, term, 0,
-            make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
-            wrappedCallback));
-      } else {
-        wrappedCallback = wrapScalarCallback({coeff}, keys);
-        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
-            m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
-            wrappedCallback));
-      }
+      cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
+          cudaq::dynamics::createArrayGpu(batchedCoeffs));
+      m_deviceBuffers.emplace(staticCoefficients_d);
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
+          m_handle, op, term, /*duality=*/0,
+          /*batchSize=*/batchSize,
+          /*staticCoefficients=*/staticCoefficients_d, nullptr,
+          cudensitymatScalarCallbackNone));
     } else {
-      const bool allConstant =
-          std::all_of(coeffs.begin(), coeffs.end(),
-                      [](const cudaq::scalar_operator &scalar) {
-                        return scalar.is_constant();
-                      });
-
-      if (allConstant) {
-        std::vector<std::complex<double>> batchedCoeffs;
-        batchedCoeffs.reserve(batchSize);
-        for (const auto &coeff : coeffs) {
-          batchedCoeffs.push_back(coeff.evaluate());
-        }
-        cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
-            cudaq::dynamics::createArrayGpu(batchedCoeffs));
-        m_deviceBuffers.emplace(staticCoefficients_d);
-        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
-            m_handle, liouvillian, term, /*duality=*/0,
-            /*batchSize=*/batchSize,
-            /*staticCoefficients=*/staticCoefficients_d, nullptr,
-            cudensitymatScalarCallbackNone));
-      } else {
-        cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
-            cudaq::dynamics::createArrayGpu(std::vector<std::complex<double>>(
-                batchSize, std::complex<double>(1.0, 0.0))));
-        m_deviceBuffers.emplace(staticCoefficients_d);
-        cuDoubleComplex *totalCoefficients_d = static_cast<cuDoubleComplex *>(
-            cudaq::dynamics::createArrayGpu(std::vector<std::complex<double>>(
-                batchSize, std::complex<double>(0.0, 0.0))));
-        m_deviceBuffers.emplace(totalCoefficients_d);
-        wrappedCallback = wrapScalarCallback(coeffs, keys);
-        HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
-            m_handle, liouvillian, term, /*duality=*/0,
-            /*batchSize=*/batchSize,
-            /*staticCoefficients=*/staticCoefficients_d,
-            /*totalCoefficients=*/totalCoefficients_d, wrappedCallback));
-      }
-    }
-  };
-
-  LOG_API_TIME();
-  if (superOps.empty())
-    throw std::invalid_argument(
-        "Super-operator cannot be empty. At least one super-operator is "
-        "required.");
-  
-  cudensitymatOperator_t liouvillian;
-  HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
-      m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
-      &liouvillian));
-  // Append an operator term to the operator (super-operator)
-  // Handle the Hamiltonian
-  const std::map<std::string, std::complex<double>> sortedParameters(
-      parameters.begin(), parameters.end());
-  auto ks = std::views::keys(sortedParameters);
-  const std::vector<std::string> keys{ks.begin(), ks.end()};
-
-  const auto batchSize = superOps.size();
-  const auto hasLeftMultiplication = [](const super_op::term &term) {
-    return term.first.has_value();
-  };
-  const auto hasRightMultiplication = [](const super_op::term &term) {
-    return term.second.has_value();
-  };
-  for (std::size_t i = 1; i < batchSize; ++i) {
-    if (superOps[i].num_terms() != superOps[0].num_terms()) {
-      throw std::invalid_argument(
-          "All super-operators in the batch must have the same number of "
-          "terms.");
-    }
-
-    for (std::size_t j = 0; j < superOps[i].num_terms(); ++j) {
-      if (hasLeftMultiplication(superOps[i][j]) !=
-              hasLeftMultiplication(superOps[0][j]) ||
-          hasRightMultiplication(superOps[i][j]) !=
-              hasRightMultiplication(superOps[0][j])) {
-        throw std::invalid_argument(
-            "All super-operators in the batch must have the same structure");
-      }
+      cuDoubleComplex *staticCoefficients_d = static_cast<cuDoubleComplex *>(
+          cudaq::dynamics::createArrayGpu(std::vector<std::complex<double>>(
+              batchSize, std::complex<double>(1.0, 0.0))));
+      m_deviceBuffers.emplace(staticCoefficients_d);
+      cuDoubleComplex *totalCoefficients_d = static_cast<cuDoubleComplex *>(
+          cudaq::dynamics::createArrayGpu(std::vector<std::complex<double>>(
+              batchSize, std::complex<double>(0.0, 0.0))));
+      m_deviceBuffers.emplace(totalCoefficients_d);
+      wrappedCallback = wrapScalarCallback(coeffs, paramNames);
+      HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTermBatch(
+          m_handle, op, term, /*duality=*/0,
+          /*batchSize=*/batchSize,
+          /*staticCoefficients=*/staticCoefficients_d,
+          /*totalCoefficients=*/totalCoefficients_d, wrappedCallback));
     }
   }
-
-  for (std::size_t termId = 0; termId < superOps[0].num_terms(); ++termId) {
-    std::vector<cudaq::product_op<cudaq::matrix_handler>> leftOps;
-    std::vector<cudaq::product_op<cudaq::matrix_handler>> rightOps;
-    leftOps.reserve(batchSize);
-    rightOps.reserve(batchSize);
-    for (std::size_t i = 0; i < batchSize; ++i) {
-      if (superOps[i][termId].first.has_value())
-        leftOps.push_back(superOps[i][termId].first.value());
-      if (superOps[i][termId].second.has_value())
-        rightOps.push_back(superOps[i][termId].second.value());
-    }
-
-    const auto allSameDegrees =
-        [](const std::vector<cudaq::product_op<cudaq::matrix_handler>> &ops) {
-          return std::all_of(
-              ops.begin(), ops.end(),
-              [&](const cudaq::product_op<cudaq::matrix_handler> &op) {
-                return op.degrees() == ops[0].degrees();
-              });
-        };
-
-    if (!leftOps.empty()) {
-      if (!rightOps.empty()) {
-        if (leftOps.size() != rightOps.size()) {
-          throw std::invalid_argument(
-              "Left and right product terms in a super-operator must have the "
-              "same number of terms.");
-        }
-        if (!allSameDegrees(leftOps) || !allSameDegrees(rightOps)) {
-          throw std::invalid_argument(
-              "All product terms in a super-operator must have the same "
-              "degrees.");
-        }
-
-        std::vector<cudaq::scalar_operator> coeffs;
-        coeffs.reserve(batchSize);
-        // L * rho * R
-        std::vector<cudensitymatElementaryOperator_t> elemOps;
-        std::vector<std::vector<std::size_t>> allDegrees;
-        std::vector<std::vector<int>> all_action_dual_modalities;
-
-        const auto leftNumOps = leftOps[0].num_ops();
-        for (std::size_t i = 0; i < leftNumOps; ++i) {
-          std::vector<cudaq::matrix_handler> leftOpComponents;
-          for (const auto &leftOp : leftOps) {
-            const auto &component = leftOp[i];
-            if (const auto *elemOp =
-                    dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-              leftOpComponents.emplace_back(*elemOp);
-            } else {
-              // Catch anything that we don't know
-              throw std::runtime_error("Unhandled type!");
-            }
-          }
-
-          auto cudmElemOp = createElementaryOperator(leftOpComponents,
-                                                     parameters, modeExtents);
-          elemOps.emplace_back(cudmElemOp);
-          allDegrees.emplace_back(leftOps[0].degrees());
-          all_action_dual_modalities.emplace_back(
-              std::vector<int>(leftOps[0].degrees().size(), 0));
-        }
-
-
-        const auto rightNumOps = rightOps[0].num_ops();
-        for (std::size_t i = 0; i < rightNumOps; ++i) {
-          std::vector<cudaq::matrix_handler> rightOpComponents;
-          for (const auto &rightOp : rightOps) {
-            const auto &component = rightOp[i];
-            if (const auto *elemOp =
-                    dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-              rightOpComponents.emplace_back(*elemOp);
-            } else {
-              // Catch anything that we don't know
-              throw std::runtime_error("Unhandled type!");
-            }
-          }
-
-          auto cudmElemOp = createElementaryOperator(rightOpComponents,
-                                                     parameters, modeExtents);
-          elemOps.emplace_back(cudmElemOp);
-          allDegrees.emplace_back(rightOps[0].degrees());
-          all_action_dual_modalities.emplace_back(
-              std::vector<int>(rightOps[0].degrees().size(), 1));
-        }
-
-        for (std::size_t i = 0; i < batchSize; ++i) {
-          coeffs.push_back(leftOps[i].get_coefficient() *
-                           rightOps[i].get_coefficient());
-        }
-
-        cudensitymatOperatorTerm_t term = createProductOperatorTerm(
-            elemOps, modeExtents, allDegrees, all_action_dual_modalities);
-
-        appendTermHelper(liouvillian, term, coeffs, batchSize, keys);
-      } else {
-        std::vector<sum_op<cudaq::matrix_handler>> ops;
-        ops.reserve(batchSize);
-        for (const auto &leftOp : leftOps) {
-          ops.emplace_back(sum_op<cudaq::matrix_handler>(leftOp));
-        }
-        const auto duality = 0; // No duality for left multiplication
-        appendToCudensitymatOperator(liouvillian, parameters, ops, modeExtents,
-                                     duality);
-      }
-    } else {
-      if (!rightOps.empty()) {
-         std::vector<sum_op<cudaq::matrix_handler>> ops;
-        ops.reserve(batchSize);
-        for (const auto &rightOp : rightOps) {
-          ops.emplace_back(sum_op<cudaq::matrix_handler>(rightOp));
-        }
-        const auto duality = 1; // Duality for right multiplication
-        appendToCudensitymatOperator(liouvillian, parameters, ops, modeExtents,
-                                     duality);
-      } else {
-        throw std::runtime_error("Invalid super-operator term encountered: no "
-                                 "operation action is specified.");
-      }
-    }
-  }
-
-  return liouvillian;
 }

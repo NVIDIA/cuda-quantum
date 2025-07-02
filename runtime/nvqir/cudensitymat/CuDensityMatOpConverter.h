@@ -125,6 +125,14 @@ private:
       const std::vector<sum_op<cudaq::matrix_handler>> &ops,
       const std::vector<int64_t> &modeExtents, int32_t duality);
 
+  static std::vector<std::complex<double>>
+  flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix);
+
+  void appendBatchedTermToOperator(cudensitymatOperator_t op,
+                                   cudensitymatOperatorTerm_t term,
+                                   const std::vector<scalar_operator> coeffs,
+                                   const std::vector<std::string> &paramNames);
+
 private:
   cudensitymatHandle_t m_handle;
   // Things that we create that need to be cleaned up.
