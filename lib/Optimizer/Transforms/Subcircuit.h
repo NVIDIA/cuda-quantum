@@ -1,3 +1,4 @@
+#pragma once
 
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -14,39 +15,20 @@ using namespace mlir;
       MACRO(PhasedRxOp), MACRO(RyOp), MACRO(U2Op), MACRO(U3Op)
 #define RAW_CIRCUIT_BREAKERS CIRCUIT_BREAKERS(RAW)
 
-unsigned calculateSkip(Operation *op) {
-  auto i = 0;
-  for (auto type : op->getOperandTypes()) {
-    if (isa<quake::WireType>(type))
-      return i;
-    i++;
-  }
+unsigned calculateSkip(Operation *op);
 
-  return i;
-}
+Value getNextOperand(Value v);
 
-Value getNextOperand(Value v) {
-  auto result = dyn_cast<OpResult>(v);
-  auto op = result.getDefiningOp();
-  auto skip = calculateSkip(op);
-  auto operandIDX = result.getResultNumber() + skip;
-  return op->getOperand(operandIDX);
-}
+OpResult getNextResult(Value v);
 
-OpResult getNextResult(Value v) {
-  assert(v.hasOneUse());
-  auto correspondingOperand = v.getUses().begin();
-  auto op = correspondingOperand.getUser();
-  auto skip = calculateSkip(op);
-  auto resultIDX = correspondingOperand.getOperand()->getOperandNumber() - skip;
-  return op->getResult(resultIDX);
-}
+bool processed(Operation *op);
 
-inline bool processed(Operation *op) { return op->hasAttr("processed"); }
+void markProcessed(Operation *op);
 
-inline void markProcessed(Operation *op) {
-  op->setAttr("processed", OpBuilder(op).getUnitAttr());
-}
+// AXIS-SPECIFIC: could allow controlled y and z here
+bool isControlledOp(Operation *op);
+
+bool isTerminationPoint(Operation *op);
 
 class Subcircuit {
 protected:
@@ -65,24 +47,6 @@ protected:
     return isTerminationPoint(wire.getDefiningOp());
   }
 
-  bool isTerminationPoint(Operation *op) {
-    if (isa<RAW_CIRCUIT_BREAKERS>(op))
-      return true;
-
-    if (isa<quake::NullWireOp>(op))
-      return true;
-
-    auto opi = dyn_cast<quake::OperatorInterface>(op);
-
-    if (!opi)
-      return true;
-
-    // Only allow single control
-    if (opi.getControls().size() > 1)
-      return true;
-    return false;
-  }
-
   void maybeAddAnchorPoint(Value v) {
     if (!seen.contains(v))
       anchor_points.insert(v);
@@ -96,7 +60,7 @@ protected:
     }
     Operation *op = v.getUses().begin().getUser();
 
-    if (isTerminationPoint(op) || processed(op)) {
+    if (isTerminationPoint(op)) {
       termination_points.insert(v);
       return;
     }
@@ -128,7 +92,7 @@ protected:
     seen.insert(v);
     Operation *op = v.getDefiningOp();
 
-    if (isTerminationPoint(op) || processed(op)) {
+    if (isTerminationPoint(op)) {
       termination_points.insert(v);
       return;
     }
@@ -221,31 +185,25 @@ protected:
 public:
   /// @brief Constructs a subcircuit with a phase polynomial starting from a
   /// cnot
-  Subcircuit(Operation *cnot) {
-    calculateInitialSubcircuit(cnot);
-    pruneSubcircuit();
-    for (auto *op : ops)
-      markProcessed(op);
-    start = cnot;
+  Subcircuit(Operation *cnot);
 
-    for (auto wire : termination_points)
-      if (isAfterTerminationPoint(wire))
-        initial_wires.insert(wire);
-      else
-        terminal_wires.insert(wire);
-  }
+  /// @brief Reconstructs a subcircuit from a subcircuit function
+  Subcircuit(func::FuncOp subcircuit_func);
 
-  SetVector<Value> getInitialWires() { return initial_wires; }
+  SetVector<Value> getInitialWires();
 
-  SetVector<Value> getTerminalWires() { return terminal_wires; }
+  SetVector<Value> getTerminalWires();
 
-  bool isInSubcircuit(Operation *op) { return ops.contains(op); }
+  bool isInSubcircuit(Operation *op);
 
   // TODO: would be nice to make Subcircuit iterable directly
-  SetVector<Operation *> getOps() { return ops; }
+  SetVector<Operation *> getOps();
 
   /// @brief returns the number of wires in the subcircuit
-  size_t numWires() { return getInitialWires().size(); }
+  size_t numWires();
 
-  Operation *getStart() { return start; }
+  /// @brief returns the number of two-qubit operations in the subcircuit
+  size_t numCNots();
+
+  Operation *getStart();
 };
