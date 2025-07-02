@@ -416,6 +416,19 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/grovers.html">Grover’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/grovers.html#Overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/grovers.html#Problem">Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/grovers.html#Structure-of-Grover's-Algorithm">Structure of Grover’s Algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Step-1:-Preparation">Step 1: Preparation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Good-and-Bad-States">Good and Bad States</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Step-2:-Oracle-application">Step 2: Oracle application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Step-3:-Amplitude-amplification">Step 3: Amplitude amplification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement">Steps 4 and 5: Iteration and measurement</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
@@ -892,14 +905,17 @@ able to use it without any further installation steps.</p>
 <p><strong>Note</strong>: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12.</p>
 <blockquote>
 <div><p><strong>Important:</strong>
-Please check if you have an existing installation of the <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package, and uninstall it prior to installation. Different CUDA-Q binary distributions may conflict with each other causing issues.</p>
+Please check if you have an existing installation of the <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package, and uninstall it prior to
+installation. Different CUDA-Q binary distributions may conflict with each
+other causing issues.</p>
 </div></blockquote>
-<p>If you want to perform multi-GPU simulations, additional components must be installed. We
-recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do so. If you are
-not already using Conda, you can install a minimal version following the
-instructions <a class="reference external" href="https://docs.anaconda.com/miniconda/">here</a>. The following
-commands will create and activate a complete environment for CUDA-Q with all its
-dependencies:</p>
+<p>If you want to perform multi-GPU simulations, additional components must be
+installed. We recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do
+so. If you are not already using Conda, you can install a minimal version
+following <a class="reference external" href="https://docs.anaconda.com/miniconda/">miniconda instructions here</a>.
+The following commands will create and activate a complete environment for
+CUDA-Q with all its dependencies:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=12.4.0 # set this variable to version 11.x (where x &gt;= 8) or 12.x</span>
 <span class="go">conda create -y -n cudaq-env python=3.11 pip</span>
 <span class="go">conda install -y -n cudaq-env -c &quot;nvidia/label/cuda-${cuda_version}&quot; cuda</span>
@@ -911,6 +927,9 @@ dependencies:</p>
 <span class="go">source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activate_custom_mpi.sh</span>
 </pre></div>
 </div>
+<p><strong>Warning (conda-forge)</strong>: Installing <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> from the <code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> channel on recent versions of Python can lead to segmentation faults.
+If you see such errors, please switch to one of the Python versions 3.10.15, 3.11.10, or 3.12.7 as per the issue
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/2999">#2999</a> or <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/3104">#3104</a>.</p>
 <p>You must configure MPI by setting the following environment variables:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl=&#39;^openib&#39;</span>
 </pre></div>
