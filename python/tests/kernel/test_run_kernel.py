@@ -1059,6 +1059,53 @@ def test_unsupported_targets2(target):
     assert "not yet supported on this target" in repr(e)
     cudaq.reset_target()
 
+def test_dataclass_does_not_support_list_type():
+
+    @dataclass
+    class TestClass:
+        x: list
+        y: int
+
+    @cudaq.kernel
+    def kernel() -> TestClass:
+        return TestClass([1, 2, 3], 4)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=1)
+    assert "list type is not yet supported." in str(e.value)
+
+
+def test_dataclass_does_not_support_list_of_int_type():
+
+    @dataclass
+    class TestClass:
+        x: list[int]
+        y: int
+
+    @cudaq.kernel
+    def kernel() -> TestClass:
+        return TestClass([1, 2, 3], 4)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=1)
+    assert "list type is not yet supported." in str(e.value)
+
+
+def test_dataclass_does_not_support_list_of_float_type():
+
+    @dataclass
+    class TestClass:
+        x: list[float]
+        y: int
+
+    @cudaq.kernel
+    def kernel() -> TestClass:
+        return TestClass([1.2, 2.4, 3.6], 4)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=1)
+    assert "list type is not yet supported." in str(e.value)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
