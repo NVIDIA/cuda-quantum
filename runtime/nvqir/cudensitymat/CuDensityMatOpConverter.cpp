@@ -367,8 +367,12 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
         "Elementary operator cannot be created from an empty vector of "
         "elementary operators.");
   }
-
-  const bool isBatched = elemOps.size() > 1;
+  const bool allSame = [&]() {
+    const auto &firstOp = elemOps[0];
+    return std::all_of(elemOps.begin(), elemOps.end(),
+                       [&firstOp](const auto &op) { return op == firstOp; });
+  }();
+  const bool isBatched = elemOps.size() > 1 && !allSame;
   if (isBatched) {
     // Check that the elementary operators have the same degrees.
     const auto &firstOp = elemOps[0];
@@ -409,19 +413,24 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     return opNames;
   }();
 
-  // TODO: support for batched elementary operators defined as callback tensors
-  if (!isBatched) {
-    // This is a callback
-    if (!parameters.empty() &&
-        std::find(g_knownNonParametricOps.begin(),
-                  g_knownNonParametricOps.end(), elemOps[0].to_string(false)) ==
-            g_knownNonParametricOps.end()) {
-      const std::map<std::string, std::complex<double>> sortedParameters(
-          parameters.begin(), parameters.end());
-      auto ks = std::views::keys(sortedParameters);
-      const std::vector<std::string> keys{ks.begin(), ks.end()};
-      wrappedTensorCallback = wrapTensorCallback(elemOps[0], keys);
+  const bool isCallbackTensor = [&]() {
+    for (const auto &elemOp : elemOps) {
+      if (std::find(g_knownNonParametricOps.begin(),
+                    g_knownNonParametricOps.end(),
+                    elemOp.to_string(false)) == g_knownNonParametricOps.end()) {
+        return true;
+      }
     }
+    return false;
+  }();
+
+  // This is a callback
+  if (!parameters.empty() && isCallbackTensor) {
+    const std::map<std::string, std::complex<double>> sortedParameters(
+        parameters.begin(), parameters.end());
+    auto ks = std::views::keys(sortedParameters);
+    const std::vector<std::string> keys{ks.begin(), ks.end()};
+    wrappedTensorCallback = wrapTensorCallback(elemOps, keys);
   }
 
   const auto batchSize = elemOps.size();
@@ -1045,9 +1054,9 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
 
 cudensitymatWrappedTensorCallback_t
 cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
-    const matrix_handler &matrixOp,
+    const std::vector<matrix_handler> &matrixOps,
     const std::vector<std::string> &paramNames) {
-  m_tensorCallbacks.push_back(TensorCallBackContext(matrixOp, paramNames));
+  m_tensorCallbacks.push_back(TensorCallBackContext(matrixOps, paramNames));
   TensorCallBackContext *storedCallbackContext = &m_tensorCallbacks.back();
   using WrapperFuncType = int32_t (*)(
       cudensitymatTensorCallback_t, cudensitymatElementaryOperatorSparsity_t,
@@ -1063,7 +1072,7 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
                     void *tensor_storage, cudaStream_t stream) -> int32_t {
     try {
       auto *context = reinterpret_cast<TensorCallBackContext *>(callback);
-      matrix_handler &storedOp = context->tensorOp;
+      std::vector<matrix_handler> &storedOps = context->tensorOps;
 
       if (num_modes <= 0) {
         std::cerr << "num_modes is invalid: " << num_modes << std::endl;
@@ -1079,6 +1088,11 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
                         std::to_string(2 * context->paramNames.size()),
                         std::to_string(context->paramNames.size()),
                         std::to_string(num_params)));
+      if (batchSize != storedOps.size())
+        throw std::runtime_error(fmt::format(
+            "[Internal Error] Invalid batch size encountered. "
+            "Expected {} but received {}.",
+            std::to_string(storedOps.size()), std::to_string(batchSize)));
 
       std::unordered_map<std::string, std::complex<double>> param_map;
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
@@ -1089,23 +1103,41 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
       }
 
       cudaq::dimension_map dimensions;
+      std::size_t totalDim = 1;
       for (std::size_t i = 0; i < num_modes; ++i) {
         dimensions[i] = modeExtents[i];
+        totalDim *= modeExtents[i];
       }
 
       if (dimensions.empty()) {
         std::cerr << "Dimension map is empty!" << std::endl;
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
       }
+      const std::size_t tensorSize =
+          sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE
+              ? totalDim * totalDim * batchSize
+              : totalDim * batchSize;
       const std::vector<std::complex<double>> flatMatrix = [&]() {
-        if (sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE) {
-          complex_matrix matrix_data =
-              storedOp.to_matrix(dimensions, param_map);
-          return flattenMatrixColumnMajor(matrix_data);
+        std::vector<std::complex<double>> flatMatrix;
+        flatMatrix.reserve(tensorSize);
+        for (const auto &storedOp : storedOps) {
+          if (sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE) {
+            // Flatten the matrix in column-major order
+            complex_matrix matrix_data =
+                storedOp.to_matrix(dimensions, param_map);
+            auto flattened = flattenMatrixColumnMajor(matrix_data);
+            flatMatrix.insert(flatMatrix.end(), flattened.begin(),
+                              flattened.end());
+          } else {
+            // Diagonal matrix case
+            auto [mDiagData, _] =
+                storedOp.to_diagonal_matrix(dimensions, param_map);
+            flatMatrix.insert(flatMatrix.end(), mDiagData.begin(),
+                              mDiagData.end());
+          }
         }
-        auto [mDiagData, _] =
-            storedOp.to_diagonal_matrix(dimensions, param_map);
-        return mDiagData;
+
+        return flatMatrix;
       }();
 
       if (data_type == CUDA_C_64F) {
