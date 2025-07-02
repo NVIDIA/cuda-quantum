@@ -530,6 +530,8 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
   if (isa<cc::SpanLikeType, cc::ArrayType, cc::CallableType>(resTy))
     return true;
   if (auto strTy = dyn_cast<cc::StructType>(resTy)) {
+    if (strTy.getMembers().empty())
+      return false;
     SmallVector<Type> packedTys;
     bool inRegisters = shouldExpand(packedTys, strTy) || !packedTys.empty();
     return !inRegisters;
