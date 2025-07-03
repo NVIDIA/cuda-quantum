@@ -74,11 +74,11 @@ bool checkBatchingCompatibility(
 
   // Sort by degrees
   for (auto &productOps : productOpsList) {
-    std::sort(productOps.begin(), productOps.end(),
-              [](const product_op<cudaq::matrix_handler> &a,
-                 const product_op<cudaq::matrix_handler> &b) {
-                return a.degrees() < b.degrees();
-              });
+    std::ranges::stable_sort(productOps.begin(), productOps.end(),
+                             [](const product_op<cudaq::matrix_handler> &a,
+                                const product_op<cudaq::matrix_handler> &b) {
+                               return a.degrees() < b.degrees();
+                             });
   }
 
   // Use the first product_op as a reference

@@ -242,6 +242,87 @@ TEST(BatchedEvolveTester, checkBatchedCollapseOps) {
   }
 }
 
+TEST(BatchedEvolveTester, checkBatchedDifferentCollapseOps) {
+  auto annihilate_matrix =
+      [](const std::vector<int64_t> &dimensions,
+         const std::unordered_map<std::string, std::complex<double>>
+             &parameters) -> cudaq::complex_matrix {
+    std::size_t dimension = dimensions[0];
+    auto annihilate = cudaq::complex_matrix(dimension, dimension);
+    for (std::size_t i = 0; i + 1 < dimension; i++) {
+      annihilate[{i, i + 1}] = std::sqrt(static_cast<double>(i + 1));
+    }
+    return annihilate;
+  };
+
+  cudaq::matrix_handler::define("my_annihilate_op", {-1}, annihilate_matrix);
+
+  auto annihilate_op = [](std::size_t degree) {
+    return cudaq::matrix_handler::instantiate("my_annihilate_op", {degree});
+  };
+
+  // Batching the decay rates
+  std::vector<double> decayRates = {0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4};
+  constexpr int N = 10;
+  constexpr int numSteps = 101;
+  cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
+  auto hamiltonian = cudaq::boson_op::number(0);
+  const cudaq::dimension_map dimensions{{0, N}};
+  std::vector<std::complex<double>> psi0_(N, 0.0);
+  psi0_.back() = 1.0;
+  auto psi0 = cudaq::state::from_data(psi0_);
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> batchedHams;
+  std::vector<std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
+      batchedCollapsedOps;
+  std::vector<cudaq::state> initialStates;
+  int i = 0;
+  for (const auto &decayRate : decayRates) {
+    // Same hamiltonian, but different collapse operators
+    batchedHams.emplace_back(cudaq::sum_op<cudaq::matrix_handler>(hamiltonian));
+    // We alternately use boson annihilate and custom annihilate
+    // operator to test the batching of different collapse operators.
+    if (i % 2 == 0) {
+      batchedCollapsedOps.emplace_back(
+          std::vector<cudaq::sum_op<cudaq::matrix_handler>>{
+              cudaq::sum_op<cudaq::matrix_handler>(
+                  std::sqrt(decayRate) * cudaq::boson_op::annihilate(0))});
+    } else {
+      batchedCollapsedOps.emplace_back(
+          std::vector<cudaq::sum_op<cudaq::matrix_handler>>{
+              cudaq::sum_op<cudaq::matrix_handler>(std::sqrt(decayRate) *
+                                                   annihilate_op(0))});
+    }
+    i++;
+    initialStates.emplace_back(psi0);
+  }
+
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto results = cudaq::__internal__::evolveBatched(
+      batchedHams, dimensions, schedule, initialStates, integrator,
+      batchedCollapsedOps, {cudaq::sum_op<cudaq::matrix_handler>(hamiltonian)},
+      cudaq::IntermediateResultSave::ExpectationValue);
+  EXPECT_EQ(results.size(), decayRates.size());
+  std::vector<std::vector<double>> theoryResults;
+  for (const auto &t : schedule) {
+    std::vector<double> expectedResults;
+    for (const auto &decayRate : decayRates) {
+      expectedResults.emplace_back((N - 1) * std::exp(-decayRate * t.real()));
+    }
+    theoryResults.emplace_back(expectedResults);
+  }
+
+  for (std::size_t i = 0; i < results.size(); ++i) {
+    EXPECT_TRUE(results[i].expectation_values.has_value());
+    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+    int count = 0;
+    for (auto expVals : results[i].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+    }
+  }
+}
+
 TEST(BatchedEvolveTester, checkTimeDependentHamiltonian) {
   const cudaq::dimension_map dims = {{0, 2}};
   std::vector<double> resonanceFreqs = {0.05, 0.1, 0.15, 0.2,

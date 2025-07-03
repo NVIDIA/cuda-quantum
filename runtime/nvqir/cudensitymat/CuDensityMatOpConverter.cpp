@@ -57,6 +57,42 @@ cudaq::dynamics::CuDensityMatOpConverter::flattenMatrixColumnMajor(
   return flatMatrix;
 }
 
+std::vector<std::vector<cudaq::product_op<cudaq::matrix_handler>>>
+cudaq::dynamics::CuDensityMatOpConverter::splitToBatch(
+    const std::vector<sum_op<cudaq::matrix_handler>> &ops) {
+  if (ops.empty())
+    throw std::invalid_argument("At least 1 operator is required");
+  const std::size_t num_terms = ops.front().num_terms();
+  for (std::size_t i = 1; i < ops.size(); ++i) {
+    if (ops[i].num_terms() != num_terms) {
+      throw std::invalid_argument(
+          "All operators must have the same number of terms");
+    }
+  }
+
+  // Split the operators into batches.
+  std::vector<std::vector<product_op<cudaq::matrix_handler>>> batches(
+      ops.size());
+  for (auto &productOps : batches) {
+    productOps.reserve(num_terms);
+  }
+  for (std::size_t i = 0; i < ops.size(); ++i) {
+    for (std::size_t j = 0; j < num_terms; ++j) {
+      batches[i].emplace_back(ops[i][j]);
+    }
+  }
+  for (auto &productOps : batches) {
+    // Sort the product terms by their degrees.
+    std::ranges::stable_sort(productOps.begin(), productOps.end(),
+                             [](const product_op<cudaq::matrix_handler> &lhs,
+                                const product_op<cudaq::matrix_handler> &rhs) {
+                               // Compare the degrees of the product terms.
+                               return lhs.degrees() < rhs.degrees();
+                             });
+  }
+  return batches;
+}
+
 cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
     cudensitymatHandle_t handle)
     : m_handle(handle) {
@@ -415,13 +451,16 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
       }
     }
   } else {
+    // Split the operators into batches.
+    auto batchedProductTerms = splitToBatch(ops);
+    const auto numberProductTerms = batchedProductTerms[0].size();
     for (std::size_t termIdx = 0; termIdx < numberProductTerms; ++termIdx) {
       std::vector<cudaq::product_op<cudaq::matrix_handler>> prodTerms;
       std::vector<std::complex<double>> batchedProductTermCoeffs;
       bool allConstant = true;
-      for (const auto &hamiltonian : ops) {
-        prodTerms.emplace_back(hamiltonian[termIdx]);
-        const auto coeffVal = hamiltonian[termIdx].get_coefficient();
+      for (const auto &productTerms : batchedProductTerms) {
+        prodTerms.emplace_back(productTerms[termIdx]);
+        const auto coeffVal = productTerms[termIdx].get_coefficient();
         if (!coeffVal.is_constant()) {
           allConstant = false;
         }

@@ -128,6 +128,9 @@ private:
   static std::vector<std::complex<double>>
   flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix);
 
+  static std::vector<std::vector<product_op<cudaq::matrix_handler>>>
+  splitToBatch(const std::vector<sum_op<cudaq::matrix_handler>> &ops);
+
   void appendBatchedTermToOperator(cudensitymatOperator_t op,
                                    cudensitymatOperatorTerm_t term,
                                    const std::vector<scalar_operator> coeffs,

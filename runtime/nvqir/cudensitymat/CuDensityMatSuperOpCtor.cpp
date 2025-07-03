@@ -115,29 +115,11 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
     const std::unordered_map<std::string, std::complex<double>> &parameters) {
   if (batchedCollapseOps.empty())
     return {};
-
-  const bool allSameNumberOfTerms = std::all_of(
-      batchedCollapseOps.begin(), batchedCollapseOps.end(),
-      [&](const sum_op<cudaq::matrix_handler> &collapseOp) {
-        return collapseOp.num_terms() == batchedCollapseOps[0].num_terms();
-      });
-
-  if (!allSameNumberOfTerms)
-    throw std::invalid_argument(
-        "All collapse operators must have the same structure.");
+  // Split the collapse operators into batched product terms.
+  auto batchedCollapsedProdTerms = splitToBatch(batchedCollapseOps);
   std::vector<std::pair<std::vector<cudaq::scalar_operator>,
                         cudensitymatOperatorTerm_t>>
       lindbladTerms;
-  std::vector<std::vector<product_op<matrix_handler>>>
-      batchedCollapsedProdTerms;
-  for (std::size_t termIdx = 0; termIdx < batchedCollapseOps[0].num_terms();
-       ++termIdx) {
-    std::vector<product_op<matrix_handler>> termOps;
-    for (const auto &collapseOp : batchedCollapseOps) {
-      termOps.push_back(collapseOp[termIdx]);
-    }
-    batchedCollapsedProdTerms.emplace_back(std::move(termOps));
-  }
 
   for (const auto &collapseOp : batchedCollapsedProdTerms) {
     const auto allSameDegrees =
@@ -149,113 +131,127 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
       throw std::invalid_argument("All product terms in a collapse operator "
                                   "must have the same degrees.");
     }
-
-    const auto allSameOps = std::all_of(
-        collapseOp.begin(), collapseOp.end(),
-        [&](const product_op<matrix_handler> &prodOp) {
-          return prodOp.get_term_id() == collapseOp[0].get_term_id();
-        });
-
-    if (!allSameOps) {
-      throw std::invalid_argument(
-          "All product terms in a collapse operator must have the same "
-          "elementary operators.");
-    }
   }
-  // If this is a batched, no callback coefficient is allowed.
-  if (batchedCollapsedProdTerms.size() > 1) {
-    for (const auto &collapseOp : batchedCollapsedProdTerms) {
-      for (const auto &prodOp : collapseOp) {
-        if (!prodOp.get_coefficient().is_constant()) {
-          throw std::runtime_error(
-              "Non constant coefficients are not supported in batched "
-              "collapsed operators.");
-        }
-      }
-    }
-  }
-  const auto batchedSize = batchedCollapseOps.size();
-  for (const auto &l_ops : batchedCollapsedProdTerms) {
-    for (const auto &r_ops : batchedCollapsedProdTerms) {
-      assert(l_ops.size() == batchedSize && r_ops.size() == batchedSize);
-      auto &l_op = l_ops[0];
-      auto &r_op = r_ops[0];
 
-      std::vector<scalar_operator> coeffs;
+  const auto batchedSize = batchedCollapsedProdTerms.size();
+  const auto numberProductTerms = batchedCollapsedProdTerms[0].size();
+  for (std::size_t leftProdTermIdx = 0; leftProdTermIdx < numberProductTerms;
+       ++leftProdTermIdx) {
+    for (std::size_t rightProdTermIdx = 0;
+         rightProdTermIdx < numberProductTerms; ++rightProdTermIdx) {
+      std::vector<product_op<matrix_handler>> l_ops;
+      std::vector<product_op<matrix_handler>> r_ops;
+      l_ops.reserve(batchedSize);
+      r_ops.reserve(batchedSize);
       for (std::size_t i = 0; i < batchedSize; ++i) {
-        coeffs.push_back(l_ops[i].get_coefficient() *
-                         computeDagger(r_ops[i].get_coefficient()));
+        l_ops.push_back(batchedCollapsedProdTerms[i][leftProdTermIdx]);
+        r_ops.push_back(batchedCollapsedProdTerms[i][rightProdTermIdx]);
       }
-      auto ldag = computeDagger(r_op);
+      // L * rho * L_dagger
       {
-        // L * rho * L_dag
+        std::vector<scalar_operator> coeffs;
+        coeffs.reserve(batchedSize);
         std::vector<cudensitymatElementaryOperator_t> elemOps;
         std::vector<std::vector<std::size_t>> allDegrees;
         std::vector<std::vector<int>> all_action_dual_modalities;
-
-        for (const auto &component : l_op) {
-          if (const auto *elemOp =
-                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-            auto cudmElemOp =
-                createElementaryOperator({*elemOp}, parameters, modeExtents);
-            elemOps.emplace_back(cudmElemOp);
-            allDegrees.emplace_back(elemOp->degrees());
-            all_action_dual_modalities.emplace_back(
-                std::vector<int>(elemOp->degrees().size(), 0));
-          } else {
-            // Catch anything that we don't know
-            throw std::runtime_error("Unhandled type!");
-          }
+        for (std::size_t i = 0; i < batchedSize; ++i) {
+          coeffs.push_back(l_ops[i].get_coefficient() *
+                           computeDagger(r_ops[i].get_coefficient()));
         }
-
-        for (const auto &component : ldag) {
-          if (const auto *elemOp =
-                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-            auto cudmElemOp =
-                createElementaryOperator({*elemOp}, parameters, modeExtents);
-            elemOps.emplace_back(cudmElemOp);
-            allDegrees.emplace_back(elemOp->degrees());
-            all_action_dual_modalities.emplace_back(
-                std::vector<int>(elemOp->degrees().size(), 1));
-          } else {
-            // Catch anything that we don't know
-            throw std::runtime_error("Unhandled type!");
+        const auto leftNumOps = l_ops[0].num_ops();
+        for (std::size_t i = 0; i < leftNumOps; ++i) {
+          std::vector<cudaq::matrix_handler> leftOpComponents;
+          for (const auto &leftOp : l_ops) {
+            const auto &component = leftOp[i];
+            if (const auto *elemOp =
+                    dynamic_cast<const cudaq::matrix_handler *>(&component)) {
+              leftOpComponents.emplace_back(*elemOp);
+            } else {
+              // Catch anything that we don't know
+              throw std::runtime_error("Unhandled type!");
+            }
           }
-        }
 
+          auto cudmElemOp = createElementaryOperator(leftOpComponents,
+                                                     parameters, modeExtents);
+          elemOps.emplace_back(cudmElemOp);
+          allDegrees.emplace_back(l_ops[0][i].degrees());
+          all_action_dual_modalities.emplace_back(
+              std::vector<int>(l_ops[0][i].degrees().size(), 0));
+        }
+        auto ldags = r_ops;
+        for (auto &ldag : ldags) {
+          ldag = computeDagger(ldag);
+        }
+        const auto rightNumOps = ldags[0].num_ops();
+        for (std::size_t i = 0; i < rightNumOps; ++i) {
+          std::vector<cudaq::matrix_handler> rightOpComponents;
+          for (const auto &rightOp : ldags) {
+            const auto &component = rightOp[i];
+            if (const auto *elemOp =
+                    dynamic_cast<const cudaq::matrix_handler *>(&component)) {
+              rightOpComponents.emplace_back(*elemOp);
+            } else {
+              // Catch anything that we don't know
+              throw std::runtime_error("Unhandled type!");
+            }
+          }
+
+          auto cudmElemOp = createElementaryOperator(rightOpComponents,
+                                                     parameters, modeExtents);
+          elemOps.emplace_back(cudmElemOp);
+          allDegrees.emplace_back(ldags[0][i].degrees());
+          all_action_dual_modalities.emplace_back(
+              std::vector<int>(ldags[0][i].degrees().size(), 1));
+        }
         cudensitymatOperatorTerm_t D1_term = createProductOperatorTerm(
             elemOps, modeExtents, allDegrees, all_action_dual_modalities);
         lindbladTerms.emplace_back(std::make_pair(coeffs, D1_term));
       }
 
-      product_op<matrix_handler> L_daggerTimesL = -0.5 * ldag * l_op;
+      std::vector<product_op<matrix_handler>> L_daggerTimesL;
       std::vector<scalar_operator> L_daggerTimesL_coeffs;
+      L_daggerTimesL.reserve(batchedSize);
+      L_daggerTimesL_coeffs.reserve(batchedSize);
       for (std::size_t i = 0; i < batchedSize; ++i) {
-        L_daggerTimesL_coeffs.push_back(
-            -0.5 * l_ops[i].get_coefficient() *
-            computeDagger(r_ops[i].get_coefficient()));
+        // -0.5 * L_dagger * L
+        auto ldag = computeDagger(r_ops[i]);
+        auto l_op = l_ops[i];
+        L_daggerTimesL.emplace_back(-0.5 * ldag * l_op);
+        L_daggerTimesL_coeffs.push_back(-0.5 * l_ops[i].get_coefficient() *
+                                        ldag.get_coefficient());
       }
+
       {
         std::vector<cudensitymatElementaryOperator_t> elemOps;
         std::vector<std::vector<std::size_t>> allDegrees;
         std::vector<std::vector<int>> all_action_dual_modalities_left;
         std::vector<std::vector<int>> all_action_dual_modalities_right;
-        for (const auto &component : L_daggerTimesL) {
-          if (const auto *elemOp =
-                  dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-            auto cudmElemOp =
-                createElementaryOperator({*elemOp}, parameters, modeExtents);
-            elemOps.emplace_back(cudmElemOp);
-            allDegrees.emplace_back(elemOp->degrees());
-            all_action_dual_modalities_left.emplace_back(
-                std::vector<int>(elemOp->degrees().size(), 0));
-            all_action_dual_modalities_right.emplace_back(
-                std::vector<int>(elemOp->degrees().size(), 1));
-          } else {
-            // Catch anything that we don't know
-            throw std::runtime_error("Unhandled type!");
+
+        const auto numOps = L_daggerTimesL[0].num_ops();
+        for (std::size_t i = 0; i < numOps; ++i) {
+          std::vector<cudaq::matrix_handler> components;
+          for (const auto &prodOp : L_daggerTimesL) {
+            const auto &component = prodOp[i];
+            if (const auto *elemOp =
+                    dynamic_cast<const cudaq::matrix_handler *>(&component)) {
+              components.emplace_back(*elemOp);
+            } else {
+              // Catch anything that we don't know
+              throw std::runtime_error("Unhandled type!");
+            }
           }
+
+          auto cudmElemOp =
+              createElementaryOperator(components, parameters, modeExtents);
+          elemOps.emplace_back(cudmElemOp);
+          allDegrees.emplace_back(L_daggerTimesL[0][i].degrees());
+          all_action_dual_modalities_left.emplace_back(
+              std::vector<int>(L_daggerTimesL[0][i].degrees().size(), 0));
+          all_action_dual_modalities_right.emplace_back(
+              std::vector<int>(L_daggerTimesL[0][i].degrees().size(), 1));
         }
+
         {
           // For left side, we need to reverse the order
           std::vector<cudensitymatElementaryOperator_t> d2Ops(elemOps);
