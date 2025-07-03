@@ -1079,7 +1079,7 @@ def test_dataclass_not_frozen_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_not_frozen_dataclass, shots_count=1)
-    assert "dataclass `NotFrozen` must be declared with @dataclass(frozen=True) or @dataclasses.dataclass(frozen=True)." in str(
+    assert "Assigning to fields in data classes is not yet supported. Thedataclass `NotFrozen` must be declared with @dataclass(frozen=True) or @dataclasses.dataclass(frozen=True)." in str(
         e.value)
 
 
@@ -1097,7 +1097,7 @@ def test_dataclasses_dot_dataclass_not_frozen_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_not_frozen_dataclass, shots_count=1)
-    assert "dataclass `NotFrozen` must be declared with @dataclass(frozen=True) or @dataclasses.dataclass(frozen=True)." in str(
+    assert "Assigning to fields in data classes is not yet supported. The dataclass `NotFrozen` must be declared with @dataclass(frozen=True) or @dataclasses.dataclass(frozen=True)." in str(
         e.value)
 
 
