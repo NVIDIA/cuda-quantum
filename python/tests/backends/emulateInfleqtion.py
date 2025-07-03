@@ -10,6 +10,7 @@ import cudaq, pytest, os
 from cudaq import spin
 import numpy as np
 
+
 @pytest.fixture(scope="session", autouse=True)
 def do_something():
     cudaq.set_target("infleqtion", emulate=True)
@@ -28,7 +29,7 @@ def test_deep_exp_pauli():
         for word in words:
             exp_pauli(0.5, q, word)
         mz(q)
-    
+
     words = ["XXI", "YYI", "IXX", "IYY"]
     counts = cudaq.sample(example, 3, words)
 
