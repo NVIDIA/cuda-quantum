@@ -1068,7 +1068,7 @@ def test_unsupported_targets_2(target):
     cudaq.reset_target()
 def test_dataclass_not_frozen_error():
 
-    @dataclass
+    @dataclass(frozen=True)
     class NotFrozen:
         x: int
         y: int
