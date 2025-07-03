@@ -13,7 +13,6 @@ import numpy as np
 import os
 import sys
 from collections import deque
-from typing import get_origin
 
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, load_intrinsic, gen_vector_of_complex_constant,
@@ -52,6 +51,8 @@ State = cudaq_runtime.State
 # (see CCOps.tc line 898). We'll duplicate that
 # here by just setting it manually
 kDynamicPtrIndex: int = -2147483648
+
+ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool]
 
 
 class PyScopedSymbolTable(object):
@@ -2176,10 +2177,9 @@ class PyASTBridge(ast.NodeVisitor):
                     node.func.id)
 
                 for var, typ in annotations.items():
-                    origin = get_origin(typ)
-                    if origin is list or typ is list:
+                    if typ not in ALLOWED_TYPES_IN_A_DATACLASS:
                         self.emitFatalError(
-                            f'`list` type is not yet supported in data classes.',
+                            f'`{typ}` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}.',
                             node)
 
                 # Alloca the struct
