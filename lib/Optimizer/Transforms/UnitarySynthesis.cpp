@@ -440,26 +440,108 @@ struct TwoQubitOpKAK : public Decomposer {
 /// https://nhigham.com/2020/10/27/what-is-the-cs-decomposition/
 
 
-std::tuple<VectorXcd, complex<double>> create_householder(const VectorXcd& x){
-  VectorXcd v = x +
+Eigen::VectorXcd householdervector(const VectorXcd& x){
+  double norm = x.norm();
+  std::complex<double> sign = (x(0) == std::complex<double>(0.0, 0.0)) ? 1.0 : (x1/std::abs(x(0)));
+  std::complex<double> alpha = sign * norm;
+  Eigen::VectorXcd v = x;
+  v(0) += alpha; // Might need to subtract instead
+  return v;
 }
 
+Eigen::MatrixXcd createhouseholder(const VectorXcd& x){
+  Eigen::VectorXcd v = householdervector(x);
+  double tau = 2.0 / (v.squarednorm());
+  Eigen::MatrixXcd house = Eigen::MatrixXcd::Identity(v.size(), v.size()) - tau * v * v.adjoint();
+  return house;
+}
+
+Eigen::MatrixXcd createmultiplexor(const Eigen::MatrixXcd &firstmatrix, const Eigen::MatrixXcd &secondmatrix){
+  Eigen::MatrixXcd multiplexedmatrix = Eigen::MatrixXcd::Identity(firstmatrix.rows() + secondmatrix.rows(), firstmatrix.cols() + secondmatrix.cols());
+
+  multiplexedmatrix.block(0, 0, firstmatrix.rows(), firstmatrix.cols()) = firstmatrix;
+  multiplexedmatrix.block(firstmatrix.rows(), firstmatrix.cols(), secondmatrix.rows(), secondmatrix.cols()) = secondmatrix;
+
+  return multiplexedmatrix;
+}
 
 std::tuple<Eigen::MatrixXcd, Eigen::MatrixXcd, Eigen::MatrixXcd>
 blockbidiagonalize(const Eigen::MatrixXcd &matrix){
-  int p = 4, q = 4;
+  int p = 4, q = 4, m = 8;
+  std::vector<double> theta, phi;
+  Eigen::MatrixXcd Y = matrix;
   Eigen::MatrixXcd P1 = Eigen::MatrixXcd::Identity(p, p);
   Eigen::MatrixXcd P2 = Eigen::MatrixXcd::Identity(p, p);
   Eigen::MatrixXcd Q1 = Eigen::MatrixXcd::Identity(p, p);
   Eigen::MatrixXcd Q2 = Eigen::MatrixXcd::Identity(p, p);
+
+  Eigen::MatrixXcd P1_i = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd P2_i = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd Q1_i = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd Q2_i = Eigen::MatrixXcd::Identity(p, p);
 
   Eigen::VectorXcd u1;
   Eigen::VectorXcd u2;
   Eigen::VectorXcd v1;
   Eigen::VectorXcd v2;
 
+  Eigen::MatrixXcd left_op, right_op;
 
 
+  for ( i=0; i++; i<q){
+    //Steps 5 and 6
+    if(i==0){
+      u1 = Y(1:p, 1);
+      u2 = -Y(p+1:m, 1);
+    }
+    else{
+      u1 = std::cos(phi[(i+1)%2])*Y(i:p, i) + std::sin(phi[(i+1)%2])*Y(i:p, q-1+i);
+      u2 = -std::cos(phi[(i+1)%2])*Y(p+i:m, i) - std::sin(phi([i+1]%2))*Y(p+i:m, q-1+i);
+    }
+    //Step 7
+    theta[i%2] = std::atan2(u2.norm(), u1.norm());
+
+    //Step 8
+    P1_i = createmultiplexor(Eigen::MatrixXcd::Identity(i-1, i-1), createhouseholder(u1).adjoint());
+    P1_i = createmultiplexor(Eigen::MatrixXcd::Identity(i-1, i-1), createhouseholder(u2).adjoint());
+
+    //Step 9
+    left_op = createmultiplexor(P1_i, P2_i);
+    Y = left_op * Y;
+
+    //Step 12
+    v2 = std::sin(theta[i%2])*Y(i, p+i:m) + std::cos(theta[i%2])*Y(p+i, p+i:m);
+    if(i<p){
+      // Step 11
+      v1 = -std::sin(theta[i%2])*Y(i, i+1:p) - std::cos(theta[i%2])*Y(p+i, i+1:p);
+
+      // Step 14
+      phi[i%2] = std::atan2(v1.norm(), v2.norm());
+
+      // Step 15
+      Q1_i = createmultiplexor(Eigen::MatrixXcd::Identity(i-1, i-1), createhouseholder(v1.adjoint()).adjoint());
+    }
+    else{
+      // Step 17
+      Q1_i = Eigen::MatrixXcd::Identity(p, p);
+    }
+
+    /// Step 19
+    Q2_i = createmultiplexor(Eigen::MatrixXcd::Identity(i-1, i-1), createhouseholder(v2.adjoint()).adjoint());
+
+    // Step 20
+    right_op = createmultiplexor(Q1_i, Q2_i);
+    Y = Y*right_op;
+
+    // Step 24
+    P1 = P1 * P1_i;
+    P1 = P2 * P2_i;
+    Q1 = Q1 * Q1_i;
+    Q2 = Q2 * Q2_i;
+  }
+
+  Eigen::MatrixXcd P = createmultiplexor(P1, P2);
+  Eigen::MatrixXcd Q = createmultiplexor(Q1, Q2);
   return std::make_tuple(P, Y, Q);
 }
 
