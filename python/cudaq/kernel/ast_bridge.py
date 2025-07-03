@@ -4284,7 +4284,7 @@ class PyASTBridge(ast.NodeVisitor):
                 return
             else:
                 self.emitFatalError(
-                    "unhandled BinOp.LShift types; only integers supported.",
+                    "unsupported operand type(s) for '<<'; only integers supported.",
                     node)
 
         if isinstance(node.op, ast.RShift):
@@ -4295,7 +4295,7 @@ class PyASTBridge(ast.NodeVisitor):
                 return
             else:
                 self.emitFatalError(
-                    "unhandled BinOp.RShift types; only integers supported.",
+                    "unsupported operand type(s) for '>>'; only integers supported.",
                     node)
 
         if isinstance(node.op, ast.BitAnd):
@@ -4306,7 +4306,29 @@ class PyASTBridge(ast.NodeVisitor):
                 return
             else:
                 self.emitFatalError(
-                    "unhandled BinOp.BitAnd types; only integers supported.",
+                    "unsupported operand type(s) for '&'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitOr):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                right = self.matchIntegerWidth(left, right)
+                self.pushValue(arith.OrIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '|'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitXor):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                right = self.matchIntegerWidth(left, right)
+                self.pushValue(arith.XOrIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '^'; only integers supported.",
                     node)
 
         self.emitFatalError(f"unhandled binary operator - {node.op}", node)
