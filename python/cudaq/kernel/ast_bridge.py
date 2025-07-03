@@ -4144,6 +4144,18 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             cc.ContinueOp([])
 
+    def matchIntegerWidth(self, target, source):
+        target_width = IntegerType(target.type).width
+        source_width = IntegerType(source.type).width
+
+        if target_width == source_width:
+            return source
+
+        if source_width < target_width:
+            return arith.ExtUIOp(target.type, source).result
+        else:
+            return arith.TruncIOp(target.type, source).result
+
     def visit_BinOp(self, node):
         """
         Visit binary operation nodes in the AST and map them to equivalents in the 
@@ -4263,8 +4275,41 @@ class PyASTBridge(ast.NodeVisitor):
 
             self.pushValue(arith.RemUIOp(left, right).result)
             return
-        else:
-            self.emitFatalError(f"unhandled binary operator - {node.op}", node)
+
+        if isinstance(node.op, ast.LShift):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                right = self.matchIntegerWidth(left, right)
+                self.pushValue(arith.ShLIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unhandled BinOp.LShift types; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.RShift):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                right = self.matchIntegerWidth(left, right)
+                self.pushValue(arith.ShRSIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unhandled BinOp.RShift types; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitAnd):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                right = self.matchIntegerWidth(left, right)
+                self.pushValue(arith.AndIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unhandled BinOp.BitAnd types; only integers supported.",
+                    node)
+
+        self.emitFatalError(f"unhandled binary operator - {node.op}", node)
 
     def visit_Name(self, node):
         """
