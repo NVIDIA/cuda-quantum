@@ -16,6 +16,10 @@ import pytest
 
 list_err_msg = 'does not yet support returning `list` from entry-point kernels'
 
+skipIfBraketNotInstalled = pytest.mark.skipif(
+    not (cudaq.has_target("braket")),
+    reason='Could not find `braket` in installation')
+
 
 def is_close(actual, expected):
     return np.isclose(actual, expected, atol=1e-6)
@@ -49,7 +53,7 @@ def simple(numQubits: int) -> int:
 
 
 def test_simple_run_ghz():
-    shots = 100
+    shots = 20
     qubitCount = 4
     results = cudaq.run(simple, qubitCount, shots_count=shots)
     print(results)
@@ -974,6 +978,67 @@ def test_unsupported_return_type():
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_args, 1.0, 2.0, shots_count=2)
     assert 'unsupported return type' in str(e.value)
+
+
+@pytest.mark.parametrize("target", [
+    "density-matrix-cpu", "nvidia", "nvidia-mqpu-mps", "qpp-cpu", "stim",
+    "tensornet", "tensornet-mps"
+])
+def test_supported_simulators(target):
+
+    def can_set_target(name):
+        target_installed = True
+        try:
+            cudaq.set_target(name)
+        except RuntimeError:
+            target_installed = False
+        return target_installed
+
+    if can_set_target(target):
+        test_simple_run_ghz()
+    else:
+        pytest.skip("target not available")
+
+    cudaq.reset_target()
+
+
+def test_unsupported_simulator():
+    try:
+        cudaq.set_target("dynamics")
+        with pytest.raises(RuntimeError) as e:
+            test_simple_run_ghz()
+        assert "Quantum gate simulation is not supported" in repr(e)
+    except RuntimeError:
+        pytest.skip("target not available")
+    finally:
+        cudaq.reset_target()
+
+
+@pytest.mark.parametrize("target, env_var",
+                         [("anyon", ""), ("infleqtion", "SUPERSTAQ_API_KEY"),
+                          ("ionq", "IONQ_API_KEY"), ("quantinuum", "")])
+@pytest.mark.parametrize("emulate", [True, False])
+def test_unsupported_targets(target, env_var, emulate):
+    if env_var:
+        os.environ[env_var] = "foobar"
+
+    cudaq.set_target(target, emulate=emulate)
+
+    with pytest.raises(RuntimeError) as e:
+        test_simple_run_ghz()
+    assert "not yet supported on this target" in repr(e)
+    os.environ.pop(env_var, None)
+    cudaq.reset_target()
+
+
+@skipIfBraketNotInstalled
+@pytest.mark.parametrize("target", ["braket", "quera"])
+def test_unsupported_targets2(target):
+    cudaq.set_target(target)
+    with pytest.raises(RuntimeError) as e:
+        test_simple_run_ghz()
+    assert "not yet supported on this target" in repr(e)
+    cudaq.reset_target()
 
 
 # leave for gdb debugging
