@@ -10,7 +10,8 @@
 // REQUIRES: c++20
 
 // clang-format off
-// RUN: nvq++ -fenable-cudaq-run %cpp_std --target quantinuum --emulate  %s 2>&1 | FileCheck %s
+// Note: change |& to 2>&1 if running in bash
+// RUN: nvq++ -fenable-cudaq-run %cpp_std --target quantinuum --emulate  %s |& FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
