@@ -701,6 +701,13 @@ Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::StdvecType ty, void *p,
                        ModuleOp substMod, llvm::DataLayout &layout) {
   ArrayAttr constants = genRecursiveConstantArray(builder, ty, p, layout);
   auto loc = builder.getUnknownLoc();
+  if (!constants) {
+    // Empty vector. Not much to contemplate here.
+    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto ptr = builder.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(ty.getElementType()), zero);
+    return builder.create<cudaq::cc::StdvecInitOp>(loc, ty, ptr, zero);
+  }
   auto arrTy = convertRecursiveSpanType(ty);
   auto conArr =
       builder.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, constants);
