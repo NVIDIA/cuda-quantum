@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 list_err_msg = 'does not yet support returning `list` from entry-point kernels'
+ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool]
 
 
 def is_close(actual, expected):
@@ -989,7 +990,8 @@ def test_dataclass_does_not_support_list_type():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=1)
-    assert "`list` type is not yet supported in data classes." in str(e.value)
+    assert f"`<class 'list'>` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}." in str(
+        e.value)
 
 
 def test_dataclass_does_not_support_list_of_int_type():
@@ -1005,7 +1007,8 @@ def test_dataclass_does_not_support_list_of_int_type():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=1)
-    assert "`list` type is not yet supported in data classes." in str(e.value)
+    assert f"`list[int]` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}." in str(
+        e.value)
 
 
 def test_dataclass_does_not_support_list_of_float_type():
@@ -1021,7 +1024,8 @@ def test_dataclass_does_not_support_list_of_float_type():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=1)
-    assert "`list` type is not yet supported in data classes." in str(e.value)
+    assert f"`list[float]` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}." in str(
+        e.value)
 
 
 # leave for gdb debugging
