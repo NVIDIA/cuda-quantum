@@ -399,5 +399,4 @@ run_async(std::size_t qpu_id, std::size_t shots,
   platform.enqueueAsyncTask(qpu_id, wrapped);
   return fut;
 }
-
 } // namespace cudaq

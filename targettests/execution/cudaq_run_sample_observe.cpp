@@ -45,6 +45,9 @@ int main() {
   else
     printf("success!\n");
 
+  const auto direct_call = run_kernel(2);
+  printf("direct call result: %d\n", direct_call);
+
   cudaq::sample(20, sample_kernel).dump();
 
   auto spin_operator = cudaq::spin_op::z(0);
@@ -55,5 +58,6 @@ int main() {
 }
 
 // CHECK: success!
+// CHECK: direct call result: {{[0-9]+}}
 // CHECK: { 00:{{[0-9]+}} 11:{{[0-9]+}} }
 // CHECK: <kernel | spin_operator | kernel> =
