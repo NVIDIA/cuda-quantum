@@ -242,6 +242,14 @@ def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createDelayMeasurementsPass()";
 }
 
+def DeadStoreRemoval : Pass<"dead-store-removal"> {
+  let summary = "Dead store removal (DSR).";
+  let description = [{
+    This pass performs classic dead store removal to clean up code that may
+    contain residual dead stores.
+  }];
+}
+
 def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
   let summary = "Break down quantum operations.";
   let description = [{
