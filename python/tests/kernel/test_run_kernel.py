@@ -1072,7 +1072,7 @@ def test_unsupported_targets_2(target):
 
 def test_run_with_integer_left_shift_operator():
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def kernel(n: int) -> int:
         q = cudaq.qvector(n)
         m = mz(q)
@@ -1090,7 +1090,7 @@ def test_run_with_integer_left_shift_operator():
 
 def test_run_with_non_integer_left_shift_operator():
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def kernel(n: int) -> int:
         q = cudaq.qvector(n)
         m = mz(q)
@@ -1102,19 +1102,55 @@ def test_run_with_non_integer_left_shift_operator():
 
     with pytest.raises(RuntimeError) as e:
         results = cudaq.run(kernel, 3, shots_count=2)
-    assert 'unhandled BinOp.LShift types; only integers supported.' in str(
+    assert "unsupported operand type(s) for '<<'; only integers supported." in str(
         e.value)
 
 
 def test_run_with_integer_right_shift_operator():
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def kernel(n: int) -> int:
         q = cudaq.qvector(n)
         m = mz(q)
         r = 0
         for i in range(n):
             r = r & (m[i] >> i)
+
+        return r
+
+    results = cudaq.run(kernel, 3, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 0
+    assert results[1] == 0
+
+
+def test_run_with_integer_bitwise_or_operator():
+
+    @cudaq.kernel
+    def kernel(n: int) -> int:
+        q = cudaq.qvector(n)
+        m = mz(q)
+        r = 0
+        for i in range(n):
+            r = r | (m[i] >> i)
+
+        return r
+
+    results = cudaq.run(kernel, 3, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 0
+    assert results[1] == 0
+
+
+def test_run_with_integer_bitwise_xor_operator():
+
+    @cudaq.kernel
+    def kernel(n: int) -> int:
+        q = cudaq.qvector(n)
+        m = mz(q)
+        r = 0
+        for i in range(n):
+            r = r ^ (m[i] >> i)
 
         return r
 
