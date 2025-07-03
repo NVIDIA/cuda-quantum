@@ -2178,7 +2178,7 @@ class PyASTBridge(ast.NodeVisitor):
                     params = cls.__dict__["__dataclass_params__"]
                     if not getattr(params, "frozen", False):
                         self.emitFatalError(
-                            f"dataclass `{cls.__name__}` must be declared with @dataclass(frozen=True) or @dataclasses.dataclass(frozen=True).",
+                            f"Assigning to fields in data classes is not yet supported. The dataclass `{cls.__name__}` must be declared with @dataclass(frozen=True) or @dataclasses.dataclass(frozen=True).",
                             node)
 
                 # Alloca the struct
