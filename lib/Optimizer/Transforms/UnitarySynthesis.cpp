@@ -439,6 +439,30 @@ struct TwoQubitOpKAK : public Decomposer {
 /// And explanation given in:
 /// https://nhigham.com/2020/10/27/what-is-the-cs-decomposition/
 
+blockbidiagonalize(const Eigen::MatrixXcd &matrix){
+  Eigen::Matrix4d real = matrix.real();
+  Eigen::Matrix4d imag = matrix.imag();
+  Eigen::RealQZ<Eigen::Matrix4d> qz(4);
+  qz.compute(real, imag);
+  Eigen::Matrix4d left = qz.matrixQ();
+  Eigen::Matrix4d right = qz.matrixZ();
+  if (left.determinant() < 0.0)
+    left.col(0) *= -1.0;
+  if (right.determinant() < 0.0)
+    right.row(0) *= -1.0;
+  Eigen::Matrix4cd diagonal = left.transpose() * matrix * right.transpose();
+  assert(diagonal.isDiagonal(TOL));
+  return std::make_tuple(left, diagonal, right);
+
+
+  Eigen::Matrix4cd P1;
+  Eigen::Matrix4cd P2;
+  Eigen::Matrix4cd Q1;
+  Eigen::Matrix4cd Q2;
+}
+
+
+
 /// Result for 3-q CSD decomposition
 struct CSDComponents {
   /// This struct is defined to support the decomposition of a 3-qubit unitary
@@ -452,18 +476,17 @@ struct CSDComponents {
   std::vector<std::complex<double>> theta;
 };
 
-/// CSD decomposition allows to express arbitrary n-qubit unitary (Q) in the
-/// form: Q = (u1⊕ u2) x ([C, -S], [S, C]) x (v1⊕ v2) where, u1, u2,
-/// v1, v2 are (n-1)-qubit unitaries.
+/// CSD expresses arbitrary n-qubit unitary (Q) in the form:
+/// Q = (u1⊕ u2) x ([C, -S], [S, C]) x (v1⊕ v2) 
+/// where, u1, u2, v1, v2 are (n-1)-qubit unitaries.
 struct ThreeQubitOpCSD : public Decomposer {
-  // Eigen::Matrix8cd targetMatrix;
   Eigen::Matrix<std::complex<double>, 8, 8> targetMatrix;
   CSDComponents components;
   /// Updates to the global phase
   std::complex<double> phase;
 
-  void decompose() override {
-    /// Convert to special unitary to maintain gloabl phase
+    void decompose() override {
+    /// Convert to special unitary to maintain global phase
     /// appropriately for future recursive decomposition
     phase = std::pow(targetMatrix.determinant(), 0.125);
     auto specialUnitary = targetMatrix / phase;
@@ -471,7 +494,7 @@ struct ThreeQubitOpCSD : public Decomposer {
     Eigen::Matrix4cd Q11 = specialUnitary.template block<4, 4>(0, 0);
     Eigen::Matrix4cd Q12 = specialUnitary.template block<4, 4>(0, 4);
     Eigen::Matrix4cd Q21 = specialUnitary.template block<4, 4>(4, 0);
-    Eigen::Matrix4cd Q22 = specialUnitary.template block<4, 4>(4, 4);
+    // Eigen::Matrix4cd Q22 = specialUnitary.template block<4, 4>(4, 4);
 
     /// Stack Q11 and Q12 before decomposing to link the generated SVDs
     Eigen::MatrixXcd Qx1(8, 4);
@@ -502,6 +525,9 @@ struct ThreeQubitOpCSD : public Decomposer {
     components.u2 = U2 * reordermatrix;
     components.v1 = V1 * reordermatrix;
 
+    assert(components.u1.isUnitary(TOL));
+    assert(components.u2.isUnitary(TOL));
+    assert(components.v1.isUnitary(TOL));
     Eigen::Vector4d svalues_sorted = reordermatrix.transpose() * svalues;
 
     Eigen::Matrix4cd C = Eigen::Matrix4cd::Zero();
@@ -527,14 +553,15 @@ struct ThreeQubitOpCSD : public Decomposer {
     }
     Eigen::Matrix4cd s_inv = s_inv_diag.asDiagonal();
 
-    components.v2 = (Q12.adjoint() * components.u1 * c_inv);
+    components.v2 = (Q12.adjoint() * components.u1 * s_inv);
 
     /// Verify if decomposition matches the original matrix
-    Eigen::Matrix8cd reconstructedmatrix;
-    reconstructedmatrix.block<4,4>(0, 0) = components.u1 * components.c * components.v1;
-    reconstructedmatrix.block<4,4>(0, 4) = components.u1 * components.s * components.v2;
-    reconstructedmatrix.block<4,4>(4, 0) = -components.u2 * components.s * components.v1;
-    reconstructedmatrix.block<4,4>(4, 4) = components.u2 * components.c * components.v2;
+    // Eigen::Matrix8cd reconstructedmatrix;
+    Eigen::Matrix<std::complex<double>, 8, 8> reconstructedmatrix;
+    reconstructedmatrix.template block<4,4>(0, 0) = components.u1 * components.c * components.v1;
+    reconstructedmatrix.template block<4,4>(0, 4) = components.u1 * components.s * components.v2;
+    reconstructedmatrix.template block<4,4>(4, 0) = -components.u2 * components.s * components.v1;
+    reconstructedmatrix.template block<4,4>(4, 4) = components.u2 * components.c * components.v2;
     reconstructedmatrix = reconstructedmatrix * phase;
 
     assert(reconstructedmatrix.isApprox(targetMatrix, TOL));
@@ -554,10 +581,10 @@ struct ThreeQubitOpCSD : public Decomposer {
     v2.emitDecomposedFuncOp(customOp, rewriter, funcName + "v2");
     auto parentModule = customOp->getParentOfType<ModuleOp>();
     Location loc = customOp->getLoc();
-    auto targets = customOp->getTargets();
+    auto targets = customOp.getTargets();
     auto funcTy =
         FunctionType::get(parentModule.getContext(), targets.getTypes(), {});
-    auto insPt = rewriter.saveInsertionPoint();
+    // auto insPt = rewriter.saveInsertionPoint();
     rewriter.setInsertionPointToStart(parentModule.getBody());
     auto func =
         rewriter.create<func::FuncOp>(parentModule->getLoc(), funcName, funcTy);
@@ -565,19 +592,24 @@ struct ThreeQubitOpCSD : public Decomposer {
     auto *block = func.addEntryBlock();
     rewriter.setInsertionPointToStart(block);
     auto arguments = func.getArguments();
-    FloatType floatTy = rewriter.getF64Type();
+    // FloatType floatTy = rewriter.getF64Type();
 
     rewriter.create<quake::ApplyOp>(
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "v1"), false,
         ValueRange{}, ValueRange{arguments[0], arguments[1]});
-    rewriter.create<quake : XOp>(loc, arguments[2], arguments[1]);
+    rewriter.create<quake::XOp>(loc, arguments[2], arguments[1]);
     rewriter.create<quake::ApplyOp>(
         loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "v2"), false,
         ValueRange{}, ValueRange{arguments[0], arguments[1]});
   }
-}
+
+  ThreeQubitOpCSD(const Eigen::MatrixXcd &vec) {
+    targetMatrix = vec;
+    decompose();
+  }
+};
 
 class CustomUnitaryPattern
     : public OpRewritePattern<quake::CustomUnitarySymbolOp> {
@@ -618,7 +650,7 @@ public:
       case 8: {
         auto csd = ThreeQubitOpCSD(unitary);
         csd.emitDecomposedFuncOp(customOp, rewriter, funcName);
-      }
+      } break;
       default:
         customOp.emitWarning(
             "Decomposition of only 1 and 2 qubit custom operations supported.");
