@@ -104,10 +104,6 @@ cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
     const std::string &kernel_name, std::size_t shots) {
-  // 0. Check target for feature support
-  if (platform.is_remote() || platform.is_emulated())
-    throw std::runtime_error("`run` is not yet supported on this target.");
-
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
@@ -128,7 +124,9 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::string remoteOutputLog(ctx->invocationResultBuffer.begin(),
                                 ctx->invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
-  } else {
+  } else if (platform.is_remote() || platform.is_emulated())
+    throw std::runtime_error("`run` is not yet supported on this target.");
+  else {
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
     for (std::size_t i = 0; i < shots; ++i) {
       // Set the execution context since as noise model is attached to this
