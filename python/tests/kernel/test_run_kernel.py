@@ -989,7 +989,7 @@ def test_dataclass_does_not_support_list_type():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=1)
-    assert "list type is not yet supported." in str(e.value)
+    assert "`list` type is not yet supported in data classes." in str(e.value)
 
 
 def test_dataclass_does_not_support_list_of_int_type():
@@ -1005,7 +1005,7 @@ def test_dataclass_does_not_support_list_of_int_type():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=1)
-    assert "list type is not yet supported." in str(e.value)
+    assert "`list` type is not yet supported in data classes." in str(e.value)
 
 
 def test_dataclass_does_not_support_list_of_float_type():
@@ -1021,7 +1021,7 @@ def test_dataclass_does_not_support_list_of_float_type():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=1)
-    assert "list type is not yet supported." in str(e.value)
+    assert "`list` type is not yet supported in data classes." in str(e.value)
 
 
 # leave for gdb debugging
