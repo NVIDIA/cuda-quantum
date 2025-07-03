@@ -10,8 +10,7 @@
 // REQUIRES: c++20
 
 // clang-format off
-// Note: change |& to 2>&1 if running in bash
-// RUN: nvq++ -fenable-cudaq-run %cpp_std --target quantinuum --emulate  %s |& FileCheck %s
+// RUN: nvq++ -fenable-cudaq-run %cpp_std --target quantinuum --emulate %s -o %t && %t |& FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -49,4 +48,4 @@ int main() {
   return 0;
 }
 
-// CHECK: error: no member named 'run' in namespace 'cudaq'
+// CHECK: `run` is not yet supported on this target
