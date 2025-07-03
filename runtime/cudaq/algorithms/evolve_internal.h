@@ -238,7 +238,7 @@ std::vector<evolve_result> evolveBatched(
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
     IntermediateResultSave store_intermediate_results =
         IntermediateResultSave::None,
-    std::optional<int> shots_count = std::nullopt);
+    std::optional<int> batch_size = std::nullopt);
 
 std::vector<evolve_result> evolveBatched(
     const std::vector<super_op> &superOps,
@@ -247,7 +247,7 @@ std::vector<evolve_result> evolveBatched(
     const std::vector<sum_op<cudaq::matrix_handler>> &observables = {},
     IntermediateResultSave store_intermediate_results =
         IntermediateResultSave::None,
-    std::optional<int> shots_count = std::nullopt);
+    std::optional<int> batch_size = std::nullopt);
 
 evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
                            const cudaq::schedule &schedule,

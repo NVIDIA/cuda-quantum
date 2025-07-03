@@ -468,7 +468,7 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
                   &collapse_operators,
               const std::vector<sum_op<cudaq::matrix_handler>> &observables,
               IntermediateResultSave store_intermediate_results,
-              std::optional<int> shots_count) {
+              std::optional<int> batch_size) {
   LOG_API_TIME();
 
   if (!collapse_operators.empty() &&
@@ -536,7 +536,7 @@ evolveBatched(const std::vector<super_op> &superOps,
               base_integrator &integrator,
               const std::vector<sum_op<cudaq::matrix_handler>> &observables,
               IntermediateResultSave store_intermediate_results,
-              std::optional<int> shots_count) {
+              std::optional<int> batch_size) {
   LOG_API_TIME();
   if (superOps.empty()) {
     throw std::runtime_error("No super operators provided for evolution.");
