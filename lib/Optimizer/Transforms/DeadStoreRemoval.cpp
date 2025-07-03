@@ -32,13 +32,55 @@ public:
   // dead store.
   LogicalResult matchAndRewrite(cudaq::cc::StoreOp store,
                                 PatternRewriter &rewriter) const override {
-    auto alloca = store.getPtrvalue().getDefiningOp<cudaq::cc::AllocaOp>();
-    if (!alloca)
+    cudaq::cc::AllocaOp alloca;
+    if (auto getPtr =
+            store.getPtrvalue().getDefiningOp<cudaq::cc::ComputePtrOp>()) {
+      if (getPtr.getNumOperands() != 1)
+        return failure();
+      alloca = getPtr.getBase().getDefiningOp<cudaq::cc::AllocaOp>();
+    } else if (auto getPtr =
+                   store.getPtrvalue().getDefiningOp<cudaq::cc::CastOp>()) {
+      alloca = getPtr.getValue().getDefiningOp<cudaq::cc::AllocaOp>();
+    } else {
+      alloca = store.getPtrvalue().getDefiningOp<cudaq::cc::AllocaOp>();
+    }
+    if (!alloca) {
+      LLVM_DEBUG(llvm::dbgs() << "store not to alloca.\n");
       return failure();
+    }
+
+    auto testAllStoreUsers = [&](Operation *c) {
+      for (auto v : c->getUsers()) {
+        if (auto s = dyn_cast<cudaq::cc::StoreOp>(v)) {
+          // Make sure this stores *to* the address rather stores the address.
+          if (s.getPtrvalue() == c->getResult(0))
+            continue;
+        }
+        return false;
+      }
+      return true;
+    };
+
     for (auto u : alloca->getUsers()) {
+      if (auto c = dyn_cast<cudaq::cc::CastOp>(u)) {
+        if (!testAllStoreUsers(c)) {
+          LLVM_DEBUG(llvm::dbgs() << "store not from cast of alloca.\n");
+          return failure();
+        }
+        continue;
+      }
+      if (auto c = dyn_cast<cudaq::cc::ComputePtrOp>(u)) {
+        if (!testAllStoreUsers(c)) {
+          LLVM_DEBUG(llvm::dbgs() << "store not from compute_ptr of alloca.\n");
+          return failure();
+        }
+        continue;
+      }
+
       if (auto s = dyn_cast<cudaq::cc::StoreOp>(u))
         if (s.getPtrvalue() == alloca.getResult())
           continue;
+      LLVM_DEBUG(llvm::dbgs() << "alloca use is not store/cast/compute_ptr.\n");
       return failure();
     }
     rewriter.eraseOp(store);
