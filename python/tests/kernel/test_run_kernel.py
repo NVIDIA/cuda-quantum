@@ -1060,6 +1060,42 @@ def test_unsupported_targets2(target):
     cudaq.reset_target()
 
 
+def test_run_with_integer_left_shift_operator():
+
+    @cudaq.kernel(verbose=True)
+    def kernel(n: int) -> int:
+        q = cudaq.qvector(n)
+        m = mz(q)
+        r = 0
+        for i in range(n):
+            r = r & (m[i] << i)
+
+        return r
+
+    results = cudaq.run(kernel, 3, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 0
+    assert results[1] == 0
+
+
+def test_run_with_integer_right_shift_operator():
+
+    @cudaq.kernel(verbose=True)
+    def kernel(n: int) -> int:
+        q = cudaq.qvector(n)
+        m = mz(q)
+        r = 0
+        for i in range(n):
+            r = r & (m[i] >> i)
+
+        return r
+
+    results = cudaq.run(kernel, 3, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == 0
+    assert results[1] == 0
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
