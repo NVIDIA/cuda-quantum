@@ -980,7 +980,7 @@ def test_unsupported_return_type():
     assert 'unsupported return type' in str(e.value)
 
 
-def test_run_and_sample():
+def test_run_and_sample_and_direct_call():
 
     @cudaq.kernel
     def bell_pair() -> int:
@@ -995,6 +995,9 @@ def test_run_and_sample():
 
     sample_results = cudaq.sample(bell_pair, shots_count=10)
     assert len(sample_results) == 2
+
+    direct_call_result = bell_pair()
+    assert direct_call_result is not None
 
 
 @pytest.mark.parametrize("target", [
