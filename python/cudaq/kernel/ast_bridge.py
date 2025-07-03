@@ -2178,8 +2178,9 @@ class PyASTBridge(ast.NodeVisitor):
                 for var, typ in annotations.items():
                     origin = get_origin(typ)
                     if origin is list or typ is list:
-                        self.emitFatalError(f'`list` type is not yet supported in data classes.',
-                                            node)
+                        self.emitFatalError(
+                            f'`list` type is not yet supported in data classes.',
+                            node)
 
                 # Alloca the struct
                 structTys = [
