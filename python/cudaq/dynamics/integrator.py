@@ -54,8 +54,8 @@ class BaseIntegrator(ABC, Generic[TState]):
     def set_system(self,
                    dimensions: Mapping[int, int],
                    schedule: Schedule,
-                   hamiltonian: Operator | SuperOperator,
-                   collapse_operators: Sequence[Operator] = []):
+                   hamiltonian: Operator | SuperOperator | Sequence[Operator] | Sequence[SuperOperator],
+                   collapse_operators: Sequence[Operator] | Sequence[Sequence[Operator]] = []):
         self.dimensions = tuple(dimensions[d] for d in range(len(dimensions)))
         self.schedule = schedule
         if isinstance(hamiltonian, SuperOperator):

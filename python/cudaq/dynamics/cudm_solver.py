@@ -22,15 +22,16 @@ from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, Super
 
 # Master-equation solver using `CuDensityMatState`
 def evolve_dynamics(
-    hamiltonian: Operator | SuperOperator,
+    hamiltonian: Operator | SuperOperator | Sequence[Operator] | Sequence[SuperOperator],
     dimensions: Mapping[int, int],
     schedule: Schedule,
     initial_state: InitialStateArgT | Sequence[cudaq_runtime.State],
-    collapse_operators: Sequence[Operator] = [],
+    collapse_operators: Sequence[Operator] | Sequence[Sequence[Operator]] = [],
     observables: Sequence[Operator] = [],
     store_intermediate_results: IntermediateResultSave = IntermediateResultSave.
     NONE,
-    integrator: Optional[BaseIntegrator] = None
+    integrator: Optional[BaseIntegrator] = None,
+    max_batch_size: Optional[int] = None
 ) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     # Reset the schedule
     schedule.reset()
@@ -51,21 +52,71 @@ def evolve_dynamics(
     if integrator is None:
         # Default integrator if not provided.
         integrator = RungeKuttaIntegrator()
+    
     has_collapse_operators = False
-    if isinstance(hamiltonian, SuperOperator):
+
+    if isinstance(hamiltonian, Sequence):
+        # This is batched operators evolve.
         if len(collapse_operators) > 0:
+            if not isinstance(collapse_operators[0], Sequence):
+                raise ValueError(
+                    "'collapse_operators' must be a sequence of sequences when supplying a sequence of Hamiltonians"
+                )
+            if len(hamiltonian) != len(collapse_operators):
+                raise ValueError(
+                    "Number of Hamiltonians and collapse operators must match"
+                )
+        else:
+            collapse_operators = [[] for _ in range(len(hamiltonian))]
+        
+        if len(initial_state) != len(hamiltonian):
             raise ValueError(
-                "'collapse_operators' must be empty when supplying the super-operator"
+                "Number of initial states must match number of Hamiltonians"
             )
-        integrator.set_system(dimensions, schedule, hamiltonian)
-        for (left_op, right_op) in hamiltonian:
-            if right_op is not None:
-                has_collapse_operators = True
+        # Make sure all Hamiltonians are of the same type.
+        if not all(isinstance(op, Operator) for op in hamiltonian) and not all(isinstance(op, SuperOperator) for op in hamiltonian):
+            raise ValueError(
+                "All Hamiltonians must be of the same type (either Operator or SuperOperator)"
+            )
+        isSuperOperator = isinstance(hamiltonian[0], SuperOperator)
+        if isSuperOperator:
+            if len(collapse_operators) > 0:
+                raise ValueError(
+                    "'collapse_operators' must be empty when supplying a sequence of super-operators"
+                )
+            for super_op in hamiltonian:
+                for (left_op, right_op) in super_op:
+                    if right_op is not None:
+                        has_collapse_operators = True
+                        break
+            integrator.set_system(dimensions, schedule, hamiltonian)
+        else:
+            for collapse_ops in collapse_operators:
+                if len(collapse_ops) > 0:
+                    has_collapse_operators = True
+                    break
+            collapse_operators = [
+                [MatrixOperator(op) for op in collapse_ops]
+                for collapse_ops in collapse_operators
+            ]
+            hamiltonian = [MatrixOperator(op) for op in hamiltonian]
+            integrator.set_system(dimensions, schedule, hamiltonian,
+                                    collapse_operators)
     else:
-        has_collapse_operators = len(collapse_operators) > 0
-        collapse_operators = [MatrixOperator(op) for op in collapse_operators]
-        integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
-                              collapse_operators)
+        if isinstance(hamiltonian, SuperOperator):
+            if len(collapse_operators) > 0:
+                raise ValueError(
+                    "'collapse_operators' must be empty when supplying the super-operator"
+                )
+            integrator.set_system(dimensions, schedule, hamiltonian)
+            for (left_op, right_op) in hamiltonian:
+                if right_op is not None:
+                    has_collapse_operators = True
+        else:
+            has_collapse_operators = len(collapse_operators) > 0
+            collapse_operators = [MatrixOperator(op) for op in collapse_operators]
+            integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
+                                    collapse_operators)
 
     hilbert_space_dims_list = list(hilbert_space_dims)
     expectation_op = [
