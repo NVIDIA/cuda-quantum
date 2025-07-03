@@ -980,6 +980,23 @@ def test_unsupported_return_type():
     assert 'unsupported return type' in str(e.value)
 
 
+def test_run_and_sample():
+
+    @cudaq.kernel
+    def bell_pair() -> int:
+        q = cudaq.qvector(2)
+        h(q[0])
+        cx(q[0], q[1])
+        res = mz(q[0]) + 2 * mz(q[1])
+        return res
+
+    run_results = cudaq.run(bell_pair, shots_count=10)
+    assert len(run_results) == 10
+
+    sample_results = cudaq.sample(bell_pair, shots_count=10)
+    assert len(sample_results) == 2
+
+
 @pytest.mark.parametrize("target", [
     "density-matrix-cpu", "nvidia", "nvidia-mqpu-mps", "qpp-cpu", "stim",
     "tensornet", "tensornet-mps"

@@ -426,7 +426,6 @@ def test_capture_state():
         counts = cudaq.sample(kernel)
 
 
-
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
