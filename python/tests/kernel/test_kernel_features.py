@@ -2304,7 +2304,7 @@ def test_attribute_access_on_call_results():
     """Test that attribute access on call results works correctly."""
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(frozen=True)
     class M:
         i: int
         j: int
@@ -2356,7 +2356,7 @@ def test_attribute_access_on_call_results():
     assert result5 == 10  # 6 + 4
 
     # Test with different dataclass
-    @dataclass
+    @dataclass(frozen=True)
     class Point:
         x: float
         y: float
