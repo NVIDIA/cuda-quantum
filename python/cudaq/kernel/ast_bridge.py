@@ -4144,6 +4144,18 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             cc.ContinueOp([])
 
+    def matchIntegerWidth(self, target, source):
+        target_width = IntegerType(target.type).width
+        source_width = IntegerType(source.type).width
+
+        if target_width == source_width:
+            return source
+
+        if source_width < target_width:
+            return arith.ExtUIOp(target.type, source).result
+        else:
+            return arith.TruncIOp(target.type, source).result
+
     def visit_BinOp(self, node):
         """
         Visit binary operation nodes in the AST and map them to equivalents in the 
