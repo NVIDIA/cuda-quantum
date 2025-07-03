@@ -439,26 +439,28 @@ struct TwoQubitOpKAK : public Decomposer {
 /// And explanation given in:
 /// https://nhigham.com/2020/10/27/what-is-the-cs-decomposition/
 
+
+std::tuple<VectorXcd, complex<double>> create_householder(const VectorXcd& x){
+  VectorXcd v = x +
+}
+
+
+std::tuple<Eigen::MatrixXcd, Eigen::MatrixXcd, Eigen::MatrixXcd>
 blockbidiagonalize(const Eigen::MatrixXcd &matrix){
-  Eigen::Matrix4d real = matrix.real();
-  Eigen::Matrix4d imag = matrix.imag();
-  Eigen::RealQZ<Eigen::Matrix4d> qz(4);
-  qz.compute(real, imag);
-  Eigen::Matrix4d left = qz.matrixQ();
-  Eigen::Matrix4d right = qz.matrixZ();
-  if (left.determinant() < 0.0)
-    left.col(0) *= -1.0;
-  if (right.determinant() < 0.0)
-    right.row(0) *= -1.0;
-  Eigen::Matrix4cd diagonal = left.transpose() * matrix * right.transpose();
-  assert(diagonal.isDiagonal(TOL));
-  return std::make_tuple(left, diagonal, right);
+  int p = 4, q = 4;
+  Eigen::MatrixXcd P1 = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd P2 = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd Q1 = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd Q2 = Eigen::MatrixXcd::Identity(p, p);
+
+  Eigen::VectorXcd u1;
+  Eigen::VectorXcd u2;
+  Eigen::VectorXcd v1;
+  Eigen::VectorXcd v2;
 
 
-  Eigen::Matrix4cd P1;
-  Eigen::Matrix4cd P2;
-  Eigen::Matrix4cd Q1;
-  Eigen::Matrix4cd Q2;
+
+  return std::make_tuple(P, Y, Q);
 }
 
 
