@@ -467,6 +467,7 @@ Eigen::MatrixXcd createmultiplexor(const Eigen::MatrixXcd &firstmatrix, const Ei
 
 std::tuple<Eigen::MatrixXcd, Eigen::MatrixXcd, Eigen::MatrixXcd>
 blockbidiagonalize(const Eigen::MatrixXcd &matrix){
+  std::cout << "In blockbidiagonalize" << std::endl;
   int p = 4, q = 4, m = 8;
   std::vector<double> theta, phi;
   Eigen::MatrixXcd Y = matrix;
@@ -489,6 +490,7 @@ blockbidiagonalize(const Eigen::MatrixXcd &matrix){
 
 
   for (int i=0; i<q; i++){
+    printf("i = %d\n", i);
     //Steps 5 and 6
     if(i==0){
       u1 = Y.block(0, 0, p, 1);
@@ -583,6 +585,7 @@ struct ThreeQubitOpCSD : public Decomposer {
     phase = std::pow(targetMatrix.determinant(), 0.125);
     auto specialUnitary = targetMatrix / phase;
 
+    std::cout << "Calling blockbidiagonalize" << std::endl;
     auto [left, diagonal, right] = blockbidiagonalize(specialUnitary);
     Eigen::Matrix4cd Q11 = specialUnitary.template block<4, 4>(0, 0);
     Eigen::Matrix4cd Q12 = specialUnitary.template block<4, 4>(0, 4);
