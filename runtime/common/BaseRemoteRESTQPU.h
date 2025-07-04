@@ -354,13 +354,16 @@ public:
 
     // Set the qpu name
     qpuName = mutableBackend;
-    // Create the ServerHelper for this QPU and give it the backend config
-    serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
-    if (!serverHelper) {
-      throw std::runtime_error("ServerHelper not found for target");
+
+    if (!emulate) {
+      // Create the ServerHelper for this QPU and give it the backend config
+      serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
+      if (!serverHelper) {
+        throw std::runtime_error("ServerHelper not found for target");
+      }
+      serverHelper->initialize(backendConfig);
+      serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
     }
-    serverHelper->initialize(backendConfig);
-    serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
     cudaq::info("Retrieving executor with name {}", qpuName);
     cudaq::info("Is this executor registered? {}",
                 cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
@@ -368,8 +371,10 @@ public:
                    ? cudaq::registry::get<cudaq::Executor>(qpuName)
                    : std::make_unique<cudaq::Executor>();
 
-    // Give the server helper to the executor
-    executor->setServerHelper(serverHelper.get());
+    if (!emulate) {
+      // Give the server helper to the executor
+      executor->setServerHelper(serverHelper.get());
+    }
   }
 
   /// @brief Conditionally form an output_names JSON object if this was for QIR

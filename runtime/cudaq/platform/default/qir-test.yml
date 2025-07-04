@@ -7,58 +7,19 @@
 # ============================================================================ #
 
 name: qir-test
-description: QIR validation Test Target"
-
-target-arguments:
-  - key: option
-    required: false
-    type: option-flags
-    help-string: "Specify the target capabilities as a comma-separated list.\nSupported options are 'dep-analysis, 'fp32', 'fp64', 'qpp'.\nFor example, the 'dep-analysis,fp32' option combination will activate single-precision simulation with the dep-analysis passes. Not all option combinations are supported."
-
-configuration-matrix:
-  - name: no_computations
-    option-flags: [no_computations]
-    default: true
-    config:
-      platform-qpu: remote_rest
-      gen-target-backend: true
-      preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-      link-libs: ["-lcudaq-rest-qpu"]
-      platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),quantinuum-gate-set-mapping"
-      codegen-emission: qir-adaptive
-      library-mode: false
-
-  - name: int_computations
-    option-flags: [int_computations]
-    config:
-      platform-qpu: remote_rest
-      gen-target-backend: true
-      preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-      link-libs: ["-lcudaq-rest-qpu"]
-      platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),quantinuum-gate-set-mapping"
-      codegen-emission: qir-adaptive[int_computations]
-      library-mode: false
-
-  - name: float_computations
-    option-flags: [float_computations]
-    default: true
-    config:
-      platform-qpu: remote_rest
-      gen-target-backend: true
-      preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-      link-libs: ["-lcudaq-rest-qpu"]
-      platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),quantinuum-gate-set-mapping"
-      codegen-emission: qir-adaptive[float_computations]
-      library-mode: false
-
-  - name: int_float_computations
-    option-flags: [int_computations,float_computations]
-    default: true
-    config:
-      platform-qpu: remote_rest
-      gen-target-backend: true
-      preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-      link-libs: ["-lcudaq-rest-qpu"]
-      platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),quantinuum-gate-set-mapping"
-      codegen-emission: qir-adaptive[int_computations,float_computations]
-      library-mode: false
+description: "QIR validation Test Target"
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  # Define the lowering pipeline
+  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),quantinuum-gate-set-mapping"
+  # Tell the rest-qpu that we are generating Adaptive QIR.
+  codegen-emission: qir-adaptive[int_computations,float_computations]
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false

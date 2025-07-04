@@ -551,8 +551,9 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                 constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
                 constExpr->getOpcode() != llvm::Instruction::IntToPtr &&
                 constExpr->getOpcode() != llvm::Instruction::BitCast) {
-              llvm::errs() << "error - invalid instruction found in QIR profile: "
-                           << *constExpr << '\n';
+              llvm::errs()
+                  << "error - invalid instruction found in QIR profile: "
+                  << *constExpr << '\n';
               return mlir::failure();
             }
           }
