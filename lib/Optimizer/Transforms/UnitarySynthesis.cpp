@@ -440,18 +440,18 @@ struct TwoQubitOpKAK : public Decomposer {
 /// https://nhigham.com/2020/10/27/what-is-the-cs-decomposition/
 
 
-Eigen::VectorXcd householdervector(const VectorXcd& x){
+Eigen::VectorXcd householdervector(const Eigen::VectorXcd& x){
   double norm = x.norm();
-  std::complex<double> sign = (x(0) == std::complex<double>(0.0, 0.0)) ? 1.0 : (x1/std::abs(x(0)));
+  std::complex<double> sign = (x(0) == std::complex<double>(0.0, 0.0)) ? 1.0 : (x(0)/std::abs(x(0)));
   std::complex<double> alpha = sign * norm;
   Eigen::VectorXcd v = x;
   v(0) += alpha; // Might need to subtract instead
   return v;
 }
 
-Eigen::MatrixXcd createhouseholder(const VectorXcd& x){
+Eigen::MatrixXcd createhouseholder(const Eigen::VectorXcd& x){
   Eigen::VectorXcd v = householdervector(x);
-  double tau = 2.0 / (v.squarednorm());
+  double tau = 2.0 / (v.squaredNorm());
   Eigen::MatrixXcd house = Eigen::MatrixXcd::Identity(v.size(), v.size()) - tau * v * v.adjoint();
   return house;
 }
@@ -488,15 +488,15 @@ blockbidiagonalize(const Eigen::MatrixXcd &matrix){
   Eigen::MatrixXcd left_op, right_op;
 
 
-  for ( i=0; i++; i<q){
+  for (int i=0; i<q; i++){
     //Steps 5 and 6
     if(i==0){
-      u1 = Y(1:p, 1);
-      u2 = -Y(p+1:m, 1);
+      u1 = Y.block(0, 0, p, 1);
+      u2 = -Y.block(p, 0, m-p, 1);
     }
     else{
-      u1 = std::cos(phi[(i+1)%2])*Y(i:p, i) + std::sin(phi[(i+1)%2])*Y(i:p, q-1+i);
-      u2 = -std::cos(phi[(i+1)%2])*Y(p+i:m, i) - std::sin(phi([i+1]%2))*Y(p+i:m, q-1+i);
+      u1 = std::cos(phi[(i+1)%2])*Y.block(i, i, p-i, 1) + std::sin(phi[(i+1)%2])*Y.block(i, q-1+i, p-i, 1);
+      u2 = -std::cos(phi[(i+1)%2])*Y.block(p+i, i, m-p-i, 1) - std::sin(phi[(i+1)%2])*Y.block(p+i, q-1+i, m-p-i, 1);
     }
     //Step 7
     theta[i%2] = std::atan2(u2.norm(), u1.norm());
@@ -510,10 +510,10 @@ blockbidiagonalize(const Eigen::MatrixXcd &matrix){
     Y = left_op * Y;
 
     //Step 12
-    v2 = std::sin(theta[i%2])*Y(i, p+i:m) + std::cos(theta[i%2])*Y(p+i, p+i:m);
+    v2 = std::sin(theta[i%2])*Y.block(i, p+i, 1, m-p-i) + std::cos(theta[i%2])*Y.block(p+i, p+i, 1, m-p-i);
     if(i<p){
       // Step 11
-      v1 = -std::sin(theta[i%2])*Y(i, i+1:p) - std::cos(theta[i%2])*Y(p+i, i+1:p);
+      v1 = -std::sin(theta[i%2])*Y.block(i, i+1, 1, p-i-1) - std::cos(theta[i%2])*Y.block(p+i, i+1, 1, p-i-1);
 
       // Step 14
       phi[i%2] = std::atan2(v1.norm(), v2.norm());
