@@ -107,14 +107,12 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-
   circuitSimulator->outputLog.clear();
 
   // 2. Launch the kernel on the QPU.
-  if (platform.get_remote_capabilities().isRemoteSimulator ||
-      platform.is_emulated() || platform.is_remote()) {
-    // In a remote simulator execution/hardware emulation environment, set the
-    // `run` context name and number of iterations (shots)
+  if (platform.get_remote_capabilities().isRemoteSimulator) {
+    // In a remote simulator execution, set the `run` context name and number of
+    // iterations (shots)
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", shots);
     platform.set_exec_ctx(ctx.get());
     // Launch the kernel a single time to post the 'run' request to the remote
@@ -126,7 +124,9 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::string remoteOutputLog(ctx->invocationResultBuffer.begin(),
                                 ctx->invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
-  } else {
+  } else if (platform.is_remote() || platform.is_emulated())
+    throw std::runtime_error("`run` is not yet supported on this target.");
+  else {
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
     for (std::size_t i = 0; i < shots; ++i) {
       // Set the execution context since as noise model is attached to this
