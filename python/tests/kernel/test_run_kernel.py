@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import os
-import time
 from dataclasses import dataclass
 
 import cudaq
@@ -682,7 +681,7 @@ def test_return_tuple_bool_int_float():
 
 def test_return_dataclass_int_bool():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: int
         y: bool
@@ -716,7 +715,7 @@ def test_return_dataclass_int_bool():
 
 def test_return_dataclass_bool_int():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: bool
         y: int
@@ -750,7 +749,7 @@ def test_return_dataclass_bool_int():
 
 def test_return_dataclass_float_int():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: float
         y: int
@@ -784,12 +783,11 @@ def test_return_dataclass_float_int():
 
 def test_return_dataclass_list_int_bool():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: list[int]
         y: bool
 
-    @cudaq.kernel
     def simple_return_dataclass(n: int, t: MyClass) -> MyClass:
         qubits = cudaq.qvector(n)
         return t
@@ -803,7 +801,7 @@ def test_return_dataclass_list_int_bool():
 
 def test_return_dataclass_tuple_bool():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: tuple[int, bool]
         y: bool
@@ -822,12 +820,12 @@ def test_return_dataclass_tuple_bool():
 
 def test_return_dataclass_dataclass_bool():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass1:
         x: int
         y: bool
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass2:
         x: MyClass1
         y: bool
@@ -879,7 +877,7 @@ def test_run_errors():
 
 def test_modify_struct():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: int
         y: bool
@@ -896,7 +894,7 @@ def test_modify_struct():
     assert results[0] == MyClass(42, True)
     assert results[1] == MyClass(42, True)
 
-    @dataclass
+    @dataclass(frozen=True)
     class Foo:
         x: bool
         y: float
@@ -919,7 +917,7 @@ def test_modify_struct():
 
 def test_create_and_modify_struct():
 
-    @dataclass
+    @dataclass(frozen=True)
     class MyClass:
         x: int
         y: bool
@@ -937,7 +935,7 @@ def test_create_and_modify_struct():
     assert results[0] == MyClass(42, True)
     assert results[1] == MyClass(42, True)
 
-    @dataclass
+    @dataclass(frozen=True)
     class Bar:
         x: bool
         y: bool
@@ -974,6 +972,76 @@ def test_unsupported_return_type():
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_args, 1.0, 2.0, shots_count=2)
     assert 'unsupported return type' in str(e.value)
+
+
+def test_dataclass_not_frozen_error():
+
+    @dataclass(frozen=True)
+    class NotFrozen:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def kernel_with_not_frozen_dataclass() -> NotFrozen:
+        return NotFrozen(1, 2)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel_with_not_frozen_dataclass, shots_count=1)
+    assert "Assigning to fields in data classes is not yet supported. The dataclass `NotFrozen` must be declared with @dataclass(frozen=True) or @dataclasses.dataclass(frozen=True)." in str(
+        e.value)
+
+
+def test_dataclasses_dot_dataclass_not_frozen_error():
+    import dataclasses
+
+    @dataclasses.dataclass
+    class NotFrozen:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def kernel_with_not_frozen_dataclass() -> NotFrozen:
+        return NotFrozen(1, 2)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel_with_not_frozen_dataclass, shots_count=1)
+    assert "Assigning to fields in data classes is not yet supported. The dataclass `NotFrozen` must be declared with @dataclass(frozen=True) or @dataclasses.dataclass(frozen=True)." in str(
+        e.value)
+
+
+def test_dataclass_frozen_success():
+
+    @dataclass(frozen=True)
+    class FrozenClass:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def kernel_with_frozen_dataclass() -> FrozenClass:
+        return FrozenClass(3, 4)
+
+    results = cudaq.run(kernel_with_frozen_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, FrozenClass) for result in results)
+    assert results == [FrozenClass(3, 4), FrozenClass(3, 4)]
+
+
+def test_dataclasses_dot_dataclass_frozen_success():
+    import dataclasses
+
+    @dataclasses.dataclass(frozen=True)
+    class FrozenClass:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def kernel_with_frozen_dataclass() -> FrozenClass:
+        return FrozenClass(3, 4)
+
+    results = cudaq.run(kernel_with_frozen_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, FrozenClass) for result in results)
+    assert results == [FrozenClass(3, 4), FrozenClass(3, 4)]
 
 
 # leave for gdb debugging
