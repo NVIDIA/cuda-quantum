@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ -fenable-cudaq-run %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode -fenable-cudaq-run %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 
@@ -23,6 +23,16 @@ auto int_test = [](int i) __qpu__ { return i; };
 auto float_test = [](float f) __qpu__ { return f; };
 auto double_test = [](double d) __qpu__ { return d; };
 auto bool_test = [](bool b) __qpu__ { return b; };
+
+struct empty {};
+
+auto kernel = []() __qpu__ { return empty{}; };
+
+auto kernel_with_args = [](int num_qubits) __qpu__ {
+  cudaq::qvector q(num_qubits);
+  h(q);
+  return empty{};
+};
 
 int main() {
   int c = 0;
@@ -92,7 +102,17 @@ int main() {
       for (auto i : results)
         printf("%d: %s\n", c++, i ? "true" : "false");
       printf("success!\n");
-    } 
+    }
+  }
+  {
+    auto results = cudaq::run(5, kernel);
+    // Test here is that this does not crash.
+    printf("success!\n");
+  }
+  {
+    auto results = cudaq::run(1, kernel_with_args, 4);
+    // Test here is that this does not crash.
+    printf("success!\n");
   }
   return 0;
 }
@@ -124,4 +144,6 @@ int main() {
 // CHECK: 2: true
 // CHECK: 3: true
 // CHECK: 4: true
+// CHECK: success!
+// CHECK: success!
 // CHECK: success!
