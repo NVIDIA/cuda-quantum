@@ -6,7 +6,7 @@
 //  * the terms of the Apache License 2.0 which accompanies this distribution. *
 //  ******************************************************************************/
 
-#include "cudaq/algorithms/evolve_internal.h"
+#include "BatchingUtils.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <iostream>

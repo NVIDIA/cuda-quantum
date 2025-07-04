@@ -39,7 +39,9 @@ all_models = [
     TestBatchedCavityModel,
     TestBatchedCavityModelTimeDependentHam,
     TestBatchedCavityModelTimeDependentCollapseOp,
-    TestBatchedCavityModelSuperOperator
+    TestBatchedCavityModelSuperOperator,
+    TestBatchedCavityModelWithBatchSize,
+    TestBatchedCavityModelSuperOperatorWithBatchSize
 ]
 
 

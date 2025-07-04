@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "BatchingUtils.h"
 #include "CuDensityMatContext.h"
 #include "CuDensityMatExpectation.h"
 #include "CuDensityMatState.h"
@@ -232,6 +233,24 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
     if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
       cudaq::dynamics::dumpPerfTrace();
   });
+
+  // Helper to check if operators can be batched.
+  m.def(
+      "checkBatchingCompatibility",
+      [](const std::vector<cudaq::sum_op<cudaq::matrix_handler>> &hamOps,
+         const std::vector<std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
+             &listCollapseOps) {
+        return cudaq::__internal__::checkBatchingCompatibility(hamOps,
+                                                               listCollapseOps);
+      },
+      py::arg("hamiltonians"), py::arg("collapse_operators"));
+
+  m.def(
+      "checkSuperOpBatchingCompatibility",
+      [](const std::vector<cudaq::super_op> &super_operators) {
+        return cudaq::__internal__::checkBatchingCompatibility(super_operators);
+      },
+      py::arg("super_operators"));
 
   auto integratorsSubmodule = m.def_submodule("integrators");
 

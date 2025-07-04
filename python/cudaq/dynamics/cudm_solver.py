@@ -22,7 +22,8 @@ from ..mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, Super
 
 # Master-equation solver using `CuDensityMatState`
 def evolve_dynamics(
-    hamiltonian: Operator | SuperOperator | Sequence[Operator] | Sequence[SuperOperator],
+    hamiltonian: Operator | SuperOperator | Sequence[Operator] |
+    Sequence[SuperOperator],
     dimensions: Mapping[int, int],
     schedule: Schedule,
     initial_state: InitialStateArgT | Sequence[cudaq_runtime.State],
@@ -52,7 +53,7 @@ def evolve_dynamics(
     if integrator is None:
         # Default integrator if not provided.
         integrator = RungeKuttaIntegrator()
-    
+
     has_collapse_operators = False
 
     if isinstance(hamiltonian, Sequence):
@@ -64,15 +65,14 @@ def evolve_dynamics(
                 )
             if len(hamiltonian) != len(collapse_operators):
                 raise ValueError(
-                    "Number of Hamiltonians and collapse operators must match"
-                )
-        
+                    "Number of Hamiltonians and collapse operators must match")
+
         if len(initial_state) != len(hamiltonian):
             raise ValueError(
-                "Number of initial states must match number of Hamiltonians"
-            )
+                "Number of initial states must match number of Hamiltonians")
         # Make sure all Hamiltonians are of the same type.
-        if not all(isinstance(op, Operator) for op in hamiltonian) and not all(isinstance(op, SuperOperator) for op in hamiltonian):
+        if not all(isinstance(op, Operator) for op in hamiltonian) and not all(
+                isinstance(op, SuperOperator) for op in hamiltonian):
             raise ValueError(
                 "All Hamiltonians must be of the same type (either Operator or SuperOperator)"
             )
@@ -82,6 +82,64 @@ def evolve_dynamics(
                 raise ValueError(
                     "'collapse_operators' must be empty when supplying a sequence of super-operators"
                 )
+
+            can_be_batched = bindings.checkSuperOpBatchingCompatibility(
+                hamiltonian)
+            batch_size = len(hamiltonian)
+
+            if not can_be_batched:
+                if max_batch_size is not None and max_batch_size > 1:
+                    raise ValueError(
+                        f"The input super-operators are not compatible for batching. Unable to run batched simulation with the requested batch size {max_batch_size}."
+                    )
+                if max_batch_size is None:
+                    print(
+                        "Warning: The input super-operators are not compatible for batching. Running the simulation in non-batched mode."
+                    )
+                # Only run sequentially
+                max_batch_size = 1
+            else:
+                if max_batch_size is not None and max_batch_size > batch_size:
+                    raise ValueError(
+                        f"Invalid max_batch_size {max_batch_size} for the given number of super-operators {batch_size}."
+                    )
+                if max_batch_size is not None and max_batch_size < 1:
+                    raise ValueError(
+                        f"Invalid max_batch_size {max_batch_size}. It must be at least 1."
+                    )
+            if max_batch_size is None:
+                # Use the number of super-operators as the batch size.
+                max_batch_size = batch_size
+
+            if max_batch_size < batch_size:
+                # Split the super-operators into batches.
+                hamiltonian = [
+                    hamiltonian[i:i + max_batch_size]
+                    for i in range(0, len(hamiltonian), max_batch_size)
+                ]
+
+                initial_state = [
+                    initial_state[i:i + max_batch_size]
+                    for i in range(0, len(initial_state), max_batch_size)
+                ]
+                all_results = []
+                for batch_idx in range(len(hamiltonian)):
+                    batch_hamiltonian = hamiltonian[batch_idx] if len(hamiltonian[batch_idx]) > 1 else hamiltonian[batch_idx][0]
+                    batch_initial_state = initial_state[batch_idx] if len(initial_state[batch_idx]) > 1 else initial_state[batch_idx][0]
+                    # Recursively call evolve_dynamics for each batch.
+                    result = evolve_dynamics(
+                        batch_hamiltonian,
+                        dimensions,
+                        schedule,
+                        batch_initial_state,
+                        collapse_operators=[],
+                        observables=observables,
+                        store_intermediate_results=store_intermediate_results,
+                        integrator=integrator,
+                        max_batch_size=max_batch_size)
+                    all_results.append(result)
+                return all_results
+
             for super_op in hamiltonian:
                 for (left_op, right_op) in super_op:
                     if right_op is not None:
@@ -93,13 +151,81 @@ def evolve_dynamics(
                 if len(collapse_ops) > 0:
                     has_collapse_operators = True
                     break
-            collapse_operators = [
-                [MatrixOperator(op) for op in collapse_ops]
-                for collapse_ops in collapse_operators
-            ]
+            collapse_operators = [[MatrixOperator(op)
+                                   for op in collapse_ops]
+                                  for collapse_ops in collapse_operators]
             hamiltonian = [MatrixOperator(op) for op in hamiltonian]
+
+            can_be_batched = bindings.checkBatchingCompatibility(
+                hamiltonian, collapse_operators)
+            batch_size = len(hamiltonian)
+
+            if not can_be_batched:
+                if max_batch_size is not None and max_batch_size > 1:
+                    raise ValueError(
+                        f"The input Hamiltonian and collapse operators are not compatible for batching. Unable to run batched simulation with the requested batch size {max_batch_size}."
+                    )
+                if max_batch_size is None:
+                    print(
+                        "Warning: The input Hamiltonian and collapse operators are not compatible for batching. Running the simulation in non-batched mode."
+                    )
+                # Only run sequentially
+                max_batch_size = 1
+            else:
+                if max_batch_size is not None and max_batch_size > batch_size:
+                    raise ValueError(
+                        f"Invalid max_batch_size {max_batch_size} for the given number of Hamiltonian operators {batch_size}."
+                    )
+                if max_batch_size is not None and max_batch_size < 1:
+                    raise ValueError(
+                        f"Invalid max_batch_size {max_batch_size}. It must be at least 1."
+                    )
+            if max_batch_size is None:
+                # Use the number of Hamiltonian operators as the batch size.
+                max_batch_size = batch_size
+
+            if max_batch_size < batch_size:
+                # Split the Hamiltonian into batches.
+                hamiltonian = [
+                    hamiltonian[i:i + max_batch_size]
+                    for i in range(0, len(hamiltonian), max_batch_size)
+                ]
+
+                initial_state = [
+                    initial_state[i:i + max_batch_size]
+                    for i in range(0, len(initial_state), max_batch_size)
+                ]
+
+                if len(collapse_operators) > 0:
+                    collapse_operators = [
+                        collapse_operators[i:i + max_batch_size] for i in range(
+                            0, len(collapse_operators), max_batch_size)
+                    ]
+                else:
+                    # If no collapse operators are provided, use empty lists for each batch.
+                    collapse_operators = [[]] * len(hamiltonian)
+
+                all_results = []
+                for batch_idx in range(len(hamiltonian)):
+                    batch_hamiltonian = hamiltonian[batch_idx] if len(hamiltonian[batch_idx]) > 1 else hamiltonian[batch_idx][0]
+                    batch_initial_state = initial_state[batch_idx] if len(initial_state[batch_idx]) > 1 else initial_state[batch_idx][0]
+                    batch_collapse_operators = collapse_operators[batch_idx] if len(collapse_operators[batch_idx]) > 1 else collapse_operators[batch_idx][0]
+                    # Recursively call evolve_dynamics for each batch.
+                    result = evolve_dynamics(
+                        batch_hamiltonian,
+                        dimensions,
+                        schedule,
+                        batch_initial_state,
+                        collapse_operators=batch_collapse_operators,
+                        observables=observables,
+                        store_intermediate_results=store_intermediate_results,
+                        integrator=integrator,
+                        max_batch_size=max_batch_size)
+                    all_results.append(result)
+                return all_results
+
             integrator.set_system(dimensions, schedule, hamiltonian,
-                                    collapse_operators)
+                                  collapse_operators)
     else:
         if isinstance(hamiltonian, SuperOperator):
             if len(collapse_operators) > 0:
@@ -112,9 +238,12 @@ def evolve_dynamics(
                     has_collapse_operators = True
         else:
             has_collapse_operators = len(collapse_operators) > 0
-            collapse_operators = [MatrixOperator(op) for op in collapse_operators]
-            integrator.set_system(dimensions, schedule, MatrixOperator(hamiltonian),
-                                    collapse_operators)
+            collapse_operators = [
+                MatrixOperator(op) for op in collapse_operators
+            ]
+            integrator.set_system(dimensions, schedule,
+                                  MatrixOperator(hamiltonian),
+                                  collapse_operators)
 
     hilbert_space_dims_list = list(hilbert_space_dims)
     expectation_op = [

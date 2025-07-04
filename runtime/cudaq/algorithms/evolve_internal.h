@@ -167,11 +167,6 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
 // Helper to migrate an input state to the current device if necessary
 state migrateState(const state &inputState);
 
-// Helper to determine if the list of operators can be batched together
-// for evolution.
-bool checkBatchingCompatibility(
-    const std::vector<sum_op<cudaq::matrix_handler>> &ops);
-
 evolve_result evolveSingle(
     const sum_op<cudaq::matrix_handler> &hamiltonian,
     const cudaq::dimension_map &dimensions, const schedule &schedule,
