@@ -1000,10 +1000,9 @@ def test_run_and_sample_and_direct_call():
     assert direct_call_result is not None
 
 
-@pytest.mark.parametrize("target", [
-    "density-matrix-cpu", "nvidia", "nvidia-mqpu-mps", "qpp-cpu", "stim",
-    "tensornet", "tensornet-mps"
-])
+# NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
+@pytest.mark.parametrize("target",
+                         ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
 def test_supported_simulators(target):
 
     def can_set_target(name):
