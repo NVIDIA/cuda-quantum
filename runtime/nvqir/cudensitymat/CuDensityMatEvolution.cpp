@@ -106,6 +106,78 @@ bool checkBatchingCompatibility(
   return true;
 }
 
+bool checkBatchingCompatibility(
+    const std::vector<sum_op<cudaq::matrix_handler>> &hamOps,
+    const std::vector<std::vector<sum_op<cudaq::matrix_handler>>>
+        &listCollapseOps) {
+  if (!checkBatchingCompatibility(hamOps)) {
+    return false;
+  }
+  if (!listCollapseOps.empty()) {
+    // All collapse_ops must have the same length for batching
+    const std::size_t collapseOpLength = listCollapseOps.front().size();
+    for (const auto &collapseOps : listCollapseOps) {
+      if (collapseOps.size() != collapseOpLength) {
+        return false;
+      }
+    }
+
+    for (std::size_t i = 0; i < collapseOpLength; ++i) {
+      // Check all the collapse ops in the batch
+      std::vector<sum_op<cudaq::matrix_handler>> collapseOps;
+      collapseOps.reserve(listCollapseOps.size());
+      for (const auto &collapseOp : listCollapseOps) {
+        collapseOps.emplace_back(collapseOp[i]);
+      }
+      if (!checkBatchingCompatibility(collapseOps)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool checkBatchingCompatibility(const std::vector<super_op> &listSuperOp) {
+  if (listSuperOp.empty()) {
+    return false;
+  }
+
+  const auto &firstSuperOp = listSuperOp[0];
+  const auto numberOfTerms = firstSuperOp.num_terms();
+
+  for (std::size_t i = 1; i < listSuperOp.size(); ++i) {
+    const auto &toCheck = listSuperOp[i];
+    if (toCheck.num_terms() != numberOfTerms) {
+      return false;
+    }
+
+    for (std::size_t j = 0; j < numberOfTerms; ++j) {
+      const auto &termToCheck = toCheck[j];
+      const auto &firstTerm = firstSuperOp[j];
+      if (firstTerm.first.has_value()) {
+        if (!termToCheck.first.has_value()) {
+          return false;
+        }
+        if (!checkBatchingCompatibility(
+                {firstTerm.first.value(), termToCheck.first.value()})) {
+          return false;
+        }
+      }
+      if (firstTerm.second.has_value()) {
+        if (!termToCheck.second.has_value()) {
+          return false;
+        }
+        if (!checkBatchingCompatibility(
+                {firstTerm.second.value(), termToCheck.second.value()})) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
 static CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
   auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
   auto *cudmState = dynamic_cast<CuDensityMatState *>(simState);
