@@ -100,7 +100,7 @@ to return the most probable measurement and its respective probability:
 Sampling a distribution can be a time intensive task. An asynchronous version of sample exists and can be useful to parallelize your application. Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result.
 
 Asynchronous execution allows to easily parallelize execution of multiple kernels on a multi-processor platform. Such a platform
-is available, for example, by choosing the target `nvidia-mqpu`:
+is available, for example, by choosing the target `nvidia` with option `mqpu`:
 
 .. tab:: Python
 
