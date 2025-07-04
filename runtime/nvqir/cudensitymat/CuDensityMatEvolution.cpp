@@ -579,10 +579,13 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
           "batching. Unable to run batched simulation with the requested batch "
           "size.");
     }
-    // Otherwise, just log a warning:
-    cudaq::warn("Hamiltonian operators and collapse operators are not "
-                   "compatible for batching. "
-                   "Falling back to single evolution for each Hamiltonian.");
+
+    if (!batch_size.has_value()) {
+      // Otherwise, just log a warning:
+      cudaq::warn("Hamiltonian operators and collapse operators are not "
+                  "compatible for batching. "
+                  "Falling back to single evolution for each Hamiltonian.");
+    }
   }
 
   const auto batchSizeToRun =
@@ -636,16 +639,30 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
         std::make_unique<CuDensityMatTimeStepper>(handle, batchedLiouvillian);
     integrator_helper::init_stepper(integrator, std::move(stepper), schedule);
 
-    auto batchedState = CuDensityMatState::createBatchedState(
-        handle, states, dims, isMasterEquation);
-    integrator.setState(cudaq::state(batchedState.release()), 0.0);
-
-    auto results = evolveBatchedImpl(dims, schedule, states.size(), integrator,
-                                     observables, store_intermediate_results);
-    assert(results.size() == states.size());
-    allResults.insert(allResults.end(),
-                      std::make_move_iterator(results.begin()),
-                      std::make_move_iterator(results.end()));
+    if (states.size() > 1) {
+      auto batchedState = CuDensityMatState::createBatchedState(
+          handle, states, dims, isMasterEquation);
+      integrator.setState(cudaq::state(batchedState.release()), 0.0);
+      auto results =
+          evolveBatchedImpl(dims, schedule, states.size(), integrator,
+                            observables, store_intermediate_results);
+      assert(results.size() == states.size());
+      allResults.insert(allResults.end(),
+                        std::make_move_iterator(results.begin()),
+                        std::make_move_iterator(results.end()));
+    } else {
+      if (!states[0]->is_initialized())
+        states[0]->initialize_cudm(handle, dims, /*batchSize=*/1);
+      state canonicalize_initial_state = [&]() {
+        if (isMasterEquation && !states[0]->is_density_matrix())
+          return state(new CuDensityMatState(states[0]->to_density_matrix()));
+        return initial_states[i];
+      }();
+      integrator.setState(canonicalize_initial_state, 0.0);
+      auto result = evolveSingleImpl(dims, schedule, integrator, observables,
+                                     store_intermediate_results);
+      allResults.emplace_back(std::move(result));
+    }
   }
 
   return allResults;
@@ -692,10 +709,13 @@ evolveBatched(const std::vector<super_op> &superOps,
           "batching. Unable to run batched simulation with the requested batch "
           "size.");
     }
-    // Otherwise, just log a warning:
-    cudaq::warn("The input super-operators are not "
-                   "compatible for batching. "
-                   "Falling back to single evolution for each Hamiltonian.");
+
+    if (!batch_size.has_value()) {
+      // Otherwise, just log a warning:
+      cudaq::warn("The input super-operators are not "
+                  "compatible for batching. "
+                  "Falling back to single evolution for each Hamiltonian.");
+    }
   }
 
   const auto batchSizeToRun =
@@ -750,16 +770,32 @@ evolveBatched(const std::vector<super_op> &superOps,
         std::make_unique<CuDensityMatTimeStepper>(handle, batchedLiouvillian);
     integrator_helper::init_stepper(integrator, std::move(stepper), schedule);
 
-    auto batchedState = CuDensityMatState::createBatchedState(
-        handle, states, dims, has_right_apply);
-    integrator.setState(cudaq::state(batchedState.release()), 0.0);
+    if (states.size() > 1) {
+      auto batchedState = CuDensityMatState::createBatchedState(
+          handle, states, dims, has_right_apply);
+      integrator.setState(cudaq::state(batchedState.release()), 0.0);
+      auto results =
+          evolveBatchedImpl(dims, schedule, states.size(), integrator,
+                            observables, store_intermediate_results);
+      assert(results.size() == states.size());
+      allResults.insert(allResults.end(),
+                        std::make_move_iterator(results.begin()),
+                        std::make_move_iterator(results.end()));
+    } else {
+      if (!states[0]->is_initialized())
+        states[0]->initialize_cudm(handle, dims, /*batchSize=*/1);
 
-    auto results = evolveBatchedImpl(dims, schedule, states.size(), integrator,
-                                     observables, store_intermediate_results);
-    assert(results.size() == states.size());
-    allResults.insert(allResults.end(),
-                      std::make_move_iterator(results.begin()),
-                      std::make_move_iterator(results.end()));
+      state canonicalize_initial_state = [&]() {
+        if (has_right_apply && !states[0]->is_density_matrix())
+          return state(new CuDensityMatState(states[0]->to_density_matrix()));
+        return initial_states[i];
+      }();
+
+      integrator.setState(canonicalize_initial_state, 0.0);
+      auto result = evolveSingleImpl(dims, schedule, integrator, observables,
+                                     store_intermediate_results);
+      allResults.emplace_back(std::move(result));
+    }
   }
 
   return allResults;

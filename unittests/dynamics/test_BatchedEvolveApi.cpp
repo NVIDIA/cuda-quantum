@@ -257,30 +257,45 @@ TEST(BatchedEvolveAPITester, checkBatchSizeMasterEquation) {
                  std::invalid_argument);
   }
 
+  const auto checkResults = [&](const auto &results) {
+    EXPECT_EQ(results.size(), decayRates.size());
+    std::vector<std::vector<double>> theoryResults;
+    for (const auto &t : schedule) {
+      std::vector<double> expectedResults;
+      for (const auto &decayRate : decayRates) {
+        expectedResults.emplace_back((N - 1) * std::exp(-decayRate * t.real()));
+      }
+      theoryResults.emplace_back(expectedResults);
+    }
+
+    for (std::size_t i = 0; i < results.size(); ++i) {
+      EXPECT_TRUE(results[i].expectation_values.has_value());
+      EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+      int count = 0;
+      for (auto expVals : results[i].expectation_values.value()) {
+        EXPECT_EQ(expVals.size(), 1);
+        EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+      }
+    }
+  };
+
   // Valid batch size
-  auto results = cudaq::evolve(batchedHams, dimensions, schedule, initialStates,
-                               integrator, batchedCollapsedOps, {hamiltonian},
-                               cudaq::IntermediateResultSave::ExpectationValue,
-                               /*batchSize*/ 4);
-  EXPECT_EQ(results.size(), decayRates.size());
-  std::vector<std::vector<double>> theoryResults;
-  for (const auto &t : schedule) {
-    std::vector<double> expectedResults;
-    for (const auto &decayRate : decayRates) {
-      expectedResults.emplace_back((N - 1) * std::exp(-decayRate * t.real()));
-    }
-    theoryResults.emplace_back(expectedResults);
+  {
+    auto results =
+        cudaq::evolve(batchedHams, dimensions, schedule, initialStates,
+                      integrator, batchedCollapsedOps, {hamiltonian},
+                      cudaq::IntermediateResultSave::ExpectationValue,
+                      /*batchSize*/ 4);
+    checkResults(results);
   }
-
-  for (std::size_t i = 0; i < results.size(); ++i) {
-    EXPECT_TRUE(results[i].expectation_values.has_value());
-    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
-
-    int count = 0;
-    for (auto expVals : results[i].expectation_values.value()) {
-      EXPECT_EQ(expVals.size(), 1);
-      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
-    }
+  {
+    auto results =
+        cudaq::evolve(batchedHams, dimensions, schedule, initialStates,
+                      integrator, batchedCollapsedOps, {hamiltonian},
+                      cudaq::IntermediateResultSave::ExpectationValue,
+                      /*batchSize*/ 1);
+    checkResults(results);
   }
 }
 
@@ -320,33 +335,118 @@ TEST(BatchedEvolveAPITester, checkBatchSizeParamSuperOp) {
                  std::invalid_argument);
   }
 
+  const auto checkResults = [&](const auto &results) {
+    EXPECT_EQ(results.size(), resonanceFreqs.size());
+    std::vector<std::vector<double>> theoryResults;
+    for (const auto &t : schedule) {
+      std::vector<double> expectedResults;
+      for (const auto &resonanceFreq : resonanceFreqs) {
+        expectedResults.emplace_back(
+            std::cos(2 * 2.0 * M_PI * resonanceFreq * t.real()));
+      }
+      theoryResults.emplace_back(expectedResults);
+    }
+
+    for (std::size_t i = 0; i < results.size(); ++i) {
+      EXPECT_TRUE(results[i].expectation_values.has_value());
+      EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+      int count = 0;
+      for (auto expVals : results[i].expectation_values.value()) {
+        EXPECT_EQ(expVals.size(), 1);
+        EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+        std::cout << "Freq = " << resonanceFreqs[i]
+                  << "; Result = " << (double)expVals[0]
+                  << "; Expected = " << theoryResults[count - 1][i] << "\n";
+      }
+    }
+  };
   // Valid batch size
-  auto results = cudaq::evolve(
-      sups, dims, schedule, initialStates, integrator, {cudaq::spin_op::z(0)},
-      cudaq::IntermediateResultSave::ExpectationValue, /*batchSize*/ 4);
-
-  EXPECT_EQ(results.size(), resonanceFreqs.size());
-  std::vector<std::vector<double>> theoryResults;
-  for (const auto &t : schedule) {
-    std::vector<double> expectedResults;
-    for (const auto &resonanceFreq : resonanceFreqs) {
-      expectedResults.emplace_back(
-          std::cos(2 * 2.0 * M_PI * resonanceFreq * t.real()));
-    }
-    theoryResults.emplace_back(expectedResults);
+  {
+    auto results = cudaq::evolve(
+        sups, dims, schedule, initialStates, integrator, {cudaq::spin_op::z(0)},
+        cudaq::IntermediateResultSave::ExpectationValue, /*batchSize*/ 4);
+    checkResults(results);
   }
+  {
+    auto results = cudaq::evolve(
+        sups, dims, schedule, initialStates, integrator, {cudaq::spin_op::z(0)},
+        cudaq::IntermediateResultSave::ExpectationValue, /*batchSize*/ 1);
+    checkResults(results);
+  }
+}
 
-  for (std::size_t i = 0; i < results.size(); ++i) {
-    EXPECT_TRUE(results[i].expectation_values.has_value());
-    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+TEST(BatchedEvolveAPITester, checkBatchSizeCheckMasterEquation) {
+  constexpr int numSteps = 101;
+  cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
+  // These 2 hamiltonian operators cannot be batched.
+  auto ham1 = cudaq::boson_op::number(0) + cudaq::boson_op::number(1);
+  auto ham2 = cudaq::boson_op::number(0) +
+              cudaq::boson_op::number(0) * cudaq::boson_op::number(1);
+  const cudaq::dimension_map dimensions{{0, 2}, {1, 2}};
+  std::vector<std::complex<double>> psi0_(4, 0.0);
+  psi0_[0] = 1.0;
+  auto psi0 = cudaq::state::from_data(psi0_);
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
 
-    int count = 0;
-    for (auto expVals : results[i].expectation_values.value()) {
-      EXPECT_EQ(expVals.size(), 1);
-      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
-      std::cout << "Freq = " << resonanceFreqs[i]
-                << "; Result = " << (double)expVals[0]
-                << "; Expected = " << theoryResults[count - 1][i] << "\n";
-    }
+  {
+    // Set the batch size of 2, which is invalid since we cannot batch these 2
+    // Hamiltonians
+    EXPECT_THROW(
+        cudaq::evolve({ham1, ham2}, dimensions, schedule, {psi0, psi0},
+                      integrator, {},
+                      {cudaq::boson_op::number(0), cudaq::boson_op::number(1)},
+                      cudaq::IntermediateResultSave::ExpectationValue,
+                      /*batchSize*/ 2),
+        std::runtime_error);
+
+    EXPECT_NO_THROW(cudaq::evolve(
+        {ham1, ham2}, dimensions, schedule, {psi0, psi0}, integrator, {},
+        {cudaq::boson_op::number(0), cudaq::boson_op::number(1)},
+        cudaq::IntermediateResultSave::ExpectationValue));
+    EXPECT_NO_THROW(cudaq::evolve(
+        {ham1, ham2}, dimensions, schedule, {psi0, psi0}, integrator, {},
+        {cudaq::boson_op::number(0), cudaq::boson_op::number(1)},
+        cudaq::IntermediateResultSave::ExpectationValue,
+        /*batchSize*/ 1));
+  }
+}
+
+TEST(BatchedEvolveAPITester, checkBatchSizeCheckSuperOperator) {
+  constexpr int numSteps = 101;
+  cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
+  // These 2 hamiltonian operators cannot be batched.
+  auto ham1 = cudaq::boson_op::number(0) + cudaq::boson_op::number(1);
+  auto ham2 = cudaq::boson_op::number(0) +
+              cudaq::boson_op::number(0) * cudaq::boson_op::number(1);
+
+  const std::vector<cudaq::super_op> sups{
+      cudaq::super_op::left_multiply(std::complex<double>(0.0, -1.0) * ham1),
+      cudaq::super_op::left_multiply(std::complex<double>(0.0, -1.0) * ham2)};
+  const cudaq::dimension_map dimensions{{0, 2}, {1, 2}};
+  std::vector<std::complex<double>> psi0_(4, 0.0);
+  psi0_[0] = 1.0;
+  auto psi0 = cudaq::state::from_data(psi0_);
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+
+  {
+    // Set the batch size of 2, which is invalid since we cannot batch these 2
+    // super-operators
+    EXPECT_THROW(
+        cudaq::evolve(sups, dimensions, schedule, {psi0, psi0}, integrator,
+                      {cudaq::boson_op::number(0), cudaq::boson_op::number(1)},
+                      cudaq::IntermediateResultSave::ExpectationValue,
+                      /*batchSize*/ 2),
+        std::runtime_error);
+
+    EXPECT_NO_THROW(
+        cudaq::evolve(sups, dimensions, schedule, {psi0, psi0}, integrator,
+                      {cudaq::boson_op::number(0), cudaq::boson_op::number(1)},
+                      cudaq::IntermediateResultSave::ExpectationValue));
+    EXPECT_NO_THROW(
+        cudaq::evolve(sups, dimensions, schedule, {psi0, psi0}, integrator,
+                      {cudaq::boson_op::number(0), cudaq::boson_op::number(1)},
+                      cudaq::IntermediateResultSave::ExpectationValue,
+                      /*batchSize*/ 1));
   }
 }
