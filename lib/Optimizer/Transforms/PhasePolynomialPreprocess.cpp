@@ -50,7 +50,8 @@ class PhasePolynomialPreprocessPass
 
     Value getOldWire() { return old_wire; }
 
-    void step(DenseMap<Operation *, Operation *> &cloned, OpBuilder &builder) {
+    void step(DenseMap<Operation *, Operation *> &cloned, OpBuilder &builder,
+              std::function<Value(Value)> addFuncArg) {
       if (isStopped())
         return;
 
@@ -87,17 +88,14 @@ class PhasePolynomialPreprocessPass
       auto clone = builder.clone(*op);
       clone->setOperand(opnum, new_wire);
 
-      // For now, just copy over all classical constants
-      // TODO: make classical values arguments to the function instead,
+      // Make classical values arguments to the function,
       // to allow non-constant rotation angles
       builder.setInsertionPointToStart(clone->getBlock());
       for (size_t i = 0; i < clone->getNumOperands(); i++) {
         auto dependency = clone->getOperand(i);
         if (!isa<quake::WireType>(dependency.getType())) {
-          auto dop = dependency.getDefiningOp();
-          assert(isa<arith::ConstantOp>(dop));
-          auto clone_dop = builder.clone(*dop);
-          clone->setOperand(i, clone_dop->getResult(0));
+          auto new_arg = addFuncArg(dependency);
+          clone->setOperand(i, new_arg);
         }
       }
       builder.setInsertionPointAfter(clone);
@@ -139,13 +137,20 @@ class PhasePolynomialPreprocessPass
     DenseMap<Operation *, Operation *> cloned;
 
     // Need to keep ordering to match returns with arguments
-    SmallVector<Value> wires_in;
+    SmallVector<Value> args;
     SmallVector<WireStepper *> steppers;
     for (auto wire : subcircuit->getInitialWires()) {
-      wires_in.push_back(wire);
+      args.push_back(wire);
       steppers.push_back(
           new WireStepper(subcircuit, wire, fun.getArgument(steppers.size())));
     }
+
+    auto add_arg_fun = [&](Value v) {
+      auto idx = args.size();
+      args.push_back(v);
+      fun.insertArgument(idx, v.getType(), {}, v.getDefiningOp()->getLoc());
+      return fun.getArgument(idx);
+    };
 
     builder.setInsertionPointToStart(entry);
     while (true) {
@@ -153,7 +158,7 @@ class PhasePolynomialPreprocessPass
       for (auto stepper : steppers) {
         if (!stepper->isStopped())
           stepped = true;
-        stepper->step(cloned, builder);
+        stepper->step(cloned, builder, add_arg_fun);
       }
 
       if (!stepped)
@@ -170,7 +175,7 @@ class PhasePolynomialPreprocessPass
 
     builder.setInsertionPointAfter(cnot);
     auto call = builder.create<func::CallOp>(cnot->getLoc(), types,
-                                             fun.getSymNameAttr(), wires_in);
+                                             fun.getSymNameAttr(), args);
     for (size_t i = 0; i < steppers.size(); i++)
       steppers[i]->getOldWire().replaceAllUsesWith(call.getResult(i));
   }

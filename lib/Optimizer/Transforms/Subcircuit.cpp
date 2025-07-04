@@ -117,14 +117,12 @@ Subcircuit::Subcircuit(func::FuncOp subcircuit_func) {
     auto *opp = &op;
     if (opp == body_block.getTerminator())
       continue;
-    if (isa<arith::ConstantOp>(op))
-      continue;
     assert(!isTerminationPoint(opp));
     ops.insert(opp);
   }
-  // TODO: address possible constant args (and returns)
   for (auto arg : body_block.getArguments())
-    initial_wires.insert(arg);
+    if (isa<quake::WireType>(arg.getType()))
+      initial_wires.insert(arg);
   for (auto ret : body_block.getTerminator()->getOperands())
     terminal_wires.insert(ret);
 }
