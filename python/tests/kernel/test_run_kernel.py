@@ -976,6 +976,49 @@ def test_unsupported_return_type():
     assert 'unsupported return type' in str(e.value)
 
 
+def test_issue_3086():
+
+    @cudaq.kernel
+    def kernel_branch_return(cond: bool) -> int:
+        if cond:
+            return 1
+        else:
+            return -1
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel_branch_return, True, shots_count=2)
+    assert 'Inner scope return is not yet supported. Please provide a return statement only in the outer (kernel) scope.' in str(
+        e.value)
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel_branch_return, False, shots_count=2)
+    assert 'Inner scope return is not yet supported. Please provide a return statement only in the outer (kernel) scope.' in str(
+        e.value)
+
+    @dataclass
+    class Foo:
+        x: bool
+        y: int
+
+    @cudaq.kernel
+    def bar(n: int, cond: bool) -> Foo:
+        q = cudaq.qvector(n)
+        if cond:
+            return Foo(True, 1)
+        else:
+            return Foo(False, -1)
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(bar, 2, True, shots_count=2)
+    assert 'Inner scope return is not yet supported. Please provide a return statement only in the outer (kernel) scope.' in str(
+        e.value)
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(bar, 2, False, shots_count=2)
+    assert 'Inner scope return is not yet supported. Please provide a return statement only in the outer (kernel) scope.' in str(
+        e.value)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
