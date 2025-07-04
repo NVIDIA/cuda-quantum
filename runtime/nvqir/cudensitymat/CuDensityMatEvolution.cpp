@@ -48,8 +48,8 @@ state migrateState(const state &inputState) {
 bool checkBatchingCompatibility(
     const std::vector<sum_op<cudaq::matrix_handler>> &ops) {
 
-  if (ops.size() <= 1) {
-    return false;
+  if (ops.size() == 1) {
+    return true;
   }
 
   // Check if all sum_ops has the same number of terms
@@ -568,7 +568,25 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
       throw std::invalid_argument("Batch size must be at least 1.");
     }
   }
-  const auto batchSizeToRun = batch_size.value_or(hamiltonians.size());
+
+  const bool canBeBatched =
+      checkBatchingCompatibility(hamiltonians, collapse_operators);
+  if (!canBeBatched) {
+    // If the batch size was specified:
+    if (batch_size.has_value() && batch_size.value() > 1) {
+      throw std::runtime_error(
+          "Hamiltonian operators and collapse operators are not compatible for "
+          "batching. Unable to run batched simulation with the requested batch "
+          "size.");
+    }
+    // Otherwise, just log a warning:
+    cudaq::warn("Hamiltonian operators and collapse operators are not "
+                   "compatible for batching. "
+                   "Falling back to single evolution for each Hamiltonian.");
+  }
+
+  const auto batchSizeToRun =
+      canBeBatched ? batch_size.value_or(hamiltonians.size()) : 1;
   assert(batchSizeToRun <= hamiltonians.size());
   std::unordered_map<std::string, std::complex<double>> params;
   for (const auto &param : schedule.get_parameters()) {
@@ -665,7 +683,23 @@ evolveBatched(const std::vector<super_op> &superOps,
     }
   }
 
-  const auto batchSizeToRun = batch_size.value_or(superOps.size());
+  const bool canBeBatched = checkBatchingCompatibility(superOps);
+  if (!canBeBatched) {
+    // If the batch size was specified:
+    if (batch_size.has_value() && batch_size.value() > 1) {
+      throw std::runtime_error(
+          "The input super-operators are not compatible for "
+          "batching. Unable to run batched simulation with the requested batch "
+          "size.");
+    }
+    // Otherwise, just log a warning:
+    cudaq::warn("The input super-operators are not "
+                   "compatible for batching. "
+                   "Falling back to single evolution for each Hamiltonian.");
+  }
+
+  const auto batchSizeToRun =
+      canBeBatched ? batch_size.value_or(superOps.size()) : 1;
   assert(batchSizeToRun <= superOps.size());
   std::unordered_map<std::string, std::complex<double>> params;
   for (const auto &param : schedule.get_parameters()) {
