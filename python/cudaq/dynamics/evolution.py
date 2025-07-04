@@ -315,11 +315,12 @@ def evolve_single(
 
 # Top level API for the CUDA-Q master equation solver.
 def evolve(
-    hamiltonian: Operator | SuperOperator | Sequence[Operator] | Sequence[SuperOperator],
+    hamiltonian: Operator | SuperOperator | Sequence[Operator] |
+    Sequence[SuperOperator],
     dimensions: Mapping[int, int] = {},
     schedule: Schedule = None,
     initial_state: InitialStateArgT | Sequence[InitialStateArgT] = None,
-    collapse_operators: Sequence[Operator] | Sequence[Sequence[Operator]]= [],
+    collapse_operators: Sequence[Operator] | Sequence[Sequence[Operator]] = [],
     observables: Sequence[Operator] = [],
     store_intermediate_results: IntermediateResultSave |
     bool = IntermediateResultSave.NONE,
@@ -423,7 +424,8 @@ def evolve(
             )
         return evolve_dynamics(hamiltonian, dimensions, schedule, initial_state,
                                collapse_operators, observables,
-                               store_intermediate_results, integrator, max_batch_size)
+                               store_intermediate_results, integrator,
+                               max_batch_size)
     else:
         if isinstance(initial_state, Sequence):
             if isinstance(hamiltonian, Sequence):
@@ -432,21 +434,18 @@ def evolve(
                         "If `hamiltonian` is a sequence, then `initial_state` must be a sequence of the same length."
                     )
                 if len(collapse_operators) == 0:
-                    collapse_operators = [
-                        [] for _ in range(len(hamiltonian))
-                    ]
-                
+                    collapse_operators = [[] for _ in range(len(hamiltonian))]
+
                 if len(hamiltonian) != len(collapse_operators):
                     raise ValueError(
                         "If `hamiltonian` is a sequence, then `collapse_operators` must be a sequence of the same length."
                     )
             return [
-                evolve_single(ham, dimensions, schedule, state,
-                              collapse_ops, observables,
-                              store_intermediate_results, integrator,
-                              shots_count) for ham, state, collapse_ops in zip(
-                                  hamiltonian, initial_state,
-                                  collapse_operators)
+                evolve_single(ham, dimensions, schedule, state, collapse_ops,
+                              observables, store_intermediate_results,
+                              integrator, shots_count)
+                for ham, state, collapse_ops in zip(hamiltonian, initial_state,
+                                                    collapse_operators)
             ]
         else:
             return evolve_single(hamiltonian, dimensions, schedule,

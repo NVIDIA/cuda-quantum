@@ -15,7 +15,7 @@ cudaq.set_target("dynamics")
 # (New J. Phys. 12 055017)
 
 # Specifically, we demonstrate the use of batched Hamiltonian operators to simulate the Heisenberg model
-# with different coupling strengths. 
+# with different coupling strengths.
 # These batched Hamiltonian operators allow us to efficiently compute the dynamics
 # for multiple Hamiltonian operators in a single simulation run.
 # Number of spins
@@ -69,15 +69,15 @@ psi0 = cudaq.State.from_data(psi0_)
 batched_psi0 = [psi0] * len(batched_hamiltonian)
 
 # Run the simulation in batched mode
-evolution_results = cudaq.evolve(batched_hamiltonian,
-                                dimensions,
-                                schedule,
-                                batched_psi0,
-                                observables=[staggered_magnetization_op],
-                                collapse_operators=[],
-                                store_intermediate_results=cudaq.
-                                IntermediateResultSave.EXPECTATION_VALUE,
-                                integrator=ScipyZvodeIntegrator())
+evolution_results = cudaq.evolve(
+    batched_hamiltonian,
+    dimensions,
+    schedule,
+    batched_psi0,
+    observables=[staggered_magnetization_op],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=ScipyZvodeIntegrator())
 
 for g, evolution_result in zip([0.0, 0.25, 4.0], evolution_results):
     exp_val = [

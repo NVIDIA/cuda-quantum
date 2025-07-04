@@ -35,12 +35,10 @@ all_models = [
     TestCavityModelBatchedInputState, TestCavityModelSuperOperator,
     TestInitialStateEnumSuperOperator,
     TestCavityModelBatchedInputStateSuperOperator,
-    TestCavityModelBatchedInputStateSuperOperator,
-    TestBatchedCavityModel,
+    TestCavityModelBatchedInputStateSuperOperator, TestBatchedCavityModel,
     TestBatchedCavityModelTimeDependentHam,
     TestBatchedCavityModelTimeDependentCollapseOp,
-    TestBatchedCavityModelSuperOperator,
-    TestBatchedCavityModelWithBatchSize,
+    TestBatchedCavityModelSuperOperator, TestBatchedCavityModelWithBatchSize,
     TestBatchedCavityModelSuperOperatorWithBatchSize
 ]
 

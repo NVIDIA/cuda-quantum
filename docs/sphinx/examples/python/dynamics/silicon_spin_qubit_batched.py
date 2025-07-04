@@ -38,16 +38,15 @@ n_steps = int(np.ceil(t_final / dt)) + 1
 steps = np.linspace(0, t_final, n_steps)
 schedule = Schedule(steps, ["t"])
 
-results = cudaq.evolve(batched_hamiltonian,
-                                dimensions,
-                                schedule,
-                                initial_state,
-                                observables=[boson.number(0)],
-                                collapse_operators=[],
-                                store_intermediate_results=cudaq.
-                                IntermediateResultSave.EXPECTATION_VALUE,
-                                integrator=ScipyZvodeIntegrator())
-
+results = cudaq.evolve(
+    batched_hamiltonian,
+    dimensions,
+    schedule,
+    initial_state,
+    observables=[boson.number(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=ScipyZvodeIntegrator())
 
 get_result = lambda idx, res: [
     exp_vals[idx].expectation() for exp_vals in res.expectation_values()

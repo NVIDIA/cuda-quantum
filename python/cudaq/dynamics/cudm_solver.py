@@ -124,8 +124,12 @@ def evolve_dynamics(
                 ]
                 all_results = []
                 for batch_idx in range(len(hamiltonian)):
-                    batch_hamiltonian = hamiltonian[batch_idx] if len(hamiltonian[batch_idx]) > 1 else hamiltonian[batch_idx][0]
-                    batch_initial_state = initial_state[batch_idx] if len(initial_state[batch_idx]) > 1 else initial_state[batch_idx][0]
+                    batch_hamiltonian = hamiltonian[batch_idx] if len(
+                        hamiltonian[batch_idx]
+                    ) > 1 else hamiltonian[batch_idx][0]
+                    batch_initial_state = initial_state[batch_idx] if len(
+                        initial_state[batch_idx]
+                    ) > 1 else initial_state[batch_idx][0]
                     # Recursively call evolve_dynamics for each batch.
                     result = evolve_dynamics(
                         batch_hamiltonian,
@@ -207,9 +211,16 @@ def evolve_dynamics(
 
                 all_results = []
                 for batch_idx in range(len(hamiltonian)):
-                    batch_hamiltonian = hamiltonian[batch_idx] if len(hamiltonian[batch_idx]) > 1 else hamiltonian[batch_idx][0]
-                    batch_initial_state = initial_state[batch_idx] if len(initial_state[batch_idx]) > 1 else initial_state[batch_idx][0]
-                    batch_collapse_operators = collapse_operators[batch_idx] if len(collapse_operators[batch_idx]) > 1 else collapse_operators[batch_idx][0]
+                    batch_hamiltonian = hamiltonian[batch_idx] if len(
+                        hamiltonian[batch_idx]
+                    ) > 1 else hamiltonian[batch_idx][0]
+                    batch_initial_state = initial_state[batch_idx] if len(
+                        initial_state[batch_idx]
+                    ) > 1 else initial_state[batch_idx][0]
+                    batch_collapse_operators = collapse_operators[
+                        batch_idx] if len(
+                            collapse_operators[batch_idx]
+                        ) > 1 else collapse_operators[batch_idx][0]
                     # Recursively call evolve_dynamics for each batch.
                     result = evolve_dynamics(
                         batch_hamiltonian,

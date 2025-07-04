@@ -603,7 +603,9 @@ class TestBatchedCavityModel(TestSystem):
         psi0_[-1] = 1.0
         psi0 = cudaq.State.from_data(psi0_)
         decay_rates = [0.05, 0.1, 0.15, 0.2]
-        collapse_operators_list = [[np.sqrt(decay_rate) * annihilate(0)] for decay_rate in decay_rates] 
+        collapse_operators_list = [
+            [np.sqrt(decay_rate) * annihilate(0)] for decay_rate in decay_rates
+        ]
         hamiltonian_list = [number(0)] * len(decay_rates)
         initial_states = [psi0] * len(decay_rates)
         evolution_results = cudaq.evolve(
@@ -616,14 +618,16 @@ class TestBatchedCavityModel(TestSystem):
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
             integrator=integrator())
-        
+
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
             expectation_values = []
             for exp_vals in evolution_result.expectation_values():
                 expectation_values.append(exp_vals[0].expectation())
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
-            np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
+            np.testing.assert_allclose(expected_answer, expectation_values,
+                                       1e-3)
+
 
 class TestBatchedCavityModelTimeDependentHam(TestSystem):
 
@@ -638,7 +642,9 @@ class TestBatchedCavityModelTimeDependentHam(TestSystem):
         psi0_[-1] = 1.0
         psi0 = cudaq.State.from_data(psi0_)
         decay_rates = [0.05, 0.1, 0.15, 0.2]
-        collapsed_operators_list = [[np.sqrt(decay_rate) * annihilate(0)] for decay_rate in decay_rates]
+        collapsed_operators_list = [
+            [np.sqrt(decay_rate) * annihilate(0)] for decay_rate in decay_rates
+        ]
         hamiltonian_list = [hamiltonian] * len(decay_rates)
         initial_states = [psi0] * len(decay_rates)
         evolution_results = cudaq.evolve(
@@ -651,14 +657,15 @@ class TestBatchedCavityModelTimeDependentHam(TestSystem):
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
             integrator=integrator())
-        
+
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
             expectation_values = []
             for exp_vals in evolution_result.expectation_values():
                 expectation_values.append(exp_vals[0].expectation())
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
-            np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
+            np.testing.assert_allclose(expected_answer, expectation_values,
+                                       1e-3)
 
 
 class TestBatchedCavityModelTimeDependentCollapseOp(TestSystem):
@@ -674,12 +681,13 @@ class TestBatchedCavityModelTimeDependentCollapseOp(TestSystem):
         psi0_[-1] = 1.0
         psi0 = cudaq.State.from_data(psi0_)
         decay_rates = [0.05, 0.1]
-        collapse_operators_list = [
-            [ScalarOperator(lambda t, decay_rate=decay_rate: np.sqrt(decay_rate * np.exp(-t))) * annihilate(0)] for decay_rate in decay_rates
-        ]
+        collapse_operators_list = [[
+            ScalarOperator(lambda t, decay_rate=decay_rate: np.sqrt(
+                decay_rate * np.exp(-t))) * annihilate(0)
+        ] for decay_rate in decay_rates]
         hamiltonian_list = [hamiltonian] * len(decay_rates)
-        initial_states = [psi0] * len(decay_rates)  
-      
+        initial_states = [psi0] * len(decay_rates)
+
         evolution_results = cudaq.evolve(
             hamiltonian_list,
             dimensions,
@@ -696,9 +704,12 @@ class TestBatchedCavityModelTimeDependentCollapseOp(TestSystem):
             for exp_vals in evolution_result.expectation_values():
                 expectation_values.append(exp_vals[0].expectation())
             expected_answer = [
-                (N - 1) * np.exp(-decay_rate * (1.0 - np.exp(-t))) for t in steps
+                (N - 1) * np.exp(-decay_rate * (1.0 - np.exp(-t)))
+                for t in steps
             ]
-            np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
+            np.testing.assert_allclose(expected_answer, expectation_values,
+                                       1e-3)
+
 
 class TestBatchedCavityModelSuperOperator(TestSystem):
 
@@ -725,10 +736,12 @@ class TestBatchedCavityModelSuperOperator(TestSystem):
             # L * rho * L_dagger
             me_super_op += cudaq.SuperOperator.left_right_multiply(L, L_dagger)
             # -0.5 * L_dagger * L * rho
-            me_super_op += cudaq.SuperOperator.left_multiply(-0.5 * L_dagger * L)
+            me_super_op += cudaq.SuperOperator.left_multiply(-0.5 * L_dagger *
+                                                             L)
             # -0.5 * rho * L_dagger * L
-            me_super_op += cudaq.SuperOperator.right_multiply(-0.5 * L_dagger * L)
-            
+            me_super_op += cudaq.SuperOperator.right_multiply(-0.5 * L_dagger *
+                                                              L)
+
             # Add this super operator to the list
             me_super_op_lists.append(me_super_op)
         initial_states = [rho0_] * len(decay_rates)
@@ -742,14 +755,16 @@ class TestBatchedCavityModelSuperOperator(TestSystem):
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
             integrator=integrator())
-        
+
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
             expectation_values = []
             for exp_vals in evolution_result.expectation_values():
                 expectation_values.append(exp_vals[0].expectation())
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
-            np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
+            np.testing.assert_allclose(expected_answer, expectation_values,
+                                       1e-3)
+
 
 class TestBatchedCavityModelWithBatchSize(TestSystem):
 
@@ -763,7 +778,9 @@ class TestBatchedCavityModelWithBatchSize(TestSystem):
         psi0_[-1] = 1.0
         psi0 = cudaq.State.from_data(psi0_)
         decay_rates = [0.05, 0.1, 0.15, 0.2]
-        collapse_operators_list = [[np.sqrt(decay_rate) * annihilate(0)] for decay_rate in decay_rates] 
+        collapse_operators_list = [
+            [np.sqrt(decay_rate) * annihilate(0)] for decay_rate in decay_rates
+        ]
         hamiltonian_list = [number(0)] * len(decay_rates)
         initial_states = [psi0] * len(decay_rates)
         evolution_results = cudaq.evolve(
@@ -775,15 +792,18 @@ class TestBatchedCavityModelWithBatchSize(TestSystem):
             collapse_operators=collapse_operators_list,
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
-            integrator=integrator(), max_batch_size=1)
-        
+            integrator=integrator(),
+            max_batch_size=1)
+
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
             expectation_values = []
             for exp_vals in evolution_result.expectation_values():
                 expectation_values.append(exp_vals[0].expectation())
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
-            np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
+            np.testing.assert_allclose(expected_answer, expectation_values,
+                                       1e-3)
+
 
 class TestBatchedCavityModelSuperOperatorWithBatchSize(TestSystem):
 
@@ -810,10 +830,12 @@ class TestBatchedCavityModelSuperOperatorWithBatchSize(TestSystem):
             # L * rho * L_dagger
             me_super_op += cudaq.SuperOperator.left_right_multiply(L, L_dagger)
             # -0.5 * L_dagger * L * rho
-            me_super_op += cudaq.SuperOperator.left_multiply(-0.5 * L_dagger * L)
+            me_super_op += cudaq.SuperOperator.left_multiply(-0.5 * L_dagger *
+                                                             L)
             # -0.5 * rho * L_dagger * L
-            me_super_op += cudaq.SuperOperator.right_multiply(-0.5 * L_dagger * L)
-            
+            me_super_op += cudaq.SuperOperator.right_multiply(-0.5 * L_dagger *
+                                                              L)
+
             # Add this super operator to the list
             me_super_op_lists.append(me_super_op)
         initial_states = [rho0_] * len(decay_rates)
@@ -826,13 +848,14 @@ class TestBatchedCavityModelSuperOperatorWithBatchSize(TestSystem):
             observables=[hamiltonian],
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
-            integrator=integrator(), max_batch_size=1)
-        
+            integrator=integrator(),
+            max_batch_size=1)
+
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
             expectation_values = []
             for exp_vals in evolution_result.expectation_values():
                 expectation_values.append(exp_vals[0].expectation())
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
-            np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
-            
+            np.testing.assert_allclose(expected_answer, expectation_values,
+                                       1e-3)
