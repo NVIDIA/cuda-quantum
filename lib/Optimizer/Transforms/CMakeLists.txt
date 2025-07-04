@@ -51,6 +51,7 @@ add_cudaq_library(OptTransforms
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
+  PhasePolynomialRotationMerging.cpp
   PhasePolynomialPreprocess.cpp
   PruneCtrlRelations.cpp
   PySynthCallableBlockArgs.cpp
