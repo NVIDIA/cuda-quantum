@@ -226,9 +226,11 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcublasLt.so.11 \
         --exclude libcurand.so.10 \
         --exclude libcusolver.so.11 \
+        --exclude libcusparse.so.11 \
         --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
+        --exclude libcudensitymat.so.0 \
         --exclude libcudart.so.11.0 \
         --exclude libnvToolsExt.so.1 \
         --exclude libnvidia-ml.so.1 \
