@@ -104,10 +104,6 @@ cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
     const std::string &kernel_name, std::size_t shots) {
-  // 0. Check target for feature support
-  if (platform.is_remote() || platform.is_emulated())
-    throw std::runtime_error("`run` is not yet supported on this target.");
-
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
