@@ -946,6 +946,53 @@ class PyASTBridge(ast.NodeVisitor):
 
         return startVal, endVal, stepVal, isDecrementing
 
+    def __visitStructAttribute(self, node, structValue):
+        """
+        Handle struct member extraction from either a pointer to struct or direct struct value.
+        Uses the most efficient approach for each case.
+        """
+        if cc.PointerType.isinstance(structValue.type):
+            # Handle pointer to struct - use ComputePtrOp
+            eleType = cc.PointerType.getElementType(structValue.type)
+            if cc.StructType.isinstance(eleType):
+                structIdx, memberTy = self.getStructMemberIdx(
+                    node.attr, eleType)
+                eleAddr = cc.ComputePtrOp(cc.PointerType.get(memberTy),
+                                          structValue, [],
+                                          DenseI32ArrayAttr.get([structIdx
+                                                                ])).result
+
+                if self.attributePushPointerValue:
+                    self.pushValue(eleAddr)
+                    return
+
+                # Load the value
+                eleAddr = cc.LoadOp(eleAddr).result
+                self.pushValue(eleAddr)
+                return
+        elif cc.StructType.isinstance(structValue.type):
+            # Handle direct struct value - use ExtractValueOp (more efficient)
+            structIdx, memberTy = self.getStructMemberIdx(
+                node.attr, structValue.type)
+            extractedValue = cc.ExtractValueOp(
+                memberTy, structValue, [],
+                DenseI32ArrayAttr.get([structIdx])).result
+
+            if self.attributePushPointerValue:
+                # If we need a pointer, we have to create a temporary slot
+                tempSlot = cc.AllocaOp(cc.PointerType.get(memberTy),
+                                       TypeAttr.get(memberTy)).result
+                cc.StoreOp(extractedValue, tempSlot)
+                self.pushValue(tempSlot)
+                return
+
+            self.pushValue(extractedValue)
+            return
+        else:
+            self.emitFatalError(
+                f"Cannot access attribute '{node.attr}' on type {structValue.type}"
+            )
+
     def needsStackSlot(self, type):
         """
         Return true if this is a type that has been "passed by value" and 
@@ -1338,20 +1385,7 @@ class PyASTBridge(ast.NodeVisitor):
                 eleType = cc.PointerType.getElementType(value.type)
                 if cc.StructType.isinstance(eleType):
                     # Handle the case where we have a struct member extraction, memory semantics
-                    structIdx, memberTy = self.getStructMemberIdx(
-                        node.attr, eleType)
-                    eleAddr = cc.ComputePtrOp(
-                        cc.PointerType.get(memberTy), value, [],
-                        DenseI32ArrayAttr.get([structIdx],
-                                              context=self.ctx)).result
-
-                    if self.attributePushPointerValue:
-                        self.pushValue(eleAddr)
-                        return
-
-                    # If we have a pointer, and we always want to load it.
-                    eleAddr = cc.LoadOp(eleAddr).result
-                    self.pushValue(eleAddr)
+                    self.__visitStructAttribute(node, value)
                     return
 
             if node.attr == 'append':
@@ -1425,6 +1459,20 @@ class PyASTBridge(ast.NodeVisitor):
                         self.getConstantInt(channel_class.num_parameters))
                     self.pushValue(self.getConstantInt(hash(channel_class)))
                     return
+
+        # Handle attribute access on call results (e.g., M(6, 9).i)
+        if isinstance(node.value, ast.Call):
+            # Visit the call first to get the result on the stack
+            self.visit(node.value)
+            if len(self.valueStack) == 0:
+                self.emitFatalError("Call expression did not produce a value",
+                                    node)
+
+            # Get the call result from the stack
+            call_result = self.popValue()
+
+            # Handle attribute access on the call result
+            self.__visitStructAttribute(node, call_result)
 
     def visit_Call(self, node):
         """

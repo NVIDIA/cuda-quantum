@@ -343,6 +343,23 @@ void test_scalars(mlir::MLIRContext *ctx) {
 
 void test_vectors(mlir::MLIRContext *ctx) {
   {
+    std::vector<std::int32_t> x;
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<i32>", v);
+  }
+  // clang-format off
+// CHECK: Source module:
+// CHECK:  func.func private @callee(!cc.stdvec<i32>)
+// CHECK: Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK: %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i32>
+// CHECK: %[[VAL_2:.*]] = cc.stdvec_init %[[VAL_1]], %[[VAL_0]] : (!cc.ptr<i32>, i64) -> !cc.stdvec<i32>
+// CHECK: }
+  // clang-format on
+
+  {
     std::vector<std::int32_t> x = {14581, 0xcafe, 42, 0xbeef};
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.stdvec<i32>", v);
