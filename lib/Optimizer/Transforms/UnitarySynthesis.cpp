@@ -441,6 +441,7 @@ struct TwoQubitOpKAK : public Decomposer {
 
 
 Eigen::VectorXcd householdervector(const Eigen::VectorXcd& x){
+  printf("Inside householdervector\n");
   double norm = x.norm();
   std::complex<double> sign = (x(0) == std::complex<double>(0.0, 0.0)) ? 1.0 : (x(0)/std::abs(x(0)));
   std::complex<double> alpha = sign * norm;
@@ -450,6 +451,7 @@ Eigen::VectorXcd householdervector(const Eigen::VectorXcd& x){
 }
 
 Eigen::MatrixXcd createhouseholder(const Eigen::VectorXcd& x){
+  printf("Inside createhouseholder\n");
   Eigen::VectorXcd v = householdervector(x);
   double tau = 2.0 / (v.squaredNorm());
   Eigen::MatrixXcd house = Eigen::MatrixXcd::Identity(v.size(), v.size()) - tau * v * v.adjoint();
@@ -457,6 +459,7 @@ Eigen::MatrixXcd createhouseholder(const Eigen::VectorXcd& x){
 }
 
 Eigen::MatrixXcd createmultiplexor(const Eigen::MatrixXcd &firstmatrix, const Eigen::MatrixXcd &secondmatrix){
+  printf("Inside createmultiplexor\n");
   Eigen::MatrixXcd multiplexedmatrix = Eigen::MatrixXcd::Identity(firstmatrix.rows() + secondmatrix.rows(), firstmatrix.cols() + secondmatrix.cols());
 
   multiplexedmatrix.block(0, 0, firstmatrix.rows(), firstmatrix.cols()) = firstmatrix;
@@ -467,7 +470,7 @@ Eigen::MatrixXcd createmultiplexor(const Eigen::MatrixXcd &firstmatrix, const Ei
 
 std::tuple<Eigen::MatrixXcd, Eigen::MatrixXcd, Eigen::MatrixXcd>
 blockbidiagonalize(const Eigen::MatrixXcd &matrix){
-  std::cout << "In blockbidiagonalize" << std::endl;
+  printf("Inside blockbidiagonalize\n");
   int p = 4, q = 4, m = 8;
   std::vector<double> theta, phi;
   Eigen::MatrixXcd Y = matrix;
@@ -500,19 +503,25 @@ blockbidiagonalize(const Eigen::MatrixXcd &matrix){
       u1 = std::cos(phi[(i+1)%2])*Y.block(i, i, p-i, 1) + std::sin(phi[(i+1)%2])*Y.block(i, q-1+i, p-i, 1);
       u2 = -std::cos(phi[(i+1)%2])*Y.block(p+i, i, m-p-i, 1) - std::sin(phi[(i+1)%2])*Y.block(p+i, q-1+i, m-p-i, 1);
     }
+    printf("Assigned u1,u2\n");
     //Step 7
+    printf("u1 = %lf, u2 = %lf\n");
     theta[i%2] = std::atan2(u2.norm(), u1.norm());
+    printf("Calculated theta\n");
 
     //Step 8
     P1_i = createmultiplexor(Eigen::MatrixXcd::Identity(i-1, i-1), createhouseholder(u1).adjoint());
-    P1_i = createmultiplexor(Eigen::MatrixXcd::Identity(i-1, i-1), createhouseholder(u2).adjoint());
+    P2_i = createmultiplexor(Eigen::MatrixXcd::Identity(i-1, i-1), createhouseholder(u2).adjoint());
+    printf("Created multiplexors for P1_i and P2_i\n");
 
     //Step 9
     left_op = createmultiplexor(P1_i, P2_i);
     Y = left_op * Y;
 
+    printf("Left multiplied Y with left_op\n");
     //Step 12
     v2 = std::sin(theta[i%2])*Y.block(i, p+i, 1, m-p-i) + std::cos(theta[i%2])*Y.block(p+i, p+i, 1, m-p-i);
+    printf("Assigned v2\n");
     if(i<p){
       // Step 11
       v1 = -std::sin(theta[i%2])*Y.block(i, i+1, 1, p-i-1) - std::cos(theta[i%2])*Y.block(p+i, i+1, 1, p-i-1);
@@ -528,18 +537,22 @@ blockbidiagonalize(const Eigen::MatrixXcd &matrix){
       Q1_i = Eigen::MatrixXcd::Identity(p, p);
     }
 
+    printf("Created Q1_i\n");
     /// Step 19
     Q2_i = createmultiplexor(Eigen::MatrixXcd::Identity(i-1, i-1), createhouseholder(v2.adjoint()).adjoint());
 
+    printf("Created Q2_i\n");
     // Step 20
     right_op = createmultiplexor(Q1_i, Q2_i);
     Y = Y*right_op;
 
+    printf("Right multiplied Y with right_op\n");
     // Step 24
     P1 = P1 * P1_i;
     P1 = P2 * P2_i;
     Q1 = Q1 * Q1_i;
     Q2 = Q2 * Q2_i;
+    printf("End of loop iteration\n");
   }
 
   Eigen::MatrixXcd P = createmultiplexor(P1, P2);
@@ -585,7 +598,7 @@ struct ThreeQubitOpCSD : public Decomposer {
     phase = std::pow(targetMatrix.determinant(), 0.125);
     auto specialUnitary = targetMatrix / phase;
 
-    std::cout << "Calling blockbidiagonalize" << std::endl;
+    printf("Calling blockbidiagonalize\n");
     auto [left, diagonal, right] = blockbidiagonalize(specialUnitary);
     Eigen::Matrix4cd Q11 = specialUnitary.template block<4, 4>(0, 0);
     Eigen::Matrix4cd Q12 = specialUnitary.template block<4, 4>(0, 4);
