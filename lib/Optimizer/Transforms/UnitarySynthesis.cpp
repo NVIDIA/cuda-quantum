@@ -542,6 +542,14 @@ blockbidiagonalize(const Eigen::MatrixXcd &matrix){
 
   Eigen::MatrixXcd P = createmultiplexor(P1, P2);
   Eigen::MatrixXcd Q = createmultiplexor(Q1, Q2);
+
+  Eigen::MatrixXcd reconstructedmatrix = P * Y * Q.adjoint();
+  assert(reconstructedmatrix.isApprox(matrix, TOL));
+  assert(Y.isUnitary(TOL));
+  assert(P.isUnitary(TOL));
+  assert(Q.isUnitary(TOL));
+
+
   return std::make_tuple(P, Y, Q);
 }
 
@@ -575,6 +583,7 @@ struct ThreeQubitOpCSD : public Decomposer {
     phase = std::pow(targetMatrix.determinant(), 0.125);
     auto specialUnitary = targetMatrix / phase;
 
+    auto [left, diagonal, right] = blockbidiagonalize(specialUnitary);
     Eigen::Matrix4cd Q11 = specialUnitary.template block<4, 4>(0, 0);
     Eigen::Matrix4cd Q12 = specialUnitary.template block<4, 4>(0, 4);
     Eigen::Matrix4cd Q21 = specialUnitary.template block<4, 4>(4, 0);
