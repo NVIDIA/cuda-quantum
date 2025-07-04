@@ -13,7 +13,7 @@ CPUs, GPUs and QPUs.
 
 In Python, integration with any third-party Python package is handled
 automatically without any need for additional configuration. For C++, the rest of this
-document outlines how to integration with libraries that are compile with a different 
+document outlines how to integrate with libraries that are compiled with a different 
 compiler than `nvq++`.
 
 
