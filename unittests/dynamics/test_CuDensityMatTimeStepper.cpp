@@ -376,7 +376,8 @@ TEST_F(CuDensityMatTimeStepperTest, BatchedOperatorSimple) {
   auto outputState =
       time_stepper->compute(cudaq::state(batchedState.release()), 0.0, {});
   outputState.dump();
-  auto outputStates = CuDensityMatState::splitBatchedState(*asCudmState(outputState));
+  auto outputStates =
+      CuDensityMatState::splitBatchedState(*asCudmState(outputState));
   EXPECT_EQ(outputStates.size(), 2);
 
   std::vector<std::complex<double>> outputStateVec1(2);
@@ -398,4 +399,3 @@ TEST_F(CuDensityMatTimeStepperTest, BatchedOperatorSimple) {
                        outputStateVec2[1]),
               0.0, 1e-6);
 }
- 

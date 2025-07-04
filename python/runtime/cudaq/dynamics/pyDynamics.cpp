@@ -55,8 +55,8 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
             auto liouvillian = cudaq::dynamics::Context::getCurrentContext()
                                    ->getOpConverter()
                                    .constructLiouvillian(
-                                       {hamiltonian}, {collapse_ops}, modeExtents,
-                                       params, is_master_equation);
+                                       {hamiltonian}, {collapse_ops},
+                                       modeExtents, params, is_master_equation);
             return PyCuDensityMatTimeStepper(
                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
                 liouvillian, schedule);
@@ -76,24 +76,27 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
             cudaq::dynamics::Context::getCurrentContext()->getHandle(),
             liouvillian, schedule);
       }))
-      .def(py::init(
-          [](cudaq::schedule schedule, std::vector<int64_t> modeExtents,
-             const std::vector<cudaq::sum_op<cudaq::matrix_handler>>& hamiltonians,
-             const std::vector<std::vector<cudaq::sum_op<cudaq::matrix_handler>>>& list_collapse_ops,
-             bool is_master_equation) {
-            std::unordered_map<std::string, std::complex<double>> params;
-            for (const auto &param : schedule.get_parameters()) {
-              params[param] = schedule.get_value_function()(param, 0.0);
-            }
-            auto liouvillian = cudaq::dynamics::Context::getCurrentContext()
-                                   ->getOpConverter()
-                                   .constructLiouvillian(
-                                       hamiltonians, list_collapse_ops, modeExtents,
-                                       params, is_master_equation);
-            return PyCuDensityMatTimeStepper(
-                cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-                liouvillian, schedule);
-          }))
+      .def(py::init([](cudaq::schedule schedule,
+                       std::vector<int64_t> modeExtents,
+                       const std::vector<cudaq::sum_op<cudaq::matrix_handler>>
+                           &hamiltonians,
+                       const std::vector<
+                           std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
+                           &list_collapse_ops,
+                       bool is_master_equation) {
+        std::unordered_map<std::string, std::complex<double>> params;
+        for (const auto &param : schedule.get_parameters()) {
+          params[param] = schedule.get_value_function()(param, 0.0);
+        }
+        auto liouvillian =
+            cudaq::dynamics::Context::getCurrentContext()
+                ->getOpConverter()
+                .constructLiouvillian(hamiltonians, list_collapse_ops,
+                                      modeExtents, params, is_master_equation);
+        return PyCuDensityMatTimeStepper(
+            cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+            liouvillian, schedule);
+      }))
       .def(py::init([](cudaq::schedule schedule,
                        std::vector<int64_t> modeExtents,
                        const std::vector<cudaq::super_op> &superOps) {

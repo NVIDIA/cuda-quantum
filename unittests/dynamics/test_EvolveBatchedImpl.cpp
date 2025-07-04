@@ -590,7 +590,7 @@ TEST(BatchedEvolveTester, checkCallbackTensorOpDifferentFuncs) {
     }
   }
 }
- 
+
 TEST(BatchedEvolveTester, checkSuperopSimple) {
   const cudaq::dimension_map dims = {{0, 2}};
   const std::vector<double> resonanceFreqs = {0.05, 0.1, 0.15, 0.2,
@@ -653,18 +653,20 @@ TEST(BatchedEvolveTester, checkSuperopMasterEquation) {
   const cudaq::dimension_map dimensions{{0, N}};
   std::vector<std::complex<double>> rho0_(N * N, 0.0);
   rho0_.back() = 1.0;
-  const std::vector<double> decayRates  {0.05, 0.1, 0.15, 0.2,
-                                         0.25, 0.3, 0.35, 0.4};
+  const std::vector<double> decayRates{0.05, 0.1, 0.15, 0.2,
+                                       0.25, 0.3, 0.35, 0.4};
 
   std::vector<cudaq::super_op> batchedSups;
   std::vector<cudaq::state> initialStates;
-  
+
   for (const auto &decayRate : decayRates) {
     // Same hamiltonian, but different collapse operators
     cudaq::super_op sup;
     // Apply `-i[H, rho]` superop
-    sup += cudaq::super_op::left_multiply(std::complex<double>(0.0, -1.0) * ham);
-    sup += cudaq::super_op::right_multiply(std::complex<double>(0.0, 1.0) * ham);
+    sup +=
+        cudaq::super_op::left_multiply(std::complex<double>(0.0, -1.0) * ham);
+    sup +=
+        cudaq::super_op::right_multiply(std::complex<double>(0.0, 1.0) * ham);
 
     auto td_function =
         [decayRate](const std::unordered_map<std::string, std::complex<double>>
@@ -677,7 +679,8 @@ TEST(BatchedEvolveTester, checkSuperopMasterEquation) {
           return result;
         };
 
-    auto L = cudaq::scalar_operator(td_function) * cudaq::boson_op::annihilate(0);
+    auto L =
+        cudaq::scalar_operator(td_function) * cudaq::boson_op::annihilate(0);
     auto L_dagger =
         cudaq::scalar_operator(td_function) * cudaq::boson_op::create(0);
     // Lindblad terms
@@ -806,4 +809,3 @@ TEST(BatchedEvolveTester, checkParamSweep) {
 
   EXPECT_GT(maxOverlap, 0.98); // Expect a high overlap with the target state
 }
-

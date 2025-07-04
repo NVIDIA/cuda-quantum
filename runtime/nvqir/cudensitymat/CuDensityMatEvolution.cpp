@@ -726,7 +726,7 @@ evolveBatched(const std::vector<super_op> &superOps,
   for (const auto &param : schedule.get_parameters()) {
     params[param] = schedule.get_value_function()(param, 0.0);
   }
-  
+
   const bool has_right_apply = [&]() {
     for (const auto &superOp : superOps) {
       for (const auto &[leftOp, rightOp] : superOp) {
