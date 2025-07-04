@@ -191,14 +191,13 @@ Args:
           "Return the :class:`KrausChannel`'s that make up this noise model.")
       .def(
           "get_channels",
-           [](noise_model self, const std::string &op,
-              const std::vector<std::size_t> &qubits,
-              const std::vector<std::size_t> &controls) {
-             return self.get_channels(op, qubits, controls);
-           },
-           py::arg("operator"), py::arg("qubits"), py::arg("controls"),
-           "Return the :class:`KrausChannel`'s that make up this noise model.");
-
+          [](noise_model self, const std::string &op,
+             const std::vector<std::size_t> &qubits,
+             const std::vector<std::size_t> &controls) {
+            return self.get_channels(op, qubits, controls);
+          },
+          py::arg("operator"), py::arg("qubits"), py::arg("controls"),
+          "Return the :class:`KrausChannel`'s that make up this noise model.");
 }
 
 void bindKrausOp(py::module &mod) {
