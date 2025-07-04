@@ -66,8 +66,6 @@ def evolve_dynamics(
                 raise ValueError(
                     "Number of Hamiltonians and collapse operators must match"
                 )
-        else:
-            collapse_operators = [[] for _ in range(len(hamiltonian))]
         
         if len(initial_state) != len(hamiltonian):
             raise ValueError(

@@ -58,7 +58,8 @@ class BaseIntegrator(ABC, Generic[TState]):
                    collapse_operators: Sequence[Operator] | Sequence[Sequence[Operator]] = []):
         self.dimensions = tuple(dimensions[d] for d in range(len(dimensions)))
         self.schedule = schedule
-        if isinstance(hamiltonian, SuperOperator):
+        if isinstance(hamiltonian, SuperOperator) or (isinstance(hamiltonian, Sequence) and
+                                           isinstance(hamiltonian[0], SuperOperator)):
             self.super_op = hamiltonian
         else:
             self.hamiltonian = hamiltonian

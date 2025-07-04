@@ -127,13 +127,18 @@ CuDensityMatState::getTensor(std::size_t tensorIdx) const {
     throw std::runtime_error(
         "CuDensityMatState state only supports a single tensor");
 
-  const std::size_t dim = isDensityMatrix
-                              ? static_cast<std::size_t>(std::sqrt(dimension))
-                              : dimension;
-  const std::vector<std::size_t> extents =
-      isDensityMatrix ? std::vector<std::size_t>{dim, dim}
-                      : std::vector<std::size_t>{dim};
-  return Tensor{devicePtr, extents, precision::fp64};
+  if (batchSize == 1) {
+    const std::size_t dim = isDensityMatrix
+                                ? static_cast<std::size_t>(std::sqrt(dimension))
+                                : dimension;
+    const std::vector<std::size_t> extents =
+        isDensityMatrix ? std::vector<std::size_t>{dim, dim}
+                        : std::vector<std::size_t>{dim};
+    return Tensor{devicePtr, extents, precision::fp64};
+  } else {
+    // For batched state, always returns the flat buffer.
+    return Tensor{devicePtr, {dimension}, precision::fp64};
+  }
 }
 
 std::complex<double>

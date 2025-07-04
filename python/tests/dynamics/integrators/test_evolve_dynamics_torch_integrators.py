@@ -34,7 +34,12 @@ all_models = [
     TestCrossResonance, TestCallbackTensor, TestInitialStateEnum,
     TestCavityModelBatchedInputState, TestCavityModelSuperOperator,
     TestInitialStateEnumSuperOperator,
-    TestCavityModelBatchedInputStateSuperOperator
+    TestCavityModelBatchedInputStateSuperOperator,
+    TestCavityModelBatchedInputStateSuperOperator,
+    TestBatchedCavityModel,
+    TestBatchedCavityModelTimeDependentHam,
+    TestBatchedCavityModelTimeDependentCollapseOp,
+    TestBatchedCavityModelSuperOperator
 ]
 
 
