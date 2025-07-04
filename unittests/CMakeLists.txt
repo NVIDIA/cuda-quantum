@@ -333,6 +333,7 @@ if (CUDA_FOUND)
     CUDA::cudart
     CUDA::cublas
     ${CUTENSOR_LIB}
+    CUDA::cusparse
     gtest_main
     fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
@@ -354,6 +355,7 @@ if (CUDA_FOUND)
     CUDA::cudart
     CUDA::cublas
     ${CUTENSOR_LIB}
+    CUDA::cusparse
     gtest_main
     fmt::fmt-header-only)
   # Count the number of GPUs

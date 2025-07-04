@@ -122,7 +122,17 @@ Context::Context(int deviceId) : m_deviceId(deviceId) {
 /// @brief Destroy the Context object and release resources.
 Context::~Context() {
   m_opConverter.reset();
-  cudensitymatDestroy(m_cudmHandle);
+  // Prevent spurious error message during shutdown when destroying the
+  // cudensitymat handle.
+  {
+    std::stringstream out;
+    auto cerrBuffer = std::cerr.rdbuf();
+    std::cerr.rdbuf(out.rdbuf()); // Redirect std::cerr to the stringstream.
+    cudensitymatDestroy(m_cudmHandle);
+    // Restore cerr buffer
+    std::cerr.rdbuf(cerrBuffer);
+  }
+
   cublasDestroy(m_cublasHandle);
   if (m_scratchSpaceSizeBytes > 0) {
     cudaq::dynamics::DeviceAllocator::free(m_scratchSpace);
