@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -fenable-cudaq-run %cpp_std %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
+// RUN: nvq++ %cpp_std %s -o %t && %t |& FileCheck %s -check-prefix=FAIL
 // clang-format on
 
 #include <cudaq.h>
