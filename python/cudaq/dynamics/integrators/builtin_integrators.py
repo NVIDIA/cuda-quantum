@@ -96,17 +96,25 @@ class RungeKuttaIntegrator(BaseIntegrator[State]):
     def set_system(self,
                    dimensions: Mapping[int, int],
                    schedule: Schedule,
-                   hamiltonian: Operator | SuperOperator,
-                   collapse_operators: Sequence[Operator] = []):
+                   hamiltonian: Operator | SuperOperator | Sequence[Operator] |
+                   Sequence[SuperOperator],
+                   collapse_operators: Sequence[Operator] |
+                   Sequence[Sequence[Operator]] = []):
         system_ = bindings.SystemDynamics()
         system_.modeExtents = [dimensions[d] for d in range(len(dimensions))]
-        if isinstance(hamiltonian, SuperOperator):
+        if not isinstance(hamiltonian, Sequence):
+            hamiltonian = [hamiltonian]
+            if len(collapse_operators) > 0:
+                collapse_operators = [
+                    MatrixOperator(c_op) for c_op in collapse_operators
+                ]
+                collapse_operators = [collapse_operators]
+
+        if isinstance(hamiltonian[0], SuperOperator):
             system_.superOp = hamiltonian
         else:
             system_.hamiltonian = hamiltonian
-            system_.collapseOps = [
-                MatrixOperator(c_op) for c_op in collapse_operators
-            ]
+            system_.collapseOps = collapse_operators
         schedule_ = bindings.Schedule(schedule._steps,
                                       list(schedule._parameters))
         # Handle the legacy (deprecated) `nsteps` parameter.

@@ -13,6 +13,11 @@ cudaq.set_target("dynamics")
 # which exhibits the so-called quantum quench effect.
 # e.g., see `Quantum quenches in the anisotropic spin-1/2 Heisenberg chain: different approaches to many-body dynamics far from equilibrium`
 # (New J. Phys. 12 055017)
+
+# Specifically, we demonstrate the use of batched Hamiltonian operators to simulate the Heisenberg model
+# with different coupling strengths.
+# These batched Hamiltonian operators allow us to efficiently compute the dynamics
+# for multiple Hamiltonian operators in a single simulation run.
 # Number of spins
 N = 9
 dimensions = {}
@@ -35,6 +40,7 @@ for i in range(N):
 staggered_magnetization_op /= N
 
 observe_results = []
+batched_hamiltonian = []
 for g in [0.0, 0.25, 4.0]:
     # Heisenberg model spin coupling strength
     Jx = 1.0
@@ -48,26 +54,32 @@ for g in [0.0, 0.25, 4.0]:
         H += Jx * spin.x(i) * spin.x(i + 1)
         H += Jy * spin.y(i) * spin.y(i + 1)
         H += Jz * spin.z(i) * spin.z(i + 1)
+    # Append the Hamiltonian to the batched list
+    batched_hamiltonian.append(H)
 
-    steps = np.linspace(0.0, 5, 1000)
-    schedule = Schedule(steps, ["time"])
+steps = np.linspace(0.0, 5, 1000)
+schedule = Schedule(steps, ["time"])
 
-    # Prepare the initial state vector
-    psi0_ = cp.zeros(2**N, dtype=cp.complex128)
-    psi0_[int(spin_state, 2)] = 1.0
-    psi0 = cudaq.State.from_data(psi0_)
+# Prepare the initial state vector
+psi0_ = cp.zeros(2**N, dtype=cp.complex128)
+psi0_[int(spin_state, 2)] = 1.0
+psi0 = cudaq.State.from_data(psi0_)
 
-    # Run the simulation
-    evolution_result = cudaq.evolve(H,
-                                    dimensions,
-                                    schedule,
-                                    psi0,
-                                    observables=[staggered_magnetization_op],
-                                    collapse_operators=[],
-                                    store_intermediate_results=cudaq.
-                                    IntermediateResultSave.EXPECTATION_VALUE,
-                                    integrator=ScipyZvodeIntegrator())
+# Batched initial states (all the same in this case)
+batched_psi0 = [psi0] * len(batched_hamiltonian)
 
+# Run the simulation in batched mode
+evolution_results = cudaq.evolve(
+    batched_hamiltonian,
+    dimensions,
+    schedule,
+    batched_psi0,
+    observables=[staggered_magnetization_op],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=ScipyZvodeIntegrator())
+
+for g, evolution_result in zip([0.0, 0.25, 4.0], evolution_results):
     exp_val = [
         exp_vals[0].expectation()
         for exp_vals in evolution_result.expectation_values()
