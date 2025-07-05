@@ -1030,7 +1030,8 @@ def test_dataclass_does_not_support_list_of_float_type():
         cudaq.run(kernel, shots_count=1)
     assert f"`list[float]` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}." in str(
         e.value)
-=======
+
+
 def test_run_and_sample_and_direct_call():
 
     @cudaq.kernel
