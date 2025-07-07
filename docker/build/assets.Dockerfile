@@ -265,7 +265,7 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 # in the upstream devdeps images.
 ## [Python MLIR tests]
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest scipy cudensitymat-cu12==0.1.0 cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)==25.03 && \
+    python3 -m pip install lit pytest scipy cudensitymat-cu$(echo ${CUDA_VERSION} | cut -d . -f1)==0.1.0 cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)==25.03 && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
