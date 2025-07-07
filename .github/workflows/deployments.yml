@@ -174,7 +174,7 @@ jobs:
     if: needs.metadata.outputs.build_dependencies == 'true'
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
@@ -182,7 +182,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
-      platforms: ${{ matrix.platform }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
       build_config_id: ${{ matrix.toolchain }}
       build_args: |
@@ -415,7 +415,7 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
-      build_docs: ${{ matrix.cuda_version == '11.8' }}
+      build_docs: ${{ matrix.cuda_version == '11.8' && matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
       environment: ghcr-deployment
 
   digest_config:

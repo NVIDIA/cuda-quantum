@@ -773,7 +773,6 @@ jobs:
           path: docs
           retention-days: 30
           if-no-files-found: error
-          overwrite: true
 
       - name: Spell check HTML documentation
         if: success()
