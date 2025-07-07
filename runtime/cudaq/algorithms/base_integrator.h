@@ -85,20 +85,13 @@ public:
   }
 
   static void init_system_dynamics(base_integrator &integrator,
-                                   const super_op &superOp,
+                                   const std::vector<super_op> &superOps,
                                    std::vector<std::int64_t> modeExtents,
                                    const cudaq::schedule &schedule) {
-    SystemDynamics systemDynamics(modeExtents, superOp);
+    SystemDynamics systemDynamics(modeExtents, superOps);
     integrator.m_system = systemDynamics;
     integrator.m_schedule = schedule;
     integrator.m_stepper.reset();
-  }
-
-  static void init_stepper(base_integrator &integrator,
-                           std::unique_ptr<base_time_stepper> &&stepper,
-                           const cudaq::schedule &schedule) {
-    integrator.m_stepper = std::move(stepper);
-    integrator.m_schedule = schedule;
   }
 };
 } // namespace cudaq

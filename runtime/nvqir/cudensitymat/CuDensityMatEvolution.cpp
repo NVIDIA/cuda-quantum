@@ -464,7 +464,7 @@ evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
   if (!cudmState->is_initialized())
     cudmState->initialize_cudm(handle, dims, /*batchSize=*/1);
 
-  cudaq::integrator_helper::init_system_dynamics(integrator, superOp, dims,
+  cudaq::integrator_helper::init_system_dynamics(integrator, {superOp}, dims,
                                                  schedule);
   integrator.setState(initialState, 0.0);
 
@@ -525,7 +525,7 @@ evolveBatched(const super_op &superOp,
   }();
   auto batchedState = CuDensityMatState::createBatchedState(
       handle, states, dims, has_right_apply);
-  cudaq::integrator_helper::init_system_dynamics(integrator, superOp, dims,
+  cudaq::integrator_helper::init_system_dynamics(integrator, {superOp}, dims,
                                                  schedule);
   integrator.setState(cudaq::state(batchedState.release()), 0.0);
   return evolveBatchedImpl(dims, schedule, initialStates.size(), integrator,
@@ -631,14 +631,9 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
           "state vector).");
     }
     // Evolve the batch of states
-    auto batchedLiouvillian =
-        cudaq::dynamics::Context::getCurrentContext()
-            ->getOpConverter()
-            .constructLiouvillian(batchHamOps, batchCollapseOps, dims, params,
-                                  isDensityMat);
-    auto stepper =
-        std::make_unique<CuDensityMatTimeStepper>(handle, batchedLiouvillian);
-    integrator_helper::init_stepper(integrator, std::move(stepper), schedule);
+    SystemDynamics system(dims, batchHamOps, batchCollapseOps);
+    cudaq::integrator_helper::init_system_dynamics(integrator, system,
+                                                   schedule);
 
     if (states.size() > 1) {
       auto batchedState = CuDensityMatState::createBatchedState(
@@ -763,13 +758,8 @@ evolveBatched(const std::vector<super_op> &superOps,
           "state vector).");
     }
     // Evolve the batch of states
-    auto batchedLiouvillian =
-        cudaq::dynamics::Context::getCurrentContext()
-            ->getOpConverter()
-            .constructLiouvillian(batchSuperOps, dims, params);
-    auto stepper =
-        std::make_unique<CuDensityMatTimeStepper>(handle, batchedLiouvillian);
-    integrator_helper::init_stepper(integrator, std::move(stepper), schedule);
+    integrator_helper::init_system_dynamics(integrator, batchSuperOps, dims,
+                                            schedule);
 
     if (states.size() > 1) {
       auto batchedState = CuDensityMatState::createBatchedState(
