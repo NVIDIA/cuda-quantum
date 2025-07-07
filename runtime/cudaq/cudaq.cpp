@@ -355,7 +355,7 @@ std::string get_quake_by_name(const std::string &kernelName,
       } else {
         result = pair.second;
         if (knownMangledArgs.has_value() &&
-            pair.first.ends_with(knownMangledArgs.value()))
+            pair.first.ends_with(*knownMangledArgs))
           break;
       }
     }
