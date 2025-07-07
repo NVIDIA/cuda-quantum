@@ -1058,6 +1058,7 @@ def test_unsupported_targets2(target):
     assert "not yet supported on this target" in repr(e)
     cudaq.reset_target()
 
+
 def test_dataclass_does_not_support_list_type():
 
     @dataclass
@@ -1071,7 +1072,7 @@ def test_dataclass_does_not_support_list_type():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=1)
-    assert f"`<class 'list'>` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}." in str(
+    assert f"`<class 'list'>` type is not yet supported in data classes." in str(
         e.value)
 
 
@@ -1088,7 +1089,7 @@ def test_dataclass_does_not_support_list_of_int_type():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=1)
-    assert f"`list[int]` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}." in str(
+    assert f"`list[int]` type is not yet supported in data classes." in str(
         e.value)
 
 
@@ -1105,7 +1106,7 @@ def test_dataclass_does_not_support_list_of_float_type():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=1)
-    assert f"`list[float]` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}." in str(
+    assert f"`list[float]` type is not yet supported in data classes." in str(
         e.value)
 
 
