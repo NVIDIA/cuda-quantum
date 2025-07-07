@@ -622,7 +622,8 @@ MPSSettings::MPSSettings() {
       throw std::runtime_error(errorMsg.str());
     }
     svdAlgo = iter->second;
-    cudaq::info("Setting MPS SVD algorithm to {} ({}).", fmt::underlying(svdAlgo), iter->first);
+    cudaq::info("Setting MPS SVD algorithm to {} ({}).",
+                fmt::underlying(svdAlgo), iter->first);
   }
 
   using GaugePair =
@@ -648,7 +649,8 @@ MPSSettings::MPSSettings() {
       throw std::runtime_error(errorMsg.str());
     }
     gaugeOption = iter->second;
-    cudaq::info("Setting MPS GAUGE option to {} ({}).", iter->first, fmt::underlying(iter->second));
+    cudaq::info("Setting MPS GAUGE option to {} ({}).", iter->first,
+                fmt::underlying(iter->second));
   }
 }
 
