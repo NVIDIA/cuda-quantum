@@ -2174,13 +2174,6 @@ class PyASTBridge(ast.NodeVisitor):
                 cls, annotations = globalRegisteredTypes.getClassAttributes(
                     node.func.id)
 
-                if "__dataclass_params__" in cls.__dict__:
-                    params = cls.__dict__["__dataclass_params__"]
-                    if not getattr(params, "frozen", False):
-                        self.emitFatalError(
-                            f"Assigning to fields in data classes is not yet supported. The dataclass `{cls.__name__}` must be declared with @dataclass(frozen=True) or @dataclasses.dataclass(frozen=True).",
-                            node)
-
                 # Alloca the struct
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
@@ -2210,7 +2203,7 @@ class PyASTBridge(ast.NodeVisitor):
                 else:
                     structTy = cc.StructType.getNamed(node.func.id, structTys)
                 # Disallow user specified methods on structs
-                if len({
+                if '__slots__' not in cls.__dict__ and len({
                         k: v
                         for k, v in cls.__dict__.items()
                         if not (k.startswith('__') and k.endswith('__'))
