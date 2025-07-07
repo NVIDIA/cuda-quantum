@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import os
-import time
 from dataclasses import dataclass
 
 import cudaq
@@ -15,7 +14,6 @@ import numpy as np
 import pytest
 
 list_err_msg = 'does not yet support returning `list` from entry-point kernels'
-ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool]
 
 skipIfBraketNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("braket")),
