@@ -123,9 +123,9 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::string remoteOutputLog(ctx->invocationResultBuffer.begin(),
                                 ctx->invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
-  } else if (platform.is_remote() || platform.is_emulated())
+  } else if (platform.is_remote() || platform.is_emulated()) {
     throw std::runtime_error("`run` is not yet supported on this target.");
-  else {
+  } else {
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
     for (std::size_t i = 0; i < shots; ++i) {
       // Set the execution context since as noise model is attached to this
