@@ -112,24 +112,32 @@ Subcircuit::Subcircuit(Operation *cnot) {
 }
 
 /// @brief Reconstructs a subcircuit from a subcircuit function
-Subcircuit::Subcircuit(func::FuncOp subcircuit_func) {
+/// @returns A newly allocated subcircuit if the function defines
+///          a valid subcircuit, `nullptr` otherwise.
+Subcircuit *Subcircuit::constructFromFunc(func::FuncOp subcircuit_func) {
   // First, some validation
-  assert(subcircuit_func.getOperation()->hasAttr("subcircuit"));
-  assert(subcircuit_func.getBlocks().size() == 1);
+  if (!subcircuit_func.getOperation()->hasAttr("subcircuit"))
+    return nullptr;
+  if (subcircuit_func.getBlocks().size() != 1)
+    return nullptr;
   auto &body_block = subcircuit_func.getRegion().getBlocks().front();
+  auto subcircuit = new Subcircuit();
   // Construct the subcircuit
   for (auto &op : body_block) {
     auto *opp = &op;
     if (opp == body_block.getTerminator())
       continue;
-    assert(!isTerminationPoint(opp));
-    ops.insert(opp);
+    // Ensure circuit only contains valid operations
+    if (isTerminationPoint(opp))
+      return nullptr;
+    subcircuit->ops.insert(opp);
   }
   for (auto arg : body_block.getArguments())
     if (isa<quake::WireType>(arg.getType()))
-      initial_wires.insert(arg);
+      subcircuit->initial_wires.insert(arg);
   for (auto ret : body_block.getTerminator()->getOperands())
-    terminal_wires.insert(ret);
+    subcircuit->terminal_wires.insert(ret);
+  return subcircuit;
 }
 
 SetVector<Value> Subcircuit::getInitialWires() { return initial_wires; }

@@ -181,13 +181,15 @@ protected:
     }
   }
 
+  Subcircuit() {}
+
 public:
   /// @brief Constructs a subcircuit with a phase polynomial starting from a
   /// cnot
   Subcircuit(Operation *cnot);
 
   /// @brief Reconstructs a subcircuit from a subcircuit function
-  Subcircuit(func::FuncOp subcircuit_func);
+  static Subcircuit *constructFromFunc(func::FuncOp subcircuit_func);
 
   SetVector<Value> getInitialWires();
 

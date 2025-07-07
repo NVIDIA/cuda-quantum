@@ -49,3 +49,45 @@ func.func private @subcircuit1(%arg0: !quake.wire, %arg1: f64, %arg2: f64, %arg3
 // CHECK:     %[[VAL_4:.*]] = quake.x %[[VAL_3]] : (!quake.wire) -> !quake.wire
 // CHECK:     cc.return %[[VAL_4]] : !quake.wire
 // CHECK: }
+
+// -----
+
+// Invalid subcircuit functions shouldn't be touched
+
+func.func private @subcircuit2(%arg0: !quake.wire, %arg1: f64, %arg2: f64, %arg3: f64) -> !quake.wire attributes {num_cnots = 0 : ui32, subcircuit} {
+    %0 = quake.rz (%arg1) %arg0 : (f64, !quake.wire) -> !quake.wire
+    %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+    %2 = quake.ry (%arg2) %1 : (f64, !quake.wire) -> !quake.wire
+    %3 = quake.x %2 : (!quake.wire) -> !quake.wire
+    %4 = quake.rz (%arg3) %3 : (f64, !quake.wire) -> !quake.wire
+    cc.return %4 : !quake.wire
+}
+
+// CHECK-LABEL: func.func private @subcircuit2(%arg0: !quake.wire, %arg1: f64, %arg2: f64, %arg3: f64) -> !quake.wire attributes {num_cnots = 0 : ui32, subcircuit} {
+// CHECK:     %0 = quake.rz (%arg1) %arg0 : (f64, !quake.wire) -> !quake.wire
+// CHECK:     %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+// CHECK:     %2 = quake.ry (%arg2) %1 : (f64, !quake.wire) -> !quake.wire
+// CHECK:     %3 = quake.x %2 : (!quake.wire) -> !quake.wire
+// CHECK:     %4 = quake.rz (%arg3) %3 : (f64, !quake.wire) -> !quake.wire
+// CHECK:     cc.return %4 : !quake.wire
+// CHECK: }
+
+// -----
+
+func.func private @subcircuit3(%arg0: !quake.wire, %arg1: f64, %arg2: f64, %arg3: f64) -> !quake.wire attributes {num_cnots = 0 : ui32} {
+    %0 = quake.rz (%arg1) %arg0 : (f64, !quake.wire) -> !quake.wire
+    %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+    %2 = quake.rz (%arg2) %1 : (f64, !quake.wire) -> !quake.wire
+    %3 = quake.x %2 : (!quake.wire) -> !quake.wire
+    %4 = quake.rz (%arg3) %3 : (f64, !quake.wire) -> !quake.wire
+    cc.return %4 : !quake.wire
+}
+
+// CHECK-LABEL: func.func private @subcircuit3(%arg0: !quake.wire, %arg1: f64, %arg2: f64, %arg3: f64) -> !quake.wire attributes {num_cnots = 0 : ui32} {
+// CHECK:     %0 = quake.rz (%arg1) %arg0 : (f64, !quake.wire) -> !quake.wire
+// CHECK:     %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+// CHECK:     %2 = quake.rz (%arg2) %1 : (f64, !quake.wire) -> !quake.wire
+// CHECK:     %3 = quake.x %2 : (!quake.wire) -> !quake.wire
+// CHECK:     %4 = quake.rz (%arg3) %3 : (f64, !quake.wire) -> !quake.wire
+// CHECK:     cc.return %4 : !quake.wire
+// CHECK: }
