@@ -40,7 +40,8 @@ staggered_magnetization_op /= N
 
 observe_results = []
 batched_hamiltonian = []
-for g in [0.0, 0.25, 4.0]:
+anisotropy_parameters = [0.0, 0.25, 4.0]
+for g in anisotropy_parameters:
     # Heisenberg model spin coupling strength
     Jx = 1.0
     Jy = 1.0
@@ -75,7 +76,7 @@ evolution_results = cudaq.evolve(
     store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
     integrator=ScipyZvodeIntegrator())
 
-for g, evolution_result in zip([0.0, 0.25, 4.0], evolution_results):
+for g, evolution_result in zip(anisotropy_parameters, evolution_results):
     exp_val = [
         exp_vals[0].expectation()
         for exp_vals in evolution_result.expectation_values()

@@ -44,9 +44,10 @@ class TestCavityModel(TestSystem):
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
             integrator=integrator())
-        expectation_values = []
-        for exp_vals in evolution_result.expectation_values():
-            expectation_values.append(exp_vals[0].expectation())
+        expectation_values = [
+            exp_vals[0].expectation()
+            for exp_vals in evolution_result.expectation_values()
+        ]
         expected_answer = (N - 1) * np.exp(-decay_rate * steps)
         np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
 
@@ -74,9 +75,10 @@ class TestCavityModelTimeDependentHam(TestSystem):
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
             integrator=integrator())
-        expectation_values = []
-        for exp_vals in evolution_result.expectation_values():
-            expectation_values.append(exp_vals[0].expectation())
+        expectation_values = [
+            exp_vals[0].expectation()
+            for exp_vals in evolution_result.expectation_values()
+        ]
         expected_answer = (N - 1) * np.exp(-decay_rate * steps)
         np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
 
@@ -106,9 +108,10 @@ class TestCavityModelTimeDependentCollapseOp(TestSystem):
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
             integrator=integrator())
-        expectation_values = []
-        for exp_vals in evolution_result.expectation_values():
-            expectation_values.append(exp_vals[0].expectation())
+        expectation_values = [
+            exp_vals[0].expectation()
+            for exp_vals in evolution_result.expectation_values()
+        ]
         expected_answer = [
             (N - 1) * np.exp(-decay_rate * (1.0 - np.exp(-t))) for t in steps
         ]
@@ -429,9 +432,10 @@ class TestInitialStateEnum(TestSystem):
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
             integrator=integrator())
-        expectation_values = []
-        for exp_vals in evolution_result.expectation_values():
-            expectation_values.append(exp_vals[0].expectation())
+        expectation_values = [
+            exp_vals[0].expectation()
+            for exp_vals in evolution_result.expectation_values()
+        ]
         expected_answer = np.cos(4.0 * np.pi * 0.1 * steps)
         np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
 
@@ -463,9 +467,10 @@ class TestCavityModelBatchedInputState(TestSystem):
             EXPECTATION_VALUE,
             integrator=integrator())
         for i in range(num_states):
-            expectation_values = []
-            for exp_vals in evolution_results[i].expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_results[i].expectation_values()
+            ]
             expected_answer = (N - 1 - i) * np.exp(-decay_rate * steps)
             np.testing.assert_allclose(expected_answer, expectation_values,
                                        1e-3)
@@ -507,9 +512,10 @@ class TestCavityModelSuperOperator(TestSystem):
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
             integrator=integrator())
-        expectation_values = []
-        for exp_vals in evolution_result.expectation_values():
-            expectation_values.append(exp_vals[0].expectation())
+        expectation_values = [
+            exp_vals[0].expectation()
+            for exp_vals in evolution_result.expectation_values()
+        ]
         expected_answer = (N - 1) * np.exp(-decay_rate * steps)
         np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
 
@@ -535,9 +541,10 @@ class TestInitialStateEnumSuperOperator(TestSystem):
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,
             integrator=integrator())
-        expectation_values = []
-        for exp_vals in evolution_result.expectation_values():
-            expectation_values.append(exp_vals[0].expectation())
+        expectation_values = [
+            exp_vals[0].expectation()
+            for exp_vals in evolution_result.expectation_values()
+        ]
         expected_answer = np.cos(4.0 * np.pi * 0.1 * steps)
         np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
 
@@ -583,9 +590,10 @@ class TestCavityModelBatchedInputStateSuperOperator(TestSystem):
             EXPECTATION_VALUE,
             integrator=integrator())
         for i in range(num_states):
-            expectation_values = []
-            for exp_vals in evolution_results[i].expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_results[i].expectation_values()
+            ]
             expected_answer = (N - 1 - i) * np.exp(-decay_rate * steps)
             np.testing.assert_allclose(expected_answer, expectation_values,
                                        1e-3)
@@ -621,9 +629,10 @@ class TestBatchedCavityModel(TestSystem):
 
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
-            expectation_values = []
-            for exp_vals in evolution_result.expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_result.expectation_values()
+            ]
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
             np.testing.assert_allclose(expected_answer, expectation_values,
                                        1e-3)
@@ -658,9 +667,10 @@ class TestBatchedCavityModelBroadcastInputState(TestSystem):
 
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
-            expectation_values = []
-            for exp_vals in evolution_result.expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_result.expectation_values()
+            ]
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
             np.testing.assert_allclose(expected_answer, expectation_values,
                                        1e-3)
@@ -697,9 +707,10 @@ class TestBatchedCavityModelTimeDependentHam(TestSystem):
 
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
-            expectation_values = []
-            for exp_vals in evolution_result.expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_result.expectation_values()
+            ]
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
             np.testing.assert_allclose(expected_answer, expectation_values,
                                        1e-3)
@@ -737,9 +748,10 @@ class TestBatchedCavityModelTimeDependentCollapseOp(TestSystem):
             integrator=integrator())
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
-            expectation_values = []
-            for exp_vals in evolution_result.expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_result.expectation_values()
+            ]
             expected_answer = [
                 (N - 1) * np.exp(-decay_rate * (1.0 - np.exp(-t)))
                 for t in steps
@@ -795,9 +807,10 @@ class TestBatchedCavityModelSuperOperator(TestSystem):
 
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
-            expectation_values = []
-            for exp_vals in evolution_result.expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_result.expectation_values()
+            ]
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
             np.testing.assert_allclose(expected_answer, expectation_values,
                                        1e-3)
@@ -849,9 +862,10 @@ class TestBatchedCavityModelSuperOperatorBroadcastInputState(TestSystem):
 
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
-            expectation_values = []
-            for exp_vals in evolution_result.expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_result.expectation_values()
+            ]
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
             np.testing.assert_allclose(expected_answer, expectation_values,
                                        1e-3)
@@ -888,9 +902,10 @@ class TestBatchedCavityModelWithBatchSize(TestSystem):
 
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
-            expectation_values = []
-            for exp_vals in evolution_result.expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_result.expectation_values()
+            ]
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
             np.testing.assert_allclose(expected_answer, expectation_values,
                                        1e-3)
@@ -944,9 +959,10 @@ class TestBatchedCavityModelSuperOperatorWithBatchSize(TestSystem):
 
         for i, decay_rate in enumerate(decay_rates):
             evolution_result = evolution_results[i]
-            expectation_values = []
-            for exp_vals in evolution_result.expectation_values():
-                expectation_values.append(exp_vals[0].expectation())
+            expectation_values = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_result.expectation_values()
+            ]
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
             np.testing.assert_allclose(expected_answer, expectation_values,
                                        1e-3)
