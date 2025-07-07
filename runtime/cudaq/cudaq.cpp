@@ -353,14 +353,10 @@ std::string get_quake_by_name(const std::string &kernelName,
           throw std::runtime_error("Quake code for '" + kernelName +
                                    "' has multiple matches.\n");
       } else {
-        if (!knownMangledArgs.has_value())
-          result = pair.second;
-        else {
-          if (pair.first.ends_with(knownMangledArgs.value())) {
-            result = pair.second;
-            break;
-          }
-        }
+        result = pair.second;
+        if (knownMangledArgs.has_value() &&
+            pair.first.ends_with(knownMangledArgs.value()))
+          break;
       }
     }
   }
