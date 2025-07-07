@@ -2101,28 +2101,23 @@ def test_disallow_struct_with_methods():
     from dataclasses import dataclass
 
     @dataclass(slots=True)
-    class T:
-        q: cudaq.qview
+    class NoCanDo:
+        a: cudaq.qview
 
-        def doSomething(self):
+        def bob(self):
             pass
 
-    with pytest.raises(RuntimeError) as e:
+    try:
 
         @cudaq.kernel
-        def test(t: T):
-            pass
+        def k():
+            q = cudaq.qvector(4)
+            h = NoCanDo(q)
 
-        print(test)
-
-    with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test():
-            q = cudaq.qvector(2)
-            t = T(q)
-
-        print(test)
+            print(k())
+    except RuntimeError as e:
+        assert 'struct types with user specified methods are not allowed.' in str(
+            e.value)
 
 
 def test_issue_9():
