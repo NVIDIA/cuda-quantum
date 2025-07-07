@@ -85,6 +85,7 @@ RUN echo "Building wheel for python${python_version}." \
             --exclude libcublasLt.so.$cudaq_major \
             --exclude libcurand.so.10 \
             --exclude libcusolver.so.11 \
+            --exclude libcusparse.so.$cudaq_major \
             --exclude libcutensor.so.2 \
             --exclude libnvToolsExt.so.1 \ 
             --exclude libcudart.so.$cudart_libsuffix \

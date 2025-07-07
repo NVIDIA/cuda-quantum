@@ -57,6 +57,7 @@ if [ "$1" == "install-cudart" ]; then
         cuda-cudart-${version_suffix} \
         cuda-nvrtc-${version_suffix} \
         libcusolver-${version_suffix} \
+        libcusparse-${version_suffix} \
         libcublas-${version_suffix} \
         libcurand-${version_suffix}
     if [ $(echo ${CUDA_VERSION} | cut -d . -f1) -gt 11 ]; then 
