@@ -629,6 +629,43 @@ class TestBatchedCavityModel(TestSystem):
                                        1e-3)
 
 
+class TestBatchedCavityModelBroadcastInputState(TestSystem):
+
+    def run_tests(self, integrator):
+        N = 10
+        steps = np.linspace(0, 10, 101)
+        schedule = Schedule(steps, ["t"])
+        dimensions = {0: N}
+        # initial state
+        psi0_ = cp.zeros(N, dtype=cp.complex128)
+        psi0_[-1] = 1.0
+        psi0 = cudaq.State.from_data(psi0_)
+        decay_rates = [0.05, 0.1, 0.15, 0.2]
+        collapse_operators_list = [
+            [np.sqrt(decay_rate) * annihilate(0)] for decay_rate in decay_rates
+        ]
+        hamiltonian_list = [number(0)] * len(decay_rates)
+        evolution_results = cudaq.evolve(
+            hamiltonian_list,
+            dimensions,
+            schedule,
+            psi0,
+            observables=[number(0)],
+            collapse_operators=collapse_operators_list,
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator())
+
+        for i, decay_rate in enumerate(decay_rates):
+            evolution_result = evolution_results[i]
+            expectation_values = []
+            for exp_vals in evolution_result.expectation_values():
+                expectation_values.append(exp_vals[0].expectation())
+            expected_answer = (N - 1) * np.exp(-decay_rate * steps)
+            np.testing.assert_allclose(expected_answer, expectation_values,
+                                       1e-3)
+
+
 class TestBatchedCavityModelTimeDependentHam(TestSystem):
 
     def run_tests(self, integrator):
@@ -751,6 +788,60 @@ class TestBatchedCavityModelSuperOperator(TestSystem):
             dimensions,
             schedule,
             initial_states,
+            observables=[hamiltonian],
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator())
+
+        for i, decay_rate in enumerate(decay_rates):
+            evolution_result = evolution_results[i]
+            expectation_values = []
+            for exp_vals in evolution_result.expectation_values():
+                expectation_values.append(exp_vals[0].expectation())
+            expected_answer = (N - 1) * np.exp(-decay_rate * steps)
+            np.testing.assert_allclose(expected_answer, expectation_values,
+                                       1e-3)
+
+
+class TestBatchedCavityModelSuperOperatorBroadcastInputState(TestSystem):
+
+    def run_tests(self, integrator):
+        N = 10
+        steps = np.linspace(0, 10, 101)
+        schedule = Schedule(steps, ["t"])
+        hamiltonian = number(0)
+        dimensions = {0: N}
+        # initial state
+        rho0_ = cp.zeros(N * N, dtype=cp.complex128)
+        rho0_[-1] = 1.0
+        rho0 = cudaq.State.from_data(rho0_)
+        decay_rates = [0.05, 0.1]
+        me_super_op_lists = []
+        for decay_rate in decay_rates:
+            me_super_op = cudaq.SuperOperator()
+            # Apply `-i[H, rho]` superop
+            me_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
+            me_super_op += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
+            L = np.sqrt(decay_rate) * annihilate(0)
+            L_dagger = np.sqrt(decay_rate) * create(0)
+            # Lindblad terms
+            # L * rho * L_dagger
+            me_super_op += cudaq.SuperOperator.left_right_multiply(L, L_dagger)
+            # -0.5 * L_dagger * L * rho
+            me_super_op += cudaq.SuperOperator.left_multiply(-0.5 * L_dagger *
+                                                             L)
+            # -0.5 * rho * L_dagger * L
+            me_super_op += cudaq.SuperOperator.right_multiply(-0.5 * L_dagger *
+                                                              L)
+
+            # Add this super operator to the list
+            me_super_op_lists.append(me_super_op)
+
+        evolution_results = cudaq.evolve(
+            me_super_op_lists,
+            dimensions,
+            schedule,
+            rho0,
             observables=[hamiltonian],
             store_intermediate_results=cudaq.IntermediateResultSave.
             EXPECTATION_VALUE,

@@ -28,10 +28,11 @@ for amplitude in amplitudes:
     # This allows us to compute the dynamics for all amplitudes in a single simulation run
     batched_hamiltonian.append(H)
 
-psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
 # Initial state is the ground state of the spin qubit
 # We run all simulations for the same initial state, but with different Hamiltonian operators.
-initial_state = [psi0] * len(batched_hamiltonian)
+psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
+
+# Simulation schedule
 t_final = 100
 dt = 0.005
 n_steps = int(np.ceil(t_final / dt)) + 1
@@ -42,7 +43,7 @@ results = cudaq.evolve(
     batched_hamiltonian,
     dimensions,
     schedule,
-    initial_state,
+    psi0,
     observables=[boson.number(0)],
     collapse_operators=[],
     store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,

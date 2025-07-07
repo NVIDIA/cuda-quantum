@@ -57,19 +57,6 @@ def evolve_dynamics(
     has_collapse_operators = False
 
     if isinstance(hamiltonian, Sequence):
-        # This is batched operators evolve.
-        if len(collapse_operators) > 0:
-            if not isinstance(collapse_operators[0], Sequence):
-                raise ValueError(
-                    "'collapse_operators' must be a sequence of sequences when supplying a sequence of Hamiltonians"
-                )
-            if len(hamiltonian) != len(collapse_operators):
-                raise ValueError(
-                    "Number of Hamiltonians and collapse operators must match")
-
-        if len(initial_state) != len(hamiltonian):
-            raise ValueError(
-                "Number of initial states must match number of Hamiltonians")
         # Make sure all Hamiltonians are of the same type.
         if not all(isinstance(op, Operator) for op in hamiltonian) and not all(
                 isinstance(op, SuperOperator) for op in hamiltonian):

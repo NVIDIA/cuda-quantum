@@ -415,6 +415,36 @@ def evolve(
     if target_name != "dynamics" and max_batch_size is not None:
         warnings.warn(f"`batch_size` will be ignored on target {target_name}")
 
+    if isinstance(hamiltonian, Sequence):
+        if len(hamiltonian) == 0:
+            raise ValueError(
+                "If `hamiltonian` is a sequence, then it must not be empty.")
+
+        # This is batched operators evolve.
+        # Broadcast the initial state to the same length as the hamiltonian if it is a single state.
+        if not isinstance(initial_state, Sequence):
+            initial_state = [initial_state] * len(hamiltonian)
+
+        if len(hamiltonian) != len(initial_state):
+            raise ValueError(
+                "If `hamiltonian` is a sequence, then `initial_state` must be a sequence of the same length."
+            )
+
+        if isinstance(hamiltonian[0], Operator):
+            if len(collapse_operators) == 0:
+                collapse_operators = [[] for _ in range(len(hamiltonian))]
+
+            if len(hamiltonian) != len(collapse_operators):
+                raise ValueError(
+                    "If `hamiltonian` is a sequence, then `collapse_operators` must be a sequence of the same length."
+                )
+
+            for collapse_ops in collapse_operators:
+                if not isinstance(collapse_ops, Sequence):
+                    raise ValueError(
+                        "If `hamiltonian` is a sequence, then `collapse_operators` must be a sequence of lists of collapse operators (nested sequence)."
+                    )
+
     if target_name == "dynamics":
         try:
             from .cudm_solver import evolve_dynamics
@@ -428,18 +458,6 @@ def evolve(
                                max_batch_size)
     else:
         if isinstance(initial_state, Sequence):
-            if isinstance(hamiltonian, Sequence):
-                if len(hamiltonian) != len(initial_state):
-                    raise ValueError(
-                        "If `hamiltonian` is a sequence, then `initial_state` must be a sequence of the same length."
-                    )
-                if len(collapse_operators) == 0:
-                    collapse_operators = [[] for _ in range(len(hamiltonian))]
-
-                if len(hamiltonian) != len(collapse_operators):
-                    raise ValueError(
-                        "If `hamiltonian` is a sequence, then `collapse_operators` must be a sequence of the same length."
-                    )
             return [
                 evolve_single(ham, dimensions, schedule, state, collapse_ops,
                               observables, store_intermediate_results,
