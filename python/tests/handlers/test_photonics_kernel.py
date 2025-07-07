@@ -224,6 +224,20 @@ def test_qudit_level():
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(kernel)
     assert "qudits must be of same level" in repr(e)
+    
+
+def test_run_unsupported():
+
+    @cudaq.kernel
+    def kernel():
+        q = qudit(level=2)
+        create(q)
+        mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=10)
+    assert "Unsupported target" in repr(e)
+
 
 
 # leave for gdb debugging
