@@ -23,7 +23,7 @@ func.func @do_apply(%arg : !quake.ref, %brg : !quake.ref) {
   return
 }
 
-// CHECK-LABEL:   func.func private @test.adj.ctrl_0(
+// CHECK-LABEL:   func.func private @test.0.adj.ctrl(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.ref) {
 // CHECK:           %[[VAL_2:.*]] = arith.constant -2.97{{[0]*}}e+00 : f32
 // CHECK:           quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.veq<?>, !quake.ref) -> ()

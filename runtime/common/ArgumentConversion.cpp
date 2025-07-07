@@ -461,25 +461,25 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // After ReplaceStateWithKernel pass:
   //
   // clang-format off
-   // ```
-   // func.func @caller() {
-   //   %1 = call callee.num_qubits_0() : () -> i64
-   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
-   //   %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
-   // }
-   //
-   // func.func private @callee.num_qubits_0() -> i64 {
-   //   %cst = arith.constant 2 : i64
-   //   return %cst : i64
-   // }
-   //
-   // func.func private @callee.init_0(%arg0: !quake.veq<?>): !quake.veq<?> {
-   //   %cst = arith.constant 1.5707963267948966 : f64
-   //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
-   //   quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
-   //   return %arg0
-   // }
-   // ```
+  // ```
+  // func.func @caller() {
+  //   %1 = call callee.num_qubits_0() : () -> i64
+  //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
+  //   %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
+  // }
+  //
+  // func.func private @callee.num_qubits_0() -> i64 {
+  //   %cst = arith.constant 2 : i64
+  //   return %cst : i64
+  // }
+  //
+  // func.func private @callee.init_0(%arg0: !quake.veq<?>): !quake.veq<?> {
+  //   %cst = arith.constant 1.5707963267948966 : f64
+  //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
+  //   quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
+  //   return %arg0
+  // }
+  // ```
   // clang-format on
 
   if (simState->getKernelInfo().has_value()) {
@@ -701,6 +701,13 @@ Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::StdvecType ty, void *p,
                        ModuleOp substMod, llvm::DataLayout &layout) {
   ArrayAttr constants = genRecursiveConstantArray(builder, ty, p, layout);
   auto loc = builder.getUnknownLoc();
+  if (!constants) {
+    // Empty vector. Not much to contemplate here.
+    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto ptr = builder.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(ty.getElementType()), zero);
+    return builder.create<cudaq::cc::StdvecInitOp>(loc, ty, ptr, zero);
+  }
   auto arrTy = convertRecursiveSpanType(ty);
   auto conArr =
       builder.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, constants);
@@ -794,8 +801,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
   cloneBuilder.setInsertionPointToStart(substMod.getBody());
   for (auto &i : *fromModule->getBody()) {
     auto s = dyn_cast_if_present<SymbolOpInterface>(i);
-    if (!s || sourceMod.lookupSymbol(s.getNameAttr()) ||
-        substMod.lookupSymbol(s.getNameAttr()))
+    if (!s || substMod.lookupSymbol(s.getNameAttr()))
       continue;
     auto clone = cloneBuilder.clone(i);
     cast<SymbolOpInterface>(clone).setPrivate();

@@ -604,9 +604,17 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       addOpAndUsersToList(user, opsToMoveToEnd);
   }
 
+  // TODO: This pass must be composable. Specifically, it must *not* generate
+  // fatal errors when it sees something in the IR that it isn't going to apply
+  // the mapping algorithm to.
+  // The solution to be realized is that fatal errors will be placed under a
+  // pass option so they can be disabled to make the pass properly composable.
+  // Composability is essential as the requirements will change and ad lib
+  // assumptions cease to be correct.
   void runOnOperation() override {
-
     auto func = getOperation();
+    if (func.empty())
+      return;
     auto &blocks = func.getBlocks();
 
     // Current limitations:
@@ -623,8 +631,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // FIXME: Add the ability to handle multiple blocks.
     if (blocks.size() > 1) {
-      func.emitError("The mapper cannot handle multiple blocks");
-      signalPassFailure();
+      if (nonComposable) {
+        func.emitError("The mapper cannot handle multiple blocks");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "NYI: mapping with multiple blocks");
       return;
     }
 
@@ -634,10 +645,14 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     StringRef inputWireSet;
     std::optional<std::uint32_t> highestIdentity;
     auto walkResult = func.walk([&](quake::BorrowWireOp borrowOp) {
-      if (inputWireSet.empty())
+      if (inputWireSet.empty()) {
         inputWireSet = borrowOp.getSetName();
-      else if (!borrowOp.getSetName().equals(inputWireSet)) {
-        func.emitOpError("function cannot use multiple WireSets");
+      } else if (borrowOp.getSetName() != inputWireSet) {
+        // Why is this here? It's entirely possible to have disjoint wire sets,
+        // where the sets are for fundamentally distinct purposes in the target
+        // model.
+        if (nonComposable)
+          func.emitOpError("function cannot use multiple WireSets");
         return WalkResult::interrupt();
       }
       highestIdentity = highestIdentity
@@ -646,12 +661,19 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return WalkResult::advance();
     });
     if (walkResult.wasInterrupted()) {
-      signalPassFailure();
+      if (nonComposable)
+        signalPassFailure();
+      LLVM_DEBUG(llvm::dbgs()
+                 << "NYI: multiple wire sets for a target machine");
       return;
     }
     if (!highestIdentity) {
-      func.emitOpError("no borrow_wire ops found in " + func.getName());
-      signalPassFailure();
+      if (nonComposable) {
+        func.emitOpError("no borrow_wire ops found in " + func.getName());
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs()
+                 << "no borrow_wire ops found in " << func.getName() << '\n');
       return;
     }
 
@@ -664,8 +686,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       d = Device::attr(adj);
 
     if (d.getNumQubits() == 0) {
-      func.emitError("Trying to target an empty device.");
-      signalPassFailure();
+      if (nonComposable) {
+        func.emitError("Trying to target an empty device.");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "device cannot be empty");
       return;
     }
 
@@ -688,26 +713,35 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         sources[id] = qop;
         lastSource = &op;
       } else if (dyn_cast<quake::NullWireOp>(op)) {
-        op.emitOpError(
-            "the mapper requires borrow operations and prohibits null wires");
-        signalPassFailure();
+        if (nonComposable) {
+          op.emitOpError(
+              "the mapper requires borrow operations and prohibits null wires");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << "null_wire ops are not expected");
         return;
       } else if (dyn_cast<quake::AllocaOp>(op)) {
-        op.emitOpError("the mapper requires borrow operations and prohibits "
-                       "reference semantics");
-        signalPassFailure();
+        if (nonComposable) {
+          op.emitOpError("the mapper requires borrow operations and prohibits "
+                         "reference semantics");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << "quantum reference semantics not expected");
         return;
       } else if (quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
         if (!quake::isLinearValueForm(&op)) {
-          llvm::errs() << "This is not SSA form: " << op << '\n';
-          llvm::errs() << "isa<quake::NullWireOp>() = "
-                       << isa<quake::NullWireOp>(&op) << '\n';
-          llvm::errs() << "isAllReferences() = " << quake::isAllReferences(&op)
-                       << '\n';
-          llvm::errs() << "isWrapped() = " << quake::isWrapped(&op) << '\n';
-          func.emitError("The mapper requires value semantics.");
-          signalPassFailure();
+          if (nonComposable) {
+            llvm::errs() << "This is not SSA form: " << op << '\n';
+            llvm::errs() << "isa<quake::NullWireOp>() = "
+                         << isa<quake::NullWireOp>(&op) << '\n';
+            llvm::errs() << "isAllReferences() = "
+                         << quake::isAllReferences(&op) << '\n';
+            llvm::errs() << "isWrapped() = " << quake::isWrapped(&op) << '\n';
+            func.emitError("The mapper requires value semantics.");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs() << "operation is not in proper value form");
           return;
         }
 
@@ -722,9 +756,12 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         // qubits. N.B: Measurements do not have this restriction.
         auto wireOperands = quake::getQuantumOperands(&op);
         if (!op.hasTrait<QuantumMeasure>() && wireOperands.size() > 2) {
-          func.emitError("Cannot map a kernel with operators that use more "
-                         "than two qubits.");
-          signalPassFailure();
+          if (nonComposable) {
+            func.emitError("Cannot map a kernel with operators that use more "
+                           "than two qubits.");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs() << "operator with >2 qubits not expected");
           return;
         }
 
@@ -746,10 +783,13 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     if (sources.size() > deviceNumQubits) {
-      func.emitOpError("Too many qubits [" + std::to_string(sources.size()) +
-                       "] for device [" + std::to_string(deviceNumQubits) +
-                       "]");
-      signalPassFailure();
+      if (nonComposable) {
+        func.emitOpError("Too many qubits [" + std::to_string(sources.size()) +
+                         "] for device [" + std::to_string(deviceNumQubits) +
+                         "]");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
       return;
     }
 
@@ -915,15 +955,8 @@ struct MappingPipelineOptions
   DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerWeight);
   DECLARE_SUB_OPTION(MappingFuncOptions, decayDelta);
   DECLARE_SUB_OPTION(MappingFuncOptions, roundsDecayReset);
+  PassOptions::Option<bool> nonComposable{*this, "raise-fatal-errors"};
 };
-
-// Helper macro to set MappingFuncOptions field if the corresponding field in
-// MappingPipelineOptions is set.
-#define SET_IF_EXISTS(_NEW_OPTS_STRUCT, _ORIG_STRUCT, _FIELD)                  \
-  do {                                                                         \
-    if (_ORIG_STRUCT._FIELD.hasValue())                                        \
-      _NEW_OPTS_STRUCT._FIELD = _ORIG_STRUCT._FIELD;                           \
-  } while (0)
 
 /// Register the mapping pipeline. Route the appropriate options to the
 /// appropriate pass in the pass pipeline.
@@ -931,17 +964,24 @@ void registerMappingPipeline() {
   PassPipelineRegistration<cudaq::opt::MappingPipelineOptions>(
       "qubit-mapping", "Perform qubit mapping pass pipeline.",
       [](OpPassManager &pm, const MappingPipelineOptions &opt) {
+        auto setIt = [](auto &to, const auto &from) {
+          if (from.hasValue())
+            to = from;
+        };
+
         // Add the prep pass
-        MappingPrepOptions prepOpt;
-        SET_IF_EXISTS(prepOpt, opt, device);
-        pm.addPass(cudaq::opt::createMappingPrep(prepOpt));
+        MappingPrepOptions prepOpts;
+        setIt(prepOpts.device, opt.device);
+        setIt(prepOpts.nonComposable, opt.nonComposable);
+        pm.addPass(cudaq::opt::createMappingPrep(prepOpts));
 
         // Add the per-function pass
         MappingFuncOptions funcOpts;
-        SET_IF_EXISTS(funcOpts, opt, extendedLayerSize);
-        SET_IF_EXISTS(funcOpts, opt, extendedLayerWeight);
-        SET_IF_EXISTS(funcOpts, opt, decayDelta);
-        SET_IF_EXISTS(funcOpts, opt, roundsDecayReset);
+        setIt(funcOpts.extendedLayerSize, opt.extendedLayerSize);
+        setIt(funcOpts.extendedLayerWeight, opt.extendedLayerWeight);
+        setIt(funcOpts.decayDelta, opt.decayDelta);
+        setIt(funcOpts.roundsDecayReset, opt.roundsDecayReset);
+        setIt(funcOpts.nonComposable, opt.nonComposable);
         pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingFunc(funcOpts));
       });
 }
