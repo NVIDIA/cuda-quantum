@@ -57,9 +57,9 @@ class PhasePolynomialPreprocessPass
 
       // TODO: Something more elegant here would be nice
       Operation *op = nullptr;
-      auto opnum = -1;
+      size_t opnum = 0;
       for (auto &use : old_wire.getUses()) {
-        if (use.getOwner()->getBlock() == builder.getInsertionBlock())
+        if (!subcircuit->getOps().contains(use.getOwner()))
           continue;
         op = use.getOwner();
         opnum = use.getOperandNumber();

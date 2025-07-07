@@ -70,6 +70,11 @@ bool isControlledOp(Operation *op) {
 }
 
 bool isTerminationPoint(Operation *op) {
+  // TODO: it may be cleaner to only accept non-null input to
+  // ensure the null case is explicitly handled by users
+  if (!op)
+    return true;
+
   if (!isQuakeOperation(op))
     return true;
 
