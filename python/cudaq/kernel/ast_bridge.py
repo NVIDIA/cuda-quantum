@@ -2211,7 +2211,7 @@ class PyASTBridge(ast.NodeVisitor):
                 else:
                     structTy = cc.StructType.getNamed(node.func.id, structTys)
                 # Disallow user specified methods on structs
-                if '__slots__' not in cls.__dict__ and len({
+                if len({
                         k: v
                         for k, v in cls.__dict__.items()
                         if not (k.startswith('__') and k.endswith('__')) and
