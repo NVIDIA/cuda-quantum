@@ -4144,24 +4144,6 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             cc.ContinueOp([])
 
-    def matchIntegerWidth(self, source, target):
-        source_width = IntegerType(source.type).width
-        target_width = IntegerType(target.type).width
-
-        if target_width == source_width:
-            return source, target
-
-        max_width = max(target_width, source_width)
-        target_type = IntegerType.get_signless(max_width)
-
-        if source_width < max_width:
-            source = arith.ExtSIOp(target_type, source).result
-
-        if target_width < max_width:
-            target = arith.ExtSIOp(target_type, target).result
-
-        return source, target
-
     def visit_BinOp(self, node):
         """
         Visit binary operation nodes in the AST and map them to equivalents in the 
@@ -4285,7 +4267,8 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.op, ast.LShift):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left, right = self.matchIntegerWidth(left, right)
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
                 self.pushValue(arith.ShLIOp(left, right).result)
                 return
             else:
@@ -4296,7 +4279,8 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.op, ast.RShift):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left, right = self.matchIntegerWidth(left, right)
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
                 self.pushValue(arith.ShRSIOp(left, right).result)
                 return
             else:
@@ -4307,7 +4291,8 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.op, ast.BitAnd):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left, right = self.matchIntegerWidth(left, right)
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
                 self.pushValue(arith.AndIOp(left, right).result)
                 return
             else:
@@ -4318,7 +4303,8 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.op, ast.BitOr):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left, right = self.matchIntegerWidth(left, right)
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
                 self.pushValue(arith.OrIOp(left, right).result)
                 return
             else:
@@ -4329,7 +4315,8 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.op, ast.BitXor):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left, right = self.matchIntegerWidth(left, right)
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
                 self.pushValue(arith.XOrIOp(left, right).result)
                 return
             else:
