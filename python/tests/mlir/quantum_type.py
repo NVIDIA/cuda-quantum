@@ -17,7 +17,7 @@ import cudaq
 def test_custom_quantum_type():
     from dataclasses import dataclass
 
-    @dataclass(frozen=True)
+    @dataclass(slots=True)
     class patch:
         data: cudaq.qview
         ancx: cudaq.qview

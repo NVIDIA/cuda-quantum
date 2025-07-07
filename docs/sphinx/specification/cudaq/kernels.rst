@@ -101,7 +101,7 @@ The allowed types are as follows:
 
   .. code-block:: python 
 
-    @dataclass(frozen=True)
+    @dataclass(slots=True)
     class MySimpleStruct:
         i : int
         j : int

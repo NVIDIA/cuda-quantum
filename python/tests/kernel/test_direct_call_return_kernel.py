@@ -500,7 +500,7 @@ def test_return_tuple_bool_int_float():
 
 def test_return_dataclass_int_bool():
 
-    @dataclass(frozen=True)
+    @dataclass(slots=True)
     class MyClass:
         x: int
         y: bool
@@ -527,7 +527,7 @@ def test_return_dataclass_int_bool():
 
 def test_return_dataclass_bool_int():
 
-    @dataclass(frozen=True)
+    @dataclass(slots=True)
     class MyClass2:
         x: bool
         y: int
@@ -554,7 +554,7 @@ def test_return_dataclass_bool_int():
 
 def test_return_dataclass_float_int():
 
-    @dataclass(frozen=True)
+    @dataclass(slots=True)
     class MyClass:
         x: float
         y: int
@@ -582,7 +582,7 @@ def test_return_dataclass_float_int():
 
 def test_return_dataclass_list_int_bool():
 
-    @dataclass(frozen=True)
+    @dataclass(slots=True)
     class MyClass:
         x: list[int]
         y: bool
@@ -600,7 +600,7 @@ def test_return_dataclass_list_int_bool():
 
 def test_return_dataclass_tuple_bool():
 
-    @dataclass(frozen=True)
+    @dataclass(slots=True)
     class MyClass:
         x: tuple[int, bool]
         y: bool
@@ -618,12 +618,12 @@ def test_return_dataclass_tuple_bool():
 
 def test_return_dataclass_dataclass_bool():
 
-    @dataclass(frozen=True)
+    @dataclass(slots=True)
     class MyClass1:
         x: int
         y: bool
 
-    @dataclass(frozen=True)
+    @dataclass(slots=True)
     class MyClass2:
         x: MyClass1
         y: bool
