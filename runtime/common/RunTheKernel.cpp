@@ -46,7 +46,7 @@ private:
 } // namespace details
 } // namespace cudaq
 
-static std::once_flag enableQuantumDeviceRunRunOnce;
+static std::once_flag enableQuantumDeviceRunOnce;
 static bool enableQuantumDeviceRun = false;
 
 MLIRContext *cudaq::details::LayoutExtractor::createContext() {
@@ -112,7 +112,7 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   circuitSimulator->outputLog.clear();
 
-  std::call_once(enableQuantumDeviceRunRunOnce, []() {
+  std::call_once(enableQuantumDeviceRunOnce, []() {
     enableQuantumDeviceRun =
         getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
   });
