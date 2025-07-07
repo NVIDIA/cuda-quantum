@@ -162,13 +162,12 @@ protected:
     //     { pruneSubcircuit(opi.getWires()[1]); return;
     // }
 
-    for (auto result : op->getResults()) {
+    for (auto result : op->getResults())
       pruneWire(result);
-      // Adjust termination border
-      for (auto operand : op->getOperands())
-        if (ops.contains(operand.getDefiningOp()))
-          termination_points.insert(operand);
-    }
+    // Adjust termination border
+    for (auto operand : op->getOperands())
+      if (ops.contains(operand.getDefiningOp()))
+        termination_points.insert(operand);
   }
 
   void pruneSubcircuit() {
