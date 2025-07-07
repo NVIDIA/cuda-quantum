@@ -1173,6 +1173,47 @@ def test_dataclasses_dot_dataclass_slots_success():
     assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
 
 
+def test_dataclass_user_defined_method_raises_error():
+
+    @dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+        def doSomething(self):
+            pass
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert 'struct types with user specified methods are not allowed.' in str(
+        e.value)
+
+
+def test_dataclasses_dot_dataclass_user_defined_method_raises_error():
+    import dataclasses
+
+    @dataclasses.dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+        def doSomething(self):
+            pass
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert 'struct types with user specified methods are not allowed.' in str(
+        e.value)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
