@@ -1,0 +1,203 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --phase-polynomial-preprocess -split-input-file %s | FileCheck %s
+
+func.func @kernel1() {
+    %cst = arith.constant 1.000000e+00 : f64
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %3 = quake.h %2#0 : (!quake.wire) -> !quake.wire
+    %4 = quake.rz (%cst) %2#1 : (f64, !quake.wire) -> !quake.wire
+    %5:2 = quake.x [%3] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    return
+}
+
+// CHECK: func.func private @subcircuit1(%arg0: !quake.wire, %arg1: !quake.wire) -> (!quake.wire, !quake.wire) attributes {num_cnots = 1 : ui32, subcircuit} {
+// CHECK:   %0:2 = quake.x [%arg0] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:   cc.return %0#0, %0#1 : !quake.wire, !quake.wire
+// CHECK: }
+// CHECK: func.func private @subcircuit0(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: f64) -> (!quake.wire, !quake.wire) attributes {num_cnots = 1 : ui32, subcircuit} {
+// CHECK:   %0:2 = quake.x [%arg0] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:   %1 = quake.rz (%arg2) %0#1 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:   cc.return %0#0, %1 : !quake.wire, !quake.wire
+// CHECK: }
+// CHECK: func.func @kernel1() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %0 = quake.null_wire
+// CHECK:   %1 = quake.null_wire
+// CHECK:   %2:2 = call @subcircuit0(%0, %1, %cst) : (!quake.wire, !quake.wire, f64) -> (!quake.wire, !quake.wire)
+// CHECK:   %3 = quake.h %2#0 : (!quake.wire) -> !quake.wire
+// CHECK:   %4:2 = call @subcircuit1(%3, %2#1) : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:   return
+// CHECK: }
+
+// -----
+
+func.func @kernel2() {
+    %cst = arith.constant 1.000000e+00 : f64
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.null_wire
+    %3 = quake.h %0 : (!quake.wire) -> !quake.wire
+    %4 = quake.h %1 : (!quake.wire) -> !quake.wire
+    %5 = quake.h %2 : (!quake.wire) -> !quake.wire
+    %6 = quake.rz (%cst) %4 : (f64, !quake.wire) -> !quake.wire
+    %7 = quake.rz (%cst) %5 : (f64, !quake.wire) -> !quake.wire
+    %8:2 = quake.x [%6] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %9 = quake.rz (%cst) %8#1 : (f64, !quake.wire) -> !quake.wire
+    %10:2 = quake.x [%8#0] %7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %11:2 = quake.x [%9] %10#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %12 = quake.h %10#1 : (!quake.wire) -> !quake.wire
+    %13:2 = quake.x [%11#1] %12 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %14:2 = quake.x [%11#0] %13#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %15 = quake.rz (%cst) %14#1 : (f64, !quake.wire) -> !quake.wire
+    %16 = quake.h %14#0 : (!quake.wire) -> !quake.wire
+    %17 = quake.h %15 : (!quake.wire) -> !quake.wire
+    return
+}
+
+// CHECK: func.func private @subcircuit1(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: !quake.wire, %arg3: f64) -> (!quake.wire, !quake.wire, !quake.wire) attributes {num_cnots = 2 : ui32, subcircuit} {
+// CHECK:     %0:2 = quake.x [%arg0] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %1:2 = quake.x [%arg2] %0#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %2 = quake.rz (%arg3) %1#1 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:     cc.return %2, %0#1, %1#0 : !quake.wire, !quake.wire, !quake.wire
+// CHECK: }
+// CHECK: func.func private @subcircuit0(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: !quake.wire, %arg3: f64, %arg4: f64, %arg5: f64) -> (!quake.wire, !quake.wire, !quake.wire) attributes {num_cnots = 3 : ui32, subcircuit} {
+// CHECK-DAG:     %0 = quake.rz (%arg3) %arg0 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK-DAG:     %1 = quake.rz (%arg4) %arg1 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:     %2:2 = quake.x [%0] %arg2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %3:2 = quake.x [%2#0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %4 = quake.rz (%arg5) %2#1 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:     %5:2 = quake.x [%4] %3#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     cc.return %5#1, %3#1, %5#0 : !quake.wire, !quake.wire, !quake.wire
+// CHECK: }
+// CHECK: func.func @kernel2() {
+// CHECK:     %cst = arith.constant 1.000000e+00 : f64
+// CHECK:     %0 = quake.null_wire
+// CHECK:     %1 = quake.null_wire
+// CHECK:     %2 = quake.null_wire
+// CHECK:     %3 = quake.h %0 : (!quake.wire) -> !quake.wire
+// CHECK:     %4 = quake.h %1 : (!quake.wire) -> !quake.wire
+// CHECK:     %5 = quake.h %2 : (!quake.wire) -> !quake.wire
+// CHECK:     %6:3 = call @subcircuit0(%4, %5, %3, %cst, %cst, %cst) : (!quake.wire, !quake.wire, !quake.wire, f64, f64, f64) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:     %7 = quake.h %6#1 : (!quake.wire) -> !quake.wire
+// CHECK:     %8:3 = call @subcircuit1(%6#0, %7, %6#2, %cst) : (!quake.wire, !quake.wire, !quake.wire, f64) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:     %9 = quake.h %8#2 : (!quake.wire) -> !quake.wire
+// CHECK:     %10 = quake.h %8#0 : (!quake.wire) -> !quake.wire
+// CHECK:     return
+// CHECK: }
+
+// -----
+
+func.func @kernel3() {
+    %cst = arith.constant 1.000000e+00 : f64
+    %true = arith.constant true
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %3 = quake.h %2#0 : (!quake.wire) -> !quake.wire
+    %4:2 = cc.if(%true) ((%arg0 = %2#1, %arg1 = %3)) -> (!quake.wire, !quake.wire) {
+        %5 = quake.rz (%cst) %arg0 : (f64, !quake.wire) -> !quake.wire
+        %6:2 = quake.x [%arg1] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        cc.continue %6#0, %6#1 : !quake.wire, !quake.wire
+    } else {
+        cc.continue %arg0, %arg1 : !quake.wire, !quake.wire
+    }
+    return
+}
+
+// CHECK-LABEL: func.func private @subcircuit1(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: f64) -> (!quake.wire, !quake.wire) attributes {num_cnots = 1 : ui32, subcircuit} {
+// CHECK:     %0 = quake.rz (%arg2) %arg1 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:     %1:2 = quake.x [%arg0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     cc.return %1#0, %1#1 : !quake.wire, !quake.wire
+// CHECK:   }
+// CHECK-LABEL: func.func private @subcircuit0(%arg0: !quake.wire, %arg1: !quake.wire) -> (!quake.wire, !quake.wire) attributes {num_cnots = 1 : ui32, subcircuit} {
+// CHECK:     %0:2 = quake.x [%arg0] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     cc.return %0#0, %0#1 : !quake.wire, !quake.wire
+// CHECK:   }
+// CHECK-LABEL: func.func @kernel3() {
+// CHECK:     %cst = arith.constant 1.000000e+00 : f64
+// CHECK:     %true = arith.constant true
+// CHECK:     %0 = quake.null_wire
+// CHECK:     %1 = quake.null_wire
+// CHECK:     %2:2 = call @subcircuit0(%0, %1) : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:     %3 = quake.h %2#0 : (!quake.wire) -> !quake.wire
+// CHECK:     %4:2 = cc.if(%true) ((%arg0 = %2#1, %arg1 = %3)) -> (!quake.wire, !quake.wire) {
+// CHECK:       %5:2 = func.call @subcircuit1(%arg1, %arg0, %cst) : (!quake.wire, !quake.wire, f64) -> (!quake.wire, !quake.wire)
+// CHECK:       cc.continue %5#0, %5#1 : !quake.wire, !quake.wire
+// CHECK:     } else {
+// CHECK:       cc.continue %arg0, %arg1 : !quake.wire, !quake.wire
+// CHECK:     }
+// CHECK:     return
+// CHECK:   }
+
+// -----
+
+func.func @kernel4() {
+    %cst = arith.constant 1.000000e+00 : f64
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.null_wire
+    %3 = quake.rz (%cst) %0 : (f64, !quake.wire) -> !quake.wire
+    %4:3 = quake.x [%1, %2] %3 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+    %5:3 = quake.x [%4#0, %4#1] %4#2 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+    %6 = quake.rz (%cst) %5#2 : (f64, !quake.wire) -> !quake.wire
+    %7:2 = quake.x [%5#0] %5#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    return
+}
+
+// CHECK-LABEL:  func.func private @subcircuit0(%arg0: !quake.wire, %arg1: !quake.wire) -> (!quake.wire, !quake.wire) attributes {num_cnots = 1 : ui32, subcircuit} {
+// CHECK:    %0:2 = quake.x [%arg0] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:    cc.return %0#0, %0#1 : !quake.wire, !quake.wire
+// CHECK:  }
+// CHECK-LABEL:  func.func @kernel4() {
+// CHECK:    %cst = arith.constant 1.000000e+00 : f64
+// CHECK:    %0 = quake.null_wire
+// CHECK:    %1 = quake.null_wire
+// CHECK:    %2 = quake.null_wire
+// CHECK:    %3 = quake.rz (%cst) %0 : (f64, !quake.wire) -> !quake.wire
+// CHECK:    %4:3 = quake.x [%1, %2] %3 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:    %5:3 = quake.x [%4#0, %4#1] %4#2 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:    %6 = quake.rz (%cst) %5#2 : (f64, !quake.wire) -> !quake.wire
+// CHECK:    %7:2 = call @subcircuit0(%5#0, %5#1) : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:    return
+// CHECK:  }
+
+// -----
+
+func.func @kernel5() {
+    %cst = arith.constant 1.000000e+00 : f64
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %3 = quake.ry (%cst) %2#0 : (f64, !quake.wire) -> !quake.wire
+    %4 = quake.rz (%cst) %2#1 : (f64, !quake.wire) -> !quake.wire
+    %5:2 = quake.x [%3] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    return
+}
+
+// CHECK-LABEL:  func.func private @subcircuit1(%arg0: !quake.wire, %arg1: !quake.wire) -> (!quake.wire, !quake.wire) attributes {num_cnots = 1 : ui32, subcircuit} {
+// CHECK:    %0:2 = quake.x [%arg0] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:    cc.return %0#0, %0#1 : !quake.wire, !quake.wire
+// CHECK:  }
+// CHECK-LABEL:  func.func private @subcircuit0(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: f64) -> (!quake.wire, !quake.wire) attributes {num_cnots = 1 : ui32, subcircuit} {
+// CHECK:    %0:2 = quake.x [%arg0] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:    %1 = quake.rz (%arg2) %0#1 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:    cc.return %0#0, %1 : !quake.wire, !quake.wire
+// CHECK:  }
+// CHECK-LABEL:  func.func @kernel5() {
+// CHECK:    %cst = arith.constant 1.000000e+00 : f64
+// CHECK:    %0 = quake.null_wire
+// CHECK:    %1 = quake.null_wire
+// CHECK:    %2:2 = call @subcircuit0(%0, %1, %cst) : (!quake.wire, !quake.wire, f64) -> (!quake.wire, !quake.wire)
+// CHECK:    %3 = quake.ry (%cst) %2#0 : (f64, !quake.wire) -> !quake.wire
+// CHECK:    %4:2 = call @subcircuit1(%3, %2#1) : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:    return
+// CHECK:  }
