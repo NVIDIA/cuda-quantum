@@ -535,10 +535,10 @@ jobs:
               cuda_major="${cuda%%.*}"
 
               if [[ "$image" == "dev-image" ]]; then
-                stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda_major}-${tag_suffix}"
+                stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda_major}-${tag_suffix}-base"
                 stitched_key="dev-cu${cuda_major}"
               else
-                stitched_tag="ghcr.io/nvidia/cuda-quantum:cu${cuda_major}-${tag_suffix}"
+                stitched_tag="ghcr.io/nvidia/cuda-quantum:cu${cuda_major}-${tag_suffix}-base"
                 stitched_key="base-cu${cuda_major}"
               fi
 
