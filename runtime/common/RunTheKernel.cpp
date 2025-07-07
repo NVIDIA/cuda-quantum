@@ -94,8 +94,9 @@ cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
       std::size_t numElements = structType.getMembers().size();
       for (std::size_t i = 0; i < numElements; ++i)
         fieldOffsets.emplace_back(layout->getElementOffset(i));
-    } else
+    } else {
       totalSize = cudaq::opt::getDataSize(dataLayout, returnType);
+    }
   }
   return {totalSize, fieldOffsets};
 }
