@@ -30,6 +30,8 @@
 #include <utility>
 #include <vector>
 
+using namespace mlir;
+
 namespace cudaq {
 namespace details {
 /// Extracts data layout information from MLIR modules
@@ -39,33 +41,30 @@ public:
   extractLayout(const std::string &, const std::string &);
 
 private:
-  static mlir::MLIRContext *createContext();
+  static MLIRContext *createContext();
 };
 } // namespace details
 } // namespace cudaq
 
-using namespace llvm;
-using namespace mlir;
-
-mlir::MLIRContext *cudaq::details::LayoutExtractor::createContext() {
-  mlir::DialectRegistry registry;
+MLIRContext *cudaq::details::LayoutExtractor::createContext() {
+  DialectRegistry registry;
   cudaq::opt::registerCodeGenDialect(registry);
   cudaq::registerAllDialects(registry);
-  auto context = new mlir::MLIRContext(registry);
+  auto context = new MLIRContext(registry);
   context->loadAllAvailableDialects();
-  mlir::registerLLVMDialectTranslation(*context);
+  registerLLVMDialectTranslation(*context);
   return context;
 }
 
 std::pair<std::size_t, std::vector<std::size_t>>
 cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
                                                const std::string &quakeCode) {
-  std::unique_ptr<mlir::MLIRContext> mlirContext(createContext());
-  auto m_module = mlir::parseSourceString<mlir::ModuleOp>(
-      llvm::StringRef(quakeCode), mlirContext.get());
+  std::unique_ptr<MLIRContext> mlirContext(createContext());
+  auto m_module =
+      parseSourceString<ModuleOp>(StringRef(quakeCode), mlirContext.get());
   if (!m_module)
     throw std::runtime_error("module cannot be parsed");
-  mlir::func::FuncOp kernelFunc = m_module->lookupSymbol<func::FuncOp>(
+  func::FuncOp kernelFunc = m_module->lookupSymbol<func::FuncOp>(
       cudaq::runtime::cudaqGenPrefixName + kernelName);
   if (!kernelFunc)
     throw std::runtime_error("Could not find " + kernelName +
@@ -74,7 +73,7 @@ cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
   std::size_t totalSize = 0;
   std::vector<std::size_t> fieldOffsets;
   if (kernelFunc.getNumResults() > 0) {
-    mlir::Type returnType = kernelFunc.getResultTypes()[0];
+    Type returnType = kernelFunc.getResultTypes()[0];
     auto mod = kernelFunc->getParentOfType<ModuleOp>();
     StringRef dataLayoutSpec = "";
     if (auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
@@ -85,7 +84,7 @@ cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
     LLVMTypeConverter converter(kernelFunc.getContext());
     cudaq::opt::initializeTypeConversions(converter);
     // Handle structure types
-    if (auto structType = mlir::dyn_cast<cudaq::cc::StructType>(returnType)) {
+    if (auto structType = dyn_cast<cudaq::cc::StructType>(returnType)) {
       auto llvmDialectTy = converter.convertType(structType);
       LLVM::TypeToLLVMIRTranslator translator(context);
       auto *llvmStructTy =
