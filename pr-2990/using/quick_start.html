@@ -203,6 +203,7 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#pulse">Pulse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
@@ -415,6 +416,19 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/grovers.html">Grover’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/grovers.html#Overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/grovers.html#Problem">Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/grovers.html#Structure-of-Grover's-Algorithm">Structure of Grover’s Algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Step-1:-Preparation">Step 1: Preparation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Good-and-Bad-States">Good and Bad States</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Step-2:-Oracle-application">Step 2: Oracle application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Step-3:-Amplitude-amplification">Step 3: Amplitude amplification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement">Steps 4 and 5: Iteration and measurement</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
@@ -426,6 +440,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/uccsd_wf_ansatz.html#Run-VQE">Run VQE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/mps_encoding.html">Approximate State Preparation using MPS Sequential Encoding</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/mps_encoding.html#Ran's-approach">Ran’s approach</a></li>
 </ul>
 </li>
 </ul>
@@ -509,6 +527,7 @@
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#quick-start">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamics.html#super-operator-representation">Super-operator Representation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#numerical-integrators">Numerical Integrators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dynamics.html#examples">Examples</a></li>
@@ -652,9 +671,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/platform.html">11. Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-run">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.5. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -730,6 +750,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.IntermediateResultSave"><code class="docutils literal notranslate"><span class="pre">IntermediateResultSave</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#operators">Operators</a><ul>
@@ -738,6 +759,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.operators.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.operators.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.SuperOperator"><code class="docutils literal notranslate"><span class="pre">SuperOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.operators.define"><code class="docutils literal notranslate"><span class="pre">operators.define()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.operators.instantiate"><code class="docutils literal notranslate"><span class="pre">operators.instantiate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#spin-operators">Spin Operators</a></li>
@@ -883,14 +905,17 @@ able to use it without any further installation steps.</p>
 <p><strong>Note</strong>: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12.</p>
 <blockquote>
 <div><p><strong>Important:</strong>
-Please check if you have an existing installation of the <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package, and uninstall it prior to installation. Different CUDA-Q binary distributions may conflict with each other causing issues.</p>
+Please check if you have an existing installation of the <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package, and uninstall it prior to
+installation. Different CUDA-Q binary distributions may conflict with each
+other causing issues.</p>
 </div></blockquote>
-<p>If you want to perform multi-GPU simulations, additional components must be installed. We
-recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do so. If you are
-not already using Conda, you can install a minimal version following the
-instructions <a class="reference external" href="https://docs.anaconda.com/miniconda/">here</a>. The following
-commands will create and activate a complete environment for CUDA-Q with all its
-dependencies:</p>
+<p>If you want to perform multi-GPU simulations, additional components must be
+installed. We recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do
+so. If you are not already using Conda, you can install a minimal version
+following <a class="reference external" href="https://docs.anaconda.com/miniconda/">miniconda instructions here</a>.
+The following commands will create and activate a complete environment for
+CUDA-Q with all its dependencies:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=12.4.0 # set this variable to version 11.x (where x &gt;= 8) or 12.x</span>
 <span class="go">conda create -y -n cudaq-env python=3.11 pip</span>
 <span class="go">conda install -y -n cudaq-env -c &quot;nvidia/label/cuda-${cuda_version}&quot; cuda</span>
@@ -902,6 +927,9 @@ dependencies:</p>
 <span class="go">source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activate_custom_mpi.sh</span>
 </pre></div>
 </div>
+<p><strong>Warning (conda-forge)</strong>: Installing <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> from the <code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> channel on recent versions of Python can lead to segmentation faults.
+If you see such errors, please switch to one of the Python versions 3.10.15, 3.11.10, or 3.12.7 as per the issue
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/2999">#2999</a> or <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/3104">#3104</a>.</p>
 <p>You must configure MPI by setting the following environment variables:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl=&#39;^openib&#39;</span>
 </pre></div>
@@ -920,7 +948,7 @@ to set them every time you launch a new shell, we recommend adding them to
 that supports C++20, for example <code class="code docutils literal notranslate"><span class="pre">g++</span></code> version 11 or newer.
 Download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture and CUDA version (<code class="code docutils literal notranslate"><span class="pre">_cu11</span></code> suffix for CUDA 11 and <code class="code docutils literal notranslate"><span class="pre">_cu12</span></code> suffix for CUDA 12)
 from the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>;
-hat is the file with the <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> extension for ARM processors, and the one with <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> for, e.g., Intel and AMD processors.</p>
+that is, the file with the <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> extension for ARM processors, and the one with <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> for, e.g., Intel and AMD processors.</p>
 <p>To install CUDA-Q, execute the commands</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum*.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept
 .<span class="w"> </span>/etc/profile
