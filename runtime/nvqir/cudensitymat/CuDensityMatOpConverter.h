@@ -21,7 +21,7 @@ public:
 
   /// @brief Convert a matrix operator to a `cudensitymat` matrix operator.
   /// @param parameters The parameters of the operator.
-  /// @param op The matrix operator to convert.
+  /// @param ops The matrix operator to convert.
   /// @param modeExtents The extents of the modes.
   /// @return The converted operator.
   cudensitymatOperator_t convertToCudensitymatOperator(
@@ -38,7 +38,7 @@ public:
   }
 
   /// @brief Construct a Liouvillian operator.
-  /// @param ham The Hamiltonian operator.
+  /// @param hamOperators The Hamiltonian operator.
   /// @param collapseOperators The collapse operators.
   /// @param modeExtents The extents of the modes.
   /// @param parameters The parameters of the operators.
