@@ -109,9 +109,6 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   circuitSimulator->outputLog.clear();
 
-  static bool enableQuantumDeviceRun = getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
-  bool isQuantumDevice = (platform.is_remote() || platform.is_emulated()) && !platform.get_remote_capabilities().isRemoteSimulator;
-
   // 2. Launch the kernel on the QPU.
   if (platform.get_remote_capabilities().isRemoteSimulator) {
     // In a remote simulator execution, set the `run` context name and number of
@@ -127,7 +124,7 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::string remoteOutputLog(ctx->invocationResultBuffer.begin(),
                                 ctx->invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
-  } else if (isQuantumDevice && !enableQuantumDeviceRun)
+  } else if ((platform.is_remote() || platform.is_emulated()))
     throw std::runtime_error("`run` is not yet supported on this target.");
   else {
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
