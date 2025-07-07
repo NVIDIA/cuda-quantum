@@ -225,25 +225,25 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
         HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
             m_handle, liouvillian, term, 0,
             make_cuDoubleComplex(leftCoeff.real(), leftCoeff.imag()),
-            wrappedCallback, cudensitymatScalarGradientCallbackNone));
+            wrappedCallback));
 
         // +i constant (right multiplication, i.e., dual)
         const auto rightCoeff = std::complex<double>(0.0, 1.0) * coeffVal;
         HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
             m_handle, liouvillian, term, 1,
             make_cuDoubleComplex(rightCoeff.real(), rightCoeff.imag()),
-            wrappedCallback, cudensitymatScalarGradientCallbackNone));
+            wrappedCallback));
       } else {
         wrappedCallback = wrapScalarCallback(coeff, keys);
         // -i constant (left multiplication)
         HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
             m_handle, liouvillian, term, 0, make_cuDoubleComplex(0.0, -1.0),
-            wrappedCallback, cudensitymatScalarGradientCallbackNone));
+            wrappedCallback));
 
         // +i constant (right multiplication, i.e., dual)
         HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
             m_handle, liouvillian, term, 1, make_cuDoubleComplex(0.0, 1.0),
-            wrappedCallback, cudensitymatScalarGradientCallbackNone));
+            wrappedCallback));
       }
     }
 
@@ -258,12 +258,12 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
           HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
               m_handle, liouvillian, term, 0,
               make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
-              wrappedCallback, cudensitymatScalarGradientCallbackNone));
+              wrappedCallback));
         } else {
           wrappedCallback = wrapScalarCallback(coeff, keys);
           HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
               m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
-              wrappedCallback, cudensitymatScalarGradientCallbackNone));
+              wrappedCallback));
         }
       }
     }
@@ -369,14 +369,12 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
         m_handle, static_cast<int32_t>(subspaceExtents.size()),
         subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_MULTIDIAGONAL,
         offsets.size(), diagonalOffsets.data(), CUDA_C_64F, elementaryMat_d,
-        wrappedTensorCallback, cudensitymatTensorGradientCallbackNone,
-        &cudmElemOp));
+        wrappedTensorCallback, &cudmElemOp));
   } else {
     HANDLE_CUDM_ERROR(cudensitymatCreateElementaryOperator(
         m_handle, static_cast<int32_t>(subspaceExtents.size()),
         subspaceExtents.data(), CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
-        CUDA_C_64F, elementaryMat_d, wrappedTensorCallback,
-        cudensitymatTensorGradientCallbackNone, &cudmElemOp));
+        CUDA_C_64F, elementaryMat_d, wrappedTensorCallback, &cudmElemOp));
   }
 
   if (!cudmElemOp) {
@@ -449,8 +447,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
   HANDLE_CUDM_ERROR(cudensitymatOperatorTermAppendElementaryProduct(
       m_handle, term, static_cast<int32_t>(elemOps.size()), elemOps.data(),
       allDegrees.data(), allModeActionDuality.data(),
-      make_cuDoubleComplex(1.0, 0.0), cudensitymatScalarCallbackNone,
-      cudensitymatScalarGradientCallbackNone));
+      make_cuDoubleComplex(1.0, 0.0), cudensitymatScalarCallbackNone));
   return term;
 }
 
@@ -481,12 +478,12 @@ cudaq::dynamics::CuDensityMatOpConverter::convertToCudensitymatOperator(
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
           m_handle, cudmOperator, term, 0,
           make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
-          wrappedCallback, cudensitymatScalarGradientCallbackNone));
+          wrappedCallback));
     } else {
       wrappedCallback = wrapScalarCallback(coeff, keys);
       HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
           m_handle, cudmOperator, term, 0, make_cuDoubleComplex(1.0, 0.0),
-          wrappedCallback, cudensitymatScalarGradientCallbackNone));
+          wrappedCallback));
     }
   }
 
@@ -862,12 +859,12 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
           HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
               m_handle, liouvillian, term, 0,
               make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
-              wrappedCallback, cudensitymatScalarGradientCallbackNone));
+              wrappedCallback));
         } else {
           wrappedCallback = wrapScalarCallback(coeff, keys);
           HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
               m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
-              wrappedCallback, cudensitymatScalarGradientCallbackNone));
+              wrappedCallback));
         }
       } else {
         for (auto &[coeff, term] : convertToCudensitymat(
@@ -879,12 +876,12 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
             HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
                 m_handle, liouvillian, term, 0,
                 make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
-                wrappedCallback, cudensitymatScalarGradientCallbackNone));
+                wrappedCallback));
           } else {
             wrappedCallback = wrapScalarCallback(coeff, keys);
             HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
                 m_handle, liouvillian, term, 0, make_cuDoubleComplex(1.0, 0.0),
-                wrappedCallback, cudensitymatScalarGradientCallbackNone));
+                wrappedCallback));
           }
         }
       }
@@ -899,12 +896,12 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
             HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
                 m_handle, liouvillian, term, 1,
                 make_cuDoubleComplex(coeffVal.real(), coeffVal.imag()),
-                wrappedCallback, cudensitymatScalarGradientCallbackNone));
+                wrappedCallback));
           } else {
             wrappedCallback = wrapScalarCallback(coeff, keys);
             HANDLE_CUDM_ERROR(cudensitymatOperatorAppendTerm(
                 m_handle, liouvillian, term, 1, make_cuDoubleComplex(1.0, 0.0),
-                wrappedCallback, cudensitymatScalarGradientCallbackNone));
+                wrappedCallback));
           }
         }
       } else {

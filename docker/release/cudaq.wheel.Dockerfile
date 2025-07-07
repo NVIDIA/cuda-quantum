@@ -80,11 +80,10 @@ RUN echo "Building wheel for python${python_version}." \
         $python -m auditwheel -v repair dist/cuda_quantum*linux_*.whl \
             --exclude libcustatevec.so.1 \
             --exclude libcutensornet.so.2 \
-            --exclude libcudensitymat.so.0 \
             --exclude libcublas.so.$cudaq_major \
             --exclude libcublasLt.so.$cudaq_major \
             --exclude libcurand.so.10 \
-            --exclude libcusolver.so.11 \
+            --exclude libcusolver.so.$cudaq_major \
             --exclude libcutensor.so.2 \
             --exclude libnvToolsExt.so.1 \ 
             --exclude libcudart.so.$cudart_libsuffix \

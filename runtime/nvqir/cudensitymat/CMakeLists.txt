@@ -51,73 +51,53 @@ endif()
 message(STATUS "CUDENSITYMAT_INC: ${CUDENSITYMAT_INC}")
 message(STATUS "CUDENSITYMAT_LIB: ${CUDENSITYMAT_LIB}")
 
-# Determine cudensitymat version
-file(READ "${CUDENSITYMAT_INC}" cudensitymat_header)
-string(REGEX MATCH "CUDENSITYMAT_MAJOR ([0-9]*)" _ ${cudensitymat_header})
-set(CUDENSITYMAT_MAJOR ${CMAKE_MATCH_1})
+get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
+get_filename_component(CUDENSITYMAT_LIB_DIR ${CUDENSITYMAT_LIB} DIRECTORY)
+get_filename_component(CUTENSOR_LIB_DIR ${CUTENSOR_LIB} DIRECTORY)
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUDENSITYMAT_LIB_DIR}:${CUTENSOR_LIB_DIR}")
 
-string(REGEX MATCH "CUDENSITYMAT_MINOR ([0-9]*)" _ ${cudensitymat_header})
-set(CUDENSITYMAT_MINOR ${CMAKE_MATCH_1})
+add_library(${LIBRARY_NAME} SHARED
+  CuDensityMatSim.cpp
+  mpi_support.cpp
+  CuDensityMatTimeStepper.cpp
+  RungeKuttaIntegrator.cpp
+  CuDensityMatExpectation.cpp
+  CuDensityMatEvolution.cpp
+  CuDensityMatState.cpp
+  CuDensityMatContext.cpp
+  CuDensityMatOpConverter.cpp
+  CuDensityMatUtils.cpp
+)
 
-string(REGEX MATCH "CUDENSITYMAT_PATCH ([0-9]*)" _ ${cudensitymat_header})
-set(CUDENSITYMAT_PATCH ${CMAKE_MATCH_1})
+message("CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")
+target_include_directories(${LIBRARY_NAME}
+  PRIVATE 
+    . .. 
+    ${CUDAToolkit_INCLUDE_DIRS} 
+    ${CMAKE_SOURCE_DIR}/runtime/common
+    ${CUDENSITYMAT_INCLUDE_DIR}
+)
 
-set(CUDENSITYMAT_VERSION ${CUDENSITYMAT_MAJOR}.${CUDENSITYMAT_MINOR}.${CUDENSITYMAT_PATCH})
-message(STATUS "Found cudensitymat version: ${CUDENSITYMAT_VERSION}")
+target_include_directories(${LIBRARY_NAME}
+  PUBLIC
+    . ..
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/runtime/common
+    ${CUDENSITYMAT_INCLUDE_DIR}
+)
 
-# We need cudensitymat v0.2.0 
-if (${CUDENSITYMAT_VERSION} VERSION_GREATER_EQUAL "0.2")
-
-  get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
-  get_filename_component(CUDENSITYMAT_LIB_DIR ${CUDENSITYMAT_LIB} DIRECTORY)
-  get_filename_component(CUTENSOR_LIB_DIR ${CUTENSOR_LIB} DIRECTORY)
-  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUDENSITYMAT_LIB_DIR}:${CUTENSOR_LIB_DIR}")
-
-  add_library(${LIBRARY_NAME} SHARED
-    CuDensityMatSim.cpp
-    mpi_support.cpp
-    CuDensityMatTimeStepper.cpp
-    RungeKuttaIntegrator.cpp
-    CuDensityMatExpectation.cpp
-    CuDensityMatEvolution.cpp
-    CuDensityMatState.cpp
-    CuDensityMatContext.cpp
-    CuDensityMatOpConverter.cpp
-    CuDensityMatUtils.cpp
-  )
-
-  message("CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")
-  target_include_directories(${LIBRARY_NAME}
-    PRIVATE 
-      . .. 
-      ${CUDAToolkit_INCLUDE_DIRS} 
-      ${CMAKE_SOURCE_DIR}/runtime/common
-      ${CUDENSITYMAT_INCLUDE_DIR}
-  )
-
-  target_include_directories(${LIBRARY_NAME}
-    PUBLIC
-      . ..
-      ${CUDAToolkit_INCLUDE_DIRS}
-      ${CMAKE_SOURCE_DIR}/runtime/common
-      ${CUDENSITYMAT_INCLUDE_DIR}
-  )
-
-  target_link_libraries(${LIBRARY_NAME}
-                        PRIVATE
-                          fmt::fmt-header-only
-                          cudaq-common
-                          ${CUDENSITYMAT_LIB}
-                          ${CUTENSOR_LIB}
-                          CUDA::cudart_static
-                      )
-  target_link_libraries(${LIBRARY_NAME}
-                      PUBLIC
-                        cudaq-operator
+target_link_libraries(${LIBRARY_NAME}
+                      PRIVATE
+                        fmt::fmt-header-only
+                        cudaq-common
                         ${CUDENSITYMAT_LIB}
-                      )
-  install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-  add_target_config(dynamics)
-else()
-  message(FATAL_ERROR "Cudensitymat version ${CUDENSITYMAT_VERSION} is not supported. Please use version 0.2.0 or higher.")
-endif()
+                        ${CUTENSOR_LIB}
+                        CUDA::cudart_static
+                     )
+target_link_libraries(${LIBRARY_NAME}
+                     PUBLIC
+                       cudaq-operator
+                       ${CUDENSITYMAT_LIB}
+                    )
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+add_target_config(dynamics)
