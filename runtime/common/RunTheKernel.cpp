@@ -46,6 +46,9 @@ private:
 } // namespace details
 } // namespace cudaq
 
+static std::once_flag enableQuantumDeviceRunRunOnce;
+static bool enableQuantumDeviceRun = false;
+
 MLIRContext *cudaq::details::LayoutExtractor::createContext() {
   DialectRegistry registry;
   cudaq::opt::registerCodeGenDialect(registry);
@@ -109,8 +112,11 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   circuitSimulator->outputLog.clear();
 
-  static bool enableQuantumDeviceRun =
-      getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
+  std::call_once(enableQuantumDeviceRunRunOnce, []() {
+    enableQuantumDeviceRun =
+        getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
+  });
+
   bool isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
   bool isQuantumDevice =
       (platform.is_remote() || platform.is_emulated()) && !isRemoteSimulator;
