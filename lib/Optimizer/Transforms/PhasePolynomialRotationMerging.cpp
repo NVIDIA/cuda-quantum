@@ -276,7 +276,9 @@ public:
     if (!func.getOperation()->hasAttr("subcircuit"))
       return;
 
-    auto subcircuit = new Subcircuit(func);
+    auto subcircuit = Subcircuit::constructFromFunc(func);
+    if (!subcircuit)
+      return;
     auto container = PhaseStepper::StepperContainer(subcircuit);
 
     while (!container.isStopped())
