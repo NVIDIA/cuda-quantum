@@ -13,6 +13,7 @@ import numpy as np
 import os
 import sys
 from collections import deque
+from types import FunctionType
 
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, load_intrinsic, gen_vector_of_complex_constant,
@@ -2176,11 +2177,10 @@ class PyASTBridge(ast.NodeVisitor):
                 cls, annotations = globalRegisteredTypes.getClassAttributes(
                     node.func.id)
 
-                for var, typ in annotations.items():
-                    if typ not in ALLOWED_TYPES_IN_A_DATACLASS:
-                        self.emitFatalError(
-                            f'`{typ}` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}.',
-                            node)
+                if '__slots__' not in cls.__dict__:
+                    self.emitFatalError(
+                        f"Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True).",
+                        node)
 
                 # Alloca the struct
                 structTys = [
@@ -2211,10 +2211,11 @@ class PyASTBridge(ast.NodeVisitor):
                 else:
                     structTy = cc.StructType.getNamed(node.func.id, structTys)
                 # Disallow user specified methods on structs
-                if '__slots__' not in cls.__dict__ and len({
+                if len({
                         k: v
                         for k, v in cls.__dict__.items()
-                        if not (k.startswith('__') and k.endswith('__'))
+                        if not (k.startswith('__') and k.endswith('__')) and
+                        isinstance(v, FunctionType)
                 }) != 0:
                     self.emitFatalError(
                         'struct types with user specified methods are not allowed.',
