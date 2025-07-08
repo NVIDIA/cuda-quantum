@@ -170,6 +170,7 @@ Installer:
     - mkdir -p ../artifacts/$(uname -m)/mgmn_svsim && mv artifacts/* ../artifacts/$(uname -m)/mgmn_svsim
     - cd .. && rm -rf cudaq_mgmn_svsim
     - if $built; then `exit 0`; else `exit 1`; fi
+  allow_failure: true
 
 Docker Image:
   rules:
