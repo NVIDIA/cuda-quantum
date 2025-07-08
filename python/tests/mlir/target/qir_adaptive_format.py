@@ -47,7 +47,6 @@ test_return()
 
 
 # Test int_computations flag
-# TODO: add cudaq.run tests using runtime output functions
 def test_int_computations():
 
     @cudaq.kernel
@@ -86,7 +85,6 @@ test_int_computations()
 
 
 # Test int_computations and float_computations flags
-# TODO: add cudaq.run tests using runtime output functions
 def test_float_computations():
 
     @cudaq.kernel
