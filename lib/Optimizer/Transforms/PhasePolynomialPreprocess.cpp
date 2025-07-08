@@ -178,6 +178,9 @@ class PhasePolynomialPreprocessPass
                                              fun.getSymNameAttr(), args);
     for (size_t i = 0; i < steppers.size(); i++)
       steppers[i]->getOldWire().replaceAllUsesWith(call.getResult(i));
+
+    for (auto stepper : steppers)
+      delete stepper;
   }
 
 public:
