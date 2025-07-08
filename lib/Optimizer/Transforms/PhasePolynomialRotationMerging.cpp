@@ -68,6 +68,7 @@ class PhasePolynomialRotationMergingPass
           new_phase.vars.remove(var);
         else
           new_phase.vars.insert(var);
+      new_phase.isInverted = (p1.isInverted != p2.isInverted);
       return new_phase;
     }
 
@@ -204,14 +205,31 @@ class PhasePolynomialRotationMergingPass
         return std::nullopt;
       }
 
-      bool targetVisited(quake::OperatorInterface opi) {
-        assert(isControlledOp(opi.getOperation()));
-        auto next_result = getNextResult(opi.getTarget(0));
+      /// @brief handles a swap between two wires, swapping their phases
+      /// @returns `true` if the swap has been handled and stepping can
+      /// continue, `false` otherwise
+      bool handleSwap(quake::SwapOp swap) {
+        auto wire0 = swap.getTarget(0);
+        auto wire1 = swap.getTarget(1);
+        if (wireVisited(wire0) || wireVisited(wire1))
+          return true;
+
+        auto stepper0 = getStepperForValue(wire0);
+        auto stepper1 = getStepperForValue(wire1);
+        if (!stepper0 || !stepper1)
+          return false;
+
+        auto tmp = stepper0->current_phase;
+        stepper0->current_phase = stepper1->current_phase;
+        stepper1->current_phase = tmp;
+        return true;
+      }
+
+      bool wireVisited(Value wire) {
+        auto next_result = getNextResult(wire);
         // Wait until target wire stepper steps to ensure
         // control phase is available
-        if (getStepperForValue(next_result))
-          return true;
-        return false;
+        return !!getStepperForValue(next_result);
       }
     };
 
@@ -250,7 +268,7 @@ class PhasePolynomialRotationMergingPass
         } else {
           // Wait until the target has visited the operation so it can
           // access our phase (the control phase)
-          if (!container->targetVisited(opi))
+          if (!container->wireVisited(opi.getTarget(0)))
             return;
         }
       } else if (isa<quake::XOp>(op) && opi.getControls().size() == 0) {
@@ -259,6 +277,9 @@ class PhasePolynomialRotationMergingPass
         current_phase = Phase::invert(current_phase);
       } else if (auto rzop = dyn_cast<quake::RzOp>(op)) {
         if (store->addOrCombineRotationForPhase(rzop, current_phase))
+          return;
+      } else if (auto swap = dyn_cast<quake::SwapOp>(op)) {
+        if (!container->handleSwap(swap))
           return;
       }
 
