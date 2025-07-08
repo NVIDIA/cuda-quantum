@@ -1020,7 +1020,7 @@ def test_supported_simulators(target):
     cudaq.reset_target()
 
 
-def test_unsupported_simulator():
+def test_unsupported_targets_0():
     try:
         cudaq.set_target("dynamics")
         with pytest.raises(RuntimeError) as e:
@@ -1031,12 +1031,22 @@ def test_unsupported_simulator():
     finally:
         cudaq.reset_target()
 
+    try:
+        cudaq.set_target("orca")
+        with pytest.raises(RuntimeError) as e:
+            test_simple_run_ghz()
+        assert "No QPUs are available for this target" in repr(e)
+    except RuntimeError:
+        pytest.skip("target not available")
+    finally:
+        cudaq.reset_target()
+
 
 @pytest.mark.parametrize("target, env_var",
                          [("anyon", ""), ("infleqtion", "SUPERSTAQ_API_KEY"),
                           ("ionq", "IONQ_API_KEY"), ("quantinuum", "")])
 @pytest.mark.parametrize("emulate", [True, False])
-def test_unsupported_targets(target, env_var, emulate):
+def test_unsupported_targets_1(target, env_var, emulate):
     if env_var:
         os.environ[env_var] = "foobar"
 
@@ -1051,7 +1061,7 @@ def test_unsupported_targets(target, env_var, emulate):
 
 @skipIfBraketNotInstalled
 @pytest.mark.parametrize("target", ["braket", "quera"])
-def test_unsupported_targets2(target):
+def test_unsupported_targets_2(target):
     cudaq.set_target(target)
     with pytest.raises(RuntimeError) as e:
         test_simple_run_ghz()
