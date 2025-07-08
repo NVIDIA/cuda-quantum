@@ -59,23 +59,23 @@ class PhasePolynomialRotationMergingPass
       return isInverted == other.isInverted;
     }
 
-    static Phase *combine(Phase *p1, Phase *p2) {
-      Phase *new_phase = new Phase();
-      for (auto var : p1->vars)
-        new_phase->vars.insert(var);
-      for (auto var : p2->vars)
-        if (new_phase->vars.contains(var))
-          new_phase->vars.remove(var);
+    static Phase combine(Phase &p1, Phase &p2) {
+      Phase new_phase = Phase();
+      for (auto var : p1.vars)
+        new_phase.vars.insert(var);
+      for (auto var : p2.vars)
+        if (new_phase.vars.contains(var))
+          new_phase.vars.remove(var);
         else
-          new_phase->vars.insert(var);
+          new_phase.vars.insert(var);
       return new_phase;
     }
 
-    static Phase *invert(Phase *p1) {
-      Phase *new_phase = new Phase();
-      for (auto var : p1->vars)
-        new_phase->vars.insert(var);
-      new_phase->isInverted = !p1->isInverted;
+    static Phase invert(Phase &p1) {
+      auto new_phase = Phase();
+      for (auto var : p1.vars)
+        new_phase.vars.insert(var);
+      new_phase.isInverted = !p1.isInverted;
       return new_phase;
     }
 
@@ -105,9 +105,7 @@ class PhasePolynomialRotationMergingPass
   };
 
   class PhaseStorage {
-    // TODO: If SmallVector, no need for pointers here, so make not
-    // pointer to avoid memory leaks
-    SmallVector<Phase *> phases;
+    SmallVector<Phase> phases;
     SmallVector<quake::RzOp> rotations;
 
     void combineRotations(size_t prev_idx, quake::RzOp rzop) {
@@ -129,9 +127,9 @@ class PhasePolynomialRotationMergingPass
   public:
     /// @brief registers a new rotation op for the given phase
     /// @returns true if the rotation was combined, false otherwise
-    bool addOrCombineRotationForPhase(quake::RzOp op, Phase *phase) {
+    bool addOrCombineRotationForPhase(quake::RzOp op, Phase phase) {
       for (size_t i = 0; i < phases.size(); i++)
-        if (*phases[i] == *phase) {
+        if (phases[i] == phase) {
           combineRotations(i, op);
           return true;
         }
@@ -146,7 +144,7 @@ class PhasePolynomialRotationMergingPass
     Value wire;
     Subcircuit *subcircuit;
     PhaseStorage *store;
-    Phase *current_phase;
+    Phase current_phase;
 
   public:
     class StepperContainer {
@@ -197,8 +195,7 @@ class PhasePolynomialRotationMergingPass
           stepper->step(this);
       }
 
-      std::optional<Phase *>
-      maybeGetControlPhase(quake::OperatorInterface opi) {
+      std::optional<Phase> maybeGetControlPhase(quake::OperatorInterface opi) {
         assert(isControlledOp(opi.getOperation()));
         auto control = opi.getControls().front();
         auto *stepper = getStepperForValue(control);
@@ -223,7 +220,7 @@ class PhasePolynomialRotationMergingPass
       subcircuit = circuit;
       this->store = store;
       wire = initial;
-      current_phase = new Phase(var);
+      current_phase = Phase(var);
     }
 
     bool isStopped() {
