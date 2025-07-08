@@ -52,6 +52,8 @@ State = cudaq_runtime.State
 # here by just setting it manually
 kDynamicPtrIndex: int = -2147483648
 
+ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
+
 
 class PyScopedSymbolTable(object):
 
@@ -2173,6 +2175,13 @@ class PyASTBridge(ast.NodeVisitor):
                 # Handle User-Custom Struct Constructor
                 cls, annotations = globalRegisteredTypes.getClassAttributes(
                     node.func.id)
+
+                for var, typ in annotations.items():
+                    if typ not in ALLOWED_TYPES_IN_A_DATACLASS:
+                        self.emitFatalError(
+                            f'`{typ}` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}.',
+                            node)
+
                 # Alloca the struct
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
