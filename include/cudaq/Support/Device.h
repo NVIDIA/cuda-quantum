@@ -10,7 +10,6 @@
 
 #include "cudaq/ADT/GraphCSR.h"
 #include "cudaq/Support/Graph.h"
-#include "llvm/ADT/DenseSet.h"
 #include "llvm/Support/MemoryBuffer.h"
 
 namespace cudaq {
@@ -25,8 +24,7 @@ public:
   using Path = mlir::SmallVector<Qubit>;
 
   /// Read device connectivity info from a file. The input format is the same
-  /// as the Graph dump() format, with the addition of a line that lists the
-  /// excluded qubits.
+  /// as the Graph dump() format.
   static Device file(llvm::StringRef filename) {
     Device device;
 
@@ -48,17 +46,6 @@ public:
         if (!line.consumeInteger(/*Radix=*/10, numQubits)) {
           for (unsigned i = 0u; i < numQubits; ++i)
             device.topology.createNode();
-        }
-      } else if (line.consume_front("Excluded nodes:")) {
-        line = line.ltrim();
-        if (line.consume_front("{")) {
-          while (!line.empty()) {
-            unsigned nodeNum = 0;
-            if (!line.consumeInteger(/*Radix=*/10, nodeNum)) {
-              device.excludedQubits.insert(Qubit(nodeNum));
-            }
-            line = line.ltrim(" \t\n\v\f\r,}");
-          }
         }
       } else {
         // Parse edges
@@ -96,18 +83,13 @@ public:
   ///
   ///  0 -- 1 -- ... -- N
   ///
-  static Device path(unsigned numQubits,
-                     mlir::SmallVector<unsigned> excluded = {}) {
+  static Device path(unsigned numQubits) {
     assert(numQubits > 0);
     Device device;
     device.topology.createNode();
     for (unsigned i = 1u; i < numQubits; ++i) {
       device.topology.createNode();
       device.topology.addEdge(Qubit(i - 1), Qubit(i));
-    }
-    for (auto excluded : excluded) {
-      assert(excluded < numQubits && "Excluded qubit out of range");
-      device.excludedQubits.insert(Qubit(excluded));
     }
     device.computeAllPairShortestPaths();
     return device;
@@ -118,8 +100,7 @@ public:
   ///  0 -- 1 -- ... -- N
   ///  |________________|
   ///
-  static Device ring(unsigned numQubits,
-                     mlir::SmallVector<unsigned> excluded = {}) {
+  static Device ring(unsigned numQubits) {
     assert(numQubits > 0);
     Device device;
     device.topology.createNode();
@@ -127,10 +108,6 @@ public:
       if (i < numQubits - 1)
         device.topology.createNode();
       device.topology.addEdge(Qubit(i), Qubit((i + 1) % numQubits));
-    }
-    for (auto excluded : excluded) {
-      assert(excluded < numQubits && "Excluded qubit out of range");
-      device.excludedQubits.insert(Qubit(excluded));
     }
     device.computeAllPairShortestPaths();
     return device;
@@ -146,8 +123,7 @@ public:
   ///
   /// @param numQubits Number of qubits in topology
   /// @param centerQubit 0-based ID of center qubit (default 0)
-  static Device star(unsigned numQubits, unsigned centerQubit = 0,
-                     mlir::SmallVector<unsigned> excluded = {}) {
+  static Device star(unsigned numQubits, unsigned centerQubit = 0) {
     Device device;
 
     // Create nodes
@@ -158,12 +134,6 @@ public:
     for (unsigned i = 0u; i < numQubits; ++i)
       if (i != centerQubit)
         device.topology.addEdge(Qubit(centerQubit), Qubit(i));
-
-    // Add excluded qubits
-    for (auto excluded : excluded) {
-      assert(excluded < numQubits && "Excluded qubit out of range");
-      device.excludedQubits.insert(Qubit(excluded));
-    }
 
     device.computeAllPairShortestPaths();
     return device;
@@ -177,8 +147,7 @@ public:
   ///  |    |    |
   ///  6 -- 7 -- 8
   ///
-  static Device grid(unsigned width, unsigned height,
-                     mlir::SmallVector<unsigned> excluded = {}) {
+  static Device grid(unsigned width, unsigned height) {
     Device device;
     for (unsigned i = 0u, end = width * height; i < end; ++i)
       device.topology.createNode();
@@ -192,25 +161,12 @@ public:
           device.topology.addEdge(q0, Qubit(base + width));
       }
     }
-    for (auto excluded : excluded) {
-      assert(excluded < width * height && "Excluded qubit out of range");
-      device.excludedQubits.insert(Qubit(excluded));
-    }
     device.computeAllPairShortestPaths();
     return device;
   }
 
   /// Returns the number of physical qubits in the device.
   unsigned getNumQubits() const { return topology.getNumNodes(); }
-
-  unsigned getNumUsableQubits() const {
-    return getNumQubits() - excludedQubits.size();
-  }
-
-  /// Returns true if the qubit is excluded from the device.
-  bool isQubitExcluded(Qubit qubit) const {
-    return excludedQubits.contains(qubit);
-  }
 
   /// Returns the distance between two qubits.
   unsigned getDistance(Qubit src, Qubit dst) const {
@@ -245,10 +201,6 @@ public:
         llvm::interleaveComma(path, os);
         os << "}\n";
       }
-    os << "\nExcluded qubits: ";
-    for (auto q : excludedQubits)
-      os << q << " ";
-    os << "\n";
   }
 
 private:
@@ -266,15 +218,6 @@ private:
   /// exists at least one path between every source and destination pair. I.e.
   /// the graph cannot be bipartite.
   void computeAllPairShortestPaths() {
-    // We need to remove paths that include excluded qubits
-    for (auto excluded : excludedQubits) {
-      auto neighbors = topology.getNeighbours(excluded);
-      while (!neighbors.empty()) {
-        topology.removeEdge(excluded, neighbors.front());
-        neighbors = topology.getNeighbours(excluded);
-      }
-    }
-
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
     mlir::SmallVector<Qubit> path(numNodes);
@@ -299,9 +242,6 @@ private:
 
   /// Device nodes (qubits) and edges (connections)
   GraphCSR topology;
-
-  /// List of excluded qubits
-  llvm::DenseSet<Qubit> excludedQubits;
 
   /// List of shortest path from/to every source/destination
   mlir::SmallVector<PathRef> shortestPaths;
