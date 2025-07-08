@@ -46,5 +46,4 @@ add_target_config(opt-test)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   add_target_config(nvidia)
-  add_target_config(nvidia-fp64)
 endif()

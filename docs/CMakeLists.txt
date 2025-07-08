@@ -79,11 +79,6 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   add_nvqpp_test(ObserveMQPU using/cudaq/platform/observe_mqpu.cpp TARGET nvidia TARGET_OPTION mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
   add_nvqpp_test(StateAsyncMQPU using/cudaq/platform/get_state_async.cpp TARGET nvidia TARGET_OPTION mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 
-  # Legacy check for the `nvidia-mqpu` target
-  add_nvqpp_test(LegacySampleAsync using/cudaq/platform/sample_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
-  add_nvqpp_test(LegacyObserveMQPU using/cudaq/platform/observe_mqpu.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
-  add_nvqpp_test(LegacyStateAsyncMQPU using/cudaq/platform/get_state_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
-
   # Add the MPI test if MPI was found and there are more than 2 GPUs
   if (MPI_CXX_FOUND)
     # Count the number of GPUs
@@ -95,10 +90,6 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
         add_nvqpp_test(ObserveMQPU_MPI using/cudaq/platform/observe_mqpu_mpi.cpp
                         TARGET nvidia 
                         TARGET_OPTION mqpu 
-                        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp 
-                        LAUNCH_COMMAND "${MPIEXEC} --allow-run-as-root -np 2")
-        add_nvqpp_test(LegacyObserveMQPU_MPI using/cudaq/platform/observe_mqpu_mpi.cpp
-                        TARGET nvidia-mqpu 
                         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp 
                         LAUNCH_COMMAND "${MPIEXEC} --allow-run-as-root -np 2")
       endif()
