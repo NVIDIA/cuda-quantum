@@ -481,8 +481,12 @@ jobs:
 
           # Extract branch suffix using known prefix pattern
           tag_sample=$(echo "$DIGESTS_JSON" | jq -r '.image_tag["arm64-cu12.0-dev-image"]')
-          tag_suffix=$(basename "$tag_sample" | sed -E 's/^ext-arm64-cu[0-9.]+-gcc[0-9]+-//')
-          echo "Using tag suffix: $tag_suffix"
+          suffix=$(basename "$tag_sample" | sed -E 's/^ext-arm64-cu[0-9.]+-gcc[0-9]+-//')
+          prefix="cuda-quantum-dev:ext-arm64-cu12.0-gcc11-"
+          branch="${suffix#"$prefix"}"
+          echo "branch: $branch"
+
+          echo "Using tag suffix: $branch"
 
           stitched_output="{}"
 
@@ -497,7 +501,7 @@ jobs:
             amd64_image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
             echo "CUDA $cuda amd64 image: $amd64_image"
 
-            stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda}-ext-${tag_suffix}"
+            stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda}-ext-${branch}"
 
             refs="$arm64_image $amd64_image"
 
@@ -535,10 +539,10 @@ jobs:
               cuda_major="${cuda%%.*}"
 
               if [[ "$image" == "dev-image" ]]; then
-                stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda_major}-${tag_suffix}-base"
+                stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda_major}-${branch}-base"
                 stitched_key="dev-cu${cuda_major}"
               else
-                stitched_tag="ghcr.io/nvidia/cuda-quantum:cu${cuda_major}-${tag_suffix}-base"
+                stitched_tag="ghcr.io/nvidia/cuda-quantum:cu${cuda_major}-${branch}-base"
                 stitched_key="base-cu${cuda_major}"
               fi
 
