@@ -2178,7 +2178,7 @@ class PyASTBridge(ast.NodeVisitor):
                     node.func.id)
 
                 if '__slots__' not in cls.__dict__:
-                    self.emitFatalError(
+                    self.emitWarning(
                         f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True).",
                         node)
 

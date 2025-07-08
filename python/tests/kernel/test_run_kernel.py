@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 import cudaq
 import numpy as np
+import warnings
 import pytest
 
 list_err_msg = 'does not yet support returning `list` from entry-point kernels'
@@ -1068,76 +1069,6 @@ def test_unsupported_targets_2(target):
     cudaq.reset_target()
 
 
-def test_dataclass_no_slots_error():
-
-    @dataclass
-    class NoSlots:
-        x: int
-        y: int
-
-    @cudaq.kernel
-    def kernel_with_no_slots_dataclass() -> NoSlots:
-        return NoSlots(1, 2)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
-        e.value)
-
-
-def test_dataclasses_dot_dataclass_no_slots_error():
-    import dataclasses
-
-    @dataclasses.dataclass
-    class NoSlots:
-        x: int
-        y: int
-
-    @cudaq.kernel
-    def kernel_with_no_slots_dataclass() -> NoSlots:
-        return NoSlots(1, 2)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
-        e.value)
-
-
-def test_dataclass_slots_equals_false_error():
-
-    @dataclass(slots=False)
-    class NoSlots:
-        x: int
-        y: int
-
-    @cudaq.kernel
-    def kernel_with_no_slots_dataclass() -> NoSlots:
-        return NoSlots(1, 2)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
-        e.value)
-
-
-def test_dataclasses_dot_dataclass_slots_equals_false_error():
-    import dataclasses
-
-    @dataclasses.dataclass(slots=False)
-    class NoSlots:
-        x: int
-        y: int
-
-    @cudaq.kernel
-    def kernel_with_no_slots_dataclass() -> NoSlots:
-        return NoSlots(1, 2)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
-        e.value)
-
-
 def test_dataclass_slots_success():
 
     @dataclass(slots=True)
@@ -1171,76 +1102,6 @@ def test_dataclasses_dot_dataclass_slots_success():
     assert len(results) == 2
     assert all(isinstance(result, SlotsClass) for result in results)
     assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
-
-
-def test_dataclass_no_slots_error():
-
-    @dataclass
-    class NoSlots:
-        x: int
-        y: int
-
-    @cudaq.kernel
-    def kernel_with_no_slots_dataclass() -> NoSlots:
-        return NoSlots(1, 2)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
-        e.value)
-
-
-def test_dataclasses_dot_dataclass_no_slots_error():
-    import dataclasses
-
-    @dataclasses.dataclass
-    class NoSlots:
-        x: int
-        y: int
-
-    @cudaq.kernel
-    def kernel_with_no_slots_dataclass() -> NoSlots:
-        return NoSlots(1, 2)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
-        e.value)
-
-
-def test_dataclass_slots_equals_false_error():
-
-    @dataclass(slots=False)
-    class NoSlots:
-        x: int
-        y: int
-
-    @cudaq.kernel
-    def kernel_with_no_slots_dataclass() -> NoSlots:
-        return NoSlots(1, 2)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
-        e.value)
-
-
-def test_dataclasses_dot_dataclass_slots_equals_false_error():
-    import dataclasses
-
-    @dataclasses.dataclass(slots=False)
-    class NoSlots:
-        x: int
-        y: int
-
-    @cudaq.kernel
-    def kernel_with_no_slots_dataclass() -> NoSlots:
-        return NoSlots(1, 2)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
-        e.value)
 
 
 def test_dataclass_slots_success():
