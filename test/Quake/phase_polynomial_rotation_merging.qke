@@ -91,3 +91,73 @@ func.func private @subcircuit3(%arg0: !quake.wire, %arg1: f64, %arg2: f64, %arg3
 // CHECK:     %4 = quake.rz (%arg3) %3 : (f64, !quake.wire) -> !quake.wire
 // CHECK:     cc.return %4 : !quake.wire
 // CHECK: }
+
+// -----
+
+func.func private @subcircuit4(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: !quake.wire, %arg3: f64, %arg4: f64) -> (!quake.wire, !quake.wire, !quake.wire) attributes {num_cnots = 2 : ui32, subcircuit} {
+    %0 = quake.rz (%arg3) %arg2 : (f64, !quake.wire) -> !quake.wire {processed}
+    %1:2 = quake.x [%arg0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+    %2:2 = quake.swap %1#0, %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+    %3:2 = quake.x [%2#1] %1#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+    %4 = quake.rz (%arg4) %3#1 : (f64, !quake.wire) -> !quake.wire {processed}
+    cc.return %2#0, %3#0, %4 : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func private @subcircuit4(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: !quake.wire, %arg3: f64, %arg4: f64) -> (!quake.wire, !quake.wire, !quake.wire) attributes {num_cnots = 2 : ui32, subcircuit} {
+// CHECK:     %0 = arith.addf %arg3, %arg4 : f64
+// CHECK:     %1 = quake.rz (%0) %arg2 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:     %2:2 = quake.x [%arg0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %3:2 = quake.swap %2#0, %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %4:2 = quake.x [%3#1] %2#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     cc.return %3#0, %4#0, %4#1 : !quake.wire, !quake.wire, !quake.wire
+// CHECK: }
+
+// -----
+
+func.func private @subcircuit4(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: !quake.wire, %arg3: f64, %arg4: f64) -> (!quake.wire, !quake.wire, !quake.wire) attributes {num_cnots = 2 : ui32, subcircuit} {
+    %0 = quake.rz (%arg3) %arg2 : (f64, !quake.wire) -> !quake.wire {processed}
+    %1:2 = quake.x [%arg0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+    %2:2 = quake.swap %1#0, %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+    %3:2 = quake.x [%2#1] %1#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+    %4 = quake.rz (%arg4) %3#1 : (f64, !quake.wire) -> !quake.wire {processed}
+    cc.return %2#0, %3#0, %4 : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func private @subcircuit4(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: !quake.wire, %arg3: f64, %arg4: f64) -> (!quake.wire, !quake.wire, !quake.wire) attributes {num_cnots = 2 : ui32, subcircuit} {
+// CHECK:     %0 = arith.addf %arg3, %arg4 : f64
+// CHECK:     %1 = quake.rz (%0) %arg2 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:     %2:2 = quake.x [%arg0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %3:2 = quake.swap %2#0, %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %4:2 = quake.x [%3#1] %2#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     cc.return %3#0, %4#0, %4#1 : !quake.wire, !quake.wire, !quake.wire
+// CHECK: }
+
+// -----
+
+func.func private @subcircuit5(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: f64, %arg3: f64, %arg4: f64, %arg5: f64) -> (!quake.wire, !quake.wire) attributes {num_cnots = 3 : ui32, subcircuit} {
+    %0 = quake.x %arg0 : (!quake.wire) -> !quake.wire {processed}
+    %1:2 = quake.x [%0] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+    %2 = quake.rz (%arg2) %1#1 : (f64, !quake.wire) -> !quake.wire {processed}
+    %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+    %4 = quake.x %3#0 : (!quake.wire) -> !quake.wire {processed}
+    %5 = quake.rz (%arg3) %3#1 : (f64, !quake.wire) -> !quake.wire {processed}
+    %6:2 = quake.x [%4] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+    %7 = quake.rz (%arg4) %6#1 : (f64, !quake.wire) -> !quake.wire {processed}
+    %8 = quake.x %7 : (!quake.wire) -> !quake.wire {processed}
+    %9 = quake.rz (%arg5) %8 : (f64, !quake.wire) -> !quake.wire {processed}
+    cc.return %6#0, %9 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func private @subcircuit5(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: f64, %arg3: f64, %arg4: f64, %arg5: f64) -> (!quake.wire, !quake.wire) attributes {num_cnots = 3 : ui32, subcircuit} {
+// CHECK:     %0 = quake.x %arg0 : (!quake.wire) -> !quake.wire {processed}
+// CHECK:     %1:2 = quake.x [%0] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %2 = arith.addf %arg2, %arg5 : f64
+// CHECK:     %3 = quake.rz (%2) %1#1 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:     %4:2 = quake.x [%1#0] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %5 = quake.x %4#0 : (!quake.wire) -> !quake.wire {processed}
+// CHECK:     %6 = quake.rz (%arg3) %4#1 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:     %7:2 = quake.x [%5] %6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {processed}
+// CHECK:     %8 = quake.rz (%arg4) %7#1 : (f64, !quake.wire) -> !quake.wire {processed}
+// CHECK:     %9 = quake.x %8 : (!quake.wire) -> !quake.wire {processed}
+// CHECK:     cc.return %7#0, %9 : !quake.wire, !quake.wire
+// CHECK:   }
