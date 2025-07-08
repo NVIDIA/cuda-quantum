@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import os
-import time
 from dataclasses import dataclass
 
 import cudaq
@@ -15,6 +14,10 @@ import numpy as np
 import pytest
 
 list_err_msg = 'does not yet support returning `list` from entry-point kernels'
+
+skipIfBraketNotInstalled = pytest.mark.skipif(
+    not (cudaq.has_target("braket")),
+    reason='Could not find `braket` in installation')
 
 
 def is_close(actual, expected):
@@ -49,7 +52,7 @@ def simple(numQubits: int) -> int:
 
 
 def test_simple_run_ghz():
-    shots = 100
+    shots = 20
     qubitCount = 4
     results = cudaq.run(simple, qubitCount, shots_count=shots)
     print(results)
@@ -974,6 +977,147 @@ def test_unsupported_return_type():
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_args, 1.0, 2.0, shots_count=2)
     assert 'unsupported return type' in str(e.value)
+
+
+def test_run_and_sample_and_direct_call():
+
+    @cudaq.kernel
+    def bell_pair() -> int:
+        q = cudaq.qvector(2)
+        h(q[0])
+        cx(q[0], q[1])
+        res = mz(q[0]) + 2 * mz(q[1])
+        return res
+
+    run_results = cudaq.run(bell_pair, shots_count=10)
+    assert len(run_results) == 10
+
+    sample_results = cudaq.sample(bell_pair, shots_count=10)
+    assert len(sample_results) == 2
+
+    direct_call_result = bell_pair()
+    assert direct_call_result is not None
+
+
+# NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
+@pytest.mark.parametrize("target",
+                         ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
+def test_supported_simulators(target):
+
+    def can_set_target(name):
+        target_installed = True
+        try:
+            cudaq.set_target(name)
+        except RuntimeError:
+            target_installed = False
+        return target_installed
+
+    if can_set_target(target):
+        test_simple_run_ghz()
+    else:
+        pytest.skip("target not available")
+
+    cudaq.reset_target()
+
+
+def test_unsupported_targets_0():
+    try:
+        cudaq.set_target("dynamics")
+        with pytest.raises(RuntimeError) as e:
+            test_simple_run_ghz()
+        assert "Quantum gate simulation is not supported" in repr(e)
+    except RuntimeError:
+        pytest.skip("target not available")
+    finally:
+        cudaq.reset_target()
+
+    try:
+        cudaq.set_target("orca")
+        with pytest.raises(RuntimeError) as e:
+            test_simple_run_ghz()
+        assert "No QPUs are available for this target" in repr(e)
+    except RuntimeError:
+        pytest.skip("target not available")
+    finally:
+        cudaq.reset_target()
+
+
+@pytest.mark.parametrize("target, env_var",
+                         [("anyon", ""), ("infleqtion", "SUPERSTAQ_API_KEY"),
+                          ("ionq", "IONQ_API_KEY"), ("quantinuum", "")])
+@pytest.mark.parametrize("emulate", [True, False])
+def test_unsupported_targets_1(target, env_var, emulate):
+    if env_var:
+        os.environ[env_var] = "foobar"
+
+    cudaq.set_target(target, emulate=emulate)
+
+    with pytest.raises(RuntimeError) as e:
+        test_simple_run_ghz()
+    assert "not yet supported on this target" in repr(e)
+    os.environ.pop(env_var, None)
+    cudaq.reset_target()
+
+
+@skipIfBraketNotInstalled
+@pytest.mark.parametrize("target", ["braket", "quera"])
+def test_unsupported_targets_2(target):
+    cudaq.set_target(target)
+    with pytest.raises(RuntimeError) as e:
+        test_simple_run_ghz()
+    assert "not yet supported on this target" in repr(e)
+    cudaq.reset_target()
+
+
+def test_dataclass_does_not_support_list_type():
+
+    @dataclass
+    class TestClass:
+        x: list
+        y: int
+
+    @cudaq.kernel
+    def kernel() -> TestClass:
+        return TestClass([1, 2, 3], 4)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=1)
+    assert f"`<class 'list'>` type is not yet supported in data classes." in str(
+        e.value)
+
+
+def test_dataclass_does_not_support_list_of_int_type():
+
+    @dataclass
+    class TestClass:
+        x: list[int]
+        y: int
+
+    @cudaq.kernel
+    def kernel() -> TestClass:
+        return TestClass([1, 2, 3], 4)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=1)
+    assert f"`list[int]` type is not yet supported in data classes." in str(
+        e.value)
+
+
+def test_dataclass_does_not_support_list_of_float_type():
+
+    @dataclass
+    class TestClass:
+        x: list[float]
+        y: int
+
+    @cudaq.kernel
+    def kernel() -> TestClass:
+        return TestClass([1.2, 2.4, 3.6], 4)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=1)
+    assert f"`list[float]` type is not yet supported in data classes." in str(
+        e.value)
 
 
 # leave for gdb debugging
