@@ -4263,8 +4263,68 @@ class PyASTBridge(ast.NodeVisitor):
 
             self.pushValue(arith.RemUIOp(left, right).result)
             return
-        else:
-            self.emitFatalError(f"unhandled binary operator - {node.op}", node)
+
+        if isinstance(node.op, ast.LShift):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.ShLIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '<<'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.RShift):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.ShRSIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '>>'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitAnd):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.AndIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '&'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitOr):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.OrIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '|'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitXor):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.XOrIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '^'; only integers supported.",
+                    node)
+
+        self.emitFatalError(f"unhandled binary operator - {node.op}", node)
 
     def visit_Name(self, node):
         """
