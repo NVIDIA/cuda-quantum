@@ -48,6 +48,9 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
     kernel.attr("compile")();
 
   auto kernelName = kernel.attr("name").cast<std::string>();
+  if (!py::hasattr(kernel, "module") || kernel.attr("module").is_none())
+    throw std::runtime_error(
+        "Unsupported target / Invalid kernel for `run`: missing module");
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   args = simplifiedValidateInputArguments(args);
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
