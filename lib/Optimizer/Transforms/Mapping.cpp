@@ -509,11 +509,9 @@ deviceFromString(llvm::StringRef deviceString) {
     } else if (deviceTopoStr == "ring") {
       return std::make_pair(false, Device::ring(deviceDim[0]));
     } else if (deviceTopoStr == "star") {
-      return std::make_pair(
-          false, Device::star(deviceDim[0], deviceDim[1]));
+      return std::make_pair(false, Device::star(deviceDim[0], deviceDim[1]));
     } else if (deviceTopoStr == "grid") {
-      return std::make_pair(
-          false, Device::grid(deviceDim[0], deviceDim[1]));
+      return std::make_pair(false, Device::grid(deviceDim[0], deviceDim[1]));
     } else if (deviceTopoStr == "bypass") {
       return std::make_pair(true, std::nullopt);
     } else {
@@ -597,7 +595,7 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
 
 struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
   using MappingFuncBase::MappingFuncBase;
-  
+
   bool deviceBypass = false;
   std::optional<Device> deviceInstance;
 
@@ -862,8 +860,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     identityPlacement(placement);
 
     // Route
-    SabreRouter router(*deviceInstance, wireToVirtualQ, placement, extendedLayerSize,
-                       extendedLayerWeight, decayDelta, roundsDecayReset);
+    SabreRouter router(*deviceInstance, wireToVirtualQ, placement,
+                       extendedLayerSize, extendedLayerWeight, decayDelta,
+                       roundsDecayReset);
     router.route(*blocks.begin(), sources);
     sortTopologically(&block);
 
