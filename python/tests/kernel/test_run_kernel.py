@@ -1081,7 +1081,7 @@ def test_dataclass_no_slots_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
+    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
         e.value)
 
 
@@ -1099,7 +1099,7 @@ def test_dataclasses_dot_dataclass_no_slots_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
+    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
         e.value)
 
 
@@ -1116,7 +1116,7 @@ def test_dataclass_slots_equals_false_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
+    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
         e.value)
 
 
@@ -1134,7 +1134,7 @@ def test_dataclasses_dot_dataclass_slots_equals_false_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
+    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
         e.value)
 
 
@@ -1186,7 +1186,7 @@ def test_dataclass_no_slots_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
+    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
         e.value)
 
 
@@ -1204,7 +1204,7 @@ def test_dataclasses_dot_dataclass_no_slots_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
+    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
         e.value)
 
 
@@ -1221,7 +1221,7 @@ def test_dataclass_slots_equals_false_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
+    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
         e.value)
 
 
@@ -1239,7 +1239,7 @@ def test_dataclasses_dot_dataclass_slots_equals_false_error():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel_with_no_slots_dataclass, shots_count=1)
-    assert "Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
+    assert "Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)." in str(
         e.value)
 
 

@@ -2177,7 +2177,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                 if '__slots__' not in cls.__dict__:
                     self.emitFatalError(
-                        f"Assigning to fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True).",
+                        f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True).",
                         node)
 
                 # Alloca the struct
