@@ -46,7 +46,8 @@ constexpr StringRef mappedWireSetName("mapped_wireset");
 
 bool identityPlacement(Placement &placement, Device &device) {
   unsigned j = 0;
-  for (unsigned i = 0, end = placement.getNumVirtualQubits(); i < end; ++i, ++j) {
+  for (unsigned i = 0, end = placement.getNumVirtualQubits(); i < end;
+       ++i, ++j) {
     while (j < placement.getNumDeviceQubits() &&
            device.isQubitExcluded(Placement::DeviceQ(j)))
       ++j;
@@ -381,7 +382,8 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
     logger.startLine() << "Mapping front layer:\n";
     logger.indent();
     for (auto virtOp : sources)
-      logger.startLine() << "* " << *virtOp << " --> SUCCESS\n";
+      if (virtOp != nullptr)
+        logger.startLine() << "* " << *virtOp << " --> SUCCESS\n";
     logger.unindent();
     logger.startLine() << logLineComment;
   });
@@ -660,200 +662,27 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       addOpAndUsersToList(user, opsToMoveToEnd);
   }
 
-  // TODO: This pass must be composable. Specifically, it must *not* generate
-  // fatal errors when it sees something in the IR that it isn't going to apply
-  // the mapping algorithm to.
-  // The solution to be realized is that fatal errors will be placed under a
-  // pass option so they can be disabled to make the pass properly composable.
-  // Composability is essential as the requirements will change and ad lib
-  // assumptions cease to be correct.
   void runOnOperation() override {
     if (deviceBypass)
       return;
+
+    // Run initial pre-checks and get highest identity borrow wire.
     auto func = getOperation();
-    if (func.empty())
-      return;
     auto &blocks = func.getBlocks();
-
-    // Current limitations:
-    //  * Can only map a entry-point kernel
-    //  * The kernel can only have one block
-
-    auto mod = func->getParentOfType<ModuleOp>();
-    auto wireSetOp = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName);
-    if (!wireSetOp) {
-      // Silently return without error if no mapped wire set is found in the
-      // module.
+    auto highestIdentity = precheck(func, blocks);
+    if (!highestIdentity)
       return;
-    }
-
-    // FIXME: Add the ability to handle multiple blocks.
-    if (blocks.size() > 1) {
-      if (nonComposable) {
-        func.emitError("The mapper cannot handle multiple blocks");
-        signalPassFailure();
-      }
-      LLVM_DEBUG(llvm::dbgs() << "NYI: mapping with multiple blocks");
-      return;
-    }
-
-    // Verify that the function contains wiresets and return if it does not.
-    // Also populate the highest identity borrow up as long as we're traversing
-    // them.
-    StringRef inputWireSet;
-    std::optional<std::uint32_t> highestIdentity;
-    auto walkResult = func.walk([&](quake::BorrowWireOp borrowOp) {
-      if (inputWireSet.empty()) {
-        inputWireSet = borrowOp.getSetName();
-      } else if (borrowOp.getSetName() != inputWireSet) {
-        // Why is this here? It's entirely possible to have disjoint wire sets,
-        // where the sets are for fundamentally distinct purposes in the target
-        // model.
-        if (nonComposable)
-          func.emitOpError("function cannot use multiple WireSets");
-        return WalkResult::interrupt();
-      }
-      highestIdentity = highestIdentity
-                            ? std::max(*highestIdentity, borrowOp.getIdentity())
-                            : borrowOp.getIdentity();
-      return WalkResult::advance();
-    });
-    if (walkResult.wasInterrupted()) {
-      if (nonComposable)
-        signalPassFailure();
-      LLVM_DEBUG(llvm::dbgs()
-                 << "NYI: multiple wire sets for a target machine");
-      return;
-    }
-    if (!highestIdentity) {
-      if (nonComposable) {
-        func.emitOpError("no borrow_wire ops found in " + func.getName());
-        signalPassFailure();
-      }
-      LLVM_DEBUG(llvm::dbgs()
-                 << "no borrow_wire ops found in " << func.getName() << '\n');
-      return;
-    }
 
     // Sanity checks and create a wire to virtual qubit mapping.
     Block &block = *blocks.begin();
-
-    if (deviceInstance->getNumUsableQubits() == 0) {
-      if (nonComposable) {
-        func.emitError("Trying to target an empty device.");
-        signalPassFailure();
-      }
-      LLVM_DEBUG(llvm::dbgs() << "device cannot be empty");
-      return;
-    }
-
-    const std::size_t deviceNumQubits = deviceInstance->getNumUsableQubits();
-
-    SmallVector<quake::BorrowWireOp> sources(deviceNumQubits);
-    SmallVector<quake::ReturnWireOp> returnsToRemove;
+    SmallVector<quake::BorrowWireOp> sources;
     DenseMap<Value, Placement::VirtualQ> wireToVirtualQ;
     SmallVector<std::size_t> userQubitsMeasured;
     DenseMap<std::size_t, Value> finalQubitWire;
-    Operation *lastSource = nullptr;
-    for (Operation &op : block.getOperations()) {
-      if (auto qop = dyn_cast<quake::BorrowWireOp>(op)) {
-        // Assign a new virtual qubit to the resulting wire.
-        auto id = qop.getIdentity();
-        wireToVirtualQ[qop.getResult()] = Placement::VirtualQ(id);
-        finalQubitWire[id] = qop.getResult();
-        sources[id] = qop;
-        lastSource = &op;
-      } else if (dyn_cast<quake::NullWireOp>(op)) {
-        if (nonComposable) {
-          op.emitOpError(
-              "the mapper requires borrow operations and prohibits null wires");
-          signalPassFailure();
-        }
-        LLVM_DEBUG(llvm::dbgs() << "null_wire ops are not expected");
-        return;
-      } else if (dyn_cast<quake::AllocaOp>(op)) {
-        if (nonComposable) {
-          op.emitOpError("the mapper requires borrow operations and prohibits "
-                         "reference semantics");
-          signalPassFailure();
-        }
-        LLVM_DEBUG(llvm::dbgs() << "quantum reference semantics not expected");
-        return;
-      } else if (quake::isSupportedMappingOperation(&op)) {
-        // Make sure the operation is using value semantics.
-        if (!quake::isLinearValueForm(&op)) {
-          if (nonComposable) {
-            llvm::errs() << "This is not SSA form: " << op << '\n';
-            llvm::errs() << "isa<quake::NullWireOp>() = "
-                         << isa<quake::NullWireOp>(&op) << '\n';
-            llvm::errs() << "isAllReferences() = "
-                         << quake::isAllReferences(&op) << '\n';
-            llvm::errs() << "isWrapped() = " << quake::isWrapped(&op) << '\n';
-            func.emitError("The mapper requires value semantics.");
-            signalPassFailure();
-          }
-          LLVM_DEBUG(llvm::dbgs() << "operation is not in proper value form");
-          return;
-        }
-
-        // Since `quake.return_wire` operations do not generate new wires, we
-        // don't need to further analyze.
-        if (auto rop = dyn_cast<quake::ReturnWireOp>(op)) {
-          returnsToRemove.push_back(rop);
-          continue;
-        }
-
-        // Get the wire operands and check if the operators uses at most two
-        // qubits. N.B: Measurements do not have this restriction.
-        auto wireOperands = quake::getQuantumOperands(&op);
-        if (!op.hasTrait<QuantumMeasure>() && wireOperands.size() > 2) {
-          if (nonComposable) {
-            func.emitError("Cannot map a kernel with operators that use more "
-                           "than two qubits.");
-            signalPassFailure();
-          }
-          LLVM_DEBUG(llvm::dbgs() << "operator with >2 qubits not expected");
-          return;
-        }
-
-        // Save which qubits are measured
-        if (isa<quake::MeasurementInterface>(op))
-          for (const auto &wire : wireOperands)
-            userQubitsMeasured.push_back(wireToVirtualQ[wire].index);
-
-        // Map the result wires to the appropriate virtual qubits.
-        for (auto &&[wire, newWire] :
-             llvm::zip_equal(wireOperands, quake::getQuantumResults(&op))) {
-          // Don't use wireToVirtualQ[a] = wireToVirtualQ[b]. It will work
-          // *most* of the time but cause memory corruption other times because
-          // DenseMap references can be invalidated upon insertion of new pairs.
-          wireToVirtualQ.insert({newWire, wireToVirtualQ[wire]});
-          finalQubitWire[wireToVirtualQ[wire].index] = newWire;
-        }
-      }
-    }
-
-    if (sources.size() > deviceNumQubits) {
-      if (nonComposable) {
-        func.emitOpError("Too many qubits [" + std::to_string(sources.size()) +
-                         "] for device [" + std::to_string(deviceNumQubits) +
-                         "]");
-        signalPassFailure();
-      }
-      LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
+    Operation *lastSource = checkSources(func, block, sources, wireToVirtualQ,
+                                         userQubitsMeasured, finalQubitWire);
+    if (!lastSource)
       return;
-    }
-
-    // Make all existing borrow_wire ops use the mapped wire set.
-    func.walk([&](quake::BorrowWireOp borrowOp) {
-      borrowOp.setSetName(mappedWireSetName);
-    });
-
-    // We've made it past all the initial checks. Remove the returns now. They
-    // will be added back in when the mapping is complete.
-    for (auto ret : returnsToRemove)
-      ret.erase();
-    returnsToRemove.clear();
 
     OpBuilder builder(&block, block.begin());
     auto wireTy = builder.getType<quake::WireType>();
@@ -902,7 +731,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Place
-    Placement placement(sources.size(), deviceInstance->getNumQubits());
+    Placement placement(deviceInstance->getNumUsableQubits(),
+                        deviceInstance->getNumQubits());
     if (!identityPlacement(placement, *deviceInstance)) {
       if (nonComposable) {
         func.emitOpError("Not enough usable device qubits to map sources.");
@@ -943,6 +773,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     builder.setInsertionPoint(block.getTerminator());
     auto phyToWire = router.getPhyToWire();
     for (auto &[i, s] : llvm::enumerate(sources)) {
+      if (s == nullptr)
+        continue;
       if (s->getUsers().empty()) {
         s->erase();
       } else {
@@ -1004,6 +836,211 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     func->setAttr("mapping_reorder_idx",
                   builder.getArrayAttr(mapping_reorder_idx));
+  }
+
+private:
+  std::optional<std::uint32_t> precheck(func::FuncOp func,
+                                        mlir::Region::BlockListType &blocks) {
+    if (func.empty())
+      return std::nullopt;
+
+    // Current limitations:
+    //  * Can only map a entry-point kernel
+    //  * The kernel can only have one block
+
+    auto mod = func->getParentOfType<ModuleOp>();
+    auto wireSetOp = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName);
+    if (!wireSetOp) {
+      // Silently return without error if no mapped wire set is found in the
+      // module.
+      return std::nullopt;
+    }
+
+    // FIXME: Add the ability to handle multiple blocks.
+    if (blocks.size() > 1) {
+      if (nonComposable) {
+        func.emitError("The mapper cannot handle multiple blocks");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "NYI: mapping with multiple blocks");
+      return std::nullopt;
+    }
+
+    // Verify that the function contains wiresets and return if it does not.
+    // Also populate the highest identity borrow up as long as we're traversing
+    // them.
+    StringRef inputWireSet;
+    std::optional<std::uint32_t> highestIdentity;
+    auto walkResult = func.walk([&](quake::BorrowWireOp borrowOp) {
+      if (inputWireSet.empty()) {
+        inputWireSet = borrowOp.getSetName();
+      } else if (borrowOp.getSetName() != inputWireSet) {
+        // Why is this here? It's entirely possible to have disjoint wire sets,
+        // where the sets are for fundamentally distinct purposes in the target
+        // model.
+        if (nonComposable)
+          func.emitOpError("function cannot use multiple WireSets");
+        return WalkResult::interrupt();
+      }
+      highestIdentity = highestIdentity
+                            ? std::max(*highestIdentity, borrowOp.getIdentity())
+                            : borrowOp.getIdentity();
+      return WalkResult::advance();
+    });
+    if (walkResult.wasInterrupted()) {
+      if (nonComposable)
+        signalPassFailure();
+      LLVM_DEBUG(llvm::dbgs()
+                 << "NYI: multiple wire sets for a target machine");
+      return std::nullopt;
+    }
+    if (!highestIdentity) {
+      if (nonComposable) {
+        func.emitOpError("no borrow_wire ops found in " + func.getName());
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs()
+                 << "no borrow_wire ops found in " << func.getName() << '\n');
+      return std::nullopt;
+    }
+
+    if (deviceInstance->getNumUsableQubits() == 0) {
+      if (nonComposable) {
+        func.emitError("Trying to target an empty device.");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "device cannot be empty");
+      return std::nullopt;
+    }
+
+    return highestIdentity;
+  }
+
+  Operation *checkSources(func::FuncOp func, Block &block,
+                          SmallVector<quake::BorrowWireOp> &sources,
+                          DenseMap<Value, Placement::VirtualQ> &wireToVirtualQ,
+                          SmallVector<std::size_t> &userQubitsMeasured,
+                          DenseMap<std::size_t, Value> &finalQubitWire) {
+    const std::size_t deviceUsableQubits = deviceInstance->getNumUsableQubits();
+    const std::size_t deviceTotalQubits = deviceInstance->getNumQubits();
+
+    sources.resize(deviceUsableQubits);
+    std::size_t sourceCount = 0;
+    SmallVector<quake::ReturnWireOp> returnsToRemove;
+    Operation *lastSource = nullptr;
+    for (Operation &op : block.getOperations()) {
+      if (auto qop = dyn_cast<quake::BorrowWireOp>(op)) {
+        // Assign a new virtual qubit to the resulting wire.
+        auto id = qop.getIdentity();
+        wireToVirtualQ[qop.getResult()] = Placement::VirtualQ(id);
+        if (id >= deviceUsableQubits) {
+          if (nonComposable) {
+            func.emitOpError("Too many qubits [" + std::to_string(id) +
+                             "] for device [" +
+                             std::to_string(deviceUsableQubits) + "/" +
+                             std::to_string(deviceTotalQubits) + "]");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
+          return nullptr;
+        }
+        finalQubitWire[id] = qop.getResult();
+        sources[id] = qop;
+        lastSource = &op;
+        ++sourceCount;
+      } else if (dyn_cast<quake::NullWireOp>(op)) {
+        if (nonComposable) {
+          op.emitOpError(
+              "the mapper requires borrow operations and prohibits null wires");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << "null_wire ops are not expected");
+        return nullptr;
+      } else if (dyn_cast<quake::AllocaOp>(op)) {
+        if (nonComposable) {
+          op.emitOpError("the mapper requires borrow operations and prohibits "
+                         "reference semantics");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << "quantum reference semantics not expected");
+        return nullptr;
+      } else if (quake::isSupportedMappingOperation(&op)) {
+        // Make sure the operation is using value semantics.
+        if (!quake::isLinearValueForm(&op)) {
+          if (nonComposable) {
+            llvm::errs() << "This is not SSA form: " << op << '\n';
+            llvm::errs() << "isa<quake::NullWireOp>() = "
+                         << isa<quake::NullWireOp>(&op) << '\n';
+            llvm::errs() << "isAllReferences() = "
+                         << quake::isAllReferences(&op) << '\n';
+            llvm::errs() << "isWrapped() = " << quake::isWrapped(&op) << '\n';
+            func.emitError("The mapper requires value semantics.");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs() << "operation is not in proper value form");
+          return nullptr;
+        }
+
+        // Since `quake.return_wire` operations do not generate new wires, we
+        // don't need to further analyze.
+        if (auto rop = dyn_cast<quake::ReturnWireOp>(op)) {
+          returnsToRemove.push_back(rop);
+          continue;
+        }
+
+        // Get the wire operands and check if the operators uses at most two
+        // qubits. N.B: Measurements do not have this restriction.
+        auto wireOperands = quake::getQuantumOperands(&op);
+        if (!op.hasTrait<QuantumMeasure>() && wireOperands.size() > 2) {
+          if (nonComposable) {
+            func.emitError("Cannot map a kernel with operators that use more "
+                           "than two qubits.");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs() << "operator with >2 qubits not expected");
+          return nullptr;
+        }
+
+        // Save which qubits are measured
+        if (isa<quake::MeasurementInterface>(op))
+          for (const auto &wire : wireOperands)
+            userQubitsMeasured.push_back(wireToVirtualQ[wire].index);
+
+        // Map the result wires to the appropriate virtual qubits.
+        for (auto &&[wire, newWire] :
+             llvm::zip_equal(wireOperands, quake::getQuantumResults(&op))) {
+          // Don't use wireToVirtualQ[a] = wireToVirtualQ[b]. It will work
+          // *most* of the time but cause memory corruption other times because
+          // DenseMap references can be invalidated upon insertion of new pairs.
+          wireToVirtualQ.insert({newWire, wireToVirtualQ[wire]});
+          finalQubitWire[wireToVirtualQ[wire].index] = newWire;
+        }
+      }
+    }
+
+    if (sourceCount > deviceUsableQubits) {
+      if (nonComposable) {
+        func.emitOpError("Too many qubits [" + std::to_string(sourceCount) +
+                         "] for device [" + std::to_string(deviceUsableQubits) +
+                         "/" + std::to_string(deviceTotalQubits) + "]");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
+      return nullptr;
+    }
+
+    // Make all existing borrow_wire ops use the mapped wire set.
+    func.walk([&](quake::BorrowWireOp borrowOp) {
+      borrowOp.setSetName(mappedWireSetName);
+    });
+
+    // We've made it past all the initial checks. Remove the returns now. They
+    // will be added back in when the mapping is complete.
+    for (auto ret : returnsToRemove)
+      ret.erase();
+    returnsToRemove.clear();
+
+    return lastSource;
   }
 };
 
