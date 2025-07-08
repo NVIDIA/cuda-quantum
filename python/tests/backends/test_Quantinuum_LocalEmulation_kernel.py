@@ -6,8 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 PYTHONPATH=../../ pytest -rP %s
-
 import cudaq
 import pytest
 import os
@@ -32,6 +30,7 @@ def assert_close(want, got, tolerance=1.0e-1) -> bool:
 
 @pytest.fixture(scope="function", autouse=True)
 def configureTarget():
+    os.environ.pop('CUDAQ_ENABLE_QUANTUM_DEVICE_RUN', None)
     # We need a Fake Credentials Config file
     credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])
     f = open(credsName, 'w')
@@ -430,6 +429,7 @@ def test_capture_state():
 
 
 def test_run():
+    os.environ["CUDAQ_ENABLE_QUANTUM_DEVICE_RUN"] = "1"
 
     @cudaq.kernel
     def simple(numQubits: int) -> int:
