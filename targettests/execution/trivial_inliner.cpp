@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ -fenable-cudaq-run %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode -fenable-cudaq-run %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 
@@ -27,6 +27,12 @@ auto bool_test = [](bool b) __qpu__ { return b; };
 struct empty {};
 
 auto kernel = []() __qpu__ { return empty{}; };
+
+auto kernel_with_args = [](int num_qubits) __qpu__ {
+  cudaq::qvector q(num_qubits);
+  h(q);
+  return empty{};
+};
 
 int main() {
   int c = 0;
@@ -100,7 +106,13 @@ int main() {
   }
   {
     auto results = cudaq::run(5, kernel);
-    printf("Results size: %lu\n", results.size());
+    // Test here is that this does not crash.
+    printf("success!\n");
+  }
+  {
+    auto results = cudaq::run(1, kernel_with_args, 4);
+    // Test here is that this does not crash.
+    printf("success!\n");
   }
   return 0;
 }
@@ -133,4 +145,5 @@ int main() {
 // CHECK: 3: true
 // CHECK: 4: true
 // CHECK: success!
-// CHECK: Results size: 
+// CHECK: success!
+// CHECK: success!

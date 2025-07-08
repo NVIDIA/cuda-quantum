@@ -41,9 +41,11 @@ public:
 
   /// @brief Iterator interface, begin.
   auto begin() { return qudits.begin(); }
+  auto begin() const { return qudits.begin(); }
 
   /// @brief Iterator interface, end.
   auto end() { return qudits.end(); }
+  auto end() const { return qudits.end(); }
 
   /// @brief Returns the qudit at `idx`.
   value_type &operator[](const std::size_t idx) { return qudits[idx]; }

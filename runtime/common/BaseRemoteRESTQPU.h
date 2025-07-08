@@ -470,10 +470,10 @@ public:
         cudaq::runtime::mangledNameMap);
 
     for (auto &op : m_module.getOps()) {
-      // Add any global symbols, including global constant arrays.
-      // Global constant arrays can be created during compilation,
-      // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`,
-      // and `get-concrete-matrix` passes.
+      // Add any global symbols, including global constant arrays. Global
+      // constant arrays can be created during compilation, `lift-array-alloc`,
+      // `argument-synthesis`, `quake-synthesizer`, and `get-concrete-matrix`
+      // passes.
       if (auto lfunc = dyn_cast<mlir::func::FuncOp>(op)) {
         bool skip = lfunc.getName().ends_with(".thunk");
         if (!skip)

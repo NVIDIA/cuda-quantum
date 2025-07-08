@@ -446,12 +446,10 @@ void LinkedLibraryHolder::setTarget(
 
   auto &target = iter->second;
   if (!target.config.WarningMsg.empty()) {
+    fmt::print(fmt::fg(fmt::color::red), "[warning] ");
     // Output the warning message if any
-    fmt::print(
-        "[{}] Target {}: {}\n",
-        fmt::format(fmt::fg(fmt::color::red), "warning"),
-        fmt::format(fmt::fg(fmt::color::blue), target.name),
-        fmt::format(fmt::fg(fmt::color::blue), target.config.WarningMsg));
+    fmt::print(fmt::fg(fmt::color::blue), "Target {}: {}\n", target.name,
+               target.config.WarningMsg);
   }
   const std::string targetConfigStr =
       cudaq::config::processRuntimeArgs(target.config, argv);
