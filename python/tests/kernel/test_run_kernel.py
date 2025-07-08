@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import os
-import time
 from dataclasses import dataclass
 
 import cudaq
@@ -1068,6 +1067,57 @@ def test_unsupported_targets_2(target):
         test_simple_run_ghz()
     assert "not yet supported on this target" in repr(e)
     cudaq.reset_target()
+
+
+def test_dataclass_does_not_support_list_type():
+
+    @dataclass
+    class TestClass:
+        x: list
+        y: int
+
+    @cudaq.kernel
+    def kernel() -> TestClass:
+        return TestClass([1, 2, 3], 4)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=1)
+    assert f"`<class 'list'>` type is not yet supported in data classes." in str(
+        e.value)
+
+
+def test_dataclass_does_not_support_list_of_int_type():
+
+    @dataclass
+    class TestClass:
+        x: list[int]
+        y: int
+
+    @cudaq.kernel
+    def kernel() -> TestClass:
+        return TestClass([1, 2, 3], 4)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=1)
+    assert f"`list[int]` type is not yet supported in data classes." in str(
+        e.value)
+
+
+def test_dataclass_does_not_support_list_of_float_type():
+
+    @dataclass
+    class TestClass:
+        x: list[float]
+        y: int
+
+    @cudaq.kernel
+    def kernel() -> TestClass:
+        return TestClass([1.2, 2.4, 3.6], 4)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=1)
+    assert f"`list[float]` type is not yet supported in data classes." in str(
+        e.value)
 
 
 # leave for gdb debugging
