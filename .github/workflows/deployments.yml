@@ -479,14 +479,16 @@ jobs:
           echo "EXT_JSON:"
           echo "$EXT_JSON" | jq .
 
-          # Extract branch suffix using known prefix pattern
-          tag_sample=$(echo "$DIGESTS_JSON" | jq -r '.image_tag["arm64-cu12.0-dev-image"]')
-          suffix=$(basename "$tag_sample" | sed -E 's/^ext-arm64-cu[0-9.]+-gcc[0-9]+-//')
-          prefix="cuda-quantum-dev:ext-arm64-cu12.0-gcc11-"
-          branch="${suffix#"$prefix"}"
-          echo "branch: $branch"
+          # Grab the first tag that starts with ghcr.io/nvidia/cuda-quantum-dev:ext-
+          tag_sample=$(echo "$DIGESTS_JSON" | jq -r '.image_tag[]' | grep '^ghcr.io/nvidia/cuda-quantum-dev:ext-' | head -n1)
 
-          echo "Using tag suffix: $branch"
+          # Extract the tag portion after the colon
+          full_tag=$(echo "$tag_sample" | cut -d ':' -f2)
+
+          # Strip prefix pattern to get branch
+          branch=$(echo "$full_tag" | sed -E 's/^ext-[^-]+-cu[0-9.]+-gcc[0-9]+-//')
+
+          echo "branch: $branch"
 
           stitched_output="{}"
 
