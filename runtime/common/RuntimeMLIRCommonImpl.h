@@ -176,134 +176,34 @@ bool isValidOutputCallInstruction(llvm::Instruction &inst) {
 
 /// @brief Add module flags according to the spec:
 /// https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Adaptive_Profile.md#module-flags-metadata
-void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule) {
-  llvm::DenseMap<std::size_t, bool> intPrecisions;
-  llvm::DenseMap<std::size_t, bool> floatPrecisions;
-  std::size_t retCount = 0;
-  bool hasMultipleTargetBranching = false;
-  std::uint64_t backwardBranching = 0;
-  bool hasIRFunctions = false;
+void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule,
+                                            bool supportIntegerComputations,
+                                            bool supportFloatComputations) {
 
-  for (llvm::Function &func : *llvmModule) {
-    std::size_t funcRetCount = 0;
-    for (llvm::BasicBlock &block : func) {
-      for (llvm::Instruction &inst : block) {
-        // Collect information to set `multiple_return_points` module flag.
-        if (inst.getOpcode() == llvm::Instruction::Ret)
-          funcRetCount++;
-
-        // Collect information to set `multiple_target_branching` module flag.
-        if (inst.getOpcode() == llvm::Instruction::Switch)
-          hasMultipleTargetBranching = true;
-
-        // Collect information to set `backwards_branching` module flag.
-        if (auto *br = dyn_cast<llvm::BranchInst>(&inst)) {
-          bool isLoop = false;
-          for (auto successor : br->successors()) {
-            if (successor == &block)
-              isLoop = true;
-          }
-          if (isLoop) {
-            // The `backwardBranching` value is a 2-bit integer where bit 0
-            // indicates presence of simple iterations, and bit 1 indicates
-            // presence of conditionally terminating loops, i.e. loops with
-            // an exit that depends on a measurement.
-            auto condition = br->getCondition();
-            if (auto *call = dyn_cast<llvm::CallBase>(condition)) {
-              if (call->getCalledFunction()->getName().str() ==
-                  cudaq::opt::QIRReadResultBody)
-                backwardBranching |= (std::uint64_t)2;
-            } else
-              backwardBranching |= (std::uint64_t)1;
-          }
-        }
-
-        // Collect information to set `int_computations` and
-        // `float_computations` module flags.
-        if (isValidIntegerArithmeticInstruction(inst) ||
-            isValidFloatingArithmeticInstruction(inst)) {
-          for (std::size_t i = 0; i < inst.getNumOperands(); i++) {
-            auto ty = inst.getOperand(i)->getType();
-            if (ty->isIntegerTy())
-              intPrecisions[ty->getScalarSizeInBits()] = true;
-            else if (ty->isFloatingPointTy())
-              floatPrecisions[ty->getScalarSizeInBits()] = true;
-          }
-        }
-
-        // Collect information to set `if_functions` module flag.
-        if (auto *call = dyn_cast<llvm::CallBase>(&inst)) {
-          if (!call->getCalledFunction()->empty())
-            hasIRFunctions = true;
-        }
-      }
-    }
-    retCount = std::max(funcRetCount, retCount);
-  }
-
-  std::string intPrecisionStr;
-  llvm::SmallVector<std::size_t> intPrecisionsVec;
-  for (auto &[k, v] : intPrecisions)
-    if (v)
-      intPrecisionsVec.push_back(k);
-  std::sort(intPrecisionsVec.begin(), intPrecisionsVec.end());
-  for (auto k : intPrecisionsVec) {
-    if (!intPrecisionStr.empty())
-      intPrecisionStr += ",";
-    intPrecisionStr += "i" + std::to_string(k);
-  }
-
-  std::string floatPrecisionStr;
-  llvm::SmallVector<std::size_t> floatPrecisionsVec;
-  for (auto &[k, v] : floatPrecisions)
-    if (v)
-      floatPrecisionsVec.push_back(k);
-  std::sort(floatPrecisionsVec.begin(), floatPrecisionsVec.end());
-  for (auto k : floatPrecisionsVec) {
-    if (!floatPrecisionStr.empty())
-      floatPrecisionStr += ",";
-    floatPrecisionStr += "f" + std::to_string(k);
-  }
-
+  // Add default values to the best of our knowledge for now.
+  // TODO: Design yaml QIR settings, module flags analysis, and QIR validation.
   auto &llvmContext = llvmModule->getContext();
-  auto trueValue =
-      llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
 
-  if (hasIRFunctions)
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              cudaq::opt::QIRIrFunctionsFlagName, trueValue);
-
-  if (!intPrecisionStr.empty()) {
+  if (supportIntegerComputations) {
     llvm::Constant *intPrecisionValue =
-        llvm::ConstantDataArray::getString(llvmContext, intPrecisionStr, false);
+        llvm::ConstantDataArray::getString(llvmContext, "i64", false);
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                               cudaq::opt::QIRIntComputationsFlagName,
                               intPrecisionValue);
   }
-  if (!floatPrecisionStr.empty()) {
-    llvm::Constant *floatPrecisionValue = llvm::ConstantDataArray::getString(
-        llvmContext, floatPrecisionStr, false);
+  if (supportFloatComputations) {
+    llvm::Constant *floatPrecisionValue =
+        llvm::ConstantDataArray::getString(llvmContext, "f64", false);
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                               cudaq::opt::QIRFloatComputationsFlagName,
                               floatPrecisionValue);
   }
 
   auto backwardsBranchingValue = llvm::ConstantInt::getIntegerValue(
-      llvm::Type::getIntNTy(llvmContext, 2),
-      llvm::APInt(2, backwardBranching, false));
+      llvm::Type::getIntNTy(llvmContext, 2), llvm::APInt(2, 0, false));
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                             cudaq::opt::QIRBackwardsBranchingFlagName,
                             backwardsBranchingValue);
-
-  if (hasMultipleTargetBranching)
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              cudaq::opt::QIRMultipleTargetBranchingFlagName,
-                              trueValue);
-
-  if (retCount > 1)
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              cudaq::opt::QIRMultipleReturnPointsFlagName,
-                              trueValue);
 }
 
 // Once a call to a function with irreversible attribute is seen, no more calls
@@ -650,7 +550,8 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
     throw std::runtime_error("Failed to setup the llvm module target triple.");
 
   if (isAdaptiveProfile)
-    applyQIRAdaptiveCapabilitiesAttributes(llvmModule.get());
+    applyQIRAdaptiveCapabilitiesAttributes(
+        llvmModule.get(), supportIntegerComputations, supportFloatComputations);
 
   // PyQIR currently requires named blocks. It's not clear if blocks can share
   // names across functions, so we are being conservative by giving every block
