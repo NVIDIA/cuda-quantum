@@ -198,6 +198,7 @@
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dynamics_examples.html#pulse">Pulse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
@@ -410,6 +411,19 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="applications/python/grovers.html">Grover’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/grovers.html#Overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/grovers.html#Problem">Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/grovers.html#Structure-of-Grover's-Algorithm">Structure of Grover’s Algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Step-1:-Preparation">Step 1: Preparation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Good-and-Bad-States">Good and Bad States</a></li>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Step-2:-Oracle-application">Step 2: Oracle application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Step-3:-Amplitude-amplification">Step 3: Amplitude amplification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement">Steps 4 and 5: Iteration and measurement</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
@@ -508,6 +522,7 @@
 <li class="toctree-l2"><a class="reference internal" href="using/dynamics.html#quick-start">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/dynamics.html#operator">Operator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/dynamics.html#super-operator-representation">Super-operator Representation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/dynamics.html#examples">Examples</a></li>
@@ -730,6 +745,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.IntermediateResultSave"><code class="docutils literal notranslate"><span class="pre">IntermediateResultSave</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#operators">Operators</a><ul>
@@ -738,6 +754,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.operators.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.operators.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.operators.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.SuperOperator"><code class="docutils literal notranslate"><span class="pre">SuperOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.operators.define"><code class="docutils literal notranslate"><span class="pre">operators.define()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.operators.instantiate"><code class="docutils literal notranslate"><span class="pre">operators.instantiate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#spin-operators">Spin Operators</a></li>
@@ -2530,6 +2547,8 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.EvolveResult.intermediate_states">intermediate_states() (cudaq.EvolveResult method)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.IntermediateResultSave">IntermediateResultSave (class in cudaq)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator.is_constant">is_constant() (cudaq.operators.ScalarOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target.is_emulated">is_emulated() (cudaq.Target method)</a>
@@ -2580,6 +2599,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.LBFGS">LBFGS (class in cudaq.optimizers)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.SuperOperator.left_multiply">left_multiply() (cudaq.SuperOperator static method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.SuperOperator.left_right_multiply">left_right_multiply() (cudaq.SuperOperator static method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA.lower_bounds">lower_bounds (cudaq.optimizers.COBYLA property)</a>
 
       <ul>
@@ -2881,6 +2906,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.reset_target">reset_target() (in module cudaq)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.SuperOperator.right_multiply">right_multiply() (cudaq.SuperOperator static method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.KrausOperator.row_count">row_count (cudaq.KrausOperator property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.RydbergHamiltonian">RydbergHamiltonian (class in cudaq.operators)</a>
@@ -2915,10 +2942,10 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.set_noise">set_noise() (in module cudaq)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.set_random_seed">set_random_seed() (in module cudaq)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.set_target">set_target() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SimulationPrecision">SimulationPrecision (class in cudaq)</a>
@@ -2936,6 +2963,8 @@
       <li><a href="api/languages/python_api.html#cudaq.operators.custom.squeeze">squeeze() (in module cudaq.operators.custom)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.State">State (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.SuperOperator">SuperOperator (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.synthesize_callable_arguments">synthesize_callable_arguments() (cudaq.PyKernelDecorator method)</a>
 </li>
