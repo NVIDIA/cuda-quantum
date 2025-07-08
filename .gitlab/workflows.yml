@@ -95,7 +95,7 @@ Python Wheels:
     - digest=`echo $CI_COMMIT_TITLE | rev | cut -d '@' -f 1 | rev`
     - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
     - artifacts_url=`echo "$build_info" | grep -s -o 'artifacts-url:\s*\S*' | rev | cut -d ' ' -f 1 | rev`
-    - artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name:.name, url:.archive_download_url}')
+    - artifacts=$(gh api $artifacts_url --paginate -q '.artifacts[] | {name:.name, url:.archive_download_url}')
     # Store wheels in a temporary directory 
     - mkdir -p /tmp/wheels
     - |
