@@ -99,6 +99,7 @@ Python Wheels:
     # Store wheels in a temporary directory 
     - mkdir -p /tmp/wheels
     - |
+      set -x
       for artifact in `echo "$artifacts"`; do 
         name=`echo $artifact | jq -r '.name'`
         if [ "${name#pycudaq-}" != "$name" ]; then
@@ -112,12 +113,16 @@ Python Wheels:
           cd .. && rm -rf _pycudaq*
         fi
       done
+      set +x
   script:
     - export PROJECT_SRCS_DIR=$PWD/..
     - export python=python3.10 
     # Install CUDA Quantum wheel for a particular Python version (could be any version) 
     - cuda_major=$(echo $CUDA_VERSION | cut -d . -f1)
-    - cd /tmp/wheels/ && $python -m pip install cuda_quantum_cu${cuda_major}*-cp310-cp310-manylinux_*_$(uname -m)*.whl
+    - wheel=$(ls /tmp/wheels/cuda_quantum_cu${cuda_major}-*-cp310-cp310-manylinux_*_$(uname -m)*.whl)
+    - if [ -z "$wheel" ]; then echo "No matching wheel found!"; exit 1; fi
+    - echo "Installing wheel $wheel"
+    - $python -m pip install $wheel
     - export CUQUANTUM_INSTALL_PREFIX="$($python -m pip show cuquantum-python-cu$cuda_major | sed -nE 's/Location. (.*)$/\1/p')/cuquantum"
     - export CUDAQ_INSTALL_PREFIX="$($python -m pip show cuda-quantum-cu${cuda_major} | sed -nE 's/Location. (.*)$/\1/p')"
     - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
