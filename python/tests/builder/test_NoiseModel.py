@@ -99,7 +99,7 @@ def test_depolarization_channel_simple(target: str):
     assert np.isclose(got_one_probability, want_probability, atol=.2)
 
     # Asynchronous call
-    future = cudaq.sample_async(kernel, noise_model=noise)
+    future = cudaq.sample_async(kernel, noise_model=noise, shots_count=10000)
     noisy_counts = future.get()
     got_zero_probability = noisy_counts.probability("0")
     got_one_probability = noisy_counts.probability("1")
