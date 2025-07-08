@@ -159,6 +159,8 @@ void quantum_platform::launchVQE(const std::string kernelName,
 
 RemoteCapabilities
 quantum_platform::get_remote_capabilities(const std::size_t qpu_id) const {
+  if (platformQPUs.empty())
+    throw std::runtime_error("No QPUs are available for this target.");
   return platformQPUs[qpu_id]->getRemoteCapabilities();
 }
 

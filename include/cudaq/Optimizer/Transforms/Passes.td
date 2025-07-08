@@ -242,6 +242,14 @@ def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createDelayMeasurementsPass()";
 }
 
+def DeadStoreRemoval : Pass<"dead-store-removal"> {
+  let summary = "Dead store removal (DSR).";
+  let description = [{
+    This pass performs classic dead store removal to clean up code that may
+    contain residual dead stores.
+  }];
+}
+
 def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
   let summary = "Break down quantum operations.";
   let description = [{
@@ -389,6 +397,17 @@ def EraseNopCalls : Pass<"erase-nop-calls"> {
   let description = [{
     The code may contain marker function calls that do not generate any actual
     code. These calls are NOPs that will be erased by this pass.
+  }];
+}
+
+def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
+  let summary = "Erase unneeded vector copy ctor idiom after inlining.";
+  let description = [{
+    After inlining, we may be left with a peculiar idiom of the callee creating
+    a vector on the stack, copying that vector to a temporary on the heap, and
+    the calling function copying the heap data to a new vector on the stack.
+    Since the callee is inlined, none of this is really required. The callee and
+    caller share a common stack frame, so one copy is plenty.
   }];
 }
 
