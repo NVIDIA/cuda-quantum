@@ -1194,6 +1194,88 @@ def test_shots_count():
     assert len(results) == 53
 
 
+def test_return_from_if_loop_with_true_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_if_loop_with_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 0
+
+
+def test_return_from_if_loop_with_false_condition_and_return_from_parent_scope(
+):
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        return 0
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 0
+
+
+def test_return_from_if_and_else_loop_with_true_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_if_and_else_loop_with_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_return_from_if_and_else_loop_with_true_condition_and_return_from_parent_scope(
+):
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        else:
+            return -1
+        return 0
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
