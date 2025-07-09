@@ -11,6 +11,66 @@ import cudaq
 import pytest
 
 
+def test_integer_left_shift():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        # 3 << 2 == 12
+        r = 3 << 2
+        return r
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert results == [12]
+
+
+def test_integer_right_shift():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        # 8 >> 2 == 2
+        r = 8 >> 2
+        return r
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert results == [2]
+
+
+def test_integer_bitwise_and():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        # 6 & 3 == 2
+        r = 6 & 3
+        return r
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert results == [2]
+
+
+def test_integer_bitwise_or():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        # 6 | 3 == 7
+        r = 6 | 3
+        return r
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert results == [7]
+
+
+def test_integer_bitwise_xor():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        # 6 ^ 3 == 5
+        r = 6 ^ 3
+        return r
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert results == [5]
+
+
 def test_run_with_integer_left_shift_operator():
 
     @cudaq.kernel
