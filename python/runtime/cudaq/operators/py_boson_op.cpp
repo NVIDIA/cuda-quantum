@@ -225,6 +225,11 @@ void bindBosonOperator(py::module &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
 
+      // Adjoint
+      .def(
+          "adjoint", [](const boson_op &self) { return self.adjoint(); },
+          "Returns the adjoint of the operator.")
+
       // comparisons
 
       .def("__eq__", &boson_op::operator==, py::is_operator(),
@@ -535,6 +540,11 @@ void bindBosonOperator(py::module &mod) {
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
+
+      // Adjoint
+      .def(
+          "adjoint", [](const boson_op_term &self) { return self.adjoint(); },
+          "Returns the adjoint of the operator.")
 
       // comparisons
 

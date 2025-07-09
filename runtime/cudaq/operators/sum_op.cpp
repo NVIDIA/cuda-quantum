@@ -546,6 +546,39 @@ INSTANTIATE_SUM_EVALUATIONS(boson_handler);
 INSTANTIATE_SUM_EVALUATIONS(fermion_handler);
 #endif
 
+// Adjoint
+
+template <typename HandlerTy>
+sum_op<HandlerTy> sum_op<HandlerTy>::adjoint() const {
+  sum_op<HandlerTy> result(false);
+  for (std::size_t i = 0; i < this->terms.size(); ++i) {
+    auto &productTerms = this->terms[i];
+    auto &coeff = this->coefficients[i];
+    std::vector<HandlerTy> adjointTerms;
+    adjointTerms.reserve(productTerms.size());
+    // Reverse the order
+    product_op<HandlerTy> adjointProduct(coeff.adjoint());
+    for (auto it = productTerms.rbegin(); it != productTerms.rend(); ++it) {
+      // Take the adjoint of each operator
+      adjointProduct *= it->adjoint();
+    }
+
+    result += adjointProduct;
+  }
+
+  return result;
+}
+
+#define INSTANTIATE_SUM_ADJOINT(HandlerTy)                                     \
+                                                                               \
+  template sum_op<HandlerTy> sum_op<HandlerTy>::adjoint() const;
+#if !defined(__clang__)
+INSTANTIATE_SUM_ADJOINT(matrix_handler);
+INSTANTIATE_SUM_ADJOINT(spin_handler);
+INSTANTIATE_SUM_ADJOINT(boson_handler);
+INSTANTIATE_SUM_ADJOINT(fermion_handler);
+#endif
+
 // comparisons
 
 template <typename HandlerTy>

@@ -16,6 +16,8 @@ TEST(OperatorExpressions, checkBosonOpsUnary) {
   utils::checkEqual((+op).to_matrix({{0, 3}}), utils::number_matrix(3));
   utils::checkEqual((-op).to_matrix({{0, 3}}), -1.0 * utils::number_matrix(3));
   utils::checkEqual(op.to_matrix({{0, 3}}), utils::number_matrix(3));
+  auto adjoint = op.adjoint();
+  EXPECT_EQ(adjoint, op);
 }
 
 TEST(OperatorExpressions, checkBosonOpsConstruction) {
@@ -81,6 +83,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
         utils::checkEqual(expected, got.to_matrix({{0, d}}));
       }
     }
+    EXPECT_EQ(nr_op.adjoint(), nr_op);
   }
 
   // creation operator
@@ -98,6 +101,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
         utils::checkEqual(expected, got.to_matrix({{0, d}}));
       }
     }
+    EXPECT_EQ(ad_op.adjoint(), cudaq::boson_op::annihilate(0));
   }
 
   // annihilation operator
@@ -115,6 +119,7 @@ TEST(OperatorExpressions, checkPreBuiltBosonOps) {
         utils::checkEqual(expected, got.to_matrix({{0, d}}));
       }
     }
+    EXPECT_EQ(a_op.adjoint(), cudaq::boson_op::create(0));
   }
 
   // basic in-place multiplication
@@ -657,6 +662,8 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto want_reverse_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    auto adjoint_op = got.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
   }
 
   // `boson_handler - sum_op`
@@ -683,6 +690,13 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto want_reverse_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+
+    auto adjoint_op = got.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
+
+    auto adjoint_reverse_op = reverse.adjoint();
+    utils::checkEqual(adjoint_reverse_op.to_matrix(dimensions),
+                      got_reverse_matrix.adjoint());
   }
 
   // `boson_handler * sum_op`
@@ -714,6 +728,11 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto want_reverse_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    auto adjoint_op = got.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
+    auto adjoint_reverse_op = reverse.adjoint();
+    utils::checkEqual(adjoint_reverse_op.to_matrix(dimensions),
+                      got_reverse_matrix.adjoint());
   }
 
   // `sum_op += boson_handler`
@@ -733,6 +752,9 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix(dimensions);
     auto want_matrix = term_0_full + term_1_full + added_full;
     utils::checkEqual(want_matrix, got_matrix);
+
+    auto adjoint_op = sum_op.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
   }
 
   // `sum_op -= boson_handler`
@@ -752,6 +774,9 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix(dimensions);
     auto want_matrix = term_0_full + term_1_full - subtr_full;
     utils::checkEqual(want_matrix, got_matrix);
+
+    auto adjoint_op = sum_op.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
   }
 
   // `sum_op *= boson_handler`
@@ -783,6 +808,9 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix(dimensions);
     auto want_matrix = expected_term0 + expected_term1;
     utils::checkEqual(want_matrix, got_matrix);
+
+    auto adjoint_op = sum_op.adjoint();
+    utils::checkEqual(adjoint_op.to_matrix(dimensions), got_matrix.adjoint());
   }
 }
 

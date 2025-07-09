@@ -16,6 +16,9 @@ TEST(OperatorExpressions, checkMatrixOpsUnary) {
   utils::checkEqual((-op).to_matrix({{0, 2}}),
                     -1.0 * utils::position_matrix(2));
   utils::checkEqual(op.to_matrix({{0, 2}}), utils::position_matrix(2));
+  auto adjoint = op.adjoint();
+  utils::checkEqual(adjoint.to_matrix({{0, 2}}),
+                    utils::position_matrix(2).adjoint());
 }
 
 TEST(OperatorExpressions, checkMatrixOpsConstruction) {
@@ -43,18 +46,21 @@ TEST(OperatorExpressions, checkMatrixOpsConstruction) {
   std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum += cudaq::matrix_op::identity(1);
   expected = cudaq::complex_matrix(3, 3);
   for (size_t i = 0; i < 3; ++i)
     expected[{i, i}] = 1.;
   utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
+  utils::checkEqual(sum.adjoint().to_matrix({{1, 3}}), expected.adjoint());
 
   sum *= cudaq::matrix_op::number(1);
   expected = cudaq::complex_matrix(3, 3);
   expected[{1, 1}] = 1.;
   expected[{2, 2}] = 2.;
   utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
+  utils::checkEqual(sum.adjoint().to_matrix({{1, 3}}), expected.adjoint());
 
   sum = cudaq::matrix_op::empty();
   sum -= cudaq::matrix_op::identity(0);
@@ -62,6 +68,7 @@ TEST(OperatorExpressions, checkMatrixOpsConstruction) {
   for (size_t i = 0; i < 3; ++i)
     expected[{i, i}] = -1.;
   utils::checkEqual(sum.to_matrix({{0, 3}}), expected);
+  utils::checkEqual(sum.adjoint().to_matrix({{0, 3}}), expected.adjoint());
 }
 
 TEST(OperatorExpressions, checkPreBuiltMatrixOps) {

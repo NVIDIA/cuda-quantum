@@ -307,6 +307,9 @@ public:
   /// @return A string describing the operator.
   virtual std::string to_string(bool include_degrees) const override;
 
+  /// @brief Returns the adjoint of the operator.
+  matrix_handler adjoint() const;
+
   // comparisons
 
   /// @brief True, if the other value is an elementary operator with the same id
