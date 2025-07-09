@@ -156,7 +156,10 @@ def test_properties():
                         np.kron(position_matrix(3), momentum_matrix(2)))
     prod2_mat = np.kron(parity_matrix(4),
                         np.kron(number_matrix(3), identity_matrix(2)))
-    assert np.allclose(sum.to_matrix(dims), prod1_mat + prod1_mat + prod2_mat)
+    
+    sum_mat = prod1_mat + prod1_mat + prod2_mat
+    assert np.allclose(sum.to_matrix(dims), sum_mat)
+    assert np.allclose(sum.adjoint().to_matrix(dims), sum_mat.conj().T)
 
     prod1.dump()
     sum.dump()

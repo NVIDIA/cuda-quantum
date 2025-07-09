@@ -266,6 +266,7 @@ def test_matrix_construction():
         E, ev = scipy.sparse.linalg.eigsh(scipyM, k=1, which='SA')
         assert np.isclose(E[0], -1.7488, 1e-2)
 
+    assert np.allclose(hamiltonian.adjoint().to_matrix(), mat.conj().T)
 
 def test_canonicalization():
     all_degrees = [0, 1, 2, 3]

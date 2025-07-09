@@ -34,6 +34,10 @@ def test_definitions():
     assert np.allclose(annihilate(1).to_matrix(), annihilate_matrix(2))
     assert np.allclose(number(1).to_matrix(), number_matrix(2))
 
+    assert np.allclose(fermion.create(1).adjoint().to_matrix(), annihilate_matrix(2))
+    assert np.allclose(fermion.annihilate(1).adjoint().to_matrix(), create_matrix(2))
+    assert np.allclose(fermion.number(1).adjoint().to_matrix(), number_matrix(2))
+
 
 def test_commutation_relations():
 

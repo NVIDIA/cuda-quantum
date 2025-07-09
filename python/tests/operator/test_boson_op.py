@@ -40,6 +40,8 @@ def test_definitions():
     assert np.allclose(position(1).to_matrix(dims), position_matrix(3))
     assert np.allclose(momentum(1).to_matrix(dims), momentum_matrix(3))
 
+    assert np.allclose(boson.create(1).adjoint().to_matrix(dims), annihilate_matrix(3))
+    assert np.allclose(boson.annihilate(1).adjoint().to_matrix(dims), create_matrix(3))
 
 def test_commutation_relations():
 
@@ -199,6 +201,7 @@ def test_matrix_construction():
                                            sigma=ev[0] - 1e-2)
         assert np.allclose(ev[:10], sorted(scipyEv), rtol=1e-2)
 
+    assert np.allclose(hamiltonian.adjoint().to_matrix(dims), mat.conj().T)
 
 def test_canonicalization():
     dims = {0: 2, 1: 3, 2: 2, 3: 4}
