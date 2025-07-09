@@ -470,19 +470,20 @@ def test_capture_state():
         counts = cudaq.sample(kernel)
 
 
-def test_run():
+@cudaq.kernel
+def simple(numQubits: int) -> int:
+    qubits = cudaq.qvector(numQubits)
+    h(qubits.front())
+    for i, qubit in enumerate(qubits.front(numQubits - 1)):
+        x.ctrl(qubit, qubits[i + 1])
+    result = 0
+    for i in range(numQubits):
+        if mz(qubits[i]):
+            result += 1
+    return result
 
-    @cudaq.kernel
-    def simple(numQubits: int) -> int:
-        qubits = cudaq.qvector(numQubits)
-        h(qubits.front())
-        for i, qubit in enumerate(qubits.front(numQubits - 1)):
-            x.ctrl(qubit, qubits[i + 1])
-        result = 0
-        for i in range(numQubits):
-            if mz(qubits[i]):
-                result += 1
-        return result
+
+def test_run():
 
     shots = 100
     qubitCount = 4
@@ -495,6 +496,25 @@ def test_run():
         if result == qubitCount:
             non_zero_count += 1
     assert non_zero_count > 0
+
+
+def test_run_async():
+
+    shots = 10
+    qubitCount = 4
+
+    result_futures = []
+    for i in range(cudaq.get_target().num_qpus()):
+        result = cudaq.run_async(simple,
+                                 qubitCount,
+                                 shots_count=shots,
+                                 qpu_id=i)
+        result_futures.append(result)
+
+    for idx in range(len(result_futures)):
+        res = result_futures[idx].get()
+        print(f"{idx} : {res}")
+        assert len(res) == shots
 
 
 # leave for gdb debugging
