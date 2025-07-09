@@ -206,9 +206,9 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('linux/{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('linux/{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('linux/{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
@@ -224,9 +224,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('linux/{0}-gcc11', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('linux/{0}-gcc11', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('linux/{0}-gcc11', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-gcc11', matrix.platform)] }}
 
   python_wheels:
     name: Create Python wheels
