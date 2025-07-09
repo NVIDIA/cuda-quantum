@@ -1201,9 +1201,10 @@ def test_return_from_if_loop_with_true_condition():
         if cond:
             return 1
 
-    results = cudaq.run(kernel, True, shots_count=1)
-    assert len(results) == 1
-    assert results[0] == 1
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, True, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
 
 
 def test_return_from_if_loop_with_false_condition():
@@ -1213,9 +1214,10 @@ def test_return_from_if_loop_with_false_condition():
         if cond:
             return 1
 
-    results = cudaq.run(kernel, False, shots_count=1)
-    assert len(results) == 1
-    assert results[0] == 0
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, False, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
 
 
 def test_return_from_if_loop_with_false_condition_and_return_from_parent_scope(
@@ -1258,22 +1260,6 @@ def test_return_from_if_and_else_loop_with_false_condition():
     results = cudaq.run(kernel, False, shots_count=1)
     assert len(results) == 1
     assert results[0] == -1
-
-
-def test_return_from_if_and_else_loop_with_true_condition_and_return_from_parent_scope(
-):
-
-    @cudaq.kernel
-    def kernel(cond: bool) -> int:
-        if cond:
-            return 1
-        else:
-            return -1
-        return 0
-
-    results = cudaq.run(kernel, True, shots_count=1)
-    assert len(results) == 1
-    assert results[0] == 1
 
 
 # leave for gdb debugging
