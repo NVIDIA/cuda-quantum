@@ -47,6 +47,20 @@ state migrateState(const state &inputState) {
 }
 
 bool checkBatchingCompatibility(
+    const std::vector<cudaq::matrix_handler> &elemOps) {
+  if (elemOps.size() == 1)
+    return true;
+
+  const auto &firstOp = elemOps[0];
+  for (std::size_t i = 1; i < elemOps.size(); ++i) {
+    if (elemOps[i].degrees() != firstOp.degrees()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool checkBatchingCompatibility(
     const std::vector<sum_op<cudaq::matrix_handler>> &ops) {
 
   if (ops.size() == 1) {

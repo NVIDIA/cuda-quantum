@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CuDensityMatOpConverter.h"
+#include "BatchingUtils.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
 #include "common/Logger.h"
@@ -169,18 +170,11 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     return std::all_of(elemOps.begin(), elemOps.end(),
                        [&firstOp](const auto &op) { return op == firstOp; });
   }();
+
   const bool isBatched = elemOps.size() > 1 && !allSame;
-  if (isBatched) {
-    // Check that the elementary operators have the same degrees.
-    const auto &firstOp = elemOps[0];
-    for (std::size_t i = 1; i < elemOps.size(); ++i) {
-      if (elemOps[i].degrees() != firstOp.degrees()) {
-        throw std::invalid_argument(
-            "All elementary operators in a batched elementary operator must "
-            "have the same degrees.");
-      }
-    }
-  }
+  // We should have validated the batching compatibility.
+  assert(!isBatched ||
+         cudaq::__internal__::checkBatchingCompatibility(elemOps));
 
   auto subspaceExtents = getSubspaceExtents(modeExtents, elemOps[0].degrees());
   cudaq::dimension_map dimensions = convertDimensions(modeExtents);

@@ -22,5 +22,7 @@ bool checkBatchingCompatibility(
     const std::vector<std::vector<sum_op<cudaq::matrix_handler>>>
         &listCollapseOps);
 bool checkBatchingCompatibility(const std::vector<super_op> &listSuperOp);
+bool checkBatchingCompatibility(
+    const std::vector<cudaq::matrix_handler> &elemOps);
 } // namespace __internal__
 } // namespace cudaq
