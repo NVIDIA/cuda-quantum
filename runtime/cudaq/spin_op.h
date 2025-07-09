@@ -129,6 +129,12 @@ public:
                          &parameters = {}) const override;
   virtual std::string to_string(bool include_degrees) const override;
 
+  // Returns the adjoint of the operator
+  spin_handler adjoint() const {
+    // Spin operators are self-adjoint, so we can just return the same operator.
+    return *this;
+  }
+
   // comparisons
 
   bool operator==(const spin_handler &other) const;

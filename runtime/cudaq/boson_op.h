@@ -113,6 +113,9 @@ public:
                          &parameters = {}) const override;
   virtual std::string to_string(bool include_degrees) const override;
 
+   /// @brief Returns the adjoint of the operator.
+  boson_handler adjoint() const;
+
   // comparisons
 
   /// @returns True if, and only if, the two operators have the same effect on

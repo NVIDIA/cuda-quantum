@@ -64,6 +64,18 @@ complex_matrix scalar_operator::to_matrix(
   return returnOperator;
 }
 
+scalar_operator scalar_operator::adjoint() const {
+  if (std::holds_alternative<std::complex<double>>(this->value)) {
+    auto value = std::get<std::complex<double>>(this->value);
+    return scalar_operator(std::conj(value));
+  }
+  auto newGenerator =
+      [generator = std::get<scalar_callback>(this->value)](
+          const std::unordered_map<std::string, std::complex<double>>
+              &parameters) { return std::conj(generator(parameters)); };
+  return scalar_operator(std::move(newGenerator));
+}
+
 std::string scalar_operator::to_string() const {
   std::stringstream sstr;
   if (std::holds_alternative<std::complex<double>>(this->value)) {

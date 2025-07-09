@@ -708,6 +708,32 @@ INSTANTIATE_PRODUCT_EVALUATIONS(boson_handler);
 INSTANTIATE_PRODUCT_EVALUATIONS(fermion_handler);
 #endif
 
+// Adjoint
+
+template <typename HandlerTy>
+product_op<HandlerTy> product_op<HandlerTy>::adjoint() const {
+  // The adjoint of a product is the product of the adjoints in reverse order.
+  // The coefficient is conjugated.
+  product_op<HandlerTy> adjoint_op(this->coefficient.adjoint(),
+                                   std::vector<HandlerTy>());
+  for (auto it = this->operators.crbegin(); it != this->operators.crend();
+       ++it) {
+    adjoint_op.insert(it->adjoint());
+  }
+  return adjoint_op;
+}
+
+#define INSTANTIATE_PRODUCT_ADJOINT(HandlerTy)                                 \
+                                                                               \
+  template product_op<HandlerTy> product_op<HandlerTy>::adjoint() const;
+
+#if !defined(__clang__)
+INSTANTIATE_PRODUCT_ADJOINT(matrix_handler);
+INSTANTIATE_PRODUCT_ADJOINT(spin_handler);
+INSTANTIATE_PRODUCT_ADJOINT(boson_handler);
+INSTANTIATE_PRODUCT_ADJOINT(fermion_handler);
+#endif
+
 // comparisons
 
 template <typename HandlerTy>

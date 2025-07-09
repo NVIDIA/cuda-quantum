@@ -93,6 +93,12 @@ public:
   to_matrix(const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const;
 
+  /// @brief Returns the adjoint/complex conjugate scalar operator.
+  // If this is a constant, returns a constant scalar_operator corresponding to
+  // the complex conjugate. If this is a callback, wrap the callback so that it
+  // returns the complex conjugate of the original callback.
+  scalar_operator adjoint() const;
+
   /// @brief Returns a string representation of the scalar operator.
   /// @return The string representation.
   std::string to_string() const;

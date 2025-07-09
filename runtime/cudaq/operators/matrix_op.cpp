@@ -433,6 +433,29 @@ std::string matrix_handler::to_string(bool include_degrees) const {
     return this->op_code;
 }
 
+matrix_handler matrix_handler::adjoint() const {
+  const std::string op_code = this->op_code + "_autogen_dagger";
+  if (matrix_handler::defined_ops.find(op_code) ==
+      matrix_handler::defined_ops.end()) {
+    auto func =
+        [op = *this](const std::vector<std::int64_t> &dimensions,
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &params) {
+          cudaq::dimension_map dims;
+          if (dimensions.size() != op.degrees().size())
+            throw std::runtime_error("Dimension mismatched");
+
+          for (std::size_t i = 0; i < dimensions.size(); ++i) {
+            dims[op.degrees()[i]] = dimensions[i];
+          }
+          auto originalMat = op.to_matrix(dims, params);
+          return originalMat.adjoint();
+        };
+    matrix_handler::define(op_code, {-1}, func);
+  }
+  return matrix_handler(op_code, this->targets);
+}
+
 // comparisons
 
 bool matrix_handler::operator==(const matrix_handler &other) const {
