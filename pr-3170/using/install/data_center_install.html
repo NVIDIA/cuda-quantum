@@ -1152,9 +1152,11 @@ python3<span class="w"> </span>-m<span class="w"> </span>auditwheel<span class="
 <span class="w">    </span>--exclude<span class="w"> </span>libcublasLt.so.11<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcurand.so.10<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcusolver.so.11<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcusparse.so.11<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcutensor.so.2<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcutensornet.so.2<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcustatevec.so.1<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcudensitymat.so.0<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libcudart.so.11.0<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libnvToolsExt.so.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--exclude<span class="w"> </span>libnvidia-ml.so.1<span class="w"> </span><span class="se">\</span>
@@ -1287,6 +1289,7 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 <span class="w">    </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-nvrtc-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libcusparse-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>libcurand-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
 <span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">11</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span>
