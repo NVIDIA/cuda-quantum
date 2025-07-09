@@ -265,6 +265,37 @@ class PyASTBridge(ast.NodeVisitor):
 
         ValidateArgumentAnnotations(self).visit(astModule)
 
+        # Ensure that functions with a return-type annotation actually has a valid return statement
+        # in all paths, if not throw an error.
+        class ValidateReturnStatements(ast.NodeVisitor):
+
+            def __init__(self, bridge):
+                self.bridge = bridge
+
+            def visit_FunctionDef(self, node):
+                if node.returns is not None:
+
+                    def all_paths_return(stmts):
+                        for stmt in stmts:
+                            if isinstance(stmt, ast.Return):
+                                return True
+                            if isinstance(stmt, ast.If):
+                                if all_paths_return(
+                                        stmt.body) and all_paths_return(
+                                            stmt.orelse):
+                                    return True
+
+                        return False
+
+                    if not all_paths_return(node.body):
+                        self.bridge.emitFatalError(
+                            'cudaq.kernel functions with return type annotations must have a return statement.',
+                            node)
+
+                self.generic_visit(node)
+
+        ValidateReturnStatements(self).visit(astModule)
+
     def getVeqType(self, size=None):
         """
         Return a `quake.VeqType`. Pass the size of the `quake.veq` if known. 
