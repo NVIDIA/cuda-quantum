@@ -18,7 +18,6 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addPass(createApplySpecialization());
   pm.addNestedPass<func::FuncOp>(createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -31,6 +30,13 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
+  // A final round of apply specialization after loop unrolling. This should
+  // eliminate any residual control structures so the kernel specializations can
+  // succeed.
+  pm.addPass(createApplySpecialization());
+  // If there was any specialization, we want another round in inlining to
+  // inline the apply calls properly.
+  addAggressiveEarlyInlining(pm);
   pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -57,6 +63,7 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createDeadStoreRemoval());
   pm.addPass(createSymbolDCEPass());
 }
 
