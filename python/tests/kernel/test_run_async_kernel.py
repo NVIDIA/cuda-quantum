@@ -672,7 +672,7 @@ def test_run_async():
 
 # def test_return_dataclass_int_bool():
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class MyClass:
 #         x: int
 #         y: bool
@@ -724,7 +724,7 @@ def test_run_async():
 
 # def test_return_dataclass_bool_int():
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class MyClass:
 #         x: bool
 #         y: int
@@ -758,7 +758,7 @@ def test_run_async():
 
 # def test_return_dataclass_float_int():
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class MyClass:
 #         x: float
 #         y: int
@@ -792,7 +792,7 @@ def test_run_async():
 
 # def test_return_dataclass_list_int_bool():
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class MyClass:
 #         x: list[int]
 #         y: bool
@@ -810,7 +810,7 @@ def test_run_async():
 
 # def test_return_dataclass_tuple_bool():
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class MyClass:
 #         x: tuple[int, bool]
 #         y: bool
@@ -828,12 +828,12 @@ def test_run_async():
 
 # def test_return_dataclass_dataclass_bool():
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class MyClass1:
 #         x: int
 #         y: bool
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class MyClass2:
 #         x: MyClass1
 #         y: bool
@@ -883,7 +883,7 @@ def test_run_async():
 
 # def test_modify_struct():
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class MyClass:
 #         x: int
 #         y: bool
@@ -901,7 +901,7 @@ def test_run_async():
 #     assert results[0] == MyClass(42, True)
 #     assert results[1] == MyClass(42, True)
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class Foo:
 #         x: bool
 #         y: float
@@ -923,7 +923,7 @@ def test_run_async():
 
 # def test_create_and_modify_struct():
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class MyClass:
 #         x: int
 #         y: bool
@@ -941,7 +941,7 @@ def test_run_async():
 #     assert results[0] == MyClass(42, True)
 #     assert results[1] == MyClass(42, True)
 
-#     @dataclass
+#     @dataclass(slots=True)
 #     class Bar:
 #         x: bool
 #         y: bool
