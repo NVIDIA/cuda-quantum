@@ -143,14 +143,18 @@ protected:
   }
 
   // Prune operations after a termination point from the subcircuit
-  void pruneWire(Value wire) {
+  void pruneWire(Value wire, SetVector<Operation *> &pruned) {
     if (termination_points.contains(wire))
       termination_points.remove(wire);
     if (!wire.hasOneUse())
       return;
     Operation *op = wire.getUses().begin().getUser();
 
+    if (pruned.contains(op))
+      return;
+
     ops.remove(op);
+    pruned.insert(op);
 
     // TODO: According to the paper, if the op is a CNot and the wire we are
     // pruning along is the target, then we do not have to prune along the
@@ -163,11 +167,13 @@ protected:
     // }
 
     for (auto result : op->getResults())
-      pruneWire(result);
+      pruneWire(result, pruned);
     // Adjust termination border
     for (auto operand : op->getOperands())
       if (ops.contains(operand.getDefiningOp()))
         termination_points.insert(operand);
+      else if (termination_points.contains(operand) && isAfterTerminationPoint(operand))
+        termination_points.remove(operand);
   }
 
   void pruneSubcircuit() {
@@ -175,10 +181,20 @@ protected:
     // termination point seen along each wire in the subcircuit
     // (this means that it is important to build subcircuits
     // by inspecting controlled gates in topological order)
-    for (auto wire : termination_points) {
+    SmallVector<Value> sorted;
+    SetVector<Operation *> pruned;
+    for (auto wire : termination_points)
       if (!isAfterTerminationPoint(wire) && wire.hasOneUse())
-        pruneWire(wire);
-    }
+        sorted.push_back(wire);
+
+    auto cmp = [](Value v1, Value v2){
+      return v1.getDefiningOp()->isBeforeInBlock(v2.getDefiningOp());
+    };
+
+    std::sort(sorted.begin(), sorted.end(), cmp);
+
+    for (size_t i = 0; i < sorted.size(); i++)
+      pruneWire(sorted[i], pruned);
   }
 
   Subcircuit() {}

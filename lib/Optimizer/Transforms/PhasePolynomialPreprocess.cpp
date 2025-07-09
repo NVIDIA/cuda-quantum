@@ -121,6 +121,13 @@ class PhasePolynomialPreprocessPass
     removal_order.push_back(next);
   }
 
+  void shiftAfter(Operation *pivot, Operation *to_shift) {
+    if (to_shift->isBeforeInBlock(pivot))
+      to_shift->moveAfter(pivot);
+    for (auto user : to_shift->getUsers())
+      shiftAfter(to_shift, user);
+  }
+
   void moveToFunc(Subcircuit *subcircuit, size_t subcircuit_num) {
     auto module = getOperation();
     SmallVector<Type> types(subcircuit->getInitialWires().size(),
@@ -172,12 +179,21 @@ class PhasePolynomialPreprocessPass
     builder.create<cudaq::cc::ReturnOp>(fun.getLoc(), new_wires);
 
     auto cnot = subcircuit->getStart();
+    auto latest = cnot;
+    for (auto arg : args) {
+      auto dop = arg.getDefiningOp();
+      if (dop && latest->isBeforeInBlock(dop))
+        latest = dop;
+    }
+    builder.setInsertionPointAfter(latest);
 
-    builder.setInsertionPointAfter(cnot);
     auto call = builder.create<func::CallOp>(cnot->getLoc(), types,
                                              fun.getSymNameAttr(), args);
     for (size_t i = 0; i < steppers.size(); i++)
       steppers[i]->getOldWire().replaceAllUsesWith(call.getResult(i));
+
+    for (auto user : call->getUsers())
+      shiftAfter(call, user);
 
     for (auto stepper : steppers)
       delete stepper;
