@@ -15,18 +15,17 @@
 #include <memory>
 #include <mutex>
 
-namespace {
-static std::unordered_map<int, std::unique_ptr<cudaq::dynamics::Context>>
-    g_contexts;
-static std::mutex g_contextMutex;
-} // namespace
-
 namespace cudaq::dynamics {
 /// @brief Get the current CUDA context for the active device.
 /// @return Context* Pointer to the current context.
 Context *Context::getCurrentContext() {
   int currentDevice = -1;
   HANDLE_CUDA_ERROR(cudaGetDevice(&currentDevice));
+
+  static std::unordered_map<int, std::unique_ptr<cudaq::dynamics::Context>>
+      g_contexts;
+  static std::mutex g_contextMutex;
+
   std::lock_guard<std::mutex> guard(g_contextMutex);
   const auto iter = g_contexts.find(currentDevice);
   if (iter == g_contexts.end()) {
