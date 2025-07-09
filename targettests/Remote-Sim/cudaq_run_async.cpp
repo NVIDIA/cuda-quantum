@@ -10,44 +10,42 @@
 // REQUIRES: c++20
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t |& FileCheck %s -check-prefix=FAIL
-// RUN: CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 nvq++ %cpp_std --target quantinuum --emulate %s -o %t && CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 4 %s -o %t && %t | FileCheck %s
 // clang-format on
 
+#include "remote_test_assert.h"
 #include <cudaq.h>
 
-__qpu__ int test_kernel(int count) {
+__qpu__ int unary_test(int count) {
   unsigned result = 0;
   cudaq::qvector v(count);
-  h(v[0]);
-  for (int i = 0; i < count - 1; i++)
-    cx(v[i], v[i + 1]);
-  for (int i = 0; i < count; i++)
-    if (mz(v[i]))
-      result += 1;
+  h(v);
+  z(v);
+  for (int i = 0; i < count; i++) {
+    bool w = mz(v[i]);
+    result |= ((unsigned)w) << (count - 1 - i);
+  }
   return result;
 }
 
 int main() {
-  int c = 0;
-  {
-    constexpr int numQubits = 4;
-    auto results = cudaq::run(100, test_kernel, numQubits);
-    if (results.size() != 100) {
-      printf("FAILED! Expected 100 shots. Got %lu\n", results.size());
+  for (int q = 0; q < 4; q++) {
+    const auto results =
+        cudaq::run_async(/*qpu_id=*/q, 10, unary_test, 4).get();
+    int c = 0;
+    if (results.size() != 10) {
+      printf("FAILED! Expected 10 shots. Got %lu\n", results.size());
     } else {
-      for (auto i : results) {
+      for (auto i : results)
         printf("%d: %d\n", c++, i);
-        if (i != 0 && i != 4)
-          break;
-      }
-      if (c == 100)
-        printf("success!\n");
+      printf("success!\n");
     }
   }
 
   return 0;
 }
 
-// FAIL: `run` is not yet supported on this target
+// CHECK: success!
+// CHECK: success!
+// CHECK: success!
 // CHECK: success!
