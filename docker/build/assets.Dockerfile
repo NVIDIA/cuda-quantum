@@ -261,11 +261,9 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
     dnf remove -y $gcc_packages && dnf clean all && \
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
 
-# Temporary because of cuQuantum 25.03 installing the wrong version of cudensitymat
-# in the upstream devdeps images.
 ## [Python MLIR tests]
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest scipy cudensitymat-cu12==0.1.0 cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)==25.03 && \
+    python3 -m pip install lit pytest scipy cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)~=25.03 && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
