@@ -166,7 +166,7 @@ ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install cudensitymat-cu$(echo $CUDA_VERSION | cut -d . -f1)==0.1.0 cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.03 && \
+    python3 -m pip install cudensitymat-cu12==0.1.0 cuquantum-python-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.03 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.10" ]; then \
         echo "expecting Python version 3.10"; \
     fi
