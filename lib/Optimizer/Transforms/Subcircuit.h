@@ -172,7 +172,8 @@ protected:
     for (auto operand : op->getOperands())
       if (ops.contains(operand.getDefiningOp()))
         termination_points.insert(operand);
-      else if (termination_points.contains(operand) && isAfterTerminationPoint(operand))
+      else if (termination_points.contains(operand) &&
+               isAfterTerminationPoint(operand))
         termination_points.remove(operand);
   }
 
@@ -187,7 +188,7 @@ protected:
       if (!isAfterTerminationPoint(wire) && wire.hasOneUse())
         sorted.push_back(wire);
 
-    auto cmp = [](Value v1, Value v2){
+    auto cmp = [](Value v1, Value v2) {
       return v1.getDefiningOp()->isBeforeInBlock(v2.getDefiningOp());
     };
 
