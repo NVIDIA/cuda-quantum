@@ -55,6 +55,14 @@ public:
       addEdgeImpl(dst, src);
   }
 
+  void removeEdge(Node src, Node dst, bool undirected = true) {
+    assert(src.isValid() && "Invalid source node");
+    assert(dst.isValid() && "Invalid destination node");
+    removeEdgeImpl(src, dst);
+    if (undirected)
+      removeEdgeImpl(dst, src);
+  }
+
   std::size_t getNumNodes() const { return nodeOffsets.size(); }
 
   std::size_t getNumEdges() const { return edges.size(); }
@@ -125,6 +133,18 @@ private:
                    [](Offset offset) { return offset + 1; });
   }
 
+  void removeEdgeImpl(Node src, Node dst) {
+    auto neighbours = getNeighbours(src);
+    auto it = std::find(neighbours.begin(), neighbours.end(), dst);
+    if (it != neighbours.end()) {
+      edges.erase(it);
+
+      std::transform(nodeOffsets.begin() + src.index + 1, nodeOffsets.end(),
+                     nodeOffsets.begin() + src.index + 1,
+                     [](Offset offset) { return offset - 1; });
+    }
+  }
+
   /// Each entry in this vector contains the starting index in the edge array
   /// where the edges from that node are stored.
   mlir::SmallVector<Offset> nodeOffsets;
@@ -134,3 +154,22 @@ private:
 };
 
 } // namespace cudaq
+
+// Specialization of DenseMapInfo for GraphCSR::Node to enable use in DenseMap/DenseSet
+namespace llvm {
+template <> struct DenseMapInfo<cudaq::GraphCSR::Node> {
+  static inline cudaq::GraphCSR::Node getEmptyKey() {
+    return cudaq::GraphCSR::Node(static_cast<unsigned>(-1));
+  }
+  static inline cudaq::GraphCSR::Node getTombstoneKey() {
+    return cudaq::GraphCSR::Node(static_cast<unsigned>(-2));
+  }
+  static unsigned getHashValue(const cudaq::GraphCSR::Node &Val) {
+    return static_cast<unsigned>(Val.index);
+  }
+  static bool isEqual(const cudaq::GraphCSR::Node &LHS,
+                      const cudaq::GraphCSR::Node &RHS) {
+    return LHS.index == RHS.index;
+  }
+};
+} // namespace llvm
