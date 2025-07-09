@@ -43,7 +43,8 @@ struct RunResultSpan {
 // pointer to a buffer and the size of that buffer in bytes.
 RunResultSpan runTheKernel(std::function<void()> &&kernel,
                            quantum_platform &platform,
-                           const std::string &kernel_name, std::size_t shots);
+                           const std::string &kernel_name, std::size_t shots,
+                           std::size_t qpu_id = 0);
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
 // `std::vector<T>` object. This special code is required because a
@@ -245,7 +246,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
-            kernelName, shots);
+            kernelName, shots, qpu_id);
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
@@ -284,7 +285,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
                   },
                   std::move(args));
             },
-            platform, kernelName, shots);
+            platform, kernelName, shots, qpu_id);
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
@@ -356,7 +357,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
         const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
-            kernelName, shots);
+            kernelName, shots, qpu_id);
         platform.reset_noise();
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
@@ -400,7 +401,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
                   },
                   std::move(args));
             },
-            platform, kernelName, shots);
+            platform, kernelName, shots, qpu_id);
         platform.reset_noise();
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
