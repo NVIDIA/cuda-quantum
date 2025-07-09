@@ -256,10 +256,16 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 localEmitFatalError(
                     'recursive struct types are not allowed in kernels.')
 
+        if '__slots__' not in pyType.__dict__:
+            emitWarning(
+                f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)."
+            )
+
         if len({
                 k: v
                 for k, v in pyType.__dict__.items()
-                if not (k.startswith('__') and k.endswith('__'))
+                if not (k.startswith('__') and k.endswith('__')) and
+                isinstance(v, types.FunctionType)
         }) != 0:
             localEmitFatalError(
                 'struct types with user specified methods are not allowed.')

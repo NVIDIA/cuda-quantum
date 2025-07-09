@@ -1924,7 +1924,7 @@ def test_capture_opaque_kernel():
 def test_custom_classical_kernel_type():
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(slots=True)
     class CustomIntAndFloatType:
         integer: int
         floatingPoint: float
@@ -1944,7 +1944,7 @@ def test_custom_classical_kernel_type():
     counts.dump()
     assert len(counts) == 2 and '00' in counts and '11' in counts
 
-    @dataclass
+    @dataclass(slots=True)
     class CustomIntAndListFloat:
         integer: int
         array: List[float]
@@ -1988,7 +1988,7 @@ def test_custom_classical_kernel_type():
 def test_custom_quantum_type():
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(slots=True)
     class patch:
         data: cudaq.qview
         ancx: cudaq.qview
@@ -2026,7 +2026,7 @@ def test_custom_quantum_type():
 def test_disallow_hybrid_types():
     from dataclasses import dataclass
     # Ensure we don't allow hybrid type s
-    @dataclass
+    @dataclass(slots=True)
     class hybrid:
         q: cudaq.qview
         i: int
@@ -2052,7 +2052,7 @@ def test_disallow_hybrid_types():
 def test_disallow_quantum_struct_return():
     from dataclasses import dataclass
     # Ensure we don't allow hybrid type s
-    @dataclass
+    @dataclass(slots=True)
     class T:
         q: cudaq.qview
 
@@ -2070,11 +2070,11 @@ def test_disallow_quantum_struct_return():
 def test_disallow_recursive_quantum_struct():
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(slots=True)
     class T:
         q: cudaq.qview
 
-    @dataclass
+    @dataclass(slots=True)
     class Holder:
         t: T
 
@@ -2100,29 +2100,24 @@ def test_disallow_recursive_quantum_struct():
 def test_disallow_struct_with_methods():
     from dataclasses import dataclass
 
-    @dataclass
-    class T:
-        q: cudaq.qview
+    @dataclass(slots=True)
+    class NoCanDo:
+        a: cudaq.qview
 
-        def doSomething(self):
+        def bob(self):
             pass
 
-    with pytest.raises(RuntimeError) as e:
+    try:
 
         @cudaq.kernel
-        def test(t: T):
-            pass
+        def k():
+            q = cudaq.qvector(4)
+            h = NoCanDo(q)
 
-        print(test)
-
-    with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test():
-            q = cudaq.qvector(2)
-            t = T(q)
-
-        print(test)
+            print(k())
+    except RuntimeError as e:
+        assert 'struct types with user specified methods are not allowed.' in str(
+            e.value)
 
 
 def test_issue_9():
@@ -2304,7 +2299,7 @@ def test_attribute_access_on_call_results():
     """Test that attribute access on call results works correctly."""
     from dataclasses import dataclass
 
-    @dataclass
+    @dataclass(slots=True)
     class M:
         i: int
         j: int
@@ -2356,7 +2351,7 @@ def test_attribute_access_on_call_results():
     assert result5 == 10  # 6 + 4
 
     # Test with different dataclass
-    @dataclass
+    @dataclass(slots=True)
     class Point:
         x: float
         y: float
