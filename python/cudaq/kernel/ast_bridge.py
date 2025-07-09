@@ -52,6 +52,8 @@ State = cudaq_runtime.State
 # here by just setting it manually
 kDynamicPtrIndex: int = -2147483648
 
+ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
+
 
 class PyScopedSymbolTable(object):
 
@@ -2173,6 +2175,13 @@ class PyASTBridge(ast.NodeVisitor):
                 # Handle User-Custom Struct Constructor
                 cls, annotations = globalRegisteredTypes.getClassAttributes(
                     node.func.id)
+
+                for var, typ in annotations.items():
+                    if typ not in ALLOWED_TYPES_IN_A_DATACLASS:
+                        self.emitFatalError(
+                            f'`{typ}` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}.',
+                            node)
+
                 # Alloca the struct
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
@@ -4263,8 +4272,68 @@ class PyASTBridge(ast.NodeVisitor):
 
             self.pushValue(arith.RemUIOp(left, right).result)
             return
-        else:
-            self.emitFatalError(f"unhandled binary operator - {node.op}", node)
+
+        if isinstance(node.op, ast.LShift):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.ShLIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '<<'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.RShift):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.ShRSIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '>>'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitAnd):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.AndIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '&'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitOr):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.OrIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '|'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitXor):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.XOrIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '^'; only integers supported.",
+                    node)
+
+        self.emitFatalError(f"unhandled binary operator - {node.op}", node)
 
     def visit_Name(self, node):
         """
