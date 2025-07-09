@@ -273,24 +273,30 @@ class PyASTBridge(ast.NodeVisitor):
                 self.bridge = bridge
 
             def visit_FunctionDef(self, node):
-                if node.returns is not None:
+                # skip if un-annotated or explicitly marked as None
+                is_none_ret = (isinstance(node.returns, ast.Constant) and
+                               node.returns.value is None) or (
+                                   isinstance(node.returns, ast.Name) and
+                                   node.returns.id == 'None')
 
-                    def all_paths_return(stmts):
-                        for stmt in stmts:
-                            if isinstance(stmt, ast.Return):
+                if node.returns is None or is_none_ret:
+                    return self.generic_visit(node)
+
+                def all_paths_return(stmts):
+                    for stmt in stmts:
+                        if isinstance(stmt, ast.Return):
+                            return True
+                        if isinstance(stmt, ast.If):
+                            if all_paths_return(stmt.body) and all_paths_return(
+                                    stmt.orelse):
                                 return True
-                            if isinstance(stmt, ast.If):
-                                if all_paths_return(
-                                        stmt.body) and all_paths_return(
-                                            stmt.orelse):
-                                    return True
 
-                        return False
+                    return False
 
-                    if not all_paths_return(node.body):
-                        self.bridge.emitFatalError(
-                            'cudaq.kernel functions with return type annotations must have a return statement.',
-                            node)
+                if not all_paths_return(node.body):
+                    self.bridge.emitFatalError(
+                        'cudaq.kernel functions with return type annotations must have a return statement.',
+                        node)
 
                 self.generic_visit(node)
 
