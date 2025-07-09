@@ -368,7 +368,7 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
       if (auto *id = x->getIdentifier())
         funcName = id->getName();
       if (funcName == "malloc" && x->isFunctionTemplateSpecialization()) {
-	 x->getTemplateSpecializationArgs()->get(0).getAsType()->dump();
+        x->getTemplateSpecializationArgs()->get(0).getAsType()->dump();
         if (!TraverseType(
                 x->getTemplateSpecializationArgs()->get(0).getAsType()))
           return false;
