@@ -116,11 +116,7 @@ class PhasePolynomialRotationMergingPass
       auto rot_arg2 = rzop.getOperand(0);
       auto new_rot_arg =
           builder.create<arith::AddFOp>(old_rzop.getLoc(), rot_arg1, rot_arg2);
-      // TODO: Can replace operand 0 directly rather than cloning first?
-      auto new_rot = builder.clone(*old_rzop.getOperation());
-      new_rot->setOperand(0, new_rot_arg.getResult());
-      old_rzop.getResult(0).replaceAllUsesWith(new_rot->getResult(0));
-      old_rzop.erase();
+      old_rzop->setOperand(0, new_rot_arg.getResult());
       rzop.getResult(0).replaceAllUsesWith(rzop.getOperand(1));
       rzop.erase();
     }
