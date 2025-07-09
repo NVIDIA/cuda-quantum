@@ -946,7 +946,7 @@ class TestBatchedCavityModelSuperOperatorWithBatchSize(TestSystem):
             me_super_op_lists.append(me_super_op)
         initial_states = [rho0_] * len(decay_rates)
 
-        evolution_results = cudaq.evolve(
+        evolution_results_batch_size_1 = cudaq.evolve(
             me_super_op_lists,
             dimensions,
             schedule,
@@ -957,12 +957,31 @@ class TestBatchedCavityModelSuperOperatorWithBatchSize(TestSystem):
             integrator=integrator(),
             max_batch_size=1)
 
+        evolution_results_batch_size_10 = cudaq.evolve(
+            me_super_op_lists,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[hamiltonian],
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator(),
+            max_batch_size=10)
+
         for i, decay_rate in enumerate(decay_rates):
-            evolution_result = evolution_results[i]
-            expectation_values = [
-                exp_vals[0].expectation()
-                for exp_vals in evolution_result.expectation_values()
+            evolution_result_batch_size_1 = evolution_results_batch_size_1[i]
+            evolution_result_batch_size_10 = evolution_results_batch_size_10[i]
+            # Check that the results are the same for both batch sizes
+            expectation_values_batch_size_1 = [
+                exp_vals[0].expectation() for exp_vals in
+                evolution_result_batch_size_1.expectation_values()
+            ]
+            expectation_values_batch_size_10 = [
+                exp_vals[0].expectation() for exp_vals in
+                evolution_result_batch_size_10.expectation_values()
             ]
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
-            np.testing.assert_allclose(expected_answer, expectation_values,
-                                       1e-3)
+            np.testing.assert_allclose(expected_answer,
+                                       expectation_values_batch_size_1, 1e-3)
+            np.testing.assert_allclose(expected_answer,
+                                       expectation_values_batch_size_10, 1e-3)

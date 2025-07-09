@@ -325,22 +325,39 @@ TEST(EvolveAPITester, checkSuperopSimple) {
   cudaq::super_op sup;
   // Apply `-iH * psi` superop
   sup += cudaq::super_op::left_multiply(std::complex<double>(0.0, -1.0) * ham);
-  auto result = cudaq::evolve(sup, dims, schedule, initialState, integrator,
-                              {cudaq::spin_op::z(0)},
-                              cudaq::IntermediateResultSave::ExpectationValue);
 
-  std::vector<double> theoryResults;
-  for (const auto &t : schedule) {
-    const double expected = std::cos(4.0 * M_PI * 0.1 * t.real());
-    theoryResults.emplace_back(expected);
+  const auto checkResult = [&](const auto &result) {
+    std::vector<double> theoryResults;
+    for (const auto &t : schedule) {
+      const double expected = std::cos(4.0 * M_PI * 0.1 * t.real());
+      theoryResults.emplace_back(expected);
+    }
+
+    int count = 0;
+    for (auto expVals : result.expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      std::cout << "Result = " << (double)expVals[0] << "; expected "
+                << theoryResults[count] << "\n";
+      EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
+    }
+  };
+
+  {
+    // Observables as initializer list
+    auto result = cudaq::evolve(
+        sup, dims, schedule, initialState, integrator, {cudaq::spin_op::z(0)},
+        cudaq::IntermediateResultSave::ExpectationValue);
+    checkResult(result);
   }
 
-  int count = 0;
-  for (auto expVals : result.expectation_values.value()) {
-    EXPECT_EQ(expVals.size(), 1);
-    std::cout << "Result = " << (double)expVals[0] << "; expected "
-              << theoryResults[count] << "\n";
-    EXPECT_NEAR((double)expVals[0], theoryResults[count++], 1e-3);
+  {
+    // Observables as vector
+    std::vector<decltype(cudaq::spin_op::z(0))> observables = {
+        cudaq::spin_op::z(0)};
+    auto result = cudaq::evolve(
+        sup, dims, schedule, initialState, integrator, observables,
+        cudaq::IntermediateResultSave::ExpectationValue);
+    checkResult(result);
   }
 }
 

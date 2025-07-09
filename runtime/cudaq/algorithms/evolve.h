@@ -209,6 +209,11 @@ evolve_result evolve(const HamTy &hamiltonian,
 #endif
 }
 
+// ===========================================================================
+// Single super-operator evolution API
+// ===========================================================================
+// Overloads for both `std::vector` and `std::initializer_list` observables are
+// provided to handle inline construction with braces at the call site.
 #if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
 #else
@@ -245,6 +250,56 @@ evolve_result evolve(const super_op &super_op,
                      const schedule &schedule, InitialState initial_state,
                      base_integrator &integrator,
                      const std::initializer_list<ObserveOpTy> &observables = {},
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
+                     std::optional<int> shots_count = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  return cudaq::__internal__::evolveSingle(
+      super_op, dimensions, schedule, initial_state, integrator,
+      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type ObserveOpTy>
+#else
+template <typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
+#endif
+evolve_result evolve(const super_op &super_op,
+                     const cudaq::dimension_map &dimensions,
+                     const schedule &schedule, const state &initial_state,
+                     base_integrator &integrator,
+                     const std::vector<ObserveOpTy> &observables = {},
+                     IntermediateResultSave store_intermediate_results =
+                         IntermediateResultSave::None,
+                     std::optional<int> shots_count = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  return cudaq::__internal__::evolveSingle(
+      super_op, dimensions, schedule, initial_state, integrator,
+      cudaq::__internal__::convertOps(observables), store_intermediate_results);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type ObserveOpTy>
+#else
+template <typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
+#endif
+evolve_result evolve(const super_op &super_op,
+                     const cudaq::dimension_map &dimensions,
+                     const schedule &schedule, InitialState initial_state,
+                     base_integrator &integrator,
+                     const std::vector<ObserveOpTy> &observables = {},
                      IntermediateResultSave store_intermediate_results =
                          IntermediateResultSave::None,
                      std::optional<int> shots_count = std::nullopt) {
@@ -340,6 +395,8 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 // ===========================================================================
 // Multiple Hamiltonians with multiple initial states
 // ===========================================================================
+// We provide overloads for both `std::vector` and `std::initializer_list` to
+// handle inline Hamiltonian list construction with braces at the call site.
 #if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
@@ -360,14 +417,57 @@ evolve(const std::initializer_list<HamTy> &hamiltonians,
        std::initializer_list<ObserveOpTy> observables = {},
        IntermediateResultSave store_intermediate_results =
            IntermediateResultSave::None,
-       std::optional<int> shots_count = std::nullopt) {
+       std::optional<int> batch_size = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
+  if (batch_size.has_value() && batch_size.value() < 1)
+    throw std::invalid_argument(
+        "Invalid batch size: " + std::to_string(batch_size.value()) +
+        ". It must be at least 1.");
   return cudaq::__internal__::evolveBatched(
       cudaq::__internal__::convertOps(hamiltonians), dimensions, schedule,
       initial_states, integrator,
       cudaq::__internal__::convertOps(collapse_operators),
       cudaq::__internal__::convertOps(observables), store_intermediate_results,
-      shots_count);
+      batch_size);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type HamTy,
+          operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
+#else
+template <typename HamTy,
+          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
+          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
+                                      cudaq::operator_type<CollapseOpTy> &&
+                                      cudaq::operator_type<ObserveOpTy>>>
+#endif
+std::vector<evolve_result>
+evolve(const std::initializer_list<HamTy> &hamiltonians,
+       const cudaq::dimension_map &dimensions, const schedule &schedule,
+       const std::vector<state> &initial_states, base_integrator &integrator,
+       std::vector<std::vector<CollapseOpTy>> collapse_operators = {},
+       std::vector<ObserveOpTy> observables = {},
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
+       std::optional<int> batch_size = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  if (batch_size.has_value() && batch_size.value() < 1)
+    throw std::invalid_argument(
+        "Invalid batch size: " + std::to_string(batch_size.value()) +
+        ". It must be at least 1.");
+  return cudaq::__internal__::evolveBatched(
+      cudaq::__internal__::convertOps(hamiltonians), dimensions, schedule,
+      initial_states, integrator,
+      cudaq::__internal__::convertOps(collapse_operators),
+      cudaq::__internal__::convertOps(observables), store_intermediate_results,
+      batch_size);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -395,14 +495,18 @@ evolve(const std::vector<HamTy> &hamiltonians,
        std::initializer_list<ObserveOpTy> observables = {},
        IntermediateResultSave store_intermediate_results =
            IntermediateResultSave::None,
-       std::optional<int> shots_count = std::nullopt) {
+       std::optional<int> batch_size = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
+  if (batch_size.has_value() && batch_size.value() < 1)
+    throw std::invalid_argument(
+        "Invalid batch size: " + std::to_string(batch_size.value()) +
+        ". It must be at least 1.");
   return cudaq::__internal__::evolveBatched(
       cudaq::__internal__::convertOps(hamiltonians), dimensions, schedule,
       initial_states, integrator,
       cudaq::__internal__::convertOps(collapse_operators),
       cudaq::__internal__::convertOps(observables), store_intermediate_results,
-      shots_count);
+      batch_size);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -430,14 +534,18 @@ evolve(const std::vector<HamTy> &hamiltonians,
        const std::vector<ObserveOpTy> &observables = {},
        IntermediateResultSave store_intermediate_results =
            IntermediateResultSave::None,
-       std::optional<int> shots_count = std::nullopt) {
+       std::optional<int> batch_size = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
+  if (batch_size.has_value() && batch_size.value() < 1)
+    throw std::invalid_argument(
+        "Invalid batch size: " + std::to_string(batch_size.value()) +
+        ". It must be at least 1.");
   return cudaq::__internal__::evolveBatched(
       cudaq::__internal__::convertOps(hamiltonians), dimensions, schedule,
       initial_states, integrator,
       cudaq::__internal__::convertOps(collapse_operators),
       cudaq::__internal__::convertOps(observables), store_intermediate_results,
-      shots_count);
+      batch_size);
 #else
   static_assert(
       false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
@@ -474,6 +582,31 @@ evolve(const super_op &super_op, const cudaq::dimension_map &dimensions,
 #endif
 }
 
+#if CUDAQ_USE_STD20
+template <operator_type ObserveOpTy>
+#else
+template <typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
+#endif
+std::vector<evolve_result>
+evolve(const super_op &super_op, const cudaq::dimension_map &dimensions,
+       const schedule &schedule, const std::vector<state> &initial_states,
+       base_integrator &integrator, std::vector<ObserveOpTy> observables = {},
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
+       std::optional<int> shots_count = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  return cudaq::__internal__::evolveBatched(
+      super_op, dimensions, schedule, initial_states, integrator,
+      cudaq::__internal__::convertOps(observables), store_intermediate_results,
+      shots_count);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
 // ===========================================================================
 // Multiple super-operators with multiple initial states
 // ===========================================================================
@@ -492,6 +625,42 @@ evolve(const std::vector<super_op> &super_ops,
            IntermediateResultSave::None,
        std::optional<int> batch_size = std::nullopt) {
 #if defined(CUDAQ_ANALOG_TARGET)
+  if (batch_size.has_value() && batch_size.value() < 1)
+    throw std::invalid_argument(
+        "Invalid batch size: " + std::to_string(batch_size.value()) +
+        ". It must be at least 1.");
+
+  return cudaq::__internal__::evolveBatched(
+      super_ops, dimensions, schedule, initial_states, integrator,
+      cudaq::__internal__::convertOps(observables), store_intermediate_results,
+      batch_size);
+#else
+  static_assert(
+      false, "cudaq::evolve is only supported on the 'dynamics' target. Please "
+             "recompile your application with '--target dynamics' flag.");
+#endif
+}
+
+#if CUDAQ_USE_STD20
+template <operator_type ObserveOpTy>
+#else
+template <typename ObserveOpTy,
+          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
+#endif
+std::vector<evolve_result>
+evolve(const std::vector<super_op> &super_ops,
+       const cudaq::dimension_map &dimensions, const schedule &schedule,
+       const std::vector<state> &initial_states, base_integrator &integrator,
+       std::vector<ObserveOpTy> observables = {},
+       IntermediateResultSave store_intermediate_results =
+           IntermediateResultSave::None,
+       std::optional<int> batch_size = std::nullopt) {
+#if defined(CUDAQ_ANALOG_TARGET)
+  if (batch_size.has_value() && batch_size.value() < 1)
+    throw std::invalid_argument(
+        "Invalid batch size: " + std::to_string(batch_size.value()) +
+        ". It must be at least 1.");
+
   return cudaq::__internal__::evolveBatched(
       super_ops, dimensions, schedule, initial_states, integrator,
       cudaq::__internal__::convertOps(observables), store_intermediate_results,

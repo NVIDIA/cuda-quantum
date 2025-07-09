@@ -561,15 +561,6 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
   for (const auto &[id, dim] : convertToOrderedMap(dimensions))
     dims.emplace_back(dim);
 
-  if (batch_size.has_value()) {
-    if (batch_size.value() > hamiltonians.size()) {
-      throw std::invalid_argument("Batch size cannot be greater than the "
-                                  "number of Hamiltonian operators.");
-    } else if (batch_size.value() < 1) {
-      throw std::invalid_argument("Batch size must be at least 1.");
-    }
-  }
-
   const bool canBeBatched =
       checkBatchingCompatibility(hamiltonians, collapse_operators);
   if (!canBeBatched) {
@@ -590,7 +581,9 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
   }
 
   const auto batchSizeToRun =
-      canBeBatched ? batch_size.value_or(hamiltonians.size()) : 1;
+      canBeBatched ? std::min<int>(batch_size.value_or(hamiltonians.size()),
+                                   hamiltonians.size())
+                   : 1;
   assert(batchSizeToRun <= hamiltonians.size());
   std::unordered_map<std::string, std::complex<double>> params;
   for (const auto &param : schedule.get_parameters()) {
@@ -687,15 +680,6 @@ evolveBatched(const std::vector<super_op> &superOps,
   for (const auto &[id, dim] : convertToOrderedMap(dimensions))
     dims.emplace_back(dim);
 
-  if (batch_size.has_value()) {
-    if (batch_size.value() > superOps.size()) {
-      throw std::invalid_argument(
-          "Batch size cannot be greater than the number of super operators.");
-    } else if (batch_size.value() < 1) {
-      throw std::invalid_argument("Batch size must be at least 1.");
-    }
-  }
-
   const bool canBeBatched = checkBatchingCompatibility(superOps);
   if (!canBeBatched) {
     // If the batch size was specified:
@@ -715,7 +699,9 @@ evolveBatched(const std::vector<super_op> &superOps,
   }
 
   const auto batchSizeToRun =
-      canBeBatched ? batch_size.value_or(superOps.size()) : 1;
+      canBeBatched
+          ? std::min<int>(batch_size.value_or(superOps.size()), superOps.size())
+          : 1;
   assert(batchSizeToRun <= superOps.size());
   std::unordered_map<std::string, std::complex<double>> params;
   for (const auto &param : schedule.get_parameters()) {

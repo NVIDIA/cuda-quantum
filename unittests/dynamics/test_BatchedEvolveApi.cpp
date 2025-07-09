@@ -32,36 +32,51 @@ TEST(BatchedEvolveAPITester, checkHamiltonianInitializerList) {
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::evolve({ham1, ham2}, dims, schedule,
-                               {initialState1, initialState2}, integrator, {},
-                               {cudaq::spin_op::z(0)},
-                               cudaq::IntermediateResultSave::ExpectationValue);
 
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_TRUE(results[0].expectation_values.has_value());
-  EXPECT_EQ(results[0].expectation_values.value().size(), numSteps);
-  EXPECT_TRUE(results[1].expectation_values.has_value());
-  EXPECT_EQ(results[1].expectation_values.value().size(), numSteps);
+  const auto checkResults = [&](const auto &results) {
+    EXPECT_EQ(results.size(), 2);
+    EXPECT_TRUE(results[0].expectation_values.has_value());
+    EXPECT_EQ(results[0].expectation_values.value().size(), numSteps);
+    EXPECT_TRUE(results[1].expectation_values.has_value());
+    EXPECT_EQ(results[1].expectation_values.value().size(), numSteps);
+    std::vector<double> theoryResults1;
+    std::vector<double> theoryResults2;
+    for (const auto &t : schedule) {
+      const double expected1 = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
+      const double expected2 = std::cos(2 * 2.0 * M_PI * 0.2 * t.real());
+      theoryResults1.emplace_back(expected1);
+      theoryResults2.emplace_back(expected2);
+    }
+    int count = 0;
+    for (auto expVals : results[0].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults1[count++], 1e-3);
+    }
 
-  std::vector<double> theoryResults1;
-  std::vector<double> theoryResults2;
-  for (const auto &t : schedule) {
-    const double expected1 = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
-    const double expected2 = std::cos(2 * 2.0 * M_PI * 0.2 * t.real());
-    theoryResults1.emplace_back(expected1);
-    theoryResults2.emplace_back(expected2);
+    count = 0;
+    for (auto expVals : results[1].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults2[count++], 1e-3);
+    }
+  };
+
+  {
+    // Observables as initializer list
+    auto results = cudaq::evolve(
+        {ham1, ham2}, dims, schedule, {initialState1, initialState2},
+        integrator, {}, {cudaq::spin_op::z(0)},
+        cudaq::IntermediateResultSave::ExpectationValue);
+    checkResults(results);
   }
-
-  int count = 0;
-  for (auto expVals : results[0].expectation_values.value()) {
-    EXPECT_EQ(expVals.size(), 1);
-    EXPECT_NEAR((double)expVals[0], theoryResults1[count++], 1e-3);
-  }
-
-  count = 0;
-  for (auto expVals : results[1].expectation_values.value()) {
-    EXPECT_EQ(expVals.size(), 1);
-    EXPECT_NEAR((double)expVals[0], theoryResults2[count++], 1e-3);
+  {
+    // Observables as vector
+    std::vector<decltype(cudaq::spin_op::z(0))> observables{
+        cudaq::spin_op::z(0)};
+    auto results = cudaq::evolve(
+        {ham1, ham2}, dims, schedule, {initialState1, initialState2},
+        integrator, {}, observables,
+        cudaq::IntermediateResultSave::ExpectationValue);
+    checkResults(results);
   }
 }
 
@@ -80,36 +95,53 @@ TEST(BatchedEvolveAPITester, checkHamiltonianVectorType) {
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::evolve(hamiltonians, dims, schedule,
-                               {initialState1, initialState2}, integrator, {},
-                               {cudaq::spin_op::z(0)},
-                               cudaq::IntermediateResultSave::ExpectationValue);
 
-  EXPECT_EQ(results.size(), 2);
-  EXPECT_TRUE(results[0].expectation_values.has_value());
-  EXPECT_EQ(results[0].expectation_values.value().size(), numSteps);
-  EXPECT_TRUE(results[1].expectation_values.has_value());
-  EXPECT_EQ(results[1].expectation_values.value().size(), numSteps);
+  const auto checkResults = [&](const auto &results) {
+    EXPECT_EQ(results.size(), 2);
+    EXPECT_TRUE(results[0].expectation_values.has_value());
+    EXPECT_EQ(results[0].expectation_values.value().size(), numSteps);
+    EXPECT_TRUE(results[1].expectation_values.has_value());
+    EXPECT_EQ(results[1].expectation_values.value().size(), numSteps);
 
-  std::vector<double> theoryResults1;
-  std::vector<double> theoryResults2;
-  for (const auto &t : schedule) {
-    const double expected1 = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
-    const double expected2 = std::cos(2 * 2.0 * M_PI * 0.2 * t.real());
-    theoryResults1.emplace_back(expected1);
-    theoryResults2.emplace_back(expected2);
+    std::vector<double> theoryResults1;
+    std::vector<double> theoryResults2;
+    for (const auto &t : schedule) {
+      const double expected1 = std::cos(2 * 2.0 * M_PI * 0.1 * t.real());
+      const double expected2 = std::cos(2 * 2.0 * M_PI * 0.2 * t.real());
+      theoryResults1.emplace_back(expected1);
+      theoryResults2.emplace_back(expected2);
+    }
+
+    int count = 0;
+    for (auto expVals : results[0].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults1[count++], 1e-3);
+    }
+
+    count = 0;
+    for (auto expVals : results[1].expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1);
+      EXPECT_NEAR((double)expVals[0], theoryResults2[count++], 1e-3);
+    }
+  };
+
+  {
+    // Observables as initializer list
+    auto results = cudaq::evolve(
+        hamiltonians, dims, schedule, {initialState1, initialState2},
+        integrator, {}, {cudaq::spin_op::z(0)},
+        cudaq::IntermediateResultSave::ExpectationValue);
+    checkResults(results);
   }
-
-  int count = 0;
-  for (auto expVals : results[0].expectation_values.value()) {
-    EXPECT_EQ(expVals.size(), 1);
-    EXPECT_NEAR((double)expVals[0], theoryResults1[count++], 1e-3);
-  }
-
-  count = 0;
-  for (auto expVals : results[1].expectation_values.value()) {
-    EXPECT_EQ(expVals.size(), 1);
-    EXPECT_NEAR((double)expVals[0], theoryResults2[count++], 1e-3);
+  {
+    // Observables as vector
+    std::vector<decltype(cudaq::spin_op::z(0))> observables{
+        cudaq::spin_op::z(0)};
+    auto results = cudaq::evolve(
+        hamiltonians, dims, schedule, {initialState1, initialState2},
+        integrator, {}, observables,
+        cudaq::IntermediateResultSave::ExpectationValue);
+    checkResults(results);
   }
 }
 
@@ -183,33 +215,49 @@ TEST(BatchedEvolveAPITester, checkBatchedSuperOps) {
   cudaq::integrators::runge_kutta integrator(4);
   constexpr int numSteps = 10;
   cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
-  auto results = cudaq::evolve(sups, dims, schedule, initialStates, integrator,
-                               {cudaq::spin_op::z(0)},
-                               cudaq::IntermediateResultSave::ExpectationValue);
 
-  EXPECT_EQ(results.size(), resonanceFreqs.size());
-  std::vector<std::vector<double>> theoryResults;
-  for (const auto &t : schedule) {
-    std::vector<double> expectedResults;
-    for (const auto &resonanceFreq : resonanceFreqs) {
-      expectedResults.emplace_back(
-          std::cos(2 * 2.0 * M_PI * resonanceFreq * t.real()));
+  const auto checkResults = [&](const auto &results) {
+    EXPECT_EQ(results.size(), resonanceFreqs.size());
+    std::vector<std::vector<double>> theoryResults;
+    for (const auto &t : schedule) {
+      std::vector<double> expectedResults;
+      for (const auto &resonanceFreq : resonanceFreqs) {
+        expectedResults.emplace_back(
+            std::cos(2 * 2.0 * M_PI * resonanceFreq * t.real()));
+      }
+      theoryResults.emplace_back(expectedResults);
     }
-    theoryResults.emplace_back(expectedResults);
+
+    for (std::size_t i = 0; i < results.size(); ++i) {
+      EXPECT_TRUE(results[i].expectation_values.has_value());
+      EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
+
+      int count = 0;
+      for (auto expVals : results[i].expectation_values.value()) {
+        EXPECT_EQ(expVals.size(), 1);
+        EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
+        std::cout << "Freq = " << resonanceFreqs[i]
+                  << "; Result = " << (double)expVals[0]
+                  << "; Expected = " << theoryResults[count - 1][i] << "\n";
+      }
+    }
+  };
+
+  {
+    // Observables as initializer list
+    auto results = cudaq::evolve(
+        sups, dims, schedule, initialStates, integrator, {cudaq::spin_op::z(0)},
+        cudaq::IntermediateResultSave::ExpectationValue);
+    checkResults(results);
   }
-
-  for (std::size_t i = 0; i < results.size(); ++i) {
-    EXPECT_TRUE(results[i].expectation_values.has_value());
-    EXPECT_EQ(results[i].expectation_values.value().size(), numSteps);
-
-    int count = 0;
-    for (auto expVals : results[i].expectation_values.value()) {
-      EXPECT_EQ(expVals.size(), 1);
-      EXPECT_NEAR((double)expVals[0], theoryResults[count++][i], 1e-3);
-      std::cout << "Freq = " << resonanceFreqs[i]
-                << "; Result = " << (double)expVals[0]
-                << "; Expected = " << theoryResults[count - 1][i] << "\n";
-    }
+  {
+    // Observables as vector
+    std::vector<decltype(cudaq::spin_op::z(0))> observables{
+        cudaq::spin_op::z(0)};
+    auto results = cudaq::evolve(
+        sups, dims, schedule, initialStates, integrator, observables,
+        cudaq::IntermediateResultSave::ExpectationValue);
+    checkResults(results);
   }
 }
 
@@ -247,13 +295,6 @@ TEST(BatchedEvolveAPITester, checkBatchSizeMasterEquation) {
                                integrator, batchedCollapsedOps, {hamiltonian},
                                cudaq::IntermediateResultSave::ExpectationValue,
                                /*batchSize*/ 0),
-                 std::invalid_argument);
-
-    // More than number of work items
-    EXPECT_THROW(cudaq::evolve(batchedHams, dimensions, schedule, initialStates,
-                               integrator, batchedCollapsedOps, {hamiltonian},
-                               cudaq::IntermediateResultSave::ExpectationValue,
-                               /*batchSize*/ 10),
                  std::invalid_argument);
   }
 
@@ -297,6 +338,15 @@ TEST(BatchedEvolveAPITester, checkBatchSizeMasterEquation) {
                       /*batchSize*/ 1);
     checkResults(results);
   }
+  {
+    // More than number of work items
+    auto results =
+        cudaq::evolve(batchedHams, dimensions, schedule, initialStates,
+                      integrator, batchedCollapsedOps, {hamiltonian},
+                      cudaq::IntermediateResultSave::ExpectationValue,
+                      /*batchSize*/ 10);
+    checkResults(results);
+  }
 }
 
 TEST(BatchedEvolveAPITester, checkBatchSizeParamSuperOp) {
@@ -325,13 +375,6 @@ TEST(BatchedEvolveAPITester, checkBatchSizeParamSuperOp) {
                                {cudaq::spin_op::z(0)},
                                cudaq::IntermediateResultSave::ExpectationValue,
                                /*batchSize*/ 0),
-                 std::invalid_argument);
-
-    // More than number of work items
-    EXPECT_THROW(cudaq::evolve(sups, dims, schedule, initialStates, integrator,
-                               {cudaq::spin_op::z(0)},
-                               cudaq::IntermediateResultSave::ExpectationValue,
-                               /*batchSize*/ 10),
                  std::invalid_argument);
   }
 
@@ -372,6 +415,13 @@ TEST(BatchedEvolveAPITester, checkBatchSizeParamSuperOp) {
     auto results = cudaq::evolve(
         sups, dims, schedule, initialStates, integrator, {cudaq::spin_op::z(0)},
         cudaq::IntermediateResultSave::ExpectationValue, /*batchSize*/ 1);
+    checkResults(results);
+  }
+  {
+    // More than number of work items
+    auto results = cudaq::evolve(
+        sups, dims, schedule, initialStates, integrator, {cudaq::spin_op::z(0)},
+        cudaq::IntermediateResultSave::ExpectationValue, /*batchSize*/ 10);
     checkResults(results);
   }
 }

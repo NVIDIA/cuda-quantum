@@ -85,15 +85,7 @@ def evolve_dynamics(
                     )
                 # Only run sequentially
                 max_batch_size = 1
-            else:
-                if max_batch_size is not None and max_batch_size > batch_size:
-                    raise ValueError(
-                        f"Invalid max_batch_size {max_batch_size} for the given number of super-operators {batch_size}."
-                    )
-                if max_batch_size is not None and max_batch_size < 1:
-                    raise ValueError(
-                        f"Invalid max_batch_size {max_batch_size}. It must be at least 1."
-                    )
+
             if max_batch_size is None:
                 # Use the number of super-operators as the batch size.
                 max_batch_size = batch_size
@@ -162,15 +154,7 @@ def evolve_dynamics(
                     )
                 # Only run sequentially
                 max_batch_size = 1
-            else:
-                if max_batch_size is not None and max_batch_size > batch_size:
-                    raise ValueError(
-                        f"Invalid max_batch_size {max_batch_size} for the given number of Hamiltonian operators {batch_size}."
-                    )
-                if max_batch_size is not None and max_batch_size < 1:
-                    raise ValueError(
-                        f"Invalid max_batch_size {max_batch_size}. It must be at least 1."
-                    )
+
             if max_batch_size is None:
                 # Use the number of Hamiltonian operators as the batch size.
                 max_batch_size = batch_size

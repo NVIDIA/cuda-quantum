@@ -415,6 +415,10 @@ def evolve(
     if target_name != "dynamics" and max_batch_size is not None:
         warnings.warn(f"`batch_size` will be ignored on target {target_name}")
 
+    if max_batch_size is not None and max_batch_size < 1:
+        raise ValueError(
+            f"Invalid max_batch_size {max_batch_size}. It must be at least 1.")
+
     if isinstance(hamiltonian, Sequence):
         if len(hamiltonian) == 0:
             raise ValueError(
