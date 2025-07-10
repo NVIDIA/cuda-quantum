@@ -769,6 +769,7 @@ def test_noise_observe_reset(target: str):
         assert np.isclose(result_noiseless.expectation(), -1.)
         assert np.isclose(result_noisy.expectation(), 1.)
 
+
 @pytest.mark.parametrize('target', ['density-matrix-cpu'])
 def test_get_channel(target: str):
     cudaq.set_target(target)
@@ -797,6 +798,7 @@ def test_get_channel(target: str):
             assert len(channel.parameters) == 1
             assert channel.parameters[0] == 1.0
 
+
 @pytest.mark.parametrize('target', ['density-matrix-cpu'])
 def test_get_channel_with_control(target: str):
     cudaq.set_target(target)
@@ -807,10 +809,9 @@ def test_get_channel_with_control(target: str):
 
     noise_model.add_all_qubit_channel('x', depol2, num_controls=1)
 
-
     # Get the channel from the noise model for a specific gate and adjacent qubit pairs
     for iq in range(5):
-        channels = noise_model.get_channels('x', [iq], [iq+1])
+        channels = noise_model.get_channels('x', [iq], [iq + 1])
         assert len(channels) == 1
         channel = channels[0]
         assert channel.noise_type == cudaq.NoiseModelType.Depolarization2
@@ -820,12 +821,13 @@ def test_get_channel_with_control(target: str):
     # Check syntactic sugar for all-qubit channel with control
     noise_model.add_all_qubit_channel('cx', depol2)
     for iq in range(5):
-        channels = noise_model.get_channels('x', [iq], [iq+1])
+        channels = noise_model.get_channels('x', [iq], [iq + 1])
         assert len(channels) == 2
         for channel in channels:
             assert channel.noise_type == cudaq.NoiseModelType.Depolarization2
             assert len(channel.parameters) == 1
             assert channel.parameters[0] == 0.2
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
