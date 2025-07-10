@@ -511,7 +511,7 @@ jobs:
             amd64_image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
             echo "CUDA $cuda amd64 image: $amd64_image"
 
-            stitched_tag="ghcr.io/nvidia/cuda-quantum-devdeps:ext-cu${cuda}-gcc11-main
+            stitched_tag="ghcr.io/nvidia/cuda-quantum-devdeps:ext-cu${cuda}-gcc11-${branch}"
 
             refs="$arm64_image $amd64_image"
 
