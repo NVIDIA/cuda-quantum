@@ -163,7 +163,7 @@ Common
 .. doxygenfunction:: cudaq::range(ElementType total)
 .. doxygenfunction:: cudaq::range(ElementType begin, ElementType end, ElementType step)
 
-.. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
+.. doxygenfunction:: cudaq::contrib::draw(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenfunction:: cudaq::get_state(QuantumKernel &&kernel, Args&&... args)
 

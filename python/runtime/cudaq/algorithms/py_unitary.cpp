@@ -23,10 +23,10 @@ namespace cudaq {
 py::array pyGetUnitary(py::object &kernel, py::args args) {
   // Prepare kernel launch parameters (see py_draw.cpp for pattern)
   auto [kernelName, kernelMod, argData] =
-      details::getKernelLaunchParameters(kernel, args);
+      contrib::getKernelLaunchParameters(kernel, args);
 
   // Compute the unitary
-  auto cmat = details::get_unitary_cmat([&]() mutable {
+  auto cmat = contrib::get_unitary_cmat([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
   });

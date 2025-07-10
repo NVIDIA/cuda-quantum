@@ -17,8 +17,8 @@ namespace py = pybind11;
 namespace cudaq {
 void bindPyDraw(py::module &mod);
 
-namespace details {
+namespace contrib {
 std::tuple<std::string, MlirModule, OpaqueArguments *>
 getKernelLaunchParameters(py::object &kernel, py::args args);
-} // namespace details
+} // namespace contrib
 } // namespace cudaq
