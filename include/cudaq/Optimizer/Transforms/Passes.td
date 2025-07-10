@@ -811,6 +811,8 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
   }];
 
   let options = [
+    Option<"device", "device", "std::string", /*default=*/"\"-\"",
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
     Option<"extendedLayerSize", "extendedLayerSize", "unsigned",
            /*default=*/"20", "Extended layer size">,
     Option<"extendedLayerWeight", "extendedLayerWeight", "float",

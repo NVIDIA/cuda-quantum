@@ -81,7 +81,7 @@ def test_qft():
 # CHECK:               %[[VAL_34:.*]] = cc.load %[[VAL_29]] : !cc.ptr<i64>
 # CHECK:               %[[VAL_35:.*]] = arith.subi %[[VAL_34]], %[[VAL_33]] : i64
 # CHECK:               %[[VAL_36:.*]] = math.ipowi %[[VAL_5]], %[[VAL_35]] : i64
-# CHECK:               %[[VAL_37:.*]] = arith.sitofp %[[VAL_36]] : i64 to f64
+# CHECK:               %[[VAL_37:.*]] = cc.cast signed %[[VAL_36]] : (i64) -> f64
 # CHECK:               %[[VAL_38:.*]] = arith.divf %[[VAL_1]], %[[VAL_37]] : f64
 # CHECK:               %[[VAL_39:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_34]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:               %[[VAL_40:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_33]]] : (!quake.veq<?>, i64) -> !quake.ref
