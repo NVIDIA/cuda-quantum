@@ -47,10 +47,7 @@ protected:
     return isTerminationPoint(wire.getDefiningOp());
   }
 
-  void maybeAddAnchorPoint(Value v) {
-    if (!seen.contains(v))
-      anchor_points.insert(v);
-  }
+  void addAnchorPoint(Value v) { anchor_points.insert(v); }
 
   void calculateSubcircuitForQubitForward(OpResult v) {
     seen.insert(v);
@@ -67,25 +64,23 @@ protected:
 
     ops.insert(op);
 
+    auto nextResult = getNextResult(v);
+
     // Controlled not, figure out whether we are tracking the control
     // or target, and add an anchor point to the other qubit
     if (op->getResults().size() > 1) {
       auto control = op->getResult(0);
       auto target = op->getResult(1);
       // Is this the control or target qubit?
-      if (v.getResultNumber() == 0) {
+      if (nextResult == control)
         // Tracking the control qubit
-        calculateSubcircuitForQubitForward(control);
-        maybeAddAnchorPoint(target);
-      } else {
+        addAnchorPoint(target);
+      else
         // Tracking the target qubit
-        maybeAddAnchorPoint(control);
-        calculateSubcircuitForQubitForward(target);
-      }
-    } else {
-      // Otherwise, single qubit gate, just follow result
-      calculateSubcircuitForQubitForward(getNextResult(v));
+        addAnchorPoint(control);
     }
+
+    calculateSubcircuitForQubitForward(nextResult);
   }
 
   void calculateSubcircuitForQubitBackward(Value v) {
@@ -99,6 +94,8 @@ protected:
 
     ops.insert(op);
 
+    auto nextOperand = getNextOperand(v);
+
     // Controlled not, figure out whether we are tracking the control
     // or target, and add an anchor point to the other qubit
     // Use getResults() as Rz has two operands but only one result
@@ -106,19 +103,15 @@ protected:
       auto control = op->getOperand(0);
       auto target = op->getOperand(1);
       // Is this the control or target qubit?
-      if (v == target) {
+      if (nextOperand == control)
         // Tracking the control qubit
-        calculateSubcircuitForQubitBackward(control);
-        maybeAddAnchorPoint(target);
-      } else {
+        addAnchorPoint(target);
+      else
         // Tracking the target qubit
-        maybeAddAnchorPoint(control);
-        calculateSubcircuitForQubitBackward(target);
-      }
-    } else {
-      // Otherwise, single qubit gate, just follow operand
-      calculateSubcircuitForQubitBackward(getNextOperand(v));
+        addAnchorPoint(control);
     }
+
+    calculateSubcircuitForQubitBackward(nextOperand);
   }
 
   void calculateInitialSubcircuit(Operation *op) {
@@ -136,22 +129,24 @@ protected:
     while (!anchor_points.empty()) {
       auto next = anchor_points.back();
       anchor_points.pop_back();
+      if (seen.contains(next))
+        continue;
       calculateSubcircuitForQubitForward(dyn_cast<OpResult>(next));
-      seen.remove(next);
       calculateSubcircuitForQubitBackward(next);
     }
   }
 
   // Prune operations after a termination point from the subcircuit
   void pruneWire(Value wire, SetVector<Operation *> &pruned) {
-    if (termination_points.contains(wire))
-      termination_points.remove(wire);
     if (!wire.hasOneUse())
       return;
     Operation *op = wire.getUses().begin().getUser();
 
     if (pruned.contains(op))
       return;
+
+    if (termination_points.contains(wire))
+      termination_points.remove(wire);
 
     ops.remove(op);
     pruned.insert(op);
@@ -170,7 +165,7 @@ protected:
       pruneWire(result, pruned);
     // Adjust termination border
     for (auto operand : op->getOperands())
-      if (ops.contains(operand.getDefiningOp()))
+      if (operand.getDefiningOp() && ops.contains(operand.getDefiningOp()))
         termination_points.insert(operand);
       else if (termination_points.contains(operand) &&
                isAfterTerminationPoint(operand))
@@ -189,7 +184,7 @@ protected:
         sorted.push_back(wire);
 
     auto cmp = [](Value v1, Value v2) {
-      return v1.getDefiningOp()->isBeforeInBlock(v2.getDefiningOp());
+      return !v1.getDefiningOp()->isBeforeInBlock(v2.getDefiningOp());
     };
 
     std::sort(sorted.begin(), sorted.end(), cmp);

@@ -34,6 +34,7 @@ class PhasePolynomialPreprocessPass
     Value old_wire;
     Value new_wire;
     Subcircuit *subcircuit;
+    bool stopped = false;
 
   public:
     WireStepper(Subcircuit *circuit, Value initial, Value arg) {
@@ -43,7 +44,8 @@ class PhasePolynomialPreprocessPass
     }
 
     bool isStopped() {
-      return subcircuit->getTerminalWires().contains(old_wire);
+      return stopped ||
+             (stopped = subcircuit->getTerminalWires().contains(old_wire));
     }
 
     Value getNewWire() { return new_wire; }
@@ -52,14 +54,14 @@ class PhasePolynomialPreprocessPass
 
     void step(DenseMap<Operation *, Operation *> &cloned, OpBuilder &builder,
               std::function<Value(Value)> addFuncArg) {
-      if (isStopped())
-        return;
-
-      // TODO: Something more elegant here would be nice
+      // TODO: Something more elegant here would be nice.
+      // The problem is that the old_wire may have two uses,
+      // one in the original block, and one in the new function by the cloned
+      // op. We want to ignore the cloned op here.
       Operation *op = nullptr;
       size_t opnum = 0;
       for (auto &use : old_wire.getUses()) {
-        if (!subcircuit->getOps().contains(use.getOwner()))
+        if (use.getOwner()->hasAttr("clone"))
           continue;
         op = use.getOwner();
         opnum = use.getOperandNumber();
@@ -87,6 +89,7 @@ class PhasePolynomialPreprocessPass
 
       auto clone = builder.clone(*op);
       clone->setOperand(opnum, new_wire);
+      clone->setAttr("clone", builder.getUnitAttr());
 
       // Make classical values arguments to the function,
       // to allow non-constant rotation angles
@@ -122,8 +125,9 @@ class PhasePolynomialPreprocessPass
   }
 
   void shiftAfter(Operation *pivot, Operation *to_shift) {
-    if (to_shift->isBeforeInBlock(pivot))
-      to_shift->moveAfter(pivot);
+    if (pivot->isBeforeInBlock(to_shift))
+      return;
+    to_shift->moveAfter(pivot);
     for (auto user : to_shift->getUsers())
       shiftAfter(to_shift, user);
   }
@@ -163,8 +167,9 @@ class PhasePolynomialPreprocessPass
     while (true) {
       auto stepped = false;
       for (auto stepper : steppers) {
-        if (!stepper->isStopped())
-          stepped = true;
+        if (stepper->isStopped())
+          continue;
+        stepped = true;
         stepper->step(cloned, builder, add_arg_fun);
       }
 
@@ -181,6 +186,8 @@ class PhasePolynomialPreprocessPass
     auto cnot = subcircuit->getStart();
     auto latest = cnot;
     for (auto arg : args) {
+      if (!isa<quake::WireType>(arg.getType()))
+        continue;
       auto dop = arg.getDefiningOp();
       if (dop && latest->isBeforeInBlock(dop))
         latest = dop;
