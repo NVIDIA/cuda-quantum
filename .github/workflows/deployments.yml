@@ -576,10 +576,14 @@ jobs:
                 stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda_major}-${branch}-base"
                 stitched_key="dev-cu${cuda_major}"
               else
-                stitched_tag="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-${branch}-base"
+                if [[ "$branch" == "main" ]]; then
+                  tag_suffix="cu${cuda_major}-latest-base"
+                else
+                  tag_suffix="cu${cuda_major}-${branch}-base"
+                fi
+                stitched_tag="nvcr.io/nvidia/nightly/cuda-quantum:${tag_suffix}"
                 stitched_key="base-cu${cuda_major}"
               fi
-
               echo "Creating manifest for $stitched_tag"
               echo "Refs: $refs"
               docker buildx imagetools create \
