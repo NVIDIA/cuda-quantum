@@ -1,0 +1,29 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -canonicalize -distributed-device-call -cse %s | FileCheck %s
+
+func.func private @incrementInt(!cc.ptr<i32>) attributes {"cudaq-devicecall"}
+
+func.func @__nvqpp__mlirgen__function_callback.2(%arg0 : i64, %arg1 : i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %1 = quake.alloca !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  %2 = arith.constant 4 : i64
+  %3 = cc.device_call @addThem on %2 (%arg0, %arg1) : (i64, i64, i64) -> i64
+  return
+}
+
+func.func private @addThem(i64, i64) -> i64 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_callback.2(
+// CHECK-SAME:      %[[VAL_0:.*]]: i64, %[[VAL_1:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = call @addThem(%[[VAL_0]], %[[VAL_1]]) : (i64, i64) -> i64
+// CHECK:           return
+// CHECK:         }
