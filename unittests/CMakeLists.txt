@@ -328,6 +328,9 @@ if (CUDA_FOUND)
     dynamics/test_CuDensityMatExpectation.cpp
     dynamics/test_EvolveSingle.cpp
     dynamics/test_EvolveApi.cpp
+    dynamics/test_EvolveBatchedImpl.cpp
+    dynamics/test_BatchedEvolveApi.cpp
+    dynamics/test_BatchingDetection.cpp
   )
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_ANALOG_TARGET)
