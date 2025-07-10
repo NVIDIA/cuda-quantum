@@ -40,7 +40,7 @@ private:
 
   /// @brief Polling interval for job status via QCI's CUDA-Q endpoint in
   /// microseconds.
-  const auto QCI_CUDAQ_ENDPOINT_POLL_MICRO = 1000000;
+  const std::size_t QCI_CUDAQ_ENDPOINT_POLL_MICRO = 1000000;
 
 protected:
   /// @brief RestClient used to POST HTTP requests.

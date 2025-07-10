@@ -9,6 +9,9 @@ config:
   # Tell NVQ++ to generate glue code to set the target backend name.
   gen-target-backend: true
 
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+
   # Library mode must be off for remote backends.
   library-mode: false
 
@@ -16,7 +19,8 @@ config:
   link-libs: ["-lcudaq-rest-qpu"]
 
   # Lower the generated IR to base + feed forward.
-  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,expand-measurements,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition)"
+  #platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition)"
+  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition)"
   codegen-emission: qir-adaptive
 
 target-arguments:
