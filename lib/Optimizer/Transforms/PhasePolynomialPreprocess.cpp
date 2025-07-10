@@ -194,7 +194,7 @@ class PhasePolynomialPreprocessPass
     }
     builder.setInsertionPointAfter(latest);
 
-    fun.walk([&](Operation *op){
+    fun.walk([&](Operation *op) {
       op->removeAttr("clone");
       op->removeAttr("processed");
     });
@@ -243,3 +243,27 @@ public:
   }
 };
 } // namespace
+
+static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
+                                    bool signalFailure, bool allowBreak,
+                                    bool allowClosedInterval) {
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  cudaq::opt::LoopNormalizeOptions lno{allowClosedInterval, allowBreak};
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure, allowBreak};
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
+}
+
+void cudaq::opt::registerUnrollingPipeline() {
+  PassPipelineRegistration<UnrollPipelineOptions>(
+      "unrolling-pipeline",
+      "Fully unroll loops that can be completely unrolled.",
+      [](OpPassManager &pm, const UnrollPipelineOptions &upo) {
+        createUnrollingPipeline(pm, upo.threshold, upo.signalFailure,
+                                upo.allowBreak, upo.allowClosedInterval);
+      });
+}
