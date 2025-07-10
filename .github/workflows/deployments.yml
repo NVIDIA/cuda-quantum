@@ -453,6 +453,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Log in to NGC
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -569,7 +576,7 @@ jobs:
                 stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda_major}-${branch}-base"
                 stitched_key="dev-cu${cuda_major}"
               else
-                stitched_tag="ghcr.io/nvidia/cuda-quantum:cu${cuda_major}-${branch}-base"
+                stitched_tag="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-${branch}-base"
                 stitched_key="base-cu${cuda_major}"
               fi
 
@@ -619,7 +626,7 @@ jobs:
 
             {
               echo "source-sha: ${{ github.sha }}"
-              echo "cuda-quantum-image: ghcr.io/nvidia/cuda-quantum@$cudaq_digest"
+              echo "cuda-quantum-image: nvcr.io/nvidia/nightly/cuda-quantum@$cudaq_digest"
               echo "cuda-quantum-dev-image: ghcr.io/nvidia/cuda-quantum-dev@$dev_digest"
               echo "cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@$devdeps_digest"
               echo "platforms: linux/arm64,linux/amd64"
