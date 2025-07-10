@@ -286,8 +286,14 @@ class PyASTBridge(ast.NodeVisitor):
                     for stmt in stmts:
                         if isinstance(stmt, ast.Return):
                             return True
+
                         if isinstance(stmt, ast.If):
                             if all_paths_return(stmt.body) and all_paths_return(
+                                    stmt.orelse):
+                                return True
+
+                        if isinstance(stmt, (ast.For, ast.While)):
+                            if all_paths_return(stmt.body) or all_paths_return(
                                     stmt.orelse):
                                 return True
 
