@@ -491,9 +491,9 @@ jobs:
 
           stitched_output="{}"
 
-          echo "Creating stitched manifest for cuda-quantum-devdeps..."
+          echo "Creating stitched manifest for extdevdeps..."
           for cuda in 11.8 12.0; do
-            echo "Processing devdeps for CUDA $cuda..."
+            echo "Processing extdevdeps for CUDA $cuda..."
             for arch in amd64 arm64; do
               key="${arch}-cu${cuda}-dev-image"
               digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
@@ -517,7 +517,7 @@ jobs:
             unset ref
           done
 
-          echo "Creating stitched manifest for extdevdeps..."
+          echo "Creating stitched manifest for cuda-quantum-devdeps..."
           for cuda in 11.8 12.0; do
             cuda_major="${cuda%%.*}"
             key="arm64-cu${cuda}-ext"
@@ -528,7 +528,7 @@ jobs:
             amd64_image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
             echo "CUDA $cuda amd64 image: $amd64_image"
 
-            stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda}-ext-${branch}"
+            stitched_tag="ghcr.io/nvidia/cuda-quantum-devdeps:cu${cuda}-ext-${branch}"
 
             refs="$arm64_image $amd64_image"
 
