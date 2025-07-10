@@ -442,6 +442,8 @@ jobs:
     needs: [digest_config, ext_config]
     runs-on: ubuntu-latest
 
+    environment: ghcr-deployment
+
     outputs:
       stitched_json: ${{ steps.stitch.outputs.stitched_json }}
 
