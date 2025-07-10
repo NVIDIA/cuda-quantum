@@ -412,27 +412,35 @@ class PyASTBridge(ast.NodeVisitor):
             if cc.StdvecType.isinstance(operand.type):
                 operand = self.__copyVectorAndCastElements(operand, eleTy)
 
-        #FIXME: use cc.cast for all below
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
-                operand = arith.ExtFOp(ty, operand).result
+                operand = cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
-                operand = arith.SIToFPOp(ty, operand).result
+                zeroext = IntegerType(operand.type).width == 1
+                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                                    zint=zeroext).result
 
         if F32Type.isinstance(ty):
             if F64Type.isinstance(operand.type):
-                operand = arith.TruncFOp(ty, operand).result
+                operand = cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
-                operand = arith.SIToFPOp(ty, operand).result
+                zeroext = IntegerType(operand.type).width == 1
+                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                                    zint=zeroext).result
 
         if IntegerType.isinstance(ty):
-            if F64Type.isinstance(operand.type):
-                operand = arith.FPToSIOp(self.getIntegerType(), operand).result
+            if F64Type.isinstance(operand.type) or F32Type.isinstance(
+                    operand.type):
+                operand = cc.CastOp(ty, operand, sint=True, zint=False).result
             if IntegerType.isinstance(operand.type):
                 if IntegerType(ty).width < IntegerType(operand.type).width:
-                    operand = arith.TruncIOp(ty, operand).result
+                    operand = cc.CastOp(ty, operand).result
                 else:
-                    operand = arith.ExtSIOp(ty, operand).result
+                    zeroext = IntegerType(operand.type).width == 1
+                    operand = cc.CastOp(ty,
+                                        operand,
+                                        sint=not zeroext,
+                                        zint=zeroext).result
 
         return operand
 
@@ -3192,7 +3200,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
         self.currentNode = node
         if isinstance(node.value, bool):
-            self.pushValue(self.getConstantInt(node.value, 1))
+            boolValue = 0 if node.value == 0 else 1
+            self.pushValue(self.getConstantInt(boolValue, 1))
             return
 
         if isinstance(node.value, int):
