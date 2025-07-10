@@ -9,6 +9,7 @@
 // incorporates non-trivial control flow and conditional quantum instruction
 // invocation.
 
+// Ref: https://arxiv.org/pdf/2208.04526
 struct rwpe {
   double operator()(const int n_iter, double mu, double sigma) __qpu__ {
     int iteration = 0;
