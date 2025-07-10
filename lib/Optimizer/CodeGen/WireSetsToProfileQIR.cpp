@@ -370,7 +370,7 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
         loc, std::nullopt, cudaq::opt::QIRRecordOutput,
         ValueRange{adaptor.getMeasurement(), nameValCStr});
     if (isAdaptiveProfile) {
-      std::string funcName = toQisBodyName(std::string("read_result"));
+      std::string funcName = cudaq::opt::QIRReadResultBody;
       rewriter.replaceOpWithNewOp<func::CallOp>(
           disc, rewriter.getI1Type(), funcName,
           ValueRange{adaptor.getMeasurement()});
