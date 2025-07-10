@@ -24,4 +24,3 @@ Examples that illustrate how to use CUDA-Q for application development are avail
       Performance Optimizations <../../examples/python/performance_optimizations.ipynb>
       Using Quantum Hardware Providers <hardware_providers.rst>
       Dynamics Examples <dynamics_examples.rst>
-      Random Walk Phase Estimation <random_walk_qpe.rst>

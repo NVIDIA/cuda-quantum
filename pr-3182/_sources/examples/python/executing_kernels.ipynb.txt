@@ -12,12 +12,14 @@
     "1. `sample`: yields measurement counts\n",
     "2. `run`: yields individual return values from multiple executions\n",
     "2. `observe`: yields expectation values \n",
-    "3. `get_state`: yields the quantum statevector of the computation \n",
+    "3. `get_state`: yields the quantum statevector of the computation\n",
+    "\n",
+    "Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result. The most intensive task in the computation is the execution of the quantum kernel hence each execution function can be parallelized given access to multiple quantum processing units (multi-QPU) using: `sample_async`, `run_async`, `observe_async` and `get_state_async`.\n",
+    "Since multi-QPU platforms are not yet feasible, we emulate each QPU with a GPU.\n",
     "\n",
     "## Sample\n",
     "\n",
-    "Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA-Q `sample` call enables this: \n",
-    "\n"
+    "Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA-Q `sample` call enables this: "
    ]
   },
   {
@@ -35,7 +37,7 @@
       "q1 : ─────┤ x ├\n",
       "          ╰───╯\n",
       "\n",
-      "{ 00:531 11:469 }\n",
+      "{ 00:492 11:508 }\n",
       "\n"
      ]
     }
@@ -86,6 +88,15 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
+    "### Sample Async\n",
+    "\n",
+    "`sample` also supports asynchronous execution for the [arguments it accepts](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async). One can parallelize over various kernels, variational parameters or even distribute shots counts over multiple QPUs."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
     "## Run\n",
     "\n",
     "The `run` API executes a quantum kernel multiple times and returns each individual result. Unlike `sample`, which collects measurement statistics as counts, `run` preserves each individual return value from every execution. This is useful when you need to analyze the distribution of returned values rather than just aggregated measurement counts.\n",
@@ -106,12 +117,12 @@
      "output_type": "stream",
      "text": [
       "Executed 20 shots\n",
-      "Results: [0, 3, 0, 3, 3, 3, 3, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 0, 3]\n",
+      "Results: [0, 0, 0, 0, 0, 3, 3, 3, 0, 0, 3, 0, 0, 3, 3, 3, 0, 0, 0, 0]\n",
       "Possible values: Either 0 or 3 due to GHZ state properties\n",
       "\n",
       "Counts of each result:\n",
-      "0: 7 times\n",
-      "3: 13 times\n"
+      "0: 13 times\n",
+      "3: 7 times\n"
      ]
     }
    ],
@@ -180,16 +191,16 @@
      "output_type": "stream",
      "text": [
       "Individual measurement results:\n",
-      "Shot 0: {False, False}\ttotal ones=0\n",
-      "Shot 1: {False, False}\ttotal ones=0\n",
+      "Shot 0: {True, True}\ttotal ones=2\n",
+      "Shot 1: {True, True}\ttotal ones=2\n",
       "Shot 2: {True, True}\ttotal ones=2\n",
-      "Shot 3: {True, True}\ttotal ones=2\n",
-      "Shot 4: {True, True}\ttotal ones=2\n",
+      "Shot 3: {False, False}\ttotal ones=0\n",
+      "Shot 4: {False, False}\ttotal ones=0\n",
       "Shot 5: {True, True}\ttotal ones=2\n",
       "Shot 6: {False, False}\ttotal ones=0\n",
       "Shot 7: {False, False}\ttotal ones=0\n",
       "Shot 8: {True, True}\ttotal ones=2\n",
-      "Shot 9: {False, False}\ttotal ones=0\n",
+      "Shot 9: {True, True}\ttotal ones=2\n",
       "\n",
       "Correlated measurements: 10/10 (100.0%)\n"
      ]
@@ -252,6 +263,23 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
+    "### Run Async\n",
+    "\n",
+    "Similar to `sample_async` above, `run` also supports asynchronous execution for the [arguments it accepts](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.run_async)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "\n",
+    "*NOTE: Currently, `run` and `run_async` are only supported on simulator targets.*"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
     "\n",
     "## Observe\n",
     "\n",
@@ -287,6 +315,52 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
+    "### Observe Async\n",
+    "\n",
+    "`observe` can be a time intensive task. We can parallelize the execution of `observe` via the [arguments it accepts](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.observe_async). "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "1.1102230246251565e-16\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Set the simulation target to a multi-QPU platform \n",
+    "# cudaq.set_target(\"nvidia\", option = 'mqpu')\n",
+    "\n",
+    "# Measuring the expectation value of 2 different hamiltonians in parallel\n",
+    "hamiltonian_1 = spin.x(0) + spin.y(1) + spin.z(0)*spin.y(1)\n",
+    "# hamiltonian_2 = spin.z(1) + spin.y(0) + spin.x(1)*spin.x(0)\n",
+    "\n",
+    "# Asynchronous execution on multiple qpus via nvidia gpus.\n",
+    "result_1 = cudaq.observe_async(kernel, hamiltonian_1, qubit_count, qpu_id=0)\n",
+    "# result_2 = cudaq.observe_async(kernel, hamiltonian_2, qubit_count, qpu_id=1)\n",
+    "\n",
+    "# Retrieve results \n",
+    "print(result_1.get().expectation())\n",
+    "# print(result_2.get().expectation())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Above we parallelized the `observe` call over the `hamiltonian` parameter however we can parallelize over any of the argument it accepts by just iterating obver the `qpu_id`."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
     "\n",
     "## Get state\n",
     "\n",
@@ -295,7 +369,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 5,
+   "execution_count": 6,
    "metadata": {},
    "outputs": [
     {
@@ -328,89 +402,12 @@
    ]
   },
   {
-   "attachments": {},
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "\n",
-    "## Parallelization Techniques\n",
-    "\n",
-    "The most intensive task in the computation is the execution of the quantum kernel hence each execution function: `sample`, `observe` and `get_state` can be parallelized given access to multiple quantum processing units (multi-QPU). \n",
-    "\n",
-    "Since multi-QPU platforms are not yet feasible, we emulate each QPU with a GPU.\n",
-    "\n",
-    "\n",
-    "### Observe Async\n",
-    "\n",
-    "Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result. \n",
-    "\n",
-    "`observe` can be a time intensive task. We can parallelize the execution of `observe` via the arguments it accepts. "
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 6,
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "1.1102230246251565e-16\n"
-     ]
-    }
-   ],
-   "source": [
-    "# Set the simulation target to a multi-QPU platform \n",
-    "# cudaq.set_target(\"nvidia\", option = 'mqpu')\n",
-    "\n",
-    "# Measuring the expectation value of 2 different hamiltonians in parallel\n",
-    "hamiltonian_1 = spin.x(0) + spin.y(1) + spin.z(0)*spin.y(1)\n",
-    "# hamiltonian_2 = spin.z(1) + spin.y(0) + spin.x(1)*spin.x(0)\n",
-    "\n",
-    "# Asynchronous execution on multiple qpus via nvidia gpus.\n",
-    "result_1 = cudaq.observe_async(kernel, hamiltonian_1, qubit_count, qpu_id=0)\n",
-    "# result_2 = cudaq.observe_async(kernel, hamiltonian_2, qubit_count, qpu_id=1)\n",
-    "\n",
-    "# Retrieve results \n",
-    "print(result_1.get().expectation())\n",
-    "# print(result_2.get().expectation())"
-   ]
-  },
-  {
-   "attachments": {},
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "Above we parallelized the `observe` call over the `hamiltonian` parameter however we can parallelize over any of the argument it accepts by just iterating obver the `qpu_id`."
-   ]
-  },
-  {
-   "attachments": {},
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### Sample Async\n",
-    "\n",
-    "Similar to `observe_async` above, `sample` also supports asynchronous execution for the [arguments it accepts](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async:~:text=cudaq.sample_async(kernel%3A%20object%2C%20%5C*args%2C%20shots_count%3A%20int%20%3D%201000%2C%20qpu_id%3A%20int%20%3D%200)%E2%86%92%20cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncSampleResult). One can parallelize over various kernels, variational parameters or even distribute shots counts over multiple QPUs."
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Run Async\n",
-    "\n",
-    "Similar to `observe_async` above, `run` also supports asynchronous execution for the [arguments it accepts]. ()"
-   ]
-  },
-  {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
     "### Get State Async\n",
     "\n",
-    "Similar to `sample_async` above, `get_state` also supports asynchronous execution for the [arguments it accepts](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async:~:text=cudaq.get_state(arg0%3A%20object%2C%20%5C*args)%E2%86%92%20cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State)"
+    "Similar to `observe_async` above, `get_state` also supports asynchronous execution for the [arguments it accepts](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.get_state_async)"
    ]
   },
   {
@@ -422,12 +419,12 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 7d18aabdc76d75206f53a97f7e3cec1c5c5cd9f5)\n"
+      "CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum cd3ef17fc8354e5e7428e3abd34f8d5e14c8b09a)\n"
      ]
     }
    ],
    "source": [
-    "print(cudaq.__version__)\n"
+    "print(cudaq.__version__)"
    ]
   }
  ],

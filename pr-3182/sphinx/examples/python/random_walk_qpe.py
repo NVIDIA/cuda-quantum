@@ -11,6 +11,7 @@ import cudaq
 
 
 # Define the random walk phase estimation kernel
+# Ref: https://arxiv.org/pdf/2208.04526
 @cudaq.kernel
 def rwpe_kernel(n_iter: int, mu: float, sigma: float) -> float:
     iteration = 0

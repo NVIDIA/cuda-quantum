@@ -145,19 +145,20 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Run">Run</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#Return-Custom-Data-Types">Return Custom Data Types</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#Observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Get-state">Get state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Parallelization-Techniques">Parallelization Techniques</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#Observe-Async">Observe Async</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Sample">Sample</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#Sample-Async">Sample Async</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#Run-Async">Run Async</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Run">Run</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Return-Custom-Data-Types">Return Custom Data Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Run-Async">Run Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Observe-Async">Observe Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Get-state">Get state</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
@@ -224,7 +225,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/examples/random_walk_qpe.html">   Random Walk Phase Estimation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/applications.html">   Applications</a><ul>
@@ -904,6 +904,8 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">observe</span></code>: yields expectation values</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">get_state</span></code>: yields the quantum statevector of the computation</p></li>
 </ol>
+<p>Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result. The most intensive task in the computation is the execution of the quantum kernel hence each execution function can be parallelized given access to multiple quantum processing units
+(multi-QPU) using: <code class="docutils literal notranslate"><span class="pre">sample_async</span></code>, <code class="docutils literal notranslate"><span class="pre">run_async</span></code>, <code class="docutils literal notranslate"><span class="pre">observe_async</span></code> and <code class="docutils literal notranslate"><span class="pre">get_state_async</span></code>. Since multi-QPU platforms are not yet feasible, we emulate each QPU with a GPU.</p>
 <section id="Sample">
 <h2>Sample<a class="headerlink" href="#Sample" title="Permalink to this heading">¶</a></h2>
 <p>Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">sample</span></code> call enables this:</p>
@@ -954,12 +956,16 @@ q0 : ┤ h ├──●──
 q1 : ─────┤ x ├
           ╰───╯
 
-{ 00:531 11:469 }
+{ 00:492 11:508 }
 
 </pre></div></div>
 </div>
 <p>Note that there is a subtle difference between how <code class="docutils literal notranslate"><span class="pre">sample</span></code> is executed with the target device set to a simulator or with the target device set to a QPU. In simulation mode, the quantum state is built once and then sampled <span class="math notranslate nohighlight">\(s\)</span> times where <span class="math notranslate nohighlight">\(s\)</span> equals the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>. In hardware execution mode, the quantum state collapses upon measurement and hence needs to be rebuilt over and over again.</p>
 <p>There are a number of helpful tools that can be found in the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api">API docs</a> to process the <code class="docutils literal notranslate"><span class="pre">Sample_Result</span></code> object produced by <code class="docutils literal notranslate"><span class="pre">sample</span></code>.</p>
+<section id="Sample-Async">
+<h3>Sample Async<a class="headerlink" href="#Sample-Async" title="Permalink to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">sample</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async">arguments it accepts</a>. One can parallelize over various kernels, variational parameters or even distribute shots counts over multiple QPUs.</p>
+</section>
 </section>
 <section id="Run">
 <h2>Run<a class="headerlink" href="#Run" title="Permalink to this heading">¶</a></h2>
@@ -1021,12 +1027,12 @@ q1 : ─────┤ x ├
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Executed 20 shots
-Results: [0, 3, 0, 3, 3, 3, 3, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 0, 3]
+Results: [0, 0, 0, 0, 0, 3, 3, 3, 0, 0, 3, 0, 0, 3, 3, 3, 0, 0, 0, 0]
 Possible values: Either 0 or 3 due to GHZ state properties
 
 Counts of each result:
-0: 7 times
-3: 13 times
+0: 13 times
+3: 7 times
 </pre></div></div>
 </div>
 <section id="Return-Custom-Data-Types">
@@ -1095,20 +1101,25 @@ Counts of each result:
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Individual measurement results:
-Shot 0: {False, False}  total ones=0
-Shot 1: {False, False}  total ones=0
+Shot 0: {True, True}    total ones=2
+Shot 1: {True, True}    total ones=2
 Shot 2: {True, True}    total ones=2
-Shot 3: {True, True}    total ones=2
-Shot 4: {True, True}    total ones=2
+Shot 3: {False, False}  total ones=0
+Shot 4: {False, False}  total ones=0
 Shot 5: {True, True}    total ones=2
 Shot 6: {False, False}  total ones=0
 Shot 7: {False, False}  total ones=0
 Shot 8: {True, True}    total ones=2
-Shot 9: {False, False}  total ones=0
+Shot 9: {True, True}    total ones=2
 
 Correlated measurements: 10/10 (100.0%)
 </pre></div></div>
 </div>
+</section>
+<section id="Run-Async">
+<h3>Run Async<a class="headerlink" href="#Run-Async" title="Permalink to this heading">¶</a></h3>
+<p>Similar to <code class="docutils literal notranslate"><span class="pre">sample_async</span></code> above, <code class="docutils literal notranslate"><span class="pre">run</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.run_async">arguments it accepts</a>.</p>
+<p><em>NOTE: Currently, ``run`` and ``run_async`` are only supported on simulator targets.</em></p>
 </section>
 </section>
 <section id="Observe">
@@ -1138,48 +1149,11 @@ Correlated measurements: 10/10 (100.0%)
 &lt;H&gt; = 0.0
 </pre></div></div>
 </div>
-</section>
-<section id="Get-state">
-<h2>Get state<a class="headerlink" href="#Get-state" title="Permalink to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">get_state</span></code> function gives us access to the quantum statevector of the computation. Remember, that this is only feasible in simulation mode.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the statevector of the kernel</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[0.70710678+0.j 0.        +0.j 0.        +0.j 0.70710678+0.j]
-</pre></div></div>
-</div>
-<p>The statevector generated by the <code class="docutils literal notranslate"><span class="pre">get_state</span></code> command follows Big-endian convention for associating numbers with their binary representations, which places the least significant bit on the left. That is, for the example of a 2-bit system, we have the following translation between integers and bits:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{matrix} \text{Integer} &amp; \text{Binary representation}\\
-&amp; \text{least signinificant bit on left}\\
-0 =\textcolor{red}{0}*2^0+\textcolor{blue}{0}*2^1 &amp; \textcolor{red}{0}\textcolor{blue}{0} \\
-1 = \textcolor{red}{1}*2^0 + \textcolor{blue}{0} *2^1 &amp; \textcolor{red}{1}\textcolor{blue}{0}\\
-2 = \textcolor{red}{0}*2^0 + \textcolor{blue}{1}*2^1 &amp; \textcolor{red}{0}\textcolor{blue}{1} \\
-3 = \textcolor{red}{1}*2^0 + \textcolor{blue}{1}*2^1 &amp; \textcolor{red}{1}\textcolor{blue}{1} \end{matrix}\end{split}\]</div>
-</section>
-<section id="Parallelization-Techniques">
-<h2>Parallelization Techniques<a class="headerlink" href="#Parallelization-Techniques" title="Permalink to this heading">¶</a></h2>
-<p>The most intensive task in the computation is the execution of the quantum kernel hence each execution function: <code class="docutils literal notranslate"><span class="pre">sample</span></code>, <code class="docutils literal notranslate"><span class="pre">observe</span></code> and <code class="docutils literal notranslate"><span class="pre">get_state</span></code> can be parallelized given access to multiple quantum processing units (multi-QPU).</p>
-<p>Since multi-QPU platforms are not yet feasible, we emulate each QPU with a GPU.</p>
 <section id="Observe-Async">
 <h3>Observe Async<a class="headerlink" href="#Observe-Async" title="Permalink to this heading">¶</a></h3>
-<p>Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result.</p>
-<p><code class="docutils literal notranslate"><span class="pre">observe</span></code> can be a time intensive task. We can parallelize the execution of <code class="docutils literal notranslate"><span class="pre">observe</span></code> via the arguments it accepts.</p>
+<p><code class="docutils literal notranslate"><span class="pre">observe</span></code> can be a time intensive task. We can parallelize the execution of <code class="docutils literal notranslate"><span class="pre">observe</span></code> via the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.observe_async">arguments it accepts</a>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set the simulation target to a multi-QPU platform</span>
@@ -1209,24 +1183,19 @@ Correlated measurements: 10/10 (100.0%)
 </div>
 <p>Above we parallelized the <code class="docutils literal notranslate"><span class="pre">observe</span></code> call over the <code class="docutils literal notranslate"><span class="pre">hamiltonian</span></code> parameter however we can parallelize over any of the argument it accepts by just iterating obver the <code class="docutils literal notranslate"><span class="pre">qpu_id</span></code>.</p>
 </section>
-<section id="Sample-Async">
-<h3>Sample Async<a class="headerlink" href="#Sample-Async" title="Permalink to this heading">¶</a></h3>
-<p>Similar to <code class="docutils literal notranslate"><span class="pre">observe_async</span></code> above, <code class="docutils literal notranslate"><span class="pre">sample</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async:~:text=cudaq.sample_async(kernel%3A%20object%2C%20%5C*args%2C%20shots_count%3A%20int%20%3D%201000%2C%20qpu_id%3A%20int%20%3D%200)%E2%86%92%20cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncSampleResult">arguments it accepts</a>. One can parallelize over various kernels, variational parameters or even
-distribute shots counts over multiple QPUs.</p>
 </section>
-</section>
-<section id="Run-Async">
-<h2>Run Async<a class="headerlink" href="#Run-Async" title="Permalink to this heading">¶</a></h2>
-<p>Similar to <code class="docutils literal notranslate"><span class="pre">observe_async</span></code> above, <code class="docutils literal notranslate"><span class="pre">run</span></code> also supports asynchronous execution for the [arguments it accepts]. ()</p>
-<section id="Get-State-Async">
-<h3>Get State Async<a class="headerlink" href="#Get-State-Async" title="Permalink to this heading">¶</a></h3>
-<p>Similar to <code class="docutils literal notranslate"><span class="pre">sample_async</span></code> above, <code class="docutils literal notranslate"><span class="pre">get_state</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async:~:text=cudaq.get_state(arg0%3A%20object%2C%20%5C*args)%E2%86%92%20cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State">arguments it accepts</a></p>
+<section id="Get-state">
+<h2>Get state<a class="headerlink" href="#Get-state" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_state</span></code> function gives us access to the quantum statevector of the computation. Remember, that this is only feasible in simulation mode.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
-<br/></pre></div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the statevector of the kernel</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+</pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1234,7 +1203,34 @@ distribute shots counts over multiple QPUs.</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 7d18aabdc76d75206f53a97f7e3cec1c5c5cd9f5)
+[0.70710678+0.j 0.        +0.j 0.        +0.j 0.70710678+0.j]
+</pre></div></div>
+</div>
+<p>The statevector generated by the <code class="docutils literal notranslate"><span class="pre">get_state</span></code> command follows Big-endian convention for associating numbers with their binary representations, which places the least significant bit on the left. That is, for the example of a 2-bit system, we have the following translation between integers and bits:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{matrix} \text{Integer} &amp; \text{Binary representation}\\
+&amp; \text{least signinificant bit on left}\\
+0 =\textcolor{red}{0}*2^0+\textcolor{blue}{0}*2^1 &amp; \textcolor{red}{0}\textcolor{blue}{0} \\
+1 = \textcolor{red}{1}*2^0 + \textcolor{blue}{0} *2^1 &amp; \textcolor{red}{1}\textcolor{blue}{0}\\
+2 = \textcolor{red}{0}*2^0 + \textcolor{blue}{1}*2^1 &amp; \textcolor{red}{0}\textcolor{blue}{1} \\
+3 = \textcolor{red}{1}*2^0 + \textcolor{blue}{1}*2^1 &amp; \textcolor{red}{1}\textcolor{blue}{1} \end{matrix}\end{split}\]</div>
+<section id="Get-State-Async">
+<h3>Get State Async<a class="headerlink" href="#Get-State-Async" title="Permalink to this heading">¶</a></h3>
+<p>Similar to <code class="docutils literal notranslate"><span class="pre">observe_async</span></code> above, <code class="docutils literal notranslate"><span class="pre">get_state</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.get_state_async">arguments it accepts</a></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum cd3ef17fc8354e5e7428e3abd34f8d5e14c8b09a)
 </pre></div></div>
 </div>
 </section>

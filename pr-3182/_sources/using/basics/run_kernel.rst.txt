@@ -197,6 +197,12 @@ This is particularly useful for parallelizing execution of multiple kernels on a
 
 More information about parallelizing execution can be found at the :ref:`mqpu-platform` page.
 
+
+.. note:: 
+
+  Currently, `run` and `run_async` are only supported on simulator targets.
+
+
 Observe
 +++++++++
 
