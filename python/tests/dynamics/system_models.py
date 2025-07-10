@@ -888,7 +888,7 @@ class TestBatchedCavityModelWithBatchSize(TestSystem):
         ]
         hamiltonian_list = [number(0)] * len(decay_rates)
         initial_states = [psi0] * len(decay_rates)
-        evolution_results = cudaq.evolve(
+        evolution_results_1 = cudaq.evolve(
             hamiltonian_list,
             dimensions,
             schedule,
@@ -900,14 +900,33 @@ class TestBatchedCavityModelWithBatchSize(TestSystem):
             integrator=integrator(),
             max_batch_size=1)
 
+        evolution_results_2 = cudaq.evolve(
+            hamiltonian_list,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[number(0)],
+            collapse_operators=collapse_operators_list,
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator(),
+            max_batch_size=2)
+
         for i, decay_rate in enumerate(decay_rates):
-            evolution_result = evolution_results[i]
-            expectation_values = [
+            evolution_result_1 = evolution_results_1[i]
+            evolution_result_2 = evolution_results_2[i]
+            expectation_values_1 = [
                 exp_vals[0].expectation()
-                for exp_vals in evolution_result.expectation_values()
+                for exp_vals in evolution_result_1.expectation_values()
+            ]
+            expectation_values_2 = [
+                exp_vals[0].expectation()
+                for exp_vals in evolution_result_2.expectation_values()
             ]
             expected_answer = (N - 1) * np.exp(-decay_rate * steps)
-            np.testing.assert_allclose(expected_answer, expectation_values,
+            np.testing.assert_allclose(expected_answer, expectation_values_1,
+                                       1e-3)
+            np.testing.assert_allclose(expected_answer, expectation_values_2,
                                        1e-3)
 
 
