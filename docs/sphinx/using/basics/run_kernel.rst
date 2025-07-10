@@ -3,8 +3,9 @@ Running your first CUDA-Q Program
 
 Now that you have defined your first quantum kernel, let's look at different options for how to execute it.
 In CUDA-Q, quantum circuits are stored as quantum kernels. For estimating the probability distribution of 
-a measured quantum state in a circuit, we use the ``sample`` function call, and for computing the
-expectation value of a quantum state with a given observable, we use the ``observe`` function call.
+a measured quantum state in a circuit, we use the ``sample`` function call, for analyzing individual return values 
+from multiple executions, we use the ``run`` function call, and for computing the expectation value of a quantum 
+state with a given observable, we use the ``observe`` function call.
 
 Sample
 ++++++++
@@ -116,6 +117,85 @@ is available, for example, by choosing the target `nvidia-mqpu`:
   sampling will still have to execute sequentially due to resource constraints. 
 
 More information about parallelizing execution can be found at :ref:`mqpu-platform`  page.
+
+Run
++++++++++
+
+The `run` function executes a quantum kernel multiple times and returns each individual result. Unlike `sample`, 
+which collects measurement statistics as counts, `run` preserves each individual return value from every 
+execution. This is useful when you need to analyze the distribution of returned values rather than just 
+aggregated measurement counts.
+
+.. tab:: Python
+
+  The ``cudaq.run`` method takes a kernel and its arguments as inputs, and returns a list containing 
+  the result values from each execution. The kernel must return a non-void value.
+
+.. tab:: C++
+
+  The ``cudaq::run`` method takes a kernel and its arguments as inputs, and returns a `std::vector` containing
+  the result values from each execution. The kernel must return a non-void value.
+
+Below is an example of a quantum kernel that creates a GHZ state, measures all qubits, and returns the total 
+count of qubits in state :math:`|1\rangle`:
+
+.. tab:: Python
+
+  .. literalinclude:: ../../snippets/python/using/first_run.py
+        :language: python
+        :start-after: [Begin Run1]
+        :end-before: [End Run1]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/first_run.cpp
+        :language: cpp
+        :start-after: [Begin Run1]
+        :end-before: [End Run1]
+
+The code above will execute the kernel multiple times (defined by `shots_count`) and return a list of 
+individual results. By default, the `shots_count` for `run` is 1000.
+
+You can process the results to get statistics or other insights:
+
+.. tab:: Python
+
+  .. literalinclude:: ../../snippets/python/using/first_run.py
+        :language: python
+        :start-after: [Begin Run2]
+        :end-before: [End Run2]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/first_run.cpp
+        :language: cpp
+        :start-after: [Begin Run2]
+        :end-before: [End Run2]
+
+It is important to note the following requirements for the `run` function:
+
+- The kernel must return a non-void value
+- Supported return types include scalar types (bool, int, float) and custom data structures
+- When using custom data structures, they must be defined with `slots=True` in Python or as simple aggregates in C++
+
+Similar to `sample_async`, the `run` API also supports asynchronous execution through `run_async`. 
+This is particularly useful for parallelizing execution of multiple kernels on a multi-processor platform:
+
+.. tab:: Python
+
+  .. literalinclude:: ../../snippets/python/using/first_run.py
+        :language: python
+        :start-after: [Begin RunAsync]
+        :end-before: [End RunAsync]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/first_run.cpp
+        :language: cpp
+        :start-after: [Begin RunAsync]
+        :end-before: [End RunAsync]
+
+More information about parallelizing execution can be found at the :ref:`mqpu-platform` page.
 
 Observe
 +++++++++

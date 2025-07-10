@@ -11,9 +11,9 @@ import numpy as np
 
 
 def run_async(kernel, *args, shots_count=1, noise_model=None, qpu_id=0):
-    """ Run the provided `kernel` with the given kernel
+    """Run the provided `kernel` with the given kernel
 `arguments` over the specified number of circuit executions
- (`shots_count`) asynchronously on the specified `qpu_id`.
+(`shots_count`) asynchronously on the specified `qpu_id`.
 
 Args:
   kernel (:class:`Kernel`): The :class:`Kernel` to execute `shots_count`
