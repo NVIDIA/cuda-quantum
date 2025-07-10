@@ -224,6 +224,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/random_walk_qpe.html">   Random Walk Phase Estimation</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../using/applications.html">   Applications</a><ul class="current">
@@ -320,15 +321,24 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Setup-and-compilation">Setup and compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Load-model">Load model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Simulate-kernels">Simulate kernels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Compare-unitaries">Compare unitaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
@@ -1116,7 +1126,7 @@ Found factors of N=123 by chance: 3 and 41
 <p>The Fourier transform is a classical computation that provides a more efficient algorithm than the one encoded in <code class="docutils literal notranslate"><span class="pre">find_order_classical</span></code> for identifying the period of <span class="math notranslate nohighlight">\(f(x) = a^x\mod N\)</span>. The quantum version of the Fourier transform is the central idea of Shor’s Algorithm. This efficient quantum solution derives the period from a measurement of <span class="math notranslate nohighlight">\(n = \lceil log2(N) \rceil\)</span> qubits.</p>
 <p>The image below outlines the quantum kernel used to find the order of <span class="math notranslate nohighlight">\(a\)</span>. Notice the last step involves applying the Inverse Quantum Fourier Transform.</p>
 <p><img alt="image0" src="../../_images/shor_circuit.png" /></p>
-<p>Figure. Circuit diagram for finding the phase of the modular multiplication gate $U|x:nbsphinx-math:<cite>rangle `= |a^x:nbsphinx-math:</cite>mod <cite>N:nbsphinx-math:</cite>rangle <cite>$, which will be used to compute the order of :math:`a</cite> modulo <span class="math notranslate nohighlight">\(N\)</span>. The number of qubits in the control register determines the accuracy of estimating the phase of <span class="math notranslate nohighlight">\(U\)</span>. The size of the work register depends on <span class="math notranslate nohighlight">\(N\)</span>. The goal of this section is to code the diagram as a kernel named <code class="docutils literal notranslate"><span class="pre">phase_kernel</span></code>.</p>
+<p>Figure. Circuit diagram for finding the phase of the modular multiplication gate <span class="math notranslate nohighlight">\(U|x\rangle = |a^x\mod N\rangle\)</span>, which will be used to compute the order of <span class="math notranslate nohighlight">\(a\)</span> modulo <span class="math notranslate nohighlight">\(N\)</span>. The number of qubits in the control register determines the accuracy of estimating the phase of <span class="math notranslate nohighlight">\(U\)</span>. The size of the work register depends on <span class="math notranslate nohighlight">\(N\)</span>. The goal of this section is to code the diagram as a kernel named <code class="docutils literal notranslate"><span class="pre">phase_kernel</span></code>.</p>
 <p>We will need to create a quantum kernel for the Inverse Quantum Fourier Transform. Additionally we’ll need to create a kernel for modular multiplication: <span class="math notranslate nohighlight">\(g(y) = ay \mod N\)</span>, which can be repeatedly applied <span class="math notranslate nohighlight">\(x\)</span>-times to <span class="math notranslate nohighlight">\(y=1\)</span> to carry our modular exponentation <span class="math notranslate nohighlight">\(f(x)=a^x\mod N\)</span>.</p>
 <section id="Inverse-quantum-Fourier-transform">
 <h4>Inverse quantum Fourier transform<a class="headerlink" href="#Inverse-quantum-Fourier-transform" title="Permalink to this heading">¶</a></h4>

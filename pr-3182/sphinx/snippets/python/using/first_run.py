@@ -65,7 +65,7 @@ print(
 
 
 #[Begin RunAsync]
-# Define a simple kernel for async execution
+# Define a simple kernel for asynchronous execution
 @cudaq.kernel
 def simple_kernel(theta: float) -> bool:
     q = cudaq.qubit()
@@ -83,7 +83,7 @@ if num_gpus > 1:
     future1 = cudaq.run_async(simple_kernel, 0.0, shots_count=100, qpu_id=0)
     future2 = cudaq.run_async(simple_kernel, 3.14159, shots_count=100, qpu_id=1)
 else:
-    # Schedule for execution on the same virtual QPU, defaulting to qpu_id=0
+    # Schedule for execution on the same virtual QPU, defaulting to `qpu_id=0`
     future1 = cudaq.run_async(simple_kernel, 0.0, shots_count=100)
     future2 = cudaq.run_async(simple_kernel, 3.14159, shots_count=100)
 

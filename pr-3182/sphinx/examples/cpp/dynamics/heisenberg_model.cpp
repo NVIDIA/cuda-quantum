@@ -72,6 +72,18 @@ int main() {
   // `anisotropy`).
   std::vector<double> g_values = {0.0, 0.25, 4.0};
 
+  // Initial state vector
+  // For a 9-spin system, the Hilbert space dimension is 2^9 = 512.
+  // Initialize the state as a vector with all zeros except for a 1 at the
+  // index corresponding to our staggered state.
+  const int state_size = 1 << num_spins;
+  std::vector<std::complex<double>> psi0_data(state_size, {0.0, 0.0});
+  psi0_data[initial_state_index] = {1.0, 0.0};
+
+  // We construct a list of Hamiltonian operators for each value of g.
+  // All simulations will be batched together in a single call to `evolve`.
+  std::vector<cudaq::sum_op<cudaq::matrix_handler>> batched_hamiltonians;
+  std::vector<cudaq::state> initial_states;
   for (auto g : g_values) {
     // Set the coupling strengths:
     // `Jx` and `Jy` are set to 1.0 (coupling along X and Y axes), while `Jz` is
@@ -93,48 +105,48 @@ int main() {
           hamiltonian + Jz * cudaq::spin_op::z(i) * cudaq::spin_op::z(i + 1);
     }
 
-    // Initial state vector
-    // For a 9-spin system, the Hilbert space dimension is 2^9 = 512.
-    // Initialize the state as a vector with all zeros except for a 1 at the
-    // index corresponding to our staggered state.
-    const int state_size = 1 << num_spins;
-    std::vector<std::complex<double>> psi0_data(state_size, {0.0, 0.0});
-    psi0_data[initial_state_index] = {1.0, 0.0};
-    auto psi0 = cudaq::state::from_data(psi0_data);
-
-    // The schedule is built using the time steps array.
-    cudaq::schedule schedule(steps);
-
-    // Use a Runge-`Kutta` integrator (4`th` order) with a small time step `dt`
-    // = 0.001.
-    cudaq::integrators::runge_kutta integrator(4, 0.001);
-
-    // Evolve the initial state psi0 under the Hamiltonian, using the specified
-    // schedule and integrator. No collapse operators are included (closed
-    // system evolution). Measure the expectation value of the staggered
-    // magnetization operator at each time step.
-    auto evolve_result =
-        cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator, {},
-                      {stagged_magnetization_op},
-                      cudaq::IntermediateResultSave::ExpectationValue);
-
-    // Lambda to extract expectation values for a given observable index
-    auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
-      std::vector<double> expectations;
-
-      auto all_exps = result.expectation_values.value();
-      for (auto exp_vals : all_exps) {
-        expectations.push_back((double)exp_vals[idx]);
-      }
-      return expectations;
-    };
-
-    observe_results.push_back({g, get_expectation(0, evolve_result)});
+    // Add the Hamiltonian to the batch.
+    batched_hamiltonians.emplace_back(hamiltonian);
+    // Initial states for each simulation.
+    initial_states.emplace_back(cudaq::state::from_data(psi0_data));
   }
 
-  if (observe_results.size() != 3) {
-    std::cerr << "Unexpected number of g values" << std::endl;
+  // The schedule is built using the time steps array.
+  cudaq::schedule schedule(steps);
+
+  // Use a Runge-`Kutta` integrator (4`th` order) with a small time step `dt`
+  // = 0.001.
+  cudaq::integrators::runge_kutta integrator(4, 0.001);
+
+  // Evolve the initial state psi0 under the list of Hamiltonian operators,
+  // using the specified schedule and integrator. No collapse operators are
+  // included (closed system evolution). Measure the expectation value of the
+  // staggered magnetization operator at each time step.
+  auto evolve_results =
+      cudaq::evolve(batched_hamiltonians, dimensions, schedule, initial_states,
+                    integrator, {}, {stagged_magnetization_op},
+                    cudaq::IntermediateResultSave::ExpectationValue);
+
+  if (evolve_results.size() != g_values.size()) {
+    std::cerr << "Unexpected number of results. Expected " << g_values.size()
+              << "; got " << evolve_results.size() << std::endl;
     return 1;
+  }
+
+  // Lambda to extract expectation values for a given observable index
+  auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
+    std::vector<double> expectations;
+
+    auto all_exps = result.expectation_values.value();
+    for (auto exp_vals : all_exps) {
+      expectations.push_back((double)exp_vals[idx]);
+    }
+    return expectations;
+  };
+
+  for (std::size_t i = 0; i < g_values.size(); ++i) {
+    observe_results.push_back(
+        {g_values[i], get_expectation(0, evolve_results[i])});
   }
 
   // The `CSV` file "`heisenberg`_model.`csv`" will contain column with:

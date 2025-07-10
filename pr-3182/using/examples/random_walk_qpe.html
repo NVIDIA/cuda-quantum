@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Extending CUDA-Q &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Random Walk Phase Estimation &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Extending CUDA-Q with a new Hardware Backend" href="backend.html" />
-    <link rel="prev" title="Integrating with Third-Party Libraries" href="../integration/libraries.html" /> 
+    <link rel="next" title="CUDA-Q Applications" href="../applications.html" />
+    <link rel="prev" title="CUDA-Q Dynamics" href="dynamics_examples.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -123,13 +123,13 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">   Examples</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/building_kernels.html">   Building Kernels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/quantum_operations.html">   Quantum Operations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-states">Quantum States</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="examples.html">   Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">   Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building_kernels.html">   Building Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_operations.html">   Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-states">Quantum States</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-gates">Quantum Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
@@ -160,20 +160,20 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="expectation_values.html">   Computing Expectation Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/multi_control.html">   Multi-Control Synthesis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu">Parallel execution over multiple QPUs (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu">Parallel execution over multiple QPUs (<code class="code docutils literal notranslate"><span class="pre">mqpu</span></code>)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#batching-hamiltonian-terms">Batching Hamiltonian Terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu">Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu">Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
@@ -192,36 +192,36 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/performance_optimizations.html#Gate-Fusion">Gate Fusion</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#ionq">IonQ</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#iqm">IQM</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#oqc">OQC</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#pasqal">Pasqal</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#ionq">IonQ</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#iqm">IQM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#oqc">OQC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/dynamics_examples.html">   Dynamics Examples</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#cavity-qed">Cavity QED</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#pulse">Pulse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#qubit-dynamics">Qubit Dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#silicon-spin-qubit">Silicon Spin Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#tensor-callback">Tensor Callback</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#transmon-resonator">Transmon Resonator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#initial-state-multi-gpu-multi-node">Initial State (Multi-GPU Multi-Node)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamics_examples.html">   Dynamics Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#cavity-qed">Cavity QED</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#ion-trap">Ion Trap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#landau-zener">Landau Zener</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#pulse">Pulse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#qubit-control">Qubit Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#qubit-dynamics">Qubit Dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#silicon-spin-qubit">Silicon Spin Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#tensor-callback">Tensor Callback</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#transmon-resonator">Transmon Resonator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#initial-state-multi-gpu-multi-node">Initial State (Multi-GPU Multi-Node)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/random_walk_qpe.html">   Random Walk Phase Estimation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Random Walk Phase Estimation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">   Applications</a><ul>
@@ -622,40 +622,40 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">   Extending</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="backend.html">Add a new Hardware Backend</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend.html#directory-structure">Directory Structure</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend.html#server-helper-class">Server Helper Class</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a new Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#server-helper-class">Server Helper Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#target-configuration">Target Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#target-configuration">Target Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#testing">Testing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend.html#unit-tests">Unit Tests</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend.html#mock-server">Mock Server</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend.html#python-tests">Python Tests</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend.html#integration-tests">Integration Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#testing">Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#unit-tests">Unit Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#mock-server">Mock Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#integration-tests">Integration Tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#example-usage">Example Usage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#code-review">Code Review</a></li>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#conclusion">Conclusion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#code-review">Code Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#conclusion">Conclusion</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq_ir.html">Working with CUDA-Q IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../specification/index.html">   Specifications</a><ul>
@@ -878,28 +878,164 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Extending CUDA-Q</li>
+          <li class="breadcrumb-item"><a href="examples.html">CUDA-Q by Example</a></li>
+      <li class="breadcrumb-item active">Random Walk Phase Estimation</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/extending/extending.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/using/examples/random_walk_qpe.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="../integration/libraries.html" class="btn btn-neutral float-left" title="Integrating with Third-Party Libraries" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="backend.html" class="btn btn-neutral float-right" title="Extending CUDA-Q with a new Hardware Backend" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="dynamics_examples.html" class="btn btn-neutral float-left" title="CUDA-Q Dynamics" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../applications.html" class="btn btn-neutral float-right" title="CUDA-Q Applications" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="extending-cuda-q">
-<h1>Extending CUDA-Q<a class="headerlink" href="#extending-cuda-q" title="Permalink to this heading">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="backend.html">Add a new Hardware Backend</a></li>
-<li class="toctree-l1"><a class="reference internal" href="nvqir_simulator.html">Create a new NVQIR Simulator</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cudaq_ir.html">Working with CUDA-Q IR</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
-</ul>
+  <section id="random-walk-phase-estimation">
+<h1>Random Walk Phase Estimation<a class="headerlink" href="#random-walk-phase-estimation" title="Permalink to this heading">¶</a></h1>
+<p>CUDA-Q allows us to express complex quantum algorithms that incorporate non-trivial control flow and conditional
+quantum instruction invocation. This example demonstrates a quantum phase estimation algorithm that uses a random
+walk approach to iteratively refine the phase estimation.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
+<p>The Python implementation demonstrates how to build a quantum kernel with control flow and measurement-dependent
+operations. The kernel performs a series of controlled rotations and measurements to estimate a phase value.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run with:</span>
+<span class="c1"># ```</span>
+<span class="c1"># python3 random_walk_qpe.py</span>
+<span class="c1"># ```</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="c1"># Here we demonstrate an algorithm expressed as a CUDA-Q kernel that</span>
+<span class="c1"># incorporates non-trivial control flow and conditional quantum instruction</span>
+<span class="c1"># invocation.</span>
+
+
+<span class="c1"># Define the random walk phase estimation kernel</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rwpe_kernel</span><span class="p">(</span><span class="n">n_iter</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">mu</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Allocate the qubits</span>
+    <span class="n">number_of_qubits</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">number_of_qubits</span><span class="p">)</span>
+
+    <span class="c1"># Alias them</span>
+    <span class="n">aux</span> <span class="o">=</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">qubits</span><span class="p">[</span><span class="n">number_of_qubits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">x</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="n">iteration</span> <span class="o">&lt;</span> <span class="n">n_iter</span><span class="p">:</span>
+        <span class="n">h</span><span class="p">(</span><span class="n">aux</span><span class="p">)</span>
+        <span class="n">rz</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="n">mu</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">),</span> <span class="n">aux</span><span class="p">)</span>
+        <span class="n">rz</span><span class="p">(</span><span class="mf">.25</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">aux</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">rz</span><span class="p">(</span><span class="o">-</span><span class="mf">.25</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">aux</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">h</span><span class="p">(</span><span class="n">aux</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mz</span><span class="p">(</span><span class="n">aux</span><span class="p">):</span>
+            <span class="n">x</span><span class="p">(</span><span class="n">aux</span><span class="p">)</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">sigma</span> <span class="o">*</span> <span class="mf">.6065</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">mu</span> <span class="o">-</span> <span class="n">sigma</span> <span class="o">*</span> <span class="mf">.6065</span>
+
+        <span class="n">sigma</span> <span class="o">*=</span> <span class="mf">.7951</span>
+        <span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">mu</span>
+
+
+<span class="c1"># Main function to execute the kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">123</span><span class="p">)</span>
+    <span class="n">shots</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">n_iterations</span> <span class="o">=</span> <span class="mi">24</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="mf">0.7951</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="mf">0.6065</span>
+
+    <span class="n">phases</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">rwpe_kernel</span><span class="p">,</span> <span class="n">n_iterations</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">phase</span> <span class="ow">in</span> <span class="n">phases</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Phase = </span><span class="si">{</span><span class="n">phase</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+<p>The C++ implementation shows the same algorithm expressed as a CUDA-Q kernel with a functor structure.
+Note the similar quantum operations but with C++-specific syntax for control flow and measurements.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ random_walk_qpe.cpp -o qpe.x &amp;&amp; ./qpe.x</span>
+<span class="c1">// ```</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="c1">// Here we demonstrate an algorithm expressed as a CUDA-Q kernel that</span>
+<span class="c1">// incorporates non-trivial control flow and conditional quantum instruction</span>
+<span class="c1">// invocation.</span>
+
+<span class="k">struct</span><span class="w"> </span><span class="nc">rwpe</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">double</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n_iter</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">mu</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">sigma</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">iteration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Allocate the qubits</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Alias them</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">aux</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">front</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">back</span><span class="p">();</span>
+
+<span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">iteration</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n_iter</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">h</span><span class="p">(</span><span class="n">aux</span><span class="p">);</span>
+<span class="w">      </span><span class="n">rz</span><span class="p">(</span><span class="mf">1.0</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">mu</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">sigma</span><span class="p">),</span><span class="w"> </span><span class="n">aux</span><span class="p">);</span>
+<span class="w">      </span><span class="n">rz</span><span class="p">(</span><span class="mf">.25</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">sigma</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">aux</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="w">      </span><span class="n">rz</span><span class="p">(</span><span class="mf">-.25</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">sigma</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">aux</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="w">      </span><span class="n">h</span><span class="p">(</span><span class="n">aux</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mz</span><span class="p">(</span><span class="n">aux</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">x</span><span class="p">(</span><span class="n">aux</span><span class="p">);</span>
+<span class="w">        </span><span class="n">mu</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">sigma</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">.6065</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">mu</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">sigma</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">.6065</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="n">sigma</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="mf">.7951</span><span class="p">;</span>
+<span class="w">      </span><span class="n">iteration</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mf">2.</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">mu</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">123</span><span class="p">);</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">shots</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
+<span class="w">  </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">numIters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">24</span><span class="p">;</span>
+<span class="w">  </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">mu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.7951</span><span class="p">;</span>
+<span class="w">  </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">sigma</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.6065</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">phases</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">run</span><span class="p">(</span><span class="n">shots</span><span class="p">,</span><span class="w"> </span><span class="n">rwpe</span><span class="p">{},</span><span class="w"> </span><span class="n">numIters</span><span class="p">,</span><span class="w"> </span><span class="n">mu</span><span class="p">,</span><span class="w"> </span><span class="n">sigma</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">phase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">phases</span><span class="p">)</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Phase = %lf</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">phase</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To compile and execute this code, run the following:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>random_walk_qpe.cpp<span class="w"> </span>-o<span class="w"> </span>qpe.x
+./qpe.x
+</pre></div>
+</div>
+</div>
 </div>
 </section>
 
@@ -907,8 +1043,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../integration/libraries.html" class="btn btn-neutral float-left" title="Integrating with Third-Party Libraries" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="backend.html" class="btn btn-neutral float-right" title="Extending CUDA-Q with a new Hardware Backend" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="dynamics_examples.html" class="btn btn-neutral float-left" title="CUDA-Q Dynamics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../applications.html" class="btn btn-neutral float-right" title="CUDA-Q Applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

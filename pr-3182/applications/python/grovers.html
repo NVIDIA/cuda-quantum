@@ -224,6 +224,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/random_walk_qpe.html">   Random Walk Phase Estimation</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../using/applications.html">   Applications</a><ul class="current">
@@ -320,15 +321,24 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Setup-and-compilation">Setup and compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Load-model">Load model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Simulate-kernels">Simulate kernels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Compare-unitaries">Compare unitaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
@@ -984,7 +994,7 @@
 <p>Let us now examine the geometric picture behind our current discussion. We’ll consider the ambient Hilbert space to be spanned by the standard basis vectors <span class="math notranslate nohighlight">\(|0\rangle, |1\rangle, \dots, |N-1\rangle\)</span>, where the full dimension is <span class="math notranslate nohighlight">\(N = 2^n\)</span>. Since the uniform superposition state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> can be expressed as a linear combination of the states <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> with real coefficients, all three states <span class="math notranslate nohighlight">\(|\xi\rangle, |G\rangle,\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>
 reside in a two-dimensional real subspace of the ambient Hilbert space, which we can visualize as a 2D plane as in the image below. Since, <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> are orthogonal, we can imagine them graphed as unit vectors in the positive <span class="math notranslate nohighlight">\(y\)</span> and positive <span class="math notranslate nohighlight">\(x\)</span> directions, respectively. From our previous expression, <span class="math notranslate nohighlight">\(\ket{\xi} = \sin(\theta) |G\rangle + \cos(\theta) |B\rangle,\)</span> we see that the state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> forms an angle <span class="math notranslate nohighlight">\(\theta\)</span> with
 <span class="math notranslate nohighlight">\(|B\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="08527bdee47745b797bed4a34258b9c9" src="../../_images/grovers-2D-plane.png" /></p>
+<div style="text-align: center;"><p><img alt="5b063432b6274cb096c374499617a662" src="../../_images/grovers-2D-plane.png" /></p>
 </div><p>Given that the number of marked states <span class="math notranslate nohighlight">\(t\)</span> is typically small compared to <span class="math notranslate nohighlight">\(N\)</span>, it follows that <span class="math notranslate nohighlight">\(\theta = \arcsin\left(\sqrt{\frac{t}{N}}\right)\)</span> is a small angle. This assumption is reasonable, as otherwise, a sufficient number of independent queries to the oracle would likely yield a solution through classical search methods.</p>
 </section>
 <section id="Step-2:-Oracle-application">
@@ -1099,9 +1109,9 @@ animation below.</p>
 <div class="math notranslate nohighlight">
 \[\mathcal{G} = r_\xi \circ r_B = H^{\otimes n} \big( 2|0^{\otimes n} \rangle \langle 0^{\otimes n}| - \text{Id} \big) H^{\otimes n} \mathcal{O}_f.\]</div>
 <p>The circuit diagram below puts together steps 1 through 3:</p>
-<div style="text-align: center;"><p><img alt="54531ddac8994201b0d7bdf01c416b1a" src="../../_images/grovers-steps1-3.png" /></p>
+<div style="text-align: center;"><p><img alt="eb871ff7e9244142b072ec194cb040fe" src="../../_images/grovers-steps1-3.png" /></p>
 </div><p>Running this circuit initializes <span class="math notranslate nohighlight">\(\ket{\xi}\)</span> and performs a rotation by <span class="math notranslate nohighlight">\(2\theta\)</span> (twice the angle between <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>) in the direction from <span class="math notranslate nohighlight">\(|B\rangle\)</span> to <span class="math notranslate nohighlight">\(|G\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="1d7e235f9b0e4a2c94712f639e071afd" src="../../_images/grovers-full-rotation.png" /></p>
+<div style="text-align: center;"><p><img alt="a7fd365b310a4a2eb2ef77e22be2658a" src="../../_images/grovers-full-rotation.png" /></p>
 </div><p>Let’s verify that the state resulting from one iteration of Grover’s algorithm brings us closer to the good state, <span class="math notranslate nohighlight">\(\ket{G}\)</span>. In particular, notice that the amplitudes of <code class="docutils literal notranslate"><span class="pre">1001</span></code> and <code class="docutils literal notranslate"><span class="pre">1111</span></code> in the resulting state have been amplified compared to the equal superposition of states.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
