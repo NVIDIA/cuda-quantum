@@ -19,6 +19,13 @@
 #include <cudaq.h>
 
 int main() {
+  if (!cudaq::mpi::available()) {
+    std::cout << "MPI support is not available. Please refer to the "
+                 "documentation for instructions to activate MPI support in "
+                 "order to run this example.\n";
+    return 0;
+  }
+
   cudaq::mpi::initialize();
   std::cout << "Number of ranks = " << cudaq::mpi::num_ranks() << "\n";
   // Set up a 15-spin chain, where each spin is a two-level system.
@@ -117,7 +124,8 @@ int main() {
     // magnetization operator at each time step.
     auto evolve_result =
         cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator, {},
-                      {staggered_magnetization_op}, true);
+                      {staggered_magnetization_op},
+                      cudaq::IntermediateResultSave::ExpectationValue);
 
     // Lambda to extract expectation values for a given observable index
     auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
