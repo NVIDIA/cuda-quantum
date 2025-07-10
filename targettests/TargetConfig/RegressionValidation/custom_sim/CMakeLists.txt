@@ -5,11 +5,8 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import cudaq
-from dataclasses import dataclass
 
-
-@dataclass(slots=True)
-class TestClass:
-    i: int
-    d: float
+# This CMakeLists.txt just generates a default target config yml file
+# for a custom simulator backend. We then use lit to validate the generated yml file.
+include(${CMAKE_SOURCE_DIR}/cmake/Modules/NVQIRTargetConfigGen.cmake)
+nvqir_write_target_config(MyCustomSimulator true "${CMAKE_BINARY_DIR}/targets/MyCustomSimulator.yml")

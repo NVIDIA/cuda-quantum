@@ -33,6 +33,12 @@ def do_something():
 def check_mpi(entity):
     target = cudaq.get_target()
     numQpus = target.num_qpus()
+    if numQpus == 0:
+        pytest.skip("No QPUs available for target, skipping MPI test")
+    else:
+        print(
+            f"Target: {target}, NumQPUs: {numQpus}, MPI Ranks: {cudaq.mpi.num_ranks()}"
+        )
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)

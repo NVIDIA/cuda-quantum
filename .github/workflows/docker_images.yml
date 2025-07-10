@@ -153,11 +153,6 @@ jobs:
             org.opencontainers.image.title=open-mpi
             org.opencontainers.image.description=Open MPI dependencies of CUDA Quantum
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
-
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -309,11 +304,6 @@ jobs:
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
-
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -354,6 +344,15 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Write matrix outputs
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        with:
+          matrix-step-name: docker_images
+          matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}-dev-image
+          outputs: |
+            digest: ${{ steps.docker_build.outputs.digest }}
+            image_tag: ${{ steps.metadata.outputs.tags }}
 
       - name: Install Cosign
         if: inputs.environment
@@ -526,11 +525,6 @@ jobs:
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
-
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -631,6 +625,15 @@ jobs:
           provenance: false
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Write matrix outputs
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        with:
+          matrix-step-name: docker_images
+          matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}-image
+          outputs: |
+            digest: ${{ steps.cudaq_build.outputs.digest }}
+            image_tag: ${{ steps.cudaq_metadata.outputs.tags }}
 
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive

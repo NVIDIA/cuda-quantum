@@ -13,6 +13,7 @@ import numpy as np
 import os
 import sys
 from collections import deque
+from types import FunctionType
 
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, load_intrinsic, gen_vector_of_complex_constant,
@@ -411,27 +412,35 @@ class PyASTBridge(ast.NodeVisitor):
             if cc.StdvecType.isinstance(operand.type):
                 operand = self.__copyVectorAndCastElements(operand, eleTy)
 
-        #FIXME: use cc.cast for all below
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
-                operand = arith.ExtFOp(ty, operand).result
+                operand = cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
-                operand = arith.SIToFPOp(ty, operand).result
+                zeroext = IntegerType(operand.type).width == 1
+                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                                    zint=zeroext).result
 
         if F32Type.isinstance(ty):
             if F64Type.isinstance(operand.type):
-                operand = arith.TruncFOp(ty, operand).result
+                operand = cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
-                operand = arith.SIToFPOp(ty, operand).result
+                zeroext = IntegerType(operand.type).width == 1
+                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                                    zint=zeroext).result
 
         if IntegerType.isinstance(ty):
-            if F64Type.isinstance(operand.type):
-                operand = arith.FPToSIOp(self.getIntegerType(), operand).result
+            if F64Type.isinstance(operand.type) or F32Type.isinstance(
+                    operand.type):
+                operand = cc.CastOp(ty, operand, sint=True, zint=False).result
             if IntegerType.isinstance(operand.type):
                 if IntegerType(ty).width < IntegerType(operand.type).width:
-                    operand = arith.TruncIOp(ty, operand).result
+                    operand = cc.CastOp(ty, operand).result
                 else:
-                    operand = arith.ExtSIOp(ty, operand).result
+                    zeroext = IntegerType(operand.type).width == 1
+                    operand = cc.CastOp(ty,
+                                        operand,
+                                        sint=not zeroext,
+                                        zint=zeroext).result
 
         return operand
 
@@ -2176,11 +2185,10 @@ class PyASTBridge(ast.NodeVisitor):
                 cls, annotations = globalRegisteredTypes.getClassAttributes(
                     node.func.id)
 
-                for var, typ in annotations.items():
-                    if typ not in ALLOWED_TYPES_IN_A_DATACLASS:
-                        self.emitFatalError(
-                            f'`{typ}` type is not yet supported in data classes. The allowed types are: {ALLOWED_TYPES_IN_A_DATACLASS}.',
-                            node)
+                if '__slots__' not in cls.__dict__:
+                    self.emitWarning(
+                        f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True).",
+                        node)
 
                 # Alloca the struct
                 structTys = [
@@ -2210,12 +2218,12 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
                 else:
                     structTy = cc.StructType.getNamed(node.func.id, structTys)
-
                 # Disallow user specified methods on structs
                 if len({
                         k: v
                         for k, v in cls.__dict__.items()
-                        if not (k.startswith('__') and k.endswith('__'))
+                        if not (k.startswith('__') and k.endswith('__')) and
+                        isinstance(v, FunctionType)
                 }) != 0:
                     self.emitFatalError(
                         'struct types with user specified methods are not allowed.',
@@ -3192,7 +3200,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
         self.currentNode = node
         if isinstance(node.value, bool):
-            self.pushValue(self.getConstantInt(node.value, 1))
+            boolValue = 0 if node.value == 0 else 1
+            self.pushValue(self.getConstantInt(boolValue, 1))
             return
 
         if isinstance(node.value, int):
