@@ -194,6 +194,11 @@ class PhasePolynomialPreprocessPass
     }
     builder.setInsertionPointAfter(latest);
 
+    fun.walk([&](Operation *op){
+      op->removeAttr("clone");
+      op->removeAttr("processed");
+    });
+
     auto call = builder.create<func::CallOp>(cnot->getLoc(), types,
                                              fun.getSymNameAttr(), args);
     for (size_t i = 0; i < steppers.size(); i++)
