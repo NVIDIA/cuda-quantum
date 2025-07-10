@@ -3484,12 +3484,6 @@ class PyASTBridge(ast.NodeVisitor):
         ITERABLEs are the `veq` type, the `stdvec` type, and the result of 
         range() and enumerate(). 
         """
-        # Reject any code with for...else block
-        if node.orelse:
-            self.emitFatalError(
-                'cudaq.kernel functions must not use a for...else clause.',
-                node)
-
         self.currentNode = node
 
         # We can simplify `for i in range(N)` MLIR code immensely
@@ -3515,6 +3509,12 @@ class PyASTBridge(ast.NodeVisitor):
                                             startVal=startVal,
                                             stepVal=stepVal,
                                             isDecrementing=isDecrementing)
+
+                # Handle the `else` branch of a for loop
+                if node.orelse:
+                    for stmt in node.orelse:
+                        self.visit(stmt)
+
                 return
 
         # We can simplify `for i,j in enumerate(L)` MLIR code immensely
@@ -3583,6 +3583,10 @@ class PyASTBridge(ast.NodeVisitor):
                         self.symbolTable.popScope()
 
                     self.createInvariantForLoop(totalSize, bodyBuilder)
+                    # Handle the `else` branch of a for loop
+                    if node.orelse:
+                        for stmt in node.orelse:
+                            self.visit(stmt)
                     return
 
         self.visit(node.iter)
@@ -3702,16 +3706,15 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.createInvariantForLoop(totalSize, bodyBuilder)
 
+        # Handle the `else` branch of a for loop
+        if node.orelse:
+            for stmt in node.orelse:
+                self.visit(stmt)
+
     def visit_While(self, node):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
-        # Reject any code with while...else block
-        if node.orelse:
-            self.emitFatalError(
-                'cudaq.kernel functions must not use a while...else clause.',
-                node)
-
         self.currentNode = node
 
         loop = cc.LoopOp([], [], BoolAttr.get(False))
@@ -3740,6 +3743,11 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.ContinueOp([])
             self.popForBodyStack()
             self.symbolTable.popScope()
+
+        # Handle the `else` branch of a while loop
+        if node.orelse:
+            for stmt in node.orelse:
+                self.visit(stmt)
 
     def visit_BoolOp(self, node):
         """
