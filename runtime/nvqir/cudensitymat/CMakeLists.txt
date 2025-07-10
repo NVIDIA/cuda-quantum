@@ -83,6 +83,8 @@ if (${CUDENSITYMAT_VERSION} VERSION_GREATER_EQUAL "0.2")
     CuDensityMatState.cpp
     CuDensityMatContext.cpp
     CuDensityMatOpConverter.cpp
+    CuDensityMatCallbackConverter.cpp
+    CuDensityMatSuperOpCtor.cpp
     CuDensityMatUtils.cpp
   )
 

@@ -151,6 +151,13 @@ public:
   /// @brief Get iterator to end of operator terms
   const_iterator end() const { return const_iterator(this, this->num_terms()); }
 
+  /// @brief Operator to get the product term at a particular index.
+  product_op<HandlerTy> operator[](std::size_t idx) const {
+    if (idx >= this->num_terms())
+      throw std::out_of_range("Index out of range in sum_op::operator[]");
+    return product_op<HandlerTy>(this->coefficients[idx], this->terms[idx]);
+  }
+
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.
@@ -1029,6 +1036,13 @@ public:
     return const_iterator(this, this->operators.size());
   }
 
+  /// @brief Operator to get the operator at a particular index.
+  HandlerTy operator[](std::size_t idx) const {
+    if (idx >= this->operators.size())
+      throw std::out_of_range("Index out of range in product_op::operator[]");
+    return this->operators[idx];
+  }
+
   // read-only properties
 
 #if !defined(NDEBUG)
@@ -1844,6 +1858,15 @@ public:
 
   /// @brief Get iterator to end of operator terms
   const_iterator end() const;
+
+  /// @brief Get a reference to a specific term in the super-operator
+  /// @param idx Index of the term to retrieve
+  /// @return Reference to the specified term
+  const term &operator[](std::size_t idx) const { return m_terms[idx]; }
+
+  /// @brief Get the number of terms in the super-operator
+  /// @return Number of terms
+  std::size_t num_terms() const { return m_terms.size(); }
 
 private:
   /// @brief Construct a super-operator from a term

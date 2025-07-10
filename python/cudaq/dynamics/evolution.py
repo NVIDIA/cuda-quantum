@@ -315,16 +315,18 @@ def evolve_single(
 
 # Top level API for the CUDA-Q master equation solver.
 def evolve(
-    hamiltonian: Operator | SuperOperator,
+    hamiltonian: Operator | SuperOperator | Sequence[Operator] |
+    Sequence[SuperOperator],
     dimensions: Mapping[int, int] = {},
     schedule: Schedule = None,
     initial_state: InitialStateArgT | Sequence[InitialStateArgT] = None,
-    collapse_operators: Sequence[Operator] = [],
+    collapse_operators: Sequence[Operator] | Sequence[Sequence[Operator]] = [],
     observables: Sequence[Operator] = [],
     store_intermediate_results: IntermediateResultSave |
     bool = IntermediateResultSave.NONE,
     integrator: Optional[BaseIntegrator] = None,
-    shots_count: Optional[int] = None
+    shots_count: Optional[int] = None,
+    max_batch_size: Optional[int] = None
 ) -> cudaq_runtime.EvolveResult | Sequence[cudaq_runtime.EvolveResult]:
     """
     Computes the time evolution of one or more initial state(s) under the defined 
@@ -410,6 +412,43 @@ def evolve(
     if target_name == "dynamics" and shots_count is not None:
         warnings.warn(f"`shots_count` will be ignored on target {target_name}")
 
+    if target_name != "dynamics" and max_batch_size is not None:
+        warnings.warn(f"`batch_size` will be ignored on target {target_name}")
+
+    if max_batch_size is not None and max_batch_size < 1:
+        raise ValueError(
+            f"Invalid max_batch_size {max_batch_size}. It must be at least 1.")
+
+    if isinstance(hamiltonian, Sequence):
+        if len(hamiltonian) == 0:
+            raise ValueError(
+                "If `hamiltonian` is a sequence, then it must not be empty.")
+
+        # This is batched operators evolve.
+        # Broadcast the initial state to the same length as the hamiltonian if it is a single state.
+        if not isinstance(initial_state, Sequence):
+            initial_state = [initial_state] * len(hamiltonian)
+
+        if len(hamiltonian) != len(initial_state):
+            raise ValueError(
+                "If `hamiltonian` is a sequence, then `initial_state` must be a sequence of the same length."
+            )
+
+        if isinstance(hamiltonian[0], Operator):
+            if len(collapse_operators) == 0:
+                collapse_operators = [[] for _ in range(len(hamiltonian))]
+
+            if len(hamiltonian) != len(collapse_operators):
+                raise ValueError(
+                    "If `hamiltonian` is a sequence, then `collapse_operators` must be a sequence of the same length."
+                )
+
+            for collapse_ops in collapse_operators:
+                if not isinstance(collapse_ops, Sequence):
+                    raise ValueError(
+                        "If `hamiltonian` is a sequence, then `collapse_operators` must be a sequence of lists of collapse operators (nested sequence)."
+                    )
+
     if target_name == "dynamics":
         try:
             from .cudm_solver import evolve_dynamics
@@ -419,14 +458,16 @@ def evolve(
             )
         return evolve_dynamics(hamiltonian, dimensions, schedule, initial_state,
                                collapse_operators, observables,
-                               store_intermediate_results, integrator)
+                               store_intermediate_results, integrator,
+                               max_batch_size)
     else:
         if isinstance(initial_state, Sequence):
             return [
-                evolve_single(hamiltonian, dimensions, schedule, state,
-                              collapse_operators, observables,
-                              store_intermediate_results, integrator,
-                              shots_count) for state in initial_state
+                evolve_single(ham, dimensions, schedule, state, collapse_ops,
+                              observables, store_intermediate_results,
+                              integrator, shots_count)
+                for ham, state, collapse_ops in zip(hamiltonian, initial_state,
+                                                    collapse_operators)
             ]
         else:
             return evolve_single(hamiltonian, dimensions, schedule,
