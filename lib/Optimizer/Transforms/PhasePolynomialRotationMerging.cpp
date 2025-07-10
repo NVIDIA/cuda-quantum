@@ -240,6 +240,9 @@ class PhasePolynomialRotationMergingPass
     bool isStopped() {
       Operation *op = *wire.getUsers().begin();
       assert(op);
+      // Have to have explicit check for termination point
+      // because rotation merging may have removed old termination
+      // point
       return isTerminationPoint(op);
     }
 
