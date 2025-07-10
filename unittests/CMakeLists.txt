@@ -310,6 +310,16 @@ if (CUDA_FOUND)
         ${CUTENSOR_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
   )
 
+  find_library(CUTENSORNET_LIB
+    NAMES   cutensornet libcutensornet.so.2
+    HINTS   
+        ${CUTENSORNET_ROOT}/lib64
+        ${CUTENSORNET_ROOT}/lib
+        ${CUTENSORNET_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
+        ${CUTENSORNET_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
+        ${CUDENSITYMAT_ROOT}/lib/
+)
+
   # Create an executable for dynamics UnitTests
   set(CUDAQ_DYNAMICS_TEST_SOURCES
     dynamics/test_RungeKuttaIntegrator.cpp
@@ -333,6 +343,8 @@ if (CUDA_FOUND)
     CUDA::cudart
     CUDA::cublas
     ${CUTENSOR_LIB}
+    CUDA::cusparse
+    ${CUTENSORNET_LIB}
     gtest_main
     fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
@@ -354,6 +366,8 @@ if (CUDA_FOUND)
     CUDA::cudart
     CUDA::cublas
     ${CUTENSOR_LIB}
+    CUDA::cusparse
+    ${CUTENSORNET_LIB}
     gtest_main
     fmt::fmt-header-only)
   # Count the number of GPUs

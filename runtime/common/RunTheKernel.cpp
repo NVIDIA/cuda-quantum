@@ -46,6 +46,9 @@ private:
 } // namespace details
 } // namespace cudaq
 
+static std::once_flag enableQuantumDeviceRunOnce;
+static bool enableQuantumDeviceRun = false;
+
 MLIRContext *cudaq::details::LayoutExtractor::createContext() {
   DialectRegistry registry;
   cudaq::opt::registerCodeGenDialect(registry);
@@ -103,38 +106,47 @@ cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
 
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
-    const std::string &kernel_name, std::size_t shots) {
+    const std::string &kernel_name, std::size_t shots, std::size_t qpu_id) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   circuitSimulator->outputLog.clear();
 
+  std::call_once(enableQuantumDeviceRunOnce, []() {
+    enableQuantumDeviceRun =
+        getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
+  });
+
+  bool isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
+  bool isQuantumDevice =
+      (platform.is_remote() || platform.is_emulated()) && !isRemoteSimulator;
+
   // 2. Launch the kernel on the QPU.
-  if (platform.get_remote_capabilities().isRemoteSimulator) {
-    // In a remote simulator execution, set the `run` context name and number of
-    // iterations (shots)
+  if (isRemoteSimulator || (isQuantumDevice && enableQuantumDeviceRun)) {
+    // In a remote simulator execution/hardware emulation environment, set the
+    // `run` context name and number of iterations (shots)
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", shots);
-    platform.set_exec_ctx(ctx.get());
+    platform.set_exec_ctx(ctx.get(), qpu_id);
     // Launch the kernel a single time to post the 'run' request to the remote
     // server or emulation executor.
     kernel();
-    platform.reset_exec_ctx();
+    platform.reset_exec_ctx(qpu_id);
     // Retrieve the result output log.
     // FIXME: this currently assumes all the shots are good.
     std::string remoteOutputLog(ctx->invocationResultBuffer.begin(),
                                 ctx->invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
-  } else if (platform.is_remote() || platform.is_emulated()) {
+  } else if (isQuantumDevice && !enableQuantumDeviceRun) {
     throw std::runtime_error("`run` is not yet supported on this target.");
   } else {
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
     for (std::size_t i = 0; i < shots; ++i) {
       // Set the execution context since as noise model is attached to this
       // context.
-      platform.set_exec_ctx(ctx.get());
+      platform.set_exec_ctx(ctx.get(), qpu_id);
       kernel();
       // Reset the context to flush qubit deallocation.
-      platform.reset_exec_ctx();
+      platform.reset_exec_ctx(qpu_id);
     }
   }
 
