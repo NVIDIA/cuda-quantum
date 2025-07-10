@@ -169,11 +169,6 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto fnTy = cast<FunctionType>(popType());
       return pushType(cc::IndirectCallableType::get(fnTy));
     }
-    if (name.equals("device_ptr")) {
-      auto i64Ty = builder.getI64Type();
-      return pushType(
-          cc::StructType::get(ctx, "device_ptr", {i64Ty, i64Ty, i64Ty}));
-    }
     if (!isInNamespace(x, "solvers") && !isInNamespace(x, "qec")) {
       auto loc = toLocation(x);
       TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
@@ -363,18 +358,6 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
   // If we're already generating code (this FunctionDecl is nested), we only
   // traverse the type, adding the function type to the type stack.
   if (builder.getBlock()) {
-    if (isInNamespace(x, "cudaq") && isInNamespace(x, "driver")) {
-      StringRef funcName;
-      if (auto *id = x->getIdentifier())
-        funcName = id->getName();
-      if (funcName == "malloc" && x->isFunctionTemplateSpecialization()) {
-        x->getTemplateSpecializationArgs()->get(0).getAsType()->dump();
-        if (!TraverseType(
-                x->getTemplateSpecializationArgs()->get(0).getAsType()))
-          return false;
-        extraType = popType();
-      }
-    }
     if (!TraverseType(x->getType()))
       return false;
     return WalkUpFromFunctionDecl(x);
