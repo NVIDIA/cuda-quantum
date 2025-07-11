@@ -3762,21 +3762,6 @@ class PyASTBridge(ast.NodeVisitor):
             self.popForBodyStack()
             self.symbolTable.popScope()
 
-        stepBlock = Block.create_at_start(loop.stepRegion, [])
-        with InsertionPoint(stepBlock):
-            cc.ContinueOp([])
-
-        # Handle the `else` branch of a while loop
-        if node.orelse:
-            elseBlock = Block.create_at_start(loop.elseRegion, [])
-            with InsertionPoint(elseBlock):
-                self.symbolTable.pushScope()
-                for stmt in node.orelse:
-                    self.visit(stmt)
-                if not self.hasTerminator(elseBlock):
-                    cc.ContinueOp([])
-                self.symbolTable.popScope()
-
     def visit_BoolOp(self, node):
         """
         Convert boolean operations into equivalent MLIR operations using 
