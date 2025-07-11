@@ -244,26 +244,40 @@ public:
 };
 } // namespace
 
-static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
-                                    bool signalFailure, bool allowBreak,
-                                    bool allowClosedInterval) {
+static void createPhasePolynomialOptPipeline(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  //opt::LoopUnrollOptions luo;
+  //luo.threshold = 2048;
+  //pm.addNestedPass<func::FuncOp>(opt::createLoopUnroll(luo));
+  //pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  //pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createFactorQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::LoopNormalizeOptions lno{allowClosedInterval, allowBreak};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize(lno));
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addPass(cudaq::opt::createPhasePolynomialPreprocess());
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createPhasePolynomialRotationMerging());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure, allowBreak};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  cudaq::opt::addAggressiveEarlyInlining(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createCombineQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
 
-void cudaq::opt::registerUnrollingPipeline() {
-  PassPipelineRegistration<UnrollPipelineOptions>(
-      "unrolling-pipeline",
-      "Fully unroll loops that can be completely unrolled.",
-      [](OpPassManager &pm, const UnrollPipelineOptions &upo) {
-        createUnrollingPipeline(pm, upo.threshold, upo.signalFailure,
-                                upo.allowBreak, upo.allowClosedInterval);
+void cudaq::opt::registerPhasePolynomialOptimizationPipeline() {
+  PassPipelineRegistration<>(
+      "phase-polynomial-opt-pipeline",
+      "Apply phase polynomial based rotation merging.",
+      [](OpPassManager &pm) {
+        createPhasePolynomialOptPipeline(pm);
       });
 }
