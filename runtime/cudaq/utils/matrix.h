@@ -27,11 +27,6 @@ namespace cudaq {
 
 class complex_matrix;
 
-namespace details {
-pybind11::array_t<std::complex<double>, 0x0010>
-cmat_to_numpy(const complex_matrix &cmat);
-} // namespace details
-
 complex_matrix operator*(const complex_matrix &, const complex_matrix &);
 std::vector<std::complex<double>>
 operator*(const complex_matrix &, const std::vector<std::complex<double>> &);
