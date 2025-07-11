@@ -888,9 +888,11 @@
 pertinent data structures and library functions exist within the CUDA-Q
 namespace. This namespace is denoted <code class="code docutils literal notranslate"><span class="pre">::cudaq</span></code>.</p>
 <p><strong>[2]</strong> The <code class="code docutils literal notranslate"><span class="pre">cudaq::contrib</span></code> namespace contains features contributed by
-the larger community. While perfectly functional, these features may not have
-been fully optimized for all possible use cases. In addition, they might have
-breaking changes or can be removed in future releases.</p>
+the larger community. While these features provide useful functionality and are
+maintained across releases, they may be more limited in functionality and may
+not cover some scenarios. If you encounter issues or would like to request more
+extensive features, please file a GitHub issue and we will consider them for a
+future release.</p>
 <p><strong>[3]</strong> CUDA-Q is a C++ library-based language extension adherent to the <a class="reference external" href="https://en.cppreference.com/w/cpp/20">C++20</a>
 language specification. Any implementations that require backwards compatibility to previous
 standards must retain the semantics of the user-facing API (e.g. <a class="reference external" href="https://en.cppreference.com/w/cpp/language/sfinae">SFINAE</a>

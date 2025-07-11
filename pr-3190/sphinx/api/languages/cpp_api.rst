@@ -357,6 +357,10 @@ Utilities
 .. doxygentypedef:: cudaq::real 
 
 .. doxygenfunction:: cudaq::range(std::size_t)
+
+.. doxygenfunction:: cudaq::contrib::draw(QuantumKernel &&kernel, Args&&... args)
+
+.. doxygenfunction:: cudaq::contrib::get_unitary_cmat(QuantumKernel &&kernel, Args&&... args)
     
 Namespaces 
 ===========
@@ -368,6 +372,9 @@ Namespaces
 .. doxygenfunction:: cudaq::set_random_seed
 .. doxygenfunction:: cudaq::set_noise
 .. doxygenfunction:: cudaq::unset_noise
+    
+.. doxygennamespace:: cudaq::contrib
+    :desc-only:
 
 .. doxygennamespace:: cudaq::details
     :desc-only:
