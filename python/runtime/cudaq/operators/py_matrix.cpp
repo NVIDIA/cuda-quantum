@@ -13,6 +13,7 @@
 
 #include "cudaq/utils/matrix.h"
 #include "py_matrix.h"
+#include "py_helpers.h"
 
 #include <complex>
 
@@ -87,17 +88,7 @@ void bindComplexMatrix(py::module &mod) {
            "Returns the string representation of the matrix.")
       .def(
           "to_numpy",
-          [](const complex_matrix &m) {
-            std::vector<ssize_t> shape = {static_cast<ssize_t>(m.rows()),
-                                          static_cast<ssize_t>(m.cols())};
-            std::vector<ssize_t> strides = {
-                static_cast<ssize_t>(sizeof(std::complex<double>) * m.cols()),
-                static_cast<ssize_t>(sizeof(std::complex<double>))};
-
-            // Return a numpy array without copying data
-            return py::array_t<std::complex<double>>(shape, strides,
-                                                     m.get_data());
-          },
+          [](const complex_matrix &m) { return details::cmat_to_numpy(m); },
           "Convert :class:`ComplexMatrix` to numpy.ndarray.");
 }
 
