@@ -63,6 +63,8 @@ Kernel Execution
 
 .. autofunction:: cudaq::sample
 .. autofunction:: cudaq::sample_async
+.. autofunction:: cudaq::run
+.. autofunction:: cudaq::run_async    
 .. autofunction:: cudaq::observe
 .. autofunction:: cudaq::observe_async
 .. autofunction:: cudaq::get_state
