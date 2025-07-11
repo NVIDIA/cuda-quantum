@@ -36,7 +36,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="The UCCSD Wavefunction ansatz" href="uccsd_wf_ansatz.html" />
-    <link rel="prev" title="Generating the electronic Hamiltonian" href="generate_fermionic_ham.html" /> 
+    <link rel="prev" title="Grover’s Algorithm" href="grovers.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -51,7 +51,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                latest
+                arm64-cu11-latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -415,6 +415,19 @@
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grovers.html">Grover’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grovers.html#Overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grovers.html#Problem">Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grovers.html#Structure-of-Grover's-Algorithm">Structure of Grover’s Algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="grovers.html#Step-1:-Preparation">Step 1: Preparation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="grovers.html#Good-and-Bad-States">Good and Bad States</a></li>
+<li class="toctree-l4"><a class="reference internal" href="grovers.html#Step-2:-Oracle-application">Step 2: Oracle application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="grovers.html#Step-3:-Amplitude-amplification">Step 3: Amplitude amplification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="grovers.html#Steps-4-and-5:-Iteration-and-measurement">Steps 4 and 5: Iteration and measurement</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Quantum PageRank</a><ul>
@@ -854,7 +867,7 @@
             <a href="../../_sources/applications/python/quantum_pagerank.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="generate_fermionic_ham.html" class="btn btn-neutral float-left" title="Generating the electronic Hamiltonian" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="grovers.html" class="btn btn-neutral float-left" title="Grover’s Algorithm" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="uccsd_wf_ansatz.html" class="btn btn-neutral float-right" title="The UCCSD Wavefunction ansatz" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -888,9 +901,9 @@
 <h2>Problem Definition<a class="headerlink" href="#Problem-Definition" title="Permalink to this heading">¶</a></h2>
 <p><strong>PageRank</strong> is an algorithm used to rank nodes—such as web pages or individuals—in directed or undirected graphs based on their relative importance.</p>
 <div class="line-block">
-<div class="line">Given a graph $ G = (V, E) $:</div>
-<div class="line">- $ V $ is the set of nodes (e.g., web pages, individuals).</div>
-<div class="line">- $ E $ is the set of edges (e.g., hyperlinks/connections between pages/individuals).</div>
+<div class="line">Given a graph <span class="math notranslate nohighlight">\(G = (V, E)\)</span>:</div>
+<div class="line">- <span class="math notranslate nohighlight">\(V\)</span> is the set of nodes (e.g., web pages, individuals).</div>
+<div class="line">- <span class="math notranslate nohighlight">\(E\)</span> is the set of edges (e.g., hyperlinks/connections between pages/individuals).</div>
 </div>
 <p>The goal is to assign an importance score to each node based on the number and importance of incoming links.</p>
 <hr class="docutils" />
@@ -914,8 +927,8 @@
 <img alt="../../_images/applications_python_quantum_pagerank_5_0.png" src="../../_images/applications_python_quantum_pagerank_5_0.png" />
 </div>
 </div>
-<p>The mathematical foundations of the PageRank algorithm include <strong>Link matrix :math:`mathbf{L}`</strong> and <strong>PageRank Matrix :math:`mathbf{P}`</strong>. Let’s explore their definitions and meanings: For <strong>Social Network Analysis (SNA)</strong>, the <strong>Link matrix :math:`mathbf{L}`</strong> is used to represent how influence, information, or relationships flow between people (nodes). The entry <span class="math notranslate nohighlight">\(L_{ij}\)</span> in row <span class="math notranslate nohighlight">\(i\)</span>, column <span class="math notranslate nohighlight">\(j\)</span> of the matrix shows how much influence person <span class="math notranslate nohighlight">\(j\)</span> gives to person
-<span class="math notranslate nohighlight">\(i\)</span> with the following definition:</p>
+<p>The mathematical foundations of the PageRank algorithm include <strong>Link matrix</strong> <span class="math notranslate nohighlight">\(\mathbf{L}\)</span> and <strong>PageRank Matrix</strong> <span class="math notranslate nohighlight">\(\mathbf{P}\)</span>. Let’s explore their definitions and meanings: For <strong>Social Network Analysis (SNA)</strong>, the Link matrix <span class="math notranslate nohighlight">\(\mathbf{L}\)</span> is used to represent how influence, information, or relationships flow between people (nodes). The entry <span class="math notranslate nohighlight">\(L_{ij}\)</span> in row <span class="math notranslate nohighlight">\(i\)</span>, column <span class="math notranslate nohighlight">\(j\)</span> of the matrix shows how much influence person <span class="math notranslate nohighlight">\(j\)</span> gives to person <span class="math notranslate nohighlight">\(i\)</span>
+with the following definition:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}L_{ij} =
 \begin{cases}
@@ -964,22 +977,24 @@
 <h2>Simulating Quantum PageRank by CUDA-Q dynamics<a class="headerlink" href="#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics" title="Permalink to this heading">¶</a></h2>
 <p>Instead of computing PageRank iteratively by <a class="reference external" href="https://en.wikipedia.org/wiki/PageRank#Power_method">the power method</a>, we aim to introduce a <a class="reference external" href="https://www.nature.com/articles/srep00605">quantum version of PageRank</a> that solves the ranking problem by leveraging the principles of quantum mechanics, specifically <a class="reference external" href="https://journals.aps.org/pra/abstract/10.1103/PhysRevA.81.022323">Quantum Stochastic Walk (QSW)</a>, which generalizes classical random walks by incorporating both <strong>coherent quantum
 evolution</strong> and <strong>incoherent stochastic dynamics</strong>, described by the <strong>Lindblad master equation</strong>:</p>
-<p>$ <span class="math">\frac{d\rho}{dt}</span> = -i(1-<span class="math">\omega</span>)[H, <span class="math">\rho</span>] + <span class="math">\omega `:nbsphinx-math:</span>sum`_{k&gt;0} <span class="math">\gamma</span>_k <span class="math">\left`( L_k :nbsphinx-math:</span>rho <cite>L_k^:nbsphinx-math:</cite>dagger <cite>- :nbsphinx-math:</cite>frac{1}{2}` {L_k^:nbsphinx-math:<cite>dagger `L_k, :nbsphinx-math:</cite>rho`} <span class="math">\right</span>) $</p>
+<div class="math notranslate nohighlight">
+\[\frac{d\rho}{dt} = -i(1-\omega)[H, \rho] + \omega \sum_{k&gt;0} \gamma_k \left( L_k \rho L_k^\dagger - \frac{1}{2} \{L_k^\dagger L_k, \rho\} \right)\]</div>
 </section>
 <section id="Breakdown-of-Terms">
 <h2>Breakdown of Terms<a class="headerlink" href="#Breakdown-of-Terms" title="Permalink to this heading">¶</a></h2>
 <p><strong>Hamiltonian Evolution (coherent):</strong></p>
-<p>$ -i(1-<span class="math">\omega</span>)[H, <span class="math">\rho</span>] $</p>
+<div class="math notranslate nohighlight">
+\[-i(1-\omega)[H, \rho]\]</div>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(H\)</span> is the Hamiltonian, governing coherent unitary evolution.</p></li>
 <li><p>The factor <span class="math notranslate nohighlight">\(1 - \omega\)</span> determines the extent of quantum behavior in the system.</p></li>
 </ul>
 <p><strong>Dissipative Evolution (incoherent):</strong></p>
-<p>$ <span class="math">\omega `:nbsphinx-math:</span>sum`_{k &gt; 0} <span class="math">\gamma</span>_k <span class="math">\left`( L_k :nbsphinx-math:</span>rho <cite>L_k^{:nbsphinx-math:</cite>dagger`} - <span class="math">\frac{1}{2}</span> { L_k^{<span class="math">\dagger</span>} L_k, <span class="math">\rho</span>} <span class="math">\right</span>) $</p>
+<div class="math notranslate nohighlight">
+\[\omega \sum_{k &gt; 0} \gamma_k \left( L_k \rho L_k^{\dagger} - \frac{1}{2} \{ L_k^{\dagger} L_k, \rho\} \right)\]</div>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(\gamma_k\)</span> are rates associated with each dissipative process.</p></li>
 <li><p><span class="math notranslate nohighlight">\(L_k\)</span> are Lindblad operators modeling incoherent jumps between states.</p></li>
-<li><p>The term: $ L_k <span class="math">\rho `L_k^{:nbsphinx-math:</span>dagger`} - <span class="math">\frac{1}{2}</span> { L_k^{<span class="math">\dagger</span>} L_k, <span class="math">\rho</span>} $ ensures that the system remains a valid density matrix (preserving trace and positivity).</p></li>
 </ul>
 <p><strong>Parameter :math:`omega` controls the interpolation:</strong></p>
 <ul class="simple">
@@ -1000,9 +1015,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">to_numpy_array</span><span class="p">(</span><span class="n">graph</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
 
 <span class="c1"># Defines an elementary operator named &quot;hamiltonian&quot;, allowing creation with the name and its degrees of freedom.</span>
-<span class="n">operators</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">&quot;hamiltonian&quot;</span><span class="p">,</span>
-                          <span class="n">expected_dimensions</span><span class="o">=</span><span class="p">[</span><span class="n">N</span><span class="p">],</span>
-                          <span class="n">create</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">H</span><span class="p">)</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="s2">&quot;hamiltonian&quot;</span><span class="p">,</span> <span class="n">expected_dimensions</span><span class="o">=</span><span class="p">[</span><span class="n">N</span><span class="p">],</span> <span class="n">create</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">H</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1010,7 +1023,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 <p>For Quantum PageRank, the Lindblad operators shown below have been demonstrated to converge to a stationary solution:</p>
 <div class="math notranslate nohighlight">
 \[L(i,j) = |i\rangle \langle j| \quad\]</div>
-<p>where the indices $ i $ and $ j $ label the nodes in the network as well as the Lindblad operators. This notation indicates that the operator $ L(i,j) $ describes a <strong>transition</strong> from state <span class="math notranslate nohighlight">\(|j\rangle\)</span> to state <span class="math notranslate nohighlight">\(|i\rangle\)</span>.</p>
+<p>where the indices <span class="math notranslate nohighlight">\(i\)</span> and <span class="math notranslate nohighlight">\(j\)</span> label the nodes in the network as well as the Lindblad operators. This notation indicates that the operator <span class="math notranslate nohighlight">\(L(i,j)\)</span> describes a <strong>transition</strong> from state <span class="math notranslate nohighlight">\(|j\rangle\)</span> to state <span class="math notranslate nohighlight">\(|i\rangle\)</span>.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -1181,7 +1194,7 @@ CUDA-Q Version cu12-0.10.0 (https://github.com/NVIDIA/cuda-quantum 857dd2ce0a783
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="generate_fermionic_ham.html" class="btn btn-neutral float-left" title="Generating the electronic Hamiltonian" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="grovers.html" class="btn btn-neutral float-left" title="Grover’s Algorithm" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="uccsd_wf_ansatz.html" class="btn btn-neutral float-right" title="The UCCSD Wavefunction ansatz" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
