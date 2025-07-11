@@ -88,7 +88,8 @@ evolution_result = cudaq.evolve(
     initial_state,
     observables=observables,
     collapse_operators=[],  # No decoherence for this tutorial
-    store_intermediate_results=True,
+    store_intermediate_results=cudaq.IntermediateResultSave.
+    EXPECTATION_VALUE,  # Save expectation values
     integrator=RungeKuttaIntegrator())
 
 # Extract the results

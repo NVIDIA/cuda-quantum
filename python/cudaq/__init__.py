@@ -92,11 +92,13 @@ from .operators import custom as operators
 from .operators.definitions import *
 from .operators.manipulation import OperatorArithmetics
 import cudaq.operators.expressions  # needs to be imported, since otherwise e.g. evaluate is not defined
+from .operators.super_op import SuperOperator
 
 # Time evolution API
 from .dynamics.schedule import Schedule
 from .dynamics.evolution import evolve, evolve_async
 from .dynamics.integrators import *
+from .dynamics.helpers import IntermediateResultSave
 
 InitialStateType = cudaq_runtime.InitialStateType
 
@@ -151,6 +153,7 @@ AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult
 vqe = cudaq_runtime.vqe
 draw = cudaq_runtime.draw
+get_unitary = cudaq_runtime.get_unitary
 run = cudaq_runtime.run
 translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG

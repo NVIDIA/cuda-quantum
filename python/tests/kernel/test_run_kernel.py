@@ -7,14 +7,18 @@
 # ============================================================================ #
 
 import os
-import time
 from dataclasses import dataclass
 
 import cudaq
 import numpy as np
+import warnings
 import pytest
 
 list_err_msg = 'does not yet support returning `list` from entry-point kernels'
+
+skipIfBraketNotInstalled = pytest.mark.skipif(
+    not (cudaq.has_target("braket")),
+    reason='Could not find `braket` in installation')
 
 
 def is_close(actual, expected):
@@ -49,7 +53,7 @@ def simple(numQubits: int) -> int:
 
 
 def test_simple_run_ghz():
-    shots = 100
+    shots = 20
     qubitCount = 4
     results = cudaq.run(simple, qubitCount, shots_count=shots)
     print(results)
@@ -74,50 +78,6 @@ def test_simple_run_ghz_with_noise():
                         qubitCount,
                         shots_count=shots,
                         noise_model=noise)
-    print(results)
-    assert len(results) == shots
-    noisy_count = 0
-    for result in results:
-        if result != 0 and result != qubitCount:
-            noisy_count += 1
-    assert noisy_count > 0
-    cudaq.reset_target()
-
-
-def test_run_async():
-    shots = 100
-    qubitCounts = [4, 5, 6, 7, 8]
-    resultHandles = []
-    for qubitCount in qubitCounts:
-        resultHandles.append(
-            cudaq.run_async(simple, qubitCount, shots_count=shots))
-        print(f"({time.time()}) Launch async run for {qubitCount} qubits")
-
-    for i in range(len(qubitCounts)):
-        results = resultHandles[i].get()
-        qubitCount = qubitCounts[i]
-        print(f"({time.time()}) Result for {qubitCount} qubits: {results}")
-        assert len(results) == shots
-        non_zero_count = 0
-        for result in results:
-            assert result == 0 or result == qubitCount  # 00..0 or 1...11
-            if result == qubitCount:
-                non_zero_count += 1
-
-        assert non_zero_count > 0
-
-
-def test_run_async_with_noise():
-    cudaq.set_target("density-matrix-cpu")
-    shots = 100
-    qubitCount = 3
-    depol = cudaq.Depolarization2(.5)
-    noise = cudaq.NoiseModel()
-    noise.add_all_qubit_channel("cx", depol)
-    results = cudaq.run_async(simple,
-                              qubitCount,
-                              shots_count=shots,
-                              noise_model=noise).get()
     print(results)
     assert len(results) == shots
     noisy_count = 0
@@ -726,7 +686,7 @@ def test_return_tuple_bool_int_float():
 
 def test_return_dataclass_int_bool():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: int
         y: bool
@@ -760,7 +720,7 @@ def test_return_dataclass_int_bool():
 
 def test_return_dataclass_bool_int():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: bool
         y: int
@@ -794,7 +754,7 @@ def test_return_dataclass_bool_int():
 
 def test_return_dataclass_float_int():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: float
         y: int
@@ -828,12 +788,11 @@ def test_return_dataclass_float_int():
 
 def test_return_dataclass_list_int_bool():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: list[int]
         y: bool
 
-    @cudaq.kernel
     def simple_return_dataclass(n: int, t: MyClass) -> MyClass:
         qubits = cudaq.qvector(n)
         return t
@@ -847,7 +806,7 @@ def test_return_dataclass_list_int_bool():
 
 def test_return_dataclass_tuple_bool():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: tuple[int, bool]
         y: bool
@@ -866,12 +825,12 @@ def test_return_dataclass_tuple_bool():
 
 def test_return_dataclass_dataclass_bool():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass1:
         x: int
         y: bool
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass2:
         x: MyClass1
         y: bool
@@ -923,7 +882,7 @@ def test_run_errors():
 
 def test_modify_struct():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: int
         y: bool
@@ -940,7 +899,7 @@ def test_modify_struct():
     assert results[0] == MyClass(42, True)
     assert results[1] == MyClass(42, True)
 
-    @dataclass
+    @dataclass(slots=True)
     class Foo:
         x: bool
         y: float
@@ -963,7 +922,7 @@ def test_modify_struct():
 
 def test_create_and_modify_struct():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: int
         y: bool
@@ -981,7 +940,7 @@ def test_create_and_modify_struct():
     assert results[0] == MyClass(42, True)
     assert results[1] == MyClass(42, True)
 
-    @dataclass
+    @dataclass(slots=True)
     class Bar:
         x: bool
         y: bool
@@ -999,6 +958,240 @@ def test_create_and_modify_struct():
     print(results)
     assert len(results) == 1
     assert results[0] == Bar(True, True, 4.14)
+
+
+def test_unsupported_return_type():
+
+    @cudaq.kernel
+    def kerenl_with_no_args() -> complex:
+        return 1 + 2j
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kerenl_with_no_args, shots_count=2)
+    assert 'unsupported return type' in str(e.value)
+
+    @cudaq.kernel
+    def kernel_with_args(real: float, imag: float) -> complex:
+        return complex(real, imag)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel_with_args, 1.0, 2.0, shots_count=2)
+    assert 'unsupported return type' in str(e.value)
+
+
+def test_run_and_sample_and_direct_call():
+
+    @cudaq.kernel
+    def bell_pair() -> int:
+        q = cudaq.qvector(2)
+        h(q[0])
+        cx(q[0], q[1])
+        res = mz(q[0]) + 2 * mz(q[1])
+        return res
+
+    run_results = cudaq.run(bell_pair, shots_count=10)
+    assert len(run_results) == 10
+
+    sample_results = cudaq.sample(bell_pair, shots_count=10)
+    assert len(sample_results) == 2
+
+    direct_call_result = bell_pair()
+    assert direct_call_result is not None
+
+
+# NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
+@pytest.mark.parametrize("target",
+                         ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
+def test_supported_simulators(target):
+
+    def can_set_target(name):
+        target_installed = True
+        try:
+            cudaq.set_target(name)
+        except RuntimeError:
+            target_installed = False
+        return target_installed
+
+    if can_set_target(target):
+        test_simple_run_ghz()
+    else:
+        pytest.skip("target not available")
+
+    cudaq.reset_target()
+
+
+def test_unsupported_targets_0():
+    try:
+        cudaq.set_target("dynamics")
+        with pytest.raises(RuntimeError) as e:
+            test_simple_run_ghz()
+        assert "Quantum gate simulation is not supported" in repr(e)
+    except RuntimeError:
+        pytest.skip("target not available")
+    finally:
+        cudaq.reset_target()
+
+    try:
+        cudaq.set_target("orca")
+        with pytest.raises(RuntimeError) as e:
+            test_simple_run_ghz()
+        assert "No QPUs are available for this target" in repr(e)
+    except RuntimeError:
+        pytest.skip("target not available")
+    finally:
+        cudaq.reset_target()
+
+
+@pytest.mark.parametrize("target, env_var",
+                         [("anyon", ""), ("infleqtion", "SUPERSTAQ_API_KEY"),
+                          ("ionq", "IONQ_API_KEY"), ("quantinuum", "")])
+@pytest.mark.parametrize("emulate", [True, False])
+def test_unsupported_targets_1(target, env_var, emulate):
+    if env_var:
+        os.environ[env_var] = "foobar"
+
+    cudaq.set_target(target, emulate=emulate)
+
+    with pytest.raises(RuntimeError) as e:
+        test_simple_run_ghz()
+    assert "not yet supported on this target" in repr(e)
+    os.environ.pop(env_var, None)
+    cudaq.reset_target()
+
+
+@skipIfBraketNotInstalled
+@pytest.mark.parametrize("target", ["braket", "quera"])
+def test_unsupported_targets_2(target):
+    cudaq.set_target(target)
+    with pytest.raises(RuntimeError) as e:
+        test_simple_run_ghz()
+    assert "not yet supported on this target" in repr(e)
+    cudaq.reset_target()
+
+
+def test_dataclass_slots_success():
+
+    @dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, SlotsClass) for result in results)
+    assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
+
+
+def test_dataclasses_dot_dataclass_slots_success():
+    import dataclasses
+
+    @dataclasses.dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, SlotsClass) for result in results)
+    assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
+
+
+def test_dataclass_slots_success():
+
+    @dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, SlotsClass) for result in results)
+    assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
+
+
+def test_dataclasses_dot_dataclass_slots_success():
+    import dataclasses
+
+    @dataclasses.dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, SlotsClass) for result in results)
+    assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
+
+
+def test_dataclass_user_defined_method_raises_error():
+
+    @dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+        def doSomething(self):
+            pass
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert 'struct types with user specified methods are not allowed.' in str(
+        e.value)
+
+
+def test_dataclasses_dot_dataclass_user_defined_method_raises_error():
+    import dataclasses
+
+    @dataclasses.dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+        def doSomething(self):
+            pass
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert 'struct types with user specified methods are not allowed.' in str(
+        e.value)
+
+
+def test_shots_count():
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qubit()
+        h(q)
+        return mz(q)
+
+    results = cudaq.run(kernel)
+    assert len(results) == 100  # default shots count
+    results = cudaq.run(kernel, shots_count=53)
+    assert len(results) == 53
 
 
 # leave for gdb debugging

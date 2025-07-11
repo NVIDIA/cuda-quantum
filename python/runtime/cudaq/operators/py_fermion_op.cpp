@@ -154,7 +154,7 @@ void bindFermionOperator(py::module &mod) {
           [](const fermion_op &self, dimension_map &dimensions,
              const parameter_map &params, bool invert_order) {
             auto cmat = self.to_matrix(dimensions, params, invert_order);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return details::cmat_to_numpy(cmat);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -171,7 +171,7 @@ void bindFermionOperator(py::module &mod) {
              bool invert_order, const py::kwargs &kwargs) {
             auto cmat = self.to_matrix(
                 dimensions, details::kwargs_to_param_map(kwargs), invert_order);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return details::cmat_to_numpy(cmat);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("invert_order") = false,
@@ -466,7 +466,7 @@ void bindFermionOperator(py::module &mod) {
           [](const fermion_op_term &self, dimension_map &dimensions,
              const parameter_map &params, bool invert_order) {
             auto cmat = self.to_matrix(dimensions, params, invert_order);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return details::cmat_to_numpy(cmat);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("parameters") = parameter_map(),
@@ -483,7 +483,7 @@ void bindFermionOperator(py::module &mod) {
              bool invert_order, const py::kwargs &kwargs) {
             auto cmat = self.to_matrix(
                 dimensions, details::kwargs_to_param_map(kwargs), invert_order);
-            return details::cmat_to_numpy(cmat.rows(), cmat.cols(), cmat.data);
+            return details::cmat_to_numpy(cmat);
           },
           py::arg("dimensions") = dimension_map(),
           py::arg("invert_order") = false,

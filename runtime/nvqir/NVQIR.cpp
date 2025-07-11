@@ -619,7 +619,7 @@ Result *__quantum__qis__mz__body(Qubit *q, Result *r) {
   return b ? ResultOne : ResultZero;
 }
 
-bool __quantum__qis__read_result__body(Result *result) {
+bool __quantum__rt__read_result(Result *result) {
   ScopedTraceWithContext("NVQIR::read_result");
   auto iter = measRes2Val.find(result);
   if (iter != measRes2Val.end())
@@ -687,6 +687,8 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
 void __quantum__qis__trap(std::int64_t code) {
   if (code == 0)
     throw std::runtime_error("could not autogenerate the adjoint of a kernel");
+  if (code == 1)
+    throw std::runtime_error("unsupported return type from entry-point kernel");
   throw std::runtime_error("code generation failure for target");
 }
 
@@ -700,8 +702,10 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
     return;
 
   auto *noise = ctx->noiseModel;
+  // per-spec, no noise model provided, emit warning, no application
   if (!noise)
-    return;
+    return cudaq::details::warn(
+        "apply_noise called but no noise model provided.");
 
   std::vector<double> paramVec(params, params + numParams);
   auto channel = noise->get_channel(krausChannelKey, paramVec);
@@ -719,8 +723,10 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
     return;
 
   auto *noise = ctx->noiseModel;
+  // per-spec, no noise model provided, emit warning, no application
   if (!noise)
-    return;
+    return cudaq::details::warn(
+        "apply_noise called but no noise model provided.");
 
   std::vector<float> paramVec(params, params + numParams);
   auto channel = noise->get_channel(krausChannelKey, paramVec);

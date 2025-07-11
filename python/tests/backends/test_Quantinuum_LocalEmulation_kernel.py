@@ -30,6 +30,7 @@ def assert_close(want, got, tolerance=1.0e-1) -> bool:
 
 @pytest.fixture(scope="function", autouse=True)
 def configureTarget():
+    os.environ.pop('CUDAQ_ENABLE_QUANTUM_DEVICE_RUN', None)
     # We need a Fake Credentials Config file
     credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])
     f = open(credsName, 'w')
@@ -367,8 +368,9 @@ def test_3q_unitary_synthesis():
         x(q)
         toffoli(q[0], q[1], q[2])
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as e:
         cudaq.sample(test_toffoli)
+    assert "Remote rest platform Quake lowering failed." in repr(e)
 
 
 @requires_openfermion()
@@ -427,6 +429,7 @@ def test_capture_state():
 
 
 def test_run():
+    os.environ["CUDAQ_ENABLE_QUANTUM_DEVICE_RUN"] = "1"
 
     @cudaq.kernel
     def simple(numQubits: int) -> int:

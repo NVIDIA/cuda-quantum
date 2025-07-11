@@ -1036,6 +1036,7 @@ bool QuakeBridgeVisitor::TraverseConditionalOperator(
   if (!TraverseStmt(x->getCond()))
     return false;
   auto condVal = popValue();
+  Type resultTy = builder.getI64Type();
 
   // Create shared lambda for the x->getTrueExpr() and x->getFalseExpr()
   // expressions
@@ -1049,16 +1050,19 @@ bool QuakeBridgeVisitor::TraverseConditionalOperator(
         result = false;
         return;
       }
-      builder.create<cc::ContinueOp>(loc, TypeRange{}, popValue());
+      Value resultVal = popValue();
+      builder.create<cc::ContinueOp>(loc, TypeRange{}, resultVal);
+      resultTy = resultVal.getType();
     };
   };
 
-  auto ifOp = builder.create<cc::IfOp>(
-      loc, TypeRange{condVal.getType()}, condVal,
-      thenElseLambda(x->getTrueExpr()), thenElseLambda(x->getFalseExpr()));
+  auto ifOp = builder.create<cc::IfOp>(loc, TypeRange{resultTy}, condVal,
+                                       thenElseLambda(x->getTrueExpr()),
+                                       thenElseLambda(x->getFalseExpr()));
 
   if (!result)
     return result;
+  ifOp.getResult(0).setType(resultTy);
   return pushValue(ifOp.getResult(0));
 }
 
@@ -3150,13 +3154,18 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     TODO_x(loc, x, mangler, "C++ constructor (non-default)");
   }
 
-  // A regular C++ class constructor lowers as:
+  // A C++ constructor lowers as:
   //
   // 1) A unique object must be created, so the type must have a minimum of
   //    one byte.
   // 2) Allocate a new object.
-  // 3) Call the constructor passing the address of the allocation as `this`.
+  // 3) If not POD, call the constructor passing the address of the allocation
+  //    as `this`.
   auto mem = builder.create<cc::AllocaOp>(loc, ctorTy);
+
+  // No constructor call needed for POD types
+  if (parent->isPOD())
+    return pushValue(mem);
 
   // FIXME: Using Ctor_Complete for mangled name generation blindly here. Is
   // there a programmatic way of determining which enum to use from the AST?

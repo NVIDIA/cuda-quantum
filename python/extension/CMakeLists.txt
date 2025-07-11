@@ -56,10 +56,10 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/algorithms/py_optimizer.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
-    ../runtime/cudaq/algorithms/py_run_async.cpp
     ../runtime/cudaq/algorithms/py_state.cpp
     ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_translate.cpp
+    ../runtime/cudaq/algorithms/py_unitary.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
     ../runtime/cudaq/algorithms/py_vqe.cpp
     ../runtime/cudaq/platform/JITExecutionCache.cpp
@@ -73,6 +73,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/operators/py_fermion_op.cpp
     ../runtime/cudaq/operators/py_boson_op.cpp
     ../runtime/cudaq/operators/py_matrix_op.cpp
+    ../runtime/cudaq/operators/py_super_op.cpp
     ../runtime/cudaq/operators/py_handlers.cpp
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
