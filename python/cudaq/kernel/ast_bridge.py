@@ -879,7 +879,8 @@ class PyASTBridge(ast.NodeVisitor):
                                bodyBuilder,
                                startVal=None,
                                stepVal=None,
-                               isDecrementing=False):
+                               isDecrementing=False,
+                               elseStmts=None):
         """
         Create an invariant loop using the CC dialect. 
         """
@@ -914,6 +915,16 @@ class PyASTBridge(ast.NodeVisitor):
         with InsertionPoint(stepBlock):
             incr = arith.AddIOp(stepBlock.arguments[0], stepVal).result
             cc.ContinueOp([incr])
+
+        if elseStmts:
+            elseBlock = Block.create_at_start(loop.elseRegion, [iTy])
+            with InsertionPoint(elseBlock):
+                self.symbolTable.pushScope()
+                for stmt in elseStmts:
+                    self.visit(stmt)
+                if not self.hasTerminator(elseBlock):
+                    cc.ContinueOp(elseBlock.arguments)
+                self.symbolTable.popScope()
 
         loop.attributes.__setitem__('invariant', UnitAttr.get())
         return
@@ -3508,7 +3519,8 @@ class PyASTBridge(ast.NodeVisitor):
                                             bodyBuilder,
                                             startVal=startVal,
                                             stepVal=stepVal,
-                                            isDecrementing=isDecrementing)
+                                            isDecrementing=isDecrementing,
+                                            elseStmts=node.orelse)
 
                 # Handle the `else` branch of a for loop
                 if node.orelse:
@@ -3582,7 +3594,9 @@ class PyASTBridge(ast.NodeVisitor):
                         [self.visit(b) for b in node.body]
                         self.symbolTable.popScope()
 
-                    self.createInvariantForLoop(totalSize, bodyBuilder)
+                    self.createInvariantForLoop(totalSize,
+                                                bodyBuilder,
+                                                elseStmts=node.orelse)
                     # Handle the `else` branch of a for loop
                     if node.orelse:
                         for stmt in node.orelse:
@@ -3704,12 +3718,9 @@ class PyASTBridge(ast.NodeVisitor):
             [self.visit(b) for b in node.body]
             self.symbolTable.popScope()
 
-        self.createInvariantForLoop(totalSize, bodyBuilder)
-
-        # Handle the `else` branch of a for loop
-        if node.orelse:
-            for stmt in node.orelse:
-                self.visit(stmt)
+        self.createInvariantForLoop(totalSize,
+                                    bodyBuilder,
+                                    elseStmts=node.orelse)
 
     def visit_While(self, node):
         """
@@ -3744,10 +3755,20 @@ class PyASTBridge(ast.NodeVisitor):
             self.popForBodyStack()
             self.symbolTable.popScope()
 
+        stepBlock = Block.create_at_start(loop.stepRegion, [])
+        with InsertionPoint(stepBlock):
+            cc.ContinueOp([])
+
         # Handle the `else` branch of a while loop
         if node.orelse:
-            for stmt in node.orelse:
-                self.visit(stmt)
+            elseBlock = Block.create_at_start(loop.elseRegion, [])
+            with InsertionPoint(elseBlock):
+                self.symbolTable.pushScope()
+                for stmt in node.orelse:
+                    self.visit(stmt)
+                if not self.hasTerminator(elseBlock):
+                    cc.ContinueOp([])
+                self.symbolTable.popScope()
 
     def visit_BoolOp(self, node):
         """

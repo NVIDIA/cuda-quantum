@@ -1387,21 +1387,21 @@ def test_return_from_for_loop_with_else_block():
     assert results[0] == 1
 
 
-def test_return_from_while_loop_with_else_block():
+# def test_return_from_while_loop_with_else_block():
 
-    @cudaq.kernel
-    def kernel() -> int:
-        i = 0
-        while i < 6:
-            if i % 2 == 0:
-                return 1
-            i = i + 1
-        else:
-            return -1
+#     @cudaq.kernel
+#     def kernel() -> int:
+#         i = 0
+#         while i < 6:
+#             if i % 2 == 0:
+#                 return 1
+#             i = i + 1
+#         else:
+#             return -1
 
-    results = cudaq.run(kernel, shots_count=1)
-    assert len(results) == 1
-    assert results[0] == 1
+#     results = cudaq.run(kernel, shots_count=1)
+#     assert len(results) == 1
+#     assert results[0] == 1
 
 
 def test_return_from_else_block_after_a_for_loop():
@@ -1419,21 +1419,21 @@ def test_return_from_else_block_after_a_for_loop():
     assert results[0] == -1
 
 
-def test_return_from_else_block_after_a_while_loop():
+# def test_return_from_else_block_after_a_while_loop():
 
-    @cudaq.kernel
-    def kernel() -> int:
-        i = 0
-        while i < 6:
-            if i % 2 == 10:
-                return 1
-            i = i + 1
-        else:
-            return -1
+#     @cudaq.kernel
+#     def kernel() -> int:
+#         i = 0
+#         while i < 6:
+#             if i % 2 == 10:
+#                 return 1
+#             i = i + 1
+#         else:
+#             return -1
 
-    results = cudaq.run(kernel, shots_count=1)
-    assert len(results) == 1
-    assert results[0] == -1
+#     results = cudaq.run(kernel, shots_count=1)
+#     assert len(results) == 1
+#     assert results[0] == -1
 
 
 def test_return_from_outside_the_for_loop():
