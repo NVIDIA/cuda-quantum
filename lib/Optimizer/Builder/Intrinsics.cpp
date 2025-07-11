@@ -405,7 +405,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      R"#(
   func.func private @llvm.memset.p0i8.i64(!cc.ptr<i8>, i8, i64, i1) -> ())#"},
-    
+
     // NB: load llvmStackSave to get both.
     {cudaq::llvmStackRestore,
      {},
