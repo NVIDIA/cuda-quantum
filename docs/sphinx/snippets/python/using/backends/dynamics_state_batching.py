@@ -1,10 +1,17 @@
-import cudaq
-from cudaq import spin, Schedule, RungeKuttaIntegrator
-import numpy as np
-import cupy as cp
-import os
-import matplotlib.pyplot as plt
+# ============================================================================ #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
 
+#[Begin State Batching]
+
+import cudaq
+import cupy as cp
+import numpy as np
+from cudaq import spin, Schedule, RungeKuttaIntegrator
 # Set the target to our dynamics simulator
 cudaq.set_target("dynamics")
 
@@ -37,7 +44,7 @@ sic_states = [psi_1, psi_2, psi_3, psi_4]
 steps = np.linspace(0, 10, 101)
 schedule = Schedule(steps, ["time"])
 
-# Run the simulation.
+# Run the batch simulation.
 evolution_results = cudaq.evolve(
     hamiltonian,
     dimensions,
@@ -48,28 +55,4 @@ evolution_results = cudaq.evolve(
     store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
     integrator=RungeKuttaIntegrator())
 
-get_result = lambda idx, res: [
-    exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-]
-tomography_results = [[
-    get_result(0, evolution_result),
-    get_result(1, evolution_result),
-    get_result(2, evolution_result)
-] for evolution_result in evolution_results]
-
-fig = plt.figure(figsize=(18, 12))
-for i in range(len(tomography_results)):
-    plt.subplot(2, 2, i + 1)
-    plt.plot(steps, tomography_results[i][0])
-    plt.plot(steps, tomography_results[i][1])
-    plt.plot(steps, tomography_results[i][2])
-    plt.ylim(-1.0, 1.0)
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
-    plt.title(f"SIC state {i}")
-
-abspath = os.path.abspath(__file__)
-dname = os.path.dirname(abspath)
-os.chdir(dname)
-fig.savefig('qubit_dynamics_tomography.png', dpi=fig.dpi)
+#[End State Batching]
