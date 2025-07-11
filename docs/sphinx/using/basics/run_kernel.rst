@@ -121,10 +121,11 @@ More information about parallelizing execution can be found at :ref:`mqpu-platfo
 Run
 +++++++++
 
-The `run` function executes a quantum kernel multiple times and returns each individual result. Unlike `sample`, 
+The `run` method executes a quantum kernel multiple times and returns each individual result. Unlike `sample`, 
 which collects measurement statistics as counts, `run` preserves each individual return value from every 
 execution. This is useful when you need to analyze the distribution of returned values rather than just 
-aggregated measurement counts.
+aggregated measurement counts. Additionally, the `run` method also supports returning various types of values 
+from the quantum kernel, including scalar types (bool, int, float and their variants) and user-defined data structures.
 
 .. tab:: Python
 
@@ -172,11 +173,15 @@ You can process the results to get statistics or other insights:
         :start-after: [Begin Run2]
         :end-before: [End Run2]
 
-It is important to note the following requirements for the `run` function:
 
-- The kernel must return a non-void value
-- Supported return types include scalar types (bool, int, float) and custom data structures
-- When using custom data structures, they must be defined with `slots=True` in Python or as simple aggregates in C++
+.. note::
+
+  Currently, `run` supports kernels returning scalar types (bool, int, float) and custom data structures.
+
+.. note:: 
+
+  When using custom data structures, they must be defined with `slots=True` in Python or as simple aggregates in C++.
+
 
 Similar to `sample_async`, the `run` API also supports asynchronous execution through `run_async`. 
 This is particularly useful for parallelizing execution of multiple kernels on a multi-processor platform:
