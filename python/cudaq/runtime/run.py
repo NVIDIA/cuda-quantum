@@ -10,7 +10,7 @@ from cudaq.mlir.ir import UnitAttr
 import numpy as np
 
 
-def run_async(kernel, *args, shots_count=1, noise_model=None, qpu_id=0):
+def run_async(kernel, *args, shots_count=100, noise_model=None, qpu_id=0):
     """ Run the provided `kernel` with the given kernel
 `arguments` over the specified number of circuit executions
  (`shots_count`) asynchronously on the specified `qpu_id`.
@@ -23,7 +23,7 @@ Args:
     example, if the kernel takes two `float` values as input, the `run` call
     should be structured as `cudaq.run(kernel, firstFloat, secondFloat)`.
   shots_count (Optional[int]): The number of kernel executions on the QPU.
-    Defaults to 1. Key-word only.
+    Defaults to 100. Key-word only.
   noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel`
     to add noise to the kernel execution on the simulator. Defaults to
     an empty noise model.

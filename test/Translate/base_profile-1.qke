@@ -43,4 +43,4 @@ func.func @__nvqpp__mlirgen__ghz() attributes {"cudaq-kernel"} {
 // CHECK:         ret void
 // CHECK:       }
 
-// CHECK:       = { "output_labeling_schema"="schema_id" "output_names"="{{\[\[\[}}0,[0,\22r00000\22]],[1,[1,\22r00001\22]],[2,[2,\22r00002\22]]]]" "qir_profiles"="base_profile" "requiredQubits"="3" "requiredResults"="3" }
+// CHECK:       = { "output_labeling_schema"="schema_id" "output_names"="{{\[\[\[}}0,[0,\22r00000\22]],[1,[1,\22r00001\22]],[2,[2,\22r00002\22]]]]" "qir_profiles"="base_profile" "required_num_qubits"="3" "required_num_results"="3" }
