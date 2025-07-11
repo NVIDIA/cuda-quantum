@@ -28,6 +28,7 @@ inline void registerCudaqPassesAndPipelines() {
   opt::registerTargetPipelines();
   opt::registerWireSetToProfileQIRPipeline();
   opt::registerMappingPipeline();
+  opt::registerToCFGPipeline();
 }
 
 inline void registerAllPasses() {
