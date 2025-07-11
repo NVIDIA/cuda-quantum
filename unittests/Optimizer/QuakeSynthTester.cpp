@@ -79,7 +79,7 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
   optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-  optPM.addPass(cudaq::opt::createLowerToCFGPass());
+  cudaq::opt::addLowerToCFG(optPM);
   optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());

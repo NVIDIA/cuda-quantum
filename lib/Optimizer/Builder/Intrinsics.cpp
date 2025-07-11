@@ -392,20 +392,27 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
     //                    resultOffset, vectorArgPtrs)
-    {cudaq::runtime::launchKernelHybridFuncName,
-     {},
-     R"#(
-  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>)#"},
+    {cudaq::runtime::launchKernelHybridFuncName, {}, R"#(
+  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+)#"},
 
-    {cudaq::llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
-     {},
-     R"#(
-  func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},
+    // llvm.memcpy.p0i8.p0i8.i64
+    {cudaq::llvmMemCopyIntrinsic, {}, R"#(
+  func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+)#"},
 
     {cudaq::llvmMemSetIntrinsic, // llvm.memset.p0i8.i64
      {},
      R"#(
   func.func private @llvm.memset.p0i8.i64(!cc.ptr<i8>, i8, i64, i1) -> ())#"},
+    
+    // NB: load llvmStackSave to get both.
+    {cudaq::llvmStackRestore,
+     {},
+     "func.func private @llvm.stackrestore(!cc.ptr<i8>)"},
+    {cudaq::llvmStackSave,
+     {cudaq::llvmStackRestore},
+     "func.func private @llvm.stacksave() -> !cc.ptr<i8>"},
 
     {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
 
