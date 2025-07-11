@@ -18,9 +18,9 @@ namespace cudaq {
 // Struct captures the system dynamics needed by the integrator
 struct SystemDynamics {
   std::vector<std::int64_t> modeExtents;
-  sum_op<cudaq::matrix_handler> hamiltonian;
-  std::vector<sum_op<cudaq::matrix_handler>> collapseOps;
-  std::optional<super_op> superOp;
+  std::vector<sum_op<cudaq::matrix_handler>> hamiltonian;
+  std::vector<std::vector<sum_op<cudaq::matrix_handler>>> collapseOps;
+  std::optional<std::vector<super_op>> superOp;
   std::unordered_map<std::string, std::complex<double>> parameters;
 
   SystemDynamics(
@@ -28,12 +28,22 @@ struct SystemDynamics {
       const sum_op<cudaq::matrix_handler> &ham,
       const std::vector<sum_op<cudaq::matrix_handler>> &cOps = {},
       const std::unordered_map<std::string, std::complex<double>> &params = {})
-      : modeExtents(extents), hamiltonian(ham), collapseOps(cOps),
+      : modeExtents(extents), hamiltonian({ham}), collapseOps({cOps}),
         parameters(params) {}
   SystemDynamics(const std::vector<std::int64_t> extents,
                  const super_op &superOperator)
+      : modeExtents(extents), superOp({superOperator}) {}
+  SystemDynamics(
+      const std::vector<std::int64_t> extents,
+      const std::vector<sum_op<cudaq::matrix_handler>> &ham,
+      const std::vector<std::vector<sum_op<cudaq::matrix_handler>>> &cOps = {},
+      const std::unordered_map<std::string, std::complex<double>> &params = {})
+      : modeExtents(extents), hamiltonian(ham), collapseOps(cOps),
+        parameters(params) {}
+  SystemDynamics(const std::vector<std::int64_t> extents,
+                 const std::vector<super_op> &superOperator)
       : modeExtents(extents), superOp(superOperator) {}
-  SystemDynamics() : hamiltonian(cudaq::matrix_op::empty()){};
+  SystemDynamics() : hamiltonian({cudaq::matrix_op::empty()}){};
 };
 
 class base_time_stepper;
@@ -75,10 +85,10 @@ public:
   }
 
   static void init_system_dynamics(base_integrator &integrator,
-                                   const super_op &superOp,
+                                   const std::vector<super_op> &superOps,
                                    std::vector<std::int64_t> modeExtents,
                                    const cudaq::schedule &schedule) {
-    SystemDynamics systemDynamics(modeExtents, superOp);
+    SystemDynamics systemDynamics(modeExtents, superOps);
     integrator.m_system = systemDynamics;
     integrator.m_schedule = schedule;
     integrator.m_stepper.reset();

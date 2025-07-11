@@ -174,7 +174,7 @@ jobs:
     if: needs.metadata.outputs.build_dependencies == 'true'
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
@@ -182,7 +182,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
       build_config_id: ${{ matrix.toolchain }}
       build_args: |
@@ -267,7 +267,7 @@ jobs:
     if: needs.metadata.outputs.build_dependencies == 'true'
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
@@ -275,7 +275,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}
       build_args: |
@@ -304,7 +304,7 @@ jobs:
               workflow_id: 'deployments.yml',
               ref: '${{ needs.metadata.outputs.pull_request_base || github.ref_name }}',
               inputs: {
-                platforms: 'linux/arm64,linux/amd64',
+                platforms: 'linux/arm64 linux/amd64',
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',
               },
             })
@@ -328,10 +328,13 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
+      - name: Print config.outputs.json
+        run: |
+          echo '${{ steps.read_json.outputs.result }}'
+
   coverage:
     name: Update code coverage
     needs: [metadata, config]
-    if: needs.metadata.outputs.multi_platform != ''
     strategy:
       matrix:
         platform: [amd64]
@@ -342,7 +345,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', fromJson(needs.metadata.outputs.multi_platform).ids[0], matrix.toolchain)] }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: false
 
   extdevdeps:
@@ -350,7 +353,7 @@ jobs:
     needs: [metadata, config, openmpi]
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
@@ -358,7 +361,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
@@ -389,12 +392,16 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
+      - name: Print ext_config.outputs.json
+        run: |
+          echo '${{ steps.read_json.outputs.result }}'
+
   docker_images:
     name: Create Docker images
     needs: [metadata, config, ext_config]
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         cuda_version: ["11.8", "12.0"]
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
@@ -403,12 +410,227 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       cuda_version: ${{ matrix.cuda_version }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
-      build_docs: ${{ matrix.cuda_version == '11.8' }}
+      build_docs: ${{ matrix.cuda_version == '11.8' && matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
       environment: ghcr-deployment
+
+  digest_config:
+    name: Aggregate digests
+    needs: docker_images
+    runs-on: ubuntu-latest
+
+    outputs:
+      json: "${{ steps.read.outputs.result }}"
+
+    steps:
+      - name: Read matrix outputs
+        id: read
+        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        with:
+          matrix-step-name: docker_images
+
+      - name: Print full digest config JSON
+        run: |
+          echo "Received matrix outputs:"
+          echo '${{ steps.read.outputs.result }}' | jq .
+
+  stitch:
+    name: Stitch multi-arch manifests
+    needs: [digest_config, ext_config]
+    runs-on: ubuntu-latest
+
+    environment: ghcr-deployment
+
+    outputs:
+      stitched_json: ${{ steps.stitch.outputs.stitched_json }}
+
+    steps:
+      - name: Login to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Log in to NGC
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: builder_context
+          version: v0.19.0
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
+
+      - name: Create multi-arch images
+        id: stitch
+        run: |
+          set -euo pipefail
+
+          DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
+          EXT_JSON='${{ needs.ext_config.outputs.json }}'
+          echo "DIGESTS_JSON:"
+          echo "$DIGESTS_JSON" | jq .
+
+          echo "EXT_JSON:"
+          echo "$EXT_JSON" | jq .
+
+          # Grab the first tag that starts with ghcr.io/nvidia/cuda-quantum-dev:ext-
+          tag_sample=$(echo "$DIGESTS_JSON" | jq -r '.image_tag[]' | grep '^ghcr.io/nvidia/cuda-quantum-dev:ext-' | head -n1)
+
+          # Extract the tag portion after the colon
+          full_tag=$(echo "$tag_sample" | cut -d ':' -f2)
+
+          # Strip prefix pattern to get branch
+          branch=$(echo "$full_tag" | sed -E 's/^ext-[^-]+-cu[0-9.]+-gcc[0-9]+-//')
+
+          echo "branch: $branch"
+
+          stitched_output="{}"
+
+          echo "Creating stitched manifest for cuda-quantum-devdeps..."
+          for cuda in 11.8 12.0; do
+            cuda_major="${cuda%%.*}"
+            key="arm64-cu${cuda}-ext"
+            arm64_image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
+            echo "CUDA $cuda arm64 image: $arm64_image"
+
+            key="amd64-cu${cuda}-ext"
+            amd64_image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
+            echo "CUDA $cuda amd64 image: $amd64_image"
+
+            stitched_tag="ghcr.io/nvidia/cuda-quantum-devdeps:ext-cu${cuda}-gcc11-${branch}"
+
+            refs="$arm64_image $amd64_image"
+
+            docker buildx imagetools create --tag "$stitched_tag" $refs
+            digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+            stitched_key="devdeps-cu${cuda_major}"
+            stitched_output=$(echo "$stitched_output" | jq --arg key "$stitched_key" --arg val "$digest" '. + {($key): $val}')
+          done
+
+          echo "Creating stitched manifest for cuda-quantum and cuda-quantum-dev..."
+          for image in image dev-image; do
+            for cuda in 11.8 12.0; do
+              echo "Processing CUDA $cuda..."
+              refs=""
+              for arch in amd64 arm64; do
+                key="${arch}-cu${cuda}-${image}"
+                echo "Looking up key: $key"
+
+                digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
+                if [[ -z "$digest" || "$digest" == "null" ]]; then
+                  echo "::error::Missing digest for key $key"
+                  exit 1
+                fi
+
+                # Registry must match where the digest was pushed
+                if [[ "$image" == "dev-image" ]]; then
+                  registry="ghcr.io/nvidia/cuda-quantum-dev"
+                else
+                  registry="ghcr.io/nvidia/cuda-quantum"
+                fi
+
+                refs="$refs $registry@$digest"
+              done
+
+              cuda_major="${cuda%%.*}"
+
+              if [[ "$image" == "dev-image" ]]; then
+                stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda_major}-${branch}-base"
+                stitched_key="dev-cu${cuda_major}"
+              else
+                if [[ "$branch" == "main" ]]; then
+                  tag_suffix="cu${cuda_major}-latest-base"
+                else
+                  tag_suffix="cu${cuda_major}-${branch}-base"
+                fi
+                stitched_tag="nvcr.io/nvidia/nightly/cuda-quantum:${tag_suffix}"
+                stitched_key="base-cu${cuda_major}"
+              fi
+              echo "Creating manifest for $stitched_tag"
+              echo "Refs: $refs"
+              docker buildx imagetools create \
+                --tag "$stitched_tag" \
+                $refs
+
+              digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+              stitched_output=$(echo "$stitched_output" | jq --arg key "$stitched_key" --arg val "$digest" '. + {($key): $val}')
+            done
+          done
+          echo "$stitched_output" > stitched_digests.json
+          stitched_json=$(jq -c . stitched_digests.json)
+          echo "stitched_json=$stitched_json" | tee -a $GITHUB_OUTPUT
+
+  summary:
+    name: Write deployment summary
+    needs: [digest_config, ext_config, stitch]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create image summary
+        id: summary
+        run: |
+          STITCHED_JSON='${{ needs.stitch.outputs.stitched_json }}'
+          echo "$STITCHED_JSON" | jq .
+
+          for cuda in 11.8 12.0; do
+            cuda_major="${cuda%%.*}"
+            artifact_name="image_cu${cuda_major}_publishing"            
+            info_file="$artifact_name.txt"
+
+            key="base-cu${cuda_major}"
+            cudaq_digest=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$key]')
+
+            key="dev-cu${cuda_major}"
+            dev_digest=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$key]')
+
+            key="devdeps-cu${cuda_major}"
+            devdeps_digest=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$key]')
+
+            {
+              echo "source-sha: ${{ github.sha }}"
+              echo "cuda-quantum-image: nvcr.io/nvidia/nightly/cuda-quantum@$cudaq_digest"
+              echo "cuda-quantum-dev-image: ghcr.io/nvidia/cuda-quantum-dev@$dev_digest"
+              echo "cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@$devdeps_digest"
+              echo "platforms: linux/arm64,linux/amd64"
+              echo "cuda-version: $cuda"
+              cat .github/workflows/config/gitlab_commits.txt
+            } | tee "$info_file"
+            echo "Created $info_file"
+          done
+
+      - name: Upload image_cu11_publishing
+        uses: actions/upload-artifact@v4
+        with:
+          name: image_cu11_publishing
+          path: image_cu11_publishing.txt
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload image_cu12_publishing
+        uses: actions/upload-artifact@v4
+        with:
+          name: image_cu12_publishing
+          path: image_cu12_publishing.txt
+          retention-days: 30
+          if-no-files-found: error
 
   python_wheels:
     name: Create Python wheels
