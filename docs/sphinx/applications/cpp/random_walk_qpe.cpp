@@ -1,22 +1,15 @@
-/*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
- * All rights reserved.                                                        *
- *                                                                             *
- * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
-
 // Compile and run with:
 // ```
-// nvq++ -fno-enable-cudaq-run random_walk_qpe.cpp -o qpe.x && ./qpe.x
+// nvq++ random_walk_qpe.cpp -o qpe.x && ./qpe.x
 // ```
 
 #include <cudaq.h>
 
-// Here we demonstrate an algorithm expressed as a CUDA-Q kernel
-// that incorporates non-trivial control flow and conditional
-// quantum instruction invocation.
+// Here we demonstrate an algorithm expressed as a CUDA-Q kernel that
+// incorporates non-trivial control flow and conditional quantum instruction
+// invocation.
 
+// Ref: https://arxiv.org/pdf/2208.04526
 struct rwpe {
   double operator()(const int n_iter, double mu, double sigma) __qpu__ {
     int iteration = 0;
@@ -54,8 +47,14 @@ struct rwpe {
 };
 
 int main() {
-  int n_iterations = 24;
-  double mu = 0.7951, sigma = 0.6065;
-  auto phase = rwpe{}(n_iterations, mu, sigma);
-  printf("Phase = %lf\n", phase);
+
+  cudaq::set_random_seed(123);
+  const std::size_t shots = 100;
+  constexpr int numIters = 24;
+  constexpr double mu = 0.7951;
+  constexpr double sigma = 0.6065;
+  auto phases = cudaq::run(shots, rwpe{}, numIters, mu, sigma);
+
+  for (auto &phase : phases)
+    printf("Phase = %lf\n", phase);
 }
