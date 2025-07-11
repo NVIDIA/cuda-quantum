@@ -154,7 +154,7 @@ count of qubits in state :math:`|1\rangle`:
         :end-before: [End Run1]
 
 The code above will execute the kernel multiple times (defined by `shots_count`) and return a list of 
-individual results. By default, the `shots_count` for `run` is 1000.
+individual results. By default, the `shots_count` for `run` is 100.
 
 You can process the results to get statistics or other insights:
 

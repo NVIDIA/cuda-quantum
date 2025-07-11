@@ -1180,6 +1180,20 @@ def test_dataclasses_dot_dataclass_user_defined_method_raises_error():
         e.value)
 
 
+def test_shots_count():
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qubit()
+        h(q)
+        return mz(q)
+
+    results = cudaq.run(kernel)
+    assert len(results) == 100  # default shots count
+    results = cudaq.run(kernel, shots_count=53)
+    assert len(results) == 53
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
