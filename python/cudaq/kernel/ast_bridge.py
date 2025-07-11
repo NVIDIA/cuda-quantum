@@ -3727,6 +3727,12 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
+        # Reject any code with while...else block
+        if node.orelse:
+            self.emitFatalError(
+                'cudaq.kernel functions must not use a while...else clause.',
+                node)
+
         self.currentNode = node
 
         loop = cc.LoopOp([], [], BoolAttr.get(False))
