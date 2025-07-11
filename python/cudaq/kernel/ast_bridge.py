@@ -3088,6 +3088,7 @@ class PyASTBridge(ast.NodeVisitor):
                 forNode.iter = node.generators[0].iter
                 forNode.target = node.generators[0].target
                 forNode.body = [node.elt]
+                forNode.orelse = []
                 self.visit_For(forNode)
                 return
 
