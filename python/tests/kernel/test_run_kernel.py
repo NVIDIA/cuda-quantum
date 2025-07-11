@@ -1382,9 +1382,10 @@ def test_return_from_for_loop_with_else_block():
         else:
             return -1
 
-    results = cudaq.run(kernel, shots_count=1)
-    assert len(results) == 1
-    assert results[0] == 1
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, shots_count=1)
+    assert 'cudaq.kernel functions must not use a for...else clause.' in str(
+        e.value)
 
 
 def test_return_from_while_loop_with_else_block():
@@ -1415,9 +1416,10 @@ def test_return_from_else_block_after_a_for_loop():
         else:
             return -1
 
-    results = cudaq.run(kernel, shots_count=1)
-    assert len(results) == 1
-    assert results[0] == -1
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, shots_count=1)
+    assert 'cudaq.kernel functions must not use a for...else clause.' in str(
+        e.value)
 
 
 def test_return_from_else_block_after_a_while_loop():
