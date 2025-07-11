@@ -3523,11 +3523,6 @@ class PyASTBridge(ast.NodeVisitor):
                                             isDecrementing=isDecrementing,
                                             elseStmts=node.orelse)
 
-                # Handle the `else` branch of a for loop
-                if node.orelse:
-                    for stmt in node.orelse:
-                        self.visit(stmt)
-
                 return
 
         # We can simplify `for i,j in enumerate(L)` MLIR code immensely
@@ -3598,10 +3593,6 @@ class PyASTBridge(ast.NodeVisitor):
                     self.createInvariantForLoop(totalSize,
                                                 bodyBuilder,
                                                 elseStmts=node.orelse)
-                    # Handle the `else` branch of a for loop
-                    if node.orelse:
-                        for stmt in node.orelse:
-                            self.visit(stmt)
                     return
 
         self.visit(node.iter)
