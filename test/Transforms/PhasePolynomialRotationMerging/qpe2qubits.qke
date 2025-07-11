@@ -1,0 +1,70 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// This test is a cleaned up version of quake IR from
+// docs/sphinx/applications/phase_estimation.cpp using 2 qubits.
+// It uses CircuitCheck to verify that the optimization produces
+// an equivalent circuit.
+
+// RUN: cudaq-opt --phase-polynomial-opt-pipeline %s | CircuitCheck %s
+
+module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu", quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_ZZ4mainENK3$_0clERN5cudaq5quditILm2EEE", __nvqpp__mlirgen__function_iqft._Z4iqftN5cudaq5qviewILm2EEE = "_Z4iqftN5cudaq5qviewILm2EEE", __nvqpp__mlirgen__instance_qpeZ4mainE3$_0r1PiGate._ZN3qpeclIZ4mainE3$_08r1PiGateEEviOT_OT0_ = "_ZN3qpeclIZ4mainE3$_08r1PiGateEEviOT_OT0_", __nvqpp__mlirgen__r1PiGate = "_ZN8r1PiGateclERN5cudaq5quditILm2EEE"}} {
+  func.func @__nvqpp__mlirgen__instance_qpeZ4mainE3$_0r1PiGate._ZN3qpeclIZ4mainE3$_08r1PiGateEEviOT_OT0_(%arg0: !cc.callable<(!quake.ref) -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %cst = arith.constant 5.000000e-01 : f64
+    %cst_0 = arith.constant -5.000000e-01 : f64
+    %0 = quake.alloca !quake.veq<3>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+    %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+    %3 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    quake.h %1 : (!quake.ref) -> ()
+    quake.h %2 : (!quake.ref) -> ()
+    quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+    quake.x [%1] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_0) %3 : (f64, !quake.ref) -> ()
+    quake.x [%1] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.rz (%cst) %3 : (f64, !quake.ref) -> ()
+    quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+    quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_0) %3 : (f64, !quake.ref) -> ()
+    quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.rz (%cst) %3 : (f64, !quake.ref) -> ()
+    quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+    quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_0) %3 : (f64, !quake.ref) -> ()
+    quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.rz (%cst) %3 : (f64, !quake.ref) -> ()
+    quake.x [%2] %1 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%2] %1 : (!quake.ref, !quake.ref) -> ()
+    quake.h %1 : (!quake.ref) -> ()
+    quake.h %2 : (!quake.ref) -> ()
+    %4 = cc.alloca !cc.array<i8 x 2>
+    %measOut = quake.mz %1 : (!quake.ref) -> !quake.measure
+    %5 = quake.discriminate %measOut : (!quake.measure) -> i1
+    %6 = cc.cast %4 : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+    %7 = cc.cast unsigned %5 : (i1) -> i8
+    cc.store %7, %6 : !cc.ptr<i8>
+    %measOut_1 = quake.mz %2 : (!quake.ref) -> !quake.measure
+    %8 = quake.discriminate %measOut_1 : (!quake.measure) -> i1
+    %9 = cc.compute_ptr %4[1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+    %10 = cc.cast unsigned %8 : (i1) -> i8
+    cc.store %10, %9 : !cc.ptr<i8>
+    quake.dealloc %0 : !quake.veq<3>
+    return
+  }
+}
+

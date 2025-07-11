@@ -25,6 +25,7 @@ void addAggressiveEarlyInlining(mlir::OpPassManager &pm,
                                 bool fatalCheck = false);
 void registerAggressiveEarlyInliningPipeline();
 
+void registerPhasePolynomialOptimizationPipeline();
 void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
