@@ -1055,10 +1055,11 @@ sampling will still have to execute sequentially due to resource constraints.</p
 </section>
 <section id="run">
 <h2>Run<a class="headerlink" href="#run" title="Permalink to this heading">¶</a></h2>
-<p>The <code class="code docutils literal notranslate"><span class="pre">run</span></code> function executes a quantum kernel multiple times and returns each individual result. Unlike <code class="code docutils literal notranslate"><span class="pre">sample</span></code>,
+<p>The <code class="code docutils literal notranslate"><span class="pre">run</span></code> method executes a quantum kernel multiple times and returns each individual result. Unlike <code class="code docutils literal notranslate"><span class="pre">sample</span></code>,
 which collects measurement statistics as counts, <code class="code docutils literal notranslate"><span class="pre">run</span></code> preserves each individual return value from every
 execution. This is useful when you need to analyze the distribution of returned values rather than just
-aggregated measurement counts.</p>
+aggregated measurement counts. Additionally, the <code class="code docutils literal notranslate"><span class="pre">run</span></code> method also supports returning various types of values
+from the quantum kernel, including scalar types (bool, int, float and their variants) and user-defined data structures.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
 <p>The <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code> method takes a kernel and its arguments as inputs, and returns a list containing
@@ -1149,7 +1150,7 @@ count of qubits in state <span class="math notranslate nohighlight">\(|1\rangle\
 </div>
 </div>
 <p>The code above will execute the kernel multiple times (defined by <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>) and return a list of
-individual results. By default, the <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> for <code class="code docutils literal notranslate"><span class="pre">run</span></code> is 1000.</p>
+individual results. By default, the <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> for <code class="code docutils literal notranslate"><span class="pre">run</span></code> is 100.</p>
 <p>You can process the results to get statistics or other insights:</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--8-input--1" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--1">Python</label><div class="tab-content docutils">
@@ -1207,12 +1208,14 @@ individual results. By default, the <code class="code docutils literal notransla
 </div>
 </div>
 </div>
-<p>It is important to note the following requirements for the <code class="code docutils literal notranslate"><span class="pre">run</span></code> function:</p>
-<ul class="simple">
-<li><p>The kernel must return a non-void value</p></li>
-<li><p>Supported return types include scalar types (bool, int, float) and custom data structures</p></li>
-<li><p>When using custom data structures, they must be defined with <code class="code docutils literal notranslate"><span class="pre">slots=True</span></code> in Python or as simple aggregates in C++</p></li>
-</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently, <code class="code docutils literal notranslate"><span class="pre">run</span></code> supports kernels returning scalar types (bool, int, float) and custom data structures.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When using custom data structures, they must be defined with <code class="code docutils literal notranslate"><span class="pre">slots=True</span></code> in Python or as simple aggregates in C++.</p>
+</div>
 <p>Similar to <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code>, the <code class="code docutils literal notranslate"><span class="pre">run</span></code> API also supports asynchronous execution through <code class="code docutils literal notranslate"><span class="pre">run_async</span></code>.
 This is particularly useful for parallelizing execution of multiple kernels on a multi-processor platform:</p>
 <div class="tab-set docutils">
