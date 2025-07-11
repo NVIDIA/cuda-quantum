@@ -1003,7 +1003,7 @@ def test_shots_count():
         return mz(q)
 
     results = cudaq.run_async(kernel).get()
-    assert len(results) == 1000  # default shots count is 1000
+    assert len(results) == 100  # default shots count
     results = cudaq.run_async(kernel, shots_count=37).get()
     assert len(results) == 37
 
