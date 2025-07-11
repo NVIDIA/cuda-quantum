@@ -246,7 +246,7 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
 /// @brief Bind the run cudaq function.
 void bindPyRun(py::module &mod) {
   mod.def("run", &pyRun, py::arg("kernel"), py::kw_only(),
-          py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
+          py::arg("shots_count") = 100, py::arg("noise_model") = py::none(),
           R"#()#");
 }
 
@@ -268,7 +268,7 @@ void bindPyRunAsync(py::module &mod) {
           },
           "");
   mod.def("run_async_internal", &pyRunAsync, py::arg("kernel"), py::kw_only(),
-          py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
+          py::arg("shots_count") = 100, py::arg("noise_model") = py::none(),
           py::arg("qpu_id") = 0, R"#()#");
 }
 } // namespace cudaq

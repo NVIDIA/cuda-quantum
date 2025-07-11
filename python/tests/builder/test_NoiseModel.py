@@ -470,7 +470,7 @@ def test_callback_channel():
     noisy_counts.dump()
     # All qubits, except q[2], are flipped.
     assert np.isclose(noisy_counts.probability("00100"), 1.0)
-    ## NOTE: Following gets stuck in CI, commenting out to check it separately.
+    ## Ref: https://github.com/NVIDIA/cuda-quantum/issues/3193
     # future = cudaq.sample_async(kernel, shots_count=shots, noise_model=noise)
     # noisy_counts = future.get()
     # assert np.isclose(noisy_counts.probability("00100"), 1.0)
