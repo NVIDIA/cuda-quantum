@@ -13,6 +13,7 @@ import numpy as np
 import os
 import sys
 from collections import deque
+from types import FunctionType
 
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, load_intrinsic, gen_vector_of_complex_constant,
@@ -51,6 +52,8 @@ State = cudaq_runtime.State
 # (see CCOps.tc line 898). We'll duplicate that
 # here by just setting it manually
 kDynamicPtrIndex: int = -2147483648
+
+ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
 
 
 class PyScopedSymbolTable(object):
@@ -409,27 +412,35 @@ class PyASTBridge(ast.NodeVisitor):
             if cc.StdvecType.isinstance(operand.type):
                 operand = self.__copyVectorAndCastElements(operand, eleTy)
 
-        #FIXME: use cc.cast for all below
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
-                operand = arith.ExtFOp(ty, operand).result
+                operand = cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
-                operand = arith.SIToFPOp(ty, operand).result
+                zeroext = IntegerType(operand.type).width == 1
+                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                                    zint=zeroext).result
 
         if F32Type.isinstance(ty):
             if F64Type.isinstance(operand.type):
-                operand = arith.TruncFOp(ty, operand).result
+                operand = cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
-                operand = arith.SIToFPOp(ty, operand).result
+                zeroext = IntegerType(operand.type).width == 1
+                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                                    zint=zeroext).result
 
         if IntegerType.isinstance(ty):
-            if F64Type.isinstance(operand.type):
-                operand = arith.FPToSIOp(self.getIntegerType(), operand).result
+            if F64Type.isinstance(operand.type) or F32Type.isinstance(
+                    operand.type):
+                operand = cc.CastOp(ty, operand, sint=True, zint=False).result
             if IntegerType.isinstance(operand.type):
                 if IntegerType(ty).width < IntegerType(operand.type).width:
-                    operand = arith.TruncIOp(ty, operand).result
+                    operand = cc.CastOp(ty, operand).result
                 else:
-                    operand = arith.ExtSIOp(ty, operand).result
+                    zeroext = IntegerType(operand.type).width == 1
+                    operand = cc.CastOp(ty,
+                                        operand,
+                                        sint=not zeroext,
+                                        zint=zeroext).result
 
         return operand
 
@@ -946,6 +957,53 @@ class PyASTBridge(ast.NodeVisitor):
 
         return startVal, endVal, stepVal, isDecrementing
 
+    def __visitStructAttribute(self, node, structValue):
+        """
+        Handle struct member extraction from either a pointer to struct or direct struct value.
+        Uses the most efficient approach for each case.
+        """
+        if cc.PointerType.isinstance(structValue.type):
+            # Handle pointer to struct - use ComputePtrOp
+            eleType = cc.PointerType.getElementType(structValue.type)
+            if cc.StructType.isinstance(eleType):
+                structIdx, memberTy = self.getStructMemberIdx(
+                    node.attr, eleType)
+                eleAddr = cc.ComputePtrOp(cc.PointerType.get(memberTy),
+                                          structValue, [],
+                                          DenseI32ArrayAttr.get([structIdx
+                                                                ])).result
+
+                if self.attributePushPointerValue:
+                    self.pushValue(eleAddr)
+                    return
+
+                # Load the value
+                eleAddr = cc.LoadOp(eleAddr).result
+                self.pushValue(eleAddr)
+                return
+        elif cc.StructType.isinstance(structValue.type):
+            # Handle direct struct value - use ExtractValueOp (more efficient)
+            structIdx, memberTy = self.getStructMemberIdx(
+                node.attr, structValue.type)
+            extractedValue = cc.ExtractValueOp(
+                memberTy, structValue, [],
+                DenseI32ArrayAttr.get([structIdx])).result
+
+            if self.attributePushPointerValue:
+                # If we need a pointer, we have to create a temporary slot
+                tempSlot = cc.AllocaOp(cc.PointerType.get(memberTy),
+                                       TypeAttr.get(memberTy)).result
+                cc.StoreOp(extractedValue, tempSlot)
+                self.pushValue(tempSlot)
+                return
+
+            self.pushValue(extractedValue)
+            return
+        else:
+            self.emitFatalError(
+                f"Cannot access attribute '{node.attr}' on type {structValue.type}"
+            )
+
     def needsStackSlot(self, type):
         """
         Return true if this is a type that has been "passed by value" and 
@@ -1338,20 +1396,7 @@ class PyASTBridge(ast.NodeVisitor):
                 eleType = cc.PointerType.getElementType(value.type)
                 if cc.StructType.isinstance(eleType):
                     # Handle the case where we have a struct member extraction, memory semantics
-                    structIdx, memberTy = self.getStructMemberIdx(
-                        node.attr, eleType)
-                    eleAddr = cc.ComputePtrOp(
-                        cc.PointerType.get(memberTy), value, [],
-                        DenseI32ArrayAttr.get([structIdx],
-                                              context=self.ctx)).result
-
-                    if self.attributePushPointerValue:
-                        self.pushValue(eleAddr)
-                        return
-
-                    # If we have a pointer, and we always want to load it.
-                    eleAddr = cc.LoadOp(eleAddr).result
-                    self.pushValue(eleAddr)
+                    self.__visitStructAttribute(node, value)
                     return
 
             if node.attr == 'append':
@@ -1425,6 +1470,20 @@ class PyASTBridge(ast.NodeVisitor):
                         self.getConstantInt(channel_class.num_parameters))
                     self.pushValue(self.getConstantInt(hash(channel_class)))
                     return
+
+        # Handle attribute access on call results (e.g., M(6, 9).i)
+        if isinstance(node.value, ast.Call):
+            # Visit the call first to get the result on the stack
+            self.visit(node.value)
+            if len(self.valueStack) == 0:
+                self.emitFatalError("Call expression did not produce a value",
+                                    node)
+
+            # Get the call result from the stack
+            call_result = self.popValue()
+
+            # Handle attribute access on the call result
+            self.__visitStructAttribute(node, call_result)
 
     def visit_Call(self, node):
         """
@@ -2125,6 +2184,12 @@ class PyASTBridge(ast.NodeVisitor):
                 # Handle User-Custom Struct Constructor
                 cls, annotations = globalRegisteredTypes.getClassAttributes(
                     node.func.id)
+
+                if '__slots__' not in cls.__dict__:
+                    self.emitWarning(
+                        f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True).",
+                        node)
+
                 # Alloca the struct
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
@@ -2153,12 +2218,12 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
                 else:
                     structTy = cc.StructType.getNamed(node.func.id, structTys)
-
                 # Disallow user specified methods on structs
                 if len({
                         k: v
                         for k, v in cls.__dict__.items()
-                        if not (k.startswith('__') and k.endswith('__'))
+                        if not (k.startswith('__') and k.endswith('__')) and
+                        isinstance(v, FunctionType)
                 }) != 0:
                     self.emitFatalError(
                         'struct types with user specified methods are not allowed.',
@@ -3135,7 +3200,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
         self.currentNode = node
         if isinstance(node.value, bool):
-            self.pushValue(self.getConstantInt(node.value, 1))
+            boolValue = 0 if node.value == 0 else 1
+            self.pushValue(self.getConstantInt(boolValue, 1))
             return
 
         if isinstance(node.value, int):
@@ -4215,8 +4281,68 @@ class PyASTBridge(ast.NodeVisitor):
 
             self.pushValue(arith.RemUIOp(left, right).result)
             return
-        else:
-            self.emitFatalError(f"unhandled binary operator - {node.op}", node)
+
+        if isinstance(node.op, ast.LShift):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.ShLIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '<<'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.RShift):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.ShRSIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '>>'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitAnd):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.AndIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '&'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitOr):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.OrIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '|'; only integers supported.",
+                    node)
+
+        if isinstance(node.op, ast.BitXor):
+            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
+                    right.type):
+                left = self.promoteOperandType(self.getIntegerType(), left)
+                right = self.promoteOperandType(self.getIntegerType(), right)
+                self.pushValue(arith.XOrIOp(left, right).result)
+                return
+            else:
+                self.emitFatalError(
+                    "unsupported operand type(s) for '^'; only integers supported.",
+                    node)
+
+        self.emitFatalError(f"unhandled binary operator - {node.op}", node)
 
     def visit_Name(self, node):
         """

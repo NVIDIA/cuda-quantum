@@ -26,4 +26,4 @@ func.func @__nvqpp__mlirgen__t1() attributes {"cudaq-kernel"} {
 // CHECK:         ret void
 // CHECK:       }
 
-// CHECK:       = { "output_labeling_schema"="schema_id" "output_names"="{{\[\[\[}}0,[1,\22r00000\22]]]]" "qir_profiles"="base_profile" "requiredQubits"="2" "requiredResults"="1" }
+// CHECK:       = { "output_labeling_schema"="schema_id" "output_names"="{{\[\[\[}}0,[1,\22r00000\22]]]]" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }

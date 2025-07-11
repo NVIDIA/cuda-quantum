@@ -359,7 +359,7 @@ ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_MLIR_LIB_LINKING=true
-ENABLE_CUDAQ_RUN=false
+ENABLE_CUDAQ_RUN=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -749,7 +749,9 @@ if ${ENABLE_LOWER_TO_CFG}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,func.func(lower-to-cfg)")
 fi
 if ${ENABLE_CUDAQ_RUN}; then
-	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+	if [[ ${CUDAQ_ENABLE_QUANTUM_DEVICE_RUN} == 1 ]] || [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+	fi
 fi
 if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,cse")

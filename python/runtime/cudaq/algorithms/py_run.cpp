@@ -48,6 +48,9 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
     kernel.attr("compile")();
 
   auto kernelName = kernel.attr("name").cast<std::string>();
+  if (!py::hasattr(kernel, "module") || kernel.attr("module").is_none())
+    throw std::runtime_error(
+        "Unsupported target / Invalid kernel for `run`: missing module");
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   args = simplifiedValidateInputArguments(args);
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
@@ -60,7 +63,7 @@ RunResultSpan pyRunTheKernel(const std::string &name, MlirModule module,
                              func::FuncOp funcOp,
                              cudaq::OpaqueArguments &runtimeArgs,
                              cudaq::quantum_platform &platform,
-                             std::size_t shots_count) {
+                             std::size_t shots_count, std::size_t qpu_id = 0) {
 
   auto returnTypes = funcOp.getResultTypes();
   if (returnTypes.empty() || returnTypes.size() > 1)
@@ -84,7 +87,7 @@ RunResultSpan pyRunTheKernel(const std::string &name, MlirModule module,
         pyLaunchKernel(name, thunk, mod, runtimeArgs, rawArgs, size,
                        returnOffset, {});
       },
-      platform, name, shots_count);
+      platform, name, shots_count, qpu_id);
 
   std::free(rawArgs);
   return results;
@@ -190,7 +193,7 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
     py::gil_scoped_release gil_release{};
     QuantumTask wrapped = detail::make_copyable_function(
         [sp = std::move(spanPromise), ep = std::move(errorPromise), shots_count,
-         argData, name, module, func,
+         qpu_id, argData, name, module, func,
          noise_model = std::move(noise_model)]() mutable {
           auto &platform = get_platform();
 
@@ -200,7 +203,7 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
 
           try {
             auto span = details::pyRunTheKernel(name, module, func, *argData,
-                                                platform, shots_count);
+                                                platform, shots_count, qpu_id);
             delete argData;
             sp.set_value(span);
             ep.set_value("");
