@@ -879,8 +879,7 @@ class PyASTBridge(ast.NodeVisitor):
                                bodyBuilder,
                                startVal=None,
                                stepVal=None,
-                               isDecrementing=False,
-                               elseStmts=None):
+                               isDecrementing=False):
         """
         Create an invariant loop using the CC dialect. 
         """
@@ -915,16 +914,6 @@ class PyASTBridge(ast.NodeVisitor):
         with InsertionPoint(stepBlock):
             incr = arith.AddIOp(stepBlock.arguments[0], stepVal).result
             cc.ContinueOp([incr])
-
-        if elseStmts:
-            elseBlock = Block.create_at_start(loop.elseRegion, [iTy])
-            with InsertionPoint(elseBlock):
-                self.symbolTable.pushScope()
-                for stmt in elseStmts:
-                    self.visit(stmt)
-                if not self.hasTerminator(elseBlock):
-                    cc.ContinueOp(elseBlock.arguments)
-                self.symbolTable.popScope()
 
         loop.attributes.__setitem__('invariant', UnitAttr.get())
         return
@@ -3099,7 +3088,6 @@ class PyASTBridge(ast.NodeVisitor):
                 forNode.iter = node.generators[0].iter
                 forNode.target = node.generators[0].target
                 forNode.body = [node.elt]
-                forNode.orelse = []
                 self.visit_For(forNode)
                 return
 
@@ -3496,6 +3484,12 @@ class PyASTBridge(ast.NodeVisitor):
         ITERABLEs are the `veq` type, the `stdvec` type, and the result of 
         range() and enumerate(). 
         """
+        # Reject any code with for...else block
+        if node.orelse:
+            self.emitFatalError(
+                'cudaq.kernel functions must not use a for...else clause.',
+                node)
+
         self.currentNode = node
 
         # We can simplify `for i in range(N)` MLIR code immensely
@@ -3520,8 +3514,7 @@ class PyASTBridge(ast.NodeVisitor):
                                             bodyBuilder,
                                             startVal=startVal,
                                             stepVal=stepVal,
-                                            isDecrementing=isDecrementing,
-                                            elseStmts=node.orelse)
+                                            isDecrementing=isDecrementing)
 
                 return
 
@@ -3590,9 +3583,7 @@ class PyASTBridge(ast.NodeVisitor):
                         [self.visit(b) for b in node.body]
                         self.symbolTable.popScope()
 
-                    self.createInvariantForLoop(totalSize,
-                                                bodyBuilder,
-                                                elseStmts=node.orelse)
+                    self.createInvariantForLoop(totalSize, bodyBuilder)
                     return
 
         self.visit(node.iter)
@@ -3710,9 +3701,7 @@ class PyASTBridge(ast.NodeVisitor):
             [self.visit(b) for b in node.body]
             self.symbolTable.popScope()
 
-        self.createInvariantForLoop(totalSize,
-                                    bodyBuilder,
-                                    elseStmts=node.orelse)
+        self.createInvariantForLoop(totalSize, bodyBuilder)
 
     def visit_While(self, node):
         """
