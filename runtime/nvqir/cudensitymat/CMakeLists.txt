@@ -22,6 +22,15 @@ find_library(CUTENSOR_LIB
         ${CUTENSOR_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
 )
 
+find_library(CUTENSORNET_LIB
+    NAMES   cutensornet libcutensornet.so.2
+    HINTS   
+        ${CUTENSORNET_ROOT}/lib64
+        ${CUTENSORNET_ROOT}/lib
+        ${CUTENSORNET_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
+        ${CUTENSORNET_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
+)
+
 # Find cudensitymat header (for MPI plugin interface typedef)
 find_file(CUDENSITYMAT_INC
     NAMES   cudensitymat.h
@@ -111,6 +120,7 @@ if (${CUDENSITYMAT_VERSION} VERSION_GREATER_EQUAL "0.2")
                           cudaq-common
                           ${CUDENSITYMAT_LIB}
                           ${CUTENSOR_LIB}
+                          ${CUTENSORNET_LIB}
                           CUDA::cudart_static
                       )
   target_link_libraries(${LIBRARY_NAME}
