@@ -754,7 +754,7 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
-def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
+def ConvertToCFG : Pass<"convert-to-cfg"> {
   let summary = "Erase CLoop, CIf, etc. ops, replacing them with a CFG.";
   let description = [{
     This pass converts high-level control flow ops to a more primitive basic
@@ -789,7 +789,13 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
   }];
 
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
-  let constructor = "cudaq::opt::createLowerToCFGPass()";
+}
+
+def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare the Module to be converted to a CFG.";
+  let description = [{
+    This pass must be run before the ConvertToCFG pass.
+  }];
 }
 
 def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {

@@ -1488,8 +1488,6 @@ LogicalResult cudaq::cc::LoopOp::verify() {
   if (hasPythonElse()) {
     if (isPostConditional())
       return emitOpError("post-conditional loop cannot have an else region");
-    if (!hasStep())
-      return emitOpError("python for-else must have step region");
     if (getElseEntryArguments().size() != initArgsSize)
       return emitOpError(
           "size of init args and else region args must be equal");
@@ -1537,7 +1535,7 @@ void cudaq::cc::LoopOp::print(OpAsmPrinter &p) {
     if (hasPythonElse()) {
       p << " else ";
       p.printRegion(getElseRegion(), /*printEntryBlockArgs=*/hasArguments(),
-                    /*printBlockTerminators=*/hasArguments());
+                    /*printBlockTerminators=*/true);
     }
   }
   p.printOptionalAttrDict((*this)->getAttrs(), {postCondAttrName()});
