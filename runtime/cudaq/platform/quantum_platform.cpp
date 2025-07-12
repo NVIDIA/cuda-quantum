@@ -85,7 +85,7 @@ void quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
 }
 
 void quantum_platform::set_current_qpu(const std::size_t device_id) {
-  if (device_id >= platformNumQPUs) {
+  if (platformNumQPUs != 0 && device_id >= platformNumQPUs) {
     throw std::invalid_argument(
         "QPU device id " + std::to_string(device_id) +
         " is not valid (greater than number of available QPUs: " +
