@@ -1206,6 +1206,16 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   }];
 }
 
+def VariableCoalesce : Pass<"variable-coalesce"> {
+  let summary = "Coalesce variables in functions.";
+  let description = [{
+    This pass will move temporaries from inner scopes to the outermost,
+    function scope, and coalesce variables of the same type and disjoint
+    live-ranges. It relies on the correct and proper construction and use of
+    `cc.scope` ops.
+  }];
+}
+
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
   let summary = "Remove stores that are overridden by subsequent store";
   let description = [{
