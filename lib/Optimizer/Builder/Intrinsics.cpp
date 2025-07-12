@@ -456,14 +456,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {cudaq::llvmStackRestore},
      "func.func private @llvm.stacksave() -> !cc.ptr<i8>"},
 
-    // NB: load llvmStackSave to get both.
-    {cudaq::llvmStackRestore,
-     {},
-     "func.func private @llvm.stackrestore(!cc.ptr<i8>)"},
-    {cudaq::llvmStackSave,
-     {cudaq::llvmStackRestore},
-     "func.func private @llvm.stacksave() -> !cc.ptr<i8>"},
-
     {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
 
     // Declarations of QIR functions used by codegen that are common to all
