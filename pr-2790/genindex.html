@@ -109,6 +109,7 @@
 <li class="toctree-l2"><a class="reference internal" href="using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
@@ -732,6 +733,8 @@
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.run_async"><code class="docutils literal notranslate"><span class="pre">run_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
@@ -1634,10 +1637,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17OrcaRemoteRESTQPUE">cudaq::OrcaRemoteRESTQPU (C++ class)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli111num_targetsE">cudaq::pauli1::num_targets (C++ member)</a>
@@ -1947,6 +1950,10 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq21RemoteSimulationStateE">cudaq::RemoteSimulationState (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9ResourcesE">cudaq::Resources (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS">cudaq::run (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS">cudaq::run_async (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args">cudaq::sample (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args">[2]</a>
 </li>
@@ -2930,6 +2937,10 @@
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.right_multiply">right_multiply() (cudaq.SuperOperator static method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.KrausOperator.row_count">row_count (cudaq.KrausOperator property)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.run">run() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.run_async">run_async() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.RydbergHamiltonian">RydbergHamiltonian (class in cudaq.operators)</a>
 </li>

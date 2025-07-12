@@ -1,18 +1,17 @@
-# Compile and run with:
+# Run with:
 # ```
-# nvq++ random_walk_qpe.cpp -o qpe.x && ./qpe.x
+# python3 random_walk_qpe.py
 # ```
 
 import cudaq
-from typing import List
-from cudaq import spin
 
-# Here we demonstrate an algorithm expressed as a CUDA-Q kernel
-# that incorporates non-trivial control flow and conditional
-# quantum instruction invocation.
+# Here we demonstrate an algorithm expressed as a CUDA-Q kernel that
+# incorporates non-trivial control flow and conditional quantum instruction
+# invocation.
 
 
 # Define the random walk phase estimation kernel
+# Ref: https://arxiv.org/pdf/2208.04526
 @cudaq.kernel
 def rwpe_kernel(n_iter: int, mu: float, sigma: float) -> float:
     iteration = 0
@@ -23,7 +22,6 @@ def rwpe_kernel(n_iter: int, mu: float, sigma: float) -> float:
 
     # Alias them
     aux = qubits[0]
-
     target = qubits[number_of_qubits - 1]
 
     x(target)
@@ -50,12 +48,15 @@ def rwpe_kernel(n_iter: int, mu: float, sigma: float) -> float:
 
 # Main function to execute the kernel
 def main():
+    cudaq.set_random_seed(123)
+    shots = 100
     n_iterations = 24
     mu = 0.7951
     sigma = 0.6065
 
-    phase = rwpe_kernel(n_iterations, mu, sigma)
-    print(f"Phase = {phase:.6f}")
+    phases = cudaq.run(rwpe_kernel, n_iterations, mu, sigma, shots_count=shots)
+    for phase in phases:
+        print(f"Phase = {phase:.6f}")
 
 
 if __name__ == "__main__":
