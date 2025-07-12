@@ -110,6 +110,7 @@
 <li class="toctree-l2"><a class="reference internal" href="using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
@@ -139,12 +140,20 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/executing_kernels.html">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/executing_kernels.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/executing_kernels.html#Observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/executing_kernels.html#Get-state">Get state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/executing_kernels.html#Parallelization-Techniques">Parallelization Techniques</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="examples/python/executing_kernels.html#Observe-Async">Observe Async</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/executing_kernels.html#Sample">Sample</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="examples/python/executing_kernels.html#Sample-Async">Sample Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/executing_kernels.html#Run">Run</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/executing_kernels.html#Return-Custom-Data-Types">Return Custom Data Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/executing_kernels.html#Run-Async">Run Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/executing_kernels.html#Observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/executing_kernels.html#Observe-Async">Observe Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/executing_kernels.html#Get-state">Get state</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
@@ -725,6 +734,8 @@
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.run_async"><code class="docutils literal notranslate"><span class="pre">run_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
