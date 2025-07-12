@@ -14,7 +14,7 @@
 #include "nvqir/Gates.h"
 #include <iostream>
 
-namespace cudaq::details {
+namespace cudaq::contrib {
 
 /// @brief Build a controlled-gate unitary: identity in all control blocks
 /// except the “all controls = 1” block, which is replaced by the original gate.
@@ -153,4 +153,4 @@ complex_matrix get_unitary_cmat(QuantumKernel &&kernel, Args &&...args) {
   return unitary_from_trace(trace);
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::contrib

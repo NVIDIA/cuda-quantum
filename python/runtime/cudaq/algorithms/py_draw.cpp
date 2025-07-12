@@ -38,18 +38,18 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 
 } // namespace details
 
-/// @brief Run `cudaq::draw` on the provided kernel.
+/// @brief Run `cudaq::contrib::draw` on the provided kernel.
 std::string pyDraw(py::object &kernel, py::args args) {
   auto [kernelName, kernelMod, argData] =
       details::getKernelLaunchParameters(kernel, args);
 
-  return details::extractTrace([&]() mutable {
+  return contrib::extractTrace([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
   });
 }
 
-/// @brief Run `cudaq::draw`'s string overload on the provided kernel.
+/// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.
 std::string pyDraw(std::string format, py::object &kernel, py::args args) {
   if (format == "ascii") {
     return pyDraw(kernel, args);
@@ -57,7 +57,7 @@ std::string pyDraw(std::string format, py::object &kernel, py::args args) {
     auto [kernelName, kernelMod, argData] =
         details::getKernelLaunchParameters(kernel, args);
 
-    return details::extractTraceLatex([&]() mutable {
+    return contrib::extractTraceLatex([&]() mutable {
       pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
       delete argData;
     });
