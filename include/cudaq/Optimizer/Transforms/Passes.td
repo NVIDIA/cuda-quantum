@@ -231,8 +231,7 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
 }
 
 def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
-  let summary =
-    "Move measurements as late as possible";
+  let summary = "Move measurements as late as possible";
 
   let description = [{
     Move measurements as late as possible. This is useful for a Base Profile
@@ -383,8 +382,19 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
   }];
 }
 
+def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
+  let summary = "Translate cc.device_call operations";
+
+  let description = [{
+    Perform the translation of cc.device_call to a set of substeps for a
+    distributed memory model.
+  }];
+
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+}
+
 def EraseNoise : Pass<"erase-noise"> {
-  let summary = "Erase the inject of noise via Kraus channels.";
+  let summary = "Erase the injection of noise via Kraus channels.";
   let description = [{
     Although CUDA-Q allows the user to specify the application of noise via
     Kraus channels, these are not needed and must be removed if the code is to

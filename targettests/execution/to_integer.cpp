@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std %s -o %t && %t
-// TODO-FIX-KERNEL-EXEC
 // BROKEN: nvq++ %cpp_std -fkernel-exec-kind=2 %s -o %t && %t
 
 #include <cstdio>
@@ -28,24 +27,75 @@ struct test {
 };
 
 int main() {
-  std::vector<int> firstTest{1, 1, 1}, secondTest{1, 1, 1, 1},
-      thirdTest{1, 0, 1};
-  auto i = test{}(firstTest);
-  if (i != 7) {
-    printf("111 has to map to 7.\n");
-    return 1;
+  {
+    std::vector<int> firstTest{1, 1, 1}, secondTest{1, 1, 1, 1},
+        thirdTest{1, 0, 1}, fourthTest{1, 0, 0, 0}, fifthTest{0, 0, 0, 1};
+    auto i = test{}(firstTest);
+    if (i != 7) {
+      printf("111 has to map to 7.\n");
+      return 1;
+    }
+
+    i = test{}(secondTest);
+    if (i != 15) {
+      printf("1111 has to map to 15.\n");
+      return 1;
+    }
+
+    i = test{}(thirdTest);
+    if (i != 5) {
+      printf("101 has to map to 5.\n");
+      return 1;
+    }
+
+    i = test{}(fourthTest);
+    if (i != 1) {
+      printf("1000 has to map to 1.\n");
+      return 1;
+    }
+
+    i = test{}(fifthTest);
+    if (i != 8) {
+      printf("0001 has to map to 8.\n");
+      return 1;
+    }
   }
 
-  i = test{}(secondTest);
-  if (i != 15) {
-    printf("1111 has to map to 15.\n");
-    return 1;
-  }
+  // Compare to cudaq::to_integer() call on the host
+  {
+    std::vector<bool> firstTest{true, true, true},
+        secondTest{true, true, true, true}, thirdTest{true, false, true},
+        fourthTest{true, false, false, false},
+        fifthTest{false, false, false, true};
+    auto i = cudaq::to_integer(firstTest);
+    if (i != 7) {
+      printf("Host: 111 has to map to 7.\n");
+      return 1;
+    }
 
-  i = test{}(thirdTest);
-  if (i != 5) {
-    printf("101 has to map to 5.\n");
-    return 1;
+    i = cudaq::to_integer(secondTest);
+    if (i != 15) {
+      printf("Host: 1111 has to map to 15.\n");
+      return 1;
+    }
+
+    i = cudaq::to_integer(thirdTest);
+    if (i != 5) {
+      printf("Host: 101 has to map to 5.\n");
+      return 1;
+    }
+
+    i = cudaq::to_integer(fourthTest);
+    if (i != 1) {
+      printf("host: 1000 has to map to 1.\n");
+      return 1;
+    }
+
+    i = cudaq::to_integer(fifthTest);
+    if (i != 8) {
+      printf("Host: 0001 has to map to 8.\n");
+      return 1;
+    }
   }
   return 0;
 }
