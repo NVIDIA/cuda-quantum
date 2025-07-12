@@ -183,15 +183,15 @@ std::pair<void *, std::size_t> comm_dup() {
 }
 
 void finalize() {
-  if (rank() == 0)
-    cudaq::info("Finalizing MPI.");
-
   // Inform the simulator that we are
   // about to run MPI Finalize
   nvqir::tearDownBeforeMPIFinalize();
   auto *commPlugin = getMpiPlugin();
-  if (!commPlugin->is_finalized())
+  if (!commPlugin->is_finalized()) {
+    if (rank() == 0)
+      cudaq::info("Finalizing MPI.");
     commPlugin->finalize();
+  }
 }
 
 } // namespace cudaq::mpi

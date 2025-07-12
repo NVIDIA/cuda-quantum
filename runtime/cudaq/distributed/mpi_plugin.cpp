@@ -125,15 +125,15 @@ void MPIPlugin::all_reduce(std::vector<double> &global,
 }
 
 void MPIPlugin::finalize() {
-  if (rank() == 0)
-    cudaq::info("Finalizing MPI.");
-
   // Check if finalize has been called.
   int isFinalized{0};
   HANDLE_MPI_ERROR(m_distributedInterface->finalized(&isFinalized));
 
   if (isFinalized)
     return;
+
+  if (rank() == 0)
+    cudaq::info("Finalizing MPI.");
 
   // Finalize
   HANDLE_MPI_ERROR(m_distributedInterface->finalize());
