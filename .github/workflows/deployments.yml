@@ -602,7 +602,7 @@ jobs:
 
             {
               echo "source-sha: ${{ github.sha }}"
-              echo "cuda-quantum-image: ghcr.io/nvidia/cuda-quantum@$cudaq_digest"
+              echo "cuda-quantum-image: nvcr.io/nvidia/nightly/cuda-quantum@$cudaq_digest"
               echo "cuda-quantum-dev-image: ghcr.io/nvidia/cuda-quantum-dev@$dev_digest"
               echo "cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@$devdeps_digest"
               echo "platforms: linux/arm64,linux/amd64"
