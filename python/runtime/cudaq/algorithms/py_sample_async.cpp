@@ -75,8 +75,7 @@ for more information on this programming pattern.)#")
   mod.def(
       "sample_async",
       [&](py::object kernel, py::args args, std::size_t shots,
-          std::optional<noise_model> noise_model, bool explicitMeasurements,
-          std::size_t qpu_id) {
+          bool explicitMeasurements, std::size_t qpu_id) {
         auto &platform = cudaq::get_platform();
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
@@ -114,28 +113,21 @@ for more information on this programming pattern.)#")
 
         // Should only have C++ going on here, safe to release the GIL
         py::gil_scoped_release release;
-        auto results = py_async_sample_result(
+        return py_async_sample_result(
             cudaq::details::runSamplingAsync(
                 // Notes:
                 // (1) no Python data access is allowed in this lambda body.
                 // (2) This lambda might be executed multiple times, e.g, when
                 // the kernel contains measurement feedback.
                 cudaq::detail::make_copyable_function(
-                    [argData = std::move(argData), &platform, kernelName,
-                     kernelMod,
-                     noise_model = std::move(noise_model)]() mutable {
-                      if (noise_model.has_value())
-                        platform.get_exec_ctx()->noiseModel =
-                            &noise_model.value();
+                    [argData = std::move(argData), kernelName,
+                     kernelMod]() mutable {
                       pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
                     }),
                 platform, kernelName, shots, explicitMeasurements, qpu_id),
             std::move(mlirCtx));
-        platform.reset_noise();
-        return results;
       },
       py::arg("kernel"), py::kw_only(), py::arg("shots_count") = 1000,
-      py::arg("noise_model") = py::none(),
       py::arg("explicit_measurements") = false, py::arg("qpu_id") = 0,
       R"#(Asynchronously sample the state of the provided `kernel` at the 
 specified number of circuit executions (`shots_count`).
@@ -150,8 +142,6 @@ Args:
     function at. Leave empty if the kernel doesn't accept any arguments.
   shots_count (Optional[int]): The number of kernel executions on the 
     QPU. Defaults to 1000. Key-word only.
-  noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel`
-    to add noise to the kernel execution on the simulator. Defaults to None.
   explicit_measurements (Optional[bool]): A flag to indicate whether or not to 
     concatenate measurements in execution order for the returned sample result.
   qpu_id (Optional[int]): The optional identification for which QPU 
