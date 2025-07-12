@@ -651,14 +651,14 @@ jobs:
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Install NGC CLI
-        if: inputs.environment && needs.metadata.outputs.push_to_ngc == 'true'
+        if: false && needs.metadata.outputs.push_to_ngc == 'true' # FIXME: ngc cli not working on arm
         uses: ./.github/actions/install-ngc-cli
         with:
           version: 3.31.0
           checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
 
       - name: Sign image with NGC CLI
-        if: inputs.environment && needs.metadata.outputs.push_to_ngc == 'true'
+        if: false && needs.metadata.outputs.push_to_ngc == 'true' # FIXME: ngc cli not working on arm
         env:
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
           NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
