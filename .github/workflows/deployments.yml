@@ -442,6 +442,8 @@ jobs:
     needs: [digest_config, ext_config]
     runs-on: ubuntu-latest
 
+    environment: ghcr-deployment
+
     outputs:
       stitched_json: ${{ steps.stitch.outputs.stitched_json }}
 
@@ -452,6 +454,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+
+      - name: Login to NGC container registry
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
 
       - name: Set up context for buildx
         run: |
@@ -531,7 +540,7 @@ jobs:
                 if [[ "$image" == "dev-image" ]]; then
                   registry="ghcr.io/nvidia/cuda-quantum-dev"
                 else
-                  registry="ghcr.io/nvidia/cuda-quantum"
+                  registry="nvcr.io/nvidia/nightly/cuda-quantum"
                 fi
 
                 refs="$refs $registry@$digest"
@@ -543,7 +552,7 @@ jobs:
                 stitched_tag="ghcr.io/nvidia/cuda-quantum-dev:cu${cuda_major}-${branch}-base"
                 stitched_key="dev-cu${cuda_major}"
               else
-                stitched_tag="ghcr.io/nvidia/cuda-quantum:cu${cuda_major}-${branch}-base"
+                stitched_tag="nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-${branch}-base"
                 stitched_key="base-cu${cuda_major}"
               fi
 
