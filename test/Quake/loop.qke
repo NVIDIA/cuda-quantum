@@ -638,7 +638,7 @@ func.func @python_for_else_loop() -> i64 {
   return %1 : i64
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> i64 {
+// CHECK-LABEL:   func.func @python_for_else_loop() -> i64 {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 10 : i64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 6 : i64
@@ -700,7 +700,7 @@ func.func @python_while_else_loop() -> i64 {
   return %1 : i64
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() -> i64 {
+// CHECK-LABEL:   func.func @python_while_else_loop() -> i64 {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 10 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
