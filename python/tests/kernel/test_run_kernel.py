@@ -1382,10 +1382,24 @@ def test_return_from_for_loop_with_else_block():
         else:
             return -1
 
-    with pytest.raises(RuntimeError) as e:
-        results = cudaq.run(kernel, shots_count=1)
-    assert 'cudaq.kernel functions must not use a for...else clause.' in str(
-        e.value)
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_else_block_after_a_for_loop():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        for i in range(6):
+            if i % 2 == 10:
+                return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    results[0] == -1
 
 
 def test_return_from_while_loop_with_else_block():
@@ -1400,26 +1414,9 @@ def test_return_from_while_loop_with_else_block():
         else:
             return -1
 
-    with pytest.raises(RuntimeError) as e:
-        results = cudaq.run(kernel, shots_count=1)
-    assert 'cudaq.kernel functions must not use a while...else clause.' in str(
-        e.value)
-
-
-def test_return_from_else_block_after_a_for_loop():
-
-    @cudaq.kernel
-    def kernel() -> int:
-        for i in range(6):
-            if i % 2 == 10:
-                return 1
-        else:
-            return -1
-
-    with pytest.raises(RuntimeError) as e:
-        results = cudaq.run(kernel, shots_count=1)
-    assert 'cudaq.kernel functions must not use a for...else clause.' in str(
-        e.value)
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
 
 
 def test_return_from_else_block_after_a_while_loop():
@@ -1434,10 +1431,9 @@ def test_return_from_else_block_after_a_while_loop():
         else:
             return -1
 
-    with pytest.raises(RuntimeError) as e:
-        results = cudaq.run(kernel, shots_count=1)
-    assert 'cudaq.kernel functions must not use a while...else clause.' in str(
-        e.value)
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
 
 
 def test_return_from_outside_the_for_loop():

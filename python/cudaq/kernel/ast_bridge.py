@@ -879,7 +879,8 @@ class PyASTBridge(ast.NodeVisitor):
                                bodyBuilder,
                                startVal=None,
                                stepVal=None,
-                               isDecrementing=False):
+                               isDecrementing=False,
+                               elseStmts=None):
         """
         Create an invariant loop using the CC dialect. 
         """
@@ -914,6 +915,16 @@ class PyASTBridge(ast.NodeVisitor):
         with InsertionPoint(stepBlock):
             incr = arith.AddIOp(stepBlock.arguments[0], stepVal).result
             cc.ContinueOp([incr])
+
+        if elseStmts:
+            elseBlock = Block.create_at_start(loop.elseRegion, [iTy])
+            with InsertionPoint(elseBlock):
+                self.symbolTable.pushScope()
+                for stmt in elseStmts:
+                    self.visit(stmt)
+                if not self.hasTerminator(elseBlock):
+                    cc.ContinueOp(elseBlock.arguments)
+                self.symbolTable.popScope()
 
         loop.attributes.__setitem__('invariant', UnitAttr.get())
         return
@@ -3485,12 +3496,6 @@ class PyASTBridge(ast.NodeVisitor):
         ITERABLEs are the `veq` type, the `stdvec` type, and the result of 
         range() and enumerate(). 
         """
-        # Reject any code with for...else block
-        if node.orelse:
-            self.emitFatalError(
-                'cudaq.kernel functions must not use a for...else clause.',
-                node)
-
         self.currentNode = node
 
         # We can simplify `for i in range(N)` MLIR code immensely
@@ -3515,7 +3520,8 @@ class PyASTBridge(ast.NodeVisitor):
                                             bodyBuilder,
                                             startVal=startVal,
                                             stepVal=stepVal,
-                                            isDecrementing=isDecrementing)
+                                            isDecrementing=isDecrementing,
+                                            elseStmts=node.orelse)
 
                 return
 
@@ -3584,7 +3590,9 @@ class PyASTBridge(ast.NodeVisitor):
                         [self.visit(b) for b in node.body]
                         self.symbolTable.popScope()
 
-                    self.createInvariantForLoop(totalSize, bodyBuilder)
+                    self.createInvariantForLoop(totalSize,
+                                                bodyBuilder,
+                                                elseStmts=node.orelse)
                     return
 
         self.visit(node.iter)
@@ -3702,18 +3710,14 @@ class PyASTBridge(ast.NodeVisitor):
             [self.visit(b) for b in node.body]
             self.symbolTable.popScope()
 
-        self.createInvariantForLoop(totalSize, bodyBuilder)
+        self.createInvariantForLoop(totalSize,
+                                    bodyBuilder,
+                                    elseStmts=node.orelse)
 
     def visit_While(self, node):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
-        # Reject any code with while...else block
-        if node.orelse:
-            self.emitFatalError(
-                'cudaq.kernel functions must not use a while...else clause.',
-                node)
-
         self.currentNode = node
 
         loop = cc.LoopOp([], [], BoolAttr.get(False))
@@ -3742,6 +3746,20 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.ContinueOp([])
             self.popForBodyStack()
             self.symbolTable.popScope()
+
+        stepBlock = Block.create_at_start(loop.stepRegion, [])
+        with InsertionPoint(stepBlock):
+            cc.ContinueOp([])
+
+        if node.orelse:
+            elseBlock = Block.create_at_start(loop.elseRegion, [])
+            with InsertionPoint(elseBlock):
+                self.symbolTable.pushScope()
+                for stmt in node.orelse:
+                    self.visit(stmt)
+                if not self.hasTerminator(elseBlock):
+                    cc.ContinueOp(elseBlock.arguments)
+                self.symbolTable.popScope()
 
     def visit_BoolOp(self, node):
         """
