@@ -115,6 +115,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
@@ -144,12 +145,20 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_kernels.html">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-state">Get state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Parallelization-Techniques">Parallelization Techniques</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe-Async">Observe Async</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample">Sample</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample-Async">Sample Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Run">Run</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Return-Custom-Data-Types">Return Custom Data Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Run-Async">Run Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe-Async">Observe Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-state">Get state</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
 </ul>
 </li>
@@ -730,6 +739,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.run_async"><code class="docutils literal notranslate"><span class="pre">run_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
@@ -961,7 +972,7 @@ The function is constant
 </section>
 <section id="Quantum-oracles">
 <h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="f84460b9aee045909ed16d5710725469" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
+<p><img alt="7462f8d3d90346d696462e41559baf41" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
 <p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logical gates.</p>
 <p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
 <div class="math notranslate nohighlight">
@@ -1009,7 +1020,7 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 <h2>Deutsch’s Algorithm:<a class="headerlink" href="#Deutsch's-Algorithm:" title="Permalink to this heading">¶</a></h2>
 <p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
 <p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="df7304ae74ef43679937fca9bdfd100c" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
+<p><img alt="da7e8b1e0004442984c7b1123cf7c6a3" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi_0}  =  \ket{01}
 \tag{1}\]</div>
