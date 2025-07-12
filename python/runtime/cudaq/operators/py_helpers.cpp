@@ -41,7 +41,7 @@ kwargs_to_param_description(const py::kwargs &kwargs) {
 py::array_t<std::complex<double>> cmat_to_numpy(const complex_matrix &cmat) {
   auto rows = cmat.rows();
   auto cols = cmat.cols();
-  auto data = cmat.data;
+  auto data = cmat.get_data();
   std::vector<ssize_t> shape = {static_cast<ssize_t>(rows),
                                 static_cast<ssize_t>(cols)};
   std::vector<ssize_t> strides = {

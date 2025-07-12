@@ -23,20 +23,9 @@ template <typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_,
 class Matrix;
 } // namespace Eigen
 
-namespace pybind11 {
-class module_;
-template <typename T, int ExtraFlags>
-class array_t;
-} // namespace pybind11
-
 namespace cudaq {
 
 class complex_matrix;
-
-namespace details {
-pybind11::array_t<std::complex<double>, 0x0010>
-cmat_to_numpy(const complex_matrix &cmat);
-} // namespace details
 
 complex_matrix operator*(const complex_matrix &, const complex_matrix &);
 std::vector<std::complex<double>>
@@ -207,10 +196,7 @@ public:
 
   const EigenMatrix as_eigen() const;
 
-  // 0x0010 is the default flags for pybind11::array_t
-  friend pybind11::array_t<std::complex<double>, 0x0010>
-  cudaq::details::cmat_to_numpy(const complex_matrix &cmat);
-  friend void bindComplexMatrix(pybind11::module_ &mod);
+  complex_matrix::value_type *get_data() const { return data; }
 
 private:
   complex_matrix(const complex_matrix::value_type *v,
