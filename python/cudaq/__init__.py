@@ -24,6 +24,9 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
         cutensornet_libs = get_library_path(f"cutensornet-cu{cuda_major}")
         cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
 
+        cudensitymat_libs = get_library_path(f"cudensitymat-cu{cuda_major}")
+        cudensitymat_path = os.path.join(cudensitymat_libs, "libcudensitymat.so.0")
+
         cutensor_libs = get_library_path(f"cutensor-cu{cuda_major}")
         cutensor_path = os.path.join(cutensor_libs, "libcutensor.so.2")
 
@@ -38,7 +41,7 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
                                        f"libnvrtc.so.{cuda_major}")
 
         os.environ[
-            "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}"
+            "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudensitymat_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}"
     except:
         import importlib.util
         package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
