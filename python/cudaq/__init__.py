@@ -25,7 +25,8 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
         cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
 
         cudensitymat_libs = get_library_path(f"cudensitymat-cu{cuda_major}")
-        cudensitymat_path = os.path.join(cudensitymat_libs, "libcudensitymat.so.0")
+        cudensitymat_path = os.path.join(cudensitymat_libs,
+                                         "libcudensitymat.so.0")
 
         cutensor_libs = get_library_path(f"cutensor-cu{cuda_major}")
         cutensor_path = os.path.join(cutensor_libs, "libcutensor.so.2")
