@@ -41,38 +41,3 @@ q1 : ─────┤ x ├
 
 { 11:506 00:494 }
  [End `SampleOutput`] */
-
-// [Begin Observe]
-// Define a Hamiltonian in terms of Pauli Spin operators.
-auto hamiltonian = cudaq::spin::z(0) + cudaq::spin::y(1) +
-                   cudaq::spin::x(0) * cudaq::spin::z(0);
-
-int qubit_count = 2;
-// Compute the expectation value given the state prepared by the kernel.
-auto result = cudaq::observe(kernel, hamiltonian, qubit_count).expectation();
-// [End Observe]
-/* [Begin `ObserveOutput`]
-<H> = 0.0
- [End `ObserveOutput`] */
-
-// [Begin `GetState`]
-// Compute the statevector of the kernel
-cudaq::state t = cudaq::get_state(kernel, qubit_count);
-// [End `GetState`]
-/* [Begin `GetStateOutput`]
-[0.70710678+0.j 0.        +0.j 0.        +0.j 0.70710678+0.j]
- [End `GetStateOutput`] */
-
-// [Begin `ObserveAsync`]
-// Measuring the expectation value of 2 different Hamiltonians in parallel
-auto hamiltonian_1 = cudaq::spin::x(0) + cudaq::spin::y(1) +
-                     cudaq::spin::z(0) * cudaq::spin::y(1);
-
-// Asynchronous execution on multiple `qpus` via `nvidia` `gpus`.
-auto future = cudaq::observe_async(0, kernel, hamiltonian_1, qubit_count);
-
-auto result_1 = future.get();
-// [End `ObserveAsync`]
-/* [Begin `ObserveAsyncOutput`]
-2.220446049250313e-16
-[End `ObserveAsyncOutput`] */
