@@ -37,7 +37,8 @@ def startUpMockServer():
     cudaq.set_random_seed(13)
 
     # Set the targeted QPU
-    cudaq.set_target('quantinuum', url='http://localhost:{}'.format(port))
+    cudaq.set_target('quantinuum_legacy',
+                     url='http://localhost:{}'.format(port))
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -59,7 +60,7 @@ def startUpMockServer():
 def configureTarget(startUpMockServer):
 
     # Set the targeted QPU with credentials
-    cudaq.set_target('quantinuum',
+    cudaq.set_target('quantinuum_legacy',
                      url='http://localhost:{}'.format(port),
                      credentials=startUpMockServer)
 
