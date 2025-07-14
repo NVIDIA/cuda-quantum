@@ -39,14 +39,14 @@ q1 : ─────┤ x ├
 { 11:506 00:494 }
  [End SampleOutput] '''
 
-# [Begin SampleAsync]
+# [Begin `SampleAsync`]
 result_async = cudaq.sample_async(kernel, qubit_count, shots_count=1000)
 
 print(result_async.get())
-# [End SampleAsync]
-''' [Begin SampleAsyncOutput]
+# [End `SampleAsync`]
+''' [Begin `SampleAsyncOutput`]
 { 00:498 11:502 }
-[End SampleAsyncOutput] '''
+[End `SampleAsyncOutput`] '''
 
 # [Begin Observe]
 from cudaq import spin
