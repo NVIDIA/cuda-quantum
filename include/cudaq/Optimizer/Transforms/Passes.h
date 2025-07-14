@@ -28,11 +28,12 @@ void registerAggressiveEarlyInliningPipeline();
 void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
+void registerToCFGPipeline();
 
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
-std::unique_ptr<mlir::Pass> createLowerToCFGPass();
+void addLowerToCFG(mlir::OpPassManager &pm);
 std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();

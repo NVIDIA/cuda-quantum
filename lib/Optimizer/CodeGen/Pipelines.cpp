@@ -37,7 +37,7 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   // If there was any specialization, we want another round in inlining to
   // inline the apply calls properly.
   addAggressiveEarlyInlining(pm);
-  pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
+  addLowerToCFG(pm);
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
@@ -73,7 +73,7 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   LoopUnrollOptions luo;
   pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createLowerToCFGPass());
+  addLowerToCFG(pm);
   pm.addNestedPass<func::FuncOp>(createQuakeAddDeallocs());
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
