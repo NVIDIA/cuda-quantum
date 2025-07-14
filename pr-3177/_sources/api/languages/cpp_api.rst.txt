@@ -127,6 +127,11 @@ Common
 .. doxygenfunction:: cudaq::sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args)
 .. doxygenfunction:: cudaq::sample(QuantumKernel &&kernel, Args&&... args)
 
+.. doxygenfunction:: cudaq::run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
+
 .. doxygenclass:: cudaq::SimulationState
 
 .. doxygenstruct:: cudaq::SimulationState::Tensor
