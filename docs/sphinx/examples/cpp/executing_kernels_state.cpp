@@ -19,9 +19,6 @@ __qpu__ void kernel(int qubit_count) {
   for (auto qubit : cudaq::range(qubit_count - 1)) {
     x<cudaq::ctrl>(qvector[qubit], qvector[qubit + 1]);
   }
-  // If we do not specify measurements, all qubits are measured in
-  // the Z-basis by default or we can manually specify it also
-  mz(qvector);
 }
 
 int main() {
@@ -29,9 +26,13 @@ int main() {
 
   // Compute the statevector of the kernel
   cudaq::state t = cudaq::get_state(kernel, qubit_count);
+  t.dump();
   return 0;
 }
 // [End `GetState`]
 /* [Begin `GetStateOutput`]
-[0.70710678+0.j 0.        +0.j 0.        +0.j 0.70710678+0.j]
+(0,0)
+(0,0)
+(0,0)
+(1,0)
  [End `GetStateOutput`] */

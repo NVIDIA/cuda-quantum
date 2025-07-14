@@ -19,23 +19,21 @@ __qpu__ void kernel(int qubit_count) {
   for (auto qubit : cudaq::range(qubit_count - 1)) {
     x<cudaq::ctrl>(qvector[qubit], qvector[qubit + 1]);
   }
-  // If we do not specify measurements, all qubits are measured in
-  // the Z-basis by default or we can manually specify it also
-  mz(qvector);
 }
 
 int main() {
+  int qubit_count = 2;
+
   // Define a Hamiltonian in terms of Pauli Spin operators.
   auto hamiltonian = cudaq::spin::z(0) + cudaq::spin::y(1) +
                      cudaq::spin::x(0) * cudaq::spin::z(0);
 
-  int qubit_count = 2;
-
   // Compute the expectation value given the state prepared by the kernel.
-  auto result = cudaq::observe(kernel, hamiltonian, qubit_count).expectation();
+  auto result = cudaq::observe(kernel, hamiltonian, qubit_count);
+  printf("%.6lf\n", result.expectation());
   return 0;
 }
 // [End Observe]
 /* [Begin `ObserveOutput`]
-<H> = 0.0
+<H> = 0.000000
  [End `ObserveOutput`] */

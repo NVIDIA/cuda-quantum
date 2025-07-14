@@ -19,9 +19,6 @@ __qpu__ void kernel(int qubit_count) {
   for (auto qubit : cudaq::range(qubit_count - 1)) {
     x<cudaq::ctrl>(qvector[qubit], qvector[qubit + 1]);
   }
-  // If we do not specify measurements, all qubits are measured in
-  // the Z-basis by default or we can manually specify it also
-  mz(qvector);
 }
 
 int main() {
@@ -36,9 +33,10 @@ int main() {
   auto future = cudaq::observe_async(0, kernel, hamiltonian, qubit_count);
 
   auto result = future.get();
+  printf("%.6lf\n", result.expectation());
   return 0;
 }
 // [End `ObserveAsync`]
 /* [Begin `ObserveAsyncOutput`]
-2.220446049250313e-16
+0.000000
  [End `ObserveAsyncOutput`] */
