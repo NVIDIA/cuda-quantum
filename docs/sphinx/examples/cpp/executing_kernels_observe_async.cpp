@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// [Begin ObserveAsync]
+// [Begin `ObserveAsync`]
 #include <cstdio>
 #include <cudaq.h>
 #include <cudaq/algorithms/draw.h>
@@ -38,7 +38,7 @@ int main() {
   auto result = future.get();
   return 0;
 }
-// [End ObserveAsync]
+// [End `ObserveAsync`]
 /* [Begin `ObserveAsyncOutput`]
 2.220446049250313e-16
  [End `ObserveAsyncOutput`] */

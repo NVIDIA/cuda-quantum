@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// [Begin SampleAsync]
+// [Begin `SampleAsync`]
 #include <cstdio>
 #include <cudaq.h>
 #include <cudaq/algorithms/draw.h>
@@ -30,7 +30,7 @@ int main() {
   result.get().dump();
   return 0;
 }
-// [End SampleAsync]
+// [End `SampleAsync`]
 /* [Begin `SampleAsyncOutput`]
 { 00:510 11:490 }
  [End `SampleAsyncOutput`] */

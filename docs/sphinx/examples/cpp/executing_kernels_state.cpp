@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// [Begin GetState]
+// [Begin `GetState`]
 #include <cstdio>
 #include <cudaq.h>
 #include <cudaq/algorithms/draw.h>
@@ -31,7 +31,7 @@ int main() {
   cudaq::state t = cudaq::get_state(kernel, qubit_count);
   return 0;
 }
-// [End GetState]
+// [End `GetState`]
 /* [Begin `GetStateOutput`]
 [0.70710678+0.j 0.        +0.j 0.        +0.j 0.70710678+0.j]
  [End `GetStateOutput`] */
