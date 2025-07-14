@@ -723,7 +723,6 @@ func.func @python_while_else_loop() -> i64 {
 // CHECK:             %[[VAL_12:.*]] = arith.addi %[[VAL_11]], %[[VAL_0]] : i64
 // CHECK:             cc.store %[[VAL_12]], %[[VAL_5]] : !cc.ptr<i64>
 // CHECK:             cc.continue
-// CHECK:           } step {
 // CHECK:           } else {
 // CHECK:             cc.unwind_return %[[VAL_3]] : i64
 // CHECK:             cc.continue
