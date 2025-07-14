@@ -27,7 +27,7 @@ __qpu__ void kernel(int qubit_count) {
 int main() {
   // Define a Hamiltonian in terms of Pauli Spin operators.
   auto hamiltonian = cudaq::spin::z(0) + cudaq::spin::y(1) +
-                   cudaq::spin::x(0) * cudaq::spin::z(0);
+                     cudaq::spin::x(0) * cudaq::spin::z(0);
 
   int qubit_count = 2;
 
