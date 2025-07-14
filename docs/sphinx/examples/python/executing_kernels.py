@@ -82,6 +82,7 @@ print(np.array(result))
 [0.+0.j 0.+0.j 0.+0.j 1.+0.j]
  [End `GetStateOutput`] '''
 
+
 # [Begin `ObserveAsync`]
 # Define a quantum kernel function.
 @cudaq.kernel
@@ -92,6 +93,7 @@ def kernel1(qubit_count: int):
     h(qvector[0])
     for i in range(1, qubit_count):
         x.ctrl(qvector[0], qvector[i])
+
 
 # Measuring the expectation value of 2 different Hamiltonians in parallel
 hamiltonian_1 = spin.x(0) + spin.y(1) + spin.z(0) * spin.y(1)
