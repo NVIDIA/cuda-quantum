@@ -22,14 +22,17 @@ __qpu__ void hadamard_gate() {
 int main() {
   // Call the kernel to run the hadamard gate.
   auto result = cudaq::sample(hadamard_gate);
+
+  // Default number of shots
+  int shots = 1000;
+  int count0 = result.count("0");
+  int count1 = result.count("1");
+
+  // result.dump();
   std::cout << "Measured |0> with probability "
-            << static_cast<double>(result.count("0")) /
-                   std::accumulate(result.begin(), result.end(), 0)
-            << std::endl;
+            << static_cast<double>(count0) / shots << std::endl;
   std::cout << "Measured |1> with probability "
-            << static_cast<double>(result.count("1")) /
-                   std::accumulate(result.begin(), result.end(), 0)
-            << std::endl;
+            << static_cast<double>(count1) / shots << std::endl;
   return 0;
 }
 // [End Docs]

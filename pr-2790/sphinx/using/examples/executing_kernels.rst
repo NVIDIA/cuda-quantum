@@ -21,7 +21,7 @@ Quantum states collapse upon measurement and hence need to be sampled many times
 
 .. tab:: C++
 
-    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+    .. literalinclude:: ../../examples/cpp/executing_kernels_sample.cpp
         :language: cpp
         :start-after: [Begin Sample]
         :end-before: [End Sample]
@@ -53,12 +53,12 @@ The `observe` function allows us to calculate expectation values. We must supply
 
 .. tab:: C++
 
-    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+    .. literalinclude:: ../../examples/cpp/executing_kernels_observe.cpp
         :language: cpp
         :start-after: [Begin Observe]
         :end-before: [End Observe]
 
-    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+    .. literalinclude:: ../../examples/cpp/executing_kernels_observe.cpp
         :language: cpp
         :start-after: [Begin `ObserveOutput`]
         :end-before: [End `ObserveOutput`]
@@ -83,12 +83,12 @@ The `get_state` function gives us access to the quantum statevector of the compu
 
 .. tab:: C++
 
-    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+    .. literalinclude:: ../../examples/cpp/executing_kernels_state.cpp
         :language: cpp
         :start-after: [Begin `GetState`]
         :end-before: [End `GetState`]
 
-    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+    .. literalinclude:: ../../examples/cpp/executing_kernels_state.cpp
         :language: cpp
         :start-after: [Begin `GetStateOutput`]
         :end-before: [End `GetStateOutput`]
@@ -134,12 +134,12 @@ Asynchronous programming is a technique that enables your program to start a pot
 
 .. tab:: C++
 
-    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+    .. literalinclude:: ../../examples/cpp/executing_kernels_observe_async.cpp
         :language: cpp
         :start-after: [Begin `ObserveAsync`]
         :end-before: [End `ObserveAsync`]
 
-    .. literalinclude:: ../../examples/cpp/executing_kernels.cpp
+    .. literalinclude:: ../../examples/cpp/executing_kernels_observe_async.cpp
         :language: cpp
         :start-after: [Begin `ObserveAsyncOutput`]
         :end-before: [End `ObserveAsyncOutput`]
@@ -150,6 +150,30 @@ Sample Asynchronous
 -------------------
 
 Similar to `observe_async` above, sample also supports asynchronous execution for the `arguments it accepts <https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async>`_. One can parallelize over various kernels, variational parameters or even distribute shots counts over multiple QPUs.
+
+.. tab:: Python
+
+    .. literalinclude:: ../../examples/python/executing_kernels.py
+        :language: python
+        :start-after: [Begin `SampleAsync`]
+        :end-before: [End `SampleAsync`]
+
+    .. literalinclude:: ../../examples/python/executing_kernels.py
+        :language: python
+        :start-after: [Begin `SampleAsyncOutput`]
+        :end-before: [End `SampleAsyncOutput`]
+
+.. tab:: C++
+
+    .. literalinclude:: ../../examples/cpp/executing_kernels_sample_async.cpp
+        :language: cpp
+        :start-after: [Begin `SampleAsync`]
+        :end-before: [End `SampleAsync`]
+
+    .. literalinclude:: ../../examples/cpp/executing_kernels_sample_async.cpp
+        :language: cpp
+        :start-after: [Begin `SampleAsyncOutput`]
+        :end-before: [End `SampleAsyncOutput`]
 
 Get State Asynchronous
 ----------------------
