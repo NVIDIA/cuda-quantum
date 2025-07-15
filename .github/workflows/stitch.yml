@@ -39,8 +39,8 @@ jobs:
         with:
           endpoint: builder_context
 
-      - name: Extract DIGESTS_JSON and EXT_JSON
-        id: json
+      - name: metadata for jobs
+        id: metadata
         run: |
           set -euo pipefail
 
@@ -66,8 +66,6 @@ jobs:
               "amd64-cu12.0-dev-image": "ghcr.io/nvidia/cuda-quantum-dev:ext-amd64-cu12.0-gcc11-main"
             }
           }'
-
-
 
           EXT_JSON='{
             "image_hash": {
@@ -168,15 +166,22 @@ jobs:
             }
           }'
 
+          echo "digests_json<<EOF" | tee -a "$GITHUB_OUTPUT"
+          echo "$DIGESTS_JSON" | tee -a "$GITHUB_OUTPUT"
+          echo "EOF" | tee -a "$GITHUB_OUTPUT"
 
-          echo "digests_json<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$DIGESTS_JSON" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "ext_json<<EOF" | tee -a "$GITHUB_OUTPUT"
+          echo "$EXT_JSON" | tee -a "$GITHUB_OUTPUT"
+          echo "EOF" | tee -a "$GITHUB_OUTPUT"
 
-          # Optional: reuse same JSON as EXT_JSON for testing
-          echo "ext_json<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$EXT_JSON" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          # Grab the first tag that starts with ghcr.io/nvidia/cuda-quantum-dev:ext-
+          tag_sample=$(echo "$DIGESTS_JSON" | jq -r '.image_tag[]' | grep '^ghcr.io/nvidia/cuda-quantum-dev:ext-' | head -n1)
+
+          # Extract the tag portion after the colon
+          full_tag=$(echo "$tag_sample" | cut -d ':' -f2)
+
+          # Strip prefix pattern to get branch
+          branch=$(echo "$full_tag" | sed -E 's/^ext-[^-]+-cu[0-9.]+-gcc[0-9]+-//')
 
       - name: Stitch devdeps image
         id: stitch_devdeps_image
@@ -196,8 +201,11 @@ jobs:
 
           registry=$(echo "$image" | cut -d'@' -f1)
           gcc_version=$(echo "$EXT_JSON" | jq -r ".build_cache[\"$key\"]" | grep -o 'gcc[0-9]\+' || echo "gccXX")
-          tag="ext-cu${cuda}-${gcc_version}-debug"
+          tag="ext-cu${cuda}-${gcc_version}-${{ github.ref_name }}"
           stitched_tag="${registry}:${tag}"
+
+          echo "Stitching devdeps image with tag: $stitched_tag"
+          echo "References: $refs"
 
           docker buildx imagetools create --tag "$stitched_tag" $refs
           digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
@@ -225,7 +233,7 @@ jobs:
             refs="$refs $registry@$digest"
           done
 
-          branch="${GITHUB_REF_NAME:-dev}"
+          branch=${{ github.ref_name }}"
           stitched_tag="$registry:cu${cuda_major}-${branch}-base"
 
           docker buildx imagetools create --tag "$stitched_tag" $refs
@@ -253,22 +261,20 @@ jobs:
             refs="$refs $registry@$digest"
           done
 
-          ref_name="${GITHUB_REF_NAME}"
-          is_versioned=false
-          has_continuous_deployment=false
-          [[ "${{ github.ref_type }}" == "tag" || "$ref_name" =~ ^releases/ || "$ref_name" =~ ^staging/ ]] && is_versioned=true
-          [[ "$ref_name" =~ ^experimental/ || "$ref_name" == "main" ]] && has_continuous_deployment=true
-          if [[ "$is_versioned" == "true" || "$has_continuous_deployment" == "true" ]]; then
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
+          push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
+          if "$push_to_ngc" == "true"; then
             registry=${registry/ghcr.io\/nvidia/nvcr.io\/nvidia\/nightly}
           fi
 
           image_tag="cu${cuda_major}-"
-          if [[ "$ref_name" =~ pull-request/ ]]; then
-            pr_number=$(echo "$ref_name" | grep -o [0-9]*)
-            image_tag+="pr-${pr_number}"
-          elif [[ "${{ github.ref_type }}" == "branch" && "$ref_name" == "main" ]]; then
+          if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
+            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
+            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
+          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+="latest"
-          elif [[ "$is_versioned" == "true" ]]; then
+          elif "$is_versioned" == "true"; then
             image_tag+=$(echo "$ref_name" | grep -oE '([0-9]+\.)+[0-9]+')
           else
             image_tag+=$(echo "$ref_name" | tr '/' '-')
