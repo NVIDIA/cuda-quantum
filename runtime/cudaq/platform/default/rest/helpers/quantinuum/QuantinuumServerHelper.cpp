@@ -87,6 +87,11 @@ public:
   /// @brief Return true if the job is done
   bool jobIsDone(ServerMessage &getJobResponse) override;
 
+  std::optional<std::string>
+  getResultId(ServerMessage &getJobResponse) override;
+
+  std::string constructGetResultPath(const std::string &resultId) override;
+
   /// @brief Given a completed job response, map back to the sample_result
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) override;
@@ -110,7 +115,7 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
 std::string QuantinuumServerHelper::extractJobId(ServerMessage &postResponse) {
   // "job_id": "$response.body#/data.id"
-  return postResponse["data"]["id"].get<std::string>(); 
+  return postResponse["data"]["id"].get<std::string>();
 }
 
 std::string
@@ -139,11 +144,59 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   return jobStatus == "COMPLETED";
 }
 
+std::optional<std::string>
+QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
+  if (!jobIsDone(getJobResponse)) {
+    throw std::runtime_error("Job is not done, cannot retrieve result ID.");
+  }
+  const auto resultItems =
+      getJobResponse["data"]["attributes"]["definition"]["items"];
+
+  // Note: currently, we only support a single result item.
+  if (!resultItems.is_array())
+    throw std::runtime_error(
+        "Expected 'items' to be an array in job response.");
+  if (resultItems.size() != 1)
+    throw std::runtime_error("Expected exactly one item in 'items' array.");
+
+  const auto &item = resultItems[0];
+  if (!item.contains("result_id")) {
+    throw std::runtime_error("No 'result_id' found in job response item.");
+  }
+  return item["result_id"].get<std::string>();
+}
+
+std::string
+QuantinuumServerHelper::constructGetResultPath(const std::string &resultId) {
+  assert(!resultId.empty() && "Result ID cannot be empty.");
+  return baseUrl + "results/v1beta3/" + resultId;
+}
+
 cudaq::sample_result
-QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
+QuantinuumServerHelper::processResults(ServerMessage &resultResponse,
                                        std::string &jobId) {
 
-  return sample_result();
+  auto results = resultResponse["data"]["attributes"]["counts"];
+
+  CUDAQ_INFO("Results message: {}", results.dump());
+
+  // TODO: handle register mapping and qubit numbers
+  // This is just a very basic implementation that assumes all qubits are
+  // measured.
+  cudaq::CountsDictionary counts;
+
+  for (const auto &element : results) {
+    const auto bitValues = element["outcome"]["array"].get<std::vector<int>>();
+    const auto count = element["count"].get<std::size_t>();
+    // Convert bit values to a string representation
+    std::string bits;
+    for (const auto &bit : bitValues) {
+      bits += std::to_string(bit);
+    }
+    counts[bits] = count;
+  }
+
+  return cudaq::sample_result{cudaq::ExecutionResult{counts}};
 }
 
 std::map<std::string, std::string>

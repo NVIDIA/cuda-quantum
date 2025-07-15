@@ -129,6 +129,16 @@ public:
   /// @brief Return true if the job is done.
   virtual bool jobIsDone(ServerMessage &getJobResponse) = 0;
 
+  virtual std::optional<std::string>
+  getResultId(ServerMessage &getJobResponse) {
+    return std::nullopt;
+  }
+
+  virtual std::string constructGetResultPath(const std::string &resultId) {
+    throw std::runtime_error(
+        "ServerHelper::constructGetResultPath not implemented.");
+  }
+
   /// @brief Given a successful job and the success response,
   /// retrieve the results and map them to a sample_result.
   /// @param postJobResponse
