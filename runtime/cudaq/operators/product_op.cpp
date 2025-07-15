@@ -712,15 +712,30 @@ INSTANTIATE_PRODUCT_EVALUATIONS(fermion_handler);
 
 template <typename HandlerTy>
 product_op<HandlerTy> product_op<HandlerTy>::adjoint() const {
-  // The adjoint of a product is the product of the adjoints in reverse order.
-  // The coefficient is conjugated.
-  product_op<HandlerTy> adjoint_op(this->coefficient.adjoint(),
-                                   std::vector<HandlerTy>());
-  for (auto it = this->operators.crbegin(); it != this->operators.crend();
-       ++it) {
-    adjoint_op.insert(it->adjoint());
+  if (HandlerTy::can_be_canonicalized) {
+    // If this operator can be canonicalized, we can just take the adjoint of
+    // each atomic operators in the product_op as they are guaranteed to be
+    // acting on different degree of freedom. The resulting list of adjoint
+    // atomic operators is also canonicalized, hence can be used to construct
+    // the product_op directly.
+    std::vector<HandlerTy> atomic_adjoint_operators;
+    atomic_adjoint_operators.reserve(this->operators.size());
+    for (auto it = this->operators.begin(); it != this->operators.end(); ++it) {
+      atomic_adjoint_operators.emplace_back(it->adjoint());
+    }
+    return product_op<HandlerTy>(std::move(this->coefficient.adjoint()),
+                                 std::move(atomic_adjoint_operators));
+  } else {
+    // The adjoint of a product is the product of the adjoints in reverse order.
+    // The coefficient is conjugated.
+    product_op<HandlerTy> adjoint_op(this->coefficient.adjoint(),
+                                     std::vector<HandlerTy>());
+    for (auto it = this->operators.crbegin(); it != this->operators.crend();
+         ++it) {
+      adjoint_op.insert(it->adjoint());
+    }
+    return adjoint_op;
   }
-  return adjoint_op;
 }
 
 #define INSTANTIATE_PRODUCT_ADJOINT(HandlerTy)                                 \

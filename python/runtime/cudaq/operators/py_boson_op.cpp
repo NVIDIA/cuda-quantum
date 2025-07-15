@@ -226,9 +226,8 @@ void bindBosonOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
 
       // Adjoint
-      .def(
-          "adjoint", [](const boson_op &self) { return self.adjoint(); },
-          "Returns the adjoint of the operator.")
+      .def("adjoint", &boson_op::adjoint,
+           "Returns the adjoint of the operator.")
 
       // comparisons
 
@@ -542,9 +541,8 @@ void bindBosonOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
 
       // Adjoint
-      .def(
-          "adjoint", [](const boson_op_term &self) { return self.adjoint(); },
-          "Returns the adjoint of the operator.")
+      .def("adjoint", &boson_op_term::adjoint,
+           "Returns the adjoint of the operator.")
 
       // comparisons
 

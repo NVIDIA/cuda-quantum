@@ -221,9 +221,8 @@ void bindFermionOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
 
       // Adjoint
-      .def(
-          "adjoint", [](const fermion_op &self) { return self.adjoint(); },
-          "Returns the adjoint of the operator.")
+      .def("adjoint", &fermion_op::adjoint,
+           "Returns the adjoint of the operator.")
 
       // comparisons
 
@@ -538,9 +537,8 @@ void bindFermionOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
 
       // Adjoint
-      .def(
-          "adjoint", [](const fermion_op_term &self) { return self.adjoint(); },
-          "Returns the adjoint of the operator.")
+      .def("adjoint", &fermion_op_term::adjoint,
+           "Returns the adjoint of the operator.")
 
       // comparisons
 

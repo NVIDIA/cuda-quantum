@@ -187,9 +187,8 @@ void bindMatrixOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
 
       // Adjoint
-      .def(
-          "adjoint", [](const matrix_op &self) { return self.adjoint(); },
-          "Returns the adjoint of the operator.")
+      .def("adjoint", &matrix_op::adjoint,
+           "Returns the adjoint of the operator.")
 
       // comparisons
 
@@ -465,9 +464,8 @@ void bindMatrixOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
 
       // Adjoint
-      .def(
-          "adjoint", [](const matrix_op_term &self) { return self.adjoint(); },
-          "Returns the adjoint of the operator.")
+      .def("adjoint", &matrix_op_term::adjoint,
+           "Returns the adjoint of the operator.")
 
       // comparisons
 

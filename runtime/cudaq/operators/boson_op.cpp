@@ -322,11 +322,14 @@ boson_handler boson_handler::adjoint() const {
   boson_handler adjoint(this->degree);
   adjoint.additional_terms = -this->additional_terms; // A => Ad, Ad => A
   adjoint.number_offsets = this->number_offsets;
-  if (!adjoint.number_offsets.empty() && adjoint.additional_terms != 0) {
-    // If we have a 'paired' operator, e.g., N*A^k or N*Ad^k,
-    // its dagger will have the reverse order. Hence, we need to shift N back to
-    // the LHS using the relationship: A^kN = (N+k)A^k and Ad^kN = (N-k)Ad^k.
-    adjoint.number_offsets.back() += this->additional_terms;
+  if (adjoint.additional_terms != 0) {
+    for (auto &number_offset : adjoint.number_offsets) {
+      // If we have a 'paired' operator, e.g., N*A^k or N*Ad^k,
+      // its dagger will have the reverse order. Hence, we need to shift N back
+      // to the LHS using the relationship: A^kN = (N+k)A^k and Ad^kN =
+      // (N-k)Ad^k.
+      number_offset += this->additional_terms;
+    }
   }
   return adjoint;
 }
