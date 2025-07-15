@@ -147,7 +147,7 @@ class PhasePolynomialRotationMergingPass
     class StepperContainer {
       SmallVector<PhaseStepper *> steppers;
       PhaseStorage *store;
-      SetVector<PhaseVariable *> vars;
+      SmallVector<PhaseVariable *> vars;
 
       PhaseStepper *getStepperForValue(Value v) {
         for (auto *stepper : steppers)
@@ -166,7 +166,7 @@ class PhasePolynomialRotationMergingPass
           // StepperContainer is responsible for cleaning up PhaseSteppers
           steppers.push_back(new PhaseStepper(circuit, store, wire, new_var));
           // StepperContainer is responsible for cleaning up PhaseVariables
-          vars.insert(new_var);
+          vars.push_back(new_var);
         }
       }
 
@@ -176,6 +176,29 @@ class PhasePolynomialRotationMergingPass
           delete stepper;
         for (auto var : vars)
           delete var;
+      }
+
+      static bool isPhaseInvariant(Block *b) {
+        llvm::outs() << "Inspecting ";
+        b->dump();
+
+        auto subcircuit = Subcircuit::constructFromBlock(b);
+
+        if (!subcircuit)
+          return false;
+
+        llvm::outs() << "Valid subcircuit!\n";
+
+        auto stepper = StepperContainer(subcircuit);
+
+        while (!stepper.isStopped())
+          stepper.stepAll();
+
+        for (size_t i = 0; i < stepper.steppers.size(); i++)
+          if (stepper.steppers[i]->current_phase != stepper.vars[i])
+            return false;
+
+        return true;
       }
 
       bool isStopped() {
@@ -301,6 +324,16 @@ public:
     while (!container.isStopped())
       container.stepAll();
     delete subcircuit;
+
+    // func.walk([&](Operation *op){
+    //   if (auto loop = dyn_cast<cudaq::cc::LoopOp>(op))
+    //     if
+    //     (PhaseStepper::StepperContainer::isPhaseInvariant(&loop.getLoopBody().front()))
+    //     {
+    //       llvm::outs() << "Phase invariant!: ";
+    //       loop.dump();
+    //     }
+    // });
   }
 };
 } // namespace

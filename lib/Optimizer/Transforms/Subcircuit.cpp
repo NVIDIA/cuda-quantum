@@ -111,9 +111,27 @@ Subcircuit::Subcircuit(Operation *cnot) {
       terminal_wires.insert(wire);
 }
 
-/// @brief Reconstructs a subcircuit from a subcircuit function
-/// @returns A newly allocated subcircuit if the function defines
-///          a valid subcircuit, `nullptr` otherwise.
+Subcircuit *Subcircuit::constructFromBlock(Block *b) {
+  // First, some validation
+  auto subcircuit = new Subcircuit();
+  // Construct the subcircuit
+  for (auto &op : b->getOperations()) {
+    auto *opp = &op;
+    if (opp == b->getTerminator())
+      continue;
+    // Ensure circuit only contains valid operations
+    if (isTerminationPoint(opp))
+      return nullptr;
+    subcircuit->ops.insert(opp);
+  }
+  for (auto arg : b->getArguments())
+    if (isa<quake::WireType>(arg.getType()))
+      subcircuit->initial_wires.insert(arg);
+  for (auto ret : b->getTerminator()->getOperands())
+    subcircuit->terminal_wires.insert(ret);
+  return subcircuit;
+}
+
 Subcircuit *Subcircuit::constructFromFunc(func::FuncOp subcircuit_func) {
   // First, some validation
   if (!subcircuit_func.getOperation()->hasAttr("subcircuit"))

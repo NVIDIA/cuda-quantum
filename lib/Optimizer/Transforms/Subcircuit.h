@@ -210,6 +210,9 @@ public:
   ///          a valid subcircuit, `nullptr` otherwise.
   static Subcircuit *constructFromFunc(func::FuncOp subcircuit_func);
 
+  /// @brief Reconstructs a subcircuit from a block
+  static Subcircuit *constructFromBlock(Block *b);
+
   SetVector<Value> getInitialWires();
 
   SetVector<Value> getTerminalWires();
