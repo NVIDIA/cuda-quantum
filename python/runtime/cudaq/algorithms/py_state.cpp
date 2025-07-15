@@ -182,6 +182,58 @@ state pyGetStateLibraryMode(py::object kernel, py::args args) {
   });
 }
 
+static py::buffer_info getCupyBufferInfo(py::buffer cupy_buffer) {
+  // Note: cupy 13.5+ arrays will bind (overload resolution) to a py::buffer
+  // type. However, we cannot access the underlying buffer info via a
+  // `.request()` as it will throw unless that is managed memory. Here, we
+  // retrieve and construct buffer_info from the CuPy array interface.
+
+  if (!py::hasattr(cupy_buffer, "__cuda_array_interface__")) {
+    throw std::runtime_error("Buffer is not a CuPy array");
+  }
+
+  py::dict cupy_array_info = cupy_buffer.attr("__cuda_array_interface__");
+  // Ref: https://numba.readthedocs.io/en/stable/cuda/cuda_array_interface.html
+  // example: {'shape': (2, 2), 'typestr': '<c16', 'descr': [('', '<c16')],
+  // 'stream': 1, 'version': 3, 'strides': None, 'data': (140222144708608,
+  // False)}
+  py::tuple dataInfo = cupy_array_info["data"].cast<py::tuple>();
+  void *dataPtr = (void *)dataInfo[0].cast<int64_t>();
+  const bool readOnly = dataInfo[1].cast<bool>();
+  auto shapeTuple = cupy_array_info["shape"].cast<py::tuple>();
+  std::vector<std::size_t> extents;
+  for (std::size_t i = 0; i < shapeTuple.size(); i++) {
+    extents.push_back(shapeTuple[i].cast<std::size_t>());
+  }
+  const std::string typeStr = cupy_array_info["typestr"].cast<std::string>();
+  if (typeStr != "<c16" && typeStr != "<c8") {
+    throw std::runtime_error("Unsupported typestr in CuPy array: " + typeStr +
+                             ". Supported types are: <c16 and <c8.");
+  }
+
+  const bool isDoublePrecision = typeStr == "<c16";
+
+  auto [dataTypeSize, desc] =
+      !isDoublePrecision
+          ? std::make_tuple(
+                sizeof(std::complex<float>),
+                py::format_descriptor<std::complex<float>>::format())
+          : std::make_tuple(
+                sizeof(std::complex<double>),
+                py::format_descriptor<std::complex<double>>::format());
+
+  std::vector<ssize_t> strides(extents.size(), dataTypeSize);
+  for (size_t i = 1; i < extents.size(); ++i)
+    strides[i] = strides[i - 1] * extents[i - 1];
+
+  return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
+                         desc, extents.size(),  /* ndim */
+                         extents,               /* shape */
+                         strides,               /* strides */
+                         readOnly               /* readonly */
+  );
+}
+
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
   py::enum_<cudaq::InitialState>(mod, "InitialStateType",
@@ -292,8 +344,16 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
       .def_static(
           "from_data",
           [&](py::buffer data) {
-            // This is by default host data
-            auto info = data.request();
+            const bool isHostData =
+                !py::hasattr(data, "__cuda_array_interface__");
+            // Check that the target is GPU-based, i.e., can handle device
+            // pointer.
+            if (!holder.getTarget().config.GpuRequired && !isHostData)
+              throw std::runtime_error(fmt::format(
+                  "Current target '{}' does not support CuPy arrays.",
+                  holder.getTarget().name));
+
+            auto info = isHostData ? data.request() : getCupyBufferInfo(data);
             if (info.format ==
                 py::format_descriptor<std::complex<float>>::format()) {
               return state::from_data(std::make_pair(
@@ -318,10 +378,20 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
           "Return a state from data.")
       .def_static(
           "from_data",
-          [](const std::vector<py::buffer> &tensors) {
+          [&holder](const std::vector<py::buffer> &tensors) {
+            const bool isHostData =
+                tensors.empty() ||
+                !py::hasattr(tensors[0], "__cuda_array_interface__");
+            // Check that the target is GPU-based, i.e., can handle device
+            // pointer.
+            if (!holder.getTarget().config.GpuRequired && !isHostData)
+              throw std::runtime_error(fmt::format(
+                  "Current target '{}' does not support CuPy arrays.",
+                  holder.getTarget().name));
             cudaq::TensorStateData tensorData;
             for (auto &tensor : tensors) {
-              auto info = tensor.request();
+              auto info =
+                  isHostData ? tensor.request() : getCupyBufferInfo(tensor);
               const std::vector<std::size_t> extents(info.shape.begin(),
                                                      info.shape.end());
               tensorData.emplace_back(
@@ -387,6 +457,8 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
       .def_static(
           "from_data",
           [&holder](py::object opaqueData) {
+            // Note: This overload is no longer needed from cupy 13.5+ onward.
+            // We can remove it in future releases.
             // Make sure this is a CuPy array
             if (!py::hasattr(opaqueData, "data"))
               throw std::runtime_error(
@@ -582,16 +654,26 @@ index pair.
           "Compute the overlap between the provided :class:`State`'s.")
       .def(
           "overlap",
-          [](state &self, py::buffer &other) {
+          [&holder](state &self, py::buffer &other) {
             if (self.get_num_tensors() != 1)
               throw std::runtime_error("overlap NumPy interop only supported "
                                        "for vector and matrix state data.");
 
-            py::buffer_info info = other.request();
+            const bool isHostData =
+                !py::hasattr(other, "__cuda_array_interface__");
+            // Check that the target is GPU-based, i.e., can handle device
+            // pointer.
+            if (!holder.getTarget().config.GpuRequired && !isHostData)
+              throw std::runtime_error(fmt::format(
+                  "Current target '{}' does not support CuPy arrays.",
+                  holder.getTarget().name));
+            py::buffer_info info =
+                isHostData ? other.request() : getCupyBufferInfo(other);
 
             if (info.shape.size() > 2)
-              throw std::runtime_error("overlap NumPy interop only supported "
-                                       "for vector and matrix state data.");
+              throw std::runtime_error(
+                  "overlap NumPy/CuPy interop only supported "
+                  "for vector and matrix state data.");
 
             // Check that the shapes are compatible
             std::size_t otherNumElements = 1;
@@ -638,6 +720,8 @@ index pair.
       .def(
           "overlap",
           [](state &self, py::object other) {
+            // Note: This overload is no longer needed from cupy 13.5+ onward.
+            // We can remove it in future releases.
             // Make sure this is a CuPy array
             if (!py::hasattr(other, "data"))
               throw std::runtime_error(
