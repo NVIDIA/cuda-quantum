@@ -214,10 +214,10 @@ jobs:
           # stitched_output=$(echo "$stitched_output" | jq --arg key "devdeps-cu${cuda_major}" --arg val "$digest" '. + {($key): $val}')
           # echo "$stitched_output" > stitched_digests.json
 
-      - name: Stitch dev image
-        id: stitch_dev_image
+      - name: Stitch debug image
+        id: stitch_debug_image
         run: |
-          set -euo pipefail
+          set -euox pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
 
           cuda="${{ matrix.cuda }}"
@@ -236,7 +236,7 @@ jobs:
           branch=${{ github.ref_name }}"
           stitched_tag="$registry:cu${cuda_major}-${branch}-base"
 
-          echo "Stitching dev image with tag: $stitched_tag"
+          echo "Stitching debug image with tag: $stitched_tag"
           echo "References: $refs"
 
           # docker buildx imagetools create --tag "$stitched_tag" $refs
@@ -245,8 +245,8 @@ jobs:
           # stitched_output=$(echo "$stitched_output" | jq --arg key "dev-cu${cuda_major}" --arg val "$digest" '. + {($key): $val}')
           # echo "$stitched_output" > stitched_digests.json
 
-      - name: Stitch cudaq image
-        id: stitch_cudaq_image
+      - name: Stitch release image
+        id: stitch_release_image
         run: |
           set -euo pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
@@ -288,7 +288,7 @@ jobs:
 
           stitched_tag="${registry}:${image_tag}"
 
-          echo "Stitching cudaq image with tag: $stitched_tag"
+          echo "Stitching release image with tag: $stitched_tag"
           echo "References: $refs"
 
           # docker buildx imagetools create --tag "$stitched_tag" $refs
