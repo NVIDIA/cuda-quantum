@@ -189,8 +189,8 @@ jobs:
           cuda="${{ matrix.cuda }}"
           cuda_major="${cuda%%.*}"
 
-          EXT_JSON='${{ steps.json.outputs.ext_json }}'
-          DIGESTS_JSON='${{ steps.json.outputs.digests_json }}'
+          EXT_JSON='${{ steps.metadata.outputs.ext_json }}'
+          DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
 
           refs=""
           for arch in arm64 amd64; do
@@ -218,7 +218,7 @@ jobs:
         id: stitch_dev_image
         run: |
           set -euo pipefail
-          DIGESTS_JSON='${{ steps.json.outputs.digests_json }}'
+          DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
 
           cuda="${{ matrix.cuda }}"
           cuda_major="${cuda%%.*}"
@@ -246,7 +246,7 @@ jobs:
         id: stitch_cudaq_image
         run: |
           set -euo pipefail
-          DIGESTS_JSON='${{ steps.json.outputs.digests_json }}'
+          DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
 
           cuda="${{ matrix.cuda }}"
           cuda_major="${cuda%%.*}"
