@@ -270,7 +270,8 @@ jobs:
           has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
           echo $has_continuous_deployment
 
-          push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
+          # push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
+          push_to_ngc=`($is_versioned || $has_continuous_deployment) && echo true || echo`
           echo $push_to_ngc
 
           if "$push_to_ngc" == "true"; then
@@ -308,4 +309,4 @@ jobs:
         run: |
           set -euo pipefail
           stitched_json=$(jq -c . stitched_digests.json)
-          echo "stitched_json=$stitched_json" >> $GITHUB_OUTPUT
+          echo "stitched_json=$stitched_json" | tee -a $GITHUB_OUTPUT
