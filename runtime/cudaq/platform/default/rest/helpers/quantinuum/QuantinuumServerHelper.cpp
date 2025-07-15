@@ -109,20 +109,34 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 }
 
 std::string QuantinuumServerHelper::extractJobId(ServerMessage &postResponse) {
-  return postResponse["job"].get<std::string>();
+  // "job_id": "$response.body#/data.id"
+  return postResponse["data"]["id"].get<std::string>(); 
 }
 
 std::string
 QuantinuumServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return baseUrl + "job/" + extractJobId(postResponse);
+  return baseUrl + "jobs/v1beta3/" + extractJobId(postResponse);
 }
 
 std::string QuantinuumServerHelper::constructGetJobPath(std::string &jobId) {
-  return baseUrl + "job/" + jobId;
+  return baseUrl + "jobs/v1beta3/" + jobId;
 }
 
 bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  return false;
+  // Job status strings: "COMPLETED", "QUEUED", "SUBMITTED", "RUNNING",
+  // "CANCELLED", "ERROR"
+  const std::string jobStatus =
+      getJobResponse["data"]["attributes"]["status"]["status"]
+          .get<std::string>();
+  if (jobStatus == "ERROR") {
+    const std::string errorMsg =
+        getJobResponse["data"]["attributes"]["status"]["error_detail"]
+            .get<std::string>();
+    throw std::runtime_error("Job failed with error: " + errorMsg);
+  } else if (jobStatus == "CANCELLED") {
+    throw std::runtime_error("Job was cancelled.");
+  }
+  return jobStatus == "COMPLETED";
 }
 
 cudaq::sample_result
