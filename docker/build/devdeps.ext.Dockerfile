@@ -132,11 +132,7 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
 ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink"
 RUN if [ -n "$cuda_packages" ]; then \
-        # Filter out libnvjitlink if CUDA version is less than 12
-        if [ $(echo $CUDA_VERSION | cut -d "." -f1) -lt 12 ]; then \
-            cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | grep -v "libnvjitlink" | tr '\n' ' ' | sed 's/ *$//'); \
-        fi \
-        && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
+        arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
         && cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | tr . -)) \
         && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
         && dpkg -i cuda-keyring_1.0-1_all.deb \
