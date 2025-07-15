@@ -233,7 +233,7 @@ jobs:
             refs="$refs $registry@$digest"
           done
 
-          branch=${{ github.ref_name }}"
+          branch="${{ github.ref_name }}"
           stitched_tag="$registry:cu${cuda_major}-${branch}-base"
 
           echo "Stitching debug image with tag: $stitched_tag"
