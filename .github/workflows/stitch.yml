@@ -145,6 +145,9 @@ jobs:
             image_tag+=$(echo "$ref_name" | tr '/' '-')
           fi
 
+          suffix="-base"
+          image_tag="${image_tag}${suffix}"
+
           stitched_tag="${registry}:${image_tag}"
 
           docker buildx imagetools create --tag "$stitched_tag" $refs
