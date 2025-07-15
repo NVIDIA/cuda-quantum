@@ -204,7 +204,7 @@ class PhasePolynomialRotationMergingPass
       /// @brief handles a swap between two wires, swapping their phases
       /// @returns `true` if the swap has been handled and stepping can
       /// continue, `false` otherwise
-      bool handleSwap(quake::SwapOp swap) {
+      bool maybeHandleSwap(quake::SwapOp swap) {
         auto wire0 = swap.getTarget(0);
         auto wire1 = swap.getTarget(1);
         if (wireVisited(wire0) || wireVisited(wire1))
@@ -278,7 +278,7 @@ class PhasePolynomialRotationMergingPass
         if (store->addOrCombineRotationForPhase(rzop, current_phase))
           return;
       } else if (auto swap = dyn_cast<quake::SwapOp>(op)) {
-        if (!container->handleSwap(swap))
+        if (!container->maybeHandleSwap(swap))
           return;
       }
 

@@ -49,16 +49,18 @@ protected:
 
   void addAnchorPoint(Value v) { anchor_points.insert(v); }
 
+  void addTerminationPoint(Value v) { termination_points.insert(v); }
+
   void calculateSubcircuitForQubitForward(OpResult v) {
     seen.insert(v);
     if (!v.hasOneUse()) {
-      termination_points.insert(v);
+      addTerminationPoint(v);
       return;
     }
     Operation *op = v.getUses().begin().getUser();
 
     if (isTerminationPoint(op)) {
-      termination_points.insert(v);
+      addTerminationPoint(v);
       return;
     }
 
@@ -88,7 +90,7 @@ protected:
     Operation *op = v.getDefiningOp();
 
     if (isTerminationPoint(op)) {
-      termination_points.insert(v);
+      addTerminationPoint(v);
       return;
     }
 
@@ -166,7 +168,7 @@ protected:
     // Adjust termination border
     for (auto operand : op->getOperands())
       if (operand.getDefiningOp() && ops.contains(operand.getDefiningOp()))
-        termination_points.insert(operand);
+        addTerminationPoint(operand);
       else if (termination_points.contains(operand) &&
                isAfterTerminationPoint(operand))
         termination_points.remove(operand);
@@ -177,13 +179,16 @@ protected:
     // termination point seen along each wire in the subcircuit
     // (this means that it is important to build subcircuits
     // by inspecting controlled gates in topological order)
-    SmallVector<Value> sorted;
+    std::vector<Value> sorted;
     SetVector<Operation *> pruned;
     for (auto wire : termination_points)
       if (!isAfterTerminationPoint(wire) && wire.hasOneUse())
         sorted.push_back(wire);
 
     auto cmp = [](Value v1, Value v2) {
+      if (v1.getDefiningOp() == v2.getDefiningOp())
+        return dyn_cast<OpResult>(v1).getResultNumber() >=
+               dyn_cast<OpResult>(v2).getResultNumber();
       return !v1.getDefiningOp()->isBeforeInBlock(v2.getDefiningOp());
     };
 
@@ -201,6 +206,8 @@ public:
   Subcircuit(Operation *cnot);
 
   /// @brief Reconstructs a subcircuit from a subcircuit function
+  /// @returns A newly allocated subcircuit if the function defines
+  ///          a valid subcircuit, `nullptr` otherwise.
   static Subcircuit *constructFromFunc(func::FuncOp subcircuit_func);
 
   SetVector<Value> getInitialWires();
