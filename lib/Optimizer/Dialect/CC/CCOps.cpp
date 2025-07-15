@@ -1872,9 +1872,10 @@ bool hasAllocation(Region &region) {
         if (mem.hasEffect<MemoryEffects::Allocate>())
           if (quantumAllocs || !isa<quake::AllocaOp>(op))
             return true;
-      for (auto &opReg : op.getRegions())
-        if (hasAllocation<quantumAllocs>(opReg))
-          return true;
+      if (!isa<cudaq::cc::ScopeOp>(op))
+        for (auto &opReg : op.getRegions())
+          if (hasAllocation<quantumAllocs>(opReg))
+            return true;
     }
   return false;
 }

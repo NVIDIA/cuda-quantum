@@ -24,7 +24,8 @@ using namespace mlir;
 
 namespace {
 struct AllocationAnalysis {
-  explicit AllocationAnalysis(Operation *op) {
+  explicit AllocationAnalysis(Operation *op, bool hoistOnly)
+      : hoistOnly(hoistOnly) {
     initialize(op);
     if (varsToMove.empty())
       return;
@@ -86,6 +87,9 @@ private:
   }
 
   void coalesceVariablesByType() {
+    if (hoistOnly)
+      return;
+
     DenseMap<Type::ImplType *, SmallVector<Operation * /*AllocaOp*/>> buckets;
 
     // Sort all the allocs into buckets by type.
@@ -150,7 +154,8 @@ private:
   void updateScopeTree(cudaq::cc::ScopeOp scope) {
     parentScopes[scope].insert(scope);
     auto s = scope;
-    for (auto *p = scope->getParentOp(); p; p = s->getParentOp()) {
+    for (auto *p = scope->getParentOp(); p;
+         p = s ? s->getParentOp() : nullptr) {
       if (isa<func::FuncOp, cudaq::cc::CreateLambdaOp, ModuleOp>(p))
         break;
       s = dyn_cast<cudaq::cc::ScopeOp>(p);
@@ -172,6 +177,8 @@ private:
   /// Maps a coalesce leader to the new variable at function scope. This map
   /// will be updated by the rewriter.
   DenseMap<Operation * /*AllocaOp*/, Operation * /*AllocaOp*/> bindingMap;
+
+  bool hoistOnly;
 };
 
 class PackingPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
@@ -210,11 +217,11 @@ public:
   using VariableCoalesceBase::VariableCoalesceBase;
 
   void runOnOperation() override {
-    auto *op = getOperation();
+    auto func = getOperation();
     LLVM_DEBUG(llvm::dbgs() << "Before variable coalescing:\n"
-                            << *op << "\n\n");
+                            << func << "\n\n");
     auto *ctx = &getContext();
-    AllocationAnalysis analysis(op);
+    AllocationAnalysis analysis(func.getOperation(), hoistOnly);
 
     if (analysis.nothingToDo())
       return;
@@ -247,9 +254,10 @@ public:
     // Step 2: Replace old variables with new ones.
     RewritePatternSet patterns(ctx);
     patterns.insert<PackingPattern>(ctx, analysis);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
+    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
       signalPassFailure();
-    LLVM_DEBUG(llvm::dbgs() << "After variable coalescing:\n" << *op << "\n\n");
+    LLVM_DEBUG(llvm::dbgs() << "After variable coalescing:\n"
+                            << func << "\n\n");
   }
 };
 } // namespace

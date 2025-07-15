@@ -341,8 +341,18 @@ public:
   }
 
   void maybeAddBalancedLiveInToBlock(Block *block, MemRef mr) {
-    if (liveOutSet.count(mr))
+    if (liveOutSet.count(mr)) {
+      if (block->getPredecessors().empty()) {
+        if (liveInMap[block].count(mr))
+          if (isa<BlockArgument>(liveInMap[block][mr]))
+            return;
+        auto ty = dereferencedType(mr.getType());
+        SSAReg newReg = block->addArgument(ty, mr.getLoc());
+        liveInMap[block][mr] = newReg;
+        return;
+      }
       maybeAddLiveInToBlock(block, mr);
+    }
   }
 
   /// Record the memory reference \p mr as live-in to \p block. The live-in
