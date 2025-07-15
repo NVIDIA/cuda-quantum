@@ -217,7 +217,7 @@ jobs:
       - name: Stitch debug image
         id: stitch_debug_image
         run: |
-          set -euox pipefail
+          set -euo pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
 
           cuda="${{ matrix.cuda }}"
@@ -248,7 +248,7 @@ jobs:
       - name: Stitch release image
         id: stitch_release_image
         run: |
-          set -euo pipefail
+          set -euox pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
 
           cuda="${{ matrix.cuda }}"
@@ -265,8 +265,14 @@ jobs:
           done
 
           is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          echo $is_versioned
+
           has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
+          echo $has_continuous_deployment
+
           push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
+          echo $push_to_ngc
+
           if "$push_to_ngc" == "true"; then
             registry=${registry/ghcr.io\/nvidia/nvcr.io\/nvidia\/nightly}
           fi
