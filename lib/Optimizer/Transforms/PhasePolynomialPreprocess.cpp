@@ -216,7 +216,6 @@ public:
     auto module = getOperation();
     size_t i = 0;
     SetVector<Subcircuit *> subcircuits;
-
     for (auto &op : module) {
       if (auto func = dyn_cast<func::FuncOp>(op)) {
         func.walk([&](quake::XOp op) {
@@ -247,13 +246,12 @@ public:
 static void createPhasePolynomialOptPipeline(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  //opt::LoopUnrollOptions luo;
-  //luo.threshold = 2048;
-  //pm.addNestedPass<func::FuncOp>(opt::createLoopUnroll(luo));
-  //pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  //pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createFactorQuantumAllocations());
+  // opt::LoopUnrollOptions luo;
+  // luo.threshold = 2048;
+  // pm.addNestedPass<func::FuncOp>(opt::createLoopUnroll(luo));
+  // pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  // pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
@@ -267,8 +265,7 @@ static void createPhasePolynomialOptPipeline(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createCombineQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
@@ -277,7 +274,5 @@ void cudaq::opt::registerPhasePolynomialOptimizationPipeline() {
   PassPipelineRegistration<>(
       "phase-polynomial-opt-pipeline",
       "Apply phase polynomial based rotation merging.",
-      [](OpPassManager &pm) {
-        createPhasePolynomialOptPipeline(pm);
-      });
+      [](OpPassManager &pm) { createPhasePolynomialOptPipeline(pm); });
 }
