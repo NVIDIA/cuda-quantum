@@ -958,6 +958,12 @@ jobs:
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
           dpkg -i cuda-keyring_1.1-1_all.deb
           cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
+          # Seems like apt automatically runs ldconfig after installtion or removal for libs
+          # that get into the system paths. But as CUDA libs are installed in /usr/local/cuda/...
+          # and no trigger is associated with these installations, apt doesn't know to refresh
+          # the cache for this directory. So we create a post install trigger for CUDA path.
+          # (Similar mechanism has been implemented in devdeps.ext.Dockerfile)
+          echo "/usr/local/cuda/targets/x86_64-linux/lib" >> /etc/ld.so.conf.d/cuda-12-0.conf
           apt-get update && apt-get install -y --no-install-recommends \
             libcublas-$cuda_version_suffix \
             libcurand-$cuda_version_suffix \
@@ -967,8 +973,9 @@ jobs:
             cuda-nvrtc-$cuda_version_suffix
           if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then 
             apt-get install -y --no-install-recommends \
-            libnvjitlink-dev-$cuda_version_suffix libnvjitlink-$cuda_version_suffix
+            libnvjitlink-$cuda_version_suffix
           fi
+          ldconfig
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
