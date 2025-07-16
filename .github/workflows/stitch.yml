@@ -9,6 +9,13 @@ on:
       ext_json:
         required: true
         type: string
+      environment:
+        required: false
+        type: string
+    secrets:
+      NGC_CREDENTIALS:
+        description: 'Credentials for deployments to NGC.'
+        required: false
 
 jobs:
   stitch:
@@ -17,8 +24,6 @@ jobs:
     strategy:
       matrix:
         cuda: ["11.8", "12.0"]
-
-    environment: ghcr-deployment
 
     steps:
       - name: Checkout
@@ -151,8 +156,7 @@ jobs:
           has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
           echo $has_continuous_deployment
 
-          # push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
-          push_to_ngc=`($is_versioned || $has_continuous_deployment) && echo true || echo`
+          push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
           echo $push_to_ngc
 
           if [[ "$push_to_ngc" == "true" ]]; then
