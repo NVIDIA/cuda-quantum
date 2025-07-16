@@ -52,16 +52,11 @@ following [miniconda instructions here](https://docs.anaconda.com/miniconda/).
 The following commands will create and activate a complete environment for 
 CUDA-Q with all its dependencies:
 
-**Note**: You may need to accept conda tos in your environment like so:
+[//]: # (Begin conda install)
 
 ```console
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
 conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-```
-
-[//]: # (Begin conda install)
-
-```console
 cuda_version=${{ cuda_version_conda }} # set this variable to version ${{ cuda_version_requirement }}
 conda create -y -n cudaq-env python=3.11 pip
 conda install -y -n cudaq-env -c "nvidia/label/cuda-${cuda_version}" cuda
