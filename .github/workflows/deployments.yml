@@ -444,9 +444,6 @@ jobs:
     with:
       digests_json: ${{ needs.digest_config.outputs.json }}
       ext_json: ${{ needs.ext_config.outputs.json }}
-    secrets:
-      NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
-
 
   aggregate_stitched_images:
     name: Aggregate Stitched Images
