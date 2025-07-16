@@ -82,6 +82,10 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   ASSERT_EQ(spin_prod.min_degree(), 5);
   ASSERT_EQ(spin_prod.max_degree(), 5);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
+  // Adjoint
+  utils::checkEqual(spin_prod.adjoint().to_matrix(), spin_matrix.adjoint());
+  // Basic spin op is unitary
+  ASSERT_EQ(spin_prod.adjoint() * spin_prod, cudaq::spin_op::i(5));
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::position(5);
@@ -98,6 +102,9 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
     auto matrix1 = utils::momentum_matrix(level_count);
     auto want_matrix = matrix0 * matrix1;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(got.adjoint().to_matrix({{5, level_count}}),
+                      want_matrix.adjoint());
   }
 }
 
@@ -115,6 +122,11 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   ASSERT_EQ(spin_prod.min_degree(), 0);
   ASSERT_EQ(spin_prod.max_degree(), 1);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
+  // Adjoint
+  utils::checkEqual(spin_prod.adjoint().to_matrix(), spin_matrix.adjoint());
+  // Basic spin op is unitary
+  ASSERT_EQ(spin_prod.adjoint() * spin_prod,
+            cudaq::spin_op::i(0) * cudaq::spin_op::i(1));
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::position(0);
@@ -143,6 +155,14 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(
+        got.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        got_reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 }
 
@@ -161,6 +181,11 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   ASSERT_EQ(spin_prod.min_degree(), 0);
   ASSERT_EQ(spin_prod.max_degree(), 2);
   utils::checkEqual(spin_matrix, spin_prod.to_matrix());
+  // Adjoint
+  utils::checkEqual(spin_prod.adjoint().to_matrix(), spin_matrix.adjoint());
+  // Basic spin op is unitary
+  ASSERT_EQ(spin_prod.adjoint() * spin_prod,
+            cudaq::spin_op::i(0) * cudaq::spin_op::i(2));
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::position(0);
@@ -189,6 +214,13 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        got.adjoint().to_matrix({{0, level_count}, {2, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        got_reverse.adjoint().to_matrix({{0, level_count}, {2, level_count}}),
+        want_matrix_reverse.adjoint());
   }
 }
 
@@ -238,6 +270,11 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(got_matrix, want_matrix);
+    // Adjoint
+    utils::checkEqual(got.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
+    utils::checkEqual(got_reverse.adjoint().to_matrix(dimensions),
+                      want_matrix_reverse.adjoint());
   }
 }
 }
