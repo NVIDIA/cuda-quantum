@@ -15,12 +15,6 @@ using namespace mlir;
       MACRO(PhasedRxOp), MACRO(RyOp), MACRO(U2Op), MACRO(U3Op)
 #define RAW_CIRCUIT_BREAKERS CIRCUIT_BREAKERS(RAW)
 
-unsigned calculateSkip(Operation *op);
-
-Value getNextOperand(Value v);
-
-OpResult getNextResult(Value v);
-
 bool processed(Operation *op);
 
 void markProcessed(Operation *op);
@@ -30,203 +24,279 @@ bool isControlledOp(Operation *op);
 
 bool isTerminationPoint(Operation *op);
 
-class Subcircuit {
-protected:
-  SetVector<Operation *> ops;
-  SetVector<Value> initial_wires;
-  SetVector<Value> terminal_wires;
-  Operation *start;
-  // TODO: these three are really intermediate state
-  // for constructing the subcircuit, it would be nice
-  // to turn them into shared arguments instead
-  SetVector<Value> termination_points;
-  SetVector<Value> anchor_points;
-  SetVector<Value> seen;
+class Netlist {
+  Value def;
+  SmallVector<Operation *> users;
 
-  bool isAfterTerminationPoint(Value wire) {
-    return isTerminationPoint(wire.getDefiningOp());
+public:
+  Netlist(Value v) {
+    assert(isa<quake::ExtractRefOp>(v.getDefiningOp()));
+    def = v;
+    users =
+        SmallVector<Operation *>(def.getUsers().begin(), def.getUsers().end());
+    // auto less = [&](Operation *a, Operation *b){
+    //   assert(a != b);
+    //   if (a->getBlock() != b->getBlock()) {
+    //     if (a->getBlock().
+    //   }
+    //   return a->isBeforeInBlock(b);
+    // };
+    std::reverse(users.begin(), users.end());
   }
 
-  void addAnchorPoint(Value v) { anchor_points.insert(v); }
+  size_t getIndexOf(Operation *op) {
+    // size_t low = 0;
+    // size_t high = users.size();
 
-  void addTerminationPoint(Value v) { termination_points.insert(v); }
-
-  void calculateSubcircuitForQubitForward(OpResult v) {
-    seen.insert(v);
-    if (!v.hasOneUse()) {
-      addTerminationPoint(v);
-      return;
-    }
-    Operation *op = v.getUses().begin().getUser();
-
-    if (isTerminationPoint(op)) {
-      addTerminationPoint(v);
-      return;
-    }
-
-    ops.insert(op);
-
-    auto nextResult = getNextResult(v);
-
-    // Controlled not, figure out whether we are tracking the control
-    // or target, and add an anchor point to the other qubit
-    if (op->getResults().size() > 1) {
-      auto control = op->getResult(0);
-      auto target = op->getResult(1);
-      // Is this the control or target qubit?
-      if (nextResult == control)
-        // Tracking the control qubit
-        addAnchorPoint(target);
-      else
-        // Tracking the target qubit
-        addAnchorPoint(control);
-    }
-
-    calculateSubcircuitForQubitForward(nextResult);
-  }
-
-  void calculateSubcircuitForQubitBackward(Value v) {
-    seen.insert(v);
-    Operation *op = v.getDefiningOp();
-
-    if (isTerminationPoint(op)) {
-      addTerminationPoint(v);
-      return;
-    }
-
-    ops.insert(op);
-
-    auto nextOperand = getNextOperand(v);
-
-    // Controlled not, figure out whether we are tracking the control
-    // or target, and add an anchor point to the other qubit
-    // Use getResults() as Rz has two operands but only one result
-    if (op->getResults().size() > 1) {
-      auto control = op->getOperand(0);
-      auto target = op->getOperand(1);
-      // Is this the control or target qubit?
-      if (nextOperand == control)
-        // Tracking the control qubit
-        addAnchorPoint(target);
-      else
-        // Tracking the target qubit
-        addAnchorPoint(control);
-    }
-
-    calculateSubcircuitForQubitBackward(nextOperand);
-  }
-
-  void calculateInitialSubcircuit(Operation *op) {
-    // AXIS-SPECIFIC: This could be any controlled operation
-    auto cnot = dyn_cast<quake::XOp>(op);
-    assert(cnot && cnot.getWires().size() == 2);
-
-    auto result = cnot->getResult(0);
-    auto operand = cnot->getOperand(0);
-    ops.insert(cnot);
-    anchor_points.insert(cnot->getResult(1));
-    calculateSubcircuitForQubitForward(result);
-    calculateSubcircuitForQubitBackward(operand);
-
-    while (!anchor_points.empty()) {
-      auto next = anchor_points.back();
-      anchor_points.pop_back();
-      if (seen.contains(next))
-        continue;
-      calculateSubcircuitForQubitForward(dyn_cast<OpResult>(next));
-      calculateSubcircuitForQubitBackward(next);
-    }
-  }
-
-  // Prune operations after a termination point from the subcircuit
-  void pruneWire(Value wire, SetVector<Operation *> &pruned) {
-    if (!wire.hasOneUse())
-      return;
-    Operation *op = wire.getUses().begin().getUser();
-
-    if (pruned.contains(op))
-      return;
-
-    if (termination_points.contains(wire))
-      termination_points.remove(wire);
-
-    ops.remove(op);
-    pruned.insert(op);
-
-    // TODO: According to the paper, if the op is a CNot and the wire we are
-    // pruning along is the target, then we do not have to prune along the
-    // control wire. However, this prevents placing each subcircuit in a
-    // separate block, so it is currently not supported auto opi =
-    // dyn_cast<quake::OperatorInterface>(op); assert(opi); auto controls =
-    // opi.getControls(); if (controls.size() > 0 &&
-    //     std::find(controls.begin(), controls.end(), wire) == controls.end())
-    //     { pruneSubcircuit(opi.getWires()[1]); return;
+    // while (low <= high) {
+    //   auto midpoint = low + ((high - low) / 2);
+    //   auto mop = users[midpoint];
+    //   if (mop->isBeforeInBlock(op))
+    //     low = midpoint + 1;
+    //   else if (op->isBeforeInBlock(mop))
+    //     high = midpoint - 1;
+    //   else
+    //     return midpoint;
     // }
 
-    for (auto result : op->getResults())
-      pruneWire(result, pruned);
-    // Adjust termination border
-    for (auto operand : op->getOperands())
-      if (operand.getDefiningOp() && ops.contains(operand.getDefiningOp()))
-        addTerminationPoint(operand);
-      else if (termination_points.contains(operand) &&
-               isAfterTerminationPoint(operand))
-        termination_points.remove(operand);
+    // assert(false);
+    // return 0;
+    auto iter = std::find(users.begin(), users.end(), op);
+    assert(iter != users.end());
+    return std::distance(users.begin(), iter);
+  }
+
+  Operation *operator[](size_t index) { return users[index]; }
+
+  Operation *getOp(size_t index) { return users[index]; }
+
+  size_t size() { return users.size(); }
+
+  Value getDef() { return def; }
+};
+
+class NetlistContainer {
+  SmallVector<Netlist *> netlists;
+
+public:
+  NetlistContainer() {}
+
+  ~NetlistContainer() {
+    for (auto netlist : netlists)
+      delete netlist;
+  }
+
+  void allocNetlist(quake::ExtractRefOp refop) {
+    auto nlindex = netlists.size();
+    refop->setAttr(
+        "nlindex",
+        mlir::IntegerAttr::get(mlir::IntegerType::get(refop->getContext(), 64),
+                               nlindex));
+    auto *nl = new Netlist(refop.getResult());
+    netlists.push_back(nl);
+  }
+
+  size_t getIndexOf(Value ref) {
+    auto refop = dyn_cast<quake::ExtractRefOp>(ref.getDefiningOp());
+    assert(refop);
+    if (!refop->hasAttr("nlindex"))
+      allocNetlist(refop);
+    auto nlindex = refop->getAttrOfType<IntegerAttr>("nlindex").getInt();
+    return nlindex;
+  }
+
+  size_t size() { return netlists.size(); }
+
+  Netlist *operator[](size_t index) { return netlists[index]; }
+
+  Netlist *operator[](Value ref) { return netlists[getIndexOf(ref)]; }
+};
+
+class Subcircuit {
+protected:
+  SmallVector<std::pair<Value, Operation *>> anchor_points;
+
+  void addAnchorPoint(Value qubit, Operation *op) {
+    anchor_points.push_back({qubit, op});
+  }
+
+  bool isTerminationPoint(Operation *op) {
+    // TODO: it may be cleaner to only accept non-null input to
+    // ensure the null case is explicitly handled by users
+    if (!op)
+      return true;
+
+    if (op->getBlock() != start->getBlock())
+      return true;
+
+    if (!isQuakeOperation(op))
+      return true;
+
+    if (isa<RAW_CIRCUIT_BREAKERS>(op))
+      return true;
+
+    if (isa<quake::NullWireOp>(op))
+      return true;
+
+    auto opi = dyn_cast<quake::OperatorInterface>(op);
+
+    if (!opi)
+      return true;
+
+    // Only allow single control
+    if (opi.getControls().size() > 1)
+      return true;
+    return false;
+  }
+
+  // TODO: really Netlists should be contained
+  // in a nice alternative structure for the entire block
+  // to avoid constantly reconstructing them.
+  class NetlistWrapper {
+    Subcircuit *subcircuit;
+    Netlist *nl;
+    // Inclusive
+    size_t start_point;
+    // Exclusive
+    size_t end_point;
+
+    size_t getIndexOf(Operation *op) { return nl->getIndexOf(op); }
+
+    /// Returns `true` if processing should continue, `false` otherwise
+    bool processOp(size_t op_idx) {
+      auto op = nl->getOp(op_idx);
+
+      if (subcircuit->isTerminationPoint(op) || processed(op))
+        return false;
+
+      subcircuit->ops.insert(op);
+
+      auto opi = dyn_cast<quake::OperatorInterface>(op);
+
+      if (opi.getControls().size() > 0) {
+        if (opi.getControls().front() == nl->getDef())
+          subcircuit->addAnchorPoint(opi.getTarget(0), op);
+        else
+          subcircuit->addAnchorPoint(opi.getControls().front(), op);
+      }
+
+      return true;
+    }
+
+    void processFrom(size_t index) {
+      assert(index < nl->size());
+      for (end_point = index + 1; end_point < nl->size(); end_point++)
+        if (!processOp(end_point))
+          break;
+      for (start_point = index; start_point > 0; start_point--)
+        if (!processOp(start_point))
+          break;
+
+      // Handle possible 0th element separately to prevent overflow
+      if (start_point == 0)
+        if (!processOp(start_point))
+          start_point++;
+    }
+
+    void pruneFrom(size_t idx) {
+      for (; idx < nl->size(); idx++) {
+        auto op = nl->getOp(idx);
+        if (isControlledOp(op)) {
+          auto control = op->getOperand(0);
+          auto target = op->getOperand(1);
+          auto other_def = nl->getDef() == control ? target : control;
+          auto nl = subcircuit->getWrapper(other_def);
+          assert(nl);
+          nl->pruneFrom(op);
+        }
+        subcircuit->ops.remove(op);
+      }
+    }
+
+    void pruneFrom(Operation *op) {
+      auto index = getIndexOf(op);
+      if (index >= end_point)
+        return;
+
+      end_point = index;
+      pruneFrom(index);
+    }
+
+  public:
+    NetlistWrapper(Subcircuit *subcircuit, Netlist *nl,
+                   Operation *anchor_point) {
+      this->nl = nl;
+      this->subcircuit = subcircuit;
+      processFrom(getIndexOf(anchor_point));
+    }
+
+    void addNewAnchorPoint(Operation *op) {
+      auto index = getIndexOf(op);
+      if (index >= start_point)
+        return;
+      processFrom(index);
+    }
+
+    void prune() { pruneFrom(end_point); }
+
+    Value getDef() { return nl->getDef(); }
+  };
+
+  NetlistContainer *container;
+  SmallVector<NetlistWrapper *> qubits;
+  SetVector<Operation *> ops;
+  Operation *start;
+
+  void allocWrapper(Value ref, Operation *anchor_point) {
+    auto nlindex = container->getIndexOf(ref);
+    if (nlindex >= qubits.size())
+      for (auto i = qubits.size(); i < container->size(); i++)
+        qubits.push_back(nullptr);
+    auto *nlw = new NetlistWrapper(this, (*container)[nlindex], anchor_point);
+    qubits[nlindex] = nlw;
+  }
+
+  NetlistWrapper *getWrapper(Value ref) {
+    auto nlindex = container->getIndexOf(ref);
+
+    return qubits[nlindex];
+  }
+
+  void processNextAnchorPoint() {
+    auto next = anchor_points.back();
+    anchor_points.pop_back();
+    auto nl = getWrapper(next.first);
+    if (nl)
+      nl->addNewAnchorPoint(next.second);
+    else
+      allocWrapper(next.first, next.second);
+  }
+
+  void calculateInitialSubcircuit() {
+    auto control = start->getOperand(0);
+    auto target = start->getOperand(1);
+
+    addAnchorPoint(control, start);
+    addAnchorPoint(target, start);
+    while (!anchor_points.empty())
+      processNextAnchorPoint();
   }
 
   void pruneSubcircuit() {
-    // The termination boundary should be defined by the first
-    // termination point seen along each wire in the subcircuit
-    // (this means that it is important to build subcircuits
-    // by inspecting controlled gates in topological order)
-    std::vector<Value> sorted;
-    SetVector<Operation *> pruned;
-    for (auto wire : termination_points)
-      if (!isAfterTerminationPoint(wire) && wire.hasOneUse())
-        sorted.push_back(wire);
-
-    auto cmp = [](Value v1, Value v2) {
-      if (v1.getDefiningOp() == v2.getDefiningOp())
-        return dyn_cast<OpResult>(v1).getResultNumber() >=
-               dyn_cast<OpResult>(v2).getResultNumber();
-      return !v1.getDefiningOp()->isBeforeInBlock(v2.getDefiningOp());
-    };
-
-    std::sort(sorted.begin(), sorted.end(), cmp);
-
-    for (size_t i = 0; i < sorted.size(); i++)
-      pruneWire(sorted[i], pruned);
+    for (auto *netlist : qubits)
+      if (netlist)
+        netlist->prune();
   }
 
-  Subcircuit() {}
-
 public:
-  /// @brief Constructs a subcircuit with a phase polynomial starting from a
-  /// cnot
-  Subcircuit(Operation *cnot);
+  Subcircuit(Operation *cnot, NetlistContainer *container);
+  ~Subcircuit();
 
-  /// @brief Reconstructs a subcircuit from a subcircuit function
-  /// @returns A newly allocated subcircuit if the function defines
-  ///          a valid subcircuit, `nullptr` otherwise.
-  static Subcircuit *constructFromFunc(func::FuncOp subcircuit_func);
-
-  /// @brief Reconstructs a subcircuit from a block
-  static Subcircuit *constructFromBlock(Block *b);
-
-  SetVector<Value> getInitialWires();
-
-  SetVector<Value> getTerminalWires();
-
-  bool isInSubcircuit(Operation *op);
-
-  // TODO: would be nice to make Subcircuit iterable directly
   SetVector<Operation *> getOps();
 
-  /// @brief returns the number of wires in the subcircuit
-  size_t numWires();
-
-  /// @brief returns the number of two-qubit operations in the subcircuit
-  size_t numCNots();
-
   Operation *getStart();
+
+  SmallVector<Value> getRefs();
+
+  size_t numRefs();
 };
