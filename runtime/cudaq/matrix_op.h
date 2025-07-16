@@ -72,6 +72,7 @@ protected:
   // Flag to indicate if this is the adjoint of the matrix operator represented
   // by `op_code`.
   bool is_adjoint;
+
 public:
 #if !defined(NDEBUG)
   static bool
