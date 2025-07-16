@@ -967,7 +967,7 @@ jobs:
             cuda-nvrtc-$cuda_version_suffix
           if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then 
             apt-get install -y --no-install-recommends \
-            libnvjitlink-$cuda_version_suffix
+            libnvjitlink-dev-$cuda_version_suffix libnvjitlink-$cuda_version_suffix
           fi
 
       - name: Runtime dependencies (dnf)
