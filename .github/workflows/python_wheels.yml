@@ -284,6 +284,9 @@ jobs:
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
 
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
             # Extract the setup script from Python wheel's readme
             cudaq_wheel=/tmp/cuda_quantum_cu*-manylinux_*_$(uname -m).whl
             wheelname=${cudaq_wheel##*/} && archive_name=${wheelname%.*}.zip 
