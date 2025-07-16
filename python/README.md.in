@@ -55,6 +55,8 @@ CUDA-Q with all its dependencies:
 [//]: # (Begin conda install)
 
 ```console
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 cuda_version=${{ cuda_version_conda }} # set this variable to version ${{ cuda_version_requirement }}
 conda create -y -n cudaq-env python=3.11 pip
 conda install -y -n cudaq-env -c "nvidia/label/cuda-${cuda_version}" cuda
