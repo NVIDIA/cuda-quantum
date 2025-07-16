@@ -292,6 +292,9 @@ jobs:
             unzip $tmploc/$archive_name -d $tmploc/cudaq_wheel && rm -rf $tmploc/$archive_name
             metadata=$tmploc/cudaq_wheel/*.dist-info/METADATA
 
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
             # Parse README content to install openmpi
             conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             while IFS= read -r line; do
