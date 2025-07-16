@@ -1,18 +1,14 @@
 name: Stitch Multi-Arch Manifests
 
-on: push
-  # workflow_call:
-  #   inputs:
-  #     digests_json:
-  #       required: true
-  #       type: string
-  #     ext_json:
-  #       required: true
-  #       type: string
-  #   outputs:
-  #     stitched_json:
-  #       description: "JSON mapping of stitched manifest digests"
-  #       value: ${{ jobs.stitch.outputs.stitched_json }}
+on:
+  workflow_call:
+    inputs:
+      digests_json:
+        required: true
+        type: string
+      ext_json:
+        required: true
+        type: string
 
 jobs:
   stitch:
@@ -23,9 +19,6 @@ jobs:
         cuda: ["11.8", "12.0"]
 
     environment: ghcr-deployment
-
-    outputs:
-      stitched_json: ${{ steps.aggregate.outputs.stitched_json }}
 
     steps:
       - name: Checkout
@@ -60,127 +53,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          DIGESTS_JSON='{
-            "digest": {
-              "amd64-cu11.8-dev-image": "sha256:83fe3e3082b7a15228d664270d25fd0e92c604bc4ad979198296221ffe7f0c4d",
-              "arm64-cu12.0-image": "sha256:3a03d1677a0a04c4271c665d59d9393929dcb5dc61b60dbf6dac6c5122766572",
-              "amd64-cu12.0-image": "sha256:58dd32b8d221b7d0de050373aa157348c05168e599aab9cb70580b791fae566c",
-              "amd64-cu11.8-image": "sha256:a01a6065e8729637e65815921008b84b522e938d511ee54fce7c7db73df7c063",
-              "arm64-cu11.8-dev-image": "sha256:14c73d989fd77480edc2da114a9962d2d7d36f3692ac24c4eb6194b1bc277fc4",
-              "arm64-cu12.0-dev-image": "sha256:235a274593d117cb587d1b76c7d48de388fd3272e8879abed693d477940be39f",
-              "arm64-cu11.8-image": "sha256:5a5245864cfc0257b88f8156db3aed7832237c1461146ae5a034c032019f86e6",
-              "amd64-cu12.0-dev-image": "sha256:1fc2441187a16f6ba854affcc464e003d2639e265bcfbc92bdbc3d960afdf5c6"
-            },
-            "image_tag": {
-              "amd64-cu11.8-dev-image": "ghcr.io/nvidia/cuda-quantum-dev:ext-amd64-cu11.8-gcc11-main",
-              "arm64-cu12.0-image": "ghcr.io/nvidia/cuda-quantum:arm64-cu12-latest-base",
-              "amd64-cu12.0-image": "ghcr.io/nvidia/cuda-quantum:amd64-cu12-latest-base",
-              "amd64-cu11.8-image": "ghcr.io/nvidia/cuda-quantum:amd64-cu11-latest-base",
-              "arm64-cu11.8-dev-image": "ghcr.io/nvidia/cuda-quantum-dev:ext-arm64-cu11.8-gcc11-main",
-              "arm64-cu12.0-dev-image": "ghcr.io/nvidia/cuda-quantum-dev:ext-arm64-cu12.0-gcc11-main",
-              "arm64-cu11.8-image": "ghcr.io/nvidia/cuda-quantum:arm64-cu11-latest-base",
-              "amd64-cu12.0-dev-image": "ghcr.io/nvidia/cuda-quantum-dev:ext-amd64-cu12.0-gcc11-main"
-            }
-          }'
-
-          EXT_JSON='{
-            "image_hash": {
-              "arm64-gcc11": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:9a731f9234632000b7734fb028c250c693d204a05c2e32ca936581e18694faba",
-              "arm64-gcc12": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:d508361799fd083b57f7f30aadafa721ee62ac88e9e2ec85ca1e23e9ceaadb03",
-              "arm64-cu11.8-installer": null,
-              "amd64-cu12.0-installer": null,
-              "arm64-cu11.8-ompi": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:cfab0e3f20ac553755c4de8cf3d1672f525939a028b21463daafcf83dbe45c16",
-              "amd64-cu12.0-python": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:a8bfc3433095a6e9214b9e7f0b6b7aa35fd463e27c05fa4c94f5c5f11d460556",
-              "amd64-cu11.8-ext": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:1f201069e5daeb902aa427a09ab2893ec990bca7fabed93eaf384b6b46d470dc",
-              "amd64-gcc11": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:e30a6ce990b792e11fa53101b816c12b0dc76bf1f28de57430ac268f4bbe09dc",
-              "arm64-clang16": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:7599e1a94380a32932ec87b2238733a5cef1b415c4442445a31e1d8739b2bbe5",
-              "arm64-cu12.0-ext": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:11a688e0b08594ae066453385e84424143cf851abb8e14401160f61da994e29c",
-              "amd64-gcc12": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:0e0ef18b627c78ce60523d042d950d83a2d126523806e13f03a443034517852e",
-              "amd64-clang16": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:08a1788bae2d93adcd216160e9a16f168eb20e502fe067ddeec8f5c300797164",
-              "arm64-cu11.8-python": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:f037dcf106c137cccf899bf853947eb99663333643a01f4b9c6555e19f23f8c1",
-              "arm64-cu12.0-ompi": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:5232f18386302f84b5499b859eee938d3782d0c98ca18400dfc1f839a171bc7d",
-              "amd64-cu12.0-ext": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:c40e71465686cd98694951661e6523daa6584920ca02638fa127cd0dff237c38",
-              "amd64-cu11.8-installer": null,
-              "amd64-cu12.0-ompi": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:41fa8c7b313206759b1e810fb81ccce878ebe7087f66fad692a5cf262244b5c3",
-              "arm64-cu12.0-installer": null,
-              "arm64-cu11.8-ext": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:274428670ced01204cdc3877e18a1da8bdda80bbc84751491464589b00648ee1",
-              "amd64-cu11.8-python": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:8c4885e52d0896fc859acd04f5f84d57db570f6e28d70c070aa497b8b771daa0",
-              "arm64-cu12.0-python": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:449c05e469697ee139c05e27df0154a51aa9fc85260e8625a3d8d7b6dbc9c1f1",
-              "amd64-cu11.8-ompi": "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:4bea419e7886052d3e9a9674b1f6c391de8c40c0dede6220535f4f7f360110a1"
-            },
-            "cache_key": {
-              "arm64-gcc11": null,
-              "arm64-gcc12": null,
-              "arm64-cu11.8-installer": null,
-              "amd64-cu12.0-installer": null,
-              "arm64-cu11.8-ompi": null,
-              "amd64-cu12.0-python": null,
-              "amd64-cu11.8-ext": null,
-              "amd64-gcc11": null,
-              "arm64-clang16": null,
-              "arm64-cu12.0-ext": null,
-              "amd64-gcc12": null,
-              "amd64-clang16": null,
-              "arm64-cu11.8-python": null,
-              "arm64-cu12.0-ompi": null,
-              "amd64-cu12.0-ext": null,
-              "amd64-cu11.8-installer": null,
-              "amd64-cu12.0-ompi": null,
-              "arm64-cu12.0-installer": null,
-              "arm64-cu11.8-ext": null,
-              "amd64-cu11.8-python": null,
-              "arm64-cu12.0-python": null,
-              "amd64-cu11.8-ompi": null
-            },
-            "tar_archive": {
-              "arm64-gcc11": null,
-              "arm64-gcc12": null,
-              "arm64-cu11.8-installer": null,
-              "amd64-cu12.0-installer": null,
-              "arm64-cu11.8-ompi": null,
-              "amd64-cu12.0-python": null,
-              "amd64-cu11.8-ext": null,
-              "amd64-gcc11": null,
-              "arm64-clang16": null,
-              "arm64-cu12.0-ext": null,
-              "amd64-gcc12": null,
-              "amd64-clang16": null,
-              "arm64-cu11.8-python": null,
-              "arm64-cu12.0-ompi": null,
-              "amd64-cu12.0-ext": null,
-              "amd64-cu11.8-installer": null,
-              "amd64-cu12.0-ompi": null,
-              "arm64-cu12.0-installer": null,
-              "arm64-cu11.8-ext": null,
-              "amd64-cu11.8-python": null,
-              "arm64-cu12.0-python": null,
-              "amd64-cu11.8-ompi": null
-            },
-            "build_cache": {
-              "arm64-gcc11": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-gcc11-arm64:main",
-              "arm64-gcc12": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-gcc12-arm64:main",
-              "arm64-cu11.8-installer": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-assets-prereqs-cu11-8-llvm-arm64:main",
-              "amd64-cu12.0-installer": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-assets-prereqs-cu12-0-llvm-amd64:main",
-              "arm64-cu11.8-ompi": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-ompi-cu11-8-arm64:main",
-              "amd64-cu12.0-python": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-manylinux-cu12-0-gcc11-amd64:main",
-              "amd64-cu11.8-ext": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-ext-cu11-8-gcc11-amd64:main",
-              "amd64-gcc11": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-gcc11-amd64:main",
-              "arm64-clang16": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-clang16-arm64:main",
-              "arm64-cu12.0-ext": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-ext-cu12-0-gcc11-arm64:main",
-              "amd64-gcc12": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-gcc12-amd64:main",
-              "amd64-clang16": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-clang16-amd64:main",
-              "arm64-cu11.8-python": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-manylinux-cu11-8-gcc11-arm64:main",
-              "arm64-cu12.0-ompi": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-ompi-cu12-0-arm64:main",
-              "amd64-cu12.0-ext": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-ext-cu12-0-gcc11-amd64:main",
-              "amd64-cu11.8-installer": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-assets-prereqs-cu11-8-llvm-amd64:main",
-              "amd64-cu12.0-ompi": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-ompi-cu12-0-amd64:main",
-              "arm64-cu12.0-installer": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-assets-prereqs-cu12-0-llvm-arm64:main",
-              "arm64-cu11.8-ext": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-ext-cu11-8-gcc11-arm64:main",
-              "amd64-cu11.8-python": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-manylinux-cu11-8-gcc11-amd64:main",
-              "arm64-cu12.0-python": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-manylinux-cu12-0-gcc11-arm64:main",
-              "amd64-cu11.8-ompi": "type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-devdeps-ompi-cu11-8-amd64:main"
-            }
-          }'
+          DIGESTS_JSON='${{ inputs.digests_json }}'
+          EXT_JSON='${{ inputs.ext_json }}'
 
           echo "digests_json<<EOF" | tee -a "$GITHUB_OUTPUT"
           echo "$DIGESTS_JSON" | tee -a "$GITHUB_OUTPUT"
@@ -189,15 +63,6 @@ jobs:
           echo "ext_json<<EOF" | tee -a "$GITHUB_OUTPUT"
           echo "$EXT_JSON" | tee -a "$GITHUB_OUTPUT"
           echo "EOF" | tee -a "$GITHUB_OUTPUT"
-
-          # Grab the first tag that starts with ghcr.io/nvidia/cuda-quantum-dev:ext-
-          tag_sample=$(echo "$DIGESTS_JSON" | jq -r '.image_tag[]' | grep '^ghcr.io/nvidia/cuda-quantum-dev:ext-' | head -n1)
-
-          # Extract the tag portion after the colon
-          full_tag=$(echo "$tag_sample" | cut -d ':' -f2)
-
-          # Strip prefix pattern to get branch
-          branch=$(echo "$full_tag" | sed -E 's/^ext-[^-]+-cu[0-9.]+-gcc[0-9]+-//')
 
       - name: Stitch devdeps image
         id: stitch_devdeps_image
@@ -320,9 +185,10 @@ jobs:
           stitched_output=$(echo "$stitched_output" | jq --arg key "base-cu${cuda_major}" --arg val "$digest" '. + {($key): $val}')
           echo "$stitched_output" > stitched_digests.json
 
-      - name: Aggregate stitched output
-        id: aggregate
-        run: |
-          set -euo pipefail
-          stitched_json=$(jq -c . stitched_digests.json)
-          echo "stitched_json=$stitched_json" | tee -a $GITHUB_OUTPUT
+      - name: Write matrix outputs
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        with:
+          matrix-step-name: stitched_images
+          matrix-key: cu${{ matrix.cuda }}
+          outputs: |
+            json: $(jq -c . stitched_digests.json)

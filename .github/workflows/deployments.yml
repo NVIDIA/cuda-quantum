@@ -438,6 +438,7 @@ jobs:
           echo '${{ steps.read.outputs.result }}' | jq .
 
   stitch:
+    needs: [digest_config, ext_config]
     name: Stitch multi-arch manifests
     uses: ./.github/workflows/stitch.yml
     with:
@@ -446,9 +447,31 @@ jobs:
     secrets:
       NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
 
+
+  aggregate_stitched_images:
+    name: Aggregate Stitched Images
+    needs: stitch
+    runs-on: ubuntu-latest
+
+    outputs:
+      json: "${{ steps.read.outputs.result }}"
+
+    steps:
+      - name: Read matrix outputs
+        id: read
+        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        with:
+          matrix-step-name: stitched_images
+
+      - name: Print full digest config JSON
+        run: |
+          echo "Received matrix outputs:"
+          echo '${{ steps.read.outputs.result }}' | jq .
+
+
   summary:
     name: Write deployment summary
-    needs: [digest_config, ext_config, stitch, metadata]
+    needs: [metadata, aggregate_stitched_images]
 
     runs-on: ubuntu-latest
 
@@ -459,7 +482,7 @@ jobs:
       - name: Create image summary
         id: summary
         run: |
-          STITCHED_JSON='${{ needs.stitch.outputs.stitched_json }}'
+          STITCHED_JSON='${{ needs.aggregate_stitched_images.outputs.json }}'
           echo "$STITCHED_JSON" | jq .
 
           for cuda in 11.8 12.0; do
@@ -468,13 +491,13 @@ jobs:
             info_file="$artifact_name.txt"
 
             key="base-cu${cuda_major}"
-            cudaq_reference=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$key]')
+            cudaq_reference=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$cuda].json[$key]')
 
             key="dev-cu${cuda_major}"
-            dev_reference=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$key]')
+            dev_reference=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$cuda].json[$key]')
 
             key="devdeps-cu${cuda_major}"
-            devdeps_reference=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$key]')
+            devdeps_reference=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$cuda].json[$key]')
 
             # Parse JSON and join docker_flag values (e.g., "linux/amd64,linux/arm64")
             platforms=$(echo '${{ needs.metadata.outputs.platforms }}' \
