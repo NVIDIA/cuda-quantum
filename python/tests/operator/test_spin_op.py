@@ -268,6 +268,7 @@ def test_matrix_construction():
 
     assert np.allclose(hamiltonian.adjoint().to_matrix(), mat.conj().T)
 
+
 def test_canonicalization():
     all_degrees = [0, 1, 2, 3]
 
