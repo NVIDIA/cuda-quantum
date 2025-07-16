@@ -97,6 +97,8 @@ struct BackendEndConfigEntry {
   SimulationBackendSetting SimulationBackend;
   /// Any conditional compile/link flags configurations.
   std::vector<ConditionalBuildConfig> ConditionalBuildConfigs;
+  // Optional entry to manually specify / override server helper
+  std::optional<std::string> ServerHelper = std::nullopt;
 };
 
 /// Feature option mapping for NVIDIA target.

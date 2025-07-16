@@ -33,6 +33,46 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
+
+/// @brief Return true if the CallOp is on a FuncOp declaration that
+/// is annotated with the cudaq-fnid attribute.
+bool isDeviceCallFuncOp(LLVM::CallOp call) {
+  // Need the ModuleOp
+  auto mod = call->getParentOfType<ModuleOp>();
+  // Need the function name
+  auto funcNameAttr = call.getCalleeAttr();
+  if (!funcNameAttr)
+    return false;
+  auto funcName = funcNameAttr.getValue();
+  // Get the FuncOp declaration
+  auto calleeFunc = mod.lookupSymbol<LLVM::LLVMFuncOp>(funcName);
+  if (!calleeFunc)
+    return false;
+
+  // Should have a passthrough attribute
+  auto passthroughAttr = calleeFunc->getAttrOfType<ArrayAttr>("passthrough");
+  if (!passthroughAttr)
+    return false;
+
+  // Look for ArrayAttr like ["cudaq-fnid", "1565822655"]
+  for (auto attr : passthroughAttr) {
+    auto arrayAttr = dyn_cast<ArrayAttr>(attr);
+    if (!arrayAttr)
+      continue;
+    if (arrayAttr.size() != 2)
+      continue;
+    // Get the key StringAttr
+    auto key = dyn_cast<StringAttr>(arrayAttr[0]);
+    if (!key)
+      continue;
+    // If cudaq-fnid, we found it
+    if (key.getValue() == "cudaq-fnid")
+      return true;
+  }
+
+  // Not a device call function declaration
+  return false;
+}
 /// Verify that the specific profile QIR code is sane. For now, this simply
 /// checks that the QIR doesn't have any "bonus" calls to arbitrary code that is
 /// not possibly defined in the QIR standard.
@@ -49,6 +89,10 @@ struct VerifyQIRProfilePass
     bool isBaseProfile = convertTo.getValue() == "qir-base";
     func.walk([&](Operation *op) {
       if (auto call = dyn_cast<LLVM::CallOp>(op)) {
+        // Always accept device_call functions
+        if (isDeviceCallFuncOp(call))
+          return WalkResult::advance();
+
         auto funcNameAttr = call.getCalleeAttr();
         if (!funcNameAttr)
           return WalkResult::advance();

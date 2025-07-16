@@ -1,0 +1,41 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: horizon
+description: "the horizon target describes a hypothetical qir-adaptive platform"
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  # Define the lowering pipeline
+  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),distributed-device-call"
+  # Tell the rest-qpu that we are generating Adaptive QIR.
+  codegen-emission: qir-adaptive[int_computations]
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+  
+  # This target does not use a ServerHelper, but RemoteRESTQPU still 
+  # has to have one, so just pick one 
+  server-helper: ionq
+
+target-arguments:
+  - key: url
+    required: false
+    type: string
+    platform-arg: url 
+    help-string: "Specify the URL."
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine 
+    help-string: "Specify QPU."
