@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Multi-control Synthesis &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Measuring Kernels &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Multi-GPU Workflows" href="multi_gpu_workflows.html" />
-    <link rel="prev" title="Computing Expectation Values" href="expectation_values.html" /> 
+    <link rel="next" title="Visualization" href="../../examples/python/visualization.html" />
+    <link rel="prev" title="Quantum Computing 101" href="quantum_operations.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -112,6 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
@@ -124,15 +125,26 @@
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="examples.html">   Examples</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="building_kernels.html">   Building Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building_kernels.html">   Building Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="building_kernels.html#defining-kernels">Defining Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="building_kernels.html#initializing-states">Initializing states</a></li>
+<li class="toctree-l3"><a class="reference internal" href="building_kernels.html#applying-gates">Applying Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="building_kernels.html#controlled-operations">Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="building_kernels.html#multi-controlled-operations">Multi-Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="building_kernels.html#adjoint-operations">Adjoint Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="building_kernels.html#custom-operations">Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="building_kernels.html#building-kernels-with-kernels">Building Kernels with Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="building_kernels.html#parameterized-kernels">Parameterized Kernels</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Mid-circuit-Measurement-and-Conditional-Logic">Mid-circuit Measurement and Conditional Logic</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/visualization.html">   Visualizing Kernels</a><ul>
@@ -140,23 +152,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_kernels.html">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-state">Get state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Parallelization-Techniques">Parallelization Techniques</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe-Async">Observe Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample-Async">Sample Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="executing_kernels.html">   Executing Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="executing_kernels.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="executing_kernels.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="executing_kernels.html#get-state">Get State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="executing_kernels.html#parallelization-techniques">Parallelization Techniques</a></li>
+<li class="toctree-l3"><a class="reference internal" href="executing_kernels.html#observe-asynchronous">Observe Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="executing_kernels.html#sample-asynchronous">Sample Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="executing_kernels.html#get-state-asynchronous">Get State Asynchronous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="expectation_values.html">   Computing Expectation Values</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">   Multi-Control Synthesis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
@@ -175,9 +184,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/operators.html">   Constructing Operators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/operators.html#Constructing-Spin-Operators">Constructing Spin Operators</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/operators.html#Pauli-Words-and-Exponentiating-Pauli-Words">Pauli Words and Exponentiating Pauli Words</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operators.html">   Constructing Operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/performance_optimizations.html">   Performance Optimizations</a><ul>
@@ -309,15 +318,24 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-compilation">Setup and compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-model">Load model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Simulate-kernels">Simulate kernels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Compare-unitaries">Compare unitaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
@@ -719,6 +737,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.run_async"><code class="docutils literal notranslate"><span class="pre">run_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
@@ -860,137 +880,152 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="examples.html">CUDA-Q by Example</a></li>
-      <li class="breadcrumb-item active">Multi-control Synthesis</li>
+      <li class="breadcrumb-item active">Measuring Kernels</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/examples/multi_control.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/using/examples/measuring_kernels.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="expectation_values.html" class="btn btn-neutral float-left" title="Computing Expectation Values" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="multi_gpu_workflows.html" class="btn btn-neutral float-right" title="Multi-GPU Workflows" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="quantum_operations.html" class="btn btn-neutral float-left" title="Quantum Computing 101" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../examples/python/visualization.html" class="btn btn-neutral float-right" title="Visualization" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="multi-control-synthesis">
-<h1>Multi-control Synthesis<a class="headerlink" href="#multi-control-synthesis" title="Permalink to this heading">¶</a></h1>
-<p>Now let’s take a look at how CUDA-Q allows one to control a general unitary
-on an arbitrary number of control qubits.</p>
+  <section id="measuring-kernels">
+<h1>Measuring Kernels<a class="headerlink" href="#measuring-kernels" title="Permalink to this heading">¶</a></h1>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<p>Our first option is to describe our general unitary by another pre-defined
-CUDA-Q kernel.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># A kernel that performs an X-gate on a provided qubit.</span>
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">x_kernel</span><span class="p">(</span><span class="n">qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">):</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-
-
-<span class="c1"># A kernel that will call `x_kernel` as a controlled operation.</span>
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
-    <span class="n">control_vector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">control_vector</span><span class="p">)</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">control_vector</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">x_kernel</span><span class="p">,</span> <span class="n">control_vector</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
-
-
-<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Alternatively, one may pass multiple arguments for control qubits or vectors
-to any controlled operation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
-    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
-    <span class="n">x</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">qvector</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
-
-
-<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 </pre></div>
 </div>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<p>For this scenario, our general unitary can be described by another pre-defined
-CUDA-Q kernel expression.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
-<span class="c1">// ```</span>
-<span class="c1">// nvq++ multi_controlled_operations.cpp -o ccnot.x &amp;&amp; ./ccnot.x</span>
-<span class="c1">// ```</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Kernel measurement can be specified in the Z, X, or Y basis using <code class="code docutils literal notranslate"><span class="pre">mz</span></code>, <code class="code docutils literal notranslate"><span class="pre">mx</span></code>, and <code class="code docutils literal notranslate"><span class="pre">my</span></code>. Measurement occurs in the Z basis by default.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
 
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithm.h&gt;</span>
 
-<span class="c1">// Here we demonstrate how one might apply multi-controlled</span>
-<span class="c1">// operations on a general CUDA-Q kernel.</span>
-<span class="k">struct</span><span class="w"> </span><span class="nc">ApplyX</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="o">&amp;</span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
-<span class="p">};</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel0</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qubits</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Specific qubits or registers can be measured rather than the entire kernel.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qubits_a</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">qubit_b</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubits_a</span><span class="p">)</span>
+    <span class="n">mx</span><span class="p">(</span><span class="n">qubit_b</span><span class="p">)</span>
 
-<span class="k">struct</span><span class="w"> </span><span class="nc">ccnot_test</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// constrain the signature of the incoming kernel</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">takes_qubit</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="n">apply_x</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">qs</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
 
-<span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">qs</span><span class="p">);</span>
-<span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">qs</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel1</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qubits_a</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">qubits_b</span><span class="p">;</span>
+<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qubits_a</span><span class="p">);</span>
+<span class="w">  </span><span class="n">mx</span><span class="p">(</span><span class="n">qubits_b</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="mid-circuit-measurement-and-conditional-logic">
+<h2>Mid-circuit Measurement and Conditional Logic<a class="headerlink" href="#mid-circuit-measurement-and-conditional-logic" title="Permalink to this heading">¶</a></h2>
+<p>In certain cases, it is helpful for some operations in a quantum kernel to depend on measurement results following previous operations. This is accomplished in the following example by performing a Hadamard on qubit 0, then measuring qubit 0 and saving the result as <code class="code docutils literal notranslate"><span class="pre">b0</span></code>. Then, qubit 0 can be reset and used later in the computation. In this case it is flipped to a 1. Finally, an if statement performs a Hadamard on qubit 1 if <code class="code docutils literal notranslate"><span class="pre">b0</span></code> is 1.</p>
+<p>The results show qubit 0 is one, indicating the reset worked, and qubit 1 has a 75/25 distribution, demonstrating the mid-circuit measurement worked as expected.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 
-<span class="w">    </span><span class="c1">// Control U (apply_x) on the first two qubits of</span>
-<span class="w">    </span><span class="c1">// the allocated register.</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">control</span><span class="p">(</span><span class="n">apply_x</span><span class="p">,</span><span class="w"> </span><span class="n">qs</span><span class="p">.</span><span class="n">front</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="w"> </span><span class="n">qs</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">b0</span> <span class="o">=</span> <span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">reset</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">qs</span><span class="p">);</span>
+    <span class="k">if</span> <span class="n">b0</span><span class="p">:</span>
+        <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel2</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">b0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">reset</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">b0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 <span class="w">  </span><span class="p">}</span>
-<span class="p">};</span>
+<span class="p">}</span>
 
-<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// We can achieve the same thing as above via</span>
-<span class="w">  </span><span class="c1">// a lambda expression.</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">ccnot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
-
-<span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
-<span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-
-<span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
-
-<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
-<span class="w">  </span><span class="p">};</span>
-
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ccnot</span><span class="p">);</span>
-
-<span class="w">  </span><span class="c1">// Fine grain access to the bits and counts</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">[</span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">counts</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Observed: %s, %lu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
-<span class="w">  </span><span class="p">}</span>
-
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ccnot_test</span><span class="p">{},</span><span class="w"> </span><span class="n">ApplyX</span><span class="p">{});</span>
-
-<span class="w">  </span><span class="c1">// Fine grain access to the bits and counts</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">[</span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">counts2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Observed: %s, %lu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
-<span class="w">  </span><span class="p">}</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Output</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> 
+  <span class="n">__global__</span> <span class="p">:</span> <span class="p">{</span> <span class="mi">10</span><span class="p">:</span><span class="mi">728</span> <span class="mi">11</span><span class="p">:</span><span class="mi">272</span> <span class="p">}</span>
+   <span class="n">b0</span> <span class="p">:</span> <span class="p">{</span> <span class="mi">0</span><span class="p">:</span><span class="mi">505</span> <span class="mi">1</span><span class="p">:</span><span class="mi">495</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nl">__global__</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">10</span><span class="o">:</span><span class="mi">728</span><span class="w"> </span><span class="mi">11</span><span class="o">:</span><span class="mi">272</span><span class="w"> </span><span class="p">}</span>
+<span class="w">   </span><span class="nl">b0</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="o">:</span><span class="mi">505</span><span class="w"> </span><span class="mi">1</span><span class="o">:</span><span class="mi">495</span><span class="w"> </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
 </section>
+</section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="expectation_values.html" class="btn btn-neutral float-left" title="Computing Expectation Values" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="multi_gpu_workflows.html" class="btn btn-neutral float-right" title="Multi-GPU Workflows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="quantum_operations.html" class="btn btn-neutral float-left" title="Quantum Computing 101" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../examples/python/visualization.html" class="btn btn-neutral float-right" title="Visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

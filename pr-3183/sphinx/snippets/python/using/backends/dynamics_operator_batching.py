@@ -57,3 +57,19 @@ evolution_results = cudaq.evolve(
     integrator=RungeKuttaIntegrator())
 
 #[End Operator Batching]
+
+#[Begin Batch Size]
+# Run the batch simulation with a maximum batch size of 2.
+# This means that the evolution will be performed in batches of 2 Hamiltonian operators at a time, which can be useful for memory management or
+# performance tuning.
+results = cudaq.evolve(
+    hamiltonians,
+    dimensions,
+    schedule,
+    initial_states,
+    observables=[spin.x(0), spin.y(0), spin.z(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    integrator=RungeKuttaIntegrator(),
+    max_batch_size=2)  # Set the maximum batch size to 2
+#[End Batch Size]

@@ -112,6 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
@@ -124,15 +125,26 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/examples/building_kernels.html">   Building Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/building_kernels.html">   Building Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#defining-kernels">Defining Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#initializing-states">Initializing states</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#applying-gates">Applying Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#controlled-operations">Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#multi-controlled-operations">Multi-Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#adjoint-operations">Adjoint Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#custom-operations">Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#building-kernels-with-kernels">Building Kernels with Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#parameterized-kernels">Parameterized Kernels</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Mid-circuit-Measurement-and-Conditional-Logic">Mid-circuit Measurement and Conditional Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/visualization.html">   Visualizing Kernels</a><ul>
@@ -140,23 +152,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_kernels.html">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-state">Get state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Parallelization-Techniques">Parallelization Techniques</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe-Async">Observe Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample-Async">Sample Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/executing_kernels.html">   Executing Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state">Get State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#parallelization-techniques">Parallelization Techniques</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe-asynchronous">Observe Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample-asynchronous">Sample Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state-asynchronous">Get State Asynchronous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/examples/multi_control.html">   Multi-Control Synthesis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
@@ -175,9 +184,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/operators.html">   Constructing Operators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/operators.html#Constructing-Spin-Operators">Constructing Spin Operators</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/operators.html#Pauli-Words-and-Exponentiating-Pauli-Words">Pauli Words and Exponentiating Pauli Words</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/performance_optimizations.html">   Performance Optimizations</a><ul>
@@ -309,15 +318,24 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-compilation">Setup and compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-model">Load model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Simulate-kernels">Simulate kernels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Compare-unitaries">Compare unitaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
@@ -719,6 +737,8 @@
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#kernel-execution">Kernel Execution</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.run_async"><code class="docutils literal notranslate"><span class="pre">run_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
@@ -1980,6 +2000,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq10product_op3endEv">
 <span class="target" id="classcudaq_1_1product__op_1afa590e87a64099ff5018df6d01ff2bf9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10product_op14const_iteratorE" title="cudaq::product_op::const_iterator"><span class="n"><span class="pre">const_iterator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq10product_op3endEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get iterator to end of operator terms. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq10product_opixENSt6size_tE">
+<span class="target" id="classcudaq_1_1product__op_1aca9de6139a99a469d44ef31c0a8cca20"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN5cudaq10product_opE" title="cudaq::product_op::HandlerTy"><span class="n"><span class="pre">HandlerTy</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq10product_opixENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Operator to get the operator at a particular index. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -3427,6 +3453,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq6sum_op3endEv">
 <span class="target" id="classcudaq_1_1sum__op_1a2cae10dcf83552b76812e5e773941060"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq6sum_op14const_iteratorE" title="cudaq::sum_op::const_iterator"><span class="n"><span class="pre">const_iterator</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq6sum_op3endEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get iterator to end of operator terms. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq6sum_opixENSt6size_tE">
+<span class="target" id="classcudaq_1_1sum__op_1a67c0a4be7f3cbc23044f3ba9c03a6559"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN5cudaq10product_opE" title="cudaq::product_op"><span class="n"><span class="pre">product_op</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN5cudaq6sum_opE" title="cudaq::sum_op::HandlerTy"><span class="n"><span class="pre">HandlerTy</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq6sum_opixENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Operator to get the product term at a particular index. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -5978,6 +6010,106 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 </dl>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">ARGS</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="run_8h_1ad3d68c458bf04e01064f063ec0247adf"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invoke_result_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">decay_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS" title="cudaq::run::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">decay_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS" title="cudaq::run::ARGS"><span class="n"><span class="pre">ARGS</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">run</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shots</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS" title="cudaq::run::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS" title="cudaq::run::ARGS"><span class="n"><span class="pre">ARGS</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Run a kernel <code class="docutils literal notranslate"><span class="pre">shots</span></code> number of times and return a <code class="docutils literal notranslate"><span class="pre">std::vector</span></code> of results. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>QuantumKernel</strong> – Quantum kernel type (must return a non-void result) </p></li>
+<li><p><strong>...ARGS</strong> – Quantum kernel argument types </p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>shots</strong> – Number of shots to run </p></li>
+<li><p><strong>kernel</strong> – Quantum kernel </p></li>
+<li><p><strong>...args</strong> – Kernel arguments </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A vector of results </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">ARGS</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="run_8h_1a257c40c568260fd87721051d289bb5fa"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invoke_result_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">decay_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="cudaq::run::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">decay_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="cudaq::run::ARGS"><span class="n"><span class="pre">ARGS</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">run</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shots</span></span>, <a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">noise_model</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="cudaq::run::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="cudaq::run::ARGS"><span class="n"><span class="pre">ARGS</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Run a kernel <code class="docutils literal notranslate"><span class="pre">shots</span></code> number of times with noise and return a <code class="docutils literal notranslate"><span class="pre">std::vector</span></code> of results. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>QuantumKernel</strong> – Quantum kernel type (must return a non-void result) </p></li>
+<li><p><strong>...ARGS</strong> – Quantum kernel argument types </p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>shots</strong> – Number of shots to run </p></li>
+<li><p><strong>noise_model</strong> – Noise model to use for noisy simulation </p></li>
+<li><p><strong>kernel</strong> – Quantum kernel </p></li>
+<li><p><strong>...args</strong> – Kernel arguments </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A vector of results </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">ARGS</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="run_8h_1af8beb377625f1a9004b7e6b92512b0d2"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">future</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invoke_result_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">decay_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS" title="cudaq::run_async::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">decay_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS" title="cudaq::run_async::ARGS"><span class="n"><span class="pre">ARGS</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">run_async</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shots</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS" title="cudaq::run_async::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS" title="cudaq::run_async::ARGS"><span class="n"><span class="pre">ARGS</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Launch a run of a kernel for <code class="docutils literal notranslate"><span class="pre">shots</span></code> number of times on a specific <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>QuantumKernel</strong> – Quantum kernel type (must return a non-void result) </p></li>
+<li><p><strong>...ARGS</strong> – Quantum kernel argument types </p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>qpu_id</strong> – <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> to launch </p></li>
+<li><p><strong>shots</strong> – Number of shots to run </p></li>
+<li><p><strong>kernel</strong> – Quantum kernel </p></li>
+<li><p><strong>...args</strong> – Kernel arguments </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A handle (<code class="docutils literal notranslate"><span class="pre">std::future</span></code>) to a vector of results </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">ARGS</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="run_8h_1a1bb97c7f51b56550deccccdd059afcfb"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">future</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">invoke_result_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">decay_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="cudaq::run_async::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">decay_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="cudaq::run_async::ARGS"><span class="n"><span class="pre">ARGS</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">run_async</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">shots</span></span>, <a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">noise_model</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="cudaq::run_async::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="cudaq::run_async::ARGS"><span class="n"><span class="pre">ARGS</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Launch a run of a kernel for <code class="docutils literal notranslate"><span class="pre">shots</span></code> number of times with noise on a specific <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>QuantumKernel</strong> – Quantum kernel type (must return a non-void result) </p></li>
+<li><p><strong>...ARGS</strong> – Quantum kernel argument types </p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>qpu_id</strong> – <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> to launch </p></li>
+<li><p><strong>shots</strong> – Number of shots to run </p></li>
+<li><p><strong>noise_model</strong> – Noise model to use for noisy simulation </p></li>
+<li><p><strong>kernel</strong> – Quantum kernel </p></li>
+<li><p><strong>...args</strong> – Kernel arguments </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A handle (<code class="docutils literal notranslate"><span class="pre">std::future</span></code>) to a vector of results </p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15SimulationStateE">
 <span class="target" id="classcudaq_1_1SimulationState"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SimulationState</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq15SimulationStateE" title="Permalink to this definition">¶</a><br /></dt>
@@ -6245,59 +6377,6 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 <dt class="sig sig-object cpp" id="_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ElementType</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">is_integral_v</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType" title="cudaq::range::ElementType"><span class="n"><span class="pre">ElementType</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="o"><span class="pre">&amp;&amp;</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">is_signed_v</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType" title="cudaq::range::ElementType"><span class="n"><span class="pre">ElementType</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="cudaq__utils_8h_1aaf2865114850e54f70afe8b087297ce9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType" title="cudaq::range::ElementType"><span class="n"><span class="pre">ElementType</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">range</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType" title="cudaq::range::ElementType"><span class="n"><span class="pre">ElementType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">start</span></span>, <a class="reference internal" href="#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType" title="cudaq::range::ElementType"><span class="n"><span class="pre">ElementType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">stop</span></span>, <a class="reference internal" href="#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType" title="cudaq::range::ElementType"><span class="n"><span class="pre">ElementType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">step</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return a vector of integers. The first element is the user-specified <code class="docutils literal notranslate"><span class="pre">start</span></code> value. The remaining values are all values incremented by <code class="docutils literal notranslate"><span class="pre">step</span></code> (defaults to 1) until the <code class="docutils literal notranslate"><span class="pre">stop</span></code> value is reached (exclusive). </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I0Dp0EN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args">
-<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">is_invocable_v</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0Dp0EN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::draw::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0Dp0EN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::draw::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="draw_8h_1a3aa261b1dafc10d75e7fb62c84243b5c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">draw</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0Dp0EN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::draw::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0Dp0EN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::draw::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0Dp0EN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Returns a drawing of the execution path, i.e., the trace, of the kernel. The drawing is a UTF-8 encoded string. </p>
-<p>
-Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithms/draw.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
-
-<span class="k">auto</span><span class="w"> </span><span class="n">bell_pair</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
-<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
-<span class="p">};</span>
-<span class="p">...</span>
-<span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">draw</span><span class="p">(</span><span class="n">bell_pair</span><span class="p">);</span>
-<span class="cm">/* Output:</span>
-<span class="cm">     ╭───╮     </span>
-<span class="cm">q0 : ┤ h ├──●──</span>
-<span class="cm">     ╰───╯╭─┴─╮</span>
-<span class="cm">q1 : ─────┤ x ├</span>
-<span class="cm">          ╰───╯</span>
-<span class="cm">*/</span>
-
-<span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">float</span><span class="w"> </span><span class="n">angle</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
-<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="w">  </span><span class="n">ry</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="p">};</span>
-<span class="p">...</span>
-<span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="mf">0.59</span><span class="p">);</span>
-<span class="cm">/* Output:</span>
-<span class="cm">     ╭───╮╭──────────╮</span>
-<span class="cm">q0 : ┤ h ├┤ ry(0.59) ├</span>
-<span class="cm">     ╰───╯╰──────────╯</span>
-<span class="cm">*/</span><span class="w">      </span>
-</pre></div>
-</div>
- </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>kernel</strong> – The quantum callable with non-trivial function signature. </p></li>
-<li><p><strong>args</strong> – The arguments required for evaluation of the quantum kernel. </p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The UTF-8 encoded string of the circuit, without measurement operations.</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8210,6 +8289,79 @@ like this:</p>
 <dd><p>Return a vector of unsigned integers. The first element is zero, and the remaining elements are all values incremented by 1 to the total size value provided (exclusive). </p>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">is_invocable_v</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::contrib::draw::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::contrib::draw::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="draw_8h_1a5ba1c68731156efd49a310a05362e3e5"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">draw</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::contrib::draw::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::contrib::draw::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns a drawing of the execution path, i.e., the trace, of the kernel. The drawing is a UTF-8 encoded string. </p>
+<p>
+Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithms/draw.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">bell_pair</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="p">...</span>
+<span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">contrib</span><span class="o">::</span><span class="n">draw</span><span class="p">(</span><span class="n">bell_pair</span><span class="p">);</span>
+<span class="cm">/* Output:</span>
+<span class="cm">     ╭───╮     </span>
+<span class="cm">q0 : ┤ h ├──●──</span>
+<span class="cm">     ╰───╯╭─┴─╮</span>
+<span class="cm">q1 : ─────┤ x ├</span>
+<span class="cm">          ╰───╯</span>
+<span class="cm">*/</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">float</span><span class="w"> </span><span class="n">angle</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">ry</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="p">};</span>
+<span class="p">...</span>
+<span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">contrib</span><span class="o">::</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="mf">0.59</span><span class="p">);</span>
+<span class="cm">/* Output:</span>
+<span class="cm">     ╭───╮╭──────────╮</span>
+<span class="cm">q0 : ┤ h ├┤ ry(0.59) ├</span>
+<span class="cm">     ╰───╯╰──────────╯</span>
+<span class="cm">*/</span><span class="w">      </span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel</strong> – The quantum callable with non-trivial function signature. </p></li>
+<li><p><strong>args</strong> – The arguments required for evaluation of the quantum kernel. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The UTF-8 encoded string of the circuit, without measurement operations.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq7contrib16get_unitary_cmatE14complex_matrixRR13QuantumKernelDpRR4Args">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="unitary_8h_1a56b70e35620d6743d99e99d3b5316296"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">get_unitary_cmat</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq7contrib16get_unitary_cmatE14complex_matrixRR13QuantumKernelDpRR4Args" title="cudaq::contrib::get_unitary_cmat::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq7contrib16get_unitary_cmatE14complex_matrixRR13QuantumKernelDpRR4Args" title="cudaq::contrib::get_unitary_cmat::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq7contrib16get_unitary_cmatE14complex_matrixRR13QuantumKernelDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Execute a quantum kernel and return its unitary as a <a class="reference internal" href="#classcudaq_1_1complex__matrix"><span class="std std-ref">complex_matrix</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>QuantumKernel</strong> – The functor type of the quantum kernel. </p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>kernel</strong> – The quantum kernel to execute. </p></li>
+<li><p><strong>args</strong> – Arguments to pass to the kernel. </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The full system unitary as a <a class="reference internal" href="#classcudaq_1_1complex__matrix"><span class="std std-ref">complex_matrix</span></a>. </p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="namespaces">
 <h2>Namespaces<a class="headerlink" href="#namespaces" title="Permalink to this heading">¶</a></h2>
@@ -8241,6 +8393,11 @@ like this:</p>
 <span class="target" id="cudaq_8h_1afbecd5e530b3ef32c7872b87541c0a43"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">unset_noise</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq11unset_noiseEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Remove an existing noise model from simulation. </p>
 </dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contribE">
+<span class="target" id="namespacecudaq_1_1contrib"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">contrib</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq7contribE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq7detailsE">

@@ -115,6 +115,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
@@ -127,15 +128,26 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/examples/building_kernels.html">   Building Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/building_kernels.html">   Building Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#defining-kernels">Defining Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#initializing-states">Initializing states</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#applying-gates">Applying Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#controlled-operations">Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#multi-controlled-operations">Multi-Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#adjoint-operations">Adjoint Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#custom-operations">Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#building-kernels-with-kernels">Building Kernels with Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/building_kernels.html#parameterized-kernels">Parameterized Kernels</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Mid-circuit-Measurement-and-Conditional-Logic">Mid-circuit Measurement and Conditional Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/visualization.html">   Visualizing Kernels</a><ul>
@@ -143,23 +155,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_kernels.html">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-state">Get state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Parallelization-Techniques">Parallelization Techniques</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe-Async">Observe Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample-Async">Sample Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/executing_kernels.html">   Executing Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state">Get State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#parallelization-techniques">Parallelization Techniques</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe-asynchronous">Observe Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample-asynchronous">Sample Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state-asynchronous">Get State Asynchronous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/examples/multi_control.html">   Multi-Control Synthesis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
@@ -178,9 +187,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/operators.html">   Constructing Operators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/operators.html#Constructing-Spin-Operators">Constructing Spin Operators</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/operators.html#Pauli-Words-and-Exponentiating-Pauli-Words">Pauli Words and Exponentiating Pauli Words</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/performance_optimizations.html">   Performance Optimizations</a><ul>
@@ -312,15 +321,24 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Setup-and-compilation">Setup and compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Load-model">Load model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Unitary-compilation">Unitary compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Simulate-kernels">Simulate kernels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Compare-unitaries">Compare unitaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Diffusion-model-pipeline">Diffusion model pipeline</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Setup-and-load-models">Setup and load models</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Load-discrete-model">Load discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Load-continuous-model">Load continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Create-helper-functions">Create helper functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Unitary-compilation">Unitary compilation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Random-unitary">Random unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Discrete-model">Discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Continuous-model">Continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
@@ -722,6 +740,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.run_async"><code class="docutils literal notranslate"><span class="pre">run_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
@@ -878,52 +898,73 @@
              
   <section id="Compiling-Unitaries-Using-Diffusion-Models">
 <h1>Compiling Unitaries Using Diffusion Models<a class="headerlink" href="#Compiling-Unitaries-Using-Diffusion-Models" title="Permalink to this heading">¶</a></h1>
-<p>This notebook is based on the work presented in <a class="reference external" href="https://doi.org/10.1038/s42256-024-00831-9">Quantum circuit synthesis with diffusion models, Florian Fürrutter, Gorka Muñoz-Gil &amp; Hans J. Briegel , Nat. Mach. Intell. 6, 515–524 (2024)</a>.</p>
+<p>This tutorial is based on the work presented in</p>
+<blockquote>
+<div><p><a class="reference external" href="https://doi.org/10.48550/arXiv.2506.01666">“Synthesis of discrete-continuous quantum circuits with multimodal diffusion models”, Florian Fürrutter, Zohim Chandani, Ikko Hamamura, Hans J. Briegel &amp; Gorka Muñoz-Gil, arXiv.2506.01666 (2025)</a></p>
+</div></blockquote>
+<p>and &gt; <a class="reference external" href="https://doi.org/10.1038/s42256-024-00831-9">“Quantum circuit synthesis with diffusion models”, Florian Fürrutter, Gorka Muñoz-Gil &amp; Hans J. Briegel , Nat. Mach. Intell. 6, 515–524 (2024)</a>.</p>
 <p>Quantum computing relies on efficiently translating quantum operations into viable physical realizations on existing quantum hardware. Recently, diffusion models — a powerful class of generative models in machine learning — have demonstrated exceptional performance on this task.</p>
 <p>In this tutorial notebook, we will demonstrate how to use this method to synthesize arbitrary unitaries into a <code class="docutils literal notranslate"><span class="pre">cudaq.kernel</span></code>, effectively decomposing them into sequences of quantum gates, a process commonly known as unitary compilation.</p>
-<p>Our focus will be on generating circuits using a pre-trained model. Specifically, we will illustrate how to compile 3-qubit unitaries.</p>
+<p>Our focus will be on generating circuits using a pre-trained diffusion model. Specifically, we will illustrate how to compile different unitaries into discrete quantum gates, based on the methods presented in <a class="reference external" href="https://doi.org/10.1038/s42256-024-00831-9">(Fürrutter et al., 2024)</a>, and continuous quantum gates, based on <a class="reference external" href="https://doi.org/10.48550/arXiv.2506.01666">(Fürrutter et al., 2025)</a>.</p>
 <section id="Diffusion-model-pipeline">
 <h2>Diffusion model pipeline<a class="headerlink" href="#Diffusion-model-pipeline" title="Permalink to this heading">¶</a></h2>
 <p>Generative diffusion models (DMs) have recently delivered remarkable results across a wide range of applications, from image generation to protein folding. In this work, we leverage DMs to generate quantum circuits based on a user specified unitary matrix and a text prompt that defines the allowed gate set, effectively using DMs as unitary compilers. The method is thoroughly explained in Ref. <a class="reference external" href="https://doi.org/10.1038/s42256-024-00831-9">(Fürrutter et al., 2024)</a>. The following figure provides
 an overview of the proposed circuit generation pipeline:</p>
 <figure><p><img alt="Quantum circuit generation pipeline overview" class="no-scaled-link" src="../../_images/pipeline_simplified.png" style="width: 70%;" /></p>
 <figcaption><p>Quantum circuit generation pipeline. Figure adapted from (Fürrutter et al., 2024)</p>
-</figcaption></figure><p>The pipeline consists on 3 main components:</p>
+</figcaption></figure><p>The pipeline consists of 3 main components:</p>
 <p><strong>1) Circuit encoding:</strong> Like any neural network, diffusion models operate with continuous inputs and outputs. However, since the circuits we consider are composed of discrete gates (i.e., with no continuous parameters), we develop a mapping that transforms each gate into a continuous vector. This allows us to represent a given circuit as a three-dimensional tensor, as illustrated. Crucially, this mapping is invertible: when the DM generates continuous tensors, we can apply the inverse map to
 convert them back into the circuit form. An overview of these steps is provided in the figure below:</p>
 <figure><p><img alt="Quantum circuit encoding" class="no-scaled-link" src="../../_images/circuit_encoding.png" style="width: 60%;" /></p>
 <figcaption><p>Quantum circuit encoding. Figure adapted from (Fürrutter et al., 2024)</p>
-</figcaption></figure><p><strong>2) Conditioning:</strong> The user’s input (the set of available gates and the unitary to compile) is also transformed into a continuous tensor by two neural networks. For the gate set description, where the input is a text prompt (e.g., “Compile using [‘x’, ‘h’]”), we utilize a pre-trained language model. For the unitary, we employ a neural network that is training jointly with the diffusion model.</p>
+</figcaption></figure><p><strong>2) Conditioning:</strong> The user’s input (the set of available gates and the unitary to compile) is also transformed into a continuous tensor by two neural networks. For the gate set description, where the input is a text prompt (e.g., “Compile using [‘x’, ‘h’]”), we utilize a pre-trained language model. For the unitary, we employ a neural network that is trained jointly with the diffusion model.</p>
 <p><strong>3) Unitary compilation:</strong> The generation procedure follows the typical DM process: the model is given a fully noisy tensor which is iteratively de-noised until reaching a clean sample based on the given conditioning (the desired unitary and gate set). The tensors generated by the DM are then mapped to circuits via the inverse encoding procedure. To learn more about the practical implementation of diffusion models we recommend <a class="reference external" href="https://course.fast.ai/Lessons/lesson9.html">this tutorial</a>.</p>
-<p>In the following we will use <code class="docutils literal notranslate"><span class="pre">CUDA-Q</span></code> and <code class="docutils literal notranslate"><span class="pre">genQC</span></code> to perform all these steps and go from a desired unitary matrix, <span class="math notranslate nohighlight">\(U\)</span>, to a quantum circuit that we can execute using CUDA-Q.</p>
-</section>
-<section id="Setup-and-compilation">
-<h2>Setup and compilation<a class="headerlink" href="#Setup-and-compilation" title="Permalink to this heading">¶</a></h2>
-<div class="nbinput nblast docutils container">
+<p>In the following, we will use <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> and <code class="docutils literal notranslate"><span class="pre">`genQC</span></code> &lt;<a class="reference external" href="https://github.com/FlorianFuerrutter/genQC">https://github.com/FlorianFuerrutter/genQC</a>&gt;`__ to perform all these steps and go from a desired unitary matrix <span class="math notranslate nohighlight">\(U\)</span> to a quantum circuit that we can execute using CUDA-Q.</p>
+<blockquote>
+<div><p><strong>Extension to discrete-continuous quantum circuits:</strong> Recently, in <a class="reference external" href="https://doi.org/10.48550/arXiv.2506.01666">Fürrutter et al. (2025)</a>, the authors introduced the next generation of compilation models, utilizing not only discrete gates but also continuous quantum gates in a multimodal diffusion model. We refer interested readers to the paper for more advanced details on the method. Moreover, we will also cover its use in the sections below.</p>
+</div></blockquote>
+<section id="Setup-and-load-models">
+<h3>Setup and load models<a class="headerlink" href="#Setup-and-load-models" title="Permalink to this heading">¶</a></h3>
+<p>First, we make sure we have a compatible version of <code class="docutils literal notranslate"><span class="pre">genQC</span></code> (<a class="reference external" href="https://github.com/FlorianFuerrutter/genQC">github.com/FlorianFuerrutter/genQC</a>) installed.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">genQC</span><span class="o">==</span><span class="m">0</span>.1.0<span class="w"> </span>-q
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">genQC</span><span class="o">==</span><span class="m">0</span>.2.3<span class="w"> </span>-q
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
+</span>
+</pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">genQC</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.imports</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.pipeline.diffusion_pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiffusionPipeline</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.inference.export_cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">genqc_to_cudaq</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">genQC.inference.infer_compilation</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">infer_comp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">genQC.util</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">util</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">genQC</span>
 
-<span class="c1"># Fixed seed for reproducibility</span>
-<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">genQC.utils.misc_utils</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">util</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.pipeline.diffusion_pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiffusionPipeline</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.pipeline.multimodal_diffusion_pipeline</span> \
+            <span class="kn">import</span><span class="w"> </span><span class="nn">MultimodalDiffusionPipeline_ParametrizedCompilation</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.platform.tokenizer.circuits_tokenizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">CircuitTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.platform.simulation</span><span class="w"> </span><span class="kn">import</span> <span class="n">Simulator</span><span class="p">,</span> <span class="n">CircuitBackendType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.scheduler.scheduler_dpm</span><span class="w"> </span><span class="kn">import</span> <span class="n">DPMScheduler</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.inference.sampling</span> \
+            <span class="kn">import</span><span class="w"> </span><span class="nn">decode_tensors_to_backend</span><span class="o">,</span><span class="w"> </span><span class="nn">generate_compilation_tensors</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.inference.evaluation_helper</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_unitaries</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">genQC.inference.eval_metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">UnitaryInfidelityNorm</span>
 </pre></div>
 </div>
 </div>
@@ -931,8 +972,7 @@ convert them back into the circuit form. An overview of these steps is provided 
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">device</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">infer_torch_device</span><span class="p">()</span>  <span class="c1"># Use CUDA if we can</span>
-<span class="n">util</span><span class="o">.</span><span class="n">MemoryCleaner</span><span class="o">.</span><span class="n">purge_mem</span><span class="p">()</span>  <span class="c1"># Clean existing memory allocation</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">device</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">infer_torch_device</span><span class="p">()</span> <span class="c1"># Use CUDA if we have a GPU</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -946,167 +986,39 @@ convert them back into the circuit form. An overview of these steps is provided 
 cuda
 </pre></div></div>
 </div>
-</section>
-<section id="Load-model">
-<h2>Load model<a class="headerlink" href="#Load-model" title="Permalink to this heading">¶</a></h2>
-<p>First, we load the pre-trained model weights and setup the DM pipeline.</p>
+<p>We set a fixed seed for reproducibility.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pipeline</span> <span class="o">=</span> <span class="n">DiffusionPipeline</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
-    <span class="s2">&quot;Floki00/qc_unitary_3qubit&quot;</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>  <span class="c1"># Download from Hugging Face</span>
-<span class="n">pipeline</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">set_timesteps</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We set a seed to pytorch, numpy and python.</span>
+<span class="c1"># Note: This will also set deterministic cuda algorithms, possibly at the cost of reduced performance!</span>
+<span class="n">util</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<p>Set parameters the model was trained on. Note that these are fixed and depend on the pre-trained model.</p>
+<p>For evaluation, we also need to specify the <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> circuit simulator backend.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">vocab</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span> <span class="n">gate</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pipeline</span><span class="o">.</span><span class="n">gate_pool</span><span class="p">)</span>
-<span class="p">}</span>  <span class="c1"># Gateset used during training, used for decoding</span>
-<span class="n">num_of_qubits</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># Number of qubits</span>
-<span class="n">max_gates</span> <span class="o">=</span> <span class="mi">12</span>  <span class="c1"># Maximum number of gates</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">simulator</span> <span class="o">=</span> <span class="n">Simulator</span><span class="p">(</span><span class="n">CircuitBackendType</span><span class="o">.</span><span class="n">CUDAQ</span><span class="p">,</span>
+                      <span class="n">target</span><span class="o">=</span><span class="s1">&#39;qpp-cpu&#39;</span><span class="p">)</span>  <span class="c1"># Target for cudaq, note that cpu is faster for low qubit kernels</span>
 </pre></div>
 </div>
 </div>
 </section>
-<section id="Unitary-compilation">
-<h2>Unitary compilation<a class="headerlink" href="#Unitary-compilation" title="Permalink to this heading">¶</a></h2>
-<p>Let’s start by defining the unitary we want to compile. Note that this model has been trained to compile unitaries that arise from circuits composed of the gates contain in <code class="docutils literal notranslate"><span class="pre">vocab</span></code>. While this is a universal gate set (i.e. can perform universal computation), it can only do so with an infinite number of gates. Because the number of gates in the model is restricted to 12, we can only expect the model to generate unitaries under this constraints. We will consider here the compilation of one of
-such unitary. Nonetheless, stay tuned for bigger and better models!</p>
-<p>We start by defining our unitary as a <code class="docutils literal notranslate"><span class="pre">numpy.matrix</span></code>:</p>
-<div class="nbinput nblast docutils container">
+</section>
+<section id="Load-discrete-model">
+<h2>Load discrete model<a class="headerlink" href="#Load-discrete-model" title="Permalink to this heading">¶</a></h2>
+<p>First, we load pre-trained model weights for a discrete model directly from <a class="reference external" href="https://huggingface.co/Floki00/qc_unitary_3qubit">Hugging Face: Floki00/qc_unitary_3qubit</a> and setup the DM pipeline. For details of the model we refer to the paper <a class="reference external" href="https://doi.org/10.1038/s42256-024-00831-9">Fürrutter et al., 2024</a>. Note that this model is only trained on 3 qubit unitaries up to 12 gates.</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([[</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
-               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
-               <span class="p">[</span><span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
-               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
-               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">],</span>
-               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
-               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">],</span>
-               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]],</span>
-              <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<p>and check that the matrix is indeed unitary, i.e. <span class="math notranslate nohighlight">\(U^{\dagger} U = U U^{\dagger} = I\)</span></p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">H</span> <span class="o">@</span> <span class="n">U</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">))</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span>
-    <span class="n">U</span> <span class="o">@</span> <span class="n">U</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">))</span>  <span class="c1">#check if unitary</span>
-</pre></div>
-</div>
-</div>
-<p>The loaded model was trained on the gate set <code class="docutils literal notranslate"><span class="pre">['h',</span> <span class="pre">'cx',</span> <span class="pre">'z',</span> <span class="pre">'x',</span> <span class="pre">'ccx',</span> <span class="pre">'swap']</span></code>. Specifically, it was trained to generate circuits using any arbitrary subset of this gate set. Therefore, during inference, we can instruct the model to compile the unitary using any of these subsets. However, it is crucial to follow the prompt structure <code class="docutils literal notranslate"><span class="pre">Compile</span> <span class="pre">using</span> <span class="pre">[...]</span></code>, as the model was trained with this specific format. For example, let’s consider a scenario where we compile the unitary without using
-the <code class="docutils literal notranslate"><span class="pre">x</span></code> gate:</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Notice how the x gate missing from the prompt since this is a restriction we set</span>
-<span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;Compile using: [&#39;h&#39;, &#39;cx&#39;, &#39;z&#39;, &#39;ccx&#39;, &#39;swap&#39;]&quot;</span>
-</pre></div>
-</div>
-</div>
-<p>Now, we call the diffusion model pipeline to generate encoded circuits based on the specified conditions: <code class="docutils literal notranslate"><span class="pre">prompt</span></code> and <code class="docutils literal notranslate"><span class="pre">U</span></code>. One of the key advantages of this method is that, once the model is trained, sampling new circuits is very fast. Therefore, under the same conditions defined above, we will generate 128 circuits and analyze them in the following sections.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Number of circuits to sample from the trained DM.</span>
-<span class="n">samples</span> <span class="o">=</span> <span class="mi">128</span>
-
-<span class="c1"># As the neural network works only with real numbers, we first separate</span>
-<span class="c1"># the two components and create a 2 dimensional tensor for the magnitude</span>
-<span class="c1"># of each component:</span>
-<span class="n">U_r</span><span class="p">,</span> <span class="n">U_i</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">U</span><span class="p">)),</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">U</span><span class="p">))</span>
-<span class="n">U_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">U_r</span><span class="p">,</span> <span class="n">U_i</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-<span class="c1"># Now we generate a tensor representation of the desired quantum circuit using the DM based on the prompt and U. This is also known as inference.</span>
-<span class="n">out_tensors</span> <span class="o">=</span> <span class="n">infer_comp</span><span class="o">.</span><span class="n">generate_comp_tensors</span><span class="p">(</span>
-    <span class="n">pipeline</span><span class="o">=</span><span class="n">pipeline</span><span class="p">,</span>
-    <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
-    <span class="n">U</span><span class="o">=</span><span class="n">U_tensor</span><span class="p">,</span>
-    <span class="n">samples</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
-    <span class="n">system_size</span><span class="o">=</span>
-    <span class="n">num_of_qubits</span><span class="p">,</span>  <span class="c1"># Max qubit number allowed by the model (this model is only trained with 3 qubits)</span>
-    <span class="n">num_of_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
-    <span class="n">max_gates</span><span class="o">=</span><span class="n">max_gates</span><span class="p">,</span>
-    <span class="n">g</span><span class="o">=</span><span class="mi">10</span>  <span class="c1"># classifier-free-guidance (CFG) scale</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<p>Below is an example of a generated tensor which represents a quantum circuit:</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">out_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-tensor([[ 5,  3,  0,  0, -5,  3,  3,  0, -5,  0,  0,  0],
-        [-5,  0,  0,  6,  5,  0,  0,  3,  5,  0,  0,  0],
-        [-5,  0,  1,  6, -5,  0,  0,  0, -5,  0,  0,  0]])
-</pre></div></div>
-</div>
-</section>
-<section id="Convert-tensors-to-CUDA-Q">
-<h2>Convert tensors to CUDA-Q<a class="headerlink" href="#Convert-tensors-to-CUDA-Q" title="Permalink to this heading">¶</a></h2>
-<p>Next, we convert the generated tensors into <code class="docutils literal notranslate"><span class="pre">cudaq.kernels</span></code>.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qpp-cpu&#39;</span><span class="p">)</span>  <span class="c1"># Note that cpu is faster for 3 qubit kernels</span>
-
-<span class="c1"># cudaq.set_target(&#39;nvidia&#39;) # Set to GPU for larger circuits</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">kernel_list</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">valid_tensors</span> <span class="o">=</span> <span class="p">[]</span>
-
-<span class="n">invalid_tensors</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="k">for</span> <span class="n">out_tensors_i</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">out_tensors</span><span class="p">):</span>
-
-    <span class="c1"># Use a try-except to catch invalid tensors (if any)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">kernel</span> <span class="o">=</span> <span class="n">genqc_to_cudaq</span><span class="p">(</span><span class="n">out_tensors_i</span><span class="p">,</span>
-                                <span class="n">vocab</span><span class="p">)</span>  <span class="c1"># Convert out_tensors to CUDA-Q kernels</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="n">kernel</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="k">if</span> <span class="n">kernel</span><span class="p">:</span>
-        <span class="n">kernel_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-        <span class="n">valid_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out_tensors_i</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">invalid_tensors</span> <span class="o">+=</span> <span class="mi">1</span>
-
-<span class="nb">print</span><span class="p">(</span>
-    <span class="sa">f</span><span class="s2">&quot;The model generated </span><span class="si">{</span><span class="n">invalid_tensors</span><span class="si">}</span><span class="s2"> invalid tensors that does not correspond to circuits.&quot;</span>
-<span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">discrete_pipeline</span> <span class="o">=</span> <span class="n">DiffusionPipeline</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+            <span class="n">repo_id</span><span class="o">=</span><span class="s2">&quot;Floki00/qc_unitary_3qubit&quot;</span><span class="p">,</span> <span class="c1"># Download model from Hugging Face</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1114,22 +1026,210 @@ tensor([[ 5,  3,  0,  0, -5,  3,  3,  0, -5,  0,  0,  0],
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "f7cdb66833df4aee8a75c3c7a3558ebc", "version_major": 2, "version_minor": 0}</script></div>
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "ea36515f3dce433ab3a25e8fc14f4d4f", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "2bcc0a03666442888eb3929a26213809", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "51703259a1e54c6892c7a738b5f6177f", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO]: `genQC.models.unet_qc.QC_Compilation_UNet` instantiated from given `config` on cuda.
+[INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--qc_unitary_3qubit/snapshots/e12810ea65a9a88832fadd34834894e8174658a5/model.pt` onto device: cuda.
+[INFO]: `genQC.models.unet_qc.QC_Compilation_UNet`. Freeze model: True
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "f8293f8053ec4810b49acb3ac5c576f4", "version_major": 2, "version_minor": 0}</script></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-The model generated 0 invalid tensors that does not correspond to circuits.
+[INFO]: `genQC.models.frozen_open_clip.CachedFrozenOpenCLIPEmbedder` instantiated from given `config` on cuda.
+[INFO]: `genQC.models.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Found no key `save_type` in `config`. No state dict loaded.
+[INFO]: `genQC.models.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Freeze model: True
 </pre></div></div>
 </div>
-<p>For example, the following tensor encoding</p>
+<p>The loaded discrete model is trained with the discrete gate set:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">discrete_pipeline</span><span class="o">.</span><span class="n">gate_pool</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;h&#39;, &#39;cx&#39;, &#39;z&#39;, &#39;x&#39;, &#39;ccx&#39;, &#39;swap&#39;]
+</pre></div></div>
+</div>
+<p>which we need in order to define the <code class="docutils literal notranslate"><span class="pre">discrete_vocabulary</span></code> and create a <code class="docutils literal notranslate"><span class="pre">CircuitTokenizer</span></code>, allowing us to decode tokenized circuits generated by the model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">discrete_vocabulary</span> <span class="o">=</span> <span class="p">{</span><span class="n">g</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">discrete_pipeline</span><span class="o">.</span><span class="n">gate_pool</span><span class="p">)}</span>
+<span class="n">discrete_tokenizer</span>  <span class="o">=</span> <span class="n">CircuitTokenizer</span><span class="p">(</span><span class="n">discrete_vocabulary</span><span class="p">)</span>
+<span class="n">discrete_tokenizer</span><span class="o">.</span><span class="n">vocabulary</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;h&#39;: 1, &#39;cx&#39;: 2, &#39;z&#39;: 3, &#39;x&#39;: 4, &#39;ccx&#39;: 5, &#39;swap&#39;: 6}
+</pre></div></div>
+</div>
+<p>Set parameters the model was trained on. Note that these are fixed and depend on the pre-trained model.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># These parameters are specific to our pre-trained model.</span>
+<span class="n">discrete_system_size</span>   <span class="o">=</span> <span class="mi">3</span>
+<span class="n">discrete_max_gates</span>     <span class="o">=</span> <span class="mi">12</span>
+</pre></div>
+</div>
+</div>
+<p><strong>Set inference parameters</strong></p>
+<p>Then, we setup diffusion model inference parameters. These can be changed in principle, as they are sample hyperparameters.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">timesteps</span> <span class="o">=</span> <span class="mi">40</span>
+<span class="n">discrete_pipeline</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">set_timesteps</span><span class="p">(</span><span class="n">timesteps</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Load-continuous-model">
+<h2>Load continuous model<a class="headerlink" href="#Load-continuous-model" title="Permalink to this heading">¶</a></h2>
+<p>Next, we load pre-trained model weights for a discrete-continuous model directly from <a class="reference external" href="https://huggingface.co/Floki00/cirdit_multimodal_compile_3to5qubit">Hugging Face: Floki00/cirdit_multimodal_compile_3to5qubit</a> and setup the DM pipeline. For details of the model, we refer to the paper <a class="reference external" href="https://doi.org/10.48550/arXiv.2506.01666">Fürrutter et al., 2025</a>. Note that this model is trained on 3 to 5 qubit unitaries up to 32 gates.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cont_pipeline</span> <span class="o">=</span> <span class="n">MultimodalDiffusionPipeline_ParametrizedCompilation</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+    <span class="n">repo_id</span><span class="o">=</span><span class="s2">&quot;Floki00/cirdit_multimodal_compile_3to5qubit&quot;</span><span class="p">,</span> <span class="c1"># Download model from Hugging Face</span>
+    <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "071226aa2ae3496d9d7f9c10441983fe", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "1ebcd817d7db42359de245f288bb24f5", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "8353e17f77004e82a6ba41c8b671b11a", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "eb4c73a70f764f878731bc64ed310081", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "7550afb2743443e991cdb59c5953f3ed", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO]: Loading tensor from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/d0dc0e9f4999d22a8747da79bde34a389a1fc2af/beta_schedule_learned_linear.safetensors` onto device: cuda.
+[INFO]: Loaded beta_schedule (path:/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/d0dc0e9f4999d22a8747da79bde34a389a1fc2af/beta_schedule_learned_linear.safetensors).
+[INFO]: Creating `UnitaryTextEncoder` with `unitary_downscale_factor=4` and `encoding_ch=640`.
+[INFO]: `genQC.models.transformers.cirdit_multimodal.UnitaryCLIPPartialNoiseCompilationCirDiT` instantiated from given `config` on cuda.
+[INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/d0dc0e9f4999d22a8747da79bde34a389a1fc2af/model.safetensors` onto device: cuda.
+[INFO]: `genQC.models.transformers.cirdit_multimodal.UnitaryCLIPPartialNoiseCompilationCirDiT`. Freeze model: True
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "a9b30a8b8fa441458453bc92840a7a08", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder` instantiated from given `config` on cuda.
+[INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Found no key `save_type` in `config`. No state dict loaded.
+[INFO]: `genQC.models.clip.frozen_open_clip.CachedFrozenOpenCLIPEmbedder`. Freeze model: True
+[INFO]: provided `unique_class_values` ([-3, -2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), enforcing `num_clrs=len(unique_class_values)=12`.
+[INFO]: Created `nn.Embedding` with a total of 14 vectors in a 16 dimensional space.
+[INFO]: `genQC.models.embedding.rotational_preset_embedder.RotationalMultimodialPresetEmbedderTiny` instantiated from given `config` on cuda.
+[INFO]: Loading model from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/d0dc0e9f4999d22a8747da79bde34a389a1fc2af/embedder.safetensors` onto device: cuda.
+[INFO]: `genQC.models.embedding.rotational_preset_embedder.RotationalMultimodialPresetEmbedderTiny`. Freeze model: True
+</pre></div></div>
+</div>
+<p>The loaded continuous model is trained with the discrete and continuous gate set:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cont_pipeline</span><span class="o">.</span><span class="n">gate_pool</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;h&#39;, &#39;cx&#39;, &#39;ccx&#39;, &#39;swap&#39;, &#39;rx&#39;, &#39;ry&#39;, &#39;rz&#39;, &#39;cp&#39;]
+</pre></div></div>
+</div>
+<p>which we then use in order to define the <code class="docutils literal notranslate"><span class="pre">cont_vocabulary</span></code> and create a <code class="docutils literal notranslate"><span class="pre">CircuitTokenizer</span></code>, allowing us to decode tokenized circuits generated by the model.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">valid_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cont_vocabulary</span> <span class="o">=</span> <span class="p">{</span><span class="n">g</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cont_pipeline</span><span class="o">.</span><span class="n">gate_pool</span><span class="p">)}</span>
+<span class="n">cont_tokenizer</span>  <span class="o">=</span> <span class="n">CircuitTokenizer</span><span class="p">(</span><span class="n">cont_vocabulary</span><span class="p">)</span>
+<span class="n">cont_tokenizer</span><span class="o">.</span><span class="n">vocabulary</span>
 </pre></div>
 </div>
 </div>
@@ -1139,21 +1239,37 @@ The model generated 0 invalid tensors that does not correspond to circuits.
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-tensor([[ 5,  3,  0,  0, -5,  3,  3,  0, -5,  0,  0,  0],
-        [-5,  0,  0,  6,  5,  0,  0,  3,  5,  0,  0,  0],
-        [-5,  0,  1,  6, -5,  0,  0,  0, -5,  0,  0,  0]])
+{&#39;h&#39;: 1, &#39;cx&#39;: 2, &#39;ccx&#39;: 3, &#39;swap&#39;: 4, &#39;rx&#39;: 5, &#39;ry&#39;: 6, &#39;rz&#39;: 7, &#39;cp&#39;: 8}
 </pre></div></div>
 </div>
-<p>corresponds to the following <code class="docutils literal notranslate"><span class="pre">cudaq.kernel</span></code></p>
-<div class="nbinput docutils container">
+<p>Now we set parameters the model was trained on. Note that these are fixed and depend on the pre-trained model.</p>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Arbitrary input state to the circuit for plotting</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># These parameters are specific to our pre-trained model.</span>
+<span class="n">cont_system_size</span>   <span class="o">=</span> <span class="mi">5</span>
+<span class="n">cont_max_gates</span>     <span class="o">=</span> <span class="mi">32</span>
+</pre></div>
+</div>
+</div>
+<p><strong>Set inference parameters</strong></p>
+<p>Again, we setup diffusion model inference parameters. These hyperparameters can be changed at will, as they define how sampling is performed from the trained model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cont_pipeline</span><span class="o">.</span><span class="n">scheduler</span>   <span class="o">=</span> <span class="n">DPMScheduler</span><span class="o">.</span><span class="n">from_scheduler</span><span class="p">(</span><span class="n">cont_pipeline</span><span class="o">.</span><span class="n">scheduler</span><span class="p">)</span>
+<span class="n">cont_pipeline</span><span class="o">.</span><span class="n">scheduler_w</span> <span class="o">=</span> <span class="n">DPMScheduler</span><span class="o">.</span><span class="n">from_scheduler</span><span class="p">(</span><span class="n">cont_pipeline</span><span class="o">.</span><span class="n">scheduler_w</span><span class="p">)</span>
 
-<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">)</span>
+<span class="n">timesteps</span> <span class="o">=</span> <span class="mi">40</span>
+<span class="n">cont_pipeline</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">set_timesteps</span><span class="p">(</span><span class="n">timesteps</span><span class="p">)</span>
+<span class="n">cont_pipeline</span><span class="o">.</span><span class="n">scheduler_w</span><span class="o">.</span><span class="n">set_timesteps</span><span class="p">(</span><span class="n">timesteps</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">input_state</span><span class="p">))</span>
+<span class="n">cont_pipeline</span><span class="o">.</span><span class="n">lambda_h</span> <span class="o">=</span> <span class="mf">1.1</span>
+<span class="n">cont_pipeline</span><span class="o">.</span><span class="n">lambda_w</span> <span class="o">=</span> <span class="mf">0.4</span>
+<span class="n">cont_pipeline</span><span class="o">.</span><span class="n">g_h</span> <span class="o">=</span> <span class="mf">0.4</span>
+<span class="n">cont_pipeline</span><span class="o">.</span><span class="n">g_w</span> <span class="o">=</span> <span class="mf">0.1</span>
 </pre></div>
 </div>
 </div>
@@ -1162,6 +1278,226 @@ tensor([[ 5,  3,  0,  0, -5,  3,  3,  0, -5,  0,  0,  0],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
+[INFO]: Loading tensor from `/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/d0dc0e9f4999d22a8747da79bde34a389a1fc2af/beta_schedule_learned_linear.safetensors` onto device: cuda.
+[INFO]: Loaded beta_schedule (path:/home/.cache/huggingface/hub/models--Floki00--cirdit_multimodal_compile_3to5qubit/snapshots/d0dc0e9f4999d22a8747da79bde34a389a1fc2af/beta_schedule_learned_linear.safetensors).
+</pre></div></div>
+</div>
+</section>
+<section id="Create-helper-functions">
+<h2>Create helper functions<a class="headerlink" href="#Create-helper-functions" title="Permalink to this heading">¶</a></h2>
+<p>To facilitate the sampling, evaluating and plotting multiple circuits for different unitaries, we create some helper functions here.</p>
+<ol class="arabic simple">
+<li><p>A function to check that a matrix <code class="docutils literal notranslate"><span class="pre">U</span></code> is indeed unitary, i.e. <span class="math notranslate nohighlight">\(U^{\dagger} U = U U^{\dagger} = I\)</span>.</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">verify_unitary</span><span class="p">(</span><span class="n">U</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if unitary.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">adjoint</span><span class="p">()</span> <span class="o">@</span> <span class="n">U</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">U</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">U</span> <span class="o">@</span> <span class="n">U</span><span class="o">.</span><span class="n">adjoint</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">U</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>A function to sample the DM and return generated kernels with coresponding infidelities.</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">sample_kernels_and_evaluate</span><span class="p">(</span><span class="n">U</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+                                <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                <span class="n">num_of_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                                <span class="n">samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                                <span class="n">discrete_model</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                                <span class="n">return_tensors</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sample the DM and return generated kernels with coresponding infidelities.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># 1) Check if unitary</span>
+    <span class="n">verify_unitary</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
+
+    <span class="c1"># 2) Generate tensor representations using the DM based on the prompt and U.</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">discrete_model</span><span class="p">:</span>
+        <span class="c1"># Sample discrete model</span>
+        <span class="n">out_tensor</span> <span class="o">=</span> <span class="n">generate_compilation_tensors</span><span class="p">(</span><span class="n">discrete_pipeline</span><span class="p">,</span>
+                                  <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+                                  <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span>
+                                  <span class="n">samples</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>      <span class="c1"># How many circuits we sample per unitary</span>
+                                  <span class="n">system_size</span><span class="o">=</span><span class="n">discrete_system_size</span><span class="p">,</span>
+                                  <span class="n">num_of_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
+                                  <span class="n">max_gates</span><span class="o">=</span><span class="n">discrete_max_gates</span><span class="p">,</span>
+                                  <span class="n">g</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>               <span class="c1"># classifier-free-guidance (CFG) scale</span>
+                                  <span class="n">no_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>         <span class="c1"># show progress bar</span>
+                                  <span class="n">auto_batch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>  <span class="c1"># for less GPU memory usage limit batch size</span>
+                                  <span class="n">tensor_prod_pad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                  <span class="n">enable_params</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="p">)</span>
+        <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">discrete_tokenizer</span>
+        <span class="n">params</span>    <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Sample continuous model</span>
+        <span class="n">out_tensor</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">generate_compilation_tensors</span><span class="p">(</span><span class="n">cont_pipeline</span><span class="p">,</span>
+                                  <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+                                  <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span>
+                                  <span class="n">samples</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>     <span class="c1"># How many circuits we sample per unitary</span>
+                                  <span class="n">system_size</span><span class="o">=</span><span class="n">cont_system_size</span><span class="p">,</span>
+                                  <span class="n">num_of_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
+                                  <span class="n">max_gates</span><span class="o">=</span><span class="n">cont_max_gates</span><span class="p">,</span>
+                                  <span class="n">no_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>        <span class="c1"># show progress bar</span>
+                                  <span class="n">auto_batch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="c1"># for less GPU memory usage limit batch size</span>
+                                 <span class="p">)</span>
+        <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">cont_tokenizer</span>
+
+    <span class="c1"># 3) Convert tensors to kernels</span>
+    <span class="n">generated_kernels</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">generated_tensors</span> <span class="o">=</span> <span class="n">decode_tensors_to_backend</span><span class="p">(</span><span class="n">simulator</span><span class="o">=</span><span class="n">simulator</span><span class="p">,</span>
+                                                     <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+                                                     <span class="n">tensors</span><span class="o">=</span><span class="n">out_tensor</span><span class="p">,</span>
+                                                     <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+                                                     <span class="n">return_tensors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># 4) Evaluate the kernels and return the unitaries</span>
+    <span class="n">generated_us</span> <span class="o">=</span> <span class="n">get_unitaries</span><span class="p">(</span><span class="n">simulator</span><span class="p">,</span> <span class="n">generated_kernels</span><span class="p">,</span> <span class="n">num_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">)</span>
+
+    <span class="c1"># 5) Calculate the infidelities to the target U</span>
+    <span class="n">infidelities</span> <span class="o">=</span> <span class="n">UnitaryInfidelityNorm</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span>
+                    <span class="n">approx_U</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">generated_us</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">complex128</span><span class="p">),</span>
+                    <span class="n">target_U</span><span class="o">=</span><span class="n">U</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">return_tensors</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span><span class="p">,</span> <span class="n">generated_tensors</span>
+    <span class="k">return</span> <span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span>
+</pre></div>
+</div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>A function to plot the <code class="docutils literal notranslate"><span class="pre">topk</span></code> best generated kernels.</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">plot_topk_kernels</span><span class="p">(</span><span class="n">generated_kernels</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+                      <span class="n">infidelities</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+                      <span class="n">num_of_qubits</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span>
+                      <span class="n">topk</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot the topk best generated kernels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Get topk indices</span>
+    <span class="n">best_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">infidelities</span><span class="p">)[:</span><span class="n">topk</span><span class="p">]</span>
+
+    <span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">)</span>
+    <span class="n">input_state</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># Print the circuits</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">best_index</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">best_indices</span><span class="p">):</span>
+        <span class="n">kernel</span> <span class="o">=</span> <span class="n">generated_kernels</span><span class="p">[</span><span class="n">best_index</span><span class="p">]</span><span class="o">.</span><span class="n">kernel</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">generated_kernels</span><span class="p">[</span><span class="n">best_index</span><span class="p">]</span><span class="o">.</span><span class="n">params</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Circuit has an infidelity of </span><span class="si">{</span><span class="n">infidelities</span><span class="p">[</span><span class="n">best_index</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">0.1e</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">input_state</span><span class="p">,</span> <span class="n">thetas</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<section id="Unitary-compilation">
+<h3>Unitary compilation<a class="headerlink" href="#Unitary-compilation" title="Permalink to this heading">¶</a></h3>
+<p>We start by defining the unitaries we want to compile and then sample the corresponding DM. Note that these models have been trained to compile unitaries that arise from circuits composed of the gates contained in their <code class="docutils literal notranslate"><span class="pre">vocabulary</span></code>. While these are universal gate sets, i.e. they can perform universal computation, they can only do so with an arbitrary-precision for an infinite number of gates. Because the number of gates in the models are restricted to some <code class="docutils literal notranslate"><span class="pre">max_gates</span></code> (12 for the discrete
+model and 32 for the continuous one), we can only expect the models to generate unitaries under this constraint. We will consider here the compilation of such unitaries. Nonetheless, stay tuned for bigger and better models!</p>
+</section>
+</section>
+<section id="Random-unitary">
+<h2>Random unitary<a class="headerlink" href="#Random-unitary" title="Permalink to this heading">¶</a></h2>
+<p>Let’s start with a random 3-qubit unitary.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">num_of_qubits</span> <span class="o">=</span> <span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+<p>We can define our arbitrary unitary <code class="docutils literal notranslate"><span class="pre">U</span></code> directly as a complex <code class="docutils literal notranslate"><span class="pre">torch.tensor</span></code>:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">U</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]],</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Discrete-model">
+<h2>Discrete model<a class="headerlink" href="#Discrete-model" title="Permalink to this heading">¶</a></h2>
+<p>The loaded discrete model was trained on the gate set <code class="docutils literal notranslate"><span class="pre">['h',</span> <span class="pre">'cx',</span> <span class="pre">'z',</span> <span class="pre">'x',</span> <span class="pre">'ccx',</span> <span class="pre">'swap']</span></code>. Specifically, it was trained to generate circuits using any arbitrary subset of this gate set. Therefore, during inference, we can instruct the model to compile the unitary using any of these subsets. However, it is crucial to follow the prompt structure <code class="docutils literal notranslate"><span class="pre">Compile</span> <span class="pre">using</span> <span class="pre">[...]</span></code>, as the model was trained with this specific format.</p>
+<p>For example, let’s consider a scenario where we compile the unitary without using the <code class="docutils literal notranslate"><span class="pre">x</span></code> gate:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Notice how the x gate is missing from the prompt since this is a restriction we set</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;Compile using: [&#39;h&#39;, &#39;cx&#39;, &#39;z&#39;, &#39;ccx&#39;, &#39;swap&#39;]&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Now, we call the diffusion model pipeline to generate encoded circuits based on the specified conditions: <code class="docutils literal notranslate"><span class="pre">prompt</span></code> and <code class="docutils literal notranslate"><span class="pre">U</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span> <span class="o">=</span> <span class="n">sample_kernels_and_evaluate</span><span class="p">(</span>
+                                          <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span>
+                                          <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+                                          <span class="n">num_of_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
+                                          <span class="n">samples</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+                                          <span class="n">discrete_model</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "d436c5d05474497bbf310b20c9b20987", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO]: (generate_comp_tensors) Generated 128 tensors
+</pre></div></div>
+</div>
+<p>Next, we plot the best three circuits in the following cell.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_topk_kernels</span><span class="p">(</span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span><span class="p">,</span> <span class="n">num_of_qubits</span><span class="p">,</span> <span class="n">topk</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Circuit has an infidelity of 3.4e-08.
      ╭───╮╭───╮        ╭───╮╭───╮
 q0 : ┤ x ├┤ z ├─────●──┤ z ├┤ z ├──●──
      ╰─┬─╯╰───╯   ╭─┴─╮├───┤╰───╯╭─┴─╮
@@ -1170,54 +1506,75 @@ q1 : ──●────────╳─┤ x ├┤ z ├─────┤
 q2 : ──●──┤ h ├─╳───●──────────────●──
           ╰───╯
 
+Circuit has an infidelity of 3.4e-08.
+        ╭───╮╭───╮
+q0 : ───┤ x ├┤ z ├──●─────────●──
+        ╰─┬─╯├───┤╭─┴─╮╭───╮╭─┴─╮
+q1 : ─╳───●──┤ h ├┤ x ├┤ z ├┤ x ├
+      │   │  ╰───╯╰─┬─╯╰───╯╰─┬─╯
+q2 : ─╳───●─────────●─────────●──
+
+
+Circuit has an infidelity of 3.4e-08.
+     ╭───╮             ╭───╮
+q0 : ┤ x ├──────────●──┤ z ├──●───────
+     ╰─┬─╯   ╭───╮╭─┴─╮├───┤╭─┴─╮
+q1 : ──●───╳─┤ h ├┤ x ├┤ z ├┤ x ├─────
+       │   │ ├───┤╰─┬─╯╰───╯╰─┬─╯╭───╮
+q2 : ──●───╳─┤ z ├──●─────────●──┤ z ├
+             ╰───╯               ╰───╯
+
 </pre></div></div>
 </div>
 </section>
-<section id="Evaluate-generated-circuits">
-<h2>Evaluate generated circuits<a class="headerlink" href="#Evaluate-generated-circuits" title="Permalink to this heading">¶</a></h2>
-<p>As mentioned earlier, one of the key advantages of using diffusion models (DMs) as a unitary compiler is the ability to rapidly sample many circuits. However, as is common in machine learning, the model has a certain accuracy, meaning not all generated circuits are expected to exactly compile the specified unitary. In this section, we will evaluate how many of the generated circuits are indeed correct and then perform post-selection to identify (at least) one circuit that successfully performs
-the desired unitary operation.</p>
-</section>
-<section id="Simulate-kernels">
-<h2>Simulate kernels<a class="headerlink" href="#Simulate-kernels" title="Permalink to this heading">¶</a></h2>
-<p>First, we calculate the unitary matrix <span class="math notranslate nohighlight">\(U\)</span> implemented by each of the kernels. The elements of this matrix are defined by the transition amplitudes between the basis states, which can be expressed as:</p>
-<div class="math notranslate nohighlight">
-\[\begin{equation}
-   \langle i|kernel|j\rangle = U_{ij},
-\end{equation}\]</div>
-<p>where <span class="math notranslate nohighlight">\(|i\rangle\)</span> and <span class="math notranslate nohighlight">\(|j\rangle\)</span> are computational basis states (typically in the <span class="math notranslate nohighlight">\(z\)</span>-basis), with <span class="math notranslate nohighlight">\(|n\rangle\)</span> representing the standard basis vector that has a 1 in the <span class="math notranslate nohighlight">\(n\)</span>-th position and 0 elsewhere.</p>
+<section id="Continuous-model">
+<h2>Continuous model<a class="headerlink" href="#Continuous-model" title="Permalink to this heading">¶</a></h2>
+<p>Now we want to compile the same <code class="docutils literal notranslate"><span class="pre">U</span></code> with the continuous model.</p>
+<p>The continuous model was trained on the gate set <code class="docutils literal notranslate"><span class="pre">['h',</span> <span class="pre">'cx',</span> <span class="pre">'ccx',</span> <span class="pre">'swap',</span> <span class="pre">'rx',</span> <span class="pre">'ry',</span> <span class="pre">'rz',</span> <span class="pre">'cp']</span></code>. As the discrete model, it was trained to generate circuits using any arbitrary subset of this gate set. However, it is crucial to follow the prompt structure <code class="docutils literal notranslate"><span class="pre">Compile</span> <span class="pre">{num_of_qubits}</span> <span class="pre">qubits</span> <span class="pre">using:</span> <span class="pre">[...]</span></code>, as the model was trained with this specific format.</p>
+<p>For example, let’s consider a scenario where we compile the unitary without using the <code class="docutils literal notranslate"><span class="pre">h</span></code> gate.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Notice how the h gate is missing from the prompt since this is a restriction we set</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Compile </span><span class="si">{</span><span class="n">num_of_qubits</span><span class="si">}</span><span class="s2"> qubits using: [&#39;cx&#39;, &#39;ccx&#39;, &#39;swap&#39;, &#39;rx&#39;, &#39;ry&#39;, &#39;rz&#39;, &#39;cp&#39;]&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Now, we call the diffusion model pipeline to generate encoded circuits based on the specified conditions: <code class="docutils literal notranslate"><span class="pre">prompt</span></code> and <code class="docutils literal notranslate"><span class="pre">U</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">N</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span>
-
-<span class="n">got_unitaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">kernel_list</span><span class="p">),</span> <span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
-
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">kernel</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">kernel_list</span><span class="p">),</span> <span class="n">total</span><span class="o">=</span><span class="n">got_unitaries</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
-        <span class="n">basis_state_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
-        <span class="n">basis_state_j</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-
-        <span class="n">got_unitaries</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span>
-                      <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">basis_state_j</span><span class="p">),</span>
-                                    <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span> <span class="o">=</span> <span class="n">sample_kernels_and_evaluate</span><span class="p">(</span>
+                                          <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span>
+                                          <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+                                          <span class="n">num_of_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
+                                          <span class="n">samples</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+                                          <span class="n">discrete_model</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "c6888533ed7f48b4a558c8e6c5766d42", "version_major": 2, "version_minor": 0}</script></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "2f3961ae5e254402a4dcd5124de3a5d6", "version_major": 2, "version_minor": 0}</script></div>
+<div class="highlight"><pre>
+[INFO]: (generate_comp_tensors) Generated 64 tensors
+</pre></div></div>
 </div>
-<p>For example, the circuit printed above corresponds to the following unitary:</p>
+<p>Next, we plot the best three circuits in the following cell.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">np</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">got_unitaries</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">4</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_topk_kernels</span><span class="p">(</span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span><span class="p">,</span> <span class="n">num_of_qubits</span><span class="p">,</span> <span class="n">topk</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1226,42 +1583,408 @@ the desired unitary operation.</p>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[[ 0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j]
- [ 0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j]
- [-0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j]
- [ 0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j]
- [ 0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j]
- [ 0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j]
- [ 0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j]
- [ 0.    +0.j  0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j]]
+Circuit has an infidelity of 2.6e-05.
+     ╭───╮
+q0 : ┤ x ├────●─────────────●────────●────●────●──
+     ╰─┬─╯  ╭─┴─╮           │      ╭─┴─╮  │  ╭─┴─╮
+q1 : ──●────┤ x ├────╳──────┼──────┤ x ├──┼──┤ x ├
+       │  ╭─┴───┴──╮ │ ╭────┴─────╮╰───╯╭─┴─╮╰───╯
+q2 : ──●──┤ ry(11) ├─╳─┤ r1(3.15) ├─────┤ x ├─────
+          ╰────────╯   ╰──────────╯     ╰───╯
+
+Circuit has an infidelity of 3.2e-05.
+     ╭───╮
+q0 : ┤ x ├──────────────────────●────────●────────●────────●──
+     ╰─┬─╯   ╭───────────╮      │        │        │        │
+q1 : ──●───╳─┤ ry(11.01) ├──────┼────────┼────────┼────────┼──
+       │   │ ╰───────────╯╭─────┴─────╮╭─┴─╮╭─────┴─────╮╭─┴─╮
+q2 : ──●───╳──────────────┤ r1(6.279) ├┤ x ├┤ r1(3.139) ├┤ x ├
+                          ╰───────────╯╰───╯╰───────────╯╰───╯
+
+Circuit has an infidelity of 3.5e-05.
+     ╭───╮
+q0 : ┤ x ├─────●──────────────────●────────●──
+     ╰─┬─╯     │  ╭────────╮      │        │
+q1 : ──●───╳───┼──┤ ry(11) ├──────┼────────┼──
+       │   │ ╭─┴─╮╰────────╯╭─────┴─────╮╭─┴─╮
+q2 : ──●───╳─┤ x ├──────────┤ r1(3.131) ├┤ x ├
+             ╰───╯          ╰───────────╯╰───╯
+
+</pre></div></div>
+</div>
+<p>Now consider a scenario where we compile the unitary without using the <code class="docutils literal notranslate"><span class="pre">swap</span></code> gate and see what changes.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Notice how the swap gate is missing from the prompt since this is a restriction we set</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Compile </span><span class="si">{</span><span class="n">num_of_qubits</span><span class="si">}</span><span class="s2"> qubits using: [&#39;h&#39;, &#39;cx&#39;, &#39;ccx&#39;, &#39;rx&#39;, &#39;ry&#39;, &#39;rz&#39;, &#39;cp&#39;]&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span> <span class="o">=</span> <span class="n">sample_kernels_and_evaluate</span><span class="p">(</span>
+                                          <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span>
+                                          <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+                                          <span class="n">num_of_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
+                                          <span class="n">samples</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+                                          <span class="n">discrete_model</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "3dcdc397ceb04eb8b5b20336fdb0a946", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO]: (generate_comp_tensors) Generated 64 tensors
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_topk_kernels</span><span class="p">(</span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span><span class="p">,</span> <span class="n">num_of_qubits</span><span class="p">,</span> <span class="n">topk</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Circuit has an infidelity of 1.2e-04.
+     ╭───╮
+q0 : ┤ x ├──────●───────────────────────────●────────●──
+     ╰─┬─╯    ╭─┴─╮         ╭───╮           │        │
+q1 : ──●──────┤ x ├──────●──┤ x ├──●────────┼────────┼──
+       │  ╭───┴───┴───╮╭─┴─╮╰─┬─╯╭─┴─╮╭─────┴─────╮╭─┴─╮
+q2 : ──●──┤ ry(10.99) ├┤ x ├──●──┤ x ├┤ r1(3.167) ├┤ x ├
+          ╰───────────╯╰───╯     ╰───╯╰───────────╯╰───╯
+
+Circuit has an infidelity of 1.9e-04.
+     ╭───╮    ╭───╮         ╭───╮╭───────────╮
+q0 : ┤ x ├────┤ h ├─────────┤ x ├┤ ry(10.97) ├─────
+     ╰─┬─╯    ╰───╯         ╰─┬─╯╰───┬───┬───╯
+q1 : ──●─────────────────●────●──────┤ x ├──────●──
+       │  ╭───────────╮╭─┴─╮         ╰─┬─╯    ╭─┴─╮
+q2 : ──●──┤ ry(10.99) ├┤ x ├───────────●──────┤ x ├
+          ╰───────────╯╰───╯                  ╰───╯
+
+Circuit has an infidelity of 2.7e-04.
+     ╭───╮  ╭───╮                  ╭───╮╭───────────╮
+q0 : ┤ x ├──┤ h ├──────────────────┤ x ├┤ ry(10.96) ├
+     ╰─┬─╯  ╰───╯   ╭───╮     ╭───╮╰─┬─╯╰───────────╯
+q1 : ──●────────────┤ x ├──●──┤ x ├──┼───────────────
+       │  ╭────────╮╰─┬─╯╭─┴─╮╰─┬─╯  │
+q2 : ──●──┤ ry(11) ├──●──┤ x ├──●────●───────────────
+          ╰────────╯     ╰───╯
+
+</pre></div></div>
+</div>
+<p>Interestingly, we can see that the model correctly uses the replacement of a <code class="docutils literal notranslate"><span class="pre">swap</span></code> operation with 3 <code class="docutils literal notranslate"><span class="pre">cx</span></code> gates!</p>
+</section>
+<section id="Quantum-Fourier-transform">
+<h2>Quantum Fourier transform<a class="headerlink" href="#Quantum-Fourier-transform" title="Permalink to this heading">¶</a></h2>
+<p>We now turn ourselves to more interesting unitary. For instance, let’s compile the 4-qubit Quantum Fourier transform (QFT) unitary, defined as</p>
+<div class="math notranslate nohighlight">
+\[\begin{equation}
+   \mathrm{QFT}: |x\rangle \mapsto \frac{1}{\sqrt{N}} \sum_{k=0}^{N-1}  \omega_N^{xk}\;|k\rangle,
+\end{equation}\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\begin{equation}
+    \omega_N=\exp{\frac{2\pi i}{N}} \quad\text{and}\quad N=2^{\text{qubits}}.
+\end{equation}\]</div>
+<p>For this task, we use the continuous model.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">num_of_qubits</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">prompt</span>        <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Compile </span><span class="si">{</span><span class="n">num_of_qubits</span><span class="si">}</span><span class="s2"> qubits using: [&#39;h&#39;, &#39;cx&#39;, &#39;ccx&#39;, &#39;swap&#39;, &#39;rx&#39;, &#39;ry&#39;, &#39;rz&#39;, &#39;cp&#39;]&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>We can get the QFT unitary from <code class="docutils literal notranslate"><span class="pre">genqc</span></code>:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">genQC.benchmark.bench_compilation</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpecialUnitaries</span>
+<span class="n">U</span> <span class="o">=</span> <span class="n">SpecialUnitaries</span><span class="o">.</span><span class="n">QFT</span><span class="p">(</span><span class="n">num_of_qubits</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>As before, we sample and plot the best circuits</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span> <span class="o">=</span> <span class="n">sample_kernels_and_evaluate</span><span class="p">(</span>
+                                          <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span>
+                                          <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+                                          <span class="n">num_of_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
+                                          <span class="n">samples</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+                                          <span class="n">discrete_model</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "59f19b0fb099497eb07f18476f1e13fc", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO]: (generate_comp_tensors) Generated 64 tensors
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_topk_kernels</span><span class="p">(</span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span><span class="p">,</span> <span class="n">num_of_qubits</span><span class="p">,</span> <span class="n">topk</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Circuit has an infidelity of 1.5e-02.
+        ╭───╮                                                            »
+q0 : ─╳─┤ h ├──────●────────────●────────────●───────────────────────────»
+      │ ╰───╯      │            │            │                           »
+q1 : ─┼────────────┼────────────┼────────────┼─────────────────●───────╳─»
+      │            │      ╭─────┴─────╮      │      ╭───╮╭─────┴─────╮ │ »
+q2 : ─┼────────────┼──────┤ r1(1.618) ├──────┼──────┤ h ├┤ r1(1.687) ├─╳─»
+      │      ╭─────┴─────╮╰───────────╯╭─────┴─────╮╰───╯╰───────────╯   »
+q3 : ─╳──────┤ r1(7.977) ├─────────────┤ r1(11.27) ├─────────────────────»
+             ╰───────────╯             ╰───────────╯                     »
+
+################################################################################
+
+
+──────●───────────────────────────────────────────
+      │
+──────┼──────────────────●────────────────────────
+╭─────┴──────╮╭───╮      │
+┤ r1(0.8429) ├┤ h ├──────┼────────────●───────────
+╰────────────╯╰───╯╭─────┴──────╮╭────┴─────╮╭───╮
+───────────────────┤ r1(0.9638) ├┤ r1(7.67) ├┤ h ├
+                   ╰────────────╯╰──────────╯╰───╯
+
+Circuit has an infidelity of 4.5e-02.
+                                                                              »
+q0 : ────────────────────────╳───────●────────────────────────────────────────»
+                             │ ╭─────┴──────╮                                 »
+q1 : ────────────────────────┼─┤ r1(0.8751) ├─────●────────────────────╳──────»
+                       ╭───╮ │ ╰────────────╯╭────┴─────╮              │ ╭───╮»
+q2 : ───────────●──────┤ h ├─┼───────────────┤ r1(7.99) ├──────●───────╳─┤ h ├»
+     ╭───╮╭─────┴─────╮╰───╯ │               ╰──────────╯╭─────┴─────╮   ╰───╯»
+q3 : ┤ h ├┤ r1(1.796) ├──────╳───────────────────────────┤ r1(7.399) ├────────»
+     ╰───╯╰───────────╯                                  ╰───────────╯        »
+
+################################################################################
+
+
+──────────────────
+
+──────────────────
+
+──────●───────────
+╭─────┴─────╮╭───╮
+┤ r1(1.437) ├┤ h ├
+╰───────────╯╰───╯
+
 </pre></div></div>
 </div>
 </section>
-<section id="Compare-unitaries">
-<h2>Compare unitaries<a class="headerlink" href="#Compare-unitaries" title="Permalink to this heading">¶</a></h2>
-<p>Now that we have the unitaries for each of the kernels, we compare them to the user provided unitary matrix, <code class="docutils literal notranslate"><span class="pre">U</span></code>. To do so, we compute the infidelity between the exact unitary and the generated ones. The infidelity is a value between 0 and 1, where 0 indicates that the unitaries are identical (up to a global phase).</p>
+<section id="XXZ-Hamiltonian-evolution">
+<h2>XXZ-Hamiltonian evolution<a class="headerlink" href="#XXZ-Hamiltonian-evolution" title="Permalink to this heading">¶</a></h2>
+<p>Another interesting application is the compilation of the unitary evolution of given Hamiltonians. Here, we showcase this by compiling the evolution unitary <span class="math notranslate nohighlight">\(U(\tau)=\exp(-i \tau H)\)</span> of the XXZ-Hamiltonian, defined as</p>
+<div class="math notranslate nohighlight">
+\[H_\text{xxz} = -J \sum_{\langle i, j \rangle} ( X_i X_j + Y_i Y_j + \Delta Z_i Z_j ) - h \sum_{i=0}^{n-1} X_i,\]</div>
+<p>where <span class="math notranslate nohighlight">\(J\)</span> is the coupling constant, <span class="math notranslate nohighlight">\(\Delta\)</span> a perturbation and <span class="math notranslate nohighlight">\(h\)</span> a magnetic field. We consider here the case in which the <span class="math notranslate nohighlight">\(n\)</span> qubits of the quantum circuit represent the spins of a non-periodic one-dimensional chain, where we write neighboring spins <span class="math notranslate nohighlight">\(i\)</span> and <span class="math notranslate nohighlight">\(j\)</span> as <span class="math notranslate nohighlight">\({\langle i, j \rangle}\)</span>. Further, we define this Hamiltonian in terms of the Pauli operators, which are defined as</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}X = \begin{pmatrix}0 &amp; 1 \\ 1 &amp; 0\end{pmatrix},\;
+Y = \begin{pmatrix}0 &amp; -i \\ i &amp; 0\end{pmatrix}\;\text{and}\;
+Z = \begin{pmatrix}1 &amp; 0 \\ 0 &amp; -1\end{pmatrix}.\end{split}\]</div>
+<p>For this task, we use the continuous model.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">infidelity</span><span class="p">(</span><span class="n">want_unitary</span><span class="p">,</span> <span class="n">got_unitary</span><span class="p">):</span>
-    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">want_unitary</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">got_unitary</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
-
-
-<span class="n">infidelities</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-    <span class="p">[</span><span class="n">infidelity</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">got_unitary</span><span class="p">)</span> <span class="k">for</span> <span class="n">got_unitary</span> <span class="ow">in</span> <span class="n">got_unitaries</span><span class="p">])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">num_of_qubits</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">prompt</span>        <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Compile </span><span class="si">{</span><span class="n">num_of_qubits</span><span class="si">}</span><span class="s2"> qubits using: [&#39;h&#39;, &#39;cx&#39;, &#39;ccx&#39;, &#39;swap&#39;, &#39;rx&#39;, &#39;ry&#39;, &#39;rz&#39;, &#39;cp&#39;]&quot;</span>
 </pre></div>
 </div>
 </div>
-<p>Let’s now plot an histogram of the infidelities for our generated circuits:</p>
+<p>We can get the XXZ-Hamiltonian evolution unitary from <code class="docutils literal notranslate"><span class="pre">genqc</span></code>:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">genQC.benchmark.bench_compilation</span><span class="w"> </span><span class="kn">import</span> <span class="n">XXZHamiltonian</span>
+
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">XXZHamiltonian</span><span class="p">(</span><span class="n">h</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+                             <span class="n">J</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+                             <span class="n">delta</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+                             <span class="n">num_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
+                             <span class="n">periodic_boundary</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">U</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">get_evolution</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>As before, we sample and plot the best circuits</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span> <span class="o">=</span> <span class="n">sample_kernels_and_evaluate</span><span class="p">(</span>
+                                          <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span>
+                                          <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+                                          <span class="n">num_of_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
+                                          <span class="n">samples</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+                                          <span class="n">discrete_model</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "4ce8e35de0854885916114a9bc4783bd", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO]: (generate_comp_tensors) Generated 64 tensors
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_topk_kernels</span><span class="p">(</span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span><span class="p">,</span> <span class="n">num_of_qubits</span><span class="p">,</span> <span class="n">topk</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Circuit has an infidelity of 3.2e-02.
+
+q0 : ──────────────────────────────────────────────
+     ╭───╮                       ╭───╮
+q1 : ┤ x ├───────────●───────────┤ x ├─────────────
+     ╰─┬─╯╭───╮╭─────┴─────╮╭───╮╰─┬─╯╭───────────╮
+q2 : ──●──┤ h ├┤ r1(12.38) ├┤ h ├──●──┤ rx(12.44) ├
+          ╰───╯╰───────────╯╰───╯     ╰───────────╯
+
+Circuit has an infidelity of 3.5e-02.
+     ╭───────────╮
+q0 : ┤ rx(12.43) ├────────────────────────────────────────────
+     ╰───┬───┬───╯                          ╭───╮
+q1 : ────┤ x ├──────────●───────────────────┤ x ├─────────────
+         ╰─┬─╯    ╭─────┴─────╮╭───────────╮╰─┬─╯╭───────────╮
+q2 : ──────●──────┤ r1(12.51) ├┤ rx(12.39) ├──●──┤ rx(12.47) ├
+                  ╰───────────╯╰───────────╯     ╰───────────╯
+
+Circuit has an infidelity of 3.6e-02.
+     ╭───────────╮
+q0 : ┤ rx(12.42) ├────────────────────────────
+     ╰───┬───┬───╯                       ╭───╮
+q1 : ────┤ x ├───────────────●───────────┤ x ├
+         ╰─┬─╯    ╭───╮╭─────┴─────╮╭───╮╰─┬─╯
+q2 : ──────●──────┤ h ├┤ r1(12.44) ├┤ h ├──●──
+                  ╰───╯╰───────────╯╰───╯
+
+</pre></div></div>
+</div>
+<section id="Choosing-the-circuit-you-need">
+<h3>Choosing the circuit you need<a class="headerlink" href="#Choosing-the-circuit-you-need" title="Permalink to this heading">¶</a></h3>
+<p>As mentioned earlier, one of the key advantages of using diffusion models (DMs) as a unitary compiler is the ability to rapidly sample many circuits. However, as is common in machine learning, the model has a certain accuracy, meaning not all generated circuits are expected to exactly compile the specified unitary. In this section, we will evaluate how many of the generated circuits are indeed correct and then perform post-selection to identify circuits that successfully perform the desired
+unitary operation.</p>
+<p>Let’s revisit the random unitary from before, but this time we closer inspect what the model generates.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">num_of_qubits</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Compile </span><span class="si">{</span><span class="n">num_of_qubits</span><span class="si">}</span><span class="s2"> qubits using: [&#39;h&#39;, &#39;cx&#39;, &#39;ccx&#39;, &#39;swap&#39;, &#39;rx&#39;, &#39;ry&#39;, &#39;rz&#39;, &#39;cp&#39;]&quot;</span>
+
+<span class="n">U</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">],</span>
+               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.70710678</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]],</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">generated_kernels</span><span class="p">,</span> <span class="n">infidelities</span><span class="p">,</span> <span class="n">generated_tensors</span> <span class="o">=</span> \
+                <span class="n">sample_kernels_and_evaluate</span><span class="p">(</span>
+                              <span class="n">U</span><span class="o">=</span><span class="n">U</span><span class="p">,</span>
+                              <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+                              <span class="n">num_of_qubits</span><span class="o">=</span><span class="n">num_of_qubits</span><span class="p">,</span>
+                              <span class="n">samples</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+                              <span class="n">discrete_model</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                              <span class="n">return_tensors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "f10dc0d9b8c04899a4e1a2643c8e57c4", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[INFO]: (generate_comp_tensors) Generated 128 tensors
+</pre></div></div>
+</div>
+<p>First, we plot a histogram of the infidelities of our generated circuits.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span>
-    <span class="sa">f</span><span class="s2">&quot;Distribution of infidelities for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">got_unitaries</span><span class="p">)</span><span class="si">}</span><span class="s2"> generated circuits&quot;</span><span class="p">,</span>
+    <span class="sa">f</span><span class="s2">&quot;Distribution of infidelities for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">infidelities</span><span class="p">)</span><span class="si">}</span><span class="s2"> generated circuits&quot;</span><span class="p">,</span>
     <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Number of circuits&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Unitary infidelity&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
@@ -1274,101 +1997,49 @@ the desired unitary operation.</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_unitary_compilation_diffusion_models_41_0.png" src="../../_images/applications_python_unitary_compilation_diffusion_models_41_0.png" />
+<img alt="../../_images/applications_python_unitary_compilation_diffusion_models_91_0.png" src="../../_images/applications_python_unitary_compilation_diffusion_models_91_0.png" />
 </div>
 </div>
-<p>As we can see, the model generated almost 30 circuits that compile the unitary with an infidelity close or equal to zero! The kernel with the lowest infidelity is:</p>
+<p>As we see above, we now have around 15 kernels that compile the desired unitary! This is particularly valuable when dealing with hardware constraints, where, for instance, we might want to avoid using certain qubits or specific gates. One practical example is finding the circuit with the fewest CNOT gates (also known as <code class="docutils literal notranslate"><span class="pre">cx</span></code>). In our <code class="docutils literal notranslate"><span class="pre">cont_vocabulary</span></code> definition above, we identified that <code class="docutils literal notranslate"><span class="pre">cx</span></code> corresponds to the label 2 in our tokenized tensors.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">min_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">infidelities</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The best kernel has an infidelity of </span><span class="si">{</span><span class="n">infidelities</span><span class="p">[</span><span class="n">min_index</span><span class="p">]</span><span class="si">:</span><span class="s2">0.2</span><span class="si">}</span><span class="s2">,&quot;</span><span class="p">)</span>
-
-<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">)</span>
-<span class="n">input_state</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel_list</span><span class="p">[</span><span class="n">min_index</span><span class="p">],</span> <span class="n">input_state</span><span class="p">))</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;with the unitary:&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">got_unitaries</span><span class="p">[</span><span class="n">min_index</span><span class="p">],</span> <span class="mi">4</span><span class="p">))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cx_token</span> <span class="o">=</span> <span class="n">cont_vocabulary</span><span class="p">[</span><span class="s2">&quot;cx&quot;</span><span class="p">]</span>
+<span class="n">cx_token</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+</pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-The best kernel has an infidelity of 3.4e-09,
-     ╭───╮╭───╮        ╭───╮╭───╮
-q0 : ┤ x ├┤ z ├─────●──┤ z ├┤ z ├──●──
-     ╰─┬─╯╰───╯   ╭─┴─╮├───┤╰───╯╭─┴─╮
-q1 : ──●────────╳─┤ x ├┤ z ├─────┤ x ├
-       │  ╭───╮ │ ╰─┬─╯╰───╯     ╰─┬─╯
-q2 : ──●──┤ h ├─╳───●──────────────●──
-          ╰───╯
-
-with the unitary:
-[[ 0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j]
- [ 0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j]
- [-0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j]
- [ 0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j]
- [ 0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j]
- [ 0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j]
- [ 0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j]
- [ 0.    +0.j  0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j]]
+2
 </pre></div></div>
 </div>
-<p>which, as we can see, exactly compiled our wanted unitary:</p>
+<p>Let’s use this information to search for the circuit that minimizes the number of <code class="docutils literal notranslate"><span class="pre">cx</span></code> gates:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[[ 0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j]
- [ 0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j]
- [-0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j]
- [ 0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j]
- [ 0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j]
- [ 0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j]
- [ 0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.    +0.j  0.7071+0.j]
- [ 0.    +0.j  0.    +0.j  0.    +0.j -0.7071+0.j  0.    +0.j  0.    +0.j  0.7071+0.j  0.    +0.j]]
-</pre></div></div>
-</div>
-</section>
-<section id="Choosing-the-circuit-you-need">
-<h2>Choosing the circuit you need<a class="headerlink" href="#Choosing-the-circuit-you-need" title="Permalink to this heading">¶</a></h2>
-<p>As we have seen above, we now have almost 30 kernels that compile the desired unitary! This is particularly valuable when dealing with hardware constraints, where, for instance, we might want to avoid using certain qubits or specific gates. One practical example is finding the circuit with the fewest Toffoli gates (also known as <code class="docutils literal notranslate"><span class="pre">ccx</span></code>). In our <code class="docutils literal notranslate"><span class="pre">vocab</span></code> definition above, we identified that <code class="docutils literal notranslate"><span class="pre">ccx</span></code> corresponds to the label 5 in our tokenized tensors. Let’s use this information to search for the
-circuit that minimizes the number of <code class="docutils literal notranslate"><span class="pre">ccx</span></code> gates:</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># First, we remove possible duplicates and only pick distinct circuits</span>
-<span class="n">_</span><span class="p">,</span> <span class="n">idx_unique</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">valid_tensors</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">unique_tensors</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">valid_tensors</span><span class="p">)[</span><span class="n">idx_unique</span><span class="p">]</span>
+<span class="n">_</span><span class="p">,</span> <span class="n">idx_unique</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">generated_tensors</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">unique_tensors</span> <span class="o">=</span> <span class="n">generated_tensors</span><span class="p">[</span><span class="n">idx_unique</span><span class="p">]</span>
 <span class="n">unique_infidelities</span> <span class="o">=</span> <span class="n">infidelities</span><span class="p">[</span><span class="n">idx_unique</span><span class="p">]</span>
-<span class="n">unique_kernels</span> <span class="o">=</span> <span class="p">[</span><span class="n">kernel_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">idx_unique</span><span class="p">]</span>
+<span class="n">unique_kernels</span> <span class="o">=</span> <span class="p">[</span><span class="n">generated_kernels</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">idx_unique</span><span class="p">]</span>
 
 <span class="c1"># Then, find the correct circuits</span>
-<span class="n">idx_correct</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">unique_infidelities</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.01</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+<span class="n">idx_correct</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">unique_infidelities</span> <span class="o">&lt;</span> <span class="mf">0.01</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
 <span class="n">correct_tensors</span> <span class="o">=</span> <span class="n">unique_tensors</span><span class="p">[</span><span class="n">idx_correct</span><span class="p">]</span>
 <span class="nb">print</span><span class="p">(</span>
-    <span class="sa">f</span><span class="s2">&quot;The model generated </span><span class="si">{</span><span class="n">correct_tensors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> distinct correct circuits.&quot;</span>
+    <span class="sa">f</span><span class="s2">&quot;The model generated </span><span class="si">{</span><span class="n">correct_tensors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> distinct circuits with infidelity &lt; 0.01.&quot;</span>
 <span class="p">)</span>
 
-<span class="c1"># Now let&#39;s flatten the last two dimensions (related to the actual circuit) and find out how many 5&#39;s (i.e. ccx) gates each circuit has:</span>
-<span class="n">num_ccx</span> <span class="o">=</span> <span class="p">(</span><span class="n">correct_tensors</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;These circuits have this number of ccx gates:&quot;</span><span class="p">,</span> <span class="n">num_ccx</span><span class="p">)</span>
+<span class="c1"># Now let&#39;s flatten the last two dimensions (related to the actual circuit) and find out how many 2&#39;s (i.e. cx) gates each circuit has:</span>
+<span class="n">num_cx</span> <span class="o">=</span> <span class="p">(</span><span class="n">correct_tensors</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="n">cx_token</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;These circuits have this number of cx gates:&quot;</span><span class="p">,</span> <span class="n">num_cx</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -1377,26 +2048,34 @@ circuit that minimizes the number of <code class="docutils literal notranslate">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-The model generated 16 distinct correct circuits.
-These circuits have this number of ccx gates: tensor([1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 1, 1, 1, 1, 1])
+The model generated 14 distinct circuits with infidelity &lt; 0.01.
+These circuits have this number of cx gates: [0, 2, 1, 0, 2, 3, 2, 2, 1, 2, 2, 1, 1, 1]
 </pre></div></div>
 </div>
-<p>As we can see, it appears that the diffusion model (DM) requires at least one Toffoli gate to compile the unitary. We can now print a few of these circuits to select the one that best suits our needs, or to study whether there are any interesting patterns the model employs for this specific unitary.</p>
+<p>As we can see, the diffusion model (DM) uses 0 to 3 CNOT gates to compile the unitary. We can now print a few of these circuits to select the one that best suits our needs, or to study whether there are any interesting patterns the model employs for this specific unitary.</p>
+<p>For instance, we can sort the circuits by their <code class="docutils literal notranslate"><span class="pre">cx</span></code> count and plot them.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the correct kernels</span>
 <span class="n">correct_kernels</span> <span class="o">=</span> <span class="p">[</span><span class="n">unique_kernels</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">idx_correct</span><span class="p">]</span>
 
-<span class="c1"># Get the ones with only one ccx</span>
-<span class="n">correct_kernels_ccx1</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">correct_kernels</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">torch</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">num_ccx</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+<span class="c1"># Order the gates by cx count</span>
+<span class="n">correct_kernels_cx_sorted</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">correct_kernels</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">num_cx</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">torch</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">num_cx</span><span class="p">)</span>
 <span class="p">]</span>
 
-<span class="c1"># Draw a few of this circuits</span>
-<span class="k">for</span> <span class="n">kernel</span> <span class="ow">in</span> <span class="n">correct_kernels_ccx1</span><span class="p">[:</span><span class="mi">3</span><span class="p">]:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">input_state</span><span class="p">))</span>
+<span class="c1"># Draw a few of these circuits</span>
+<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">num_of_qubits</span><span class="p">)</span>
+<span class="n">input_state</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="k">for</span> <span class="n">correct_kernel</span><span class="p">,</span> <span class="n">num_cx_gates</span> <span class="ow">in</span> <span class="n">correct_kernels_cx_sorted</span><span class="p">[:</span><span class="mi">3</span><span class="p">]:</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">correct_kernel</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="n">thetas</span> <span class="o">=</span> <span class="n">correct_kernel</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated circuit with </span><span class="si">{</span><span class="n">num_cx_gates</span><span class="si">}</span><span class="s2"> cx:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">input_state</span><span class="p">,</span> <span class="n">thetas</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -1405,34 +2084,37 @@ These circuits have this number of ccx gates: tensor([1, 3, 3, 3, 3, 3, 3, 1, 3,
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-        ╭───╮╭───╮
-q0 : ───┤ x ├┤ z ├───────●───────
-        ╰─┬─╯├───┤╭───╮  │
-q1 : ─╳───●──┤ h ├┤ z ├──┼───────
-      │   │  ├───┤╰───╯╭─┴─╮╭───╮
-q2 : ─╳───●──┤ h ├─────┤ x ├┤ h ├
-             ╰───╯     ╰───╯╰───╯
+Generated circuit with 0 cx:
+     ╭───╮                     ╭───────────╮
+q0 : ┤ x ├──────────────●──────┤ rz(3.132) ├
+     ╰─┬─╯              │      ├───────────┤
+q1 : ──●────────╳───────┼──────┤ rz(9.379) ├
+       │  ╭───╮ │ ╭─────┴─────╮╰───────────╯
+q2 : ──●──┤ h ├─╳─┤ r1(3.084) ├─────────────
+          ╰───╯   ╰───────────╯
 
-     ╭───╮╭───╮
-q0 : ┤ x ├┤ z ├──●──────────
-     ╰─┬─╯├───┤╭─┴─╮
-q1 : ──●──┤ h ├┤ x ├─╳──────
-       │  ├───┤├───┤ │ ╭───╮
-q2 : ──●──┤ h ├┤ z ├─╳─┤ h ├
-          ╰───╯╰───╯   ╰───╯
+Generated circuit with 0 cx:
+     ╭───╮╭───────────╮╭───╮
+q0 : ┤ x ├┤ ry(1.563) ├┤ h ├──────●─────────
+     ╰─┬─╯╰───────────╯╰───╯╭─────┴─────╮
+q1 : ──●────────────────────┤ r1(3.135) ├─╳─
+       │   ╭────────╮       ╰───────────╯ │
+q2 : ──●───┤ ry(11) ├─────────────────────╳─
+           ╰────────╯
 
-     ╭───╮╭───╮
-q0 : ┤ x ├┤ z ├─────●───────
-     ╰─┬─╯├───┤     │  ╭───╮
-q1 : ──●──┤ h ├─╳───┼──┤ z ├
-       │  ├───┤ │ ╭─┴─╮├───┤
-q2 : ──●──┤ h ├─╳─┤ x ├┤ h ├
-          ╰───╯   ╰───╯╰───╯
+Generated circuit with 1 cx:
+     ╭───╮    ╭───╮       ╭───╮╭───────────╮
+q0 : ┤ x ├────┤ h ├───────┤ x ├┤ ry(4.687) ├
+     ╰─┬─╯    ╰───╯       ╰─┬─╯╰───────────╯
+q1 : ──●────────────────╳───┼───────────────
+       │  ╭───────────╮ │   │
+q2 : ──●──┤ ry(4.727) ├─╳───●───────────────
+          ╰───────────╯
 
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
@@ -1445,13 +2127,14 @@ q2 : ──●──┤ h ├─╳─┤ x ├┤ h ├
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 018ba9130a0e5800b93e86d0096a22daf7a132f8)
-genQC Version 0.1.0
+CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 61ab27724312c6eb197a7d543218925457f08d44)
+genQC Version 0.2.3
 </pre></div></div>
 </div>
 <script type="application/vnd.jupyter.widget-state+json">
 {"state": {}, "version_major": 2, "version_minor": 0}
 </script></section>
+</section>
 </section>
 
 
