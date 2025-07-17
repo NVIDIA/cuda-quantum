@@ -265,6 +265,49 @@ class PyASTBridge(ast.NodeVisitor):
 
         ValidateArgumentAnnotations(self).visit(astModule)
 
+        # Ensure that functions with a return-type annotation actually has a valid return statement
+        # in all paths, if not throw an error.
+        class ValidateReturnStatements(ast.NodeVisitor):
+
+            def __init__(self, bridge):
+                self.bridge = bridge
+
+            def visit_FunctionDef(self, node):
+                # skip if un-annotated or explicitly marked as None
+                is_none_ret = (isinstance(node.returns, ast.Constant) and
+                               node.returns.value is None) or (
+                                   isinstance(node.returns, ast.Name) and
+                                   node.returns.id == 'None')
+
+                if node.returns is None or is_none_ret:
+                    return self.generic_visit(node)
+
+                def all_paths_return(stmts):
+                    for stmt in stmts:
+                        if isinstance(stmt, ast.Return):
+                            return True
+
+                        if isinstance(stmt, ast.If):
+                            if all_paths_return(stmt.body) and all_paths_return(
+                                    stmt.orelse):
+                                return True
+
+                        if isinstance(stmt, (ast.For, ast.While)):
+                            if all_paths_return(stmt.body) or all_paths_return(
+                                    stmt.orelse):
+                                return True
+
+                    return False
+
+                if not all_paths_return(node.body):
+                    self.bridge.emitFatalError(
+                        'cudaq.kernel functions with return type annotations must have a return statement.',
+                        node)
+
+                self.generic_visit(node)
+
+        ValidateReturnStatements(self).visit(astModule)
+
     def getVeqType(self, size=None):
         """
         Return a `quake.VeqType`. Pass the size of the `quake.veq` if known. 
@@ -412,27 +455,35 @@ class PyASTBridge(ast.NodeVisitor):
             if cc.StdvecType.isinstance(operand.type):
                 operand = self.__copyVectorAndCastElements(operand, eleTy)
 
-        #FIXME: use cc.cast for all below
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
-                operand = arith.ExtFOp(ty, operand).result
+                operand = cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
-                operand = arith.SIToFPOp(ty, operand).result
+                zeroext = IntegerType(operand.type).width == 1
+                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                                    zint=zeroext).result
 
         if F32Type.isinstance(ty):
             if F64Type.isinstance(operand.type):
-                operand = arith.TruncFOp(ty, operand).result
+                operand = cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
-                operand = arith.SIToFPOp(ty, operand).result
+                zeroext = IntegerType(operand.type).width == 1
+                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                                    zint=zeroext).result
 
         if IntegerType.isinstance(ty):
-            if F64Type.isinstance(operand.type):
-                operand = arith.FPToSIOp(self.getIntegerType(), operand).result
+            if F64Type.isinstance(operand.type) or F32Type.isinstance(
+                    operand.type):
+                operand = cc.CastOp(ty, operand, sint=True, zint=False).result
             if IntegerType.isinstance(operand.type):
                 if IntegerType(ty).width < IntegerType(operand.type).width:
-                    operand = arith.TruncIOp(ty, operand).result
+                    operand = cc.CastOp(ty, operand).result
                 else:
-                    operand = arith.ExtSIOp(ty, operand).result
+                    zeroext = IntegerType(operand.type).width == 1
+                    operand = cc.CastOp(ty,
+                                        operand,
+                                        sint=not zeroext,
+                                        zint=zeroext).result
 
         return operand
 
@@ -828,7 +879,8 @@ class PyASTBridge(ast.NodeVisitor):
                                bodyBuilder,
                                startVal=None,
                                stepVal=None,
-                               isDecrementing=False):
+                               isDecrementing=False,
+                               elseStmts=None):
         """
         Create an invariant loop using the CC dialect. 
         """
@@ -863,6 +915,16 @@ class PyASTBridge(ast.NodeVisitor):
         with InsertionPoint(stepBlock):
             incr = arith.AddIOp(stepBlock.arguments[0], stepVal).result
             cc.ContinueOp([incr])
+
+        if elseStmts:
+            elseBlock = Block.create_at_start(loop.elseRegion, [iTy])
+            with InsertionPoint(elseBlock):
+                self.symbolTable.pushScope()
+                for stmt in elseStmts:
+                    self.visit(stmt)
+                if not self.hasTerminator(elseBlock):
+                    cc.ContinueOp(elseBlock.arguments)
+                self.symbolTable.popScope()
 
         loop.attributes.__setitem__('invariant', UnitAttr.get())
         return
@@ -1140,7 +1202,13 @@ class PyASTBridge(ast.NodeVisitor):
                 [self.visit(n) for n in node.body[startIdx:]]
                 # Add the return operation
                 if not self.hasTerminator(self.entry):
-                    ret = func.ReturnOp([])
+                    # If the function has a known (non-None) return type, emit
+                    # an `undef` of that type and return it; else return void
+                    if self.knownResultType is not None:
+                        undef = cc.UndefOp(self.knownResultType).result
+                        ret = func.ReturnOp([undef])
+                    else:
+                        ret = func.ReturnOp([])
                 self.buildingEntryPoint = False
                 self.symbolTable.popScope()
 
@@ -3031,6 +3099,7 @@ class PyASTBridge(ast.NodeVisitor):
                 forNode.iter = node.generators[0].iter
                 forNode.target = node.generators[0].target
                 forNode.body = [node.elt]
+                forNode.orelse = []
                 self.visit_For(forNode)
                 return
 
@@ -3192,7 +3261,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
         self.currentNode = node
         if isinstance(node.value, bool):
-            self.pushValue(self.getConstantInt(node.value, 1))
+            boolValue = 0 if node.value == 0 else 1
+            self.pushValue(self.getConstantInt(boolValue, 1))
             return
 
         if isinstance(node.value, int):
@@ -3450,7 +3520,9 @@ class PyASTBridge(ast.NodeVisitor):
                                             bodyBuilder,
                                             startVal=startVal,
                                             stepVal=stepVal,
-                                            isDecrementing=isDecrementing)
+                                            isDecrementing=isDecrementing,
+                                            elseStmts=node.orelse)
+
                 return
 
         # We can simplify `for i,j in enumerate(L)` MLIR code immensely
@@ -3518,7 +3590,9 @@ class PyASTBridge(ast.NodeVisitor):
                         [self.visit(b) for b in node.body]
                         self.symbolTable.popScope()
 
-                    self.createInvariantForLoop(totalSize, bodyBuilder)
+                    self.createInvariantForLoop(totalSize,
+                                                bodyBuilder,
+                                                elseStmts=node.orelse)
                     return
 
         self.visit(node.iter)
@@ -3636,13 +3710,14 @@ class PyASTBridge(ast.NodeVisitor):
             [self.visit(b) for b in node.body]
             self.symbolTable.popScope()
 
-        self.createInvariantForLoop(totalSize, bodyBuilder)
+        self.createInvariantForLoop(totalSize,
+                                    bodyBuilder,
+                                    elseStmts=node.orelse)
 
     def visit_While(self, node):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
-
         self.currentNode = node
 
         loop = cc.LoopOp([], [], BoolAttr.get(False))
@@ -3671,6 +3746,20 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.ContinueOp([])
             self.popForBodyStack()
             self.symbolTable.popScope()
+
+        stepBlock = Block.create_at_start(loop.stepRegion, [])
+        with InsertionPoint(stepBlock):
+            cc.ContinueOp([])
+
+        if node.orelse:
+            elseBlock = Block.create_at_start(loop.elseRegion, [])
+            with InsertionPoint(elseBlock):
+                self.symbolTable.pushScope()
+                for stmt in node.orelse:
+                    self.visit(stmt)
+                if not self.hasTerminator(elseBlock):
+                    cc.ContinueOp(elseBlock.arguments)
+                self.symbolTable.popScope()
 
     def visit_BoolOp(self, node):
         """
