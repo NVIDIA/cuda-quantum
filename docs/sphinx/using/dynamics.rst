@@ -450,7 +450,7 @@ Similarly, we can also batch simulate the time evolution of multiple Hamiltonian
         :start-after: [Begin Operator Batching]
         :end-before: [End Operator Batching]
 
-    In this example, we show the most generic batching capability, where we each Hamiltonian in the batch corresponds to a specific initial state.
+    In this example, we show the most generic batching capability, where each Hamiltonian in the batch corresponds to a specific initial state.
     In other words, the vector of Hamiltonians and the vector of initial states are of the same length.
     If only one initial state is provided, it will be used for all Hamiltonians in the batch.
 
