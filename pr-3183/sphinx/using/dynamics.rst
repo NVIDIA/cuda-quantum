@@ -423,7 +423,7 @@ Batch simulation
 CUDA-Q ``dynamics`` target supports batch simulation, which allows users to run multiple simulations simultaneously.
 This batching capability applies to (1) multiple initial states and/or (2) multiple Hamiltonians.
 
-The batching capability can significantly improve performance when simulating many small identical system dynamics, e.g., parameter sweeping, tomography. 
+Batching can significantly improve performance when simulating many small identical system dynamics, e.g., parameter sweeping or tomography. 
 
 For example, we can simulate the time evolution of multiple initial states with the same Hamiltonian as follows:
 
@@ -450,7 +450,7 @@ Similarly, we can also batch simulate the time evolution of multiple Hamiltonian
         :start-after: [Begin Operator Batching]
         :end-before: [End Operator Batching]
 
-    In this example, we show the most generic batching capability, where we each Hamiltonian in the batch corresponds to a specific initial state.
+    In this example, we show the most generic batching capability, where each Hamiltonian in the batch corresponds to a specific initial state.
     In other words, the vector of Hamiltonians and the vector of initial states are of the same length.
     If only one initial state is provided, it will be used for all Hamiltonians in the batch.
 
