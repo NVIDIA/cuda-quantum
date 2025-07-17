@@ -295,6 +295,7 @@ inline void to_json(json &j, const cudaq::optimizers::adam &p) {
   TO_JSON_OPT_HELPER(beta1);
   TO_JSON_OPT_HELPER(beta2);
   TO_JSON_OPT_HELPER(eps);
+  TO_JSON_OPT_HELPER(step_size);
   to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
 }
 
@@ -304,6 +305,7 @@ inline void to_json(json &j, const cudaq::optimizers::gradient_descent &p) {
 
 inline void to_json(json &j, const cudaq::optimizers::sgd &p) {
   TO_JSON_OPT_HELPER(batch_size);
+  TO_JSON_OPT_HELPER(step_size);
   to_json(j, dynamic_cast<const cudaq::optimizers::BaseEnsmallen &>(p));
 }
 

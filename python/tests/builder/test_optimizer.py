@@ -241,6 +241,23 @@ def test_schwefel_gradients(optimizer, dimension):
                                                  got_optimal_parameters))
 
 
+@pytest.mark.parametrize("optimizer_cls, step", [
+    (cudaq.optimizers.Adam, 1e-3),
+    (cudaq.optimizers.Adam, 1e-2),
+    (cudaq.optimizers.Adam, 1e-1),
+    (cudaq.optimizers.SGD, 1e-3),
+    (cudaq.optimizers.SGD, 1e-2),
+    (cudaq.optimizers.SGD, 1e-1),
+])
+def test_optimizer_step_size_parameter(optimizer_cls, step):
+    """
+    Test that Adam and SGD optimizers correctly accept and stores the step_size parameter.
+    """
+    optimizer = optimizer_cls()
+    optimizer.step_size = step
+    assert assert_close(step, optimizer.step_size)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
