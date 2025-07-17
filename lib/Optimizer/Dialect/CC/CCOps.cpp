@@ -1308,8 +1308,7 @@ LogicalResult cudaq::cc::StdvecInitOp::verify() {
 namespace {
 struct ForwardStdvecInitData
     : public OpRewritePattern<cudaq::cc::StdvecDataOp> {
-  using Base = OpRewritePattern<cudaq::cc::StdvecDataOp>;
-  using Base::Base;
+  using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::StdvecDataOp data,
                                 PatternRewriter &rewriter) const override {
@@ -1320,9 +1319,8 @@ struct ForwardStdvecInitData
     // and unwrapped by stdvec_data is the same pointer value. This pattern will
     // arise after inlining, for example.
     if (auto ini = data.getStdvec().getDefiningOp<cudaq::cc::StdvecInitOp>()) {
-      Value cast = rewriter.create<cudaq::cc::CastOp>(
-          data.getLoc(), data.getType(), ini.getBuffer());
-      rewriter.replaceOp(data, cast);
+      rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(data, data.getType(),
+                                                     ini.getBuffer());
       return success();
     }
     return failure();
