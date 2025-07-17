@@ -287,6 +287,9 @@ void bindSpinOperator(py::module &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
 
+      // Adjoint
+      .def("adjoint", &spin_op::adjoint, "Returns the adjoint of the operator.")
+
       // comparisons
 
       .def("__eq__", &spin_op::operator==, py::is_operator(),
@@ -788,6 +791,10 @@ void bindSpinOperator(py::module &mod) {
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
+
+      // Adjoint
+      .def("adjoint", &spin_op_term::adjoint,
+           "Returns the adjoint of the operator.")
 
       // comparisons
 
