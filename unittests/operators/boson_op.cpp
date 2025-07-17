@@ -21,7 +21,7 @@ TEST(OperatorExpressions, checkBosonOpsUnary) {
   EXPECT_EQ(adjoint, op);
   // Other self-adjoint boson ops:
   auto position = cudaq::boson_op::position(0);
-    auto momentum = cudaq::boson_op::momentum(1);
+  auto momentum = cudaq::boson_op::momentum(1);
   EXPECT_EQ(position, position.adjoint());
   EXPECT_EQ(momentum, momentum.adjoint());
 }

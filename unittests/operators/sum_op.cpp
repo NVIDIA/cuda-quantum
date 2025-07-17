@@ -141,6 +141,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   ASSERT_EQ(spin_sum.min_degree(), 5);
   ASSERT_EQ(spin_sum.max_degree(), 5);
   utils::checkEqual(spin_matrix, spin_sum.to_matrix());
+  // Adjoint
+  utils::checkEqual(spin_sum.adjoint().to_matrix(), spin_matrix.adjoint());
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::number(5);
@@ -156,6 +158,9 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
     auto matrix1 = utils::parity_matrix(level_count);
     auto want_matrix = matrix0 + matrix1;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{5, level_count}}),
+                      want_matrix.adjoint());
   }
 }
 
@@ -174,6 +179,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   ASSERT_EQ(spin_sum.min_degree(), 0);
   ASSERT_EQ(spin_sum.max_degree(), 1);
   utils::checkEqual(spin_matrix, spin_sum.to_matrix());
+  // Adjoint
+  utils::checkEqual(spin_sum.adjoint().to_matrix(), spin_matrix.adjoint());
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::number(0);
@@ -201,6 +208,13 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        got.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        got_reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_matrix.adjoint());
   }
 }
 
@@ -220,6 +234,8 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
   ASSERT_EQ(spin_sum.min_degree(), 0);
   ASSERT_EQ(spin_sum.max_degree(), 2);
   utils::checkEqual(spin_matrix, spin_sum.to_matrix());
+  // Adjoint
+  utils::checkEqual(spin_sum.adjoint().to_matrix(), spin_matrix.adjoint());
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::number(0);
@@ -247,6 +263,13 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        got.adjoint().to_matrix({{0, level_count}, {2, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        got_reverse.adjoint().to_matrix({{0, level_count}, {2, level_count}}),
+        want_matrix.adjoint());
   }
 }
 
@@ -265,6 +288,9 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
   ASSERT_TRUE(spin_sum.degrees() == want_degrees);
   utils::checkEqual(spin_matrix, spin_sum.to_matrix(dimensions));
+  // Adjoint
+  utils::checkEqual(spin_sum.adjoint().to_matrix(dimensions),
+                    spin_matrix.adjoint());
 
   for (auto level_count : levels) {
     auto op0 = cudaq::matrix_op::number(0);
@@ -294,6 +320,11 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(got_matrix, want_matrix);
+    // Adjoint
+    utils::checkEqual(got.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
+    utils::checkEqual(got_reverse.adjoint().to_matrix(dimensions),
+                      want_matrix_reverse.adjoint());
   }
 }
 }
@@ -323,6 +354,11 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
     ASSERT_TRUE(reverse.degrees() == want_degrees);
     utils::checkEqual(scalar_matrix + op_matrix, sum.to_matrix({{0, 2}}));
     utils::checkEqual(scalar_matrix + op_matrix, reverse.to_matrix({{0, 2}}));
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{0, 2}}),
+                      (scalar_matrix + op_matrix).adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, 2}}),
+                      (scalar_matrix + op_matrix).adjoint());
   }
 
   // spin operator against constant
@@ -340,6 +376,11 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
     ASSERT_TRUE(reverse.degrees() == want_degrees);
     utils::checkEqual(scalar_matrix + op_matrix, sum.to_matrix());
     utils::checkEqual(scalar_matrix + op_matrix, reverse.to_matrix());
+    // Adjoint
+    utils::checkEqual((scalar_matrix + op_matrix).adjoint(),
+                      sum.adjoint().to_matrix());
+    utils::checkEqual((scalar_matrix + op_matrix).adjoint(),
+                      reverse.adjoint().to_matrix());
   }
 
   // matrix operator against constant from lambda
@@ -360,6 +401,11 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
                       sum.to_matrix({{1, 2}}, {{"value", 0.3}}));
     utils::checkEqual(scalar_matrix + op_matrix,
                       reverse.to_matrix({{1, 2}}, {{"value", 0.3}}));
+    // Adjoint
+    utils::checkEqual((scalar_matrix + op_matrix).adjoint(),
+                      sum.adjoint().to_matrix({{1, 2}}, {{"value", 0.3}}));
+    utils::checkEqual((scalar_matrix + op_matrix).adjoint(),
+                      reverse.adjoint().to_matrix({{1, 2}}, {{"value", 0.3}}));
   }
 
   // spin operator against constant from lambda
@@ -380,6 +426,11 @@ TEST(OperatorExpressions, checkOperatorSumBasics) {
                       sum.to_matrix({{1, 2}}, {{"value", 0.3}}));
     utils::checkEqual(scalar_matrix + op_matrix,
                       reverse.to_matrix({{1, 2}}, {{"value", 0.3}}));
+    // Adjoint
+    utils::checkEqual((scalar_matrix + op_matrix).adjoint(),
+                      sum.adjoint().to_matrix({{1, 2}}, {{"value", 0.3}}));
+    utils::checkEqual((scalar_matrix + op_matrix).adjoint(),
+                      reverse.adjoint().to_matrix({{1, 2}}, {{"value", 0.3}}));
   }
 }
 }
@@ -414,6 +465,13 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op + std::complex<double>`
@@ -440,6 +498,13 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `spin sum + std::complex<double>`
@@ -464,6 +529,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // `sum_op + scalar_operator`
@@ -493,6 +561,13 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix_reverse = scaled_identity + sum_matrix;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix_reverse.adjoint());
   }
 
   // `sum_op - double`
@@ -522,6 +597,14 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix_reverse = scaled_identity - sum_matrix;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix(
+                          {{1, level_count}, {2, level_count + 1}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix_reverse.adjoint());
   }
 
   // `spin sum - double`
@@ -548,6 +631,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix_reverse = scaled_identity - sum_matrix;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(),
+                      want_matrix_reverse.adjoint());
   }
 
   // `sum_op - std::complex<double>`
@@ -577,6 +664,13 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix(
+                          {{1, level_count}, {2, level_count + 1}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix_reverse.adjoint());
   }
 
   // `sum_op - scalar_operator`
@@ -606,6 +700,13 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix_reverse = scaled_identity - sum_matrix;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix(
+                          {{1, level_count}, {2, level_count + 1}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix_reverse.adjoint());
   }
 
   // `sum_op * double`
@@ -645,6 +746,13 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op * std::complex<double>`
@@ -682,6 +790,14 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op * scalar_operator`
@@ -721,6 +837,14 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix_reverse = scaled_identity * sum_matrix;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix_reverse.adjoint());
   }
 
   // `spin sum * scalar_operator`
@@ -754,6 +878,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // `sum_op / double`
@@ -784,6 +911,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op / std::complex<double>`
@@ -814,6 +945,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op / scalar_operator`
@@ -846,6 +981,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = sum_matrix * scaled_identity;
     auto want_matrix_reverse = scaled_identity * sum_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `spin sum / scalar_operator`
@@ -873,6 +1012,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(product.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // `sum_op += double`
@@ -894,6 +1035,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = matrix0 + matrix1 + scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `spin sum += double`
@@ -912,6 +1057,9 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = matrix0 + matrix1 + scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{1, 2}, {2, 2}}),
+                      want_matrix.adjoint());
   }
 
   // `sum_op += std::complex<double>`
@@ -935,6 +1083,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = matrix0 + matrix1 + scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}},
+                                {{"squeezing", value}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op += scalar_operator`
@@ -959,6 +1112,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto want_matrix = matrix0 + matrix1 + scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix(
+            {{0, level_count}, {1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op -= double`
@@ -982,6 +1140,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto want_matrix = sum_matrix - scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op -= std::complex<double>`
@@ -1003,6 +1165,10 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = matrix0 + matrix1 - scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op -= scalar_operator`
@@ -1027,6 +1193,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto want_matrix = (matrix0 + matrix1) - scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix(
+            {{0, level_count}, {1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `spin sum -= scalar_operator`
@@ -1048,6 +1219,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = matrix0 + matrix1 - scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // `sum_op *= double`
@@ -1077,6 +1250,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto want_matrix = sum_matrix * scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}},
+                                {{"squeezing", value}}),
+        want_matrix.adjoint());
   }
 
   // `spin sum *= double`
@@ -1100,6 +1278,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // `sum_op *= std::complex<double>`
@@ -1126,6 +1306,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}},
+                                {{"displacement", value}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op *= scalar_operator`
@@ -1154,6 +1339,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix(
+            {{0, level_count}, {1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op /= double`
@@ -1185,6 +1375,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto want_matrix = sum_matrix * scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}},
+                                {{"squeezing", value}}),
+        want_matrix.adjoint());
   }
 
   // `spin sum /= double`
@@ -1210,6 +1405,8 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(), want_matrix.adjoint());
   }
 
   // `sum_op /= std::complex<double>`
@@ -1239,6 +1436,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
 
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix({{1, level_count}, {2, level_count + 1}},
+                                {{"displacement", value}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op /= scalar_operator`
@@ -1270,6 +1472,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstScalars) {
 
     auto want_matrix = (matrix0 + matrix1) * scaled_identity;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix(
+            {{0, level_count}, {1, level_count}, {2, level_count + 1}}),
+        want_matrix.adjoint());
   }
 }
 
@@ -1316,6 +1523,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
     auto want_matrix = sum_matrix + product_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix(
+            {{0, level_count}, {1, level_count + 1}, {2, level_count + 2}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op -= product_op`
@@ -1352,6 +1564,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
     auto want_matrix = sum_matrix - product_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix(
+            {{0, level_count}, {1, level_count + 1}, {2, level_count + 2}}),
+        want_matrix.adjoint());
   }
 
   // `sum_op *= product_op`
@@ -1391,6 +1608,11 @@ TEST(OperatorExpressions, checkOperatorSumAgainstProduct) {
 
     auto want_matrix = sum_matrix * product_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(
+        sum.adjoint().to_matrix(
+            {{0, level_count}, {1, level_count + 1}, {2, level_count + 2}}),
+        want_matrix.adjoint());
   }
 }
 
@@ -1447,6 +1669,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
     auto want_matrix = sum_0_matrix + sum_1_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{0, level_count},
+                                               {1, level_count + 1},
+                                               {2, level_count + 2},
+                                               {3, level_count + 3}}),
+                      want_matrix.adjoint());
   }
 
   // `sum_op - sum_op`
@@ -1498,6 +1726,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
     auto want_matrix = sum_0_matrix - sum_1_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(difference.adjoint().to_matrix({{0, level_count},
+                                                      {1, level_count + 1},
+                                                      {2, level_count + 2},
+                                                      {3, level_count + 3}}),
+                      want_matrix.adjoint());
   }
 
   // `sum_op * sum_op`
@@ -1562,6 +1796,18 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
     auto want_matrix_reverse = sum_1_matrix * sum_0_matrix;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+    // Adjoint
+    utils::checkEqual(sum_product.adjoint().to_matrix({{0, level_count},
+                                                       {1, level_count + 1},
+                                                       {2, level_count + 2},
+                                                       {3, level_count + 3}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        sum_product_reverse.adjoint().to_matrix({{0, level_count},
+                                                 {1, level_count + 1},
+                                                 {2, level_count + 2},
+                                                 {3, level_count + 3}}),
+        want_matrix_reverse.adjoint());
   }
 
   // `sum_op *= sum_op`
@@ -1615,6 +1861,12 @@ TEST(OperatorExpressions, checkOperatorSumAgainstOperatorSum) {
 
     auto want_matrix = sum_0_matrix * sum_1_matrix;
     utils::checkEqual(want_matrix, got_matrix);
+    // Adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{0, level_count},
+                                               {1, level_count + 1},
+                                               {2, level_count + 2},
+                                               {3, level_count + 3}}),
+                      want_matrix.adjoint());
   }
 }
 
@@ -1695,6 +1947,15 @@ TEST(OperatorExpressions, checkCustomOperatorSum) {
   utils::checkEqual(difference.to_matrix(dimensions), diff_expected);
   utils::checkEqual(difference_reverse.to_matrix(dimensions),
                     diff_reverse_expected);
+  // Adjoint
+  utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                    sum_expected.adjoint());
+  utils::checkEqual(sum_reverse.adjoint().to_matrix(dimensions),
+                    sum_expected.adjoint());
+  utils::checkEqual(difference.adjoint().to_matrix(dimensions),
+                    diff_expected.adjoint());
+  utils::checkEqual(difference_reverse.adjoint().to_matrix(dimensions),
+                    diff_reverse_expected.adjoint());
 }
 
 TEST(OperatorExpressions, checkDefaultValue) {
