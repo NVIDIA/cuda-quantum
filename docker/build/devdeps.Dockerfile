@@ -85,7 +85,16 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && git submodule
 # Build compiler-rt (only) since it is needed for code coverage tools
 RUN LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' \
-    bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}
+    bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain} -k
+
+# Get the tpls source-code into a tpls/ folder
+RUN mkdir -p /usr/local/cudaq_assets/tpls && \
+    cp -r "${ZLIB_INSTALL_PREFIX}}"     /usr/local/cudaq_assets/tpls/zlib && \
+    cp -r "${LLVM_INSTALL_PREFIX}}}"    /usr/local/cudaq_assets/tpls/llvm && \
+    cp -r "${BLAS_INSTALL_PREFIX}}}"    /usr/local/cudaq_assets/tpls/blas && \
+    cp -r "${OPENSSL_INSTALL_PREFIX}}}" /usr/local/cudaq_assets/tpls/openssl && \
+    cp -r "${CURL_INSTALL_PREFIX}}}"    /usr/local/cudaq_assets/tpls/curl && \
+    cp -r "${AWS_INSTALL_PREFIX}}}"     /usr/local/cudaq_assets/tpls/aws-sdk
 
 ## [Dev Dependencies]
 RUN if [ "$(uname -m)" == "x86_64" ]; then \
@@ -142,6 +151,8 @@ COPY --from=prereqs /usr/local/zlib "$ZLIB_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/curl "$CURL_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/aws "$AWS_INSTALL_PREFIX"
+
+COPY --from=prereqs /usr/local/cudaq_assets/tpls /usr/local/cudaq/tpls-src
 
 # Install additional dependencies required to build and test CUDA-Q.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
