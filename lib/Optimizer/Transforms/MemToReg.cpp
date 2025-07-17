@@ -949,8 +949,8 @@ public:
     // successor.
     auto liveOutParent = dataFlow.getLiveOutOfParent();
 
-    auto addTerminatorArgument = [&](Operation *term, Block *target,
-                                     Value val) {
+    auto addTerminatorArgument = [&](Operation *term, Block *target, Value val,
+                                     std::size_t ignored) {
       if (auto branch = dyn_cast<BranchOpInterface>(term)) {
         unsigned numSuccs = branch->getNumSuccessors();
         bool changes = false;
@@ -958,7 +958,8 @@ public:
           if (target && branch->getSuccessor(i) != target)
             continue;
           auto newArgs = branch.getSuccessorOperands(i).getForwardedOperands();
-          if (std::find(newArgs.begin(), newArgs.end(), val) != newArgs.end())
+          if (std::find(newArgs.begin() + ignored, newArgs.end(), val) !=
+              newArgs.end())
             continue;
           branch.getSuccessorOperands(i).append(val);
           changes = true;
@@ -968,7 +969,8 @@ public:
         return;
       }
       SmallVector<Value> newArgs(term->getOperands());
-      if (std::find(newArgs.begin(), newArgs.end(), val) != newArgs.end())
+      if (std::find(newArgs.begin() + ignored, newArgs.end(), val) !=
+          newArgs.end())
         return;
       newArgs.push_back(val);
       term->setOperands(newArgs);
@@ -977,29 +979,32 @@ public:
 
     const bool usePromo = neverTakesRegionArguments(parent);
     const bool onlyLinear = onlyTakesLinearTypeArguments(parent);
-    auto updateTerminator = [&](Operation *term, Block *target, auto bindings) {
+    auto updateTerminator = [&](Operation *term, Block *target, auto bindings,
+                                std::size_t ignored) {
       auto *block = term->getBlock();
       for (auto liveOut : bindings) {
         if (dataFlow.hasBinding(block, liveOut)) {
           if (!isFunctionBlock(block) && !usePromo && !onlyLinear)
             dataFlow.maybeAddBalancedLiveInToBlock(block, liveOut);
           auto oldVal = dataFlow.getBinding(block, liveOut);
-          addTerminatorArgument(term, target, oldVal);
+          addTerminatorArgument(term, target, oldVal, ignored);
         } else if ((usePromo ||
                     (onlyLinear && !isa<quake::RefType>(liveOut.getType()))) &&
                    dataFlow.isEntryBlock(block)) {
           auto newVal = dataFlow.getPromotedValue(liveOut);
           dataFlow.addBinding(block, liveOut, newVal);
-          addTerminatorArgument(term, target, newVal);
+          addTerminatorArgument(term, target, newVal, ignored);
         } else {
           auto newArg = dataFlow.maybeAddLiveInToBlock(block, liveOut);
-          addTerminatorArgument(term, target, newArg);
+          addTerminatorArgument(term, target, newArg, ignored);
         }
       }
     };
 
-    auto updateExitTerminator = [&](Block *block, auto bindings) {
-      return updateTerminator(block->getTerminator(), nullptr, bindings);
+    auto updateExitTerminator = [&](Block *block, auto bindings,
+                                    std::size_t ignored) {
+      return updateTerminator(block->getTerminator(), nullptr, bindings,
+                              ignored);
     };
 
     SmallPtrSet<Block *, 8> blocksVisited;
@@ -1008,14 +1013,15 @@ public:
       worklist.pop_front();
       // Check terminator is threading live-out of parent values.
       if (!liveOutParent.empty() && dataFlow.isExitBlock(block))
-        updateExitTerminator(block, liveOutParent);
+        updateExitTerminator(block, liveOutParent, parent->getNumResults());
 
       // Check that preds are threading all live-in values.
       auto liveInBlock = dataFlow.getLiveInToBlock(block);
       if (!liveInBlock.empty()) {
         auto preds = dataFlow.getPredecessors(block);
         for (auto *pred : preds)
-          updateTerminator(pred->getTerminator(), block, liveInBlock);
+          updateTerminator(pred->getTerminator(), block, liveInBlock,
+                           parent->getNumResults());
       }
 
       // We should visit all the blocks at least once.
