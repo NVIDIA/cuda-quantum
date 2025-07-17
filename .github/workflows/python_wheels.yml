@@ -278,10 +278,10 @@ jobs:
 
             # Install cuda-quantum wheel and all dependencies (including MPI) using conda (README instructions)
             dnf install -y --nobest --setopt=install_weak_deps=False wget unzip openssh-clients
-            mkdir -p ~/miniconda3
-            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/miniconda3/miniconda.sh
-            bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
-            ~/miniconda3/bin/conda init bash
+            mkdir -p ~/miniforge
+            wget "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" -O ~/miniforge/miniforge.sh
+            bash ~/miniforge/miniforge.sh -b -u -p ~/miniforge
+            ~/miniforge/bin/conda init bash
             source ~/.bashrc
 
             # Extract the setup script from Python wheel's readme
