@@ -63,6 +63,34 @@ int main() {
 
   // [End Operator Batching]
 
+  // [Begin Batch Results]
+  // The results of the batched evolution is an array of evolution results, one
+  // for each Hamiltonian operator in the batch.
+
+  // For example, we can split the results into separate arrays for each
+  // observable. These will be nested lists, where each inner list corresponds
+  // to the results for a specific Hamiltonian operator in the batch.
+  std::vector<std::vector<double>> all_exp_val_x;
+  std::vector<std::vector<double>> all_exp_val_y;
+  std::vector<std::vector<double>> all_exp_val_z;
+  // Iterate over the evolution results in the batch:
+  for (auto &evolution_result : evolve_results) {
+    // Extract the expectation values for each observable at the respective
+    // Hamiltonian operator in the batch.
+    std::vector<double> exp_val_x, exp_val_y, exp_val_z;
+    for (auto &exp_vals : evolution_result.expectation_values.value()) {
+      exp_val_x.push_back(exp_vals[0].expectation());
+      exp_val_y.push_back(exp_vals[1].expectation());
+      exp_val_z.push_back(exp_vals[2].expectation());
+    }
+
+    // Append the results to the respective lists.
+    all_exp_val_x.push_back(exp_val_x);
+    all_exp_val_y.push_back(exp_val_y);
+    all_exp_val_z.push_back(exp_val_z);
+  }
+  // [End Batch Results]
+
   // [Begin Batch Size]
 
   // Run the batch simulation with a maximum batch size of 2.
