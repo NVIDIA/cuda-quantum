@@ -52,13 +52,6 @@ following [miniconda instructions here](https://docs.anaconda.com/miniconda/).
 The following commands will create and activate a complete environment for 
 CUDA-Q with all its dependencies:
 
-**Note**: You may need to accept conda tos in your environment like so:
-
-```console
-conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
-conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-```
-
 [//]: # (Begin conda install)
 
 ```console
