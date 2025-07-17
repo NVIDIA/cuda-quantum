@@ -15,6 +15,7 @@
 #include "cudaq/host_config.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/qis/kernel_utils.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <cstdint>
 
 extern "C" {

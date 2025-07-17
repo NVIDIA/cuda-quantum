@@ -1,0 +1,40 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --quake-propagate-metadata %s | FileCheck %s
+func.func @callee(%arg0: !quake.veq<?>) attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
+  return
+}
+
+func.func @callee1(%arg0: !quake.veq<?>) attributes {"cudaq-kernel"} {
+  return
+}
+
+func.func @callee2(%arg0: !quake.veq<?>) attributes {"cudaq-kernel", qubitMeasurementFeedback = false} {
+  return
+}
+
+func.func @caller() attributes {"cudaq-kernel"} {
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.relax_size %0 : (!quake.veq<4>) -> !quake.veq<?>
+  call @callee(%1) : (!quake.veq<?>) -> ()
+  call @callee1(%1) : (!quake.veq<?>) -> ()
+  call @callee2(%1) : (!quake.veq<?>) -> ()
+  return
+}
+
+func.func @caller1() attributes {"cudaq-kernel"} {
+  call @caller() : () -> ()
+  return
+}
+
+// CHECK:    func.func @callee(%arg0: !quake.veq<?>) attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
+// CHECK:    func.func @callee1(%arg0: !quake.veq<?>) attributes {"cudaq-kernel"} {
+// CHECK:    func.func @callee2(%arg0: !quake.veq<?>) attributes {"cudaq-kernel", qubitMeasurementFeedback = false} 
+// CHECK:    func.func @caller() attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
+// CHECK:    func.func @caller1() attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
