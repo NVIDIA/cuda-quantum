@@ -67,7 +67,7 @@ bool isDeviceCallFuncOp(LLVM::CallOp call) {
       continue;
     // If cudaq-fnid, we found it
     if (key.getValue() == "cudaq-fnid")
-      return true;
+      return isa<StringAttr>(arrayAttr[1]);
   }
 
   // Not a device call function declaration
