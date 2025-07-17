@@ -75,6 +75,9 @@ ENV CUDA_QUANTUM_PATH="/opt/nvidia/cudaq"
 COPY --from=cudaqbuild "/usr/local/cudaq/" "$CUDA_QUANTUM_PATH"
 COPY --from=cudaqbuild "/usr/local/cudaq_assets" "$CUDA_QUANTUM_PATH/assets"
 
+# Pull in all tpls source trees
+COPY --from=cudaqbuild "/usr/local/cudaq/tpls-src" "$CUDA_QUANTUM_PATH/tpls-src"
+
 # For now, the CUDA-Q build hardcodes certain paths and hence expects to find its 
 # dependencies in specific locations. While a relocatable installation of CUDA-Q should 
 # be a good/better option in the future, for now we make sure to copy the dependencies to the 

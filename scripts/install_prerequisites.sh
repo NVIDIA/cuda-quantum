@@ -35,15 +35,22 @@
 toolchain=''
 exclude_prereq=''
 install_all=true
+keep_sources=false
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":e:t:m" opt; do
+while getopts ":e:t:m-:" opt; do
   case $opt in
     e) exclude_prereq="${OPTARG,,}"
     ;;
     t) toolchain="$OPTARG"
     ;;
     m) install_all=false
+    ;;
+    k) keep_sources=true
+    ;;
+    -) case $OPTARG in keep-sources) keep_sources=true
+    ;;
+    esac
     ;;
     :) echo "Option -$OPTARG requires an argument."
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -166,8 +173,10 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
     make CC="$CC" && make install
-    cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
-    remove_temp_installs
+    if [ "$keep_sources" != true ]; then
+      cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
+      remove_temp_installs
+    fi
   else
     echo "libz already installed in $ZLIB_INSTALL_PREFIX."
   fi
@@ -214,8 +223,10 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     make FC="${FC:-gfortran}"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
-    cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
-    remove_temp_installs
+    if [ "$keep_sources" != true ]; then
+      cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
+      remove_temp_installs
+    fi
   else
     echo "BLAS already installed in $BLAS_INSTALL_PREFIX."
   fi
@@ -252,8 +263,10 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     "$HOME/.perl5/bin/perl" Configure no-shared \
       --prefix="$OPENSSL_INSTALL_PREFIX" zlib --with-zlib-lib="$ZLIB_INSTALL_PREFIX"
     make CC="$CC" CXX="$CXX" && make install
-    cd .. && rm -rf openssl-3.3.1.tar.gz openssl-3.3.1 "$HOME/.perl5"
-    remove_temp_installs
+    if [ "$keep_sources" != true ]; then
+      cd .. && rm -rf openssl-3.3.1.tar.gz openssl-3.3.1 "$HOME/.perl5"
+      remove_temp_installs
+    fi
   else
     echo "OpenSSL already installed in $OPENSSL_INSTALL_PREFIX."
   fi
@@ -305,8 +318,10 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
       --disable-pop3 --disable-imap --disable-file  --disable-dict \
       --disable-versioned-symbols --disable-manual
     make CC="$CC" && make install
-    cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0
-    remove_temp_installs
+    if [ "$keep_sources" != true ]; then
+      cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0
+      remove_temp_installs
+    fi
   else
     echo "Curl already installed in $CURL_INSTALL_PREFIX."
   fi
@@ -340,8 +355,10 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
       -DAUTORUN_UNIT_TESTS=OFF
     cmake --build . --config=Release
     cmake --install . --config=Release
-    cd ../.. && rm -rf 1.11.454.tar.gz aws-sdk-cpp
-    remove_temp_installs
+    if [ "$keep_sources" != true ]; then
+      cd ../.. && rm -rf 1.11.454.tar.gz aws-sdk-cpp
+      remove_temp_installs
+    fi
   else
     echo "AWS SDK already installed in $AWS_INSTALL_PREFIX."
   fi
