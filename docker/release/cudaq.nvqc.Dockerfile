@@ -12,6 +12,10 @@
 # Must be built from the repo root with:
 #   docker build -f docker/release/cudaq.nvqc.Dockerfile .
 
+# Assets image that has all tpls source
+ARG assets_image=<>
+FROM ${assets_image} AS tpls_src
+
 # Base image is CUDA-Q image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
 FROM $base_image AS nvcf_image
@@ -25,5 +29,7 @@ RUN sudo mkdir /nvqc_scripts
 ADD tools/cudaq-qpud/nvqc_proxy.py /nvqc_scripts
 ADD tools/cudaq-qpud/json_request_runner.py /nvqc_scripts
 ADD scripts/nvqc_launch.sh /nvqc_scripts
+
+COPY --from=tpls_src /usr/local/cudaq_assets/tpls /opt/nvidia/cudaq/tpls-src
 
 ENTRYPOINT ["bash", "-l", "/nvqc_scripts/nvqc_launch.sh"]
