@@ -32,9 +32,7 @@
             "version": "3.13",
             "operating_systems":
             [
-                "ubuntu:24.04",
-                "fedora:39",
-                "redhat/ubi9:9.2"
+                "fedora:39"
             ]
         }
     ],
