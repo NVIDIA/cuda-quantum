@@ -277,9 +277,11 @@ void bindOptimizers(py::module &mod) {
   py_adam.def_readwrite("beta1", &cudaq::optimizers::adam::beta1, "");
   py_adam.def_readwrite("beta2", &cudaq::optimizers::adam::beta2, "");
   py_adam.def_readwrite("episodes", &cudaq::optimizers::adam::eps, "");
+  py_adam.def_readwrite("step_size", &cudaq::optimizers::adam::step_size, "");
 
   auto py_sgd = addPyOptimizer<optimizers::sgd>(optimizers_submodule, "SGD");
   py_sgd.def_readwrite("batch_size", &cudaq::optimizers::sgd::batch_size, "");
+  py_sgd.def_readwrite("step_size", &cudaq::optimizers::sgd::step_size, "");
 }
 
 void bindOptimizerWrapper(py::module &mod) {
