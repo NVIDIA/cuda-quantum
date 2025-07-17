@@ -494,7 +494,7 @@ Here are a couple of examples of Hamiltonians that can or cannot be batched:
         - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(0)\sigma_x(1)`
         - No (different structures, two-body operators vs. tensor product of single-body operators)
 
-When the Hamiltonians are **not** batchable, CUDA-Q will still run the simulations, but each Hamiltonian will be simulated separately in a sequential manner.
+When the Hamiltonians are **not** `batchable`, CUDA-Q will still run the simulations, but each Hamiltonian will be simulated separately in a sequential manner.
 CUDA-Q will log a warning "The input Hamiltonian and collapse operators are not compatible for batching. Running the simulation in non-batched mode.", when that happens.
 
 .. note::
