@@ -466,42 +466,57 @@ Collapse operators and super-operators can also be batched in a similar manner.
 Specifically, if the `collapse_operators` parameter is a nested list of operators (:math:`\{\{L\}_1, \{\{L\}_2, ...\}`), 
 then each set of collapsed operators in the list will be applied to the corresponding Hamiltonian in the batch.
 
-.. note::
 
-    In order for all Hamiltonians to be batched, they must have the same structure, i.e., same number of product terms and those terms must act on the same degrees of freedom.
-    The order of the terms in the Hamiltonian does not matter, nor do the coefficient values/callback functions and the specific operators on those product terms.
-    Here are a couple of examples of Hamiltonians that can or cannot be batched:
+In order for all Hamiltonians to be batched, they must have the same structure, i.e., same number of product terms and those terms must act on the same degrees of freedom.
+The order of the terms in the Hamiltonian does not matter, nor do the coefficient values/callback functions and the specific operators on those product terms.
+Here are a couple of examples of Hamiltonians that can or cannot be batched:
 
-    .. list-table:: 
-        :widths: 50 50 50
-        :header-rows: 1
+.. list-table:: 
+    :widths: 50 50 50
+    :header-rows: 1
 
-        *   - First Hamiltonian
-            - Second Hamiltonian
-            - Batchable?
-        *   - :math:`H_1 = \omega_1 \sigma_z(0)`
-            - :math:`H_2 = \omega_2 \sigma_z(0)` 
-            - Yes (different coefficients, same operator)
-        *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)`
-            - :math:`H_2 = \omega_z \sigma_z(0) + \sin(\omega_xt)  \sigma_x(1)`
-            - Yes (same structure, different callback coefficients)
-        *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)`
-            - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_y(1)`
-            - Yes (different operators on the same degree of freedom)
-        *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)`
-            - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1) + \cos(\omega_yt) \sigma_y(1)`
-            - No (different number of product terms)
-        *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_{xx}(0, 1)`
-            - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(0)\sigma_x(1)`
-            - No (different structures, two-body operators vs. tensor product of single-body operators)
+    *   - First Hamiltonian
+        - Second Hamiltonian
+        - Batchable?
+    *   - :math:`H_1 = \omega_1 \sigma_z(0)`
+        - :math:`H_2 = \omega_2 \sigma_z(0)` 
+        - Yes (different coefficients, same operator)
+    *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)`
+        - :math:`H_2 = \omega_z \sigma_z(0) + \sin(\omega_xt)  \sigma_x(1)`
+        - Yes (same structure, different callback coefficients)
+    *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)`
+        - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_y(1)`
+        - Yes (different operators on the same degree of freedom)
+    *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)`
+        - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1) + \cos(\omega_yt) \sigma_y(1)`
+        - No (different number of product terms)
+    *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_{xx}(0, 1)`
+        - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(0)\sigma_x(1)`
+        - No (different structures, two-body operators vs. tensor product of single-body operators)
 
-    When the Hamiltonians are **not** batchable, CUDA-Q will still run the simulations, but each Hamiltonian will be simulated separately in a sequential manner.
+When the Hamiltonians are **not** batchable, CUDA-Q will still run the simulations, but each Hamiltonian will be simulated separately in a sequential manner.
+CUDA-Q will log a warning "The input Hamiltonian and collapse operators are not compatible for batching. Running the simulation in non-batched mode.", when that happens.
 
 .. note::
 
     Depending on the number of Hamiltonian operators together with factors such as the integrator, schedule step size, and whether intermediate results are stored, the batch simulation can be memory-intensive.
     If you encounter out-of-memory issues, the `max_batch_size` parameter can be used to limit the number of Hamiltonians that are batched together in one run. 
     For example, if you set `max_batch_size=2`, then we will run the simulations in batches of 2 Hamiltonians at a time, i.e., the first two Hamiltonians will be simulated together, then the next two, and so on.
+
+    .. tab:: Python
+
+        .. literalinclude:: ../snippets/python/using/backends/dynamics_operator_batching.py
+            :language: python
+            :start-after: [Begin Batch Size]
+            :end-before: [End Batch Size]
+
+    .. tab:: C++
+
+        .. literalinclude:: ../snippets/cpp/using/backends/dynamics_operator_batching.cpp
+            :language: cpp
+            :start-after: [Begin Batch Size]
+            :end-before: [End Batch Size]
+
 
 Multi-GPU Multi-Node Execution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

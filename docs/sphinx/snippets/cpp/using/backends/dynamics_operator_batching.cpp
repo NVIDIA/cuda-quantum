@@ -26,7 +26,6 @@ int main() {
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
   // List of Hamiltonians to be batched together
   std::vector<cudaq::spin_op> hamiltonians;
-  std::vector<cudaq::state> initial_states;
 
   for (const auto &omega : omega_drive) {
     auto mod_func =
@@ -42,11 +41,10 @@ int main() {
     // Add the Hamiltonian for each drive frequency to the batch.
     hamiltonians.emplace_back(0.5 * omega_z * cudaq::spin_op::z(0) +
                               mod_func * cudaq::spin_op::x(0) * omega_x);
-
-    // The qubit starts in the |0> state.
-    initial_states.emplace_back(zero_state);
   }
 
+  // The qubit starts in the |0> state for all operators in the batch.
+  std::vector<cudaq::state> initial_states(hamiltonians.size(), zero_state);
   // Schedule of time steps
   const std::vector<double> steps = cudaq::linspace(0.0, 0.5, 5000);
   // The schedule carries the time parameter `labelled` `t`, which is used by
@@ -58,12 +56,24 @@ int main() {
   cudaq::integrators::runge_kutta integrator;
 
   // Run the batch simulation.
-  auto evolve_result = cudaq::evolve(
+  auto evolve_results = cudaq::evolve(
       hamiltonians, dimensions, schedule, initial_states, integrator, {},
       {cudaq::spin_op::x(0), cudaq::spin_op::y(0), cudaq::spin_op::z(0)},
       cudaq::IntermediateResultSave::ExpectationValue);
 
   // [End Operator Batching]
+
+  // [Begin Batch Size]
+
+  // Run the batch simulation with a maximum batch size of 2.
+  // This means that the evolution will be performed in batches of 2 Hamiltonian
+  // operators at a time, which can be useful for memory management or
+  // performance tuning.
+  auto results = cudaq::evolve(
+      hamiltonians, dimensions, schedule, initial_states, integrator, {},
+      {cudaq::spin_op::x(0), cudaq::spin_op::y(0), cudaq::spin_op::z(0)},
+      cudaq::IntermediateResultSave::ExpectationValue, /*max_batch_size=*/2);
+  // [End Batch Size]
 
   return 0;
 }

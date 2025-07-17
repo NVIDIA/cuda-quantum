@@ -67,8 +67,8 @@ add_nvqpp_test(FirstSample using/first_sample.cpp SOURCE_DIR ${CMAKE_CURRENT_SOU
 add_nvqpp_test(Timing using/time.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp APPLICATION_ARGS "10")
 if (CUDENSITYMAT_ROOT AND CUDA_FOUND) 
   add_nvqpp_test(Dynamics_Snippets using/backends/dynamics.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
-  add_nvqpp_test(Dynamics_Snippets_State_Batching using/backends/dynamics_state_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
-  add_nvqpp_test(Dynamics_Snippets_Operator_Batching using/backends/dynamics_operator_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
+  add_nvqpp_test(Dynamics_State_Batching_Snippets using/backends/dynamics_state_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
+  add_nvqpp_test(Dynamics_Operator_Batching_Snippets using/backends/dynamics_operator_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
 endif()
 
 set(NGPUS 0)
