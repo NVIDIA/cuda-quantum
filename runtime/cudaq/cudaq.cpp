@@ -25,6 +25,8 @@
 #include <signal.h>
 #include <string>
 #include <vector>
+
+#include <iostream>
 namespace nvqir {
 void tearDownBeforeMPIFinalize();
 void setRandomSeed(std::size_t);
@@ -380,8 +382,10 @@ std::string get_quake_by_name(const std::string &kernelName,
 
 bool kernelHasConditionalFeedback(const std::string &kernelName) {
   auto quakeCode = get_quake_by_name(kernelName, false);
-  return !quakeCode.empty() &&
+  auto ret = !quakeCode.empty() &&
          quakeCode.find("qubitMeasurementFeedback = true") != std::string::npos;
+  std::cout << kernelName << " has qubitMeasurementFeedback: " << ret << std::endl;
+  return ret;
 }
 
 // Ignore warnings about deprecations in platform.set_shots and

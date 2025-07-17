@@ -17,6 +17,11 @@
 #include <variant>
 #include <vector>
 
+#include "common/ExecutionContext.h"
+#include "cudaq/concepts.h"
+#include "registry.h"
+#include "cudaq/qis/qkernel.h"
+
 #if defined(__APPLE__) && defined(__MACH__)
 #include <mach-o/dyld.h>
 #else
@@ -143,15 +148,86 @@ template <typename T>
 struct has_name<T, typename voider<decltype(std::declval<T>().name())>::type>
     : std::true_type {};
 
+
+
+namespace details {
+
+/// @brief The `kernel_builder_base` provides a base type for the templated
+/// kernel builder so that we can get a single handle on an instance within the
+/// runtime.
+class kernel_builder_base {
+public:
+  virtual std::string to_quake() const = 0;
+  virtual void jitCode(std::vector<std::string> extraLibPaths = {}) = 0;
+  virtual ~kernel_builder_base() = default;
+
+  /// @brief Write the kernel_builder to the given output stream. This outputs
+  /// the Quake representation.
+  friend std::ostream &operator<<(std::ostream &stream,
+                                  const kernel_builder_base &builder);
+};
+
+#ifdef CUDAQ_LIBRARY_MODE
+template <typename QuantumKernel>
+QuantumKernel createQKernel(QuantumKernel &&kernel) {
+  return kernel;
+}
+#else
+
+#if CUDAQ_USE_STD20
+template <typename T>
+using remove_cvref_t = typename std::remove_cvref_t<T>;
+#else
+template <typename T>
+using remove_cvref_t = typename std::remove_cv_t<std::remove_reference_t<T>>;
+#endif
+
+template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
+          typename Operator = typename cudaq::qkernel_deduction_guide_helper<
+              decltype(&Q::operator())>::type,
+          std::enable_if_t<std::is_class_v<Q>, bool> = true>
+cudaq::qkernel<Operator> createQKernel(QuantumKernel &&kernel) {
+  return {kernel};
+}
+
+template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
+          std::enable_if_t<!std::is_class_v<Q>, bool> = true>
+cudaq::qkernel<Q> createQKernel(QuantumKernel &&kernel) {
+  return {kernel};
+}
+#endif
+
+template <typename QuantumKernel>
+std::string getKernelName(QuantumKernel &&kernel) {
+  if constexpr (has_name<QuantumKernel>::value) {
+    // kernel_builder kernel: need to JIT code to get it registered.
+    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    return kernel.name();
+  } else {
+    // R (S::operator())(Args..) or R(*)(Args...) kernels are registered
+    // and made linkable in GenDeviceCodeLoader pass.
+    auto qKernel =
+        cudaq::details::createQKernel(std::forward<QuantumKernel>(kernel));
+    auto key = cudaq::registry::__cudaq_getLinkableKernelKey(&qKernel);
+    auto name = cudaq::registry::getLinkableKernelNameOrNull(key);
+    if (!name)
+      return __internal__::demangle_kernel(typeid(kernel).name());
+    return name;
+  }
+}
+
+} // namespace cudaq::details
+
 template <typename QuantumKernel>
 std::string getKernelName(QuantumKernel &kernel) {
-  std::string kernel_name;
-  if constexpr (has_name<QuantumKernel>::value) {
-    kernel_name = kernel.name();
-  } else {
-    kernel_name = __internal__::demangle_kernel(typeid(kernel).name());
-  }
-  return kernel_name;
+  // std::string kernel_name;
+  // if constexpr (has_name<QuantumKernel>::value) {
+  //   kernel_name = kernel.name();
+  // } else {
+  //   kernel_name = __internal__::demangle_kernel(typeid(kernel).name());
+  // }
+  // return kernel_name;
+  return details::getKernelName(kernel);
 }
 
 template <typename TupleType, typename FunctionType>
