@@ -37,6 +37,11 @@ def test_simple_sampling_ghz():
     assert '0' * 10 in counts and '1' * 10 in counts
 
 
+# FIXME:https://github.com/NVIDIA/cuda-quantum/issues/2830
+# Crash due to conditional feedback:
+pytest.mark.skip
+
+
 def test_simple_sampling_qpe():
     """Test that we can build up a set of kernels, compose them, and sample."""
 
