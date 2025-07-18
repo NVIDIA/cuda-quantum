@@ -461,6 +461,39 @@ Similarly, we can also batch simulate the time evolution of multiple Hamiltonian
         :start-after: [Begin Operator Batching]
         :end-before: [End Operator Batching]
 
+The results of the batch simulation will be returned as a list of evolve result objects, one for each Hamiltonian in the batch.
+For example, we can extract the time evolution results of the expectation values for each Hamiltonian in the batch as follows:
+
+.. tab:: Python
+
+    .. literalinclude:: ../snippets/python/using/backends/dynamics_operator_batching.py
+        :language: python
+        :start-after: [Begin Batch Results]
+        :end-before: [End Batch Results]
+
+    The expectation values are returned as a list of lists, where each inner list corresponds to the expectation values for the observables at each time step for the respective Hamiltonian in the batch.
+
+    .. code:: bash     
+
+        all_exp_val_x = [[0.0, ...], [0.0, ...], ..., [0.0, ...]]
+        all_exp_val_y = [[0.0, ...], [0.0, ...], ..., [0.0, ...]]
+        all_exp_val_z = [[1.0, ...], [1.0, ...], ..., [1.0, ...]]
+
+.. tab:: C++
+
+    .. literalinclude:: ../snippets/cpp/using/backends/dynamics_operator_batching.cpp
+        :language: cpp
+        :start-after: [Begin Batch Results]
+        :end-before: [End Batch Results]
+
+    The expectation values are returned as a list of lists, where each inner list corresponds to the expectation values for the observables at each time step for the respective Hamiltonian in the batch.
+
+    .. code:: bash     
+
+        all_exp_val_x = [[0.0, ...], [0.0, ...], ..., [0.0, ...]]
+        all_exp_val_y = [[0.0, ...], [0.0, ...], ..., [0.0, ...]]
+        all_exp_val_z = [[1.0, ...], [1.0, ...], ..., [1.0, ...]]    
+
 
 Collapse operators and super-operators can also be batched in a similar manner. 
 Specifically, if the `collapse_operators` parameter is a nested list of operators (:math:`\{\{L\}_1, \{\{L\}_2, ...\}`), 
@@ -529,17 +562,30 @@ To enable parallel execution, the application must initialize MPI as follows.
 
 .. tab:: Python
 
-  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
+    .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin MPI]
         :end-before: [End MPI]
 
-  .. code:: bash 
+    .. code:: bash 
 
         mpiexec -np <N> python3 program.py 
   
   where ``N`` is the number of processes.
 
+.. tab:: C++
+
+    .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin MPI]
+        :end-before: [End MPI]
+
+    .. code:: bash 
+
+        nvq++ --target dynamics example.cpp -o a.out 
+        mpiexec -np <N> a.out
+  
+  where ``N`` is the number of processes.
 
 By initializing the MPI execution environment (via `cudaq.mpi.initialize()`) in the application code and
 invoking it via an MPI launcher, we have activated the multi-node multi-GPU feature of the ``dynamics`` target.

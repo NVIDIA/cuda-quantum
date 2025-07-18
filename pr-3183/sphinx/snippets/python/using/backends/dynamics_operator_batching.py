@@ -58,6 +58,42 @@ evolution_results = cudaq.evolve(
 
 #[End Operator Batching]
 
+#[Begin Batch Results]
+
+# The results of the batched evolution is an array of evolution results,
+# one for each Hamiltonian operator in the batch.
+
+# For example, we can split the results into separate arrays for each observable.
+all_exp_val_x = []
+all_exp_val_y = []
+all_exp_val_z = []
+# Iterate over the evolution results in the batch:
+for evolution_result in evolution_results:
+    # Extract the expectation values for each observable at the respective Hamiltonian operator in the batch.
+    exp_val_x = [
+        exp_vals[0].expectation()
+        for exp_vals in evolution_result.expectation_values()
+    ]
+    exp_val_y = [
+        exp_vals[1].expectation()
+        for exp_vals in evolution_result.expectation_values()
+    ]
+    exp_val_z = [
+        exp_vals[2].expectation()
+        for exp_vals in evolution_result.expectation_values()
+    ]
+
+    # Append the results to the respective lists.
+    # These will be nested lists, where each inner list corresponds to the results for a specific Hamiltonian operator in the batch.
+    all_exp_val_x.append(exp_val_x)
+    all_exp_val_y.append(exp_val_y)
+    all_exp_val_z.append(exp_val_z)
+#[End Batch Results]
+
+print(all_exp_val_x)
+print(all_exp_val_y)
+print(all_exp_val_z)
+
 #[Begin Batch Size]
 # Run the batch simulation with a maximum batch size of 2.
 # This means that the evolution will be performed in batches of 2 Hamiltonian operators at a time, which can be useful for memory management or
