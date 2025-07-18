@@ -22,7 +22,7 @@ void markProcessed(Operation *op);
 // AXIS-SPECIFIC: could allow controlled y and z here
 bool isControlledOp(Operation *op);
 
-bool isTerminationPoint(Operation *op);
+bool isCircuitBreaker(Operation *op);
 
 class Netlist {
   Value def;
@@ -34,33 +34,11 @@ public:
     def = v;
     users =
         SmallVector<Operation *>(def.getUsers().begin(), def.getUsers().end());
-    // auto less = [&](Operation *a, Operation *b){
-    //   assert(a != b);
-    //   if (a->getBlock() != b->getBlock()) {
-    //     if (a->getBlock().
-    //   }
-    //   return a->isBeforeInBlock(b);
-    // };
+    // getUsers returns users in reverse order
     std::reverse(users.begin(), users.end());
   }
 
   size_t getIndexOf(Operation *op) {
-    // size_t low = 0;
-    // size_t high = users.size();
-
-    // while (low <= high) {
-    //   auto midpoint = low + ((high - low) / 2);
-    //   auto mop = users[midpoint];
-    //   if (mop->isBeforeInBlock(op))
-    //     low = midpoint + 1;
-    //   else if (op->isBeforeInBlock(mop))
-    //     high = midpoint - 1;
-    //   else
-    //     return midpoint;
-    // }
-
-    // assert(false);
-    // return 0;
     auto iter = std::find(users.begin(), users.end(), op);
     assert(iter != users.end());
     return std::distance(users.begin(), iter);
@@ -121,37 +99,9 @@ protected:
   }
 
   bool isTerminationPoint(Operation *op) {
-    // TODO: it may be cleaner to only accept non-null input to
-    // ensure the null case is explicitly handled by users
-    if (!op)
-      return true;
-
-    if (op->getBlock() != start->getBlock())
-      return true;
-
-    if (!isQuakeOperation(op))
-      return true;
-
-    if (isa<RAW_CIRCUIT_BREAKERS>(op))
-      return true;
-
-    if (isa<quake::NullWireOp>(op))
-      return true;
-
-    auto opi = dyn_cast<quake::OperatorInterface>(op);
-
-    if (!opi)
-      return true;
-
-    // Only allow single control
-    if (opi.getControls().size() > 1)
-      return true;
-    return false;
+    return isCircuitBreaker(op) || (op->getBlock() != start->getBlock());
   }
 
-  // TODO: really Netlists should be contained
-  // in a nice alternative structure for the entire block
-  // to avoid constantly reconstructing them.
   class NetlistWrapper {
     Subcircuit *subcircuit;
     Netlist *nl;
@@ -299,4 +249,8 @@ public:
   SmallVector<Value> getRefs();
 
   size_t numRefs();
+
+  /// @brief Gets the operations in the subcircuit
+  /// ordered by location
+  SmallVector<Operation *> getOrderedOps();
 };

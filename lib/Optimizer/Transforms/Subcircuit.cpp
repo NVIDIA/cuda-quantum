@@ -41,6 +41,32 @@ bool isControlledOp(Operation *op) {
   return isa<quake::XOp>(op) && op->getNumOperands() == 2;
 }
 
+bool isCircuitBreaker(Operation *op) {
+  // TODO: it may be cleaner to only accept non-null input to
+  // ensure the null case is explicitly handled by users
+  if (!op)
+    return true;
+
+  if (!isQuakeOperation(op))
+    return true;
+
+  if (isa<RAW_CIRCUIT_BREAKERS>(op))
+    return true;
+
+  if (isa<quake::NullWireOp>(op))
+    return true;
+
+  auto opi = dyn_cast<quake::OperatorInterface>(op);
+
+  if (!opi)
+    return true;
+
+  // Only allow single control
+  if (opi.getControls().size() > 1)
+    return true;
+  return false;
+}
+
 /// @brief Constructs a subcircuit with a phase polynomial starting from a
 /// cnot
 Subcircuit::Subcircuit(Operation *cnot, NetlistContainer *container) {
@@ -60,6 +86,13 @@ Subcircuit::~Subcircuit() {
 }
 
 SetVector<Operation *> Subcircuit::getOps() { return ops; }
+
+SmallVector<Operation *> Subcircuit::getOrderedOps() {
+  auto ordered = SmallVector<Operation *>(ops.begin(), ops.end());
+  auto less = [&](Operation *a, Operation *b) { return a->isBeforeInBlock(b); };
+  std::sort(ordered.begin(), ordered.end(), less);
+  return ordered;
+}
 
 Operation *Subcircuit::getStart() { return start; }
 

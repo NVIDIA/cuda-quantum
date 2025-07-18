@@ -31,14 +31,16 @@ class PhasePolynomialPreprocessPass
 
   void moveToFunc(Subcircuit *subcircuit, size_t subcircuit_num) {
     auto module = getOperation();
+    auto args = subcircuit->getRefs();
+    SmallVector<Type> types(args.size(),
+                            quake::RefType::get(module.getContext()));
     auto name = std::string("subcircuit") + std::to_string(subcircuit_num);
-    auto fun = cudaq::opt::factory::createFunction(name, {}, {}, module);
+    auto fun = cudaq::opt::factory::createFunction(name, {}, types, module);
     fun.setPrivate();
     auto entry = fun.addEntryBlock();
     OpBuilder builder(fun);
     fun.getOperation()->setAttr("subcircuit", builder.getUnitAttr());
 
-    SmallVector<Value> args;
     auto add_arg = [&](Value v) {
       auto idx = args.size();
       args.push_back(v);
@@ -46,13 +48,8 @@ class PhasePolynomialPreprocessPass
       return fun.getArgument(idx);
     };
 
-    auto ops = subcircuit->getOps();
-    auto ordered = SmallVector<Operation *>(ops.begin(), ops.end());
-    std::sort(ordered.begin(), ordered.end(), [&](Operation *a, Operation *b) {
-      return a->isBeforeInBlock(b);
-    });
     builder.setInsertionPointToStart(entry);
-    for (auto op : ordered) {
+    for (auto op : subcircuit->getOrderedOps()) {
       auto clone = builder.clone(*op);
       for (size_t i = 0; i < clone->getOperands().size(); i++) {
         auto operand = clone->getOperand(i);
@@ -60,11 +57,13 @@ class PhasePolynomialPreprocessPass
           auto arg = add_arg(operand);
           clone->setOperand(i, arg);
         }
+        clone->removeAttr("processed");
       }
     }
 
+    size_t i = 0;
     for (auto ref : subcircuit->getRefs()) {
-      auto arg = add_arg(ref);
+      auto arg = fun.getArgument(i++);
       ref.replaceUsesWithIf(arg, [&](OpOperand &use) {
         return use.getOwner()->getBlock() == entry;
       });
@@ -74,13 +73,6 @@ class PhasePolynomialPreprocessPass
 
     auto cnot = subcircuit->getStart();
     auto latest = cnot;
-    // for (auto arg : args) {
-    //   if (!isa<quake::WireType>(arg.getType()))
-    //     continue;
-    //   auto dop = arg.getDefiningOp();
-    //   if (dop && latest->isBeforeInBlock(dop))
-    //     latest = dop;
-    // }
     builder.setInsertionPointAfter(latest);
     builder.create<func::CallOp>(cnot->getLoc(), fun, args);
   }
@@ -126,25 +118,26 @@ public:
 } // namespace
 
 static void createPhasePolynomialOptPipeline(OpPassManager &pm) {
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  // pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  // pm.addNestedPass<func::FuncOp>(createCSEPass());
   // opt::LoopUnrollOptions luo;
   // luo.threshold = 2048;
   // pm.addNestedPass<func::FuncOp>(opt::createLoopUnroll(luo));
   // pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   // pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addPass(cudaq::opt::createPhasePolynomialPreprocess());
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createPhasePolynomialRotationMerging());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   cudaq::opt::addAggressiveEarlyInlining(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
