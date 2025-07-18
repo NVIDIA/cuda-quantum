@@ -191,6 +191,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         cublas_version=11.11 && \
         cusparse_version=11.7 && \
         sed -i "s/-cu12/-cu11/g" pyproject.toml && \
+        sed -i "s/-cuda12/-cuda11/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cusparse-cu[0-9]* ~= )[0-9\.]*/\1${cusparse_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml && \
