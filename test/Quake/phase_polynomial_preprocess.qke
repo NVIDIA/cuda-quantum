@@ -16,9 +16,9 @@ module {
 // CHECK:   quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
 // CHECK:   cc.return
 // CHECK: }
-// CHECK-LABEL: func.func private @subcircuit0(%arg0: f64, %arg1: !quake.ref, %arg2: !quake.ref) attributes {subcircuit} {
-// CHECK:   quake.x [%arg1] %arg2 : (!quake.ref, !quake.ref) -> ()
-// CHECK:   quake.rz (%arg0) %arg2 : (f64, !quake.ref) -> ()
+// CHECK-LABEL: func.func private @subcircuit0(%arg0: !quake.ref, %arg1: !quake.ref, %arg2: f64) attributes {subcircuit} {
+// CHECK:   quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%arg2) %arg1 : (f64, !quake.ref) -> ()
 // CHECK:   cc.return
 // CHECK: }
 // CHECK-LABEL: func.func @kernel1() {
@@ -26,7 +26,7 @@ module {
 // CHECK:   %0 = quake.alloca !quake.veq<2>
 // CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref {nlindex = 0 : i64}
 // CHECK:   %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref {nlindex = 1 : i64}
-// CHECK:   call @subcircuit0(%cst, %1, %2) : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK:   call @subcircuit0(%1, %2, %cst) : (!quake.ref, !quake.ref, f64) -> ()
 // CHECK:   quake.h %1 : (!quake.ref) -> ()
 // CHECK:   call @subcircuit1(%1, %2) : (!quake.ref, !quake.ref) -> ()
 // CHECK:   return
@@ -59,19 +59,19 @@ module {
   }
 }
 
-// CHECK-LABEL: func.func private @subcircuit1(%arg0: f64, %arg1: !quake.ref, %arg2: !quake.ref, %arg3: !quake.ref) attributes {subcircuit} {
-// CHECK:   quake.x [%arg2] %arg3 : (!quake.ref, !quake.ref) -> ()
+// CHECK-LABEL: func.func private @subcircuit1(%arg0: !quake.ref, %arg1: !quake.ref, %arg2: !quake.ref, %arg3: f64) attributes {subcircuit} {
 // CHECK:   quake.x [%arg1] %arg2 : (!quake.ref, !quake.ref) -> ()
-// CHECK:   quake.rz (%arg0) %arg2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%arg3) %arg1 : (f64, !quake.ref) -> ()
 // CHECK:   cc.return
 // CHECK: }
-// CHECK-LABEL: func.func private @subcircuit0(%arg0: f64, %arg1: f64, %arg2: f64, %arg3: !quake.ref, %arg4: !quake.ref, %arg5: !quake.ref) attributes {subcircuit} {
-// CHECK:   quake.rz (%arg0) %arg4 : (f64, !quake.ref) -> ()
-// CHECK:   quake.rz (%arg1) %arg5 : (f64, !quake.ref) -> ()
-// CHECK:   quake.x [%arg4] %arg3 : (!quake.ref, !quake.ref) -> ()
-// CHECK:   quake.rz (%arg2) %arg3 : (f64, !quake.ref) -> ()
-// CHECK:   quake.x [%arg4] %arg5 : (!quake.ref, !quake.ref) -> ()
-// CHECK:   quake.x [%arg3] %arg4 : (!quake.ref, !quake.ref) -> ()
+// CHECK-LABEL: func.func private @subcircuit0(%arg0: !quake.ref, %arg1: !quake.ref, %arg2: !quake.ref, %arg3: f64, %arg4: f64, %arg5: f64) attributes {subcircuit} {
+// CHECK:   quake.rz (%arg3) %arg1 : (f64, !quake.ref) -> ()
+// CHECK:   quake.rz (%arg4) %arg2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%arg1] %arg0 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%arg5) %arg0 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%arg1] %arg2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
 // CHECK:   cc.return
 // CHECK: }
 // CHECK-LABEL: func.func @kernel2() {
@@ -83,9 +83,9 @@ module {
 // CHECK:   quake.h %1 : (!quake.ref) -> ()
 // CHECK:   quake.h %2 : (!quake.ref) -> ()
 // CHECK:   quake.h %3 : (!quake.ref) -> ()
-// CHECK:   call @subcircuit0(%cst, %cst, %cst, %1, %2, %3) : (f64, f64, f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:   call @subcircuit0(%1, %2, %3, %cst, %cst, %cst) : (!quake.ref, !quake.ref, !quake.ref, f64, f64, f64) -> ()
 // CHECK:   quake.h %3 : (!quake.ref) -> ()
-// CHECK:   call @subcircuit1(%cst, %1, %2, %3) : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:   call @subcircuit1(%1, %2, %3, %cst) : (!quake.ref, !quake.ref, !quake.ref, f64) -> ()
 // CHECK:   quake.h %1 : (!quake.ref) -> ()
 // CHECK:   quake.h %2 : (!quake.ref) -> ()
 // CHECK:   return
@@ -110,9 +110,9 @@ module {
   }
 }
 
-// CHECK-LABEL: func.func private @subcircuit1(%arg0: f64, %arg1: !quake.ref, %arg2: !quake.ref) attributes {subcircuit} {
-// CHECK:   quake.rz (%arg0) %arg2 : (f64, !quake.ref) -> ()
-// CHECK:   quake.x [%arg1] %arg2 : (!quake.ref, !quake.ref) -> ()
+// CHECK-LABEL: func.func private @subcircuit1(%arg0: !quake.ref, %arg1: !quake.ref, %arg2: f64) attributes {subcircuit} {
+// CHECK:   quake.rz (%arg2) %arg1 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
 // CHECK:   cc.return
 // CHECK: }
 // CHECK-LABEL: func.func private @subcircuit0(%arg0: !quake.ref, %arg1: !quake.ref) attributes {subcircuit} {
@@ -128,7 +128,7 @@ module {
 // CHECK:   call @subcircuit0(%1, %2) : (!quake.ref, !quake.ref) -> ()
 // CHECK:   quake.h %1 : (!quake.ref) -> ()
 // CHECK:   cc.if(%true) {
-// CHECK:     func.call @subcircuit1(%cst, %1, %2) : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK:     func.call @subcircuit1(%1, %2, %cst) : (!quake.ref, !quake.ref, f64) -> ()
 // CHECK:   }
 // CHECK:   return
 // CHECK: }
@@ -187,9 +187,9 @@ module {
 // CHECK:   quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
 // CHECK:   cc.return
 // CHECK: }
-// CHECK-LABEL: func.func private @subcircuit0(%arg0: f64, %arg1: !quake.ref, %arg2: !quake.ref) attributes {subcircuit} {
-// CHECK:   quake.x [%arg1] %arg2 : (!quake.ref, !quake.ref) -> ()
-// CHECK:   quake.rz (%arg0) %arg2 : (f64, !quake.ref) -> ()
+// CHECK-LABEL: func.func private @subcircuit0(%arg0: !quake.ref, %arg1: !quake.ref, %arg2: f64) attributes {subcircuit} {
+// CHECK:   quake.x [%arg0] %arg1 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%arg2) %arg1 : (f64, !quake.ref) -> ()
 // CHECK:   cc.return
 // CHECK: }
 // CHECK-LABEL: func.func @kernel5() {
@@ -197,7 +197,7 @@ module {
 // CHECK:   %0 = quake.alloca !quake.veq<2>
 // CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref {nlindex = 0 : i64}
 // CHECK:   %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref {nlindex = 1 : i64}
-// CHECK:   call @subcircuit0(%cst, %1, %2) : (f64, !quake.ref, !quake.ref) -> ()
+// CHECK:   call @subcircuit0(%1, %2, %cst) : (!quake.ref, !quake.ref, f64) -> ()
 // CHECK:   quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
 // CHECK:   call @subcircuit1(%1, %2) : (!quake.ref, !quake.ref) -> ()
 // CHECK:   return
