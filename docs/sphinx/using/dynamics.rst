@@ -562,12 +562,12 @@ To enable parallel execution, the application must initialize MPI as follows.
 
 .. tab:: Python
 
-  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
+    .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin MPI]
         :end-before: [End MPI]
 
-  .. code:: bash 
+    .. code:: bash 
 
         mpiexec -np <N> python3 program.py 
   
@@ -575,12 +575,13 @@ To enable parallel execution, the application must initialize MPI as follows.
 
 .. tab:: C++
 
-  .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+    .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
         :language: cpp
         :start-after: [Begin MPI]
         :end-before: [End MPI]
 
-  .. code:: bash 
+    .. code:: bash 
+
         nvq++ --target dynamics example.cpp -o a.out 
         mpiexec -np <N> a.out
   
