@@ -128,9 +128,8 @@ private:
 
   void updateScopes(Operation * /*AllocaOp*/ alloc,
                     SmallVectorImpl<Operation * /*ScopeOp*/> &liveScopes) {
-    auto myScope = scopeMap[alloc];
-    liveScopes.append(parentScopes[myScope].begin(),
-                      parentScopes[myScope].end());
+    auto *s = scopeMap[alloc];
+    liveScopes.append(parentScopes[s].begin(), parentScopes[s].end());
   }
 
   // The scope of alloca, `a`, is disjoint from the current set if it cannot be
@@ -140,7 +139,7 @@ private:
   // scope is already in `scopes`.
   bool disjointScopes(const SmallVectorImpl<Operation * /*ScopeOp*/> &scopes,
                       Operation * /*AllocaOp*/ a) {
-    auto s = scopeMap[a];
+    auto *s = scopeMap[a];
     return std::find(scopes.begin(), scopes.end(), s) == scopes.end();
   }
 
@@ -153,13 +152,10 @@ private:
 
   void updateScopeTree(cudaq::cc::ScopeOp scope) {
     parentScopes[scope].insert(scope);
-    auto s = scope;
-    for (auto *p = scope->getParentOp(); p;
-         p = s ? s->getParentOp() : nullptr) {
+    for (auto *p = scope->getParentOp(); p; p = p->getParentOp()) {
       if (isa<func::FuncOp, cudaq::cc::CreateLambdaOp, ModuleOp>(p))
         break;
-      s = dyn_cast<cudaq::cc::ScopeOp>(p);
-      if (s)
+      if (auto s = dyn_cast<cudaq::cc::ScopeOp>(p))
         parentScopes[scope].insert(s);
     }
   }
