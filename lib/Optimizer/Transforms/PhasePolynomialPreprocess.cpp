@@ -83,36 +83,30 @@ public:
     size_t i = 0;
     SetVector<Subcircuit *> subcircuits;
 
-    auto nlc = new NetlistContainer();
-
     for (auto &op : module) {
       if (auto func = dyn_cast<func::FuncOp>(op)) {
+        auto nlc = NetlistContainer(func);
         func.walk([&](Operation *op) {
-          if (auto refop = dyn_cast<quake::ExtractRefOp>(op)) {
-            nlc->allocNetlist(refop);
-            return;
-          }
-
           if (!::isControlledOp(op) || ::processed(op))
             return;
 
-          auto subcircuit = new Subcircuit(op, nlc);
+          auto subcircuit = new Subcircuit(op, &nlc);
           // Add the subcircuit to erase from the function after we
           // finish walking it, as we don't want to erase ops from a
           // function we are currently walking
           subcircuits.insert(subcircuit);
           moveToFunc(subcircuit, i++);
         });
+
+        // Clean up
+        for (auto subcircuit : subcircuits) {
+          for (auto op : subcircuit->getOps())
+            op->erase();
+          delete subcircuit;
+          subcircuits.clear();
+        }
       }
     }
-
-    for (auto subcircuit : subcircuits) {
-      for (auto op : subcircuit->getOps())
-        op->erase();
-      delete subcircuit;
-    }
-
-    delete nlc;
   }
 };
 } // namespace

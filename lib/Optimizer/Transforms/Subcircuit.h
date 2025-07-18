@@ -32,10 +32,11 @@ public:
   Netlist(Value v) {
     assert(isa<quake::ExtractRefOp>(v.getDefiningOp()));
     def = v;
-    users =
-        SmallVector<Operation *>(def.getUsers().begin(), def.getUsers().end());
-    // getUsers returns users in reverse order
-    std::reverse(users.begin(), users.end());
+    // users =
+    //     SmallVector<Operation *>(def.getUsers().begin(),
+    //     def.getUsers().end());
+    // // getUsers returns users in reverse order
+    // std::reverse(users.begin(), users.end());
   }
 
   size_t getIndexOf(Operation *op) {
@@ -51,13 +52,29 @@ public:
   size_t size() { return users.size(); }
 
   Value getDef() { return def; }
+
+  void append(Operation *op) { users.push_back(op); }
 };
 
 class NetlistContainer {
   SmallVector<Netlist *> netlists;
 
 public:
-  NetlistContainer() {}
+  // NetlistContainer() {}
+
+  NetlistContainer(mlir::func::FuncOp func) {
+    func.walk([&](Operation *op) {
+      if (auto refop = dyn_cast<quake::ExtractRefOp>(op)) {
+        allocNetlist(refop);
+        return;
+      }
+
+      if (isQuakeOperation(op))
+        for (auto operand : op->getOperands())
+          if (quake::isQuantumType(operand.getType()))
+            netlists[getIndexOf(operand)]->append(op);
+    });
+  }
 
   ~NetlistContainer() {
     for (auto netlist : netlists)
