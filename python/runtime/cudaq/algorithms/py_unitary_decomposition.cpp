@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/UnitaryDecomposition.h"
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -38,14 +39,48 @@ void bindPyUnitaryDecomposition(py::module &mod) {
       .def_readonly("z", &cudaq::detail::KAKComponents::z)
       .def_readonly("phase", &cudaq::detail::KAKComponents::phase);
 
-  // Register the core decomposition functions
-  unitarySynthesis.def("zyz_decompose", &cudaq::detail::decomposeZYZ,
-                       "Decompose single-qubit unitary into ZYZ Euler angles",
-                       py::arg("matrix"));
+  // Register the ZYZ decomposition function
+  unitarySynthesis.def(
+      "zyz_decompose",
+      [](py::array_t<std::complex<double>, py::array::c_style> matrix) {
+        // Validate input shape
+        if (matrix.ndim() != 2 || matrix.shape(0) != 2 ||
+            matrix.shape(1) != 2) {
+          throw py::value_error("Input must be a 2x2 complex matrix");
+        }
+        // Create an Eigen matrix from the NumPy array
+        Eigen::Matrix2cd eigenMatrix;
+        auto matrix_buffer = matrix.unchecked<2>();
+        for (py::ssize_t i = 0; i < 2; i++) {
+          for (py::ssize_t j = 0; j < 2; j++) {
+            eigenMatrix(i, j) = matrix_buffer(i, j);
+          }
+        }
+        return detail::decomposeZYZ(eigenMatrix);
+      },
+      "Decompose single-qubit unitary into ZYZ Euler angles",
+      py::arg("matrix"));
 
-  unitarySynthesis.def("kak_decompose", &cudaq::detail::decomposeKAK,
-                       "Decompose two-qubit unitary using KAK decomposition",
-                       py::arg("matrix"));
+  // Register the KAK decomposition function
+  unitarySynthesis.def(
+      "kak_decompose",
+      [](py::array_t<std::complex<double>, py::array::c_style> matrix) {
+        // Validate input shape
+        if (matrix.ndim() != 2 || matrix.shape(0) != 4 ||
+            matrix.shape(1) != 4) {
+          throw py::value_error("Input must be a 4x4 complex matrix");
+        }
+        // Create an Eigen matrix from the NumPy array
+        Eigen::Matrix4cd eigenMatrix;
+        auto matrix_buffer = matrix.unchecked<2>();
+        for (py::ssize_t i = 0; i < 4; i++) {
+          for (py::ssize_t j = 0; j < 4; j++) {
+            eigenMatrix(i, j) = matrix_buffer(i, j);
+          }
+        }
+        return detail::decomposeKAK(eigenMatrix);
+      },
+      "Decompose two-qubit unitary using KAK decomposition", py::arg("matrix"));
 }
 
 } // namespace cudaq
