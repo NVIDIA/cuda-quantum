@@ -17,7 +17,8 @@ namespace cudaq::detail {
 /// Tolerance for numerical comparisons
 constexpr double TOL = 1e-7;
 
-/// Result structure for 1-q Euler decomposition in ZYZ basis
+/// Result structure for 1-q Euler decomposition in ZYZ basis, including global
+/// phase
 struct EulerAngles {
   double alpha;
   double beta;
@@ -35,7 +36,7 @@ struct EulerAngles {
  */
 EulerAngles decomposeZYZ(const Eigen::Matrix2cd &matrix);
 
-/// Result structure for 2-q KAK decomposition
+/// Result structure for 2-q KAK decomposition, including global phase
 struct KAKComponents {
   Eigen::Matrix2cd a0;
   Eigen::Matrix2cd a1;
