@@ -65,12 +65,20 @@ public:
       this->set_zero();
   }
 
-  complex_matrix(const complex_matrix &other, order order = order::row_major);
+  complex_matrix(const complex_matrix &other)
+      : dimensions{other.dimensions},
+        data{new value_type[get_size(other.dimensions)]}, 
+        internal_order(other.internal_order) {
+    std::copy(other.data, other.data + get_size(dimensions), data);
+  }
+
+  complex_matrix(const complex_matrix &other, order order);
 
   complex_matrix(complex_matrix &&other)
       : dimensions{other.dimensions}, data{other.data}, internal_order(other.internal_order) {
     other.data = nullptr;
   }
+
   complex_matrix(const std::vector<value_type> &v,
                  const Dimensions &dim = {2, 2}, order order = order::row_major)
       : dimensions{dim}, data{new value_type[get_size(dim)]}, internal_order(order) {
