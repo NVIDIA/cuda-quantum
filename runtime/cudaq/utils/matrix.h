@@ -51,29 +51,29 @@ public:
   using EigenMatrix =
       Eigen::Matrix<value_type, -1, -1, 0x1, -1, -1>; // row major
 
+  enum class order { row_major, column_major };
+
   complex_matrix() = default;
 
   // Instantiates a matrix of the given size.
   // All entries are set to zero by default.
-  complex_matrix(std::size_t rows, std::size_t cols, bool set_zero = true)
+  complex_matrix(std::size_t rows, std::size_t cols, bool set_zero = true,
+    order order = order::row_major)
       : dimensions(std::make_pair(rows, cols)),
-        data{new value_type[rows * cols]} {
+        data{new value_type[rows * cols]}, internal_order(order) {
     if (set_zero)
       this->set_zero();
   }
 
-  complex_matrix(const complex_matrix &other)
-      : dimensions{other.dimensions},
-        data{new value_type[get_size(other.dimensions)]} {
-    std::copy(other.data, other.data + get_size(dimensions), data);
-  }
+  complex_matrix(const complex_matrix &other, order order = order::row_major);
+
   complex_matrix(complex_matrix &&other)
-      : dimensions{other.dimensions}, data{other.data} {
+      : dimensions{other.dimensions}, data{other.data}, internal_order(other.internal_order) {
     other.data = nullptr;
   }
   complex_matrix(const std::vector<value_type> &v,
-                 const Dimensions &dim = {2, 2})
-      : dimensions{dim}, data{new value_type[get_size(dim)]} {
+                 const Dimensions &dim = {2, 2}, order order = order::row_major)
+      : dimensions{dim}, data{new value_type[get_size(dim)]}, internal_order(order) {
     check_size(v.size(), dimensions);
     std::copy(v.begin(), v.begin() + get_size(dimensions), data);
   }
@@ -82,6 +82,7 @@ public:
     dimensions = other.dimensions;
     data = new value_type[get_size(other.dimensions)];
     std::copy(other.data, other.data + get_size(dimensions), data);
+    internal_order = other.internal_order;
     return *this;
   }
 
@@ -89,6 +90,7 @@ public:
     dimensions = other.dimensions;
     data = other.data;
     other.data = nullptr;
+    internal_order = other.internal_order;
     return *this;
   }
 
@@ -196,7 +198,7 @@ public:
 
   const EigenMatrix as_eigen() const;
 
-  complex_matrix::value_type *get_data() const { return data; }
+  complex_matrix::value_type *get_data(order order);
 
 private:
   complex_matrix(const complex_matrix::value_type *v,
@@ -227,6 +229,7 @@ private:
 
   Dimensions dimensions = {};
   complex_matrix::value_type *data = nullptr;
+  complex_matrix::order internal_order = complex_matrix::order::row_major;
 };
 
 //===----------------------------------------------------------------------===//
