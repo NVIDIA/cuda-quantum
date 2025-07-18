@@ -12,6 +12,7 @@ from typing import Union
 import uvicorn, uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
+import os
 
 # Define the REST Server App
 app = FastAPI()
@@ -47,20 +48,24 @@ targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
 
+qirVersionUnderDevelopment = os.environ.get(
+    "CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", False)
+requiredQubits = "required_num_qubits" if qirVersionUnderDevelopment else "requiredQubits"
+
+
+def getNumRequiredQubits(function):
+    for a in function.attributes:
+        if requiredQubits in str(a):
+            return int(
+                str(a).split(f'{requiredQubits}\"=')[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
+
 
 def getKernelFunction(module):
     for f in module.functions:
         if not f.is_declaration:
             return f
     return None
-
-
-def getNumRequiredQubits(function):
-    for a in function.attributes:
-        if "required_num_qubits" in str(a):
-            return int(
-                str(a).split("required_num_qubits\"=")[-1].split(" ")
-                [0].replace("\"", "").replace("'", ""))
 
 
 # Here we test that the login endpoint works
