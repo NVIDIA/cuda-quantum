@@ -210,8 +210,8 @@ public:
 
 private:
   complex_matrix(const complex_matrix::value_type *v,
-                 const Dimensions &dim = {2, 2})
-      : dimensions{dim}, data{new complex_matrix::value_type[get_size(dim)]} {
+                 const Dimensions &dim, order order)
+      : dimensions{dim}, data{new complex_matrix::value_type[get_size(dim)]}, internal_order(order) {
     auto size = get_size(dimensions);
     std::copy(v, v + size, data);
   }

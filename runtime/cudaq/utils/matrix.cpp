@@ -164,14 +164,15 @@ cudaq::complex_matrix::operator*=(const cudaq::complex_matrix &right) {
     throw std::runtime_error("matrix dimensions mismatch in operator*=");
 
   auto new_data = new cudaq::complex_matrix::value_type[rows() * right.cols()];
+  cudaq::complex_matrix::Dimensions new_dims = {rows(), right.cols()};
   for (std::size_t i = 0; i < rows(); i++)
     for (std::size_t j = 0; j < right.cols(); j++)
       for (std::size_t k = 0; k < cols(); k++)
-        access(new_data, right.dimensions, i, j, this->internal_order) +=
+        access(new_data, new_dims, i, j, this->internal_order) +=
             access(data, dimensions, i, k, this->internal_order) *
             access(right.data, right.dimensions, k, j, right.internal_order);
   swap(new_data);
-  dimensions.second = right.cols();
+  dimensions = new_dims;
   return *this;
 }
 
@@ -198,7 +199,7 @@ cudaq::complex_matrix cudaq::operator*(cudaq::complex_matrix::value_type scalar,
     for (std::size_t j = 0; j < right.cols(); j++)
       access(new_data, right.dimensions, i, j, right.internal_order) =
           scalar * access(right.data, right.dimensions, i, j, right.internal_order);
-  return {new_data, right.dimensions};
+  return {new_data, right.dimensions, right.internal_order};
 }
 
 cudaq::complex_matrix &

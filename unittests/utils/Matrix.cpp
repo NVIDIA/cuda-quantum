@@ -107,6 +107,44 @@ TEST(Tensor, accessError) {
   }
 }
 
+TEST(Tensor, multiplication) {
+  const auto vecToStr = [](const auto &vec) {
+    auto it = vec.cbegin();
+    if (it == vec.cend()) return std::string("[]");
+
+    std::stringstream ss;
+    ss << "[(" << it->real() << ", " << it->imag() << ")";
+    while (++it != vec.cend())
+      ss << ", (" << it->real() << ", " << it->imag() << ")";
+    ss << "]";
+    return ss.str();
+  };
+
+  {
+    cudaq::complex_matrix m2({2., 1., 3., 4.}, {2, 2}, cudaq::complex_matrix::order::row_major);
+    cudaq::complex_matrix::value_type scalar(3.);
+    string_equal((scalar * m2).to_string(), "(6,0) (3,0)\n(9,0) (12,0)\n");
+  }
+  {
+    cudaq::complex_matrix m2({2., 3., 1., 4.}, {2, 2}, cudaq::complex_matrix::order::column_major);
+    cudaq::complex_matrix::value_type scalar(3.);
+    string_equal((scalar * m2).to_string(), "(6,0) (3,0)\n(9,0) (12,0)\n");
+  }
+
+  {
+    cudaq::complex_matrix m2({2., 1., 3., 4.}, {2, 2}, cudaq::complex_matrix::order::row_major);
+    std::vector<cudaq::complex_matrix::value_type> vect = {5, 6};
+    std::vector<cudaq::complex_matrix::value_type> expected = {16, 39};
+    string_equal(vecToStr(m2 * vect), vecToStr(expected));
+  }
+  {
+    cudaq::complex_matrix m2({2., 3., 1., 4.}, {2, 2}, cudaq::complex_matrix::order::column_major);
+    std::vector<cudaq::complex_matrix::value_type> vect = {5, 6};
+    std::vector<cudaq::complex_matrix::value_type> expected = {16, 39};
+    string_equal(vecToStr(m2 * vect), vecToStr(expected));
+  }
+}
+
 TEST(Tensor, product) {
   {
     cudaq::complex_matrix m2({2., 1., 3., 4.}, {2, 2}, cudaq::complex_matrix::order::row_major);
