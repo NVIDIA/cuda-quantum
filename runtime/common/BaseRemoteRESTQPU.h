@@ -692,7 +692,7 @@ public:
     if (!executionContext)
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::draw().");
+          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
     // Get the Quake code, lowered according to config file.
     auto codes = lowerQuakeCode(kernelName, rawArgs);
@@ -714,7 +714,7 @@ public:
     if (!executionContext)
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::draw().");
+          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
     // Get the Quake code, lowered according to config file.
     // FIXME: For python, we reach here with rawArgs being empty and args having

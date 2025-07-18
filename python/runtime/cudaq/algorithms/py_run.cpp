@@ -246,8 +246,19 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
 /// @brief Bind the run cudaq function.
 void bindPyRun(py::module &mod) {
   mod.def("run", &pyRun, py::arg("kernel"), py::kw_only(),
-          py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
-          R"#()#");
+          py::arg("shots_count") = 100, py::arg("noise_model") = py::none(),
+          R"#(Run the provided `kernel` with the given kernel arguments over 
+the specified number of circuit executions (`shots_count`).
+
+Args:
+  kernel: The kernel to execute `shots_count` times on the QPU.
+  *arguments: The concrete values to evaluate the kernel function at.
+  shots_count: The number of kernel executions on the QPU. Defaults to 100.
+  noise_model: The optional noise model to add noise to the kernel execution.
+
+Returns:
+  A list of kernel return values from each execution. The length equals `shots_count`.
+)#");
 }
 
 /// @brief Bind the run_async cudaq function.
@@ -268,7 +279,21 @@ void bindPyRunAsync(py::module &mod) {
           },
           "");
   mod.def("run_async_internal", &pyRunAsync, py::arg("kernel"), py::kw_only(),
-          py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
-          py::arg("qpu_id") = 0, R"#()#");
+          py::arg("shots_count") = 100, py::arg("noise_model") = py::none(),
+          py::arg("qpu_id") = 0,
+          R"#(Run the provided `kernel` with the given kernel arguments over 
+the specified number of circuit executions (`shots_count`) asynchronously on the 
+specified `qpu_id`.
+
+Args:
+  kernel: The kernel to execute `shots_count` times on the QPU.
+  *arguments: The concrete values to evaluate the kernel function at.
+  shots_count: The number of kernel executions on the QPU. Defaults to 100.
+  noise_model: The optional noise model to add noise to the kernel execution.
+  qpu_id: The id of the QPU. Defaults to 0.
+
+Returns:
+  AsyncRunResult: A handle which can be waited on via a `get()` method.
+)#");
 }
 } // namespace cudaq

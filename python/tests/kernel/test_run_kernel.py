@@ -1180,6 +1180,304 @@ def test_dataclasses_dot_dataclass_user_defined_method_raises_error():
         e.value)
 
 
+def test_shots_count():
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qubit()
+        h(q)
+        return mz(q)
+
+    results = cudaq.run(kernel)
+    assert len(results) == 100  # default shots count
+    results = cudaq.run(kernel, shots_count=53)
+    assert len(results) == 53
+
+
+def test_return_from_if_loop_with_true_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, True, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_from_if_loop_with_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, False, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_from_if_loop_with_false_condition_and_return_from_parent_scope(
+):
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        return 0
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 0
+
+
+def test_return_from_if_and_else_loop_with_true_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_if_and_else_loop_with_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_return_from_if_and_else_loop_with_true_condition_in_for_loop():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            for i in range(6):
+                if i == 0:
+                    return 1
+                else:
+                    return -1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_if_and_else_loop_having_for_with_no_return():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            for i in range(6):
+                if i == 0:
+                    return 1
+        else:
+            return -1
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, True, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_from_if_and_else_loop_with_for_loop_and_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            for i in range(6):
+                if i == 0:
+                    return 1
+                else:
+                    return -1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_return_from_if_and_else_loop_with_true_condition_in_while_loop():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            i = 0
+            while i < 6:
+                if i == 0:
+                    return 1
+                else:
+                    return -1
+                i = i + 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_if_and_else_loop_having_while_with_no_return():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            i = 0
+            while i < 6:
+                if i == 0:
+                    return 1
+                i = i + 1
+        else:
+            return -1
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, True, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_from_if_and_else_loop_with_for_loop_and_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            for i in range(6):
+                if i == 0:
+                    return 1
+                else:
+                    return -1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_return_from_for_loop_with_else_block():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        for i in range(6):
+            if i % 2 == 0:
+                return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_else_block_after_a_for_loop():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        for i in range(6):
+            if i % 2 == 10:
+                return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    results[0] == -1
+
+
+def test_return_from_while_loop_with_else_block():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        i = 0
+        while i < 6:
+            if i % 2 == 0:
+                return 1
+            i = i + 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_else_block_after_a_while_loop():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        i = 0
+        while i < 6:
+            if i % 2 == 10:
+                return 1
+            i = i + 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_return_from_outside_the_for_loop():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        for i in range(6):
+            if i % 2 == 10:
+                return 1
+        return 0
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 0
+
+
+def test_return_with_true_condition_with_variable_defined_outside_the_loop():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        result = 0
+        if cond:
+            result = 1
+        return result
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_with_false_condition_with_variable_defined_outside_the_loop():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        result = 0
+        if cond:
+            result = 1
+        return result
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 0
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

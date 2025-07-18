@@ -395,6 +395,7 @@ jobs:
 
           docker pull $cudaqbase_image
           base_tag=`docker inspect $cudaqbase_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
+          base_tag=$(echo "$base_tag" | sed -E 's/^(arm64-|amd64-)//')
           image_title=`docker inspect $cudaqbase_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
           image_description=`docker inspect $cudaqbase_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
           docker image rm $cudaqbase_image
