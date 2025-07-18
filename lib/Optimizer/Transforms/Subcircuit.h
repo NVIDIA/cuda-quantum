@@ -69,7 +69,7 @@ public:
         return;
       }
 
-      if (isQuakeOperation(op))
+      if (isa<quake::OperatorInterface>(op))
         for (auto operand : op->getOperands())
           if (quake::isQuantumType(operand.getType()))
             netlists[getIndexOf(operand)]->append(op);
@@ -173,8 +173,8 @@ protected:
           auto target = op->getOperand(1);
           auto other_def = nl->getDef() == control ? target : control;
           auto nl = subcircuit->getWrapper(other_def);
-          assert(nl);
-          nl->pruneFrom(op);
+          if (nl)
+            nl->pruneFrom(op);
         }
         subcircuit->ops.remove(op);
       }

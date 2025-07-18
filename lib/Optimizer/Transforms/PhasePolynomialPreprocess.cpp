@@ -111,37 +111,22 @@ public:
 };
 } // namespace
 
-static void createPhasePolynomialOptPipeline(OpPassManager &pm) {
-  // pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  // pm.addNestedPass<func::FuncOp>(createCSEPass());
-  // opt::LoopUnrollOptions luo;
-  // luo.threshold = 2048;
-  // pm.addNestedPass<func::FuncOp>(opt::createLoopUnroll(luo));
-  // pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  // pm.addNestedPass<func::FuncOp>(createCSEPass());
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+static void createPhaseFoldingPipeline(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addPass(cudaq::opt::createPhasePolynomialPreprocess());
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createPhasePolynomialRotationMerging());
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   cudaq::opt::addAggressiveEarlyInlining(pm);
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
 
-void cudaq::opt::registerPhasePolynomialOptimizationPipeline() {
+void cudaq::opt::registerPhaseFoldingPipeline() {
   PassPipelineRegistration<>(
-      "phase-polynomial-opt-pipeline",
+      "phase-folding-pipeline",
       "Apply phase polynomial based rotation merging.",
-      [](OpPassManager &pm) { createPhasePolynomialOptPipeline(pm); });
+      [](OpPassManager &pm) { createPhaseFoldingPipeline(pm); });
 }
