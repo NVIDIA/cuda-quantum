@@ -96,8 +96,6 @@ int main() {
   }
 
   {
-    cudaq::mpi::initialize();
-
     // Jaynes-Cummings Hamiltonian
     double omega_c = 6.0 * M_PI;
     double omega_a = 4.0 * M_PI;
@@ -235,6 +233,24 @@ int main() {
                                 {cudaq::spin_op::z(0)},
                                 cudaq::IntermediateResultSave::All);
     // [End SuperOperator]
+  }
+
+  {
+    auto H = spin_op::z(0) + spin_op::z(1);
+    const cudaq::dimension_map dimensions = {{0, 2}, {1, 2}};
+    cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, 100), {"t"});
+    cudaq::integrators::runge_kutta integrator(1, 0.001);
+    // [Begin MPI]
+    cudaq::mpi::initialize();
+    // Initial state (expressed as an enum)
+    auto psi0 = cudaq::InitialState::ZERO;
+
+    // Run the simulation
+    auto evolution_result =
+        cudaq::evolve(H, dimensions, schedule, psi0, integrator);
+
+    cudaq::mpi::finalize();
+    // [End MPI]
   }
   return 0;
 }

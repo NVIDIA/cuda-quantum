@@ -236,7 +236,7 @@ evolution_result = cudaq.evolve(
     psi0,
     observables=[],
     collapse_operators=[],
-    store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
+    store_intermediate_results=cudaq.IntermediateResultSave.NONE,
     integrator=RungeKuttaIntegrator())
 
 cudaq.mpi.finalize()

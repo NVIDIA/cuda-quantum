@@ -415,6 +415,142 @@ backend target.
         *   - `runge_kutta`
             - 1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method).
 
+Batch simulation
+^^^^^^^^^^^^^^^^^
+
+.. _cudensitymat_batching:
+
+CUDA-Q ``dynamics`` target supports batch simulation, which allows users to run multiple simulations simultaneously.
+This batching capability applies to (1) multiple initial states and/or (2) multiple Hamiltonians.
+
+Batching can significantly improve performance when simulating many small identical system dynamics, e.g., parameter sweeping or tomography. 
+
+For example, we can simulate the time evolution of multiple initial states with the same Hamiltonian as follows:
+
+.. tab:: Python
+
+    .. literalinclude:: ../snippets/python/using/backends/dynamics_state_batching.py
+        :language: python
+        :start-after: [Begin State Batching]
+        :end-before: [End State Batching]
+
+.. tab:: C++
+
+    .. literalinclude:: ../snippets/cpp/using/backends/dynamics_state_batching.cpp
+        :language: cpp
+        :start-after: [Begin State Batching]
+        :end-before: [End State Batching]
+
+Similarly, we can also batch simulate the time evolution of multiple Hamiltonians as follows:
+
+.. tab:: Python
+
+    .. literalinclude:: ../snippets/python/using/backends/dynamics_operator_batching.py
+        :language: python
+        :start-after: [Begin Operator Batching]
+        :end-before: [End Operator Batching]
+
+    In this example, we show the most generic batching capability, where each Hamiltonian in the batch corresponds to a specific initial state.
+    In other words, the vector of Hamiltonians and the vector of initial states are of the same length.
+    If only one initial state is provided, it will be used for all Hamiltonians in the batch.
+
+.. tab:: C++
+
+    .. literalinclude:: ../snippets/cpp/using/backends/dynamics_operator_batching.cpp
+        :language: cpp
+        :start-after: [Begin Operator Batching]
+        :end-before: [End Operator Batching]
+
+The results of the batch simulation will be returned as a list of evolve result objects, one for each Hamiltonian in the batch.
+For example, we can extract the time evolution results of the expectation values for each Hamiltonian in the batch as follows:
+
+.. tab:: Python
+
+    .. literalinclude:: ../snippets/python/using/backends/dynamics_operator_batching.py
+        :language: python
+        :start-after: [Begin Batch Results]
+        :end-before: [End Batch Results]
+
+    The expectation values are returned as a list of lists, where each inner list corresponds to the expectation values for the observables at each time step for the respective Hamiltonian in the batch.
+
+    .. code:: bash     
+
+        all_exp_val_x = [[0.0, ...], [0.0, ...], ..., [0.0, ...]]
+        all_exp_val_y = [[0.0, ...], [0.0, ...], ..., [0.0, ...]]
+        all_exp_val_z = [[1.0, ...], [1.0, ...], ..., [1.0, ...]]
+
+.. tab:: C++
+
+    .. literalinclude:: ../snippets/cpp/using/backends/dynamics_operator_batching.cpp
+        :language: cpp
+        :start-after: [Begin Batch Results]
+        :end-before: [End Batch Results]
+
+    The expectation values are returned as a list of lists, where each inner list corresponds to the expectation values for the observables at each time step for the respective Hamiltonian in the batch.
+
+    .. code:: bash     
+
+        all_exp_val_x = [[0.0, ...], [0.0, ...], ..., [0.0, ...]]
+        all_exp_val_y = [[0.0, ...], [0.0, ...], ..., [0.0, ...]]
+        all_exp_val_z = [[1.0, ...], [1.0, ...], ..., [1.0, ...]]    
+
+
+Collapse operators and super-operators can also be batched in a similar manner. 
+Specifically, if the `collapse_operators` parameter is a nested list of operators (:math:`\{\{L\}_1, \{\{L\}_2, ...\}`), 
+then each set of collapsed operators in the list will be applied to the corresponding Hamiltonian in the batch.
+
+
+In order for all Hamiltonians to be batched, they must have the same structure, i.e., same number of product terms and those terms must act on the same degrees of freedom.
+The order of the terms in the Hamiltonian does not matter, nor do the coefficient values/callback functions and the specific operators on those product terms.
+Here are a couple of examples of Hamiltonians that can or cannot be batched:
+
+.. list-table:: 
+    :widths: 50 50 50
+    :header-rows: 1
+
+    *   - First Hamiltonian
+        - Second Hamiltonian
+        - Batchable?
+    *   - :math:`H_1 = \omega_1 \sigma_z(0)`
+        - :math:`H_2 = \omega_2 \sigma_z(0)` 
+        - Yes (different coefficients, same operator)
+    *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)`
+        - :math:`H_2 = \omega_z \sigma_z(0) + \sin(\omega_xt)  \sigma_x(1)`
+        - Yes (same structure, different callback coefficients)
+    *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)`
+        - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_y(1)`
+        - Yes (different operators on the same degree of freedom)
+    *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)`
+        - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1) + \cos(\omega_yt) \sigma_y(1)`
+        - No (different number of product terms)
+    *   - :math:`H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_{xx}(0, 1)`
+        - :math:`H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(0)\sigma_x(1)`
+        - No (different structures, two-body operators vs. tensor product of single-body operators)
+
+When the Hamiltonians are **not** `batchable`, CUDA-Q will still run the simulations, but each Hamiltonian will be simulated separately in a sequential manner.
+CUDA-Q will log a warning "The input Hamiltonian and collapse operators are not compatible for batching. Running the simulation in non-batched mode.", when that happens.
+
+.. note::
+
+    Depending on the number of Hamiltonian operators together with factors such as the integrator, schedule step size, and whether intermediate results are stored, the batch simulation can be memory-intensive.
+    If you encounter out-of-memory issues, the `max_batch_size` parameter can be used to limit the number of Hamiltonians that are batched together in one run. 
+    For example, if you set `max_batch_size=2`, then we will run the simulations in batches of 2 Hamiltonians at a time, i.e., the first two Hamiltonians will be simulated together, then the next two, and so on.
+
+    .. tab:: Python
+
+        .. literalinclude:: ../snippets/python/using/backends/dynamics_operator_batching.py
+            :language: python
+            :start-after: [Begin Batch Size]
+            :end-before: [End Batch Size]
+
+    .. tab:: C++
+
+        .. literalinclude:: ../snippets/cpp/using/backends/dynamics_operator_batching.cpp
+            :language: cpp
+            :start-after: [Begin Batch Size]
+            :end-before: [End Batch Size]
+
+
 Multi-GPU Multi-Node Execution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -426,17 +562,30 @@ To enable parallel execution, the application must initialize MPI as follows.
 
 .. tab:: Python
 
-  .. literalinclude:: ../snippets/python/using/backends/dynamics.py
+    .. literalinclude:: ../snippets/python/using/backends/dynamics.py
         :language: python
         :start-after: [Begin MPI]
         :end-before: [End MPI]
 
-  .. code:: bash 
+    .. code:: bash 
 
         mpiexec -np <N> python3 program.py 
   
   where ``N`` is the number of processes.
 
+.. tab:: C++
+
+    .. literalinclude:: ../snippets/cpp/using/backends/dynamics.cpp
+        :language: cpp
+        :start-after: [Begin MPI]
+        :end-before: [End MPI]
+
+    .. code:: bash 
+
+        nvq++ --target dynamics example.cpp -o a.out 
+        mpiexec -np <N> a.out
+  
+  where ``N`` is the number of processes.
 
 By initializing the MPI execution environment (via `cudaq.mpi.initialize()`) in the application code and
 invoking it via an MPI launcher, we have activated the multi-node multi-GPU feature of the ``dynamics`` target.
