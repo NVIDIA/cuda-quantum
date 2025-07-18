@@ -36,12 +36,18 @@ protected:
   std::string userSpecifiedCredentials = "";
   std::string credentialsPath = "";
 
+  // Rest client to send additional requests
+  RestClient restClient;
+
   /// @brief Quantinuum requires the API token be updated every so often,
   /// using the provided refresh token. This function will do that.
   void refreshTokens(bool force_refresh = false);
 
   /// @brief Return the headers required for the REST calls
   RestHeaders generateRequestHeader() const;
+
+  /// @brief Helper to parse the result ID from the job response
+  std::string getResultId(ServerMessage &getJobResponse);
 
 public:
   /// @brief Return the name of this server helper, must be the
@@ -86,11 +92,6 @@ public:
 
   /// @brief Return true if the job is done
   bool jobIsDone(ServerMessage &getJobResponse) override;
-
-  std::optional<std::string>
-  getResultId(ServerMessage &getJobResponse) override;
-
-  std::string constructGetResultPath(const std::string &resultId) override;
 
   /// @brief Given a completed job response, map back to the sample_result
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
@@ -144,8 +145,7 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   return jobStatus == "COMPLETED";
 }
 
-std::optional<std::string>
-QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
+std::string QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
   if (!jobIsDone(getJobResponse)) {
     throw std::runtime_error("Job is not done, cannot retrieve result ID.");
   }
@@ -166,16 +166,14 @@ QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
   return item["result_id"].get<std::string>();
 }
 
-std::string
-QuantinuumServerHelper::constructGetResultPath(const std::string &resultId) {
-  assert(!resultId.empty() && "Result ID cannot be empty.");
-  return baseUrl + "results/v1beta3/" + resultId;
-}
-
 cudaq::sample_result
-QuantinuumServerHelper::processResults(ServerMessage &resultResponse,
+QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
                                        std::string &jobId) {
-
+  const std::string resultId = getResultId(jobResponse);
+  const std::string resultPath = baseUrl + "results/v1beta3/" + resultId;
+  cudaq::info("Retrieving results from path: {}", resultPath);
+  RestHeaders headers = generateRequestHeader();
+  auto resultResponse = restClient.get(resultPath, "", headers);
   auto results = resultResponse["data"]["attributes"]["counts"];
 
   CUDAQ_INFO("Results message: {}", results.dump());

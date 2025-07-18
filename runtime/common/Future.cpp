@@ -27,28 +27,17 @@ sample_result future::get() {
 
   std::vector<ExecutionResult> results;
   for (auto &id : jobs) {
-    CUDAQ_INFO("Future retrieving results for {}.", id.first);
+    cudaq::info("Future retrieving results for {}.", id.first);
 
     auto jobGetPath = serverHelper->constructGetJobPath(id.first);
 
-    CUDAQ_INFO("Future got job retrieval path as {}.", jobGetPath);
+    cudaq::info("Future got job retrieval path as {}.", jobGetPath);
     auto resultResponse = client.get(jobGetPath, "", headers);
     while (!serverHelper->jobIsDone(resultResponse)) {
       auto polling_interval =
           serverHelper->nextResultPollingInterval(resultResponse);
       std::this_thread::sleep_for(polling_interval);
       resultResponse = client.get(jobGetPath, "", headers);
-    }
-
-    // Job is done, check whether we needs to retrieve results from another
-    // endpoint.
-    const auto optionalResultId = serverHelper->getResultId(resultResponse);
-    if (optionalResultId.has_value()) {
-      // We need to retrieve result from another endpoint
-      const auto resultGetPath =
-          serverHelper->constructGetResultPath(optionalResultId.value());
-      CUDAQ_INFO("Future got result retrieval path as {}.", resultGetPath);
-      resultResponse = client.get(resultGetPath, "", headers);
     }
     auto c = serverHelper->processResults(resultResponse, id.first);
 
