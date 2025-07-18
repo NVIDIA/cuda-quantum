@@ -438,15 +438,184 @@ jobs:
           echo '${{ steps.read.outputs.result }}' | jq .
 
   stitch:
+    name: Stitch CUDA ${{ matrix.cuda }} images
     needs: [digest_config, ext_config]
-    name: Stitch multi-arch manifests
-    uses: ./.github/workflows/stitch.yml
-    secrets:
-      NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
-    with:
-      digests_json: ${{ needs.digest_config.outputs.json }}
-      ext_json: ${{ needs.ext_config.outputs.json }}
-      environment: ghcr-deployment
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cuda: ["11.8", "12.0"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up environment
+        run: |
+          docker context create builder_context || echo "Context exists"
+          docker context use builder_context
+
+      - name: Setup buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: builder_context
+
+      - name: Login to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Log in to NGC
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
+      - name: metadata for jobs
+        id: metadata
+        run: |
+          set -euo pipefail
+
+          DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
+          EXT_JSON='${{ needs.ext_config.outputs.json }}'
+
+          echo "digests_json<<EOF" | tee -a "$GITHUB_OUTPUT"
+          echo "$DIGESTS_JSON" | tee -a "$GITHUB_OUTPUT"
+          echo "EOF" | tee -a "$GITHUB_OUTPUT"
+
+          echo "ext_json<<EOF" | tee -a "$GITHUB_OUTPUT"
+          echo "$EXT_JSON" | tee -a "$GITHUB_OUTPUT"
+          echo "EOF" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Stitch devdeps image
+        id: stitch_devdeps_image
+        run: |
+          cuda="${{ matrix.cuda }}"
+          cuda_major="${cuda%%.*}"
+
+          EXT_JSON='${{ steps.metadata.outputs.ext_json }}'
+          DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
+
+          refs=""
+          for arch in arm64 amd64; do
+            key="${arch}-cu${cuda}-ext"
+            image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
+            refs="$refs $image"
+          done
+
+          registry=$(echo "$image" | cut -d'@' -f1)
+          gcc_version=$(echo "$EXT_JSON" | jq -r ".build_cache[\"$key\"]" | grep -o 'gcc[0-9]\+' || echo "gccXX")
+          tag="ext-cu${cuda}-${gcc_version}-${{ github.ref_name }}"
+          stitched_tag="${registry}:${tag}"
+
+          echo "Stitching devdeps image with tag: $stitched_tag"
+          echo "References: $refs"
+
+          docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+
+          stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "devdeps-cu${cuda_major}" --arg val "$digest" '. + {($key): $val}')
+          echo "$stitched_output" > stitched_digests.json
+
+      - name: Stitch debug image
+        id: stitch_debug_image
+        run: |
+          set -euo pipefail
+          DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
+
+          cuda="${{ matrix.cuda }}"
+          cuda_major="${cuda%%.*}"
+          image="dev-image"
+
+          refs=""
+          for arch in amd64 arm64; do
+            key="${arch}-cu${cuda}-${image}"
+            digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
+            arch_reference=$(echo "$DIGESTS_JSON" | jq -r ".image_tag[\"$key\"]")
+            registry=$(echo "$arch_reference" | cut -d':' -f1)
+            refs="$refs $registry@$digest"
+          done
+
+          branch="${{ github.ref_name }}"
+          stitched_tag="$registry:cu${cuda_major}-${branch}-base"
+
+          echo "Stitching debug image with tag: $stitched_tag"
+          echo "References: $refs"
+
+          docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "dev-cu${cuda_major}" --arg val "$digest" '. + {($key): $val}')
+          echo "$stitched_output" > stitched_digests.json
+
+      - name: Stitch release image
+        id: stitch_release_image
+        run: |
+          set -euo pipefail
+          DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
+
+          cuda="${{ matrix.cuda }}"
+          cuda_major="${cuda%%.*}"
+          image="image"
+
+          refs=""
+          for arch in amd64 arm64; do
+            key="${arch}-cu${cuda}-${image}"
+            digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
+            arch_reference=$(echo "$DIGESTS_JSON" | jq -r ".image_tag[\"$key\"]")
+            registry=$(echo "$arch_reference" | cut -d':' -f1)
+            refs="$refs $registry@$digest"
+          done
+
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          echo $is_versioned
+
+          has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
+          echo $has_continuous_deployment
+
+          push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
+          echo $push_to_ngc
+
+          if [[ "$push_to_ngc" == "true" ]]; then
+            registry=${registry/ghcr.io\/nvidia/nvcr.io\/nvidia\/nightly}
+          fi
+
+          image_tag="cu${cuda_major}-"
+          if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
+            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
+            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
+          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
+            image_tag+="latest"
+          elif "$is_versioned" == "true"; then
+            image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
+          fi
+
+          suffix="-base"
+          image_tag="${image_tag}${suffix}"
+
+          stitched_tag="${registry}:${image_tag}"
+
+          echo "Stitching release image with tag: $stitched_tag"
+          echo "References: $refs"
+
+          docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "base-cu${cuda_major}" --arg val "$digest" '. + {($key): $val}')
+          echo "$stitched_output" > stitched_digests.json
+
+      - name: Write matrix outputs
+        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        with:
+          matrix-step-name: stitched_images
+          matrix-key: cu${{ matrix.cuda }}
+          outputs: |
+            json: $(jq -c . stitched_digests.json)
 
   aggregate_stitched_images:
     name: Aggregate Stitched Images
@@ -467,7 +636,6 @@ jobs:
         run: |
           echo "Received matrix outputs:"
           echo '${{ steps.read.outputs.result }}' | jq .
-
 
   summary:
     name: Write deployment summary
