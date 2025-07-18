@@ -334,8 +334,6 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
       -DOPENSSL_ROOT_DIR="${OPENSSL_INSTALL_PREFIX}" \
       -DCURL_LIBRARY="${CURL_INSTALL_PREFIX}/lib/libcurl.a" \
       -DCURL_INCLUDE_DIR="${CURL_INSTALL_PREFIX}/include" \
-      -Dcrypto_LIBRARY="$(find "$OPENSSL_INSTALL_PREFIX" -name libcrypto.a)" \
-      -Dcrypto_INCLUDE_DIR="${OPENSSL_INSTALL_PREFIX}/include" \
       -DENABLE_TESTING=OFF \
       -DAUTORUN_UNIT_TESTS=OFF
     cmake --build . --config=Release

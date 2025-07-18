@@ -173,14 +173,6 @@ endif()
 if(NOT OPENSSL_ROOT_DIR)	
   SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")	
 endif()
-if (NOT crypto_LIBRARY AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a")
-  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a" CACHE INTERNAL "")
-elseif(NOT crypto_LIBRARY AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a")
-  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a" CACHE INTERNAL "")
-endif()
-if (NOT crypto_INCLUDE_DIR AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/include")
-  SET(crypto_INCLUDE_DIR "$ENV{OPENSSL_INSTALL_PREFIX}/include" CACHE INTERNAL "")
-endif()
 if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
   SET(CURL_LIBRARY "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")	
   SET(CURL_INCLUDE_DIR "$ENV{CURL_INSTALL_PREFIX}/include")
@@ -197,6 +189,29 @@ endif()
 if(NOT CUDAQ_ENABLE_CC)
   SET(CUDAQ_ENABLE_CC $ENV{CUDAQ_ENABLE_CC})
 endif()
+
+# ———————————
+# Find OpenSSL’s libcrypto dynamically
+# ———————————
+find_library(crypto_LIBRARY
+  NAMES crypto libcrypto.so
+  HINTS ENV OPENSSL_INSTALL_PREFIX
+  PATH_SUFFIXES lib lib64
+  REQUIRED
+)
+
+find_path(crypto_INCLUDE_DIR
+  NAMES openssl/evp.h
+  HINTS ENV OPENSSL_INSTALL_PREFIX
+  PATH_SUFFIXES include
+  REQUIRED
+)
+
+# Cache them so downstream subdirs & scripts see the same values
+set(crypto_LIBRARY     "${crypto_LIBRARY}"     CACHE INTERNAL "Path to libcrypto.so")
+set(crypto_INCLUDE_DIR "${crypto_INCLUDE_DIR}" CACHE INTERNAL "Path to OpenSSL headers")
+
+message(STATUS "Using OpenSSL libcrypto: ${crypto_LIBRARY}")
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 SET(CMAKE_SKIP_INSTALL_RPATH FALSE)
