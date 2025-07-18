@@ -12,8 +12,8 @@
 #include <pybind11/stl.h>
 
 #include "cudaq/utils/matrix.h"
-#include "py_matrix.h"
 #include "py_helpers.h"
+#include "py_matrix.h"
 
 #include <complex>
 
@@ -41,7 +41,8 @@ void bindComplexMatrix(py::module &mod) {
       /// The following makes this fully compatible with NumPy
       .def_buffer([](complex_matrix &op) -> py::buffer_info {
         return py::buffer_info(
-            op.get_data(complex_matrix::order::row_major), sizeof(std::complex<double>),
+            op.get_data(complex_matrix::order::row_major),
+            sizeof(std::complex<double>),
             py::format_descriptor<std::complex<double>>::format(), 2,
             {op.rows(), op.cols()},
             {sizeof(std::complex<double>) * op.cols(),
@@ -50,7 +51,8 @@ void bindComplexMatrix(py::module &mod) {
       .def(py::init([](const py::buffer &b) {
              py::buffer_info info = b.request();
              complex_matrix m(info.shape[0], info.shape[1]);
-             extractMatrixData(info, m.get_data(complex_matrix::order::row_major));
+             extractMatrixData(info,
+                               m.get_data(complex_matrix::order::row_major));
              return m;
            }),
            "Create a :class:`ComplexMatrix` from a buffer of data, such as a "

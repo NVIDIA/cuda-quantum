@@ -58,7 +58,7 @@ public:
   // Instantiates a matrix of the given size.
   // All entries are set to zero by default.
   complex_matrix(std::size_t rows, std::size_t cols, bool set_zero = true,
-    order order = order::row_major)
+                 order order = order::row_major)
       : dimensions(std::make_pair(rows, cols)),
         data{new value_type[rows * cols]}, internal_order(order) {
     if (set_zero)
@@ -67,7 +67,7 @@ public:
 
   complex_matrix(const complex_matrix &other)
       : dimensions{other.dimensions},
-        data{new value_type[get_size(other.dimensions)]}, 
+        data{new value_type[get_size(other.dimensions)]},
         internal_order(other.internal_order) {
     std::copy(other.data, other.data + get_size(dimensions), data);
   }
@@ -75,13 +75,15 @@ public:
   complex_matrix(const complex_matrix &other, order order);
 
   complex_matrix(complex_matrix &&other)
-      : dimensions{other.dimensions}, data{other.data}, internal_order(other.internal_order) {
+      : dimensions{other.dimensions}, data{other.data},
+        internal_order(other.internal_order) {
     other.data = nullptr;
   }
 
   complex_matrix(const std::vector<value_type> &v,
                  const Dimensions &dim = {2, 2}, order order = order::row_major)
-      : dimensions{dim}, data{new value_type[get_size(dim)]}, internal_order(order) {
+      : dimensions{dim}, data{new value_type[get_size(dim)]},
+        internal_order(order) {
     check_size(v.size(), dimensions);
     std::copy(v.begin(), v.begin() + get_size(dimensions), data);
   }
@@ -209,9 +211,10 @@ public:
   complex_matrix::value_type *get_data(order order);
 
 private:
-  complex_matrix(const complex_matrix::value_type *v,
-                 const Dimensions &dim, order order)
-      : dimensions{dim}, data{new complex_matrix::value_type[get_size(dim)]}, internal_order(order) {
+  complex_matrix(const complex_matrix::value_type *v, const Dimensions &dim,
+                 order order)
+      : dimensions{dim}, data{new complex_matrix::value_type[get_size(dim)]},
+        internal_order(order) {
     auto size = get_size(dimensions);
     std::copy(v, v + size, data);
   }

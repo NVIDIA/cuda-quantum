@@ -49,11 +49,14 @@ access(cudaq::complex_matrix::value_type *p,
        cudaq::complex_matrix::Dimensions sizes, std::size_t row,
        std::size_t col, cudaq::complex_matrix::order internal_order) {
   return internal_order == cudaq::complex_matrix::order::row_major
-      ? p[row * sizes.second + col] : p[col * sizes.first + row];
+             ? p[row * sizes.second + col]
+             : p[col * sizes.first + row];
 }
 
-cudaq::complex_matrix::complex_matrix(const cudaq::complex_matrix &other, order order)
-: dimensions{other.dimensions}, data{new value_type[get_size(other.dimensions)]}, internal_order(order) {
+cudaq::complex_matrix::complex_matrix(const cudaq::complex_matrix &other,
+                                      order order)
+    : dimensions{other.dimensions},
+      data{new value_type[get_size(other.dimensions)]}, internal_order(order) {
   if (order == other.internal_order)
     std::copy(other.data, other.data + get_size(dimensions), data);
   else {
@@ -82,12 +85,14 @@ cudaq::complex_matrix::get_data(cudaq::complex_matrix::order order) {
 const cudaq::complex_matrix::EigenMatrix
 cudaq::complex_matrix::as_eigen() const {
   if (this->internal_order == cudaq::complex_matrix::order::row_major)
-    return Eigen::Map<Eigen::Matrix<value_type, -1, -1, Eigen::RowMajor, -1, -1>>(
+    return Eigen::Map<
+        Eigen::Matrix<value_type, -1, -1, Eigen::RowMajor, -1, -1>>(
         this->data, this->dimensions.first, this->dimensions.second);
   else {
     assert(this->internal_order == cudaq::complex_matrix::order::column_major);
-    return Eigen::Map<Eigen::Matrix<value_type, -1, -1, Eigen::ColMajor, -1, -1>>(
-      this->data, this->dimensions.first, this->dimensions.second);
+    return Eigen::Map<
+        Eigen::Matrix<value_type, -1, -1, Eigen::ColMajor, -1, -1>>(
+        this->data, this->dimensions.first, this->dimensions.second);
   }
 }
 
@@ -198,7 +203,8 @@ cudaq::complex_matrix cudaq::operator*(cudaq::complex_matrix::value_type scalar,
   for (std::size_t i = 0; i < right.rows(); i++)
     for (std::size_t j = 0; j < right.cols(); j++)
       access(new_data, right.dimensions, i, j, right.internal_order) =
-          scalar * access(right.data, right.dimensions, i, j, right.internal_order);
+          scalar *
+          access(right.data, right.dimensions, i, j, right.internal_order);
   return {new_data, right.dimensions, right.internal_order};
 }
 
@@ -248,8 +254,8 @@ cudaq::complex_matrix::kronecker_inplace(const cudaq::complex_matrix &right) {
     for (std::size_t k = 0; k < right.rows(); k++)
       for (std::size_t j = 0; j < cols(); j++)
         for (std::size_t m = 0; m < right.cols(); m++)
-          access(new_data, new_dim, right.rows() * i + k,
-                 right.cols() * j + m, this->internal_order) =
+          access(new_data, new_dim, right.rows() * i + k, right.cols() * j + m,
+                 this->internal_order) =
               access(data, dimensions, i, j, this->internal_order) *
               access(right.data, right.dimensions, k, m, right.internal_order);
   swap(new_data);
