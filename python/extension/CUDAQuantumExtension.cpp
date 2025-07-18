@@ -26,6 +26,7 @@
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_translate.h"
 #include "runtime/cudaq/algorithms/py_unitary.h"
+#include "runtime/cudaq/algorithms/py_unitary_decomposition.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "runtime/cudaq/algorithms/py_vqe.h"
 #include "runtime/cudaq/operators/py_boson_op.h"
@@ -129,6 +130,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindAltLaunchKernel(cudaqRuntime);
   cudaq::bindTestUtils(cudaqRuntime, *holder.get());
   cudaq::bindCustomOpRegistry(cudaqRuntime);
+  cudaq::bindPyUnitaryDecomposition(cudaqRuntime);
 
   cudaqRuntime.def("set_random_seed", &cudaq::set_random_seed,
                    "Provide the seed for backend quantum kernel simulation.");
