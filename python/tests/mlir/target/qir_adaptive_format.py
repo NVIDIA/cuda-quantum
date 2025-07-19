@@ -57,7 +57,7 @@ test_module_flags()
 # CHECK: !12 = !{i32 1, !"backwards_branching", i1 true}
 
 # CHECK-UNDER-DEVELOPMENT: ; ModuleID = 'LLVMDialectModule'
-# CHECK-UNDER-DEVELOPMENT: declare i1 @__quantum__qis__read_result__body(%Result*) local_unnamed_addr
+# CHECK-UNDER-DEVELOPMENT: declare i1 @__quantum__rt__read_result(%Result*) local_unnamed_addr
 # CHECK-UNDER-DEVELOPMENT: attributes #0 = { "entry_point" "output_labeling_schema"="schema_id" "output_names"="{{.*}}" "qir_profiles"="adaptive_profile" "required_num_qubits"="2" "required_num_results"="10" }
 # CHECK-UNDER-DEVELOPMENT: attributes #1 = { "irreversible" }
 # CHECK-UNDER-DEVELOPMENT: !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6}
