@@ -39,9 +39,7 @@ def test_simple_sampling_ghz():
 
 # FIXME:https://github.com/NVIDIA/cuda-quantum/issues/2830
 # Crash due to conditional feedback:
-pytest.mark.skip
-
-
+@pytest.mark.skip
 def test_simple_sampling_qpe():
     """Test that we can build up a set of kernels, compose them, and sample."""
 
