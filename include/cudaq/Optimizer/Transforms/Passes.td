@@ -1001,6 +1001,15 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
 }
 
+def QuakePropagateMetadata : Pass<"quake-propagate-metadata", "mlir::ModuleOp"> {
+  let summary = "Propagate metadata from callees to callers when needed.";
+  let description = [{
+   This pass propagates function metadata attributes added by `quake-add-metadata`
+   pass, such as `qubitMeasurementFeedback`, to all the callers of the function.
+   This makes sure the attributes are not missing after inlining.
+  }];
+}
+
 def QuakeSimplify : Pass<"quake-simplify"> {
   let summary = "Perform simplifications on the quake ops.";
   let description = [{
