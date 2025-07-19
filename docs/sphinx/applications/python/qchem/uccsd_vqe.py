@@ -1,11 +1,3 @@
-# ============================================================================ #
-# Copyright (c) 2024 - 2025 NVIDIA Corporation & Affiliates.                   #
-# All rights reserved.                                                         #
-#                                                                              #
-# This source code and the accompanying materials are made available under     #
-# the terms of the Apache License 2.0 which accompanies this distribution.     #
-# ============================================================================ #
-
 import cudaq
 from qchem.uccsd import get_uccsd_op, uccsd_circuit
 from qchem.uccsd import uccsd_circuit_double, uccsd_circuit_single
@@ -138,7 +130,7 @@ def uccsd_circuit_vqe(spin_mult, only_singles, only_doubles,
             result_vqe=minimize(cost, theta, method='L-BFGS-B', jac='3-point', tol=1e-7)
             print('Optimizer exited successfully: ',result_vqe.success, flush=True)
         elif method == 'BFGS':
-            result_vqe = minimize(cost, theta, method='BFGS', jac='3-point', tol=1e-7, options={'gtol': 1e-4})
+            result_vqe = minimize(cost, theta, method='BFGS', jac='3-point', options={'gtol': 1e-4})
             print('Optimizer exited successfully: ',result_vqe.success, flush=True)
         elif method == 'COBYLA':
             result_vqe = minimize(cost, theta, method='COBYLA', options={'rhobeg': 1.0, 'maxiter'
