@@ -2365,6 +2365,42 @@ def test_attribute_access_on_call_results():
     assert abs(result5 - 3.14) < 1e-6
 
 
+def test_mid_circuit_measurements():
+
+    @cudaq.kernel
+    def callee(register: cudaq.qview):
+        for i in range(4):
+            if i % 2 == 0:
+                x(register[i])
+
+            m = mz(register[i])
+            reset(register[i])
+
+            if m:
+                x(register[i])
+            else:
+                h(register[i])
+
+    @cudaq.kernel
+    def caller():
+        qr = cudaq.qvector(4)
+        callee(qr)
+
+    counts = cudaq.sample(caller)
+    assert counts.register_names == ["__global__", "m"]
+
+    globalCounts = counts.get_register_counts("__global__")
+    assert len(globalCounts) == 4
+    assert "1010" in globalCounts
+    assert "1011" in globalCounts
+    assert "1110" in globalCounts
+    assert "1111" in globalCounts
+
+    mCounts = counts.get_register_counts("m")
+    assert len(mCounts) == 1
+    assert "1010" in mCounts
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
