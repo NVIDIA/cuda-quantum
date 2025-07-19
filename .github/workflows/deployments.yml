@@ -445,6 +445,8 @@ jobs:
       matrix:
         cuda: ["11.8", "12.0"]
 
+    environment: ghcr-deployment
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
