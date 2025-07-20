@@ -967,6 +967,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+    pm.addPass(cudaq::opt::createQuakePropagateMetadata());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
