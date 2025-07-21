@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -581,15 +581,20 @@ struct DiscriminateOpRewrite
 template <typename M>
 struct DiscriminateOpToCallRewrite
     : public OpConversionPattern<quake::DiscriminateOp> {
-  using OpConversionPattern::OpConversionPattern;
+  explicit DiscriminateOpToCallRewrite(TypeConverter &typeConverter,
+                                       MLIRContext *ctx,
+                                       bool qirVersionUnderDevelopment_)
+      : OpConversionPattern(typeConverter, ctx),
+        qirVersionUnderDevelopment(qirVersionUnderDevelopment_) {}
 
   LogicalResult
   matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     if constexpr (M::discriminateToClassical) {
-      rewriter.replaceOpWithNewOp<func::CallOp>(disc, rewriter.getI1Type(),
-                                                cudaq::opt::QIRReadResultBody,
-                                                adaptor.getOperands());
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          disc, rewriter.getI1Type(),
+          cudaq::opt::getQIRReadResultBody(qirVersionUnderDevelopment),
+          adaptor.getOperands());
     } else {
       auto loc = disc.getLoc();
       // NB: the double cast here is to avoid folding the pointer casts.
@@ -602,6 +607,9 @@ struct DiscriminateOpToCallRewrite
     }
     return success();
   }
+
+private:
+  bool qirVersionUnderDevelopment;
 };
 
 template <typename M>
@@ -1747,7 +1755,8 @@ struct FullQIR {
   }
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
-                                      TypeConverter &typeConverter) {
+                                      TypeConverter &typeConverter,
+                                      bool qirVersionUnderDevelopment) {
     auto *ctx = patterns.getContext();
     patterns.insert<
         /* Rewrites for qubit management and aggregation. */
@@ -1815,7 +1824,8 @@ struct AnyProfileQIR {
   }
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
-                                      TypeConverter &typeConverter) {
+                                      TypeConverter &typeConverter,
+                                      bool qirVersionUnderDevelopment) {
     auto *ctx = patterns.getContext();
     patterns.insert<
         /* Rewrites for qubit management and aggregation. */
@@ -1877,11 +1887,13 @@ struct BaseProfileQIR : public AnyProfileQIR<opaquePtr> {
   using Base = AnyProfileQIR<opaquePtr>;
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
-                                      TypeConverter &typeConverter) {
-    Base::populateRewritePatterns(patterns, typeConverter);
+                                      TypeConverter &typeConverter,
+                                      bool qirVersionUnderDevelopment) {
+    Base::populateRewritePatterns(patterns, typeConverter,
+                                  qirVersionUnderDevelopment);
     patterns
         .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>>(
-            typeConverter, patterns.getContext());
+            typeConverter, patterns.getContext(), qirVersionUnderDevelopment);
   }
 
   static constexpr bool discriminateToClassical = false;
@@ -1894,11 +1906,13 @@ struct AdaptiveProfileQIR : public AnyProfileQIR<opaquePtr> {
   using Base = AnyProfileQIR<opaquePtr>;
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
-                                      TypeConverter &typeConverter) {
-    Base::populateRewritePatterns(patterns, typeConverter);
+                                      TypeConverter &typeConverter,
+                                      bool qirVersionUnderDevelopment) {
+    Base::populateRewritePatterns(patterns, typeConverter,
+                                  qirVersionUnderDevelopment);
     patterns
         .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>>(
-            typeConverter, patterns.getContext());
+            typeConverter, patterns.getContext(), qirVersionUnderDevelopment);
   }
 
   static constexpr bool discriminateToClassical = true;
@@ -1921,7 +1935,8 @@ struct QuakeToQIRAPIPass
     LLVM_DEBUG(llvm::dbgs() << "Before QIR API conversion:\n" << *op << '\n');
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    A::populateRewritePatterns(patterns, typeConverter);
+    A::populateRewritePatterns(patterns, typeConverter,
+                               qirVersionUnderDevelopment);
     ConversionTarget target(*ctx);
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                            cf::ControlFlowDialect, func::FuncDialect,
@@ -2038,6 +2053,14 @@ struct QuakeToQIRAPIPass
 struct QuakeToQIRAPIPrepPass
     : public cudaq::opt::impl::QuakeToQIRAPIPrepBase<QuakeToQIRAPIPrepPass> {
   using QuakeToQIRAPIPrepBase::QuakeToQIRAPIPrepBase;
+
+  /// @brief Construct pass
+  /// @param qirVersionUnderDevelopment_ whether the resulting QIR uses the
+  /// version under development
+  QuakeToQIRAPIPrepPass(bool qirVersionUnderDevelopment_)
+      : QuakeToQIRAPIPrepBase() {
+    qirVersionUnderDevelopment.setValue(qirVersionUnderDevelopment_);
+  }
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
@@ -2178,11 +2201,13 @@ struct QuakeToQIRAPIPrepPass
           }
           if (totalQubits)
             funcAttrs.push_back(builder.getStrArrayAttr(
-                {cudaq::opt::QIRRequiredQubitsAttrName,
+                {cudaq::opt::getQIRRequiredQubitsAttrName(
+                     qirVersionUnderDevelopment),
                  builder.getStringAttr(std::to_string(totalQubits))}));
           if (totalResults)
             funcAttrs.push_back(builder.getStrArrayAttr(
-                {cudaq::opt::QIRRequiredResultsAttrName,
+                {cudaq::opt::getQIRRequiredResultsAttrName(
+                     qirVersionUnderDevelopment),
                  builder.getStringAttr(std::to_string(totalResults))}));
         }
         if (!funcAttrs.empty())
@@ -2224,11 +2249,18 @@ struct QuakeToQIRAPIFinalPass
 } // namespace
 
 void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
-                                            bool opaquePtr) {
-  QuakeToQIRAPIPrepOptions prepApiOpt{.api = api.str(), .opaquePtr = opaquePtr};
+                                            bool opaquePtr,
+                                            bool qirVersionUnderDevelopment) {
+  QuakeToQIRAPIPrepOptions prepApiOpt{.api = api.str(),
+                                      .opaquePtr = opaquePtr,
+                                      .qirVersionUnderDevelopment =
+                                          qirVersionUnderDevelopment};
   pm.addPass(cudaq::opt::createQuakeToQIRAPIPrep(prepApiOpt));
   pm.addPass(cudaq::opt::createLowerToCG());
-  QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};
+  QuakeToQIRAPIOptions apiOpt{.api = api.str(),
+                              .opaquePtr = opaquePtr,
+                              .qirVersionUnderDevelopment =
+                                  qirVersionUnderDevelopment};
   pm.addPass(cudaq::opt::createQuakeToQIRAPI(apiOpt));
   pm.addPass(createCanonicalizerPass());
   QuakeToQIRAPIFinalOptions finalApiOpt{.api = api.str()};
@@ -2248,6 +2280,10 @@ struct QIRAPIPipelineOptions
   PassOptions::Option<bool> opaquePtr{*this, "opaque-pointer",
                                       llvm::cl::desc("use opaque pointers"),
                                       llvm::cl::init(false)};
+  PassOptions::Option<bool> qirVersionUnderDevelopment{
+      *this, "qir-version-under-development",
+      llvm::cl::desc("use version under development to create qir"),
+      llvm::cl::init(false)};
 };
 } // namespace
 
@@ -2255,6 +2291,7 @@ void cudaq::opt::registerToQIRAPIPipeline() {
   PassPipelineRegistration<QIRAPIPipelineOptions>(
       "convert-to-qir-api", "Convert quake to one of the QIR APIs.",
       [](OpPassManager &pm, const QIRAPIPipelineOptions &opt) {
-        addConvertToQIRAPIPipeline(pm, opt.api, opt.opaquePtr);
+        addConvertToQIRAPIPipeline(pm, opt.api, opt.opaquePtr,
+                                   opt.qirVersionUnderDevelopment);
       });
 }

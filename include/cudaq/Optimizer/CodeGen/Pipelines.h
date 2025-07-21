@@ -28,19 +28,22 @@ namespace cudaq::opt {
 /// passConfigAs will have identical values.
 void commonPipelineConvertToQIR(mlir::PassManager &pm,
                                 mlir::StringRef codeGenFor = "qir",
-                                mlir::StringRef passConfigAs = "qir");
+                                mlir::StringRef passConfigAs = "qir",
+                                bool qirVersionUnderDevelopment = false);
 
 /// \brief Pipeline builder to convert Quake to QIR.
 /// Does not specify a particular QIR profile.
-inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
-  commonPipelineConvertToQIR(pm);
+inline void addPipelineConvertToQIR(mlir::PassManager &pm,
+                                    bool qirVersionUnderDevelopment) {
+  commonPipelineConvertToQIR(pm, "qir", "qir", qirVersionUnderDevelopment);
 }
 
 /// \brief Pipeline builder to convert Quake to QIR.
 /// Specifies a particular QIR profile in \p convertTo.
 /// \p pm Pass manager to append passes to
 /// \p convertTo name of QIR profile (e.g., `qir-base`, `qir-adaptive`, ...)
-void addPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo);
+void addPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo,
+                             bool qirVersionUnderDevelopment);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 
