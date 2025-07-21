@@ -17,6 +17,7 @@ def uccsd_circuit_vqe(spin_mult,
                       theta,
                       hamiltonian,
                       method='BFGS',
+                      vqe_tol = 1e-3,
                       verbose=False):
     """
     Generate the UCCSD circuit for VQE.
@@ -159,7 +160,7 @@ def uccsd_circuit_vqe(spin_mult,
                                   theta,
                                   method='L-BFGS-B',
                                   jac='3-point',
-                                  tol=1e-7)
+                                  tol= vqe_tol)
             print('Optimizer exited successfully: ',
                   result_vqe.success,
                   flush=True)
@@ -180,7 +181,7 @@ def uccsd_circuit_vqe(spin_mult,
                                       'rhobeg': 1.0,
                                       'maxiter': 20000,
                                       'disp': False,
-                                      'tol': 1e-7
+                                      'tol': vqe_tol
                                   })
         else:
             raise ValueError(

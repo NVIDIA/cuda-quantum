@@ -302,11 +302,11 @@ CUDA-Q Applications
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,noisless">
-        <a href="../applications/python/QM_MM_PE.html" class="notebook-title">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a>
+        <a href="../applications/python/qm_mm_pe.html" class="notebook-title">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a>
         <div class="notebook-content">
             Learn how to implement QM/MM with PE framework using CUDA-Q.
         </div>
-        <img src="../_static/app_title_images/QMMM-PE.png" alt="QM/MM partitioning in the PE model." class="notebook-image">
+        <img src="../_static/app_title_images/qmmm-pe.png" alt="QM/MM partitioning in the PE model." class="notebook-image">
     </div>
 
     <script>
