@@ -54,6 +54,8 @@ add_nvqpp_test(ComputeAction examples/cpp/other/compute_actions.cpp)
 add_nvqpp_test(Gradients examples/cpp/other/gradients.cpp)
 add_nvqpp_test(IterativePhaseEstimation applications/cpp/iterative_qpe.cpp)
 add_nvqpp_test(RandomWalkPhaseEstimation applications/cpp/random_walk_qpe.cpp)
+add_nvqpp_test(BellState applications/cpp/bell_state.cpp)
+add_nvqpp_test(DeuteronBindingEnergyParamSweep applications/cpp/deuteron_binding_energy_param_sweep.cpp)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   add_nvqpp_test(CuQuantumGHZ examples/cpp/basics/cuquantum_backends.cpp TARGET nvidia LABELS gpu_required)  
@@ -135,6 +137,26 @@ if (CUDAQ_ENABLE_PYTHON)
   endfunction()
 
   add_pycudaq_test(Intro intro.py)
+  add_pycudaq_test(BellState bell_state.py
+    SOURCE_DIR
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
+  )
+  add_pycudaq_test(GHZ ghz.py
+    SOURCE_DIR
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
+  )
+  add_pycudaq_test(PhaseEstimation phase_estimation.py
+    SOURCE_DIR
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
+  )
+  add_pycudaq_test(DeuteronBindingEnergyParamSweep deuteron_binding_energy_param_sweep.py
+    SOURCE_DIR
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
+  )
+  add_pycudaq_test(Grover grover.py
+    SOURCE_DIR
+      "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/applications/python"
+  )
   if (CUDA_FOUND)
     add_pycudaq_test(EvolveDynamics using/backends/dynamics.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     add_pycudaq_test(EvolveDynamicsStateBatching using/backends/dynamics_state_batching.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
