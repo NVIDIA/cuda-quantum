@@ -67,6 +67,8 @@ add_nvqpp_test(FirstSample using/first_sample.cpp SOURCE_DIR ${CMAKE_CURRENT_SOU
 add_nvqpp_test(Timing using/time.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp APPLICATION_ARGS "10")
 if (CUDENSITYMAT_ROOT AND CUDA_FOUND) 
   add_nvqpp_test(Dynamics_Snippets using/backends/dynamics.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
+  add_nvqpp_test(Dynamics_State_Batching_Snippets using/backends/dynamics_state_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
+  add_nvqpp_test(Dynamics_Operator_Batching_Snippets using/backends/dynamics_operator_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
 endif()
 
 set(NGPUS 0)
@@ -135,6 +137,8 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(Intro intro.py)
   if (CUDA_FOUND)
     add_pycudaq_test(EvolveDynamics using/backends/dynamics.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+    add_pycudaq_test(EvolveDynamicsStateBatching using/backends/dynamics_state_batching.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+    add_pycudaq_test(EvolveDynamicsOperatorBatching using/backends/dynamics_operator_batching.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   endif()
 
   if (CUTENSORNET_ROOT AND CUDA_FOUND) 
