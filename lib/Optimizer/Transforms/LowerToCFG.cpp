@@ -7,7 +7,8 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -17,6 +18,12 @@
 #include "mlir/Transforms/Passes.h"
 
 #define DEBUG_TYPE "lower-to-cfg"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_CONVERTTOCFG
+#define GEN_PASS_DEF_CONVERTTOCFGPREP
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 using namespace mlir;
 
@@ -291,12 +298,12 @@ public:
   }
 };
 
-class LowerToCFGPass : public cudaq::opt::LowerToCFGBase<LowerToCFGPass> {
+class ConvertToCFG : public cudaq::opt::impl::ConvertToCFGBase<ConvertToCFG> {
 public:
-  LowerToCFGPass() = default;
+  using ConvertToCFGBase::ConvertToCFGBase;
 
   void runOnOperation() override {
-    auto op = getOperation();
+    auto *op = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<RewriteLoop, RewriteScope, RewriteIf, RewriteReturn>(ctx);
@@ -306,13 +313,37 @@ public:
                         cudaq::cc::BreakOp, cudaq::cc::ReturnOp>();
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-      emitError(op.getLoc(), "error converting to CFG\n");
+      emitError(op->getLoc(), "error converting to CFG\n");
+      signalPassFailure();
+    }
+  }
+};
+
+class ConvertToCFGPrep
+    : public cudaq::opt::impl::ConvertToCFGPrepBase<ConvertToCFGPrep> {
+public:
+  using ConvertToCFGPrepBase::ConvertToCFGPrepBase;
+
+  void runOnOperation() override {
+    ModuleOp mod = getOperation();
+    auto irBuilder = cudaq::IRBuilder::atBlockEnd(mod.getBody());
+    if (failed(irBuilder.loadIntrinsic(mod, cudaq::llvmStackSave))) {
+      mod.emitError("could not load llvm.stacksave intrinsic.");
+      signalPassFailure();
+    }
+    if (failed(irBuilder.loadIntrinsic(mod, cudaq::llvmStackRestore))) {
+      mod.emitError("could not load llvm.stackrestore intrinsic.");
       signalPassFailure();
     }
   }
 };
 } // namespace
 
-std::unique_ptr<Pass> cudaq::opt::createLowerToCFGPass() {
-  return std::make_unique<LowerToCFGPass>();
+void cudaq::opt::addLowerToCFG(OpPassManager &pm) {
+  pm.addPass(cudaq::opt::createConvertToCFGPrep());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createConvertToCFG());
+}
+
+void cudaq::opt::registerToCFGPipeline() {
+  PassPipelineRegistration<>("lower-to-cfg", "Convert to CFG.", addLowerToCFG);
 }

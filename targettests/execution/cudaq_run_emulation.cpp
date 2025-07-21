@@ -10,7 +10,8 @@
 // REQUIRES: c++20
 
 // clang-format off
-// RUN: nvq++ -fenable-cudaq-run %cpp_std --target quantinuum --emulate  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t |& FileCheck %s -check-prefix=FAIL
+// RUN: CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 nvq++ %cpp_std --target quantinuum --emulate %s -o %t && CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -48,4 +49,5 @@ int main() {
   return 0;
 }
 
+// FAIL: `run` is not yet supported on this target
 // CHECK: success!

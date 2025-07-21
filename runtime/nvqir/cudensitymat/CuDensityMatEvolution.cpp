@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "BatchingUtils.h"
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatExpectation.h"
@@ -43,6 +44,153 @@ state migrateState(const state &inputState) {
   HANDLE_CUDA_ERROR(cudaMemcpy(localizedState, inputState.get_tensor().data,
                                arraySizeBytes, cudaMemcpyDefault));
   return state(new CuDensityMatState(dim, localizedState));
+}
+
+bool checkBatchingCompatibility(
+    const std::vector<cudaq::matrix_handler> &elemOps) {
+  if (elemOps.size() == 1)
+    return true;
+
+  const auto &firstOp = elemOps[0];
+  for (std::size_t i = 1; i < elemOps.size(); ++i) {
+    if (elemOps[i].degrees() != firstOp.degrees()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool checkBatchingCompatibility(
+    const std::vector<sum_op<cudaq::matrix_handler>> &ops) {
+
+  if (ops.size() == 1) {
+    return true;
+  }
+
+  // Check if all sum_ops has the same number of terms
+  const std::size_t num_terms = ops.front().num_terms();
+  for (std::size_t i = 1; i < ops.size(); ++i) {
+    if (ops[i].num_terms() != num_terms) {
+      return false;
+    }
+  }
+
+  // Split the sum_op to list of product_op
+  std::vector<std::vector<product_op<cudaq::matrix_handler>>> productOpsList(
+      ops.size());
+  for (auto &productOps : productOpsList) {
+    productOps.reserve(num_terms);
+  }
+  for (std::size_t i = 0; i < ops.size(); ++i) {
+    for (std::size_t j = 0; j < num_terms; ++j) {
+      productOpsList[i].emplace_back(ops[i][j]);
+    }
+  }
+
+  // Sort by degrees
+  for (auto &productOps : productOpsList) {
+    std::ranges::stable_sort(productOps.begin(), productOps.end(),
+                             [](const product_op<cudaq::matrix_handler> &a,
+                                const product_op<cudaq::matrix_handler> &b) {
+                               return a.degrees() < b.degrees();
+                             });
+  }
+
+  // Use the first product_op as a reference
+  auto &reference = productOpsList[0];
+  for (std::size_t i = 1; i < ops.size(); ++i) {
+    auto &current = productOpsList[i];
+    assert(current.size() == reference.size());
+    for (std::size_t j = 0; j < reference.size(); ++j) {
+      // Check if the degrees of the product_op match
+      if (current[j].degrees() != reference[j].degrees()) {
+        return false;
+      }
+      // Check if the number of elementary operators matches
+      if (current[j].num_ops() != reference[j].num_ops()) {
+        return false;
+      }
+      for (std::size_t k = 0; k < current[j].num_ops(); ++k) {
+        // Check if the elementary degrees match
+        if (current[j][k].degrees() != reference[j][k].degrees()) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+bool checkBatchingCompatibility(
+    const std::vector<sum_op<cudaq::matrix_handler>> &hamOps,
+    const std::vector<std::vector<sum_op<cudaq::matrix_handler>>>
+        &listCollapseOps) {
+  if (!checkBatchingCompatibility(hamOps)) {
+    return false;
+  }
+  if (!listCollapseOps.empty()) {
+    // All collapse_ops must have the same length for batching
+    const std::size_t collapseOpLength = listCollapseOps.front().size();
+    for (const auto &collapseOps : listCollapseOps) {
+      if (collapseOps.size() != collapseOpLength) {
+        return false;
+      }
+    }
+
+    for (std::size_t i = 0; i < collapseOpLength; ++i) {
+      // Check all the collapse ops in the batch
+      std::vector<sum_op<cudaq::matrix_handler>> collapseOps;
+      collapseOps.reserve(listCollapseOps.size());
+      for (const auto &collapseOp : listCollapseOps) {
+        collapseOps.emplace_back(collapseOp[i]);
+      }
+      if (!checkBatchingCompatibility(collapseOps)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool checkBatchingCompatibility(const std::vector<super_op> &listSuperOp) {
+  if (listSuperOp.empty()) {
+    return false;
+  }
+
+  const auto &firstSuperOp = listSuperOp[0];
+  const auto numberOfTerms = firstSuperOp.num_terms();
+
+  for (std::size_t i = 1; i < listSuperOp.size(); ++i) {
+    const auto &toCheck = listSuperOp[i];
+    if (toCheck.num_terms() != numberOfTerms) {
+      return false;
+    }
+
+    for (std::size_t j = 0; j < numberOfTerms; ++j) {
+      const auto &termToCheck = toCheck[j];
+      const auto &firstTerm = firstSuperOp[j];
+      if (firstTerm.first.has_value()) {
+        if (!termToCheck.first.has_value()) {
+          return false;
+        }
+        if (!checkBatchingCompatibility(
+                {firstTerm.first.value(), termToCheck.first.value()})) {
+          return false;
+        }
+      }
+      if (firstTerm.second.has_value()) {
+        if (!termToCheck.second.has_value()) {
+          return false;
+        }
+        if (!checkBatchingCompatibility(
+                {firstTerm.second.value(), termToCheck.second.value()})) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
 }
 
 static CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
@@ -330,7 +478,7 @@ evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
   if (!cudmState->is_initialized())
     cudmState->initialize_cudm(handle, dims, /*batchSize=*/1);
 
-  cudaq::integrator_helper::init_system_dynamics(integrator, superOp, dims,
+  cudaq::integrator_helper::init_system_dynamics(integrator, {superOp}, dims,
                                                  schedule);
   integrator.setState(initialState, 0.0);
 
@@ -391,10 +539,256 @@ evolveBatched(const super_op &superOp,
   }();
   auto batchedState = CuDensityMatState::createBatchedState(
       handle, states, dims, has_right_apply);
-  cudaq::integrator_helper::init_system_dynamics(integrator, superOp, dims,
+  cudaq::integrator_helper::init_system_dynamics(integrator, {superOp}, dims,
                                                  schedule);
   integrator.setState(cudaq::state(batchedState.release()), 0.0);
   return evolveBatchedImpl(dims, schedule, initialStates.size(), integrator,
                            observables, storeIntermediateResults);
+}
+
+std::vector<evolve_result>
+evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
+              const cudaq::dimension_map &dimensions, const schedule &schedule,
+              const std::vector<state> &initial_states,
+              base_integrator &integrator,
+              const std::vector<std::vector<sum_op<cudaq::matrix_handler>>>
+                  &collapse_operators,
+              const std::vector<sum_op<cudaq::matrix_handler>> &observables,
+              IntermediateResultSave store_intermediate_results,
+              std::optional<int> batch_size) {
+  LOG_API_TIME();
+
+  if (!collapse_operators.empty() &&
+      hamiltonians.size() != collapse_operators.size()) {
+    throw std::runtime_error("Number of Hamiltonian operators must match "
+                             "number of collapse operators.");
+  }
+
+  if (initial_states.size() != hamiltonians.size()) {
+    throw std::runtime_error(
+        "Number of initial states must match number of Hamiltonian operators.");
+  }
+
+  cudensitymatHandle_t handle =
+      dynamics::Context::getCurrentContext()->getHandle();
+  std::vector<int64_t> dims;
+  for (const auto &[id, dim] : convertToOrderedMap(dimensions))
+    dims.emplace_back(dim);
+
+  const bool canBeBatched =
+      checkBatchingCompatibility(hamiltonians, collapse_operators);
+  if (!canBeBatched) {
+    // If the batch size was specified:
+    if (batch_size.has_value() && batch_size.value() > 1) {
+      throw std::runtime_error(
+          "Hamiltonian operators and collapse operators are not compatible for "
+          "batching. Unable to run batched simulation with the requested batch "
+          "size.");
+    }
+
+    if (!batch_size.has_value()) {
+      // Otherwise, just log a warning:
+      cudaq::warn("Hamiltonian operators and collapse operators are not "
+                  "compatible for batching. "
+                  "Falling back to single evolution for each Hamiltonian.");
+    }
+  }
+
+  const auto batchSizeToRun =
+      canBeBatched ? std::min<int>(batch_size.value_or(hamiltonians.size()),
+                                   hamiltonians.size())
+                   : 1;
+  assert(batchSizeToRun <= hamiltonians.size());
+  std::unordered_map<std::string, std::complex<double>> params;
+  for (const auto &param : schedule.get_parameters()) {
+    params[param] = schedule.get_value_function()(param, 0.0);
+  }
+  const bool isMasterEquation =
+      !collapse_operators.empty() && !collapse_operators[0].empty();
+
+  // Run batched evolution up to the batch size and concatenate the results.
+  std::vector<evolve_result> allResults;
+  allResults.reserve(hamiltonians.size());
+  // Split the input states into batches up to batchSizeToRun
+  for (std::size_t i = 0; i < hamiltonians.size(); i += batchSizeToRun) {
+    std::vector<CuDensityMatState *> states;
+    states.reserve(batchSizeToRun);
+    std::vector<sum_op<cudaq::matrix_handler>> batchHamOps;
+    batchHamOps.reserve(batchSizeToRun);
+    std::vector<std::vector<sum_op<cudaq::matrix_handler>>> batchCollapseOps;
+    batchCollapseOps.reserve(batchSizeToRun);
+
+    for (std::size_t j = i; j < i + batchSizeToRun && j < hamiltonians.size();
+         ++j) {
+      states.emplace_back(asCudmState(const_cast<state &>(initial_states[j])));
+      batchHamOps.emplace_back(hamiltonians[j]);
+      if (!collapse_operators.empty()) {
+        batchCollapseOps.emplace_back(collapse_operators[j]);
+      }
+    }
+    const bool isDensityMat = states[0]->is_density_matrix();
+    const bool sameStateType = std::all_of(
+        states.begin(), states.end(), [&](CuDensityMatState *state) {
+          return state->is_density_matrix() == isDensityMat;
+        });
+
+    if (!sameStateType) {
+      throw std::invalid_argument(
+          "All initial states must be of the same type (density matrix or "
+          "state vector).");
+    }
+    // Evolve the batch of states
+    SystemDynamics system(dims, batchHamOps, batchCollapseOps);
+    cudaq::integrator_helper::init_system_dynamics(integrator, system,
+                                                   schedule);
+
+    if (states.size() > 1) {
+      auto batchedState = CuDensityMatState::createBatchedState(
+          handle, states, dims, isMasterEquation);
+      integrator.setState(cudaq::state(batchedState.release()), 0.0);
+      auto results =
+          evolveBatchedImpl(dims, schedule, states.size(), integrator,
+                            observables, store_intermediate_results);
+      assert(results.size() == states.size());
+      allResults.insert(allResults.end(),
+                        std::make_move_iterator(results.begin()),
+                        std::make_move_iterator(results.end()));
+    } else {
+      if (!states[0]->is_initialized())
+        states[0]->initialize_cudm(handle, dims, /*batchSize=*/1);
+      state canonicalize_initial_state = [&]() {
+        if (isMasterEquation && !states[0]->is_density_matrix())
+          return state(new CuDensityMatState(states[0]->to_density_matrix()));
+        return initial_states[i];
+      }();
+      integrator.setState(canonicalize_initial_state, 0.0);
+      auto result = evolveSingleImpl(dims, schedule, integrator, observables,
+                                     store_intermediate_results);
+      allResults.emplace_back(std::move(result));
+    }
+  }
+
+  return allResults;
+}
+
+std::vector<evolve_result>
+evolveBatched(const std::vector<super_op> &superOps,
+              const cudaq::dimension_map &dimensions, const schedule &schedule,
+              const std::vector<state> &initial_states,
+              base_integrator &integrator,
+              const std::vector<sum_op<cudaq::matrix_handler>> &observables,
+              IntermediateResultSave store_intermediate_results,
+              std::optional<int> batch_size) {
+  LOG_API_TIME();
+  if (superOps.empty()) {
+    throw std::runtime_error("No super operators provided for evolution.");
+  }
+  if (initial_states.size() != superOps.size()) {
+    throw std::runtime_error(
+        "Number of initial states must match number of super operators.");
+  }
+
+  cudensitymatHandle_t handle =
+      dynamics::Context::getCurrentContext()->getHandle();
+  std::vector<int64_t> dims;
+  for (const auto &[id, dim] : convertToOrderedMap(dimensions))
+    dims.emplace_back(dim);
+
+  const bool canBeBatched = checkBatchingCompatibility(superOps);
+  if (!canBeBatched) {
+    // If the batch size was specified:
+    if (batch_size.has_value() && batch_size.value() > 1) {
+      throw std::runtime_error(
+          "The input super-operators are not compatible for "
+          "batching. Unable to run batched simulation with the requested batch "
+          "size.");
+    }
+
+    if (!batch_size.has_value()) {
+      // Otherwise, just log a warning:
+      cudaq::warn("The input super-operators are not "
+                  "compatible for batching. "
+                  "Falling back to single evolution for each Hamiltonian.");
+    }
+  }
+
+  const auto batchSizeToRun =
+      canBeBatched
+          ? std::min<int>(batch_size.value_or(superOps.size()), superOps.size())
+          : 1;
+  assert(batchSizeToRun <= superOps.size());
+  std::unordered_map<std::string, std::complex<double>> params;
+  for (const auto &param : schedule.get_parameters()) {
+    params[param] = schedule.get_value_function()(param, 0.0);
+  }
+
+  const bool has_right_apply = [&]() {
+    for (const auto &superOp : superOps) {
+      for (const auto &[leftOp, rightOp] : superOp) {
+        if (rightOp.has_value())
+          return true;
+      }
+    }
+    return false;
+  }();
+  // Run batched evolution up to the batch size and concatenate the results.
+  std::vector<evolve_result> allResults;
+  allResults.reserve(superOps.size());
+  // Split the input states into batches up to batchSizeToRun
+  for (std::size_t i = 0; i < superOps.size(); i += batchSizeToRun) {
+    std::vector<CuDensityMatState *> states;
+    states.reserve(batchSizeToRun);
+    std::vector<super_op> batchSuperOps;
+    batchSuperOps.reserve(batchSizeToRun);
+
+    for (std::size_t j = i; j < i + batchSizeToRun && j < superOps.size();
+         ++j) {
+      states.emplace_back(asCudmState(const_cast<state &>(initial_states[j])));
+      batchSuperOps.emplace_back(superOps[j]);
+    }
+    const bool isDensityMat = states[0]->is_density_matrix();
+    const bool sameStateType = std::all_of(
+        states.begin(), states.end(), [&](CuDensityMatState *state) {
+          return state->is_density_matrix() == isDensityMat;
+        });
+
+    if (!sameStateType) {
+      throw std::invalid_argument(
+          "All initial states must be of the same type (density matrix or "
+          "state vector).");
+    }
+    // Evolve the batch of states
+    integrator_helper::init_system_dynamics(integrator, batchSuperOps, dims,
+                                            schedule);
+
+    if (states.size() > 1) {
+      auto batchedState = CuDensityMatState::createBatchedState(
+          handle, states, dims, has_right_apply);
+      integrator.setState(cudaq::state(batchedState.release()), 0.0);
+      auto results =
+          evolveBatchedImpl(dims, schedule, states.size(), integrator,
+                            observables, store_intermediate_results);
+      assert(results.size() == states.size());
+      allResults.insert(allResults.end(),
+                        std::make_move_iterator(results.begin()),
+                        std::make_move_iterator(results.end()));
+    } else {
+      if (!states[0]->is_initialized())
+        states[0]->initialize_cudm(handle, dims, /*batchSize=*/1);
+
+      state canonicalize_initial_state = [&]() {
+        if (has_right_apply && !states[0]->is_density_matrix())
+          return state(new CuDensityMatState(states[0]->to_density_matrix()));
+        return initial_states[i];
+      }();
+
+      integrator.setState(canonicalize_initial_state, 0.0);
+      auto result = evolveSingleImpl(dims, schedule, integrator, observables,
+                                     store_intermediate_results);
+      allResults.emplace_back(std::move(result));
+    }
+  }
+
+  return allResults;
 }
 } // namespace cudaq::__internal__

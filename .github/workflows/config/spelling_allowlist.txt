@@ -29,6 +29,7 @@ DOI
 Deuteron
 Deutsch
 Doxygen
+Exponentiating
 FPGAs
 Fermion
 Fock
@@ -282,6 +283,7 @@ optimizers
 pagerank
 parallelization
 parallelize
+parallelized
 parallelizing
 parameterization
 performant

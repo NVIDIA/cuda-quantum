@@ -457,10 +457,10 @@ public:
         cudaq::runtime::mangledNameMap);
 
     for (auto &op : m_module.getOps()) {
-      // Add any global symbols, including global constant arrays.
-      // Global constant arrays can be created during compilation,
-      // `lift-array-alloc`, `argument-synthesis`, `quake-synthesizer`,
-      // and `get-concrete-matrix` passes.
+      // Add any global symbols, including global constant arrays. Global
+      // constant arrays can be created during compilation, `lift-array-alloc`,
+      // `argument-synthesis`, `quake-synthesizer`, and `get-concrete-matrix`
+      // passes.
       if (auto lfunc = dyn_cast<mlir::func::FuncOp>(op)) {
         bool skip = lfunc.getName().ends_with(".thunk");
         if (!skip)
@@ -692,7 +692,7 @@ public:
     if (!executionContext)
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::draw().");
+          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
     // Get the Quake code, lowered according to config file.
     auto codes = lowerQuakeCode(kernelName, rawArgs);
@@ -714,7 +714,7 @@ public:
     if (!executionContext)
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::draw().");
+          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
     // Get the Quake code, lowered according to config file.
     // FIXME: For python, we reach here with rawArgs being empty and args having
