@@ -130,7 +130,7 @@ def uccsd_circuit_vqe(spin_mult, only_singles, only_doubles,
             result_vqe=minimize(cost, theta, method='L-BFGS-B', jac='3-point', tol=1e-7)
             print('Optimizer exited successfully: ',result_vqe.success, flush=True)
         elif method == 'BFGS':
-            result_vqe = minimize(cost, theta, method='BFGS', jac='3-point', options={'gtol': 1e-4})
+            result_vqe = minimize(cost, theta, method='BFGS', jac='3-point', options={'gtol': 1e-5})
             print('Optimizer exited successfully: ',result_vqe.success, flush=True)
         elif method == 'COBYLA':
             result_vqe = minimize(cost, theta, method='COBYLA', options={'rhobeg': 1.0, 'maxiter'

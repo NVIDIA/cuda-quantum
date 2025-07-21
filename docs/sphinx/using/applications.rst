@@ -39,6 +39,7 @@ CUDA-Q Applications
    /applications/python/quantum_pagerank
    /applications/python/uccsd_wf_ansatz
    /applications/python/mps_encoding
+   /applications/python/QM_MM_PE
 
 
 .. raw:: html
@@ -298,6 +299,14 @@ CUDA-Q Applications
             Learn how to approximately prepare quantum states via MPS using CUDA-Q.
         </div>
         <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noisless">
+        <a href="../applications/python/QM_MM_PE.html" class="notebook-title">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a>
+        <div class="notebook-content">
+            Learn how to implement QM/MM with PE framework using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/QMMM-PE.png" alt="QM/MM partitioning in the PE model." class="notebook-image">
     </div>
 
     <script>
