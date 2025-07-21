@@ -1001,10 +1001,15 @@ public:
       }
     };
 
-    auto updateExitTerminator = [&](Block *block, auto bindings,
-                                    std::size_t ignored) {
+    const auto ignoredCount = parent->getNumResults();
+    auto getIgnored = [ignoredCount](Operation *op) {
+      return isa_and_nonnull<cudaq::cc::CCDialect>(op->getDialect())
+                 ? ignoredCount
+                 : 0;
+    };
+    auto updateExitTerminator = [&](Block *block, auto bindings) {
       return updateTerminator(block->getTerminator(), nullptr, bindings,
-                              ignored);
+                              getIgnored(block->getTerminator()));
     };
 
     SmallPtrSet<Block *, 8> blocksVisited;
@@ -1013,7 +1018,7 @@ public:
       worklist.pop_front();
       // Check terminator is threading live-out of parent values.
       if (!liveOutParent.empty() && dataFlow.isExitBlock(block))
-        updateExitTerminator(block, liveOutParent, parent->getNumResults());
+        updateExitTerminator(block, liveOutParent);
 
       // Check that preds are threading all live-in values.
       auto liveInBlock = dataFlow.getLiveInToBlock(block);
@@ -1021,7 +1026,7 @@ public:
         auto preds = dataFlow.getPredecessors(block);
         for (auto *pred : preds)
           updateTerminator(pred->getTerminator(), block, liveInBlock,
-                           parent->getNumResults());
+                           getIgnored(pred->getTerminator()));
       }
 
       // We should visit all the blocks at least once.
