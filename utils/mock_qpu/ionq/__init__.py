@@ -57,10 +57,10 @@ def getKernelFunction(module):
 
 def getNumRequiredQubits(function):
     for a in function.attributes:
-        if "required_num_qubits" in str(a):
+        if "requiredQubits" in str(a):
             return int(
-                str(a).split("required_num_qubits\"=")[-1].split(" ")
-                [0].replace("\"", "").replace("'", ""))
+                str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
 
 
 # Here we test that the login endpoint works
