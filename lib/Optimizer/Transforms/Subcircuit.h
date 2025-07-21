@@ -160,9 +160,8 @@ protected:
           break;
 
       // Handle possible 0th element separately to prevent overflow
-      if (start_point == 0)
-        if (!processOp(start_point))
-          start_point++;
+      if (!processOp(start_point))
+        start_point++;
     }
 
     void pruneFrom(size_t idx) {
@@ -204,6 +203,20 @@ protected:
       processFrom(index);
     }
 
+    Operation *getStart() {
+      if (start_point == 0)
+        return nl->getDef().getDefiningOp();
+      return nl->getOp(start_point - 1);
+    }
+
+    Operation *getEnd() {
+      if (end_point >= nl->size())
+        return nullptr;
+      return nl->getOp(end_point);
+    }
+
+    bool hasOps() { return end_point > start_point; }
+
     void prune() { pruneFrom(end_point); }
 
     Value getDef() { return nl->getDef(); }
@@ -212,6 +225,7 @@ protected:
   NetlistContainer *container;
   SmallVector<NetlistWrapper *> qubits;
   SetVector<Operation *> ops;
+  SmallVector<Operation *> ordered_ops;
   Operation *start;
 
   void allocWrapper(Value ref, Operation *anchor_point) {
@@ -253,13 +267,27 @@ protected:
     for (auto *netlist : qubits)
       if (netlist)
         netlist->prune();
+    // Clean up
+    for (size_t i = 0; i < qubits.size(); i++) {
+      if (qubits[i] && !qubits[i]->hasOps()) {
+        delete qubits[i];
+        qubits[i] = nullptr;
+      }
+    }
+  }
+
+  Operation *findAncestorInSubcircuitBlock(Operation *op) {
+    if (op->getBlock() == start->getBlock())
+      return op;
+    if (start->getParentOp()->isAncestor(op))
+      return findAncestorInSubcircuitBlock(op->getParentOp());
+
+    return nullptr;
   }
 
 public:
   Subcircuit(Operation *cnot, NetlistContainer *container);
   ~Subcircuit();
-
-  SetVector<Operation *> getOps();
 
   Operation *getStart();
 
@@ -270,4 +298,16 @@ public:
   /// @brief Gets the operations in the subcircuit
   /// ordered by location
   SmallVector<Operation *> getOrderedOps();
+
+  /// @brief Create a new function with name `name` in `mod`
+  /// containing clones of all operations in the subcircuit,
+  /// and introduces the appropriate `call` instruction for the
+  /// function with the appropriate references as arguments.
+  ///
+  /// It is the responsibility of the user to ensure the old
+  /// operations in the circuit get erased.
+  ///
+  /// @returns `true` if the subcircuit was successfully moved
+  /// to a new function, `false` otherwise.
+  bool moveToFunc(mlir::ModuleOp &mod, llvm::StringRef name);
 };

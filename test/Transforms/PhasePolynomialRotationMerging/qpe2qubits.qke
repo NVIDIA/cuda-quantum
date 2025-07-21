@@ -19,7 +19,7 @@
 // It uses CircuitCheck to verify that the optimization produces
 // an equivalent circuit.
 
-// RUN: cudaq-opt --phase-polynomial-opt-pipeline %s | CircuitCheck %s
+// RUN: cudaq-opt --phase-folding-pipeline %s | CircuitCheck %s
 
 module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu", quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_ZZ4mainENK3$_0clERN5cudaq5quditILm2EEE", __nvqpp__mlirgen__function_iqft._Z4iqftN5cudaq5qviewILm2EEE = "_Z4iqftN5cudaq5qviewILm2EEE", __nvqpp__mlirgen__instance_qpeZ4mainE3$_0r1PiGate._ZN3qpeclIZ4mainE3$_08r1PiGateEEviOT_OT0_ = "_ZN3qpeclIZ4mainE3$_08r1PiGateEEviOT_OT0_", __nvqpp__mlirgen__r1PiGate = "_ZN8r1PiGateclERN5cudaq5quditILm2EEE"}} {
   func.func @__nvqpp__mlirgen__instance_qpeZ4mainE3$_0r1PiGate._ZN3qpeclIZ4mainE3$_08r1PiGateEEviOT_OT0_(%arg0: !cc.callable<(!quake.ref) -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
