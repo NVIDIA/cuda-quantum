@@ -517,10 +517,9 @@ jobs:
 
           docker buildx imagetools create --tag "$stitched_tag" $refs
           digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
-
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
           stitched_output=$(echo "$stitched_output" | jq --arg key "devdeps-cu${cuda_major}" --arg val "$digest" '. + {($key): $val}')
-          echo "$stitched_output" > stitched_digests.json
+          echo "$stitched_output" | tee stitched_digests.json
 
       - name: Stitch debug image
         id: stitch_debug_image
@@ -551,7 +550,7 @@ jobs:
           digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
           stitched_output=$(echo "$stitched_output" | jq --arg key "dev-cu${cuda_major}" --arg val "$digest" '. + {($key): $val}')
-          echo "$stitched_output" > stitched_digests.json
+          echo "$stitched_output" | tee stitched_digests.json
 
       - name: Stitch release image
         id: stitch_release_image
@@ -606,7 +605,12 @@ jobs:
           digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
           stitched_output=$(echo "$stitched_output" | jq --arg key "base-cu${cuda_major}" --arg val "$digest" '. + {($key): $val}')
-          echo "$stitched_output" > stitched_digests.json
+          echo "$stitched_output" | tee stitched_digests.json
+
+      - name: Read stitched_digests.json
+        id: stitched_json
+        run: |
+          echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
 
       - name: Write matrix outputs
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
@@ -614,7 +618,7 @@ jobs:
           matrix-step-name: stitched_images
           matrix-key: cu${{ matrix.cuda }}
           outputs: |
-            json: $(jq -c . stitched_digests.json)
+            json: ${{ steps.stitched_json.outputs.json }}
 
   aggregate_stitched_images:
     name: Aggregate Stitched Images
