@@ -168,8 +168,6 @@ Common
 .. doxygenfunction:: cudaq::range(ElementType total)
 .. doxygenfunction:: cudaq::range(ElementType begin, ElementType end, ElementType step)
 
-.. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
-
 .. doxygenfunction:: cudaq::get_state(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenclass:: cudaq::Resources
@@ -364,6 +362,10 @@ Utilities
 .. doxygentypedef:: cudaq::real 
 
 .. doxygenfunction:: cudaq::range(std::size_t)
+
+.. doxygenfunction:: cudaq::contrib::draw(QuantumKernel &&kernel, Args&&... args)
+
+.. doxygenfunction:: cudaq::contrib::get_unitary_cmat(QuantumKernel &&kernel, Args&&... args)
     
 Namespaces 
 ===========
@@ -375,6 +377,9 @@ Namespaces
 .. doxygenfunction:: cudaq::set_random_seed
 .. doxygenfunction:: cudaq::set_noise
 .. doxygenfunction:: cudaq::unset_noise
+    
+.. doxygennamespace:: cudaq::contrib
+    :desc-only:
 
 .. doxygennamespace:: cudaq::details
     :desc-only:
