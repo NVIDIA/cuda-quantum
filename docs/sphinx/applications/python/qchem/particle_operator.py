@@ -1,19 +1,20 @@
 import numpy as np
 from cudaq import spin
 
-def one_particle_op(p,q):
+
+def one_particle_op(p, q):
 
     if p == q:
-        qubit_op_dm = 0.5 * spin.i(p) 
+        qubit_op_dm = 0.5 * spin.i(p)
         qubit_op_dm -= 0.5 * spin.z(p)
-    
+
     else:
         coef = 1.0j
         m = -0.25
         if p > q:
             p, q = q, p
             coef = np.conj(coef)
-        
+
         # Compute the parity string (Z_{p+1}^{q-1})
         z_indices = [i for i in range(p + 1, q)]
         parity_string = 1.0

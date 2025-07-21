@@ -3,6 +3,7 @@ import itertools
 
 from cudaq import spin
 
+
 ############################################################
 def generate_molecular_spin_ham_restricted(h1e, h2e, ecore):
 
@@ -463,27 +464,27 @@ def jordan_wigner_fermion(h_pq, h_pqrs, ecore, tolerance=1e-12):
 
 ##############
 
-def jordan_wigner_pe(v_pq, tolerance = 1e-12):
+
+def jordan_wigner_pe(v_pq, tolerance=1e-12):
 
     nqubit = v_pq.shape[0]
 
     spin_pe_ham = 0.0
-    
+
     for p in range(nqubit):
 
-        # Diagonal one-body term 
+        # Diagonal one-body term
         coef = v_pq[p, p]
         if np.abs(coef) > tolerance:
             spin_pe_ham += jordan_wigner_one_body(p, p, coef)
 
-    for p, q in itertools.combinations(range(nqubit), 2): 
+    for p, q in itertools.combinations(range(nqubit), 2):
 
-        coef = 0.5*(v_pq[p, q] + np.conj(v_pq[q, p]))
+        coef = 0.5 * (v_pq[p, q] + np.conj(v_pq[q, p]))
         if np.abs(coef) > tolerance:
             spin_pe_ham += jordan_wigner_one_body(p, q, coef)
-    
+
     # Remove term with zero coefficient.
     op_pe = spin_pe_ham.canonicalize().trim(tolerance)
-    
-    return op_pe
 
+    return op_pe
