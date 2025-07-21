@@ -48,10 +48,12 @@ CUDAQ_ENSMALLEN_ALGORITHM_TYPE(adam, true,
                                std::optional<double> beta1;
                                std::optional<double> beta2;
                                std::optional<double> eps;
-                               std::optional<double> step_size;)
+                               std::optional<double> step_size;
+                               std::optional<double> f_tol;)
 
 CUDAQ_ENSMALLEN_ALGORITHM_TYPE(gradient_descent, true, )
 CUDAQ_ENSMALLEN_ALGORITHM_TYPE(sgd, true, std::optional<std::size_t> batch_size;
-                               std::optional<double> step_size;)
+                               std::optional<double> step_size;
+                               std::optional<double> f_tol;)
 
 } // namespace cudaq::optimizers

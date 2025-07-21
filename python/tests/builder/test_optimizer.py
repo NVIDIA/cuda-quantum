@@ -258,6 +258,19 @@ def test_optimizer_step_size_parameter(optimizer_cls, step):
     assert assert_close(step, optimizer.step_size)
 
 
+@pytest.mark.parametrize("optimizer_cls, f_tol", [
+    (cudaq.optimizers.Adam, 1e-2),
+    (cudaq.optimizers.SGD, 1e-2),
+])
+def test_optimizer_f_tol_parameter(optimizer_cls, f_tol):
+    """
+    Test that Adam and SGD optimizers correctly accept and stores the f_tol parameter.
+    """
+    optimizer = optimizer_cls()
+    optimizer.f_tol = f_tol
+    assert assert_close(f_tol, optimizer.f_tol)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
