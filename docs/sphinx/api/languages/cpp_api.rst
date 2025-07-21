@@ -127,6 +127,11 @@ Common
 .. doxygenfunction:: cudaq::sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args)
 .. doxygenfunction:: cudaq::sample(QuantumKernel &&kernel, Args&&... args)
 
+.. doxygenfunction:: cudaq::run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
+
 .. doxygenclass:: cudaq::SimulationState
 
 .. doxygenstruct:: cudaq::SimulationState::Tensor
@@ -162,8 +167,6 @@ Common
 
 .. doxygenfunction:: cudaq::range(ElementType total)
 .. doxygenfunction:: cudaq::range(ElementType begin, ElementType end, ElementType step)
-
-.. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenfunction:: cudaq::get_state(QuantumKernel &&kernel, Args&&... args)
 
@@ -359,6 +362,10 @@ Utilities
 .. doxygentypedef:: cudaq::real 
 
 .. doxygenfunction:: cudaq::range(std::size_t)
+
+.. doxygenfunction:: cudaq::contrib::draw(QuantumKernel &&kernel, Args&&... args)
+
+.. doxygenfunction:: cudaq::contrib::get_unitary_cmat(QuantumKernel &&kernel, Args&&... args)
     
 Namespaces 
 ===========
@@ -370,6 +377,9 @@ Namespaces
 .. doxygenfunction:: cudaq::set_random_seed
 .. doxygenfunction:: cudaq::set_noise
 .. doxygenfunction:: cudaq::unset_noise
+    
+.. doxygennamespace:: cudaq::contrib
+    :desc-only:
 
 .. doxygennamespace:: cudaq::details
     :desc-only:

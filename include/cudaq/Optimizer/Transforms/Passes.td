@@ -231,8 +231,7 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
 }
 
 def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
-  let summary =
-    "Move measurements as late as possible";
+  let summary = "Move measurements as late as possible";
 
   let description = [{
     Move measurements as late as possible. This is useful for a Base Profile
@@ -240,6 +239,14 @@ def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
   }];
 
   let constructor = "cudaq::opt::createDelayMeasurementsPass()";
+}
+
+def DeadStoreRemoval : Pass<"dead-store-removal"> {
+  let summary = "Dead store removal (DSR).";
+  let description = [{
+    This pass performs classic dead store removal to clean up code that may
+    contain residual dead stores.
+  }];
 }
 
 def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
@@ -375,8 +382,19 @@ def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
   }];
 }
 
+def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
+  let summary = "Translate cc.device_call operations";
+
+  let description = [{
+    Perform the translation of cc.device_call to a set of substeps for a
+    distributed memory model.
+  }];
+
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+}
+
 def EraseNoise : Pass<"erase-noise"> {
-  let summary = "Erase the inject of noise via Kraus channels.";
+  let summary = "Erase the injection of noise via Kraus channels.";
   let description = [{
     Although CUDA-Q allows the user to specify the application of noise via
     Kraus channels, these are not needed and must be removed if the code is to
@@ -389,6 +407,17 @@ def EraseNopCalls : Pass<"erase-nop-calls"> {
   let description = [{
     The code may contain marker function calls that do not generate any actual
     code. These calls are NOPs that will be erased by this pass.
+  }];
+}
+
+def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
+  let summary = "Erase unneeded vector copy ctor idiom after inlining.";
+  let description = [{
+    After inlining, we may be left with a peculiar idiom of the callee creating
+    a vector on the stack, copying that vector to a temporary on the heap, and
+    the calling function copying the heap data to a new vector on the stack.
+    Since the callee is inlined, none of this is really required. The callee and
+    caller share a common stack frame, so one copy is plenty.
   }];
 }
 
@@ -735,7 +764,7 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
-def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
+def ConvertToCFG : Pass<"convert-to-cfg"> {
   let summary = "Erase CLoop, CIf, etc. ops, replacing them with a CFG.";
   let description = [{
     This pass converts high-level control flow ops to a more primitive basic
@@ -770,7 +799,13 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
   }];
 
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
-  let constructor = "cudaq::opt::createLowerToCFGPass()";
+}
+
+def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
+  let summary = "Prepare the Module to be converted to a CFG.";
+  let description = [{
+    This pass must be run before the ConvertToCFG pass.
+  }];
 }
 
 def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
@@ -792,6 +827,8 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
   }];
 
   let options = [
+    Option<"device", "device", "std::string", /*default=*/"\"-\"",
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
     Option<"extendedLayerSize", "extendedLayerSize", "unsigned",
            /*default=*/"20", "Extended layer size">,
     Option<"extendedLayerWeight", "extendedLayerWeight", "float",
@@ -962,6 +999,15 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   }];
 
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
+}
+
+def QuakePropagateMetadata : Pass<"quake-propagate-metadata", "mlir::ModuleOp"> {
+  let summary = "Propagate metadata from callees to callers when needed.";
+  let description = [{
+   This pass propagates function metadata attributes added by `quake-add-metadata`
+   pass, such as `qubitMeasurementFeedback`, to all the callers of the function.
+   This makes sure the attributes are not missing after inlining.
+  }];
 }
 
 def QuakeSimplify : Pass<"quake-simplify"> {
@@ -1176,6 +1222,16 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   let description = [{
     After loop unrolling, there may be duplicate registerName attributes. Run
     this pass to give them unique attribute values.
+  }];
+}
+
+def VariableCoalesce : Pass<"variable-coalesce"> {
+  let summary = "Coalesce variables in functions.";
+  let description = [{
+    This pass will move temporaries from inner scopes to the outermost,
+    function scope, and coalesce variables of the same type and disjoint
+    live-ranges. It relies on the correct and proper construction and use of
+    `cc.scope` ops.
   }];
 }
 

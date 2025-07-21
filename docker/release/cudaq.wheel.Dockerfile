@@ -41,8 +41,11 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
 RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
     if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
         cublas_version=11.11 && \
+        cusparse_version=11.7 && \
         sed -i "s/-cu12/-cu11/g" cuda-quantum/pyproject.toml && \
+        sed -i "s/-cuda12/-cuda11/g" cuda-quantum/pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" cuda-quantum/pyproject.toml && \
+        sed -i -E "s/(nvidia-cusparse-cu[0-9]* ~= )[0-9\.]*/\1${cusparse_version}/g" cuda-quantum/pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
     fi
@@ -80,10 +83,12 @@ RUN echo "Building wheel for python${python_version}." \
         $python -m auditwheel -v repair dist/cuda_quantum*linux_*.whl \
             --exclude libcustatevec.so.1 \
             --exclude libcutensornet.so.2 \
+            --exclude libcudensitymat.so.0 \
             --exclude libcublas.so.$cudaq_major \
             --exclude libcublasLt.so.$cudaq_major \
             --exclude libcurand.so.10 \
-            --exclude libcusolver.so.$cudaq_major \
+            --exclude libcusolver.so.11 \
+            --exclude libcusparse.so.$cudaq_major \
             --exclude libcutensor.so.2 \
             --exclude libnvToolsExt.so.1 \ 
             --exclude libcudart.so.$cudart_libsuffix \
