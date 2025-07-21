@@ -662,13 +662,13 @@ jobs:
             info_file="$artifact_name.txt"
 
             key="base-cu${cuda_major}"
-            cudaq_reference=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$cuda].json[$key]')
+            cudaq_reference=$(echo "$STITCHED_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
 
             key="dev-cu${cuda_major}"
-            dev_reference=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$cuda].json[$key]')
+            dev_reference=$(echo "$STITCHED_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
 
             key="devdeps-cu${cuda_major}"
-            devdeps_reference=$(echo "$STITCHED_JSON" | jq -r --arg key "$key" '.[$cuda].json[$key]')
+            devdeps_reference=$(echo "$STITCHED_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
 
             # Parse JSON and join docker_flag values (e.g., "linux/amd64,linux/arm64")
             platforms=$(echo '${{ needs.metadata.outputs.platforms }}' \
