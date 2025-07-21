@@ -114,7 +114,6 @@ module {
     cc.if(%true) {
       quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
       quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
-      cc.continue
     }
     return
   }
@@ -303,11 +302,9 @@ module {
     quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
     cc.if(%true) {
       quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
-      cc.continue
     }
     cc.if(%true) {
       quake.rz (%cst) %3 : (f64, !quake.ref) -> ()
-      cc.continue
     }
     quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
     return
@@ -324,11 +321,9 @@ module {
 // CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
 // CHECK:   cc.if(%true) {
 // CHECK:     quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
-// CHECK:     cc.continue
 // CHECK:   }
 // CHECK:   cc.if(%true) {
 // CHECK:     quake.rz (%cst) %3 : (f64, !quake.ref) -> ()
-// CHECK:     cc.continue
 // CHECK:   }
 // CHECK:   quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
 // CHECK:   return
