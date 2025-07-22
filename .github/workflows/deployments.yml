@@ -502,9 +502,9 @@ jobs:
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
-          echo "$is_versioned" | tee -a "$GITHUB_OUTPUT"
-          echo "$push_to_ngc" | tee -a "$GITHUB_OUTPUT"
-          echo "$image_tag" | tee -a "$GITHUB_OUTPUT"
+          echo "is_versioned=$is_versioned" | tee -a "$GITHUB_OUTPUT"
+          echo "push_to_ngc=$push_to_ngc" | tee -a "$GITHUB_OUTPUT"
+          echo "image_tag=$image_tag" | tee -a "$GITHUB_OUTPUT"
 
           echo "digests_json<<EOF" | tee -a "$GITHUB_OUTPUT"
           echo "$DIGESTS_JSON" | tee -a "$GITHUB_OUTPUT"
