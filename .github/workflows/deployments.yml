@@ -507,6 +507,8 @@ jobs:
             refs="$refs $image"
           done
 
+          registry=$(echo "$image" | cut -d'@' -f1)
+
           # Retrieve image tag from DIGEST_JSON, just look at amd64 and filter it out
           key="amd64-cu${cuda}-dev-image"
           dev_image=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
