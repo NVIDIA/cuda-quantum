@@ -56,7 +56,7 @@ public:
 
   RestHeaders getHeaders() override;
   RestCookies getCookies() override;
-  
+
   void initialize(BackendConfig config) override {
     backendConfig = config;
 
@@ -162,7 +162,7 @@ ServerJobPayload
 QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   // Just a placeholder for the job post URL path, headers, and messages
   std::vector<ServerMessage> messages(circuitCodes.size());
-  
+
   // Get the tokens we need
   credentialsPath =
       searchAPIKey(apiKey, refreshKey, timeStr, userSpecifiedCredentials);
