@@ -109,7 +109,12 @@ if __name__ == "__main__":
 
         ## `quantum_transformer`:
         ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
-        notebooks_skipped = ['quantum_transformer.ipynb']
+        ## `unitary_compilation_diffusion_models`
+        ## See: https://github.com/NVIDIA/cuda-quantum/issues/3194
+        notebooks_skipped = [
+            'quantum_transformer.ipynb',
+            'unitary_compilation_diffusion_models.ipynb'
+        ]
 
         for notebook_filename in notebook_filenames:
             base_name = os.path.basename(notebook_filename)

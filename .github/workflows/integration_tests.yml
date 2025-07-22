@@ -60,6 +60,7 @@ on:
         - '3.10'
         - '3.11'
         - '3.12'
+        - '3.13'
 
   schedule:
     - cron: 0 3 * * *
@@ -113,11 +114,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
 
       - name: Set up context for buildx
         run: |
@@ -195,11 +191,6 @@ jobs:
         with:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
           fetch-depth: 1
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
 
       - name: Set up context for buildx
         run: |

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 import cudaq
 import numpy as np
+import warnings
 import pytest
 
 list_err_msg = 'does not yet support returning `list` from entry-point kernels'
@@ -685,7 +686,7 @@ def test_return_tuple_bool_int_float():
 
 def test_return_dataclass_int_bool():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: int
         y: bool
@@ -719,7 +720,7 @@ def test_return_dataclass_int_bool():
 
 def test_return_dataclass_bool_int():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: bool
         y: int
@@ -753,7 +754,7 @@ def test_return_dataclass_bool_int():
 
 def test_return_dataclass_float_int():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: float
         y: int
@@ -787,12 +788,11 @@ def test_return_dataclass_float_int():
 
 def test_return_dataclass_list_int_bool():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: list[int]
         y: bool
 
-    @cudaq.kernel
     def simple_return_dataclass(n: int, t: MyClass) -> MyClass:
         qubits = cudaq.qvector(n)
         return t
@@ -806,7 +806,7 @@ def test_return_dataclass_list_int_bool():
 
 def test_return_dataclass_tuple_bool():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: tuple[int, bool]
         y: bool
@@ -825,12 +825,12 @@ def test_return_dataclass_tuple_bool():
 
 def test_return_dataclass_dataclass_bool():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass1:
         x: int
         y: bool
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass2:
         x: MyClass1
         y: bool
@@ -882,7 +882,7 @@ def test_run_errors():
 
 def test_modify_struct():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: int
         y: bool
@@ -899,7 +899,7 @@ def test_modify_struct():
     assert results[0] == MyClass(42, True)
     assert results[1] == MyClass(42, True)
 
-    @dataclass
+    @dataclass(slots=True)
     class Foo:
         x: bool
         y: float
@@ -922,7 +922,7 @@ def test_modify_struct():
 
 def test_create_and_modify_struct():
 
-    @dataclass
+    @dataclass(slots=True)
     class MyClass:
         x: int
         y: bool
@@ -940,7 +940,7 @@ def test_create_and_modify_struct():
     assert results[0] == MyClass(42, True)
     assert results[1] == MyClass(42, True)
 
-    @dataclass
+    @dataclass(slots=True)
     class Bar:
         x: bool
         y: bool
@@ -1069,55 +1069,413 @@ def test_unsupported_targets_2(target):
     cudaq.reset_target()
 
 
-def test_dataclass_does_not_support_list_type():
+def test_dataclass_slots_success():
 
-    @dataclass
-    class TestClass:
-        x: list
+    @dataclass(slots=True)
+    class SlotsClass:
+        x: int
         y: int
 
     @cudaq.kernel
-    def kernel() -> TestClass:
-        return TestClass([1, 2, 3], 4)
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel, shots_count=1)
-    assert f"`<class 'list'>` type is not yet supported in data classes." in str(
-        e.value)
+    results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, SlotsClass) for result in results)
+    assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
 
 
-def test_dataclass_does_not_support_list_of_int_type():
+def test_dataclasses_dot_dataclass_slots_success():
+    import dataclasses
 
-    @dataclass
-    class TestClass:
-        x: list[int]
+    @dataclasses.dataclass(slots=True)
+    class SlotsClass:
+        x: int
         y: int
 
     @cudaq.kernel
-    def kernel() -> TestClass:
-        return TestClass([1, 2, 3], 4)
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel, shots_count=1)
-    assert f"`list[int]` type is not yet supported in data classes." in str(
-        e.value)
+    results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, SlotsClass) for result in results)
+    assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
 
 
-def test_dataclass_does_not_support_list_of_float_type():
+def test_dataclass_slots_success():
 
-    @dataclass
-    class TestClass:
-        x: list[float]
+    @dataclass(slots=True)
+    class SlotsClass:
+        x: int
         y: int
 
     @cudaq.kernel
-    def kernel() -> TestClass:
-        return TestClass([1.2, 2.4, 3.6], 4)
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, SlotsClass) for result in results)
+    assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
+
+
+def test_dataclasses_dot_dataclass_slots_success():
+    import dataclasses
+
+    @dataclasses.dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert len(results) == 2
+    assert all(isinstance(result, SlotsClass) for result in results)
+    assert results == [SlotsClass(3, 4), SlotsClass(3, 4)]
+
+
+def test_dataclass_user_defined_method_raises_error():
+
+    @dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+        def doSomething(self):
+            pass
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run(kernel, shots_count=1)
-    assert f"`list[float]` type is not yet supported in data classes." in str(
+        results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert 'struct types with user specified methods are not allowed.' in str(
         e.value)
+
+
+def test_dataclasses_dot_dataclass_user_defined_method_raises_error():
+    import dataclasses
+
+    @dataclasses.dataclass(slots=True)
+    class SlotsClass:
+        x: int
+        y: int
+
+        def doSomething(self):
+            pass
+
+    @cudaq.kernel
+    def kernel_with_slots_dataclass() -> SlotsClass:
+        return SlotsClass(3, 4)
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
+    assert 'struct types with user specified methods are not allowed.' in str(
+        e.value)
+
+
+def test_shots_count():
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qubit()
+        h(q)
+        return mz(q)
+
+    results = cudaq.run(kernel)
+    assert len(results) == 100  # default shots count
+    results = cudaq.run(kernel, shots_count=53)
+    assert len(results) == 53
+
+
+def test_return_from_if_loop_with_true_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, True, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_from_if_loop_with_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, False, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_from_if_loop_with_false_condition_and_return_from_parent_scope(
+):
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        return 0
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 0
+
+
+def test_return_from_if_and_else_loop_with_true_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_if_and_else_loop_with_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_return_from_if_and_else_loop_with_true_condition_in_for_loop():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            for i in range(6):
+                if i == 0:
+                    return 1
+                else:
+                    return -1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_if_and_else_loop_having_for_with_no_return():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            for i in range(6):
+                if i == 0:
+                    return 1
+        else:
+            return -1
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, True, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_from_if_and_else_loop_with_for_loop_and_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            for i in range(6):
+                if i == 0:
+                    return 1
+                else:
+                    return -1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_return_from_if_and_else_loop_with_true_condition_in_while_loop():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            i = 0
+            while i < 6:
+                if i == 0:
+                    return 1
+                else:
+                    return -1
+                i = i + 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_if_and_else_loop_having_while_with_no_return():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            i = 0
+            while i < 6:
+                if i == 0:
+                    return 1
+                i = i + 1
+        else:
+            return -1
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(kernel, True, shots_count=1)
+    assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
+        e.value)
+
+
+def test_return_from_if_and_else_loop_with_for_loop_and_false_condition():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        if cond:
+            for i in range(6):
+                if i == 0:
+                    return 1
+                else:
+                    return -1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_return_from_for_loop_with_else_block():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        for i in range(6):
+            if i % 2 == 0:
+                return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_else_block_after_a_for_loop():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        for i in range(6):
+            if i % 2 == 10:
+                return 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    results[0] == -1
+
+
+def test_return_from_while_loop_with_else_block():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        i = 0
+        while i < 6:
+            if i % 2 == 0:
+                return 1
+            i = i + 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_from_else_block_after_a_while_loop():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        i = 0
+        while i < 6:
+            if i % 2 == 10:
+                return 1
+            i = i + 1
+        else:
+            return -1
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_return_from_outside_the_for_loop():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        for i in range(6):
+            if i % 2 == 10:
+                return 1
+        return 0
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 0
+
+
+def test_return_with_true_condition_with_variable_defined_outside_the_loop():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        result = 0
+        if cond:
+            result = 1
+        return result
+
+    results = cudaq.run(kernel, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_with_false_condition_with_variable_defined_outside_the_loop():
+
+    @cudaq.kernel
+    def kernel(cond: bool) -> int:
+        result = 0
+        if cond:
+            result = 1
+        return result
+
+    results = cudaq.run(kernel, False, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 0
 
 
 # leave for gdb debugging
