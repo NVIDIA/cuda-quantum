@@ -725,8 +725,8 @@ public:
     /// pipelines which erase private declarations.
     void addFunctionDecl(const clang::FunctionDecl *funcDecl,
                          details::QuakeBridgeVisitor &visitor,
-                         mlir::FunctionType funcTy,
-                         mlir::StringRef devFuncName);
+                         mlir::FunctionType funcTy, mlir::StringRef devFuncName,
+                         bool isDecl);
 
   public:
     ASTBridgeConsumer(clang::CompilerInstance &compiler,
