@@ -480,31 +480,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          cuda="${{ matrix.cuda }}"
-          cuda_major="${cuda%%.*}"
-
           DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
           EXT_JSON='${{ needs.ext_config.outputs.json }}'
-
-          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
-          push_to_ngc=`($is_versioned || $has_continuous_deployment) && echo true || echo`
-
-          image_tag="cu${cuda_major}-"
-          if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
-            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
-          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
-            image_tag+="latest"
-          elif "$is_versioned" == "true"; then
-            image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
-          else
-            image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
-          fi
-
-          echo "is_versioned=$is_versioned" | tee -a "$GITHUB_OUTPUT"
-          echo "push_to_ngc=$push_to_ngc" | tee -a "$GITHUB_OUTPUT"
-          echo "image_tag=$image_tag" | tee -a "$GITHUB_OUTPUT"
 
           echo "digests_json<<EOF" | tee -a "$GITHUB_OUTPUT"
           echo "$DIGESTS_JSON" | tee -a "$GITHUB_OUTPUT"
@@ -537,6 +514,9 @@ jobs:
           # Remove 'amd64-' from the whole string
           stitched_tag="${dev_image/amd64-/}"
 
+          # push to cuda-quantum-devdeps instead of cuda-quantum-dev
+          stitched_tag="${stitched_tag/cuda-quantum-dev:/cuda-quantum-devdeps:}"
+
           echo "Stitching devdeps image with tag: $stitched_tag"
           echo "References: $refs"
 
@@ -554,16 +534,22 @@ jobs:
 
           cuda="${{ matrix.cuda }}"
           cuda_major="${cuda%%.*}"
-          image="dev-image"
 
           refs=""
           for arch in amd64 arm64; do
-            key="${arch}-cu${cuda}-${image}"
+            key="${arch}-cu${cuda}-dev-image"
             digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
             arch_reference=$(echo "$DIGESTS_JSON" | jq -r ".image_tag[\"$key\"]")
             registry=$(echo "$arch_reference" | cut -d':' -f1)
             refs="$refs $registry@$digest"
           done
+
+          # Retrieve image tag from DIGEST_JSON, just look at amd64 and filter it out
+          key="amd64-cu${cuda}-dev-image"
+          dev_image=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
+
+          # Remove 'amd64-' from the whole string
+          stitched_tag="${dev_image/amd64-/}"
 
           stitched_tag="$registry:${{ steps.metadata.outputs.image_tag }}-base"
 
@@ -595,12 +581,30 @@ jobs:
             refs="$refs $registry@$digest"
           done
 
-          if [[ "${{ steps.metadata.outputs.push_to_ngc }}" == "true" ]]; then
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
+          push_to_ngc=`($is_versioned || $has_continuous_deployment) && echo true || echo`
+
+          echo "push to NGC? $push_to_ngc"
+
+          if [[ "$push_to_ngc" == "true" ]]; then
             registry=${registry/ghcr.io\/nvidia/nvcr.io\/nvidia\/nightly}
           fi
 
+          image_tag="cu${cuda_major}-"
+          if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
+            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
+            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
+          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
+            image_tag+="latest"
+          elif "$is_versioned" == "true"; then
+            image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
+          fi
+
           suffix="-base"
-          image_tag="${{ steps.metadata.outputs.image_tag }}${suffix}"
+          image_tag="${image_tag}${suffix}"
 
           stitched_tag="${registry}:${image_tag}"
 
