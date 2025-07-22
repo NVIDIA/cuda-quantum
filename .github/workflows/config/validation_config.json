@@ -27,6 +27,13 @@
                 "fedora:39",
                 "redhat/ubi9:9.2"
             ]
+        },
+        {
+            "version": "3.13",
+            "operating_systems":
+            [
+                "fedora:39"
+            ]
         }
     ],
     "cpp":
