@@ -530,17 +530,12 @@ jobs:
             refs="$refs $image"
           done
 
-          registry=$(echo "$image" | cut -d'@' -f1)
-          gcc_version=$(echo "$EXT_JSON" | jq -r ".build_cache[\"$key\"]" | grep -o 'gcc[0-9]\+' || echo "gccXX")
+          # Retrieve image tag from DIGEST_JSON, just look at amd64 and filter it out
+          key="amd64-cu${cuda}-dev-image"
+          dev_image=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
 
-          if [[ "${{ steps.metadata.outputs.is_versioned }}" == "true" ]]; then
-            ref_name="${{ steps.metadata.outputs.image_tag }}"
-          else
-            ref_name=`echo ${{ github.ref_name }} | tr '/' '-'`
-          fi
-
-          tag="ext-cu${cuda}-${gcc_version}-${ref_name}"
-          stitched_tag="${registry}:${tag}"
+          # Remove 'amd64-' from the whole string
+          stitched_tag="${dev_image/amd64-/}"
 
           echo "Stitching devdeps image with tag: $stitched_tag"
           echo "References: $refs"
@@ -570,13 +565,7 @@ jobs:
             refs="$refs $registry@$digest"
           done
 
-          if [[ "${{ steps.metadata.outputs.is_versioned }}" == "true" ]]; then
-            ref_name="${{ steps.metadata.outputs.image_tag }}"
-          else
-            ref_name=`echo ${{ github.ref_name }} | tr '/' '-'`
-          fi
-
-          stitched_tag="$registry:cu${cuda_major}-${ref_name}-base"
+          stitched_tag="$registry:${{ steps.metadata.outputs.image_tag }}-base"
 
           echo "Stitching debug image with tag: $stitched_tag"
           echo "References: $refs"
