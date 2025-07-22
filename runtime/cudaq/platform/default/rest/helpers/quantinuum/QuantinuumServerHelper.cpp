@@ -32,9 +32,12 @@ protected:
   std::string refreshKey = "";
   /// @brief The API token for the remote server
   std::string apiKey = "";
-
   std::string userSpecifiedCredentials = "";
   std::string credentialsPath = "";
+  // Access token lifetime in seconds
+  static constexpr int tokenExpirySecs = 60;
+  // Rest client to send additional requests
+  RestClient restClient;
 
   /// @brief Quantinuum requires the API token be updated every so often,
   /// using the provided refresh token. This function will do that.
@@ -43,12 +46,16 @@ protected:
   /// @brief Return the headers required for the REST calls
   RestHeaders generateRequestHeader() const;
 
+  /// @brief Helper to parse the result ID from the job response
+  std::string getResultId(ServerMessage &getJobResponse);
+
 public:
   /// @brief Return the name of this server helper, must be the
   /// same as the qpu config file.
   const std::string name() const override { return "quantinuum"; }
 
   RestHeaders getHeaders() override;
+  RestCookies getCookies() override;
 
   void initialize(BackendConfig config) override {
     backendConfig = config;
@@ -92,52 +99,170 @@ public:
                                       std::string &jobID) override;
 };
 
+// Load the API key and refresh token from the config file
+static void findApiKeyInFile(std::string &apiKey, const std::string &path,
+                             std::string &refreshKey, std::string &timeStr) {
+  std::ifstream stream(path);
+  std::string contents((std::istreambuf_iterator<char>(stream)),
+                       std::istreambuf_iterator<char>());
+
+  std::vector<std::string> lines;
+  lines = cudaq::split(contents, '\n');
+  for (const std::string &l : lines) {
+    std::vector<std::string> keyAndValue = cudaq::split(l, ':');
+    if (keyAndValue.size() != 2)
+      throw std::runtime_error("Ill-formed configuration file (" + path +
+                               "). Key-value pairs must be in `<key> : "
+                               "<value>` format. (One per line)");
+    cudaq::trim(keyAndValue[0]);
+    cudaq::trim(keyAndValue[1]);
+    if (keyAndValue[0] == "key")
+      apiKey = keyAndValue[1];
+    else if (keyAndValue[0] == "refresh")
+      refreshKey = keyAndValue[1];
+    else if (keyAndValue[0] == "time")
+      timeStr = keyAndValue[1];
+    else
+      throw std::runtime_error(
+          "Unknown key in configuration file: " + keyAndValue[0] + ".");
+  }
+  if (apiKey.empty())
+    throw std::runtime_error("Empty API key in configuration file (" + path +
+                             ").");
+  if (refreshKey.empty())
+    throw std::runtime_error("Empty refresh key in configuration file (" +
+                             path + ").");
+  // The `time` key is not required.
+}
+
+/// Search for the API key, invokes findApiKeyInFile
+static std::string searchAPIKey(std::string &key, std::string &refreshKey,
+                                std::string &timeStr,
+                                std::string userSpecifiedConfig = "") {
+  std::string hwConfig;
+  // Allow someone to tweak this with an environment variable
+  if (auto creds = std::getenv("CUDAQ_QUANTINUUM_CREDENTIALS"))
+    hwConfig = std::string(creds);
+  else if (!userSpecifiedConfig.empty())
+    hwConfig = userSpecifiedConfig;
+  else
+    hwConfig = std::string(getenv("HOME")) + std::string("/.quantinuum_config");
+  if (cudaq::fileExists(hwConfig)) {
+    findApiKeyInFile(key, hwConfig, refreshKey, timeStr);
+  } else {
+    throw std::runtime_error(
+        "Cannot find Quantinuum Config file with credentials "
+        "(~/.quantinuum_config).");
+  }
+
+  return hwConfig;
+}
+
 ServerJobPayload
 QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
-
-  std::vector<ServerMessage> messages;
+  // Just a placeholder for the job post URL path, headers, and messages
+  std::vector<ServerMessage> messages(circuitCodes.size());
 
   // Get the tokens we need
-
+  credentialsPath =
+      searchAPIKey(apiKey, refreshKey, timeStr, userSpecifiedCredentials);
   refreshTokens();
 
   // Get the headers
-  RestHeaders headers = generateRequestHeader();
+  RestHeaders headers;
 
-  // return the payload
-  return std::make_tuple(baseUrl + "job", headers, messages);
+  return std::make_tuple(baseUrl + "api/jobs/v1beta", headers, messages);
 }
 
 std::string QuantinuumServerHelper::extractJobId(ServerMessage &postResponse) {
-  return postResponse["job"].get<std::string>();
+  // "job_id": "$response.body#/data.id"
+  return postResponse["data"]["id"].get<std::string>();
 }
 
 std::string
 QuantinuumServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return baseUrl + "job/" + extractJobId(postResponse);
+  return baseUrl + "api/jobs/v1beta3/" + extractJobId(postResponse);
 }
 
 std::string QuantinuumServerHelper::constructGetJobPath(std::string &jobId) {
-  return baseUrl + "job/" + jobId;
+  // TODO: we can use a more lightweight path here.
+  // but for now, we will use the overall job path, since we need to get the
+  // result Id when it completes.
+  return baseUrl + "api/jobs/v1beta3/" + jobId;
 }
 
 bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  return false;
+  // Job status strings: "COMPLETED", "QUEUED", "SUBMITTED", "RUNNING",
+  // "CANCELLED", "ERROR"
+  const std::string jobStatus =
+      getJobResponse["data"]["attributes"]["status"]["status"]
+          .get<std::string>();
+  if (jobStatus == "ERROR") {
+    const std::string errorMsg =
+        getJobResponse["data"]["attributes"]["status"]["error_detail"]
+            .get<std::string>();
+    throw std::runtime_error("Job failed with error: " + errorMsg);
+  } else if (jobStatus == "CANCELLED") {
+    throw std::runtime_error("Job was cancelled.");
+  }
+  return jobStatus == "COMPLETED";
+}
+
+std::string QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
+  if (!jobIsDone(getJobResponse)) {
+    throw std::runtime_error("Job is not done, cannot retrieve result ID.");
+  }
+  const auto resultItems =
+      getJobResponse["data"]["attributes"]["definition"]["items"];
+
+  // Note: currently, we only support a single result item.
+  if (!resultItems.is_array())
+    throw std::runtime_error(
+        "Expected 'items' to be an array in job response.");
+  if (resultItems.size() != 1)
+    throw std::runtime_error("Expected exactly one item in 'items' array.");
+
+  const auto &item = resultItems[0];
+  if (!item.contains("result_id")) {
+    throw std::runtime_error("No 'result_id' found in job response item.");
+  }
+  return item["result_id"].get<std::string>();
 }
 
 cudaq::sample_result
-QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
+QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
                                        std::string &jobId) {
+  const std::string resultId = getResultId(jobResponse);
+  const std::string resultPath = baseUrl + "api/results/v1beta3/" + resultId;
+  CUDAQ_INFO("Retrieving results from path: {}", resultPath);
+  RestHeaders headers = generateRequestHeader();
+  RestCookies cookies = getCookies();
+  auto resultResponse = restClient.get(resultPath, "", headers, false, cookies);
+  CUDAQ_INFO("Job result response: {}\n", resultResponse.dump());
+  auto results = resultResponse["data"]["attributes"]["counts_formatted"];
+  CUDAQ_INFO("Count data: {}", results.dump());
 
-  return sample_result();
+  // TODO: handle register mapping and qubit numbers
+  // This is just a very basic implementation that assumes all qubits are
+  // measured.
+  cudaq::CountsDictionary counts;
+  std::vector<std::string> bitStrings;
+  for (const auto &element : results) {
+    const auto bitString = element["bitstring"].get<std::string>();
+    const auto count = element["count"].get<std::size_t>();
+    counts[bitString] = count;
+    for (std::size_t i = 0; i < count; ++i) {
+      bitStrings.push_back(bitString);
+    }
+  }
+  cudaq::ExecutionResult result{counts, GlobalRegisterName};
+  result.sequentialData = bitStrings;
+  return cudaq::sample_result{result};
 }
 
 std::map<std::string, std::string>
 QuantinuumServerHelper::generateRequestHeader() const {
-  std::string apiKey, refreshKey, timeStr;
-  // searchAPIKey(apiKey, refreshKey, timeStr, userSpecifiedCredentials);
   std::map<std::string, std::string> headers{
-      {"Authorization", apiKey},
       {"Content-Type", "application/json"},
       {"Connection", "keep-alive"},
       {"Accept", "*/*"}};
@@ -148,8 +273,67 @@ RestHeaders QuantinuumServerHelper::getHeaders() {
   return generateRequestHeader();
 }
 
+RestCookies QuantinuumServerHelper::getCookies() {
+  if (apiKey.empty() || refreshKey.empty()) {
+    searchAPIKey(apiKey, refreshKey, timeStr, userSpecifiedCredentials);
+  }
+  if (refreshKey.empty()) {
+    throw std::runtime_error(
+        "Cannot get cookies, refresh key is empty. Please check your "
+        "configuration.");
+  }
+  refreshTokens();
+  return {{"myqos_id", apiKey}};
+}
+
 /// Refresh the api key and refresh-token
-void QuantinuumServerHelper::refreshTokens(bool force_refresh) {}
+void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
+  if (refreshKey.empty()) {
+    throw std::runtime_error(
+        "Cannot get refresh access token, refresh key is empty.");
+  }
+  std::mutex m;
+  std::lock_guard<std::mutex> l(m);
+  auto now = std::chrono::high_resolution_clock::now();
+
+  // If we are getting close to an 30 min, then we will refresh
+  const bool needsRefresh = [&]() {
+    // If the time string is empty, we probably need to refresh`
+    if (timeStr.empty()) {
+      return true;
+    }
+
+    // We first check how much time has elapsed since the
+    // existing refresh key was created
+    std::int64_t timeAsLong = std::stol(timeStr);
+    std::chrono::high_resolution_clock::duration d(timeAsLong);
+    std::chrono::high_resolution_clock::time_point oldTime(d);
+    auto secondsDuration =
+        1e-3 *
+        std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime);
+
+    return secondsDuration.count() * (1. / tokenExpirySecs) > .85;
+  }();
+
+  if (needsRefresh || force_refresh) {
+    cudaq::info("Refreshing id-token");
+    RestHeaders cookies{{"myqos_oat", refreshKey}};
+    RestCookies headers = generateRequestHeader();
+    nlohmann::json j;
+    auto response_json =
+        restClient.post(baseUrl, "auth/tokens/refresh", j, headers, cookies);
+    const auto iter = cookies.find("myqos_id");
+    if (iter == cookies.end())
+      throw std::runtime_error("Failed to refresh API key, 'myqos_id' not "
+                               "found in response cookies.");
+    apiKey = iter->second;
+    std::ofstream out(credentialsPath);
+    out << "key:" << apiKey << '\n';
+    out << "refresh:" << refreshKey << '\n';
+    out << "time:" << now.time_since_epoch().count() << '\n';
+    timeStr = std::to_string(now.time_since_epoch().count());
+  }
+}
 
 } // namespace cudaq
 
