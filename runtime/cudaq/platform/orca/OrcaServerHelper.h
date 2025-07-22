@@ -67,7 +67,7 @@ public:
 
     // Return a tuple containing the job path, headers, and the job message
     auto ret = std::make_tuple("", headers, jobs);
-    return ret;
+    return cudaq::toServerJobPayload(ret);
   };
 
   /// @brief Return the job id from the previous job post

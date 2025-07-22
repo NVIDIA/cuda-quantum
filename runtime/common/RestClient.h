@@ -39,13 +39,6 @@ public:
   /// @brief Destructor
   ~RestClient();
 
-  /// Post the message to the remote path at the provided URL.
-  nlohmann::json post(const std::string_view remoteUrl,
-                      const std::string_view path, nlohmann::json &postStr,
-                      std::map<std::string, std::string> &headers,
-                      bool enableLogging = true, bool enableSsl = false,
-                      const std::map<std::string, std::string> &cookies = {});
-
   /// Post the message to the remote path at the provided URL and potentially
   /// update the cookies map from the server response.
   // This can be use for authentication post requests, whereby the server sends
@@ -53,8 +46,9 @@ public:
   nlohmann::json post(const std::string_view remoteUrl,
                       const std::string_view path, nlohmann::json &postStr,
                       std::map<std::string, std::string> &headers,
-                      std::map<std::string, std::string> &io_cookies,
-                      bool enableLogging = true, bool enableSsl = false);
+                      bool enableLogging = true, bool enableSsl = false,
+                      const std::map<std::string, std::string> &cookies = {},
+                      std::map<std::string, std::string> *cookiesOut = nullptr);
 
   /// Get the contents of the remote server at the given URL and path.
   nlohmann::json get(const std::string_view remoteUrl,

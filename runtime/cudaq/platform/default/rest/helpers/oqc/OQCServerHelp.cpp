@@ -277,9 +277,9 @@ OQCServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   }
 
   // Return a tuple containing the job path, headers, and the job message
-  return std::make_tuple(backendConfig.at("url") +
-                             backendConfig.at("job_path") + "/submit",
-                         getHeaders(), jobs);
+  return cudaq::toServerJobPayload(std::make_tuple(
+      backendConfig.at("url") + backendConfig.at("job_path") + "/submit",
+      getHeaders(), jobs));
 }
 
 // From a server message, extract the job ID

@@ -51,8 +51,24 @@ using RestCookies = std::map<std::string, std::string>;
 
 // A Server Job Payload consists of a job post URL path, the headers,
 // and a vector of related Job JSON messages.
-using ServerJobPayload =
+using ServerJobPayloadBase =
     std::tuple<std::string, RestHeaders, std::vector<ServerMessage>>;
+
+// New definition with optional cookies
+using ServerJobPayload =
+    std::tuple<std::string, RestHeaders, std::vector<ServerMessage>,
+               std::optional<RestCookies>>;
+
+// Conversion function that adds the std::nullopt
+inline ServerJobPayload toServerJobPayload(const ServerJobPayloadBase &base) {
+  return {std::get<0>(base), std::get<1>(base), std::get<2>(base),
+          std::nullopt};
+}
+
+// Allow pass-through for actual ServerJobPayload
+inline ServerJobPayload toServerJobPayload(const ServerJobPayload &payload) {
+  return payload;
+}
 
 /// @brief Information about a result coming from a backend
 struct ResultInfoType {

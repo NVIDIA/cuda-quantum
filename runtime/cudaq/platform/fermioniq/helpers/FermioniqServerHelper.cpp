@@ -272,7 +272,7 @@ FermioniqServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   // Return a tuple containing the job path, headers, and the job message
   auto job_path = backendConfig.at(CFG_URL_KEY) + "/api/jobs";
   auto ret = std::make_tuple(job_path, getHeaders(), payload);
-  return ret;
+  return cudaq::toServerJobPayload(ret);
 }
 
 /// Refresh the api key and refresh-token

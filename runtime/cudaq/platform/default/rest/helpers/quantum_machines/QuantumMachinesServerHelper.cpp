@@ -83,7 +83,8 @@ public:
     job["executor"] = backendConfig["executor"];
     RestHeaders headers = getHeaders();
     std::string path = backendConfig["url"] + "/v1/execute";
-    return std::make_tuple(path, headers, std::vector<ServerMessage>{job});
+    return cudaq::toServerJobPayload(
+        std::make_tuple(path, headers, std::vector<ServerMessage>{job}));
   }
 
   /// @brief Extracts the job ID from the server's response to a job submission.

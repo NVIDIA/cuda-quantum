@@ -51,7 +51,8 @@ RestClient::post(const std::string_view remoteUrl, const std::string_view path,
                  nlohmann::json &post,
                  std::map<std::string, std::string> &headers,
                  bool enableLogging, bool enableSsl,
-                 const std::map<std::string, std::string> &cookies) {
+                 const std::map<std::string, std::string> &cookies,
+                 std::map<std::string, std::string> *cookiesOut) {
   if (headers.empty())
     headers.insert(std::make_pair("Content-type", "application/json"));
 
@@ -77,48 +78,10 @@ RestClient::post(const std::string_view remoteUrl, const std::string_view path,
                              std::to_string(r.status_code) + ": " +
                              r.error.message + ": " + r.text);
 
-  return nlohmann::json::parse(r.text);
-}
-
-nlohmann::json RestClient::post(const std::string_view remoteUrl,
-                                const std::string_view path,
-                                nlohmann::json &postStr,
-                                std::map<std::string, std::string> &headers,
-                                std::map<std::string, std::string> &io_cookies,
-                                bool enableLogging, bool enableSsl) {
-  // FIXME: merge the implementation with the other `post` to reduce code
-  // duplication
-  if (headers.empty())
-    headers.insert(std::make_pair("Content-type", "application/json"));
-
-  cpr::Header cprHeaders;
-  for (auto &kv : headers)
-    cprHeaders.insert({kv.first, kv.second});
-
-  cpr::Cookies cprCookies;
-  for (const auto &kv : io_cookies) {
-    cprCookies.emplace_back({kv.first, kv.second});
-  }
-
-  // Allow caller to disable logging for things like passwords/tokens
-  if (enableLogging)
-    cudaq::info("Posting to {}/{} with data = {}", remoteUrl, path,
-                postStr.dump());
-
-  auto actualPath = std::string(remoteUrl) + std::string(path);
-  auto r =
-      cpr::Post(cpr::Url{actualPath}, cpr::Body(postStr.dump()), cprHeaders,
-                cpr::VerifySsl(enableSsl), *sslOptions, cprCookies);
-
-  if (r.status_code > validHttpCode || r.status_code == 0)
-    throw std::runtime_error("HTTP POST Error - status code " +
-                             std::to_string(r.status_code) + ": " +
-                             r.error.message + ": " + r.text);
-
   // Update the cookies map
-  for (const auto &cookie : r.cookies) {
-    io_cookies[cookie.GetName()] = cookie.GetValue();
-  }
+  if (cookiesOut)
+    for (const auto &cookie : r.cookies)
+      (*cookiesOut)[cookie.GetName()] = cookie.GetValue();
 
   return nlohmann::json::parse(r.text);
 }

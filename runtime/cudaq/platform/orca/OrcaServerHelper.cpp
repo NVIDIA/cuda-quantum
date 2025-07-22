@@ -50,7 +50,8 @@ OrcaServerHelper::createJob(cudaq::orca::TBIParameters params) {
   jobs.push_back(job);
 
   // Return a tuple containing the job path, headers, and the job message
-  return std::make_tuple(baseUrl + "v1/submit", getHeaders(), jobs);
+  return cudaq::toServerJobPayload(
+      std::make_tuple(baseUrl + "v1/submit", getHeaders(), jobs));
 }
 
 // Process the results from a job

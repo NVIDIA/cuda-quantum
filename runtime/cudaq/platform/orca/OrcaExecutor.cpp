@@ -21,7 +21,8 @@ details::future OrcaExecutor::execute(cudaq::orca::TBIParameters params,
               orcaServerHelper->name());
   // Create the Job Payload, composed of job post path, headers,
   // and the job json messages themselves
-  auto [jobPostPath, headers, jobs] = orcaServerHelper->createJob(params);
+  auto [jobPostPath, headers, jobs, cookies] =
+      orcaServerHelper->createJob(params);
   auto job = jobs[0];
   auto config = orcaServerHelper->getConfig();
   std::vector<cudaq::details::future::Job> ids;

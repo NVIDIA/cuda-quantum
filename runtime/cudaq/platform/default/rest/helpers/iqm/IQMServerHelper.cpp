@@ -193,7 +193,8 @@ IQMServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   RestHeaders headers = generateRequestHeader();
 
   // return the payload
-  return std::make_tuple(iqmServerUrl + "jobs", headers, messages);
+  return cudaq::toServerJobPayload(
+      std::make_tuple(iqmServerUrl + "jobs", headers, messages));
 }
 
 std::string IQMServerHelper::extractJobId(ServerMessage &postResponse) {

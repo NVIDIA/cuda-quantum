@@ -208,12 +208,10 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     // First create a QIR module, and then use its ID in the job
     ServerMessage qir = createQIRModule(circuitCode);
     // Post the QIR module to the server and extract the program ID
-    auto response =
-        restClient.post(baseUrl, "api/qir/v1beta/", qir, headers, cookies);
-    if (response["status"] != "success")
-      throw std::runtime_error("Failed to create QIR module: " +
-                               response.dump());
+    auto response = restClient.post(baseUrl, "api/qir/v1beta/", qir, headers,
+                                    true, false, cookies);
 
+    CUDAQ_INFO("QIR creation response: {}", response.dump(2));
     std::string programId = response["data"]["id"].get<std::string>();
 
     /// Ref:
@@ -259,7 +257,8 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   CUDAQ_INFO("Created job payload targeting {}", machine);
 
   // Return the payload with the correct endpoint
-  return std::make_tuple(baseUrl + jobUrl, headers, messages);
+  return cudaq::toServerJobPayload(
+      std::make_tuple(baseUrl + jobUrl, headers, messages, cookies));
 }
 
 std::string QuantinuumServerHelper::extractJobId(ServerMessage &postResponse) {
@@ -409,7 +408,8 @@ void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
     RestCookies headers = generateRequestHeader();
     nlohmann::json j;
     auto response_json =
-        restClient.post(baseUrl, "auth/tokens/refresh", j, headers, cookies);
+        restClient.post(baseUrl, "auth/tokens/refresh", j, headers, false,
+                        false, cookies, &cookies);
     const auto iter = cookies.find("myqos_id");
     if (iter == cookies.end())
       throw std::runtime_error("Failed to refresh API key, 'myqos_id' not "

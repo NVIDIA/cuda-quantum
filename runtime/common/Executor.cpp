@@ -20,7 +20,9 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
 
   // Create the Job Payload, composed of job post path, headers,
   // and the job json messages themselves
-  auto [jobPostPath, headers, jobs] = serverHelper->createJob(codesToExecute);
+  auto payload = serverHelper->createJob(codesToExecute);
+  auto fullPayload = cudaq::toServerJobPayload(payload);
+  auto [jobPostPath, headers, jobs, cookies] = fullPayload;
 
   auto config = serverHelper->getConfig();
 
@@ -30,7 +32,8 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
                 jobPostPath);
 
     // Post it, get the response
-    auto response = client.post(jobPostPath, "", job, headers);
+    auto response =
+        client.post(jobPostPath, "", job, headers, true, false, *cookies);
     cudaq::info("Job (name={}) posted, response was {}", codesToExecute[i].name,
                 response.dump());
 
