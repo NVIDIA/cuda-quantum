@@ -114,6 +114,7 @@
 <li class="toctree-l2"><a class="reference internal" href="basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
 <li class="toctree-l2"><a class="reference internal" href="basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basics/run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
@@ -126,15 +127,26 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/building_kernels.html">   Building Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/building_kernels.html">   Building Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#defining-kernels">Defining Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#initializing-states">Initializing states</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#applying-gates">Applying Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#controlled-operations">Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#multi-controlled-operations">Multi-Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#adjoint-operations">Adjoint Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#custom-operations">Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#building-kernels-with-kernels">Building Kernels with Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/building_kernels.html#parameterized-kernels">Parameterized Kernels</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="examples/quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/measuring_kernels.html#Mid-circuit-Measurement-and-Conditional-Logic">Mid-circuit Measurement and Conditional Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/visualization.html">   Visualizing Kernels</a><ul>
@@ -142,23 +154,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/executing_kernels.html">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_kernels.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_kernels.html#Observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_kernels.html#Get-state">Get state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/executing_kernels.html#Parallelization-Techniques">Parallelization Techniques</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/executing_kernels.html#Observe-Async">Observe Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/executing_kernels.html#Sample-Async">Sample Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/executing_kernels.html">   Executing Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/executing_kernels.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/executing_kernels.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/executing_kernels.html#get-state">Get State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/executing_kernels.html#parallelization-techniques">Parallelization Techniques</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/executing_kernels.html#observe-asynchronous">Observe Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/executing_kernels.html#sample-asynchronous">Sample Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/executing_kernels.html#get-state-asynchronous">Get State Asynchronous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/expectation_values.html">   Computing Expectation Values</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="examples/multi_control.html">   Multi-Control Synthesis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
@@ -177,9 +186,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/operators.html">   Constructing Operators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/operators.html#Constructing-Spin-Operators">Constructing Spin Operators</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/operators.html#Pauli-Words-and-Exponentiating-Pauli-Words">Pauli Words and Exponentiating Pauli Words</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/operators.html">   Constructing Operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/performance_optimizations.html">   Performance Optimizations</a><ul>
@@ -311,15 +320,24 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Setup-and-compilation">Setup and compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Load-model">Load model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Simulate-kernels">Simulate kernels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Compare-unitaries">Compare unitaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
@@ -414,6 +432,19 @@
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../applications/python/grovers.html">Grover’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/grovers.html#Overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/grovers.html#Problem">Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../applications/python/grovers.html#Structure-of-Grover's-Algorithm">Structure of Grover’s Algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Step-1:-Preparation">Step 1: Preparation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Good-and-Bad-States">Good and Bad States</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Step-2:-Oracle-application">Step 2: Oracle application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Step-3:-Amplitude-amplification">Step 3: Amplitude amplification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement">Steps 4 and 5: Iteration and measurement</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
@@ -516,6 +547,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#super-operator-representation">Super-operator Representation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#batch-simulation">Batch simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
 </ul>
@@ -707,6 +739,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.run_async"><code class="docutils literal notranslate"><span class="pre">run_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
@@ -1573,13 +1607,383 @@ backend target.</p>
 </tbody>
 </table>
 </section>
+<section id="batch-simulation">
+<h2>Batch simulation<a class="headerlink" href="#batch-simulation" title="Permalink to this heading">¶</a></h2>
+<p id="cudensitymat-batching">CUDA-Q <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> target supports batch simulation, which allows users to run multiple simulations simultaneously.
+This batching capability applies to (1) multiple initial states and/or (2) multiple Hamiltonians.</p>
+<p>Batching can significantly improve performance when simulating many small identical system dynamics, e.g., parameter sweeping or tomography.</p>
+<p>For example, we can simulate the time evolution of multiple initial states with the same Hamiltonian as follows:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--10-input--1" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
+<span class="c1"># Set the target to our dynamics simulator</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+
+<span class="c1"># Qubit Hamiltonian</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).</span>
+<span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+
+<span class="c1"># Initial states in the `SIC-POVM` set: https://en.wikipedia.org/wiki/SIC-POVM</span>
+<span class="n">psi_1</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
+<span class="n">psi_2</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>
+    <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="mf">3.0</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
+<span class="n">psi_3</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>
+    <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">3.0</span><span class="p">)</span>
+    <span class="p">],</span>
+             <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
+<span class="n">psi_4</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>
+    <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">3.0</span><span class="p">)</span>
+    <span class="p">],</span>
+             <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
+
+<span class="c1"># We run the evolution for all the SIC state to determine the process tomography.</span>
+<span class="n">sic_states</span> <span class="o">=</span> <span class="p">[</span><span class="n">psi_1</span><span class="p">,</span> <span class="n">psi_2</span><span class="p">,</span> <span class="n">psi_3</span><span class="p">,</span> <span class="n">psi_4</span><span class="p">]</span>
+<span class="c1"># Schedule of time steps.</span>
+<span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+
+<span class="c1"># Run the batch simulation.</span>
+<span class="n">evolution_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+    <span class="n">hamiltonian</span><span class="p">,</span>
+    <span class="n">dimensions</span><span class="p">,</span>
+    <span class="n">schedule</span><span class="p">,</span>
+    <span class="n">sic_states</span><span class="p">,</span>
+    <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+    <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">store_intermediate_results</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">IntermediateResultSave</span><span class="o">.</span><span class="n">EXPECTATION_VALUE</span><span class="p">,</span>
+    <span class="n">integrator</span><span class="o">=</span><span class="n">RungeKuttaIntegrator</span><span class="p">())</span>
+
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--10-input--2" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Qubit Hamiltonian</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">hamiltonian</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.1</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// A single qubit with dimension 2.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dimension_map</span><span class="w"> </span><span class="n">dimensions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">}};</span>
+
+<span class="w">  </span><span class="c1">// Initial states in the `SIC-POVM` set:</span>
+<span class="w">  </span><span class="c1">// https://en.wikipedia.org/wiki/SIC-POVM</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">psi_1</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="o">::</span><span class="n">from_data</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="p">{</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">psi_2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="o">::</span><span class="n">from_data</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="p">{</span>
+<span class="w">      </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">),</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">3.0</span><span class="p">)});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">psi_3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="o">::</span><span class="n">from_data</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="p">{</span>
+<span class="w">      </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">),</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">3.0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span>
+<span class="w">          </span><span class="n">std</span><span class="o">::</span><span class="n">exp</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">}</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">3.0</span><span class="p">)});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">psi_4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="o">::</span><span class="n">from_data</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="p">{</span>
+<span class="w">      </span><span class="mf">1.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">),</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">3.0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span>
+<span class="w">          </span><span class="n">std</span><span class="o">::</span><span class="n">exp</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">}</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">4.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">3.0</span><span class="p">)});</span>
+<span class="w">  </span><span class="c1">// We run the evolution for all the SIC state to determine the process</span>
+<span class="w">  </span><span class="c1">// tomography.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="o">&gt;</span><span class="w"> </span><span class="n">sic_states</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">psi_1</span><span class="p">,</span><span class="w"> </span><span class="n">psi_2</span><span class="p">,</span><span class="w"> </span><span class="n">psi_3</span><span class="p">,</span><span class="w"> </span><span class="n">psi_4</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Schedule of time steps.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span><span class="w"> </span><span class="mi">101</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="nf">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// A default Runge-`Kutta` integrator</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">integrators</span><span class="o">::</span><span class="n">runge_kutta</span><span class="w"> </span><span class="n">integrator</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Run the batch simulation.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">evolve_results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span>
+<span class="w">      </span><span class="n">hamiltonian</span><span class="p">,</span><span class="w"> </span><span class="n">dimensions</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="n">sic_states</span><span class="p">,</span><span class="w"> </span><span class="n">integrator</span><span class="p">,</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">      </span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)},</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">IntermediateResultSave</span><span class="o">::</span><span class="n">ExpectationValue</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Similarly, we can also batch simulate the time evolution of multiple Hamiltonians as follows:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--11-input--1" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScalarOperator</span><span class="p">,</span> <span class="n">RungeKuttaIntegrator</span>
+<span class="c1"># Set the target to our dynamics simulator</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
+
+<span class="c1"># Dimensions of sub-system.</span>
+<span class="n">dimensions</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+
+<span class="c1"># Qubit resonant frequency</span>
+<span class="n">omega_z</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+
+<span class="c1"># Transverse term</span>
+<span class="n">omega_x</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+
+<span class="c1"># Harmonic driving frequency (sweeping in the +/- 10% range around the resonant frequency).</span>
+<span class="n">omega_drive</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="n">omega_z</span><span class="p">,</span> <span class="mf">1.1</span> <span class="o">*</span> <span class="n">omega_z</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+
+<span class="c1"># Initial state of the system (ground state).</span>
+<span class="n">psi0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">))</span>
+
+<span class="c1"># Batch the Hamiltonian operator together</span>
+<span class="n">hamiltonians</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="mf">0.5</span> <span class="o">*</span> <span class="n">omega_z</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">omega_x</span> <span class="o">*</span>
+    <span class="n">ScalarOperator</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">,</span> <span class="n">omega</span><span class="o">=</span><span class="n">omega</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">omega</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">omega</span> <span class="ow">in</span> <span class="n">omega_drive</span>
+<span class="p">]</span>
+
+<span class="c1"># Initial states for each Hamiltonian in the batch.</span>
+<span class="c1"># Here, we use the ground state for all Hamiltonians.</span>
+<span class="n">initial_states</span> <span class="o">=</span> <span class="p">[</span><span class="n">psi0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">hamiltonians</span><span class="p">)</span>
+
+<span class="c1"># Schedule of time steps.</span>
+<span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">5000</span><span class="p">)</span>
+<span class="n">schedule</span> <span class="o">=</span> <span class="n">Schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">])</span>
+
+<span class="c1"># Run the batch simulation.</span>
+<span class="n">evolution_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+    <span class="n">hamiltonians</span><span class="p">,</span>
+    <span class="n">dimensions</span><span class="p">,</span>
+    <span class="n">schedule</span><span class="p">,</span>
+    <span class="n">initial_states</span><span class="p">,</span>
+    <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+    <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">store_intermediate_results</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">IntermediateResultSave</span><span class="o">.</span><span class="n">EXPECTATION_VALUE</span><span class="p">,</span>
+    <span class="n">integrator</span><span class="o">=</span><span class="n">RungeKuttaIntegrator</span><span class="p">())</span>
+
+</pre></div>
+</div>
+<p>In this example, we show the most generic batching capability, where each Hamiltonian in the batch corresponds to a specific initial state.
+In other words, the vector of Hamiltonians and the vector of initial states are of the same length.
+If only one initial state is provided, it will be used for all Hamiltonians in the batch.</p>
+</div>
+<input class="tab-input" id="tab-set--11-input--2" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Dimensions of sub-system</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dimension_map</span><span class="w"> </span><span class="n">dimensions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">}};</span>
+<span class="w">  </span><span class="c1">// Qubit resonant frequency</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">omega_z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Transverse driving term</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">omega_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Harmonic driving frequency (sweeping in the +/- 10% range around the</span>
+<span class="w">  </span><span class="c1">// resonant frequency).</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">omega_drive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.9</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">omega_z</span><span class="p">,</span><span class="w"> </span><span class="mf">1.1</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">omega_z</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="p">);</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">zero_state</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="o">::</span><span class="n">from_data</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="p">{</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">});</span>
+<span class="w">  </span><span class="c1">// List of Hamiltonians to be batched together</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">&gt;</span><span class="w"> </span><span class="n">hamiltonians</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">omega</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">omega_drive</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">mod_func</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="p">[</span><span class="n">omega</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">parameter_map</span><span class="w"> </span><span class="o">&amp;</span><span class="n">params</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">it</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">end</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">real</span><span class="p">();</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">cos</span><span class="p">(</span><span class="n">omega</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">t</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">throw</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">&quot;Cannot find the time parameter.&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">};</span>
+
+<span class="w">    </span><span class="c1">// Add the Hamiltonian for each drive frequency to the batch.</span>
+<span class="w">    </span><span class="n">hamiltonians</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="mf">0.5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">omega_z</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">+</span>
+<span class="w">                              </span><span class="n">mod_func</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">omega_x</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// The qubit starts in the |0&gt; state for all operators in the batch.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="o">&gt;</span><span class="w"> </span><span class="n">initial_states</span><span class="p">(</span><span class="n">hamiltonians</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">zero_state</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Schedule of time steps</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mi">5000</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// The schedule carries the time parameter `labelled` `t`, which is used by</span>
+<span class="w">  </span><span class="c1">// the callback.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">schedule</span><span class="w"> </span><span class="n">schedule</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;t&quot;</span><span class="p">});</span>
+
+<span class="w">  </span><span class="c1">// A default Runge-`Kutta` integrator (4`th` order) with time step `dt`</span>
+<span class="w">  </span><span class="c1">// depending on the schedule.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">integrators</span><span class="o">::</span><span class="n">runge_kutta</span><span class="w"> </span><span class="n">integrator</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Run the batch simulation.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">evolve_results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span>
+<span class="w">      </span><span class="n">hamiltonians</span><span class="p">,</span><span class="w"> </span><span class="n">dimensions</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="n">initial_states</span><span class="p">,</span><span class="w"> </span><span class="n">integrator</span><span class="p">,</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">      </span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)},</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">IntermediateResultSave</span><span class="o">::</span><span class="n">ExpectationValue</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The results of the batch simulation will be returned as a list of evolve result objects, one for each Hamiltonian in the batch.
+For example, we can extract the time evolution results of the expectation values for each Hamiltonian in the batch as follows:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--12-input--1" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<span class="c1"># The results of the batched evolution is an array of evolution results,</span>
+<span class="c1"># one for each Hamiltonian operator in the batch.</span>
+
+<span class="c1"># For example, we can split the results into separate arrays for each observable.</span>
+<span class="n">all_exp_val_x</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">all_exp_val_y</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">all_exp_val_z</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1"># Iterate over the evolution results in the batch:</span>
+<span class="k">for</span> <span class="n">evolution_result</span> <span class="ow">in</span> <span class="n">evolution_results</span><span class="p">:</span>
+    <span class="c1"># Extract the expectation values for each observable at the respective Hamiltonian operator in the batch.</span>
+    <span class="n">exp_val_x</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">exp_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">exp_vals</span> <span class="ow">in</span> <span class="n">evolution_result</span><span class="o">.</span><span class="n">expectation_values</span><span class="p">()</span>
+    <span class="p">]</span>
+    <span class="n">exp_val_y</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">exp_vals</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">exp_vals</span> <span class="ow">in</span> <span class="n">evolution_result</span><span class="o">.</span><span class="n">expectation_values</span><span class="p">()</span>
+    <span class="p">]</span>
+    <span class="n">exp_val_z</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">exp_vals</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">exp_vals</span> <span class="ow">in</span> <span class="n">evolution_result</span><span class="o">.</span><span class="n">expectation_values</span><span class="p">()</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Append the results to the respective lists.</span>
+    <span class="c1"># These will be nested lists, where each inner list corresponds to the results for a specific Hamiltonian operator in the batch.</span>
+    <span class="n">all_exp_val_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exp_val_x</span><span class="p">)</span>
+    <span class="n">all_exp_val_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exp_val_y</span><span class="p">)</span>
+    <span class="n">all_exp_val_z</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exp_val_z</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The expectation values are returned as a list of lists, where each inner list corresponds to the expectation values for the observables at each time step for the respective Hamiltonian in the batch.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">all_exp_val_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span><span class="o">[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span>...,<span class="w"> </span><span class="o">[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]]</span>
+<span class="nv">all_exp_val_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span><span class="o">[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span>...,<span class="w"> </span><span class="o">[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]]</span>
+<span class="nv">all_exp_val_z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[[</span><span class="m">1</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span><span class="o">[</span><span class="m">1</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span>...,<span class="w"> </span><span class="o">[</span><span class="m">1</span>.0,<span class="w"> </span>...<span class="o">]]</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--12-input--2" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// The results of the batched evolution is an array of evolution results, one</span>
+<span class="w">  </span><span class="c1">// for each Hamiltonian operator in the batch.</span>
+
+<span class="w">  </span><span class="c1">// For example, we can split the results into separate arrays for each</span>
+<span class="w">  </span><span class="c1">// observable. These will be nested lists, where each inner list corresponds</span>
+<span class="w">  </span><span class="c1">// to the results for a specific Hamiltonian operator in the batch.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">all_exp_val_x</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">all_exp_val_y</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">all_exp_val_z</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Iterate over the evolution results in the batch:</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">evolution_result</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">evolve_results</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Extract the expectation values for each observable at the respective</span>
+<span class="w">    </span><span class="c1">// Hamiltonian operator in the batch.</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">exp_val_x</span><span class="p">,</span><span class="w"> </span><span class="n">exp_val_y</span><span class="p">,</span><span class="w"> </span><span class="n">exp_val_z</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">exp_vals</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">evolution_result</span><span class="p">.</span><span class="n">expectation_values</span><span class="p">.</span><span class="n">value</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">exp_val_x</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">exp_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">expectation</span><span class="p">());</span>
+<span class="w">      </span><span class="n">exp_val_y</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">exp_vals</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">expectation</span><span class="p">());</span>
+<span class="w">      </span><span class="n">exp_val_z</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">exp_vals</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">expectation</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Append the results to the respective lists.</span>
+<span class="w">    </span><span class="n">all_exp_val_x</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">exp_val_x</span><span class="p">);</span>
+<span class="w">    </span><span class="n">all_exp_val_y</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">exp_val_y</span><span class="p">);</span>
+<span class="w">    </span><span class="n">all_exp_val_z</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">exp_val_z</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+<p>The expectation values are returned as a list of lists, where each inner list corresponds to the expectation values for the observables at each time step for the respective Hamiltonian in the batch.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">all_exp_val_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span><span class="o">[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span>...,<span class="w"> </span><span class="o">[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]]</span>
+<span class="nv">all_exp_val_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span><span class="o">[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span>...,<span class="w"> </span><span class="o">[</span><span class="m">0</span>.0,<span class="w"> </span>...<span class="o">]]</span>
+<span class="nv">all_exp_val_z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[[</span><span class="m">1</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span><span class="o">[</span><span class="m">1</span>.0,<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span>...,<span class="w"> </span><span class="o">[</span><span class="m">1</span>.0,<span class="w"> </span>...<span class="o">]]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Collapse operators and super-operators can also be batched in a similar manner.
+Specifically, if the <code class="code docutils literal notranslate"><span class="pre">collapse_operators</span></code> parameter is a nested list of operators (<span class="math notranslate nohighlight">\(\{\{L\}_1, \{\{L\}_2, ...\}\)</span>),
+then each set of collapsed operators in the list will be applied to the corresponding Hamiltonian in the batch.</p>
+<p>In order for all Hamiltonians to be batched, they must have the same structure, i.e., same number of product terms and those terms must act on the same degrees of freedom.
+The order of the terms in the Hamiltonian does not matter, nor do the coefficient values/callback functions and the specific operators on those product terms.
+Here are a couple of examples of Hamiltonians that can or cannot be batched:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>First Hamiltonian</p></th>
+<th class="head"><p>Second Hamiltonian</p></th>
+<th class="head"><p>Batchable?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(H_1 = \omega_1 \sigma_z(0)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_2 = \omega_2 \sigma_z(0)\)</span></p></td>
+<td><p>Yes (different coefficients, same operator)</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_2 = \omega_z \sigma_z(0) + \sin(\omega_xt)  \sigma_x(1)\)</span></p></td>
+<td><p>Yes (same structure, different callback coefficients)</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_y(1)\)</span></p></td>
+<td><p>Yes (different operators on the same degree of freedom)</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(1) + \cos(\omega_yt) \sigma_y(1)\)</span></p></td>
+<td><p>No (different number of product terms)</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(H_1 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_{xx}(0, 1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_2 = \omega_z \sigma_z(0) + \cos(\omega_xt) \sigma_x(0)\sigma_x(1)\)</span></p></td>
+<td><p>No (different structures, two-body operators vs. tensor product of single-body operators)</p></td>
+</tr>
+</tbody>
+</table>
+<p>When the Hamiltonians are <strong>not</strong> <code class="code docutils literal notranslate"><span class="pre">batchable</span></code>, CUDA-Q will still run the simulations, but each Hamiltonian will be simulated separately in a sequential manner.
+CUDA-Q will log a warning “The input Hamiltonian and collapse operators are not compatible for batching. Running the simulation in non-batched mode.”, when that happens.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Depending on the number of Hamiltonian operators together with factors such as the integrator, schedule step size, and whether intermediate results are stored, the batch simulation can be memory-intensive.
+If you encounter out-of-memory issues, the <code class="code docutils literal notranslate"><span class="pre">max_batch_size</span></code> parameter can be used to limit the number of Hamiltonians that are batched together in one run.
+For example, if you set <code class="code docutils literal notranslate"><span class="pre">max_batch_size=2</span></code>, then we will run the simulations in batches of 2 Hamiltonians at a time, i.e., the first two Hamiltonians will be simulated together, then the next two, and so on.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--13-input--1" name="tab-set--13" type="radio"><label class="tab-label" for="tab-set--13-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run the batch simulation with a maximum batch size of 2.</span>
+<span class="c1"># This means that the evolution will be performed in batches of 2 Hamiltonian operators at a time, which can be useful for memory management or</span>
+<span class="c1"># performance tuning.</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+    <span class="n">hamiltonians</span><span class="p">,</span>
+    <span class="n">dimensions</span><span class="p">,</span>
+    <span class="n">schedule</span><span class="p">,</span>
+    <span class="n">initial_states</span><span class="p">,</span>
+    <span class="n">observables</span><span class="o">=</span><span class="p">[</span><span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+    <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">store_intermediate_results</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">IntermediateResultSave</span><span class="o">.</span><span class="n">EXPECTATION_VALUE</span><span class="p">,</span>
+    <span class="n">integrator</span><span class="o">=</span><span class="n">RungeKuttaIntegrator</span><span class="p">(),</span>
+    <span class="n">max_batch_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># Set the maximum batch size to 2</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--13-input--2" name="tab-set--13" type="radio"><label class="tab-label" for="tab-set--13-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Run the batch simulation with a maximum batch size of 2.</span>
+<span class="w">  </span><span class="c1">// This means that the evolution will be performed in batches of 2 Hamiltonian</span>
+<span class="w">  </span><span class="c1">// operators at a time, which can be useful for memory management or</span>
+<span class="w">  </span><span class="c1">// performance tuning.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span>
+<span class="w">      </span><span class="n">hamiltonians</span><span class="p">,</span><span class="w"> </span><span class="n">dimensions</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="n">initial_states</span><span class="p">,</span><span class="w"> </span><span class="n">integrator</span><span class="p">,</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">      </span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)},</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">IntermediateResultSave</span><span class="o">::</span><span class="n">ExpectationValue</span><span class="p">,</span><span class="w"> </span><span class="cm">/*max_batch_size=*/</span><span class="mi">2</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</section>
 <section id="multi-gpu-multi-node-execution">
 <h2>Multi-GPU Multi-Node Execution<a class="headerlink" href="#multi-gpu-multi-node-execution" title="Permalink to this heading">¶</a></h2>
 <p id="cudensitymat-mgmn">CUDA-Q <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> target supports parallel execution on multiple GPUs.
 To enable parallel execution, the application must initialize MPI as follows.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--10-input--1" name="tab-set--10" type="radio"><label class="tab-label" for="tab-set--10-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+<input checked="True" class="tab-input" id="tab-set--14-input--1" name="tab-set--14" type="radio"><label class="tab-label" for="tab-set--14-input--1">Python</label><div class="tab-content docutils">
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
 
 <span class="c1"># Set the target to our dynamics simulator</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
@@ -1595,7 +1999,7 @@ To enable parallel execution, the application must initialize MPI as follows.</p
     <span class="n">psi0</span><span class="p">,</span>
     <span class="n">observables</span><span class="o">=</span><span class="p">[],</span>
     <span class="n">collapse_operators</span><span class="o">=</span><span class="p">[],</span>
-    <span class="n">store_intermediate_results</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">IntermediateResultSave</span><span class="o">.</span><span class="n">EXPECTATION_VALUE</span><span class="p">,</span>
+    <span class="n">store_intermediate_results</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">IntermediateResultSave</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
     <span class="n">integrator</span><span class="o">=</span><span class="n">RungeKuttaIntegrator</span><span class="p">())</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
@@ -1604,6 +2008,27 @@ To enable parallel execution, the application must initialize MPI as follows.</p
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span>&lt;N&gt;<span class="w"> </span>python3<span class="w"> </span>program.py
 </pre></div>
 </div>
+</div></blockquote>
+<p>where <code class="docutils literal notranslate"><span class="pre">N</span></code> is the number of processes.</p>
+</div>
+<input class="tab-input" id="tab-set--14-input--2" name="tab-set--14" type="radio"><label class="tab-label" for="tab-set--14-input--2">C++</label><div class="tab-content docutils">
+<blockquote>
+<div><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">initialize</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// Initial state (expressed as an enum)</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">psi0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">InitialState</span><span class="o">::</span><span class="n">ZERO</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Run the simulation</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">H</span><span class="p">,</span><span class="w"> </span><span class="n">dimensions</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="n">psi0</span><span class="p">,</span><span class="w"> </span><span class="n">integrator</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">finalize</span><span class="p">();</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>dynamics<span class="w"> </span>example.cpp<span class="w"> </span>-o<span class="w"> </span>a.out
+mpiexec<span class="w"> </span>-np<span class="w"> </span>&lt;N&gt;<span class="w"> </span>a.out
+</pre></div>
+</div>
+</div></blockquote>
 <p>where <code class="docutils literal notranslate"><span class="pre">N</span></code> is the number of processes.</p>
 </div>
 </div>
