@@ -507,10 +507,15 @@ jobs:
             refs="$refs $image"
           done
 
-          registry=$(echo "$image" | cut -d'@' -f1)
-          gcc_version=$(echo "$EXT_JSON" | jq -r ".build_cache[\"$key\"]" | grep -o 'gcc[0-9]\+' || echo "gccXX")
-          tag="ext-cu${cuda}-${gcc_version}-${{ github.ref_name }}"
-          stitched_tag="${registry}:${tag}"
+          # Retrieve image tag from DIGEST_JSON, just look at amd64 and filter it out
+          key="amd64-cu${cuda}-dev-image"
+          dev_image=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
+
+          # Remove 'amd64-' from the whole string
+          stitched_tag="${dev_image/amd64-/}"
+
+          # push to cuda-quantum-devdeps instead of cuda-quantum-dev
+          stitched_tag="${stitched_tag/cuda-quantum-dev:/cuda-quantum-devdeps:}"
 
           echo "Stitching devdeps image with tag: $stitched_tag"
           echo "References: $refs"
@@ -529,19 +534,22 @@ jobs:
 
           cuda="${{ matrix.cuda }}"
           cuda_major="${cuda%%.*}"
-          image="dev-image"
 
           refs=""
           for arch in amd64 arm64; do
-            key="${arch}-cu${cuda}-${image}"
+            key="${arch}-cu${cuda}-dev-image"
             digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
             arch_reference=$(echo "$DIGESTS_JSON" | jq -r ".image_tag[\"$key\"]")
             registry=$(echo "$arch_reference" | cut -d':' -f1)
             refs="$refs $registry@$digest"
           done
 
-          branch="${{ github.ref_name }}"
-          stitched_tag="$registry:cu${cuda_major}-${branch}-base"
+          # Retrieve image tag from DIGEST_JSON, just look at amd64 and filter it out
+          key="amd64-cu${cuda}-dev-image"
+          dev_image=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
+
+          # Remove 'amd64-' from the whole string
+          stitched_tag="${dev_image/amd64-/}"
 
           echo "Stitching debug image with tag: $stitched_tag"
           echo "References: $refs"
