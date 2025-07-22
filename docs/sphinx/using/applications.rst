@@ -10,7 +10,6 @@ CUDA-Q Applications
    :maxdepth: 1
    :hidden:
 
-
    /applications/python/qaoa
    /applications/python/digitized_counterdiabatic_qaoa
    /applications/python/krylov
@@ -317,3 +316,4 @@ CUDA-Q Applications
         });
     });
     </script>
+
