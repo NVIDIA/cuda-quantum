@@ -341,8 +341,18 @@ public:
   }
 
   void maybeAddBalancedLiveInToBlock(Block *block, MemRef mr) {
-    if (liveOutSet.count(mr))
+    if (liveOutSet.count(mr)) {
+      if (block->getPredecessors().empty()) {
+        if (liveInMap[block].count(mr))
+          if (isa<BlockArgument>(liveInMap[block][mr]))
+            return;
+        auto ty = dereferencedType(mr.getType());
+        SSAReg newReg = block->addArgument(ty, mr.getLoc());
+        liveInMap[block][mr] = newReg;
+        return;
+      }
       maybeAddLiveInToBlock(block, mr);
+    }
   }
 
   /// Record the memory reference \p mr as live-in to \p block. The live-in
@@ -939,8 +949,8 @@ public:
     // successor.
     auto liveOutParent = dataFlow.getLiveOutOfParent();
 
-    auto addTerminatorArgument = [&](Operation *term, Block *target,
-                                     Value val) {
+    auto addTerminatorArgument = [&](Operation *term, Block *target, Value val,
+                                     std::size_t ignored) {
       if (auto branch = dyn_cast<BranchOpInterface>(term)) {
         unsigned numSuccs = branch->getNumSuccessors();
         bool changes = false;
@@ -948,7 +958,8 @@ public:
           if (target && branch->getSuccessor(i) != target)
             continue;
           auto newArgs = branch.getSuccessorOperands(i).getForwardedOperands();
-          if (std::find(newArgs.begin(), newArgs.end(), val) != newArgs.end())
+          if (std::find(newArgs.begin() + ignored, newArgs.end(), val) !=
+              newArgs.end())
             continue;
           branch.getSuccessorOperands(i).append(val);
           changes = true;
@@ -958,7 +969,8 @@ public:
         return;
       }
       SmallVector<Value> newArgs(term->getOperands());
-      if (std::find(newArgs.begin(), newArgs.end(), val) != newArgs.end())
+      if (std::find(newArgs.begin() + ignored, newArgs.end(), val) !=
+          newArgs.end())
         return;
       newArgs.push_back(val);
       term->setOperands(newArgs);
@@ -967,29 +979,37 @@ public:
 
     const bool usePromo = neverTakesRegionArguments(parent);
     const bool onlyLinear = onlyTakesLinearTypeArguments(parent);
-    auto updateTerminator = [&](Operation *term, Block *target, auto bindings) {
+    auto updateTerminator = [&](Operation *term, Block *target, auto bindings,
+                                std::size_t ignored) {
       auto *block = term->getBlock();
       for (auto liveOut : bindings) {
         if (dataFlow.hasBinding(block, liveOut)) {
           if (!isFunctionBlock(block) && !usePromo && !onlyLinear)
             dataFlow.maybeAddBalancedLiveInToBlock(block, liveOut);
           auto oldVal = dataFlow.getBinding(block, liveOut);
-          addTerminatorArgument(term, target, oldVal);
+          addTerminatorArgument(term, target, oldVal, ignored);
         } else if ((usePromo ||
                     (onlyLinear && !isa<quake::RefType>(liveOut.getType()))) &&
                    dataFlow.isEntryBlock(block)) {
           auto newVal = dataFlow.getPromotedValue(liveOut);
           dataFlow.addBinding(block, liveOut, newVal);
-          addTerminatorArgument(term, target, newVal);
+          addTerminatorArgument(term, target, newVal, ignored);
         } else {
           auto newArg = dataFlow.maybeAddLiveInToBlock(block, liveOut);
-          addTerminatorArgument(term, target, newArg);
+          addTerminatorArgument(term, target, newArg, ignored);
         }
       }
     };
 
+    const auto ignoredCount = parent->getNumResults();
+    auto getIgnored = [ignoredCount](Operation *op) {
+      return isa_and_nonnull<cudaq::cc::CCDialect>(op->getDialect())
+                 ? ignoredCount
+                 : 0;
+    };
     auto updateExitTerminator = [&](Block *block, auto bindings) {
-      return updateTerminator(block->getTerminator(), nullptr, bindings);
+      return updateTerminator(block->getTerminator(), nullptr, bindings,
+                              getIgnored(block->getTerminator()));
     };
 
     SmallPtrSet<Block *, 8> blocksVisited;
@@ -1005,7 +1025,8 @@ public:
       if (!liveInBlock.empty()) {
         auto preds = dataFlow.getPredecessors(block);
         for (auto *pred : preds)
-          updateTerminator(pred->getTerminator(), block, liveInBlock);
+          updateTerminator(pred->getTerminator(), block, liveInBlock,
+                           getIgnored(pred->getTerminator()));
       }
 
       // We should visit all the blocks at least once.
