@@ -509,7 +509,12 @@ jobs:
 
           registry=$(echo "$image" | cut -d'@' -f1)
           gcc_version=$(echo "$EXT_JSON" | jq -r ".build_cache[\"$key\"]" | grep -o 'gcc[0-9]\+' || echo "gccXX")
-          tag="ext-cu${cuda}-${gcc_version}-${{ github.ref_name }}"
+
+          # example: releases/0.12.0 -> releases-0.12.0
+          sanitized_ref_name="${{ github.ref_name }}"
+          sanitized_ref_name="${sanitized_ref_name//\//-}"
+
+          tag="ext-cu${cuda}-${gcc_version}-${sanitized_ref_name}"
           stitched_tag="${registry}:${tag}"
 
           echo "Stitching devdeps image with tag: $stitched_tag"
@@ -540,8 +545,11 @@ jobs:
             refs="$refs $registry@$digest"
           done
 
-          branch="${{ github.ref_name }}"
-          stitched_tag="$registry:cu${cuda_major}-${branch}-base"
+          # example: releases/0.12.0 -> releases-0.12.0
+          sanitized_ref_name="${{ github.ref_name }}"
+          sanitized_ref_name="${sanitized_ref_name//\//-}"
+
+          stitched_tag="$registry:cu${cuda_major}-${sanitized_ref_name}-base"
 
           echo "Stitching debug image with tag: $stitched_tag"
           echo "References: $refs"
