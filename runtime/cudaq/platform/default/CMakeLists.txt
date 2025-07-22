@@ -43,7 +43,7 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
 endif()
   
 add_target_config(opt-test)
-add_target_config(horizon) 
+add_target_config(dev-test) 
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   add_target_config(nvidia)

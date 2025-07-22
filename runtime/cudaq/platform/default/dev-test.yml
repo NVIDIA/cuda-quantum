@@ -1,0 +1,19 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: dev-test
+description: "Test target"
+config:
+  platform-qpu: remote_rest
+  gen-target-backend: true
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  link-libs: ["-lcudaq-rest-qpu"]
+  platform-lowering-config: "func.func(erase-noise),classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),distributed-device-call"
+  codegen-emission: qir-adaptive[int_computations]
+  library-mode: false
+  server-helper: braket

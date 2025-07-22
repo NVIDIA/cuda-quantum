@@ -99,7 +99,8 @@ struct VerifyQIRProfilePass
         auto funcName = funcNameAttr.getValue();
         if (!funcName.startswith("__quantum_") ||
             funcName == cudaq::opt::QIRCustomOp) {
-          call.emitOpError("unexpected call in QIR base profile");
+          call.emitOpError("unexpected call in QIR base profile: " +
+                           funcName.str());
           passFailed = true;
           return WalkResult::advance();
         }
