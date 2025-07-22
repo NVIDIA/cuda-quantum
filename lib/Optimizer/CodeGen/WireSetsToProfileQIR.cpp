@@ -370,7 +370,7 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
         loc, std::nullopt, cudaq::opt::QIRRecordOutput,
         ValueRange{adaptor.getMeasurement(), nameValCStr});
     if (isAdaptiveProfile) {
-      std::string funcName = cudaq::opt::QIRReadResultBody;
+      std::string funcName = toQisBodyName(std::string("read_result"));
       rewriter.replaceOpWithNewOp<func::CallOp>(
           disc, rewriter.getI1Type(), funcName,
           ValueRange{adaptor.getMeasurement()});
@@ -543,7 +543,7 @@ struct WireSetToProfileQIRPrepPass
     addBodyDecl("mz", measTy);
     auto readResTy = FunctionType::get(ctx, TypeRange{resTy},
                                        TypeRange{builder.getI1Type()});
-    createNewDecl(cudaq::opt::QIRReadResultBody, readResTy);
+    createNewDecl("__quantum__qis__read_result__body", readResTy);
 
     auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
     auto recordTy =
