@@ -286,7 +286,6 @@ parallelize
 parallelized
 parallelizing
 parameterization
-pe
 performant
 photonic
 photonics
@@ -299,7 +298,6 @@ programmatically
 pybind
 qaoa
 qed
-qm
 quantize
 quantized
 qubit
