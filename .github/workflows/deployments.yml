@@ -551,8 +551,6 @@ jobs:
           # Remove 'amd64-' from the whole string
           stitched_tag="${dev_image/amd64-/}"
 
-          stitched_tag="$registry:${{ steps.metadata.outputs.image_tag }}-base"
-
           echo "Stitching debug image with tag: $stitched_tag"
           echo "References: $refs"
 
