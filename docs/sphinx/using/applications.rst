@@ -39,7 +39,7 @@ CUDA-Q Applications
    /applications/python/quantum_pagerank
    /applications/python/uccsd_wf_ansatz
    /applications/python/mps_encoding
-   /applications/python/QM_MM_PE
+   /applications/python/qm_mm_pe
 
 
 .. raw:: html
