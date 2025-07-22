@@ -108,7 +108,7 @@ CUDA-Q Applications
         <img src="../_static/app_title_images/krylov_preview.png" alt="Krylov Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="chemistry,noiseless,mqpu">
+    <div class="notebook-entry" data-tags="chemistry,noiseless,gpu">
         <a href="../applications/python/qsci.html" class="notebook-title">Quantum-Selected Configuration Interaction</a>
         <div class="notebook-content">
             Learn how the QSCI method uses the observe and sample primitives.
