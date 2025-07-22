@@ -16,5 +16,5 @@ namespace cudaq::details {
 cudaq::parameter_map kwargs_to_param_map(const py::kwargs &kwargs);
 std::unordered_map<std::string, std::string>
 kwargs_to_param_description(const py::kwargs &kwargs);
-py::array_t<std::complex<double>> cmat_to_numpy(const complex_matrix &cmat);
+py::array_t<std::complex<double>> cmat_to_numpy(complex_matrix &cmat);
 } // namespace cudaq::details
