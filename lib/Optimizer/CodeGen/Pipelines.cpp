@@ -24,6 +24,7 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createQuakeAddDeallocs());
   pm.addNestedPass<func::FuncOp>(createQuakeAddMetadata());
+  pm.addPass(createQuakePropagateMetadata());
   pm.addNestedPass<func::FuncOp>(createLoopNormalize());
   LoopUnrollOptions luo;
   luo.allowBreak = passConfigAs == "qir-adaptive";
