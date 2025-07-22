@@ -480,6 +480,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          cuda="${{ matrix.cuda }}"
+          cuda_major="${cuda%%.*}"
+
           DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
           EXT_JSON='${{ needs.ext_config.outputs.json }}'
 
