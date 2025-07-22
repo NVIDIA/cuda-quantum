@@ -46,7 +46,8 @@ public:
           // finish walking it, as we don't want to erase ops from a
           // function we are currently walking
           auto name = std::string("subcircuit") + std::to_string(i++);
-          if (subcircuit->moveToFunc(module, name))
+          if (subcircuit->getNumRotations() > 1 &&
+              subcircuit->moveToFunc(module, name))
             subcircuits.insert(subcircuit);
           else
             delete subcircuit;
@@ -66,16 +67,18 @@ public:
 } // namespace
 
 static void createPhaseFoldingPipeline(OpPassManager &pm) {
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addPass(cudaq::opt::createPhasePolynomialPreprocess());
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createPhasePolynomialRotationMerging());
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
+  // pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  // pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
 
 void cudaq::opt::registerPhaseFoldingPipeline() {

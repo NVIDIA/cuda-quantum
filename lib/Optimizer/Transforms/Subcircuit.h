@@ -24,19 +24,18 @@ bool isControlledOp(Operation *op);
 
 bool isCircuitBreaker(Operation *op);
 
+inline bool isTwoQubitOp(Operation *op) {
+  return quake::getQuantumOperands(op).size() == 2;
+}
+
 class Netlist {
   Value def;
   SmallVector<Operation *> users;
 
 public:
   Netlist(Value v) {
-    assert(isa<quake::ExtractRefOp>(v.getDefiningOp()));
+    assert(isa<quake::RefType>(v.getType()));
     def = v;
-    // users =
-    //     SmallVector<Operation *>(def.getUsers().begin(),
-    //     def.getUsers().end());
-    // // getUsers returns users in reverse order
-    // std::reverse(users.begin(), users.end());
   }
 
   size_t getIndexOf(Operation *op) {
@@ -60,19 +59,20 @@ class NetlistContainer {
   SmallVector<Netlist *> netlists;
 
 public:
-  // NetlistContainer() {}
-
   NetlistContainer(mlir::func::FuncOp func) {
     func.walk([&](Operation *op) {
       if (auto refop = dyn_cast<quake::ExtractRefOp>(op)) {
         allocNetlist(refop);
         return;
+      } else if (auto allocaop = dyn_cast<quake::AllocaOp>(op)) {
+        if (isa<quake::RefType>(allocaop.getType()))
+          allocNetlist(allocaop);
+        return;
       }
 
       if (isa<quake::OperatorInterface>(op))
-        for (auto operand : op->getOperands())
-          if (quake::isQuantumType(operand.getType()))
-            netlists[getIndexOf(operand)]->append(op);
+        for (auto operand : quake::getQuantumOperands(op))
+          netlists[getIndexOf(operand)]->append(op);
     });
   }
 
@@ -81,18 +81,18 @@ public:
       delete netlist;
   }
 
-  void allocNetlist(quake::ExtractRefOp refop) {
+  void allocNetlist(Operation *refop) {
     auto nlindex = netlists.size();
     refop->setAttr(
         "nlindex",
         mlir::IntegerAttr::get(mlir::IntegerType::get(refop->getContext(), 64),
                                nlindex));
-    auto *nl = new Netlist(refop.getResult());
+    auto *nl = new Netlist(refop->getResult(0));
     netlists.push_back(nl);
   }
 
   size_t getIndexOf(Value ref) {
-    auto refop = dyn_cast<quake::ExtractRefOp>(ref.getDefiningOp());
+    auto refop = ref.getDefiningOp();
     assert(refop);
     if (!refop->hasAttr("nlindex"))
       allocNetlist(refop);
@@ -138,13 +138,14 @@ protected:
 
       subcircuit->ops.insert(op);
 
-      auto opi = dyn_cast<quake::OperatorInterface>(op);
-
-      if (opi.getControls().size() > 0) {
-        if (opi.getControls().front() == nl->getDef())
-          subcircuit->addAnchorPoint(opi.getTarget(0), op);
+      if (isTwoQubitOp(op)) {
+        if (op->getOperand(0) == nl->getDef())
+          subcircuit->addAnchorPoint(op->getOperand(1), op);
         else
-          subcircuit->addAnchorPoint(opi.getControls().front(), op);
+          subcircuit->addAnchorPoint(op->getOperand(0), op);
+      } else if (!isa<quake::XOp>(op)) {
+        // AXIS-SPECIFIC
+        subcircuit->num_rot_gates++;
       }
 
       return true;
@@ -167,13 +168,16 @@ protected:
     void pruneFrom(size_t idx) {
       for (; idx < nl->size(); idx++) {
         auto op = nl->getOp(idx);
-        if (isControlledOp(op)) {
+        if (isTwoQubitOp(op)) {
           auto control = op->getOperand(0);
           auto target = op->getOperand(1);
           auto other_def = nl->getDef() == control ? target : control;
           auto nl = subcircuit->getWrapper(other_def);
           if (nl)
             nl->pruneFrom(op);
+        } else if (!isa<quake::XOp>(op)) {
+          // AXIS-SPECIFIC
+          subcircuit->num_rot_gates--;
         }
         subcircuit->ops.remove(op);
       }
@@ -227,6 +231,7 @@ protected:
   SetVector<Operation *> ops;
   SmallVector<Operation *> ordered_ops;
   Operation *start;
+  size_t num_rot_gates = 0;
 
   void allocWrapper(Value ref, Operation *anchor_point) {
     auto nlindex = container->getIndexOf(ref);
@@ -310,4 +315,6 @@ public:
   /// @returns `true` if the subcircuit was successfully moved
   /// to a new function, `false` otherwise.
   bool moveToFunc(mlir::ModuleOp &mod, llvm::StringRef name);
+
+  size_t getNumRotations();
 };

@@ -139,9 +139,9 @@ bool Subcircuit::moveToFunc(mlir::ModuleOp &mod, llvm::StringRef name) {
   // Ensure the subcircuit is movable
   if (earliest_end->isBeforeInBlock(latest_start)) {
     // TODO: should we be so noisy here?
-    start->emitWarning("Cannot separate subcircuit: end before start");
-    latest_start->emitRemark("Start here");
-    earliest_end->emitRemark("End here");
+    // start->emitWarning("Cannot separate subcircuit: end before start");
+    // latest_start->emitRemark("Start here");
+    // earliest_end->emitRemark("End here");
     // TODO: do we want to unmark as processed so ops can may be absorbed by
     // later subcircuits?
     return false;
@@ -178,6 +178,27 @@ bool Subcircuit::moveToFunc(mlir::ModuleOp &mod, llvm::StringRef name) {
     }
   }
 
+  bool check_again = false;
+  for (size_t i = types.size(); i < args.size(); i++) {
+    auto start = findAncestorInSubcircuitBlock(args[i].getDefiningOp());
+    if (start && latest_start->isBeforeInBlock(start)) {
+      latest_start = start;
+      check_again = true;
+    }
+  }
+
+  // Check again with constant arguments
+  if (check_again && earliest_end->isBeforeInBlock(latest_start)) {
+    // TODO: should we be so noisy here?
+    // start->emitWarning("Cannot separate subcircuit: end before start");
+    // latest_start->emitRemark("Start here");
+    // earliest_end->emitRemark("End here");
+    // TODO: do we want to unmark as processed so ops can may be absorbed by
+    // later subcircuits?
+    fun.erase();
+    return false;
+  }
+
   size_t i = 0;
   // Indirect the refs through the arguments
   for (auto ref : getRefs()) {
@@ -195,3 +216,5 @@ bool Subcircuit::moveToFunc(mlir::ModuleOp &mod, llvm::StringRef name) {
 
   return true;
 }
+
+size_t Subcircuit::getNumRotations() { return num_rot_gates; }
