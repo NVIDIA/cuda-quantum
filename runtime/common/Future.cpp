@@ -24,7 +24,6 @@ sample_result future::get() {
   auto serverHelper = registry::get<ServerHelper>(qpuName);
   serverHelper->initialize(serverConfig);
   auto headers = serverHelper->getHeaders();
-  auto cookies = serverHelper->getCookies();
   std::vector<ExecutionResult> results;
   for (auto &id : jobs) {
     cudaq::info("Future retrieving results for {}.", id.first);
@@ -32,12 +31,14 @@ sample_result future::get() {
     auto jobGetPath = serverHelper->constructGetJobPath(id.first);
 
     cudaq::info("Future got job retrieval path as {}.", jobGetPath);
-    auto resultResponse = client.get(jobGetPath, "", headers, false, cookies);
+    auto resultResponse =
+        client.get(jobGetPath, "", headers, false, serverHelper->getCookies());
     while (!serverHelper->jobIsDone(resultResponse)) {
       auto polling_interval =
           serverHelper->nextResultPollingInterval(resultResponse);
       std::this_thread::sleep_for(polling_interval);
-      resultResponse = client.get(jobGetPath, "", headers, false, cookies);
+      resultResponse = client.get(jobGetPath, "", headers, false,
+                                  serverHelper->getCookies());
     }
     auto c = serverHelper->processResults(resultResponse, id.first);
 
