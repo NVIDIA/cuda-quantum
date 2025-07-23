@@ -9,7 +9,12 @@
 import pytest
 import cudaq
 
+skipIfNoMQPU = pytest.mark.skipif(
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    reason="nvidia-mqpu backend not available")
 
+
+@skipIfNoMQPU
 def test_target_valid_option_attribute():
     """Tests the target valid option attribute."""
 
@@ -18,6 +23,7 @@ def test_target_valid_option_attribute():
     assert target.platform == "mqpu"
 
 
+@skipIfNoMQPU
 def test_target_invalid_options_attribute():
     """Tests the target invalid options attribute."""
 
