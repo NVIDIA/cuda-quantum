@@ -194,7 +194,7 @@ QuantinuumServerHelper::createQIRModule(const KernelExecution &circuitCode) {
 ServerJobPayload
 QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   // Just a placeholder for the job post URL path, headers, and messages
-  std::vector<ServerMessage> messages(circuitCodes.size());
+  std::vector<ServerMessage> messages;
 
   // Get the tokens we need
   credentialsPath =
@@ -221,7 +221,11 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     j["data"]["type"] = "job";
     // Add attributes
     j["data"]["attributes"] = ServerMessage::object();
-    j["data"]["attributes"]["name"] = circuitCode.name;
+    // Construct a unique name for the job, by appending current timestamp
+    auto timestamp =
+        fmt::format("{:%Y-%m-%d_%H:%M:%S}", std::chrono::system_clock::now());
+    j["data"]["attributes"]["name"] =
+        fmt::format("{}_{}", circuitCode.name, timestamp);
     j["data"]["attributes"]["job_type"] = "execute";
     j["data"]["attributes"]["properties"] = ServerMessage::object();
     // Add definition section
