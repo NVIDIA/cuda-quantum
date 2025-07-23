@@ -7,7 +7,8 @@
 # ============================================================================ #
 
 import cudaq
-from fastapi import FastAPI, HTTPException, Header, JSONResponse, Query
+from fastapi import FastAPI, HTTPException, Header, Query
+from fastapi.responses import JSONResponse
 from typing import Union
 import uvicorn, uuid, base64, ctypes
 from pydantic import BaseModel
@@ -239,7 +240,7 @@ async def create_job(job: dict):
 
     # Invoke the Kernel
     cudaq.testing.toggleDynamicQubitManagement()
-    qubits, context = cudaq.testing.initialize(numQubitsRequired, job.count)
+    qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
     kernel()
     results = cudaq.testing.finalize(qubits, context)
     results.dump()
@@ -305,8 +306,9 @@ async def get_job_status(job_id: str):
 # Add results retrieval endpoint
 @app.get("/api/results/v1beta3/{result_id}")
 async def get_results(result_id: str):
+    global createdJobs
     # Find the job that produced this result
-    # This is a simplified implementation
+    # This is a simplified implementation, and may need to be updated
     for job_id, (name, counts) in createdJobs.items():
         # Format counts for Nexus API format
         formatted_counts = []

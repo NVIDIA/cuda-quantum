@@ -28,18 +28,11 @@ def assert_close(got) -> bool:
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
-    # Create both legacy and Nexus credential files
-    legacyCredsName = '{}/QuantinuumFakeConfig.config'.format(
-        os.environ["HOME"])
-    nexusCredsName = '{}/QuantinuumFakeNexusConfig.config'.format(
-        os.environ["HOME"])
-
-    # Create legacy credential file (key, refresh, time format)
-    with open(legacyCredsName, 'w') as f:
-        f.write('key: {}\nrefresh: {}\ntime: 0'.format("hello", "rtoken"))
+    # We need a Fake Credentials Config file
+    credsName = '{}/QuantinuumFakeConfig.config'.format(os.environ["HOME"])
 
     # Create Nexus credential file (cookie format)
-    with open(nexusCredsName, 'w') as f:
+    with open(credsName, 'w') as f:
         f.write('key: {}\nrefresh: {}\ntime: 0'.format("nexus_key",
                                                        "nexus_refresh"))
 
@@ -54,28 +47,20 @@ def startUpMockServer():
         pytest.exit("Mock server did not start in time, skipping tests.",
                     returncode=1)
 
-    yield {'legacy': legacyCredsName, 'nexus': nexusCredsName}
+    yield credsName
 
     # Kill the server, remove the file
     p.terminate()
-    os.remove(legacyCredsName)
-    os.remove(nexusCredsName)
+    os.remove(credsName)
 
 
 @pytest.fixture(scope="function", autouse=True)
-@pytest.fixture(params=['quantinuum_legacy', 'quantinuum'])
-def configureTarget(request, startUpMockServer):
-    target_name = request.param
-    # Choose appropriate credentials based on target
-    if target_name == 'quantinuum_legacy':
-        creds_file = startUpMockServer['legacy']
-    else:  # 'quantinuum'
-        creds_file = startUpMockServer['nexus']
-
+def configureTarget(startUpMockServer):
     # Set the target
-    cudaq.set_target(target_name,
+    cudaq.set_target('quantinuum',
                      url='http://localhost:{}'.format(port),
-                     credentials=creds_file)
+                     credentials=startUpMockServer,
+                     project='mock_project_id')
 
     yield "Running the test."
     cudaq.reset_target()
