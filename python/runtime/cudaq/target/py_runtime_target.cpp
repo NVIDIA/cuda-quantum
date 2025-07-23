@@ -91,6 +91,9 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
   mod.def(
       "set_target",
       [&](const cudaq::RuntimeTarget &target, py::kwargs extraConfig) {
+        if (extraConfig.contains("options"))
+          throw std::runtime_error(
+              "The keyword `options` argument is not supported in cudaq.set_target(). Please use the keyword `option` in order to set the target options.");
         std::map<std::string, std::string> config;
         for (auto &[key, value] : extraConfig) {
           std::string strValue = "";
@@ -116,6 +119,9 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
   mod.def(
       "set_target",
       [&](const std::string &name, py::kwargs extraConfig) {
+        if (extraConfig.contains("options"))
+          throw std::runtime_error(
+              "The keyword `options` argument is not supported in cudaq.set_target(). Please use the keyword `option` in order to set the target options.");
         std::map<std::string, std::string> config;
         for (auto &[key, value] : extraConfig) {
           std::string strValue = "";
