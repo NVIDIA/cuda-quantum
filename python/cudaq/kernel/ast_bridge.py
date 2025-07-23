@@ -1716,7 +1716,6 @@ class PyASTBridge(ast.NodeVisitor):
                 namedArgs[keyword.arg] = self.popValue()
 
             self.debug_msg(lambda: f'[(Inline) Visit Name]', node.func)
-            print(node.func.id)
             if node.func.id == 'len':
                 listVal = self.ifPointerThenLoad(self.popValue())
                 if cc.StdvecType.isinstance(listVal.type):
@@ -2101,9 +2100,6 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id in globalRegisteredOperations:
-                print(
-                    f'Found custom operation {node.func.id} in globalRegisteredOperations'
-                )
                 unitary = globalRegisteredOperations[node.func.id]
                 numTargets = int(np.log2(np.sqrt(unitary.size)))
 
@@ -2143,7 +2139,6 @@ class PyASTBridge(ast.NodeVisitor):
             # function. It has to be in the capture vars and it has to
             # be a PyKernelDecorator.
             if node.func.id in self.capturedVars and node.func.id not in globalKernelRegistry:
-                print(f'Found captured kernel {node.func.id} in capturedVars')
                 from .kernel_decorator import PyKernelDecorator
                 var = self.capturedVars[node.func.id]
                 if isinstance(var, PyKernelDecorator):
@@ -2160,7 +2155,6 @@ class PyASTBridge(ast.NodeVisitor):
                         node.func.id = var.name
 
             if node.func.id in globalKernelRegistry:
-                print(f'Found kernel {node.func.id} in globalKernelRegistry')
                 # If in `globalKernelRegistry`, it has to be in this Module
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
                                                                  node.func.id]
@@ -2253,9 +2247,6 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             elif node.func.id in globalRegisteredTypes.classes:
-                print(
-                    f'Found user-defined struct constructor {node.func.id} in globalRegisteredTypes'
-                )
                 # Handle User-Custom Struct Constructor
                 cls, annotations = globalRegisteredTypes.getClassAttributes(
                     node.func.id)
