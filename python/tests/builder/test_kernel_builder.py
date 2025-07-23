@@ -1444,15 +1444,15 @@ def test_issue_670():
     cudaq.sample(kernel)
 
 
-def test_invalid_type_to_kernel_builder():
+def test_call_invalid_attribute_on_a_kernel():
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(AttributeError) as e:
         kernel, op = cudaq.make_kernel(cudaq.pauli_word)
         q = kernel.qalloc(2)
         kernel.x(q[1])
-        op(q[0])
+        kernel.op(q[0])
         result = cudaq.sample(kernel, cudaq.pauli_word("X"))
-    assert "not a valid type for kernel builder" in str(e.value)
+    assert "not supported on PyKernel" in str(e.value)
 
 
 # leave for gdb debugging

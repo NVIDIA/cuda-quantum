@@ -350,9 +350,6 @@ class PyKernel(object):
                 if eleTyName != None and eleTyName in allowedTypeMap:
                     return list, [pyType()]
                 emitFatalError(f'Invalid type for kernel builder {ty}')
-        # Handle invalid types as arguments to kernel builder
-        if ty in [cudaq_runtime.pauli_word]:
-            emitFatalError(f"`{ty}` is not a valid type for kernel builder.")
         return ty, None
 
     def getIntegerAttr(self, type, value):
@@ -1481,7 +1478,6 @@ class PyKernel(object):
             emitFatalError(
                 f"Invalid number of arguments passed to kernel `{self.funcName}` ({len(args)} provided, {len(self.mlirArgTypes)} required"
             )
-
         # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
@@ -1553,9 +1549,11 @@ class PyKernel(object):
         cudaq_runtime.pyAltLaunchKernel(self.name, self.module, *processedArgs)
 
     def __getattr__(self, attr_name):
-        if hasattr(self, attr_name):
-            return getattr(self, attr_name)
-        raise AttributeError(f"'{attr_name}' is not supported on PyKernel")
+        # Search attributes in instance, class, base classes
+        try:
+            return object.__getattribute__(self, attr_name)
+        except AttributeError:
+            raise AttributeError(f"'{attr_name}' is not supported on PyKernel")
 
 
 setattr(PyKernel, 'h', partialmethod(__singleTargetOperation, 'h'))
