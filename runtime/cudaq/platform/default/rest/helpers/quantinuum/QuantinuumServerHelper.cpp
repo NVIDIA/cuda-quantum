@@ -12,6 +12,7 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include <thread>
 
 namespace cudaq {
@@ -28,6 +29,8 @@ protected:
   std::string jobUrl = "api/jobs/v1beta3/";
   /// @brief The machine we are targeting
   std::string machine = "H2-1SC";
+  /// @brief The Nexus project ID
+  std::string projectId = "";
   /// @brief Time string, when the last tokens were retrieved
   std::string timeStr = "";
   /// @brief The refresh token
@@ -47,6 +50,9 @@ protected:
 
   /// @brief Return the headers required for the REST calls
   RestHeaders generateRequestHeader() const;
+
+  /// @brief Retrieve project ID from the project name
+  void setProjectId(const std::string &userInput);
 
   /// @brief Create a QIR module from the provided circuit code
   ServerMessage createQIRModule(const KernelExecution &circuitCode);
@@ -78,14 +84,17 @@ public:
         baseUrl += "/";
     }
 
-    if (auto project_id = std::getenv("QUANTINUUM_NEXUS_PROJECT_ID"))
-      backendConfig["project_id"] = project_id;
-    else
-      backendConfig["project_id"] = "";
-
     iter = backendConfig.find("credentials");
     if (iter != backendConfig.end())
       userSpecifiedCredentials = iter->second;
+
+    // Set project ID
+    iter = backendConfig.find("project");
+    if (iter != backendConfig.end())
+      setProjectId(iter->second);
+    else
+      throw std::runtime_error("Missing mandatory field for Nexus project. "
+                               "Please provide a valid project name or ID.");
 
     parseConfigForCommonParams(config);
   }
@@ -168,6 +177,51 @@ static std::string searchAPIKey(std::string &key, std::string &refreshKey,
   return hwConfig;
 }
 
+void QuantinuumServerHelper::setProjectId(const std::string &userInput) {
+  // Get the tokens we need
+  credentialsPath =
+      searchAPIKey(apiKey, refreshKey, timeStr, userSpecifiedCredentials);
+  refreshTokens();
+  RestHeaders headers = generateRequestHeader();
+  RestCookies cookies = getCookies();
+  // Lambda to validate UUID format. This regex checks for the standard UUID
+  // format: 8-4-4-4-12 hexadecimal characters as specified in RFC 4122.
+  auto isValidUUID = [](const std::string &inputStr) -> bool {
+    // Regular expression for UUID validation
+    const std::regex uuidRegex("^[a-fA-F0-9]{8}-"
+                               "[a-fA-F0-9]{4}-"
+                               "[1-5][a-fA-F0-9]{3}-"
+                               "[89abAB][a-fA-F0-9]{3}-"
+                               "[a-fA-F0-9]{12}$");
+    return std::regex_match(inputStr, uuidRegex);
+  };
+  // If the user input is a UUID, check if it refers to valid Nexus project
+  if (isValidUUID(userInput)) {
+    /// Ref:
+    /// https://nexus.quantinuum.com/api-docs#/projects/get_project_api_projects_v1beta2__project_id__get
+    auto response = restClient.get(baseUrl, "api/projects/v1beta2/" + userInput,
+                                   headers, false, cookies);
+    if (response.contains("data") && response["data"].contains("id") &&
+        response["data"]["id"].is_string()) {
+      projectId = response["data"]["id"].get<std::string>();
+      return;
+    }
+  }
+  // If not, we need to search for the project by name
+  /// Ref:
+  /// https://nexus.quantinuum.com/api-docs#/projects/list_projects_api_projects_v1beta2_get
+  auto response =
+      restClient.get(baseUrl, "api/projects/v1beta2?filter[name]=" + userInput,
+                     headers, false, cookies);
+  if (response.contains("data") && response["data"].is_array() &&
+      response["data"].size() > 0 && response["data"][0].contains("id") &&
+      response["data"][0]["id"].is_string())
+    projectId = response["data"][0]["id"].get<std::string>();
+  else
+    throw std::runtime_error(
+        "Project not found. Please provide valid Nexus project name or ID.");
+}
+
 ServerMessage
 QuantinuumServerHelper::createQIRModule(const KernelExecution &circuitCode) {
   ServerMessage qir;
@@ -185,8 +239,7 @@ QuantinuumServerHelper::createQIRModule(const KernelExecution &circuitCode) {
   qir["data"]["relationships"] = ServerMessage::object();
   qir["data"]["relationships"]["project"] = ServerMessage::object();
   qir["data"]["relationships"]["project"]["data"] = ServerMessage::object();
-  qir["data"]["relationships"]["project"]["data"]["id"] =
-      backendConfig.at("project_id");
+  qir["data"]["relationships"]["project"]["data"]["id"] = projectId;
   qir["data"]["relationships"]["project"]["data"]["type"] = "project";
   return qir;
 }
@@ -200,7 +253,6 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   credentialsPath =
       searchAPIKey(apiKey, refreshKey, timeStr, userSpecifiedCredentials);
   refreshTokens();
-
   RestHeaders headers = generateRequestHeader();
   RestCookies cookies = getCookies();
   // Construct the job, one per circuit
@@ -250,8 +302,7 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     j["data"]["relationships"] = ServerMessage::object();
     j["data"]["relationships"]["project"] = ServerMessage::object();
     j["data"]["relationships"]["project"]["data"] = ServerMessage::object();
-    j["data"]["relationships"]["project"]["data"]["id"] =
-        backendConfig.at("project_id");
+    j["data"]["relationships"]["project"]["data"]["id"] = projectId;
     j["data"]["relationships"]["project"]["data"]["type"] = "project";
 
     messages.push_back(j);
