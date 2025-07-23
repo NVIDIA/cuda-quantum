@@ -92,9 +92,14 @@ public:
     iter = backendConfig.find("project");
     if (iter != backendConfig.end())
       setProjectId(iter->second);
-    else
-      throw std::runtime_error("Missing mandatory field for Nexus project. "
-                               "Please provide a valid project name or ID.");
+    else {
+      // Emulation does not require a project ID
+      iter = backendConfig.find("emulate");
+      // if not emulate then throw an error
+      if (iter != backendConfig.end() && iter->second == "false")
+        throw std::runtime_error("Missing mandatory field for Nexus project. "
+                                 "Please provide a valid project name or ID.");
+    }
 
     parseConfigForCommonParams(config);
   }

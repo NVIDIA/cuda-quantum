@@ -28,17 +28,22 @@ def assert_close(got) -> bool:
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
-    # We need a Fake Credentials Config file
-    credsName = '{}/QuantinuumFakeConfig.config'.format(os.environ["HOME"])
-    f = open(credsName, 'w')
-    f.write('key: {}\nrefresh: {}\ntime: 0'.format("hello", "rtoken"))
-    f.close()
+    # Create both legacy and Nexus credential files
+    legacyCredsName = '{}/QuantinuumFakeConfig.config'.format(
+        os.environ["HOME"])
+    nexusCredsName = '{}/QuantinuumFakeNexusConfig.config'.format(
+        os.environ["HOME"])
+
+    # Create legacy credential file (key, refresh, time format)
+    with open(legacyCredsName, 'w') as f:
+        f.write('key: {}\nrefresh: {}\ntime: 0'.format("hello", "rtoken"))
+
+    # Create Nexus credential file (cookie format)
+    with open(nexusCredsName, 'w') as f:
+        f.write('key: {}\nrefresh: {}\ntime: 0'.format("nexus_key",
+                                                       "nexus_refresh"))
 
     cudaq.set_random_seed(13)
-
-    # Set the targeted QPU
-    cudaq.set_target('quantinuum_legacy',
-                     url='http://localhost:{}'.format(port))
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -49,20 +54,28 @@ def startUpMockServer():
         pytest.exit("Mock server did not start in time, skipping tests.",
                     returncode=1)
 
-    yield credsName
+    yield {'legacy': legacyCredsName, 'nexus': nexusCredsName}
 
     # Kill the server, remove the file
     p.terminate()
-    os.remove(credsName)
+    os.remove(legacyCredsName)
+    os.remove(nexusCredsName)
 
 
 @pytest.fixture(scope="function", autouse=True)
-def configureTarget(startUpMockServer):
+@pytest.fixture(params=['quantinuum_legacy', 'quantinuum'])
+def configureTarget(request, startUpMockServer):
+    target_name = request.param
+    # Choose appropriate credentials based on target
+    if target_name == 'quantinuum_legacy':
+        creds_file = startUpMockServer['legacy']
+    else:  # 'quantinuum'
+        creds_file = startUpMockServer['nexus']
 
-    # Set the targeted QPU with credentials
-    cudaq.set_target('quantinuum_legacy',
+    # Set the target
+    cudaq.set_target(target_name,
                      url='http://localhost:{}'.format(port),
-                     credentials=startUpMockServer)
+                     credentials=creds_file)
 
     yield "Running the test."
     cudaq.reset_target()
