@@ -2403,7 +2403,7 @@ def test_mid_circuit_measurements():
 
 def test_error_on_non_callable_type():
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def kernel(op: cudaq.pauli_word):
         q = cudaq.qvector(2)
         x(q[1])
@@ -2411,7 +2411,7 @@ def test_error_on_non_callable_type():
 
     with pytest.raises(RuntimeError) as e:
         result = cudaq.sample(kernel, cudaq.pauli_word("X"))
-    assert "is not a callable type" in str(e.value)
+    assert "object is not callable" in str(e.value)
 
 
 # leave for gdb debugging
