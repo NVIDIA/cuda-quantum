@@ -318,24 +318,22 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
@@ -2294,7 +2292,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4205217814</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">292544480</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random spin operator with the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>) where each term acts on all targets in the open range [0, qubit_count). An optional seed value may also be provided.</p>

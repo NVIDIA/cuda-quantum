@@ -320,24 +320,22 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
@@ -901,9 +899,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="33f61377baa74429a02e0206542e46e4" src="../../_images/gate-fuse1.png" /></p>
+<p><img alt="40b0576642fd4372998ae22716114764" src="../../_images/gate-fuse1.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="948d608779a44028b695017e3aeaf8bf" src="../../_images/gatefusion.png" /></p>
+<p><img alt="724fdcacbf41454ea12e0ef477f94c7c" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 
