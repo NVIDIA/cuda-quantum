@@ -350,6 +350,9 @@ class PyKernel(object):
                 if eleTyName != None and eleTyName in allowedTypeMap:
                     return list, [pyType()]
                 emitFatalError(f'Invalid type for kernel builder {ty}')
+        # Handle invalid types as arguments to kernel builder
+        if ty in [cudaq_runtime.pauli_word]:
+            emitFatalError(f"`{ty}` is not a valid type for kernel builder.")
         return ty, None
 
     def getIntegerAttr(self, type, value):

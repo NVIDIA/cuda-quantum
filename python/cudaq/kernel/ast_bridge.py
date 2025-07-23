@@ -2191,7 +2191,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return
                 else:
                     self.emitFatalError(
-                        f"`{node.func.id}` is not a callable type, found symbol of type {val.type}",
+                        f"`{node.func.id}` object is not callable, found symbol of type {val.type}",
                         node)
 
             elif node.func.id == 'exp_pauli':
