@@ -959,6 +959,8 @@ jobs:
           dpkg -i cuda-keyring_1.1-1_all.deb
           cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
           apt-get update
+          # Install cublas first so it can be found. For some reason, cublas is
+          # not found if we install it after the other CUDA libraries.
           apt-get install -y --no-install-recommends \
             libcublas-$cuda_version_suffix
           if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then 
