@@ -2401,6 +2401,19 @@ def test_mid_circuit_measurements():
     assert "1010" in mCounts
 
 
+def test_error_on_non_callable_type():
+
+    @cudaq.kernel(verbose=True)
+    def kernel(op: cudaq.pauli_word):
+        q = cudaq.qvector(2)
+        x(q[1])
+        op(q[0])
+
+    with pytest.raises(RuntimeError) as e:
+        result = cudaq.sample(kernel, cudaq.pauli_word("X"))
+    assert "is not a callable type" in str(e.value)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
