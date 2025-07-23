@@ -2176,9 +2176,7 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             elif node.func.id in self.symbolTable:
-                print(f'Found callable {node.func.id} in symbolTable')
                 val = self.symbolTable[node.func.id]
-
                 if cc.CallableType.isinstance(val.type):
                     numVals = len(self.valueStack)
                     values = [self.popValue() for _ in range(numVals)]
