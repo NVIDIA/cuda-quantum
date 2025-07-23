@@ -40,7 +40,7 @@ protected:
   std::string userSpecifiedCredentials = "";
   std::string credentialsPath = "";
   // Access token lifetime in seconds
-  static constexpr int tokenExpirySecs = 60;
+  static constexpr int tokenExpirySecs = 5 * 60; // 5 minutes
   // Rest client to send additional requests
   RestClient restClient;
 
@@ -384,27 +384,47 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
   CUDAQ_INFO("Retrieving results from path: {}", resultPath);
   RestHeaders headers = generateRequestHeader();
   RestCookies cookies = getCookies();
+  // Retrieve the results
   auto resultResponse = restClient.get(resultPath, "", headers, false, cookies);
   CUDAQ_INFO("Job result response: {}\n", resultResponse.dump());
   auto results = resultResponse["data"]["attributes"]["counts_formatted"];
-  CUDAQ_INFO("Count data: {}", results.dump());
+  CUDAQ_DBG("Count data: {}", results.dump());
+  // Get the register names
+  auto bitResults = resultResponse["data"]["attributes"]["bits"];
+  std::vector<std::string> outputNames;
+  for (auto item : bitResults) {
+    CUDAQ_DBG("Bit data: {}", item.dump());
+    const auto registerName = item[0].get<std::string>();
+    outputNames.push_back(registerName);
+  }
 
-  // TODO: handle register mapping and qubit numbers
-  // This is just a very basic implementation that assumes all qubits are
-  // measured.
-  cudaq::CountsDictionary counts;
+  std::vector<CountsDictionary> registerResults(outputNames.size());
+  cudaq::CountsDictionary globalCounts;
   std::vector<std::string> bitStrings;
   for (const auto &element : results) {
     const auto bitString = element["bitstring"].get<std::string>();
+    assert(bitString.length() == outputNames.size());
     const auto count = element["count"].get<std::size_t>();
-    counts[bitString] = count;
+    globalCounts[bitString] = count;
     for (std::size_t i = 0; i < count; ++i) {
       bitStrings.push_back(bitString);
     }
+    // Populate the register results
+    for (std::size_t i = 0; i < outputNames.size(); ++i) {
+      registerResults[i][std::string{bitString[i]}] += count;
+    }
   }
-  cudaq::ExecutionResult result{counts, GlobalRegisterName};
+  std::vector<cudaq::ExecutionResult> allResults;
+  allResults.reserve(outputNames.size() + 1);
+  for (std::size_t i = 0; i < outputNames.size(); ++i) {
+    allResults.push_back({registerResults[i], outputNames[i]});
+  }
+
+  // Add the global register results
+  cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
   result.sequentialData = bitStrings;
-  return cudaq::sample_result{result};
+  allResults.push_back(result);
+  return cudaq::sample_result{allResults};
 }
 
 std::map<std::string, std::string>
