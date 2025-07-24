@@ -749,12 +749,15 @@ if ${ENABLE_LOWER_TO_CFG}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,lower-to-cfg")
 fi
 # If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
-# so we guard against using it with CUDAQ_QUANTUM_DEVICE.
+# so we guard against using it with CUDAQ_QUANTUM_DEVICE. The user must still
+# set CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 (env var) at runtime to enable support
+# at runtime. Note: this override is still required because no targets support
+# run yet.
 if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
 	if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
 	fi
-else # Otherwise, we honor the user's explicit command-line request.
+else # we honor the user's explicit command-line request.
 	if ${ENABLE_CUDAQ_RUN}; then
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
 	fi
