@@ -62,88 +62,12 @@ def getNumRequiredQubits(function):
 
 
 # Here we test that the login endpoint works
-@app.post("/login")
+@app.post("/auth/login")
 async def login(token: Union[str, None] = Header(alias="Authorization",
                                                  default=None)):
     if 'token' == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
     return {"id-token": "hello", "refresh-token": "refreshToken"}
-
-
-# Here we expose a way to post jobs,
-# Must have a Access Token, Job Program must be Adaptive Profile
-# with entry_point tag
-@app.post("/job")
-async def postJob(job: Job,
-                  token: Union[str, None] = Header(alias="Authorization",
-                                                   default=None)):
-    global createdJobs, shots
-
-    if 'token' == None:
-        raise HTTPException(status_code(401), detail="Credentials not provided")
-
-    print('Posting job with name = ', job.name, job.count)
-    name = job.name
-    newId = str(uuid.uuid4())
-    program = job.program
-    decoded = base64.b64decode(program)
-    m = llvm.module.parse_bitcode(decoded)
-    mstr = str(m)
-    assert ('entry_point' in mstr)
-
-    # Get the function, number of qubits, and kernel name
-    function = getKernelFunction(m)
-    if function == None:
-        raise Exception("Could not find kernel function")
-    numQubitsRequired = getNumRequiredQubits(function)
-    kernelFunctionName = function.name
-
-    print("Kernel name = ", kernelFunctionName)
-    print("Requires {} qubits".format(numQubitsRequired))
-
-    # JIT Compile and get Function Pointer
-    engine.add_module(m)
-    engine.finalize_object()
-    engine.run_static_constructors()
-    funcPtr = engine.get_function_address(kernelFunctionName)
-    kernel = ctypes.CFUNCTYPE(None)(funcPtr)
-
-    # Invoke the Kernel
-    cudaq.testing.toggleDynamicQubitManagement()
-    qubits, context = cudaq.testing.initialize(numQubitsRequired, job.count)
-    kernel()
-    results = cudaq.testing.finalize(qubits, context)
-    results.dump()
-    createdJobs[newId] = (name, results)
-
-    engine.remove_module(m)
-
-    # Job "created", return the id
-    return {"job": newId}
-
-
-# Retrieve the job, simulate having to wait by counting to 3
-# until we return the job results
-@app.get("/job/{jobId}")
-async def getJob(jobId: str):
-    global countJobGetRequests, createdJobs, shots
-
-    # Simulate asynchronous execution
-    if countJobGetRequests < 3:
-        countJobGetRequests += 1
-        return {"status": "running"}
-
-    countJobGetRequests = 0
-    name, counts = createdJobs[jobId]
-    retData = []
-    for bits, count in counts.items():
-        retData += [bits] * count
-
-    # The simulators don't implement result recording features yet, so we have
-    # to mark these results specially (MOCK_SERVER_RESULTS) in order to allow
-    # downstream code to recognize that this isn't from a true Quantinuum QPU.
-    res = {"status": "completed", "results": {"MOCK_SERVER_RESULTS": retData}}
-    return res
 
 
 ## Nexus APIs
@@ -205,6 +129,7 @@ async def create_qir_module(module: dict):
 
 
 # Job creation endpoint
+# Job Program must be Adaptive Profile with entry_point tag
 @app.post("/api/jobs/v1beta3/")
 async def create_job(job: dict):
     global createdQIRModules, createdJobs
@@ -265,7 +190,7 @@ async def create_job(job: dict):
     }
 
 
-# Update job status retrieval
+# Retrieve the job, simulate having to wait by counting to 3 until we return the job results
 @app.get("/api/jobs/v1beta3/{job_id}")
 async def get_job_status(job_id: str):
     global countJobGetRequests, createdResults
@@ -320,7 +245,7 @@ async def get_results(result_id: str):
     _, counts = createdJobs[job_id]
 
     # Get the exact length of the first bitstring
-    bit_length = len(next(iter(counts.keys()))) if counts else 0
+    bit_length = len(list(counts.items())[0][0]) if counts else 0
 
     # Format counts for Nexus API format
     formatted_counts = []
