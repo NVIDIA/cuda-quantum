@@ -1,0 +1,363 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --phase-folding %s | FileCheck %s
+
+// The syntactic IR checks in this file ensure that
+// optimizations are in fact applied as expected.
+// The semantic checks using CircuitCheck in
+// test/Transforms/PhaseFolding ensure that the optimized
+// circuits are in fact equivalent to the original circuits.
+
+// Tests that rotations are folded properly
+
+func.func private @folding0() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.x [%2] %1 : (!quake.ref, !quake.ref) -> ()
+  cc.return
+}
+
+// CHECK-LABEL: func.func private @folding0() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.veq<2>
+// CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:   %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+// CHECK:   %3 = arith.addf %cst, %cst : f64
+// CHECK:   quake.rz (%3) %2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%2] %1 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   cc.return
+// CHECK: }
+
+func.func @folding1() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+  %3 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  quake.h %2 : (!quake.ref) -> ()
+  quake.h %3 : (!quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.rz (%cst) %3 : (f64, !quake.ref) -> ()
+  quake.x [%2] %1 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.h %3 : (!quake.ref) -> ()
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.h %1 : (!quake.ref) -> ()
+  quake.h %2 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @folding1() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.veq<3>
+// CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:   %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:   %3 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:   quake.h %1 : (!quake.ref) -> ()
+// CHECK:   quake.h %2 : (!quake.ref) -> ()
+// CHECK:   quake.h %3 : (!quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %3 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%2] %1 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.h %3 : (!quake.ref) -> ()
+// CHECK:   quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   %4 = arith.addf %cst, %cst : f64
+// CHECK:   quake.rz (%4) %2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.h %1 : (!quake.ref) -> ()
+// CHECK:   quake.h %2 : (!quake.ref) -> ()
+// CHECK:   return
+// CHECK: }
+
+func.func private @folding2() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %cst_1 = arith.constant 1.000000e+00 : f64
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+  %3 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+  quake.rz (%cst) %3 : (f64, !quake.ref) -> ()
+  quake.x [%1] %3 : (!quake.ref, !quake.ref) -> ()
+  quake.swap %1, %2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst_1) %3 : (f64, !quake.ref) -> ()
+  cc.return
+}
+
+// CHECK-LABEL: func.func private @folding2() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %cst_0 = arith.constant 1.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.veq<3>
+// CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref {nlindex = 0 : i64, phaseidx = 0 : ui32}
+// CHECK:   %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref {nlindex = 1 : i64, phaseidx = 1 : ui32}
+// CHECK:   %3 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref {nlindex = 2 : i64, phaseidx = 2 : ui32}
+// CHECK:   quake.x [%1] %3 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.swap %1, %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   %4 = arith.addf %cst, %cst_0 : f64
+// CHECK:   quake.rz (%4) %3 : (f64, !quake.ref) -> ()
+// CHECK:   cc.return
+// CHECK: }
+
+func.func private @folding3() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %cst_1 = arith.constant 2.000000e+00 : f64
+  %cst_2 = arith.constant 3.000000e+00 : f64
+  %cst_3 = arith.constant 4.000000e+00 : f64
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+  quake.x %1 : (!quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.x %1 : (!quake.ref) -> ()
+  quake.rz (%cst_1) %2 : (f64, !quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst_2) %2 : (f64, !quake.ref) -> ()
+  quake.x %2 : (!quake.ref) -> ()
+  quake.rz (%cst_3) %2 : (f64, !quake.ref) -> ()
+  cc.return
+}
+
+// CHECK-LABEL: func.func private @folding3() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %cst_0 = arith.constant 2.000000e+00 : f64
+// CHECK:   %cst_1 = arith.constant 3.000000e+00 : f64
+// CHECK:   %cst_2 = arith.constant 4.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.veq<3>
+// CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref {nlindex = 0 : i64, phaseidx = 0 : ui32}
+// CHECK:   %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref {nlindex = 1 : i64, phaseidx = 1 : ui32}
+// CHECK:   quake.x %1 : (!quake.ref) -> ()
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.x %1 : (!quake.ref) -> ()
+// CHECK:   quake.rz (%cst_0) %2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst_1) %2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x %2 : (!quake.ref) -> ()
+// CHECK:   %3 = arith.addf %cst, %cst_2 : f64
+// CHECK:   quake.rz (%3) %2 : (f64, !quake.ref) -> ()
+// CHECK:   cc.return
+// CHECK: }
+
+func.func private @folding4() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.swap %1, %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+  quake.swap %1, %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  cc.return
+}
+
+// CHECK-LABEL: func.func private @folding4() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.veq<2>
+// CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref {nlindex = 0 : i64, phaseidx = 0 : ui32}
+// CHECK:   %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref {nlindex = 1 : i64, phaseidx = 1 : ui32}
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.swap %1, %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   %3 = arith.addf %cst, %cst : f64
+// CHECK:   quake.swap %1, %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   %4 = arith.addf %3, %cst : f64
+// CHECK:   quake.rz (%4) %2 : (f64, !quake.ref) -> ()
+// CHECK:   cc.return
+// CHECK: }
+
+// Tests that circuit breakers and other things correctly prevent folding
+
+func.func @breakers0() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %true = arith.constant true
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  cc.if(%true) {
+    quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+    quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  }
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @breakers0() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %true = arith.constant true
+// CHECK:   %0 = quake.alloca !quake.veq<2>
+// CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:   %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   cc.if(%true) {
+// CHECK:     quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+// CHECK:     quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   }
+// CHECK:   quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   return
+// CHECK: }
+
+func.func @breakers1() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.ry (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @breakers1() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.veq<2>
+// CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:   %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.ry (%cst) %2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+// CHECK:   return
+// CHECK: }
+
+// Tests for interesting/dynamic rotation values
+
+func.func @dynamic0() {
+  %cst = arith.constant 2.000000e+00 : f64
+  %cst_0 = arith.constant 0.000000e+00 : f64
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  quake.h %2 : (!quake.ref) -> ()
+  %3 = cc.alloca f64
+  cc.store %cst_0, %3 : !cc.ptr<f64>
+  %4 = cc.load %3 : !cc.ptr<f64>
+  quake.rz (%4) %1 : (f64, !quake.ref) -> ()
+  %5 = cc.load %3 : !cc.ptr<f64>
+  %6 = arith.addf %5, %cst : f64
+  cc.store %6, %3 : !cc.ptr<f64>
+  quake.x [%0] %1 : (!quake.ref, !quake.ref) -> ()
+  quake.x %0 : (!quake.ref) -> ()
+  quake.x %1 : (!quake.ref) -> ()
+  quake.x [%0] %1 : (!quake.ref, !quake.ref) -> ()
+  %7 = cc.load %3 : !cc.ptr<f64>
+  quake.rz (%7) %1 : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic0() {
+// CHECK:   %cst = arith.constant 2.000000e+00 : f64
+// CHECK:   %cst_0 = arith.constant 0.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.ref {nlindex = 0 : i64, phaseidx = 0 : ui32}
+// CHECK:   %1 = quake.alloca !quake.ref {nlindex = 1 : i64, phaseidx = 1 : ui32}
+// CHECK:   %2 = quake.alloca !quake.ref {nlindex = 2 : i64}
+// CHECK:   quake.h %2 : (!quake.ref) -> ()
+// CHECK:   %3 = cc.alloca f64
+// CHECK:   cc.store %cst_0, %3 : !cc.ptr<f64>
+// CHECK:   %4 = cc.load %3 : !cc.ptr<f64>
+// CHECK:   %5 = cc.load %3 : !cc.ptr<f64>
+// CHECK:   %6 = arith.addf %5, %cst : f64
+// CHECK:   cc.store %6, %3 : !cc.ptr<f64>
+// CHECK:   quake.x [%0] %1 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.x %0 : (!quake.ref) -> ()
+// CHECK:   quake.x %1 : (!quake.ref) -> ()
+// CHECK:   quake.x [%0] %1 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   %7 = cc.load %3 : !cc.ptr<f64>
+// CHECK:   %8 = arith.addf %4, %7 : f64
+// CHECK:   quake.rz (%8) %1 : (f64, !quake.ref) -> ()
+// CHECK:   return
+// CHECK: }
+
+func.func @dynamic1() {
+  %cst = arith.constant 2.000000e+00 : f64
+  %cst_0 = arith.constant 1.000000e+00 : f64
+  %cst_1 = arith.constant 0.000000e+00 : f64
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  quake.h %2 : (!quake.ref) -> ()
+  %3 = cc.alloca f64
+  cc.store %cst_1, %3 : !cc.ptr<f64>
+  %4 = cc.load %3 : !cc.ptr<f64>
+  quake.rz (%4) %1 : (f64, !quake.ref) -> ()
+  quake.x [%0] %1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  %measOut = quake.mz %2 : (!quake.ref) -> !quake.measure
+  %5 = quake.discriminate %measOut : (!quake.measure) -> i1
+  cc.if(%5) {
+    %7 = cc.load %3 : !cc.ptr<f64>
+    %8 = arith.addf %7, %cst_0 : f64
+    cc.store %8, %3 : !cc.ptr<f64>
+  } else {
+    %7 = cc.load %3 : !cc.ptr<f64>
+    %8 = arith.addf %7, %cst : f64
+    cc.store %8, %3 : !cc.ptr<f64>
+  }
+  quake.x [%0] %1 : (!quake.ref, !quake.ref) -> ()
+  %6 = cc.load %3 : !cc.ptr<f64>
+  quake.rz (%6) %1 : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic1() {
+// CHECK:   %cst = arith.constant 2.000000e+00 : f64
+// CHECK:   %cst_0 = arith.constant 1.000000e+00 : f64
+// CHECK:   %cst_1 = arith.constant 0.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.ref {nlindex = 0 : i64, phaseidx = 0 : ui32}
+// CHECK:   %1 = quake.alloca !quake.ref {nlindex = 1 : i64, phaseidx = 1 : ui32}
+// CHECK:   %2 = quake.alloca !quake.ref {nlindex = 2 : i64, phaseidx = 2 : ui32}
+// CHECK:   quake.h %2 : (!quake.ref) -> ()
+// CHECK:   %3 = cc.alloca f64
+// CHECK:   cc.store %cst_1, %3 : !cc.ptr<f64>
+// CHECK:   %4 = cc.load %3 : !cc.ptr<f64>
+// CHECK:   quake.x [%0] %1 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   %measOut = quake.mz %2 : (!quake.ref) -> !quake.measure
+// CHECK:   %5 = quake.discriminate %measOut : (!quake.measure) -> i1
+// CHECK:   cc.if(%5) {
+// CHECK:     %8 = cc.load %3 : !cc.ptr<f64>
+// CHECK:     %9 = arith.addf %8, %cst_0 : f64
+// CHECK:     cc.store %9, %3 : !cc.ptr<f64>
+// CHECK:   } else {
+// CHECK:     %8 = cc.load %3 : !cc.ptr<f64>
+// CHECK:     %9 = arith.addf %8, %cst : f64
+// CHECK:     cc.store %9, %3 : !cc.ptr<f64>
+// CHECK:   }
+// CHECK:   quake.x [%0] %1 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   %6 = cc.load %3 : !cc.ptr<f64>
+// CHECK:   %7 = arith.addf %4, %6 : f64
+// CHECK:   quake.rz (%7) %1 : (f64, !quake.ref) -> ()
+// CHECK:   return
+// CHECK: }
