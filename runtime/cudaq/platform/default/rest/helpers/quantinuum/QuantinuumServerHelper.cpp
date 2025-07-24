@@ -15,6 +15,15 @@
 #include <regex>
 #include <thread>
 
+namespace {
+/// API endpoints
+constexpr const char *authEndpoint = "auth/tokens/refresh";
+constexpr const char *projectsEndpoint = "api/projects/v1beta2";
+constexpr const char *jobsEndpoint = "api/jobs/v1beta3/";
+constexpr const char *qirEndpoint = "api/qir/v1beta/";
+constexpr const char *resultsEndpoint = "api/results/v1beta3/";
+} // namespace
+
 namespace cudaq {
 
 /// @brief The QuantinuumServerHelper implements the ServerHelper interface
@@ -25,8 +34,6 @@ class QuantinuumServerHelper : public ServerHelper {
 protected:
   /// @brief The base URL
   std::string baseUrl = "https://nexus.quantinuum.com/";
-  /// @brief URL for jobs
-  std::string jobUrl = "api/jobs/v1beta3/";
   /// @brief The machine we are targeting
   std::string machine = "H2-1SC";
   /// @brief The Nexus project ID
@@ -204,7 +211,7 @@ void QuantinuumServerHelper::setProjectId(const std::string &userInput) {
   if (isValidUUID(userInput)) {
     /// Ref:
     /// https://nexus.quantinuum.com/api-docs#/projects/get_project_api_projects_v1beta2__project_id__get
-    auto response = restClient.get(baseUrl, "api/projects/v1beta2/" + userInput,
+    auto response = restClient.get(baseUrl, projectsEndpoint + '/' + userInput,
                                    headers, false, cookies);
     if (response.contains("data") && response["data"].contains("id") &&
         response["data"]["id"].is_string()) {
@@ -215,9 +222,9 @@ void QuantinuumServerHelper::setProjectId(const std::string &userInput) {
   // If not, we need to search for the project by name
   /// Ref:
   /// https://nexus.quantinuum.com/api-docs#/projects/list_projects_api_projects_v1beta2_get
-  auto response =
-      restClient.get(baseUrl, "api/projects/v1beta2?filter[name]=" + userInput,
-                     headers, false, cookies);
+  std::string filter = "?filter%5Bname%5D=" + userInput;
+  auto response = restClient.get(baseUrl, projectsEndpoint + filter, headers,
+                                 false, cookies);
   if (response.contains("data") && response["data"].is_array() &&
       response["data"].size() > 0 && response["data"][0].contains("id") &&
       response["data"][0]["id"].is_string())
@@ -260,15 +267,19 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   refreshTokens();
   RestHeaders headers = generateRequestHeader();
   RestCookies cookies = getCookies();
+
   // Construct the job, one per circuit
   for (auto &circuitCode : circuitCodes) {
     // First create a QIR module, and then use its ID in the job
     ServerMessage qir = createQIRModule(circuitCode);
     // Post the QIR module to the server and extract the program ID
-    auto response = restClient.post(baseUrl, "api/qir/v1beta/", qir, headers,
-                                    true, false, cookies);
-
-    CUDAQ_INFO("QIR creation response: {}", response.dump(2));
+    auto response = restClient.post(baseUrl, qirEndpoint, qir, headers, true,
+                                    false, cookies);
+    if (!response.contains("data") || !response["data"].contains("id") ||
+        !response["data"]["id"].is_string())
+      throw std::runtime_error(
+          "Failed to create QIR module for circuit: " + circuitCode.name +
+          ". Response: " + response.dump(2));
     std::string programId = response["data"]["id"].get<std::string>();
 
     /// Ref:
@@ -311,14 +322,11 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     j["data"]["relationships"]["project"]["data"]["type"] = "project";
 
     messages.push_back(j);
-    CUDAQ_DBG("Payload {}", j.dump(2));
   }
-
   CUDAQ_INFO("Created job payload targeting {}", machine);
-
   // Return the payload with the correct endpoint
   return cudaq::toServerJobPayload(
-      std::make_tuple(baseUrl + jobUrl, headers, messages, cookies));
+      std::make_tuple(baseUrl + jobsEndpoint, headers, messages, cookies));
 }
 
 std::string QuantinuumServerHelper::extractJobId(ServerMessage &postResponse) {
@@ -328,14 +336,14 @@ std::string QuantinuumServerHelper::extractJobId(ServerMessage &postResponse) {
 
 std::string
 QuantinuumServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return baseUrl + jobUrl + extractJobId(postResponse);
+  return baseUrl + jobsEndpoint + extractJobId(postResponse);
 }
 
 std::string QuantinuumServerHelper::constructGetJobPath(std::string &jobId) {
   // TODO: we can use a more lightweight path here.
   // but for now, we will use the overall job path, since we need to get the
   // result Id when it completes.
-  return baseUrl + jobUrl + jobId;
+  return baseUrl + jobsEndpoint + jobId;
 }
 
 bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
@@ -386,7 +394,7 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
   if (resultId.empty()) {
     throw std::runtime_error("Job completed but no result ID found.");
   }
-  const std::string resultPath = baseUrl + "api/results/v1beta3/" + resultId;
+  const std::string resultPath = baseUrl + resultsEndpoint + resultId;
   CUDAQ_INFO("Retrieving results from path: {}", resultPath);
   RestHeaders headers = generateRequestHeader();
   RestCookies cookies = getCookies();
@@ -495,9 +503,8 @@ void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
     RestHeaders cookies{{"myqos_oat", refreshKey}};
     RestCookies headers = generateRequestHeader();
     nlohmann::json j;
-    auto response_json =
-        restClient.post(baseUrl, "auth/tokens/refresh", j, headers, false,
-                        false, cookies, &cookies);
+    auto response_json = restClient.post(baseUrl, authEndpoint, j, headers,
+                                         false, false, cookies, &cookies);
     const auto iter = cookies.find("myqos_id");
     if (iter == cookies.end())
       throw std::runtime_error("Failed to refresh API key, 'myqos_id' not "
