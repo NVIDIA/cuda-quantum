@@ -417,7 +417,7 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
   for (const auto &element : results) {
     const auto bitString = element["bitstring"].get<std::string>();
     /// FIXME: Temporarily disable this check, the mock server needs to be
-    /// updated
+    /// updated, specifically for `observe` tests
     // assert(bitString.length() == outputNames.size());
     const auto count = element["count"].get<std::size_t>();
     globalCounts[bitString] = count;
