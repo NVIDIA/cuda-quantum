@@ -948,8 +948,27 @@ jobs:
           name: x86_64-cu${{ steps.config.outputs.cuda_major }}-installer
           path: /tmp/install
 
-      - name: Runtime dependencies (apt)
-        if: startsWith(matrix.os_image, 'ubuntu')
+      - name: Runtime dependencies (apt, ${{ matrix.cuda_version }})
+        if: startsWith(matrix.os_image, 'ubuntu') && steps.config.outputs.cuda_major == '11'
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends \
+            wget ca-certificates libc6-dev libopenmpi-dev
+          distro=`echo ${{ matrix.os_image }} | tr -d . | tr -d :`
+          CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
+          wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
+          dpkg -i cuda-keyring_1.1-1_all.deb
+          cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
+          apt-get update
+          apt-get install --reinstall -y --no-install-recommends \
+            cuda-cudart-$cuda_version_suffix \
+            cuda-nvrtc-$cuda_version_suffix \
+            libcurand-$cuda_version_suffix \
+            libcublas-$cuda_version_suffix \
+            libcusparse-$cuda_version_suffix \
+            libcusolver-$cuda_version_suffix
+
+      - name: Runtime dependencies (apt, ${{ matrix.cuda_version }})
+        if: startsWith(matrix.os_image, 'ubuntu') && steps.config.outputs.cuda_major == '12'
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
             wget ca-certificates libc6-dev libopenmpi-dev
