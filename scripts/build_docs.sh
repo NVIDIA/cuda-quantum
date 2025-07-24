@@ -18,6 +18,10 @@
 # Usage:
 # bash scripts/build_docs.sh
 # -or-
+# bash scripts/build_docs.sh -f html
+# -or-
+# bash scripts/build_docs.sh -f md
+# -or-
 # bash scripts/build_docs.sh -u python
 # -or-
 # CUDAQ_INSTALL_PREFIX=/cudaq/installation/path/ bash scripts/build_docs.sh
@@ -43,12 +47,16 @@ export PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
 
 # Process command line arguments
 force_update=""
+# Default output format is html
+output_format="html"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":u:" opt; do
+while getopts ":u:f:" opt; do
   case $opt in
     u) force_update="$OPTARG"
+    ;;
+    f) output_format="$OPTARG"
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -167,7 +175,13 @@ cp -r "$doxygen_output_dir" sphinx/_doxygen/
 # cp -r "$dialect_output_dir" sphinx/_mdgen/ # uncomment once we use the content from those files
 
 rm -rf "$sphinx_output_dir"
-sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
+if [ "$output_format" = "md" ]; then
+    sphinx_output_dir="$docs_build_output/markdown"
+    sphinx-build -v -n -W --keep-going -b markdown sphinx "$sphinx_output_dir" 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
+else
+    sphinx_output_dir="$docs_build_output/html"
+    sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
+fi
 sphinx_exit_code=$?
 if [ ! "$sphinx_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation using sphinx-build."
@@ -184,9 +198,14 @@ rm -rf sphinx/_mdgen/
 mkdir -p "$DOCS_INSTALL_PREFIX"
 if [ "$docs_exit_code" -eq "0" ]; then
     cp -r "$sphinx_output_dir"/* "$DOCS_INSTALL_PREFIX"
-    touch "$DOCS_INSTALL_PREFIX/.nojekyll"
-    echo "Documentation was generated in $DOCS_INSTALL_PREFIX."
-    echo "To browse it, open this url in a browser: file://$DOCS_INSTALL_PREFIX/index.html"
+    if [ "$output_format" = "html" ]; then
+        touch "$DOCS_INSTALL_PREFIX/.nojekyll"
+        echo "HTML documentation was generated in $DOCS_INSTALL_PREFIX."
+        echo "To browse it, open this url in a browser: file://$DOCS_INSTALL_PREFIX/index.html"
+    else
+        echo "Markdown documentation was generated in $DOCS_INSTALL_PREFIX."
+        echo "To browse it, open this url in a browser: file://$DOCS_INSTALL_PREFIX/index.md"
+    fi
 else
     echo "Documentation generation failed with exit code $docs_exit_code."
     echo "Check the logs in $logs_dir, and the documentation build output in $docs_build_output."
