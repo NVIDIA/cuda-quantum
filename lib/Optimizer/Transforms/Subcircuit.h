@@ -15,14 +15,42 @@ using namespace mlir;
       MACRO(PhasedRxOp), MACRO(RyOp), MACRO(U2Op), MACRO(U3Op)
 #define RAW_CIRCUIT_BREAKERS CIRCUIT_BREAKERS(RAW)
 
-bool processed(Operation *op);
+bool processed(Operation *op) { return op->hasAttr("processed"); }
 
-void markProcessed(Operation *op);
+void markProcessed(Operation *op) {
+  op->setAttr("processed", OpBuilder(op).getUnitAttr());
+}
 
 // AXIS-SPECIFIC: could allow controlled y and z here
-bool isControlledOp(Operation *op);
+bool isControlledOp(Operation *op) {
+  return isa<quake::XOp>(op) && op->getNumOperands() == 2;
+}
 
-bool isCircuitBreaker(Operation *op);
+bool isCircuitBreaker(Operation *op) {
+  // TODO: it may be cleaner to only accept non-null input to
+  // ensure the null case is explicitly handled by users
+  if (!op)
+    return true;
+
+  if (!isQuakeOperation(op))
+    return true;
+
+  if (isa<RAW_CIRCUIT_BREAKERS>(op))
+    return true;
+
+  if (isa<quake::NullWireOp>(op))
+    return true;
+
+  auto opi = dyn_cast<quake::OperatorInterface>(op);
+
+  if (!opi)
+    return true;
+
+  // Only allow single control
+  if (opi.getControls().size() > 1)
+    return true;
+  return false;
+}
 
 inline bool isTwoQubitOp(Operation *op) {
   return quake::getQuantumOperands(op).size() == 2;
@@ -133,6 +161,7 @@ protected:
     bool processOp(size_t op_idx) {
       auto op = nl->getOp(op_idx);
 
+      // Currently, each operation can only be part of one subcircuit
       if (subcircuit->isTerminationPoint(op) || processed(op))
         return false;
 
@@ -171,11 +200,17 @@ protected:
         if (isTwoQubitOp(op)) {
           auto control = op->getOperand(0);
           auto target = op->getOperand(1);
-          auto other_def = nl->getDef() == control ? target : control;
-          auto nl = subcircuit->getWrapper(other_def);
-          if (nl)
-            nl->pruneFrom(op);
-        } else if (!isa<quake::XOp>(op)) {
+          NetlistWrapper *otherWrapper = nullptr;
+          if (nl->getDef() == control)
+            otherWrapper = subcircuit->getWrapper(control);
+          // If we are pruning along the target of a CNOT, we do not
+          // need to prune along the control, as it will be unaffected
+          else if (!isControlledOp(op))
+            otherWrapper = subcircuit->getWrapper(target);
+
+          if (otherWrapper)
+            otherWrapper->pruneFrom(op);
+        } else if (isa<quake::RzOp>(op) && subcircuit->ops.contains(op)) {
           // AXIS-SPECIFIC
           subcircuit->num_rot_gates--;
         }
@@ -281,40 +316,55 @@ protected:
     }
   }
 
-  Operation *findAncestorInSubcircuitBlock(Operation *op) {
-    if (op->getBlock() == start->getBlock())
-      return op;
-    if (start->getParentOp()->isAncestor(op))
-      return findAncestorInSubcircuitBlock(op->getParentOp());
-
-    return nullptr;
+public:
+  Subcircuit(Operation *cnot, NetlistContainer *container) {
+    start = cnot;
+    this->container = container;
+    qubits = SmallVector<NetlistWrapper *>(container->size(), nullptr);
+    calculateInitialSubcircuit();
+    pruneSubcircuit();
+    for (auto op : ops)
+      markProcessed(op);
   }
 
-public:
-  Subcircuit(Operation *cnot, NetlistContainer *container);
-  ~Subcircuit();
+  ~Subcircuit() {
+    for (auto wrapper : qubits)
+      if (wrapper)
+        delete wrapper;
+  }
 
-  Operation *getStart();
+  Operation *getStart() { return start; }
 
-  SmallVector<Value> getRefs();
+  SmallVector<Value> getRefs() {
+    SmallVector<Value> refs;
+    for (auto wrapper : qubits)
+      if (wrapper)
+        refs.push_back(wrapper->getDef());
 
-  size_t numRefs();
+    return refs;
+  }
+
+  size_t numRefs() {
+    size_t count = 0;
+    for (auto wrapper : qubits)
+      if (wrapper)
+        count++;
+    return count;
+  }
 
   /// @brief Gets the operations in the subcircuit
   /// ordered by location
-  SmallVector<Operation *> getOrderedOps();
+  SmallVector<Operation *> getOrderedOps() {
+    if (ordered_ops.size() == 0 && ops.size() > 0) {
+      ordered_ops = SmallVector<Operation *>(ops.begin(), ops.end());
+      auto less = [&](Operation *a, Operation *b) {
+        return a->isBeforeInBlock(b);
+      };
+      std::sort(ordered_ops.begin(), ordered_ops.end(), less);
+    }
 
-  /// @brief Create a new function with name `name` in `mod`
-  /// containing clones of all operations in the subcircuit,
-  /// and introduces the appropriate `call` instruction for the
-  /// function with the appropriate references as arguments.
-  ///
-  /// It is the responsibility of the user to ensure the old
-  /// operations in the circuit get erased.
-  ///
-  /// @returns `true` if the subcircuit was successfully moved
-  /// to a new function, `false` otherwise.
-  bool moveToFunc(mlir::ModuleOp &mod, llvm::StringRef name);
+    return ordered_ops;
+  }
 
-  size_t getNumRotations();
+  size_t getNumRotations() { return num_rot_gates; }
 };

@@ -913,14 +913,8 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
-def PhasePolynomialRotationMerging: Pass<"phase-polynomial-rotation-merging", "mlir::func::FuncOp"> {
+def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
   let summary = "Perform phase polynomial based rotation merging.";
-
-  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
-}
-
-def PhasePolynomialPreprocess: Pass<"phase-polynomial-preprocess", "mlir::ModuleOp"> {
-  let summary = "Isolate subcircuits representable by a single phase polynomial.";
 
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
