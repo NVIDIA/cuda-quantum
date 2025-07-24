@@ -220,7 +220,7 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   // Return a tuple containing the job path, headers, and the job message
   auto ret = std::make_tuple(backendConfig.at("job_path"), getHeaders(), jobs);
-  return cudaq::toServerJobPayload(ret);
+  return ret;
 }
 
 // From a server message, extract the job ID

@@ -139,8 +139,7 @@ AnyonServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
       machine);
 
   // return the payload
-  return cudaq::toServerJobPayload(
-      std::make_tuple(baseUrl + "job", headers, messages));
+  return std::make_tuple(baseUrl + "job", headers, messages);
 }
 
 std::string AnyonServerHelper::extractJobId(ServerMessage &postResponse) {

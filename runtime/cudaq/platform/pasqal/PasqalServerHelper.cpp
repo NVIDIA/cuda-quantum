@@ -77,8 +77,8 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
               backendConfig.at("machine"));
 
   // Return a tuple containing the job path, headers, and the job message
-  return cudaq::toServerJobPayload(std::make_tuple(
-      baseUrl + apiPath + "/v1/cudaq/job", getHeaders(), tasks));
+  return std::make_tuple(baseUrl + apiPath + "/v1/cudaq/job", getHeaders(),
+                         tasks);
 }
 
 std::string PasqalServerHelper::extractJobId(ServerMessage &postResponse) {

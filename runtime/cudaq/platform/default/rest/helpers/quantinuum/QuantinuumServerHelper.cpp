@@ -325,8 +325,7 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   }
   CUDAQ_INFO("Created job payload targeting {}", machine);
   // Return the payload with the correct endpoint
-  return cudaq::toServerJobPayload(
-      std::make_tuple(baseUrl + jobsEndpoint, headers, messages, cookies));
+  return std::make_tuple(baseUrl + jobsEndpoint, headers, messages);
 }
 
 std::string QuantinuumServerHelper::extractJobId(ServerMessage &postResponse) {
