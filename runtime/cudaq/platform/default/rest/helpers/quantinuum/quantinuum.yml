@@ -35,3 +35,8 @@ target-arguments:
     type: string
     platform-arg: machine 
     help-string: "Specify QPU."
+  - key: project
+    required: true
+    type: string
+    platform-arg: project
+    help-string: "Specify the Nexus project name or ID."
