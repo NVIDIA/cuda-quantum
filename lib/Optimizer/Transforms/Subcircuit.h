@@ -202,11 +202,11 @@ protected:
           auto target = op->getOperand(1);
           NetlistWrapper *otherWrapper = nullptr;
           if (nl->getDef() == control)
-            otherWrapper = subcircuit->getWrapper(control);
+            otherWrapper = subcircuit->getWrapper(target);
           // If we are pruning along the target of a CNOT, we do not
           // need to prune along the control, as it will be unaffected
           else if (!isControlledOp(op))
-            otherWrapper = subcircuit->getWrapper(target);
+            otherWrapper = subcircuit->getWrapper(control);
 
           if (otherWrapper)
             otherWrapper->pruneFrom(op);
