@@ -359,7 +359,7 @@ ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_MLIR_LIB_LINKING=true
-ENABLE_CUDAQ_RUN=true
+ENABLE_CUDAQ_RUN=
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -748,8 +748,15 @@ if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,lower-to-cfg")
 fi
-if ${ENABLE_CUDAQ_RUN}; then
+# If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
+# so we guard against using it with CUDAQ_QUANTUM_DEVICE unless
+# CUDAQ_ENABLE_QUANTUM_DEVICE_RUN is set.
+if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
 	if [[ ${CUDAQ_ENABLE_QUANTUM_DEVICE_RUN} == 1 ]] || [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+	fi
+else # Otherwise, we honor the user's explicit command-line request.
+	if ${ENABLE_CUDAQ_RUN}; then
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
 	fi
 fi
