@@ -961,8 +961,12 @@ jobs:
           apt-get update
           apt-get install --reinstall -y --no-install-recommends \
             cuda-cudart-$cuda_version_suffix \
-            cuda-nvrtc-$cuda_version_suffix \
-            libnvjitlink-$cuda_version_suffix \
+            cuda-nvrtc-$cuda_version_suffix
+          if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then
+            apt-get install --reinstall -y --no-install-recommends \
+              libnvjitlink-$cuda_version_suffix
+          fi
+          apt-get install --reinstall -y --no-install-recommends \
             libcurand-$cuda_version_suffix \
             libcublas-$cuda_version_suffix \
             libcusparse-$cuda_version_suffix \
