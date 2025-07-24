@@ -205,13 +205,16 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   } else if (jobStatus == "CANCELLED") {
     throw std::runtime_error("Job was cancelled.");
   }
-  return jobStatus == "COMPLETED";
+  if (jobStatus == "COMPLETED") {
+    // Check if the response contains the result ID
+    // In some cases, the status may be "COMPLETED" but the result ID
+    // is not yet available, so we will check for that.
+    return getResultId(getJobResponse) != "";
+  }
+  return false;
 }
 
 std::string QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
-  if (!jobIsDone(getJobResponse)) {
-    throw std::runtime_error("Job is not done, cannot retrieve result ID.");
-  }
   const auto resultItems =
       getJobResponse["data"]["attributes"]["definition"]["items"];
 
@@ -224,7 +227,7 @@ std::string QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
 
   const auto &item = resultItems[0];
   if (!item.contains("result_id")) {
-    throw std::runtime_error("No 'result_id' found in job response item.");
+    return ""; // No result ID available yet
   }
   return item["result_id"].get<std::string>();
 }
@@ -233,6 +236,9 @@ cudaq::sample_result
 QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
                                        std::string &jobId) {
   const std::string resultId = getResultId(jobResponse);
+  if (resultId.empty()) {
+    throw std::runtime_error("Job completed but no result ID found.");
+  }
   const std::string resultPath = baseUrl + "api/results/v1beta3/" + resultId;
   CUDAQ_INFO("Retrieving results from path: {}", resultPath);
   RestHeaders headers = generateRequestHeader();
