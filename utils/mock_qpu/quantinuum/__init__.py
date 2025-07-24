@@ -318,31 +318,33 @@ async def get_results(result_id: str):
         raise HTTPException(status_code=404, detail="Result not found")
 
     _, counts = createdJobs[job_id]
+
+    # Get the exact length of the first bitstring
+    bit_length = len(next(iter(counts.keys()))) if counts else 0
+
     # Format counts for Nexus API format
     formatted_counts = []
     for bits, count in counts.items():
         formatted_counts.append({"bitstring": bits, "count": count})
 
     # Create properly formatted register names (r00000, r00001, etc.)
-    bit_length = len(list(counts.items())[0]) if counts else 0
     bits_metadata = []
     for i in range(bit_length):
         reg_idx = bit_length - i - 1  # Reverse order to match Quantinuum format
         reg_name = f"r{reg_idx:05d}"
         bits_metadata.append([reg_name, [0]])
 
-        return {
-            "data": {
-                "id": result_id,
-                "type": "result",
-                "attributes": {
-                    "bits": bits_metadata,
-                    "counts": [],
-                    "counts_formatted": formatted_counts
-                }
+    return {
+        "data": {
+            "id": result_id,
+            "type": "result",
+            "attributes": {
+                "bits": bits_metadata,
+                "counts": [],
+                "counts_formatted": formatted_counts
             }
         }
-    raise HTTPException(status_code=404, detail="Result not found")
+    }
 
 
 def startServer(port):
