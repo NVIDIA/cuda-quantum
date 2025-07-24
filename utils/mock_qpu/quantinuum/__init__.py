@@ -31,6 +31,9 @@ createdQIRModules = {}
 # Keep track of Job Ids to their Names
 createdJobs = {}
 
+# Keep track of the result ID to the job it was created from
+createdResults = {}
+
 # Could how many times the client has requested the Job
 countJobGetRequests = 0
 
@@ -265,7 +268,7 @@ async def create_job(job: dict):
 # Update job status retrieval
 @app.get("/api/jobs/v1beta3/{job_id}")
 async def get_job_status(job_id: str):
-    global countJobGetRequests
+    global countJobGetRequests, createdResults
 
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
@@ -283,8 +286,9 @@ async def get_job_status(job_id: str):
 
     # Job completed
     countJobGetRequests = 0
-    job_name, counts = createdJobs[job_id]
+
     result_id = str(uuid.uuid4())
+    createdResults[result_id] = job_id
 
     return {
         "data": {
@@ -306,20 +310,34 @@ async def get_job_status(job_id: str):
 # Add results retrieval endpoint
 @app.get("/api/results/v1beta3/{result_id}")
 async def get_results(result_id: str):
-    global createdJobs
+    global createdJobs, createdResults
     # Find the job that produced this result
     # This is a simplified implementation, and may need to be updated
-    for job_id, (name, counts) in createdJobs.items():
-        # Format counts for Nexus API format
-        formatted_counts = []
-        for bits, count in counts.items():
-            formatted_counts.append({"bitstring": bits, "count": count})
+    job_id = createdResults.get(result_id)
+    if not job_id:
+        raise HTTPException(status_code=404, detail="Result not found")
+
+    _, counts = createdJobs[job_id]
+    # Format counts for Nexus API format
+    formatted_counts = []
+    for bits, count in counts.items():
+        formatted_counts.append({"bitstring": bits, "count": count})
+
+    # Create properly formatted register names (r00000, r00001, etc.)
+    bit_length = len(list(counts.items())[0]) if counts else 0
+    bits_metadata = []
+    for i in range(bit_length):
+        reg_idx = bit_length - i - 1  # Reverse order to match Quantinuum format
+        reg_name = f"r{reg_idx:05d}"
+        bits_metadata.append([reg_name, [0]])
 
         return {
             "data": {
                 "id": result_id,
                 "type": "result",
                 "attributes": {
+                    "bits": bits_metadata,
+                    "counts": [],
                     "counts_formatted": formatted_counts
                 }
             }
