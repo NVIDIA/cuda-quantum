@@ -481,6 +481,20 @@ jobs:
           # Use IQM Resonance Pyrite mock, which implements the Adonis architecture
           export IQM_SERVER_URL="https://cocos.resonance.meetiqm.com/pyrite:test"
           export CUDAQ_LOG_LEVEL="info"
+
+          # Fetch the arch name
+          arch_json=$(curl -s \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $(jq -r .access_token .resonance.api-token.json)" \
+            "${IQM_SERVER_URL}/quantum-architecture")
+          arch_name=$(echo "$arch_json" | jq -r '.quantum_architecture.name')
+
+          echo "Server reports quantum_architecture.name = $arch_name" >> $GITHUB_STEP_SUMMARY
+          if [[ "$arch_name" != "Adonis" && "$arch_name" != "Apollo" ]]; then
+            echo "Skipping IQM tests on unsupported architecture: $arch_name" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
           set +e # Allow script to keep going through errors
           test_err_sum=0
           for filename in ${{ steps.gettests.outputs.testlist }}; do
