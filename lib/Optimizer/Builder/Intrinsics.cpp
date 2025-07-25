@@ -266,31 +266,28 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
 
     {cudaq::cudaqConvertToInteger, {}, R"#(
-  func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.stdvec<i1>) -> i64 {
-    %size = cc.stdvec_size %arg : (!cc.stdvec<i1>) -> i64
-    %data = cc.stdvec_data %arg : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
-    %zero = arith.constant 0 : i64
-    %one = arith.constant 1 : i64
-    %res:2 = cc.loop while ((%i = %zero, %v = %zero) -> (i64, i64)) {
-      %cmp = arith.cmpi ult, %i, %size : i64
-      cc.condition %cmp(%i, %v : i64, i64)
+  func.func private @__nvqpp_cudaqConvertToInteger(%arg0 : !cc.stdvec<i1>) -> i64 {
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %0:2 = cc.loop while ((%arg1 = %c0_i64, %arg2 = %c0_i64) -> (i64, i64)) {
+      %1 = cc.stdvec_size %arg0 : (!cc.stdvec<i1>) -> i64
+      %2 = arith.cmpi ult, %arg2, %1 : i64
+      cc.condition %2(%arg1, %arg2 : i64, i64)
     } do {
-      ^bb1(%j : i64, %v : i64):
-        %2 = arith.shli %one, %j : i64
-        %3 = cc.compute_ptr %data[%j] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-        %4 = cc.load %3 : !cc.ptr<i8>
-        %5 = cc.cast unsigned %4 : (i8) -> i64
-        %6 = arith.subi %zero, %5 : i64
-        %7 = arith.xori %6, %v : i64
-        %8 = arith.andi %7, %2 : i64
-        %nv = arith.xori %v, %8: i64
-        cc.continue %j, %nv : i64, i64
+    ^bb0(%arg1: i64, %arg2: i64):
+      %1 = cc.stdvec_data %arg0 : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i1 x ?>>
+      %2 = cc.compute_ptr %1[%arg2] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.ptr<i1>
+      %3 = cc.load %2 : !cc.ptr<i1>
+      %4 = cc.cast unsigned %3 : (i1) -> i64
+      %5 = arith.shli %4, %arg2 : i64
+      %6 = arith.ori %arg1, %5 : i64
+      cc.continue %6, %arg2 : i64, i64
     } step {
-      ^bb1(%j : i64, %v : i64):
-        %nj = arith.addi %j, %one : i64
-        cc.continue %nj, %v : i64, i64
+    ^bb0(%arg1: i64, %arg2: i64):
+      %1 = arith.addi %arg2, %c1_i64 : i64
+      cc.continue %arg1, %1 : i64, i64
     }
-    return %res#1 : i64
+    return %0#0 : i64
   }
 )#"},
 
