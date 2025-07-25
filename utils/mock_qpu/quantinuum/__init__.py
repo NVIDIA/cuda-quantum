@@ -249,9 +249,21 @@ async def get_results(result_id: str):
 
     # Format counts for Nexus API format
     formatted_counts = []
+    outcome_array = []
     for bits, count in counts.items():
         formatted_counts.append({"bitstring": bits, "count": count})
+        outcome_bytes = []
+        reverse = bits[::-1]
+        # Padding bits to ensure we have a multiple of 8
+        if len(reverse) % 8 != 0:
+            reverse += '0' * (8 - len(reverse) % 8)
+        for i in range(0, bit_length, 8):
+            byte_value = int(reverse[i:i + 8], 2)
+            outcome_bytes.append(byte_value)
+        for _ in range(count):
+            outcome_array.append(outcome_bytes)
 
+    shots_data = {"width": bit_length, "array": outcome_array}
     # Create properly formatted register names (r00000, r00001, etc.)
     bits_metadata = []
     for i in range(bit_length):
@@ -265,6 +277,7 @@ async def get_results(result_id: str):
             "type": "result",
             "attributes": {
                 "bits": bits_metadata,
+                "shots": shots_data,
                 "counts": [],
                 "counts_formatted": formatted_counts
             }
