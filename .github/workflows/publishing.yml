@@ -959,20 +959,24 @@ jobs:
           dpkg -i cuda-keyring_1.1-1_all.deb
           cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
           apt-get update
-          # Install cublas first so it can be found. For some reason, cublas is
-          # not found if we install it after the other CUDA libraries.
-          apt-get install -y --no-install-recommends \
-            libcublas-$cuda_version_suffix
-          if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then 
+          if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then
             apt-get install -y --no-install-recommends \
-            libnvjitlink-$cuda_version_suffix
-          fi
-          apt-get install -y --no-install-recommends \
-            libcurand-$cuda_version_suffix \
             cuda-cudart-$cuda_version_suffix \
-            libcusolver-$cuda_version_suffix \
+            cuda-nvrtc-$cuda_version_suffix \
+            libnvjitlink-$cuda_version_suffix \
+            libcurand-$cuda_version_suffix \
+            libcublas-$cuda_version_suffix \
             libcusparse-$cuda_version_suffix \
-            cuda-nvrtc-$cuda_version_suffix
+            libcusolver-$cuda_version_suffix
+          else
+            apt-get install -y --no-install-recommends \
+            cuda-cudart-$cuda_version_suffix \
+            cuda-nvrtc-$cuda_version_suffix \
+            libcurand-$cuda_version_suffix \
+            libcublas-$cuda_version_suffix \
+            libcusparse-$cuda_version_suffix \
+            libcusolver-$cuda_version_suffix
+          fi
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
