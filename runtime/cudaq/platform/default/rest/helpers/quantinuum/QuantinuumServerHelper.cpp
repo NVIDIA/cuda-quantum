@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "QuantinuumHelper.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
@@ -211,8 +212,9 @@ void QuantinuumServerHelper::setProjectId(const std::string &userInput) {
   if (isValidUUID(userInput)) {
     /// Ref:
     /// https://nexus.quantinuum.com/api-docs#/projects/get_project_api_projects_v1beta2__project_id__get
-    auto response = restClient.get(baseUrl, projectsEndpoint + '/' + userInput,
-                                   headers, false, cookies);
+    auto response =
+        restClient.get(baseUrl, std::string(projectsEndpoint) + '/' + userInput,
+                       headers, false, cookies);
     if (response.contains("data") && response["data"].contains("id") &&
         response["data"]["id"].is_string()) {
       projectId = response["data"]["id"].get<std::string>();
@@ -400,8 +402,9 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
   // Retrieve the results
   auto resultResponse = restClient.get(resultPath, "", headers, false, cookies);
   CUDAQ_INFO("Job result response: {}\n", resultResponse.dump());
-  auto results = resultResponse["data"]["attributes"]["counts_formatted"];
-  CUDAQ_DBG("Count data: {}", results.dump());
+  auto shotResults = resultResponse["data"]["attributes"]["shots"];
+  CUDAQ_DBG("Count data: {}", shotResults.dump());
+
   // Get the register names
   auto bitResults = resultResponse["data"]["attributes"]["bits"];
   std::vector<std::string> outputNames;
@@ -410,36 +413,10 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
     const auto registerName = item[0].get<std::string>();
     outputNames.push_back(registerName);
   }
-
-  std::vector<CountsDictionary> registerResults(outputNames.size());
-  cudaq::CountsDictionary globalCounts;
-  std::vector<std::string> bitStrings;
-  for (const auto &element : results) {
-    const auto bitString = element["bitstring"].get<std::string>();
-    /// FIXME: Temporarily disable this check, the mock server needs to be
-    /// updated, specifically for `observe` tests
-    // assert(bitString.length() == outputNames.size());
-    const auto count = element["count"].get<std::size_t>();
-    globalCounts[bitString] = count;
-    for (std::size_t i = 0; i < count; ++i) {
-      bitStrings.push_back(bitString);
-    }
-    // Populate the register results
-    for (std::size_t i = 0; i < outputNames.size(); ++i) {
-      registerResults[i][std::string{bitString[i]}] += count;
-    }
-  }
-  std::vector<cudaq::ExecutionResult> allResults;
-  allResults.reserve(outputNames.size() + 1);
-  for (std::size_t i = 0; i < outputNames.size(); ++i) {
-    allResults.push_back({registerResults[i], outputNames[i]});
-  }
-
-  // Add the global register results
-  cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
-  result.sequentialData = bitStrings;
-  allResults.push_back(result);
-  return cudaq::sample_result{allResults};
+  // The names are listed in the reverse order (w.r.t. CUDA-Q bit indexing
+  // convention)
+  std::reverse(outputNames.begin(), outputNames.end());
+  return cudaq::utils::quantinuum::processResults(shotResults, outputNames);
 }
 
 std::map<std::string, std::string>
