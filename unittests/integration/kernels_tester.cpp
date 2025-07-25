@@ -181,6 +181,25 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
   }
 }
 
+CUDAQ_TEST(KernelsTester, checkSampleBug2937) {
+  constexpr int qubit_count = 20;
+  auto kernel = cudaq::make_kernel();
+  auto qubits = kernel.qalloc(qubit_count);
+  constexpr int depth = qubit_count / 5;
+  for (int i = 0; i < depth; i++) {
+    kernel.h(qubits[i * 5]);
+    for (int j = 0; j < 4; j++) {
+      kernel.x<cudaq::ctrl>(qubits[i * 5 + j], qubits[i * 5 + j + 1]);
+    }
+  }
+
+  kernel.mz(qubits);
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  // Expect 16 unique bitstrings
+  EXPECT_EQ(counts.size(), 16);
+}
+
 #endif
 
 #if defined(CUDAQ_BACKEND_STIM)
