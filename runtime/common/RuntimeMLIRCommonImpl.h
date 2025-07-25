@@ -309,6 +309,7 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                                            bool integerComputations,
                                            bool floatComputations) {
   bool isAdaptiveProfile = !isBaseProfile;
+  bool allowAllInstructions = getEnvBool("QIR_ALLOW_ALL_INSTRUCTIONS", false);
   for (llvm::Function &func : *llvmModule)
     for (llvm::BasicBlock &block : func)
       for (llvm::Instruction &inst : block) {
@@ -326,7 +327,8 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
         if (isBaseProfile && !isValidBaseProfileInstruction) {
           llvm::errs() << "error - invalid instruction found: " << inst << '\n';
-          return mlir::failure();
+          if (!allowAllInstructions)
+            return mlir::failure();
         } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
           // Not a valid adaptive profile instruction
           // Check if it's in the extended instruction set
@@ -373,7 +375,8 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
           if (!isValidIntExtension && !isValidFloatExtension) {
             llvm::errs() << "error - invalid instruction found: " << inst
                          << '\n';
-            return mlir::failure();
+            if (!allowAllInstructions)
+              return mlir::failure();
           }
         }
         // Only inttoptr and getelementptr instructions are present as inlined
@@ -389,7 +392,8 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                 constExpr->getOpcode() != llvm::Instruction::BitCast) {
               llvm::errs() << "error - invalid instruction found: "
                            << *constExpr << '\n';
-              return mlir::failure();
+              if (!allowAllInstructions)
+                return mlir::failure();
             }
           }
       }

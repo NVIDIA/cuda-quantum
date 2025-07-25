@@ -43,7 +43,6 @@ struct VectorVectorReader {
 // CHECK:               %[[VAL_8:.*]] = arith.cmpi ult, %[[VAL_6]], %[[VAL_7]] : i64
 // CHECK:               cc.condition %[[VAL_8]]
 // CHECK:             } do {
-// CHECK:               cc.scope {
 // CHECK:                 %[[VAL_9:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
 // CHECK:                 %[[VAL_10:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<!cc.stdvec<f64>>) -> !cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>
 // CHECK:                 %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_10]][%[[VAL_9]]] : (!cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>, i64) -> !cc.ptr<!cc.stdvec<f64>>
@@ -73,7 +72,6 @@ struct VectorVectorReader {
 // CHECK:                     cc.store %[[VAL_25]], %[[VAL_12]] : !cc.ptr<i64>
 // CHECK:                   }
 // CHECK:                 }
-// CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
 // CHECK:               %[[VAL_26:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
@@ -115,7 +113,6 @@ struct TripleVectorReader {
 // CHECK:               %[[VAL_8:.*]] = arith.cmpi ult, %[[VAL_6]], %[[VAL_7]] : i64
 // CHECK:               cc.condition %[[VAL_8]]
 // CHECK:             } do {
-// CHECK:               cc.scope {
 // CHECK:                 %[[VAL_9:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
 // CHECK:                 %[[VAL_10:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<!cc.stdvec<!cc.stdvec<f64>>>) -> !cc.ptr<!cc.array<!cc.stdvec<!cc.stdvec<f64>> x ?>>
 // CHECK:                 %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_10]][%[[VAL_9]]] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.stdvec<f64>> x ?>>, i64) -> !cc.ptr<!cc.stdvec<!cc.stdvec<f64>>>
@@ -132,7 +129,6 @@ struct TripleVectorReader {
 // CHECK:                     %[[VAL_18:.*]] = arith.cmpi ult, %[[VAL_16]], %[[VAL_17]] : i64
 // CHECK:                     cc.condition %[[VAL_18]]
 // CHECK:                   } do {
-// CHECK:                     cc.scope {
 // CHECK:                       %[[VAL_19:.*]] = cc.load %[[VAL_12]] : !cc.ptr<i64>
 // CHECK:                       %[[VAL_20:.*]] = cc.load %[[VAL_11]] : !cc.ptr<!cc.stdvec<!cc.stdvec<f64>>>
 // CHECK:                       %[[VAL_21:.*]] = cc.stdvec_data %[[VAL_20]] : (!cc.stdvec<!cc.stdvec<f64>>) -> !cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>
@@ -163,7 +159,6 @@ struct TripleVectorReader {
 // CHECK:                           cc.store %[[VAL_36]], %[[VAL_23]] : !cc.ptr<i64>
 // CHECK:                         }
 // CHECK:                       }
-// CHECK:                     }
 // CHECK:                     cc.continue
 // CHECK:                   } step {
 // CHECK:                     %[[VAL_37:.*]] = cc.load %[[VAL_12]] : !cc.ptr<i64>
@@ -171,7 +166,6 @@ struct TripleVectorReader {
 // CHECK:                     cc.store %[[VAL_38]], %[[VAL_12]] : !cc.ptr<i64>
 // CHECK:                   }
 // CHECK:                 }
-// CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
 // CHECK:               %[[VAL_39:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
@@ -211,7 +205,6 @@ struct VectorVectorWriter {
 // CHECK:               %[[VAL_9:.*]] = arith.cmpi ult, %[[VAL_7]], %[[VAL_8]] : i64
 // CHECK:               cc.condition %[[VAL_9]]
 // CHECK:             } do {
-// CHECK:               cc.scope {
 // CHECK:                 %[[VAL_10:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 // CHECK:                 %[[VAL_11:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<!cc.stdvec<i32>>) -> !cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>
 // CHECK:                 %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][%[[VAL_10]]] : (!cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>, i64) -> !cc.ptr<!cc.stdvec<i32>>
@@ -240,7 +233,6 @@ struct VectorVectorWriter {
 // CHECK:                     cc.store %[[VAL_25]], %[[VAL_13]] : !cc.ptr<i64>
 // CHECK:                   }
 // CHECK:                 }
-// CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
 // CHECK:               %[[VAL_26:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
@@ -281,7 +273,6 @@ struct VectorVectorBilingual {
 // CHECK:               %[[VAL_9:.*]] = arith.cmpi ult, %[[VAL_7]], %[[VAL_8]] : i64
 // CHECK:               cc.condition %[[VAL_9]]
 // CHECK:             } do {
-// CHECK:               cc.scope {
 // CHECK:                 %[[VAL_10:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 // CHECK:                 %[[VAL_11:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<!cc.stdvec<i32>>) -> !cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>
 // CHECK:                 %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][%[[VAL_10]]] : (!cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>, i64) -> !cc.ptr<!cc.stdvec<i32>>
@@ -319,7 +310,6 @@ struct VectorVectorBilingual {
 // CHECK:                     cc.store %[[VAL_34]], %[[VAL_16]] : !cc.ptr<i64>
 // CHECK:                   }
 // CHECK:                 }
-// CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
 // CHECK:               %[[VAL_35:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>

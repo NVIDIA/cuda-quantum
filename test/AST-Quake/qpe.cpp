@@ -299,7 +299,6 @@ int main() {
 // CHECK:               %[[VAL_39:.*]] = arith.cmpi slt, %[[VAL_37]], %[[VAL_38]] : i32
 // CHECK:               cc.condition %[[VAL_39]]
 // CHECK:             } do {
-// CHECK:               cc.scope {
 // CHECK:                 cc.scope {
 // CHECK:                   %[[VAL_40:.*]] = cc.alloca i32
 // CHECK:                   cc.store %[[VAL_5]], %[[VAL_40]] : !cc.ptr<i32>
@@ -323,7 +322,6 @@ int main() {
 // CHECK:                     cc.store %[[VAL_51]], %[[VAL_40]] : !cc.ptr<i32>
 // CHECK:                   }
 // CHECK:                 }
-// CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
 // CHECK:               %[[VAL_52:.*]] = cc.load %[[VAL_36]] : !cc.ptr<i32>
