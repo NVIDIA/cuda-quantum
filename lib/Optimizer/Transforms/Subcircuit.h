@@ -26,6 +26,11 @@ bool isControlledOp(Operation *op) {
   return isa<quake::XOp>(op) && op->getNumOperands() == 2;
 }
 
+/// Currently, only `!quake.ref`s that are not block arguments are supported
+bool isSupportedValue(Value ref) {
+  return isa<quake::RefType>(ref.getType()) && ref.getDefiningOp();
+}
+
 bool isCircuitBreaker(Operation *op) {
   // TODO: it may be cleaner to only accept non-null input to
   // ensure the null case is explicitly handled by users
@@ -49,6 +54,12 @@ bool isCircuitBreaker(Operation *op) {
   // Only allow single control
   if (opi.getControls().size() > 1)
     return true;
+
+  // If any values are unsupported, the operation is also unsupported
+  for (auto operand : quake::getQuantumOperands(op))
+    if (!isSupportedValue(operand))
+      return true;
+
   return false;
 }
 
@@ -57,37 +68,10 @@ inline bool isTwoQubitOp(Operation *op) {
 }
 
 class Netlist {
-  Value def;
-  SmallVector<Operation *> users;
+  SmallVector<SmallVector<Operation *>> netlists;
 
 public:
-  Netlist(Value v) {
-    assert(isa<quake::RefType>(v.getType()));
-    def = v;
-  }
-
-  size_t getIndexOf(Operation *op) {
-    auto iter = std::find(users.begin(), users.end(), op);
-    assert(iter != users.end());
-    return std::distance(users.begin(), iter);
-  }
-
-  Operation *operator[](size_t index) { return users[index]; }
-
-  Operation *getOp(size_t index) { return users[index]; }
-
-  size_t size() { return users.size(); }
-
-  Value getDef() { return def; }
-
-  void append(Operation *op) { users.push_back(op); }
-};
-
-class NetlistContainer {
-  SmallVector<Netlist *> netlists;
-
-public:
-  NetlistContainer(mlir::func::FuncOp func) {
+  Netlist(mlir::func::FuncOp func) {
     func.walk([&](Operation *op) {
       if (auto refop = dyn_cast<quake::ExtractRefOp>(op)) {
         allocNetlist(refop);
@@ -100,13 +84,9 @@ public:
 
       if (isa<quake::OperatorInterface>(op))
         for (auto operand : quake::getQuantumOperands(op))
-          netlists[getIndexOf(operand)]->append(op);
+          if (isSupportedValue(operand))
+            netlists[getIndexOf(operand)].push_back(op);
     });
-  }
-
-  ~NetlistContainer() {
-    for (auto netlist : netlists)
-      delete netlist;
   }
 
   void allocNetlist(Operation *refop) {
@@ -115,13 +95,13 @@ public:
         "nlindex",
         mlir::IntegerAttr::get(mlir::IntegerType::get(refop->getContext(), 64),
                                nlindex));
-    auto *nl = new Netlist(refop->getResult(0));
+    auto nl = SmallVector<Operation *>();
     netlists.push_back(nl);
   }
 
   size_t getIndexOf(Value ref) {
+    assert(isSupportedValue(ref));
     auto refop = ref.getDefiningOp();
-    assert(refop);
     if (!refop->hasAttr("nlindex"))
       allocNetlist(refop);
     auto nlindex = refop->getAttrOfType<IntegerAttr>("nlindex").getInt();
@@ -130,9 +110,9 @@ public:
 
   size_t size() { return netlists.size(); }
 
-  Netlist *operator[](size_t index) { return netlists[index]; }
-
-  Netlist *operator[](Value ref) { return netlists[getIndexOf(ref)]; }
+  SmallVector<Operation *> *getNetlist(size_t index) {
+    return &netlists[index];
+  }
 };
 
 class Subcircuit {
@@ -144,31 +124,38 @@ protected:
   }
 
   bool isTerminationPoint(Operation *op) {
-    return isCircuitBreaker(op) || (op->getBlock() != start->getBlock());
+    // Currently, each operation can only be part of one subcircuit (hence the
+    // check for the processed flag)
+    return (op->getBlock() != start->getBlock()) || processed(op) ||
+           isCircuitBreaker(op);
   }
 
   class NetlistWrapper {
     Subcircuit *subcircuit;
-    Netlist *nl;
+    SmallVector<Operation *> *nl;
+    Value def;
     // Inclusive
     size_t start_point;
     // Exclusive
     size_t end_point;
 
-    size_t getIndexOf(Operation *op) { return nl->getIndexOf(op); }
+    size_t getIndexOf(Operation *op) {
+      auto iter = std::find(nl->begin(), nl->end(), op);
+      assert(iter != nl->end());
+      return std::distance(nl->begin(), iter);
+    }
 
     /// Returns `true` if processing should continue, `false` otherwise
     bool processOp(size_t op_idx) {
-      auto op = nl->getOp(op_idx);
+      auto op = (*nl)[op_idx];
 
-      // Currently, each operation can only be part of one subcircuit
-      if (subcircuit->isTerminationPoint(op) || processed(op))
+      if (subcircuit->isTerminationPoint(op))
         return false;
 
       subcircuit->ops.insert(op);
 
       if (isTwoQubitOp(op)) {
-        if (op->getOperand(0) == nl->getDef())
+        if (op->getOperand(0) == def)
           subcircuit->addAnchorPoint(op->getOperand(1), op);
         else
           subcircuit->addAnchorPoint(op->getOperand(0), op);
@@ -190,20 +177,21 @@ protected:
           break;
 
       // Handle possible 0th element separately to prevent overflow
+      // This is why start_point must be inclusive
       if (!processOp(start_point))
         start_point++;
     }
 
     void pruneFrom(size_t idx) {
       for (; idx < nl->size(); idx++) {
-        auto op = nl->getOp(idx);
+        auto op = (*nl)[idx];
         if (isTwoQubitOp(op)) {
           auto control = op->getOperand(0);
           auto target = op->getOperand(1);
           NetlistWrapper *otherWrapper = nullptr;
-          if (nl->getDef() == control)
+          if (def == control)
             otherWrapper = subcircuit->getWrapper(target);
-          // If we are pruning along the target of a CNOT, we do not
+          // If we are pruning along the target of a CNot, we do not
           // need to prune along the control, as it will be unaffected
           else if (!isControlledOp(op))
             otherWrapper = subcircuit->getWrapper(control);
@@ -228,10 +216,11 @@ protected:
     }
 
   public:
-    NetlistWrapper(Subcircuit *subcircuit, Netlist *nl,
-                   Operation *anchor_point) {
+    NetlistWrapper(Subcircuit *subcircuit, SmallVector<Operation *> *nl,
+                   Operation *anchor_point, Value def) {
       this->nl = nl;
       this->subcircuit = subcircuit;
+      this->def = def;
       processFrom(getIndexOf(anchor_point));
     }
 
@@ -242,26 +231,14 @@ protected:
       processFrom(index);
     }
 
-    Operation *getStart() {
-      if (start_point == 0)
-        return nl->getDef().getDefiningOp();
-      return nl->getOp(start_point - 1);
-    }
-
-    Operation *getEnd() {
-      if (end_point >= nl->size())
-        return nullptr;
-      return nl->getOp(end_point);
-    }
-
     bool hasOps() { return end_point > start_point; }
 
     void prune() { pruneFrom(end_point); }
 
-    Value getDef() { return nl->getDef(); }
+    Value getDef() { return def; }
   };
 
-  NetlistContainer *container;
+  Netlist *container;
   SmallVector<NetlistWrapper *> qubits;
   SetVector<Operation *> ops;
   SmallVector<Operation *> ordered_ops;
@@ -273,13 +250,20 @@ protected:
     if (nlindex >= qubits.size())
       for (auto i = qubits.size(); i < container->size(); i++)
         qubits.push_back(nullptr);
-    auto *nlw = new NetlistWrapper(this, (*container)[nlindex], anchor_point);
+    auto *nlw = new NetlistWrapper(this, container->getNetlist(nlindex),
+                                   anchor_point, ref);
     qubits[nlindex] = nlw;
   }
 
+  /// @brief Gets the NetlistWrapper for ref, if it exists
+  /// @returns The NetlistWrapper for the Netlist for ref or
+  /// `nullptr` if no such Netlist exists
   NetlistWrapper *getWrapper(Value ref) {
-    auto nlindex = container->getIndexOf(ref);
+    if (!isSupportedValue(ref))
+      return nullptr;
 
+    auto nlindex = container->getIndexOf(ref);
+    // Can still be nullptr if the wrapper hasn't been initialized
     return qubits[nlindex];
   }
 
@@ -317,7 +301,7 @@ protected:
   }
 
 public:
-  Subcircuit(Operation *cnot, NetlistContainer *container) {
+  Subcircuit(Operation *cnot, Netlist *container) {
     start = cnot;
     this->container = container;
     qubits = SmallVector<NetlistWrapper *>(container->size(), nullptr);
@@ -353,7 +337,7 @@ public:
   }
 
   /// @brief Gets the operations in the subcircuit
-  /// ordered by location
+  /// ordered by location in the containing block
   SmallVector<Operation *> getOrderedOps() {
     if (ordered_ops.size() == 0 && ops.size() > 0) {
       ordered_ops = SmallVector<Operation *>(ops.begin(), ops.end());

@@ -252,6 +252,58 @@ func.func @breakers1() {
 // CHECK:   return
 // CHECK: }
 
+func.func @breakers2(%arg0: !quake.ref) {
+  %cst = arith.constant 1.000000e+00 : f64
+  %0 = quake.alloca !quake.ref
+  quake.x [%0] %arg0 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %arg0 : (f64, !quake.ref) -> ()
+  quake.x [%0] %arg0 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %arg0 : (f64, !quake.ref) -> ()
+  quake.x [%0] %arg0 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %arg0 : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @breakers2(%arg0: !quake.ref) {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.ref
+// CHECK:   quake.x [%0] %arg0 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %arg0 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%0] %arg0 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %arg0 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%0] %arg0 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %arg0 : (f64, !quake.ref) -> ()
+// CHECK:   return
+// CHECK: }
+
+func.func @breakers3() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %0 = quake.alloca !quake.veq<1>
+  %1 = quake.alloca !quake.ref
+  quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+  quake.x [%0] %1 : (!quake.veq<1>, !quake.ref) -> ()
+  quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+  quake.x [%0] %1 : (!quake.veq<1>, !quake.ref) -> ()
+  quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+  quake.x [%0] %1 : (!quake.veq<1>, !quake.ref) -> ()
+  quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @breakers3() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.veq<1>
+// CHECK:   %1 = quake.alloca !quake.ref
+// CHECK:   quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%0] %1 : (!quake.veq<1>, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%0] %1 : (!quake.veq<1>, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%0] %1 : (!quake.veq<1>, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %1 : (f64, !quake.ref) -> ()
+// CHECK:   return
+// CHECK: }
+
 // Tests for interesting/dynamic rotation values
 
 func.func @dynamic0() {

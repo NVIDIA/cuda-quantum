@@ -172,11 +172,9 @@ class PhaseFoldingPass
     SmallVector<Phase> current_phases;
     PhaseStorage store;
     size_t i = 0;
-    // Initial the phases and phase variables for each qubit in the circuit, the
-    // initial phase contains only the phase variable for that qubit
+    // Initialize the phases and phase variables for each qubit in the circuit,
+    // the initial phase contains only the phase variable for that qubit
     for (auto ref : subcircuit->getRefs()) {
-      if (ref.getType() != quake::RefType::get(getOperation().getContext()))
-        break;
       auto phase_idx = i++;
       auto new_phase_var = new PhaseVariable(phase_idx, ref);
       auto defop = ref.getDefiningOp();
@@ -240,18 +238,21 @@ class PhaseFoldingPass
   }
 
 public:
-  // Assumption: all quake operators interface operands are `!quake.ref`s,
-  // either from `extract_ref` or `alloca`
   void runOnOperation() override {
     auto func = getOperation();
-    auto nlc = NetlistContainer(func);
+    auto nl = Netlist(func);
     SmallVector<Subcircuit *> subcircuits;
+
     func.walk([&](quake::XOp op) {
       // AXIS-SPECIFIC: controlled not only
       if (!::isControlledOp(op) || ::processed(op))
         return;
 
-      auto subcircuit = new Subcircuit(op, &nlc);
+      if (!isSupportedValue(op.getOperand(0)) ||
+          !isSupportedValue(op.getOperand(1)))
+        return;
+
+      auto subcircuit = new Subcircuit(op, &nl);
       subcircuits.push_back(subcircuit);
     });
 
