@@ -2189,6 +2189,10 @@ class PyASTBridge(ast.NodeVisitor):
                     callable = cc.CallableFuncOp(callableTy, val).result
                     func.CallIndirectOp([], callable, values)
                     return
+                else:
+                    self.emitFatalError(
+                        f"`{node.func.id}` object is not callable, found symbol of type {val.type}",
+                        node)
 
             elif node.func.id == 'exp_pauli':
                 pauliWord = self.popValue()
