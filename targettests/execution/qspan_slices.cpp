@@ -32,8 +32,7 @@ __qpu__ void foo() {
   cudaq::qvector qubits(4);
   x(qubits);
   bar(qubits);
-
-  auto result = mz(qubits);
+  mz(qubits);
 }
 
 int main() {
