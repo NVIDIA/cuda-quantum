@@ -960,7 +960,7 @@ jobs:
           cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
           apt-get update
           if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then
-            apt-get install --reinstall -y --no-install-recommends \
+            apt-get install -y --no-install-recommends \
             cuda-cudart-$cuda_version_suffix \
             cuda-nvrtc-$cuda_version_suffix \
             libnvjitlink-$cuda_version_suffix \
@@ -969,7 +969,7 @@ jobs:
             libcusparse-$cuda_version_suffix \
             libcusolver-$cuda_version_suffix
           else
-            apt-get install --reinstall -y --no-install-recommends \
+            apt-get install -y --no-install-recommends \
             cuda-cudart-$cuda_version_suffix \
             cuda-nvrtc-$cuda_version_suffix \
             libcurand-$cuda_version_suffix \
