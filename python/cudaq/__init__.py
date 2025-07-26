@@ -215,7 +215,7 @@ from .kernels import uccsd
 from .dbg import ast
 
 # Expose the unitary decomposition API
-unitary_synthesis = cudaq_runtime.unitary_synthesis
+decompose = cudaq_runtime.decompose
 
 initKwargs = {}
 

@@ -17,8 +17,8 @@ namespace cudaq::detail {
 /// This logic is based on https://arxiv.org/pdf/quant-ph/9503016 and its
 /// corresponding explanation in https://threeplusone.com/pubs/on_gates.pdf,
 /// Section 4.
-EulerAngles decomposeZYZ(const Eigen::Matrix2cd &matrix) {
-  EulerAngles angles;
+ZYZComponents decomposeZYZ(const Eigen::Matrix2cd &matrix) {
+  ZYZComponents angles;
   /// Rescale the input unitary matrix, `u`, to be special unitary.
   /// Extract a phase factor, `phase`, so that
   /// `determinant(inverse_phase * unitary) = 1`

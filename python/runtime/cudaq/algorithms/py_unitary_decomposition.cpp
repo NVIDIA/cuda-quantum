@@ -19,17 +19,17 @@ namespace cudaq {
 
 void bindPyUnitaryDecomposition(py::module &mod) {
 
-  auto unitarySynthesis = mod.def_submodule("unitary_synthesis");
+  auto decomposition = mod.def_submodule("decompose");
 
-  // Register EulerAngles structure
-  py::class_<cudaq::detail::EulerAngles>(unitarySynthesis, "EulerAngles")
-      .def_readonly("alpha", &cudaq::detail::EulerAngles::alpha)
-      .def_readonly("beta", &cudaq::detail::EulerAngles::beta)
-      .def_readonly("gamma", &cudaq::detail::EulerAngles::gamma)
-      .def_readonly("phase", &cudaq::detail::EulerAngles::phase);
+  // Register ZYZComponents structure
+  py::class_<cudaq::detail::ZYZComponents>(decomposition, "ZYZComponents")
+      .def_readonly("alpha", &cudaq::detail::ZYZComponents::alpha)
+      .def_readonly("beta", &cudaq::detail::ZYZComponents::beta)
+      .def_readonly("gamma", &cudaq::detail::ZYZComponents::gamma)
+      .def_readonly("phase", &cudaq::detail::ZYZComponents::phase);
 
   // Register KAKComponents structure
-  py::class_<cudaq::detail::KAKComponents>(unitarySynthesis, "KAKComponents")
+  py::class_<cudaq::detail::KAKComponents>(decomposition, "KAKComponents")
       .def_readonly("a0", &cudaq::detail::KAKComponents::a0)
       .def_readonly("a1", &cudaq::detail::KAKComponents::a1)
       .def_readonly("b0", &cudaq::detail::KAKComponents::b0)
@@ -40,8 +40,8 @@ void bindPyUnitaryDecomposition(py::module &mod) {
       .def_readonly("phase", &cudaq::detail::KAKComponents::phase);
 
   // Register the ZYZ decomposition function
-  unitarySynthesis.def(
-      "zyz_decompose",
+  decomposition.def(
+      "zyz_components",
       [](py::array_t<std::complex<double>, py::array::c_style> matrix) {
         // Validate input shape
         if (matrix.ndim() != 2 || matrix.shape(0) != 2 ||
@@ -62,8 +62,8 @@ void bindPyUnitaryDecomposition(py::module &mod) {
       py::arg("matrix"));
 
   // Register the KAK decomposition function
-  unitarySynthesis.def(
-      "kak_decompose",
+  decomposition.def(
+      "kak_components",
       [](py::array_t<std::complex<double>, py::array::c_style> matrix) {
         // Validate input shape
         if (matrix.ndim() != 2 || matrix.shape(0) != 4 ||

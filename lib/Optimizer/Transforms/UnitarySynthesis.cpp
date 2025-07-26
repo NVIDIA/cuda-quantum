@@ -63,7 +63,7 @@ public:
 
 struct OneQubitOpZYZ : public Decomposer {
   Eigen::Matrix2cd targetMatrix;
-  cudaq::detail::EulerAngles angles;
+  cudaq::detail::ZYZComponents angles;
   /// Updates to the global phase
   double phase;
 

@@ -19,7 +19,7 @@ constexpr double TOL = 1e-7;
 
 /// Result structure for 1-q Euler decomposition in ZYZ basis, including global
 /// phase
-struct EulerAngles {
+struct ZYZComponents {
   double alpha;
   double beta;
   double gamma;
@@ -32,9 +32,9 @@ struct EulerAngles {
  * U = exp(i*phase) * Rz(alpha) * Ry(beta) * Rz(gamma)
  *
  * @param matrix A 2x2 unitary matrix to decompose
- * @return EulerAngles containing alpha, beta, gamma and phase
+ * @return ZYZComponents containing alpha, beta, gamma and phase
  */
-EulerAngles decomposeZYZ(const Eigen::Matrix2cd &matrix);
+ZYZComponents decomposeZYZ(const Eigen::Matrix2cd &matrix);
 
 /// Result structure for 2-q KAK decomposition, including global phase
 struct KAKComponents {

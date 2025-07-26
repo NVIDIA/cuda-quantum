@@ -29,7 +29,7 @@ def rz_matrix(angle):
 def test_zyz_identity():
     """Test ZYZ decomposition of identity gate."""
     identity = np.eye(2, dtype=complex)
-    angles = cudaq.unitary_synthesis.zyz_decompose(identity)
+    angles = cudaq.decompose.zyz_components(identity)
     print(angles.alpha, angles.beta, angles.gamma, angles.phase)
     # All angles should be approximately 0
     assert abs(angles.alpha) < 1e-7
@@ -42,7 +42,7 @@ def test_zyz_random():
     """Test ZYZ decomposition of random gate."""
     random_gate = np.random.rand(2, 2) + 1j * np.random.rand(2, 2)
     random_gate = random_gate / np.linalg.norm(random_gate)
-    angles = cudaq.unitary_synthesis.zyz_decompose(random_gate)
+    angles = cudaq.decompose.zyz_components(random_gate)
 
     # reconstruct the gate from angles
     result = rz_matrix(angles.alpha) @ ry_matrix(angles.beta) @ rz_matrix(
@@ -70,7 +70,7 @@ def test_kak_random():
     """Test KAK decomposition of a random unitary matrix."""
     from scipy.stats import unitary_group
     unitary = unitary_group.rvs(4, random_state=42)
-    kak = cudaq.unitary_synthesis.kak_decompose(unitary)
+    kak = cudaq.decompose.kak_components(unitary)
 
     # Reconstruct the matrix
     interaction = canonical_to_matrix(kak.x, kak.y, kak.z)
