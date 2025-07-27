@@ -73,6 +73,7 @@ processResults(const nlohmann::json &shotResultJson,
   for (const auto &outcomeArray : shotsOutcomeArray) {
     // Convert the outcome array to a bit string
     const auto bitString = outComeArrayToBitString(outcomeArray, numBits);
+    assert(bitString.length() == registerNames.size());
     // Populate the register results
     for (std::size_t i = 0; i < registerNames.size(); ++i) {
       const auto bit = bitString[i];
