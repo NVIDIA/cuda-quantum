@@ -842,6 +842,10 @@ jobs:
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.
+          # Seems like we will need to install build-essential for resolving nbconvert issue `RuntimeError: Unsupported compiler -- at least C++11 support is needed!`"
+          # Given here: https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/applications/python/qchem/cppe_lib.py#L18
+          # and https://github.com/jupyter/nbconvert/issues/1742
+          docker exec cuda-quantum bash -c "apt-get update & apt-get install build-essential -y"
           docker exec cuda-quantum bash -c "python3 -m pip install pandas scipy pandas seaborn 'h5py<3.11' contfrac cppe"
           (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && set -o pipefail && bash validate_container.sh | tee /tmp/validation.out") && passed=true || passed=false
           docker cp cuda-quantum:"/tmp/validation.out" /tmp/validation.out
