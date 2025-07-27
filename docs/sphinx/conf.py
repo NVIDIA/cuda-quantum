@@ -114,7 +114,7 @@ master_doc = 'index'
 exclude_patterns = [
     '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
-    'examples/python/operators.ipynb'
+    'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb'
 ]
 
 #redirect links

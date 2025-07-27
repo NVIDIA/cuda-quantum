@@ -14,7 +14,7 @@ Examples that illustrate how to use CUDA-Q for application development are avail
       Quantum Operations <quantum_operations.rst>
       Measuring Kernels <measuring_kernels.rst>
       Visualizing Kernels <../../examples/python/visualization.ipynb>
-      Executing Kernels <../../examples/python/executing_kernels.ipynb>
+      Executing Kernels <executing_kernels.rst>
       Computing Expectation Values <expectation_values.rst>
       Multi-GPU Workflows <multi_gpu_workflows.rst>
       Optimizers & Gradients  <../../examples/python/optimizers_gradients.ipynb>
