@@ -349,6 +349,10 @@ public:
   bool VisitUnaryOperator(clang::UnaryOperator *x);
   bool VisitStringLiteral(clang::StringLiteral *x);
   bool VisitCXXScalarValueInitExpr(clang::CXXScalarValueInitExpr *x);
+  bool VisitUnaryExprOrTypeTraitExpr(clang::UnaryExprOrTypeTraitExpr *x);
+
+  bool TraverseCXXDefaultArgExpr(clang::CXXDefaultArgExpr *x,
+                                 DataRecursionQueue *q = nullptr);
 
   bool TraverseMemberExpr(clang::MemberExpr *x,
                           DataRecursionQueue *q = nullptr);
@@ -633,6 +637,9 @@ private:
   /// Stack of Types built by the visitor. (right-to-left ordering)
   llvm::SmallVector<mlir::Type> typeStack;
   llvm::DenseMap<clang::RecordType *, mlir::Type> records;
+  // Certain productions, such as template functions, may need to traverse and
+  // store an extra type, such as an argument.
+  mlir::Type extraType;
 
   // State Flags
   const bool tuplesAreReversed : 1;
@@ -718,8 +725,8 @@ public:
     /// pipelines which erase private declarations.
     void addFunctionDecl(const clang::FunctionDecl *funcDecl,
                          details::QuakeBridgeVisitor &visitor,
-                         mlir::FunctionType funcTy,
-                         mlir::StringRef devFuncName);
+                         mlir::FunctionType funcTy, mlir::StringRef devFuncName,
+                         bool isDecl);
 
   public:
     ASTBridgeConsumer(clang::CompilerInstance &compiler,

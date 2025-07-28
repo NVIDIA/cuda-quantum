@@ -232,88 +232,6 @@ static bool isExclaimOperator(clang::OverloadedOperatorKind kind) {
   return isOperatorKind<clang::OverloadedOperatorKind::OO_Exclaim>(kind);
 }
 
-// Map the measured bit vector to an i32 representation.
-static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
-  // TODO: Consider moving toIntegerImpl to an intrinsic.
-
-  // Overall strategy in pseudo-C
-  // auto toInteger = [](vector<i1> bits, int nBits) {
-  //   int i = 0;
-  //   for (int j = 0; j < nBits; j++) {
-  //     // lsb
-  //     k = nBits-j-1;
-  //     i ^= (-bits[k] ^ i) & (1 << k);
-  //   }
-  //   return i;
-  // };
-  // should print 7
-  // auto k = toInteger({1,1,1}, 3);
-  // printf("%d\n", k);
-
-  // get bitVec size
-  Value bitVecSize = builder.create<cudaq::cc::StdvecSizeOp>(
-      loc, builder.getI64Type(), bitVec);
-
-  // Useful types and values
-  auto i64Ty = builder.getI64Type();
-  Value one = builder.create<arith::ConstantIntOp>(loc, 1, i64Ty);
-  Value negOne = builder.create<arith::ConstantIntOp>(loc, -1, i64Ty);
-
-  // Create int i = 0;
-  Value stackSlot = builder.create<cudaq::cc::AllocaOp>(loc, i64Ty);
-  Value zeroInt = builder.create<arith::ConstantIntOp>(loc, 0, i64Ty);
-  builder.create<cudaq::cc::StoreOp>(loc, zeroInt, stackSlot);
-
-  // Create the for loop
-  Value rank = builder.create<cudaq::cc::CastOp>(
-      loc, builder.getI64Type(), bitVecSize, cudaq::cc::CastOpMode::Unsigned);
-  cudaq::opt::factory::createInvariantLoop(
-      builder, loc, rank,
-      [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
-          Block &block) {
-        Value iv = block.getArgument(0);
-        OpBuilder::InsertionGuard guard(nestedBuilder);
-
-        // Compute the idx in bit[idx]
-        Value kIter = builder.create<arith::SubIOp>(loc, bitVecSize, iv);
-        kIter = builder.create<arith::SubIOp>(loc, kIter, one);
-
-        // 1 << k
-        Value rightPart = builder.create<arith::ShLIOp>(loc, one, kIter);
-
-        // bits[k]
-        auto eleTy =
-            cast<cudaq::cc::SpanLikeType>(bitVec.getType()).getElementType();
-        auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
-        auto eleArrTy =
-            cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
-        auto vecPtr =
-            builder.create<cudaq::cc::StdvecDataOp>(loc, eleArrTy, bitVec);
-        auto eleAddr = builder.create<cudaq::cc::ComputePtrOp>(
-            loc, elePtrTy, vecPtr, ValueRange{kIter});
-        Value bitElement = builder.create<cudaq::cc::LoadOp>(loc, eleAddr);
-
-        // -bits[k]
-        bitElement = builder.create<cudaq::cc::CastOp>(
-            loc, builder.getI64Type(), bitElement,
-            cudaq::cc::CastOpMode::Unsigned);
-        bitElement = builder.create<arith::MulIOp>(loc, negOne, bitElement);
-
-        // -bits[k] ^ i
-        Value integer = builder.create<cudaq::cc::LoadOp>(loc, stackSlot);
-        Value leftPart =
-            builder.create<arith::XOrIOp>(loc, bitElement, integer);
-
-        // (-bits[k] & i ) & (1 << k)
-        Value andVal = builder.create<arith::AndIOp>(loc, leftPart, rightPart);
-
-        // i ^ andVal
-        Value result = builder.create<arith::XOrIOp>(loc, integer, andVal);
-        builder.create<cudaq::cc::StoreOp>(loc, result, stackSlot);
-      });
-  return builder.create<cudaq::cc::LoadOp>(loc, stackSlot);
-}
-
 // Perform the standard type coercions when the syntactic expression from the
 // AST has arguments of different types.
 static void castToSameType(OpBuilder builder, Location loc,
@@ -528,6 +446,11 @@ bool QuakeBridgeVisitor::VisitUnaryOperator(clang::UnaryOperator *x) {
     assert(isa<cc::PointerType>(subExpr.getType()));
     return pushValue(builder.create<cc::LoadOp>(loc, subExpr));
   }
+  case clang::UnaryOperatorKind::UO_AddrOf: {
+    auto subExpr = peekValue();
+    assert(isa<cc::PointerType>(subExpr.getType()));
+    return true;
+  }
   case clang::UnaryOperatorKind::UO_Extension: {
     TODO_x(loc, x, mangler, "__extension__ operator");
     return false;
@@ -645,9 +568,8 @@ bool QuakeBridgeVisitor::TraverseCastExpr(clang::CastExpr *x,
     if (!TraverseStmt(sub))
       return false;
   bool result = WalkUpFromCastExpr(x);
-  if (result) {
-    assert(typeStack.size() == typeStackDepth && "must be original depth");
-  }
+  assert((!result || typeStack.size() == typeStackDepth) &&
+         "must be original depth");
   return result;
 }
 
@@ -665,6 +587,10 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
   case clang::CastKind::CK_LValueToRValue: {
     auto subValue = loadLValue(popValue());
     return pushValue(subValue);
+  }
+  case clang::CastKind::CK_BitCast: {
+    auto value = popValue();
+    return pushValue(builder.create<cudaq::cc::CastOp>(loc, castToTy, value));
   }
   case clang::CastKind::CK_FloatingCast: {
     [[maybe_unused]] auto dstType = x->getType();
@@ -1163,6 +1089,20 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
         loc, cc::PointerType::get(ty), object, offsets));
   }
   return true;
+}
+
+bool QuakeBridgeVisitor::VisitUnaryExprOrTypeTraitExpr(
+    clang::UnaryExprOrTypeTraitExpr *x) {
+  auto loc = toLocation(x->getSourceRange());
+  auto i64Ty = builder.getI64Type();
+  switch (x->getKind()) {
+  case clang::UnaryExprOrTypeTrait::UETT_SizeOf:
+    return pushValue(
+        builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, popType()));
+  default:
+    break;
+  }
+  return Base::VisitUnaryExprOrTypeTraitExpr(x);
 }
 
 bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
@@ -2157,8 +2097,17 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return true;
     }
 
-    if (funcName == "toInteger" || funcName == "to_integer")
-      return pushValue(toIntegerImpl(builder, loc, args[0]));
+    if (funcName == "toInteger" || funcName == "to_integer") {
+      IRBuilder irBuilder(builder.getContext());
+      if (failed(irBuilder.loadIntrinsic(module, cudaqConvertToInteger))) {
+        reportClangError(x, mangler, "cannot load cudaqConvertToInteger");
+        return false;
+      }
+      auto i64Ty = builder.getI64Type();
+      return pushValue(
+          builder.create<func::CallOp>(loc, i64Ty, cudaqConvertToInteger, args)
+              .getResult(0));
+    }
 
     if (funcName == "slice_vector") {
       auto svecTy = dyn_cast<cc::SpanLikeType>(args[0].getType());
@@ -2188,13 +2137,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "range") {
-      auto *block = builder.getBlock();
       IRBuilder irBuilder(builder.getContext());
-      auto mod = block->getParentOp()->getParentOfType<ModuleOp>();
       auto i64Ty = builder.getI64Type(); // element type
       if (funcArity == 1) {
         [[maybe_unused]] auto result =
-            irBuilder.loadIntrinsic(mod, setCudaqRangeVector);
+            irBuilder.loadIntrinsic(module, setCudaqRangeVector);
         assert(succeeded(result) && "loading intrinsic should never fail");
         auto upVal = args[0];
         auto upper = builder.create<cc::CastOp>(loc, i64Ty, upVal,
@@ -2207,7 +2154,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       }
       assert(funcArity == 3);
       [[maybe_unused]] auto result =
-          irBuilder.loadIntrinsic(mod, setCudaqRangeVectorTriple);
+          irBuilder.loadIntrinsic(module, setCudaqRangeVectorTriple);
       assert(succeeded(result) && "loading intrinsic should never fail");
       Value start = builder.create<cc::CastOp>(loc, i64Ty, args[0],
                                                cc::CastOpMode::Signed);
@@ -2225,6 +2172,88 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                        ValueRange{buffer, start, stop, step});
       return pushValue(call.getResult(0));
     }
+
+    if (funcName == "device_call") {
+      // Generate the high-level DeviceCallOp.
+      Value deviceId;
+      auto funcConst = args[0].getDefiningOp<func::ConstantOp>();
+      std::size_t argsOffset = 1;
+      if (!funcConst) {
+        deviceId = args[0];
+        funcConst = args[1].getDefiningOp<func::ConstantOp>();
+        ++argsOffset;
+      }
+      auto symbol = funcConst.getValue();
+      auto devFunc = module.lookupSymbol<func::FuncOp>(symbol);
+      devFunc->setAttr(cudaq::deviceCallAttrName, builder.getUnitAttr());
+      auto devFuncTy = cast<FunctionType>(funcConst.getType());
+
+      auto maybeGPULaunchParams =
+          [&]() -> std::optional<std::pair<std::size_t, std::size_t>> {
+        if (!functionDecl->isTemplateInstantiation())
+          return std::nullopt;
+
+        auto *tsi = functionDecl->getTemplateSpecializationInfo();
+        if (!tsi)
+          return std::nullopt;
+
+        const auto *tArgs = tsi->TemplateArguments;
+        // Should have 4 TemplateParams here: 2 for the block and thread/block
+        // and 2 for the function and variadic pack types.
+        if (tArgs->size() != 4)
+          return std::nullopt;
+
+        const clang::TemplateArgument &numBlocksArg = tArgs->get(0);
+        if (numBlocksArg.getKind() != clang::TemplateArgument::Integral)
+          return std::nullopt;
+        std::size_t numBlocks = numBlocksArg.getAsIntegral().getLimitedValue();
+
+        // Extract numThreads (second argument)
+        const clang::TemplateArgument &numThreadsArg = tArgs->get(1);
+        if (numThreadsArg.getKind() != clang::TemplateArgument::Integral)
+          return std::nullopt;
+        std::size_t numThreads =
+            numThreadsArg.getAsIntegral().getLimitedValue();
+
+        return std::make_pair(numBlocks, numThreads);
+      }();
+
+      SmallVector<Value> processedArgs;
+      for (std::size_t i = 0; i < args.size(); i++) {
+        if (i < argsOffset || !cc::isDevicePtr(args[i].getType())) {
+          processedArgs.push_back(args[i]);
+          continue;
+        }
+        // Resolve the raw pointer from this device_ptr handle.
+        Value result = builder.create<cc::ResolveDevicePtrOp>(
+            loc, devFuncTy.getInputs()[i - argsOffset], args[i]);
+        processedArgs.push_back(result);
+      }
+
+      auto callArgs = convertKernelArgs(loc, argsOffset, processedArgs,
+                                        devFuncTy.getInputs(), x);
+
+      auto devCall = [&]() {
+        if (maybeGPULaunchParams) {
+          auto [numBlocks, numThreads] = maybeGPULaunchParams.value();
+          Value blocks =
+              builder.create<arith::ConstantIntOp>(loc, numBlocks, 64);
+          Value threadsPerBlock =
+              builder.create<arith::ConstantIntOp>(loc, numThreads, 64);
+          return builder.create<cc::DeviceCallOp>(
+              loc, devFuncTy.getResults(), symbol, ValueRange{blocks},
+              ValueRange{threadsPerBlock}, deviceId, callArgs);
+        }
+        return builder.create<cc::DeviceCallOp>(loc, devFuncTy.getResults(),
+                                                symbol, deviceId, callArgs);
+      }();
+      if (devFuncTy.getResults().empty())
+        return true;
+      return pushValue(devCall.getResult(0));
+    }
+
+    // Finally, flag the call as an error except anything in cudaq::solvers or
+    // cudaq::qec.
     if (!isInNamespace(func, "solvers") && !isInNamespace(func, "qec")) {
       TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
     }
@@ -3177,6 +3206,18 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   // FIXME: The ctor may not be the default ctor. Get all the args.
   builder.create<func::CallOp>(loc, func, ValueRange{mem});
   return pushValue(mem);
+}
+
+bool QuakeBridgeVisitor::TraverseCXXDefaultArgExpr(clang::CXXDefaultArgExpr *x,
+                                                   DataRecursionQueue *) {
+  // Default std::allocator<T> arguments come up in classes like std::vector. We
+  // don't want to traverse them.
+  if (auto *decl = x->getExpr()->getType()->getAsRecordDecl())
+    if (isInNamespace(decl, "std"))
+      if (auto *id = decl->getIdentifier())
+        if (id->getName() == "allocator")
+          return true;
+  return TraverseStmt(x->getExpr());
 }
 
 bool QuakeBridgeVisitor::TraverseDeclRefExpr(clang::DeclRefExpr *x,

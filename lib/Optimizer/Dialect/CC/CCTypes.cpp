@@ -181,9 +181,21 @@ cc::StdvecType::verify(function_ref<InFlightDiagnostic()> emitError,
 
 namespace cudaq::cc {
 
-Type cc::SpanLikeType::getElementType() const {
+Type SpanLikeType::getElementType() const {
   return llvm::TypeSwitch<Type, Type>(*this).Case<StdvecType, CharspanType>(
       [](auto type) { return type.getElementType(); });
+}
+
+bool isDevicePtr(Type argTy) {
+  auto ptrTy = dyn_cast<cc::PointerType>(argTy);
+  if (!ptrTy)
+    return false;
+  auto eleTy = ptrTy.getElementType();
+  auto structTy = dyn_cast<cc::StructType>(eleTy);
+  if (!structTy || !structTy.getName())
+    return false;
+
+  return structTy.getName().getValue() == "device_ptr";
 }
 
 bool isDynamicType(Type ty) {

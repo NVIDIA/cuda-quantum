@@ -87,7 +87,9 @@ void quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
 void quantum_platform::set_current_qpu(const std::size_t device_id) {
   if (device_id >= platformNumQPUs) {
     throw std::invalid_argument(
-        "QPU device id is not valid (greater than number of available QPUs).");
+        "QPU device id " + std::to_string(device_id) +
+        " is not valid (greater than number of available QPUs: " +
+        std::to_string(platformNumQPUs) + ").");
   }
   platformCurrentQPU = device_id;
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
@@ -159,6 +161,8 @@ void quantum_platform::launchVQE(const std::string kernelName,
 
 RemoteCapabilities
 quantum_platform::get_remote_capabilities(const std::size_t qpu_id) const {
+  if (platformQPUs.empty())
+    throw std::runtime_error("No QPUs are available for this target.");
   return platformQPUs[qpu_id]->getRemoteCapabilities();
 }
 

@@ -359,7 +359,7 @@ ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_MLIR_LIB_LINKING=true
-ENABLE_CUDAQ_RUN=true
+ENABLE_CUDAQ_RUN=
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -733,7 +733,7 @@ if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 fi
 if ${ENABLE_ARRAY_CONVERSION}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(quake-add-metadata,constant-propagation,lift-array-alloc),globalize-array-values,canonicalize,get-concrete-matrix")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(quake-add-metadata,constant-propagation,lift-array-alloc),quake-propagate-metadata,globalize-array-values,canonicalize,get-concrete-matrix")
 fi
 if [[ -n "$CUDAQ_OPT_EXTRA_PASSES" ]]; then
 	RUN_OPT=true
@@ -746,10 +746,21 @@ if ${ENABLE_DEVICE_CODE_LOADER}; then
 fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,func.func(lower-to-cfg)")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,lower-to-cfg")
 fi
-if ${ENABLE_CUDAQ_RUN} && [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
-	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+# If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
+# so we guard against using it with CUDAQ_QUANTUM_DEVICE. The user must still
+# set CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 (env var) at runtime to enable support
+# at runtime. Note: this override is still required because no targets support
+# run yet.
+if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
+	if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+	fi
+else # we honor the user's explicit command-line request.
+	if ${ENABLE_CUDAQ_RUN}; then
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+	fi
 fi
 if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,cse")
