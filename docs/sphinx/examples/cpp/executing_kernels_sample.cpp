@@ -26,7 +26,8 @@ __qpu__ void kernel(int qubit_count) {
 
 int main() {
   int qubit_count = 2;
-  auto produced_str = cudaq::draw(kernel, qubit_count);
+  auto produced_str = cudaq::contrib::draw(kernel, qubit_count);
+  printf("%s", produced_str.data());
   auto result = cudaq::sample(kernel, qubit_count);
   result.dump();
   return 0;
