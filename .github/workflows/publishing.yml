@@ -852,7 +852,6 @@ jobs:
           # Given here: https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/applications/python/qchem/cppe_lib.py#L18
           # and https://github.com/jupyter/nbconvert/issues/1742
           sudo apt-get update && sudo apt-get install build-essential python3-dev -y
-          python3 -m pip install cppe
 
           backends_to_test=`\
               for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
