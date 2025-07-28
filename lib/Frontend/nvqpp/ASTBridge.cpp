@@ -496,7 +496,7 @@ static bool isX86_64(clang::ASTContext &astContext) {
 
 void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
     const clang::FunctionDecl *funcDecl, details::QuakeBridgeVisitor &visitor,
-    FunctionType funcTy, StringRef devFuncName) {
+    FunctionType funcTy, StringRef devFuncName, bool isDecl) {
   auto funcName = visitor.cxxMangledDeclName(funcDecl);
   if (module->lookupSymbol(funcName))
     return;
@@ -515,17 +515,21 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
                                          ArrayRef<NamedAttribute>{});
   if (!addThisPtr)
     func->setAttr("no_this", build.getUnitAttr());
-  func.setPublic();
 
-  // Create a dummy implementation for the host-side function. This is so that
-  // MLIR's restriction on "public" visibility is met and MLIR does not remove
-  // the declaration before we can autogenerate the code in a later pass.
-  auto *block = func.addEntryBlock();
-  build.setInsertionPointToStart(block);
-  SmallVector<Value> results;
-  for (auto resTy : hostFuncTy.getResults())
-    results.push_back(build.create<cc::UndefOp>(loc, resTy));
-  build.create<func::ReturnOp>(loc, results);
+  if (isDecl) {
+    func.setPrivate();
+  } else {
+    func.setPublic();
+    // Create a dummy implementation for the host-side function. This is so that
+    // MLIR's restriction on "public" visibility is met and MLIR does not remove
+    // the declaration before we can autogenerate the code in a later pass.
+    auto *block = func.addEntryBlock();
+    build.setInsertionPointToStart(block);
+    SmallVector<Value> results;
+    for (auto resTy : hostFuncTy.getResults())
+      results.push_back(build.create<cc::UndefOp>(loc, resTy));
+    build.create<func::ReturnOp>(loc, results);
+  }
 
   // Walk the arguments and add byval attributes where needed.
   assert(visitor.isItaniumCXXABI() && "Microsoft ABI not implemented");
@@ -642,7 +646,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
         func->setAttr(entryPointAttrName, unitAttr);
         // Generate a declaration for the CPU C++ function.
         addFunctionDecl(fdPair.second, visitor, func.getFunctionType(),
-                        entryName);
+                        entryName, func.empty());
       }
     }
   }

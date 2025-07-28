@@ -268,7 +268,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::cudaqConvertToInteger, {}, R"#(
   func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.stdvec<i1>) -> i64 {
     %size = cc.stdvec_size %arg : (!cc.stdvec<i1>) -> i64
-    %data = cc.stdvec_data %arg : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i1 x ?>>
+    %data = cc.stdvec_data %arg : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
     %zero = arith.constant 0 : i64
     %one = arith.constant 1 : i64
     %res:2 = cc.loop while ((%i = %zero, %v = %zero) -> (i64, i64)) {
@@ -277,9 +277,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     } do {
       ^bb1(%j : i64, %v : i64):
         %2 = arith.shli %one, %j : i64
-        %3 = cc.compute_ptr %data[%j] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.ptr<i1>
-        %4 = cc.load %3 : !cc.ptr<i1>
-        %5 = cc.cast unsigned %4 : (i1) -> i64
+        %3 = cc.compute_ptr %data[%j] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+        %4 = cc.load %3 : !cc.ptr<i8>
+        %5 = cc.cast unsigned %4 : (i8) -> i64
         %6 = arith.subi %zero, %5 : i64
         %7 = arith.xori %6, %v : i64
         %8 = arith.andi %7, %2 : i64
@@ -534,8 +534,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__result_record_output(!qir_result, !qir_charptr)
   func.func private @__quantum__qis__cnot__body(!qir_qubit, !qir_qubit)
   func.func private @__quantum__qis__cz__body(!qir_qubit, !qir_qubit)
-  func.func private @__quantum__rt__read_result(!qir_result) -> i1
-)#"},
+  func.func private @__quantum__qis__read_result__body(!qir_result) -> i1
+    )#"},
 
     // Declarations of all full QIR functions used by codegen.
     // These include gates (sans the "__body" suffix) and measurements.
