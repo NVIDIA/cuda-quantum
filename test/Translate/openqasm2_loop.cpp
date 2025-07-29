@@ -13,8 +13,8 @@
 #include <cudaq.h>
 #include <fstream>
 
-struct adonis_kernel {
-  // Adonis QPU.
+struct crystal_5_kernel {
+  // Crystal 5 QPU.
   //       QB1
   //        |
   // QB2 - QB3 - QB4
@@ -34,7 +34,7 @@ struct adonis_kernel {
 };
 
 int main() {
-  auto counts = cudaq::sample(adonis_kernel{});
+  auto counts = cudaq::sample(crystal_5_kernel{});
   counts.dump();
 }
 
@@ -43,7 +43,7 @@ int main() {
 
 // CHECK:   include "qelib1.inc";
 
-// CHECK:   gate ZN13adonis_kernelclEv(param0)  {
+// CHECK:   gate ZN13crystal_5_kernelclEv(param0)  {
 // CHECK:   }
 
 // CHECK:   qreg var0[5];

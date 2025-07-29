@@ -8,7 +8,7 @@
 
 // REQUIRES: c++17
 // RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s && FileCheck --check-prefix=QUAKE %s < %t.txt
-// RUN: mkdir -p %t.dir && cp "%iqm_test_src_dir/Crystal 5.txt" "%t.dir/Crystal 5 Variant.txt" && nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Adonis --mapping-file "%t.dir/Crystal 5 Variant.txt" --emulate && %t
+// RUN: mkdir -p %t.dir && cp "%iqm_test_src_dir/Crystal_5.txt" "%t.dir/Crystal_5_Variant.txt" && nvq++ %cpp_std %s -o %t --target iqm --iqm-machine "Crystal 5" --mapping-file "%t.dir/Crystal_5_Variant.txt" --emulate && %t
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t
 // RUN: rm -rf %t.txt %t.dir
 

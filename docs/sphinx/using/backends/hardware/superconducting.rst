@@ -143,7 +143,7 @@ Submitting
 
         .. code:: python
 
-            cudaq.set_target("iqm", url="https://<IQM Server>/cocos",**{"qpu-architecture": "Adonis"})
+            cudaq.set_target("iqm", url="https://<IQM Server>/cocos",**{"qpu-architecture": "Crystal 5"})
 
         To emulate the IQM Server locally, without submitting to the IQM Server,
         you can also set the ``emulate`` flag to ``True``. This will emit any target
@@ -180,18 +180,18 @@ Submitting
 
         .. code:: bash
 
-            nvq++ --target iqm --iqm-machine Adonis src.cpp
+            nvq++ --target iqm --iqm-machine "Crystal 5" src.cpp
 
         Once the binary for a specific IQM QPU architecture is compiled, it can be executed against any IQM Server with the same QPU architecture:
 
         .. code:: bash
 
-            nvq++ --target iqm --iqm-machine Adonis src.cpp -o program
+            nvq++ --target iqm --iqm-machine "Crystal 5" src.cpp -o program
             IQM_SERVER_URL="https://demo.qc.iqm.fi/cocos" ./program
 
             # Executing the same program against an IQM Server with a different underlying QPU
             # architecture will result in an error.
-            IQM_SERVER_URL="https://<Apollo IQM Server>/cocos" ./program
+            IQM_SERVER_URL="https://<Crystal 20 IQM Server>/cocos" ./program
 
         To emulate the IQM machine locally, without submitting to the IQM Server,
         you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target
@@ -199,7 +199,7 @@ Submitting
 
         .. code:: bash
 
-            nvq++ --emulate --target iqm --iqm-machine Adonis src.cpp
+            nvq++ --emulate --target iqm --iqm-machine "Crystal 5" src.cpp
 
         To see a complete example for using IQM server backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
 

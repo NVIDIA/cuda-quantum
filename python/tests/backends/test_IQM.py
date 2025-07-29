@@ -40,10 +40,10 @@ with os.popen("git rev-parse --show-toplevel") as f:
         target_config_origin = os.path.join(
             f"{git_top}", "runtime/cudaq/platform/default/rest/helpers/iqm")
         target_config_dest = os.path.join(f"{git_top}", "targettests")
-        shutil.copy(os.path.join(target_config_origin, "Crystal 5.txt"),
-                    os.path.join(target_config_dest, "Crystal 5 Variant.txt"))
-        shutil.copy(os.path.join(target_config_origin, "Crystal 20.txt"),
-                    os.path.join(target_config_dest, "Crystal 20 Variant.txt"))
+        shutil.copy(os.path.join(target_config_origin, "Crystal_5.txt"),
+                    os.path.join(target_config_dest, "Crystal_5_Variant.txt"))
+        shutil.copy(os.path.join(target_config_origin, "Crystal_20.txt"),
+                    os.path.join(target_config_dest, "Crystal_20_Variant.txt"))
 
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
@@ -68,9 +68,9 @@ def startUpMockServer():
     cudaq.set_random_seed(13)
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    kwargs = {"qpu-architecture": "Apollo"}
+    kwargs = {"qpu-architecture": "Crystal 20"}
     if os.path.isdir(git_top):
-        mapping_file = f"{git_top}/targettests/Apollo Variant.txt"
+        mapping_file = f"{git_top}/targettests/Crystal_20_Variant.txt"
         kwargs["mapping_file"] = mapping_file
     cudaq.set_target("iqm", url="http://localhost:{}".format(port), **kwargs)
 
