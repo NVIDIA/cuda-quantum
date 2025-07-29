@@ -10,7 +10,7 @@
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target anyon                    --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm --iqm-machine "Crystal 20" --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // clang-format on

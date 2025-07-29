@@ -9,7 +9,7 @@
 #include <cudaq.h>
 
 // REQUIRES: c++20
-// RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine "Crystal 20" -o %t.x && %t.x | FileCheck %s
+// RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine Crystal_20 -o %t.x && %t.x | FileCheck %s
 // RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine="Crystal 20" -o %t.x && %t.x | FileCheck %s
 // CHECK: { 0:1000 }
 

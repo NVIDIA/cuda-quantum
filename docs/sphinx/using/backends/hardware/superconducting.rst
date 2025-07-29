@@ -180,13 +180,13 @@ Submitting
 
         .. code:: bash
 
-            nvq++ --target iqm --iqm-machine "Crystal 5" src.cpp
+            nvq++ --target iqm --iqm-machine Crystal_5 src.cpp
 
         Once the binary for a specific IQM QPU architecture is compiled, it can be executed against any IQM Server with the same QPU architecture:
 
         .. code:: bash
 
-            nvq++ --target iqm --iqm-machine "Crystal 5" src.cpp -o program
+            nvq++ --target iqm --iqm-machine Crystal_5 src.cpp -o program
             IQM_SERVER_URL="https://demo.qc.iqm.fi/cocos" ./program
 
             # Executing the same program against an IQM Server with a different underlying QPU
@@ -199,7 +199,7 @@ Submitting
 
         .. code:: bash
 
-            nvq++ --emulate --target iqm --iqm-machine "Crystal 5" src.cpp
+            nvq++ --emulate --target iqm --iqm-machine Crystal_5 src.cpp
 
         To see a complete example for using IQM server backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
 

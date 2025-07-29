@@ -488,7 +488,7 @@ jobs:
             # Only the following tests are currently supported on IQM
             case $filename in
               targettests/iqm/*)
-                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine "Crystal 5" $filename
+                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
