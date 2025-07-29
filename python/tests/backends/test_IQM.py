@@ -40,10 +40,10 @@ with os.popen("git rev-parse --show-toplevel") as f:
         target_config_origin = os.path.join(
             f"{git_top}", "runtime/cudaq/platform/default/rest/helpers/iqm")
         target_config_dest = os.path.join(f"{git_top}", "targettests")
-        shutil.copy(os.path.join(target_config_origin, "Adonis.txt"),
-                    os.path.join(target_config_dest, "Adonis Variant.txt"))
-        shutil.copy(os.path.join(target_config_origin, "Apollo.txt"),
-                    os.path.join(target_config_dest, "Apollo Variant.txt"))
+        shutil.copy(os.path.join(target_config_origin, "Crystal 5.txt"),
+                    os.path.join(target_config_dest, "Crystal 5 Variant.txt"))
+        shutil.copy(os.path.join(target_config_origin, "Crystal 20.txt"),
+                    os.path.join(target_config_dest, "Crystal 20 Variant.txt"))
 
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
