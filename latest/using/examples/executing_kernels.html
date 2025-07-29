@@ -155,13 +155,23 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#get-state">Get State</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#parallelization-techniques">Parallelization Techniques</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#observe-asynchronous">Observe Asynchronous</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#sample-asynchronous">Sample Asynchronous</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#get-state-asynchronous">Get State Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sample-asynchronous">Sample Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#run">Run</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#return-custom-data-types">Return Custom Data Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#run-asynchronous">Run Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#observe-asynchronous">Observe Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#get-state">Get State</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#get-state-asynchronous">Get State Asynchronous</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="expectation_values.html">   Computing Expectation Values</a><ul>
@@ -911,12 +921,15 @@
              
   <section id="executing-kernels">
 <h1>Executing Kernels<a class="headerlink" href="#executing-kernels" title="Permalink to this heading">¶</a></h1>
-<p>In CUDA-Q, there are 3 ways in which one can execute quantum kernels:</p>
+<p>In CUDA-Q, there are 4 ways in which one can execute quantum kernels:</p>
 <ol class="arabic simple">
 <li><p><code class="code docutils literal notranslate"><span class="pre">sample</span></code>: yields measurement counts</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">run</span></code>: yields individual return values from multiple executions</p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">observe</span></code>: yields expectation values</p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">get_state</span></code>: yields the quantum statevector of the computation</p></li>
 </ol>
+<p>Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result. The most intensive task in the computation is the execution of the quantum kernel hence each execution function can be parallelized given access to multiple quantum processing units (multi-QPU) using: <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code>, <code class="code docutils literal notranslate"><span class="pre">run_async</span></code>, <code class="code docutils literal notranslate"><span class="pre">observe_async</span></code> and <code class="code docutils literal notranslate"><span class="pre">get_state_async</span></code>.</p>
+<p>Since multi-QPU platforms are not yet feasible, we emulate each QPU with a GPU.</p>
 <section id="sample">
 <h2>Sample<a class="headerlink" href="#sample" title="Permalink to this heading">¶</a></h2>
 <p>Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA-Q <code class="code docutils literal notranslate"><span class="pre">sample</span></code> call enables this:</p>
@@ -974,7 +987,8 @@
 
 <span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">produced_str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">produced_str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">contrib</span><span class="o">::</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">produced_str</span><span class="p">.</span><span class="n">data</span><span class="p">());</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
 <span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
@@ -994,12 +1008,359 @@ q1 : ─────┤ x ├
 </div>
 <p>Note that there is a subtle difference between how <code class="code docutils literal notranslate"><span class="pre">sample</span></code> is executed with the target device set to a simulator or with the target device set to a QPU. In simulation mode, the quantum state is built once and then sampled <span class="math notranslate nohighlight">\(s\)</span> times where <span class="math notranslate nohighlight">\(s\)</span> equals the <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>. In hardware execution mode, the quantum state collapses upon measurement and hence needs to be rebuilt over and over again.</p>
 <p>There are a number of helpful tools that can be found in the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api">API docs</a> to process the <code class="code docutils literal notranslate"><span class="pre">Sample_Result</span></code> object produced by <code class="code docutils literal notranslate"><span class="pre">sample</span></code>.</p>
+<section id="sample-asynchronous">
+<h3>Sample Asynchronous<a class="headerlink" href="#sample-asynchronous" title="Permalink to this heading">¶</a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">sample</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async">sample_async arguments it accepts</a>. One can parallelize over various kernels, variational parameters or even distribute shots counts over multiple QPUs.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result_async</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">result_async</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithms/draw.h&gt;</span>
+
+<span class="c1">// Define a quantum kernel function.</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// 2-qubit GHZ state.</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">qubit</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="p">],</span><span class="w"> </span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// If we do not specify measurements, all qubits are measured in</span>
+<span class="w">  </span><span class="c1">// the Z-basis by default or we can manually specify it also</span>
+<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">00</span><span class="p">:</span><span class="mi">498</span> <span class="mi">11</span><span class="p">:</span><span class="mi">502</span> <span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="run">
+<h2>Run<a class="headerlink" href="#run" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="code docutils literal notranslate"><span class="pre">run</span></code> API executes a quantum kernel multiple times and returns each individual result. Unlike <code class="code docutils literal notranslate"><span class="pre">sample</span></code>, which collects measurement statistics as counts, <code class="code docutils literal notranslate"><span class="pre">run</span></code> preserves each individual return value from every execution. This is useful when you need to analyze the distribution of returned values rather than just aggregated measurement counts.</p>
+<p>Key points about <code class="code docutils literal notranslate"><span class="pre">run</span></code>:</p>
+<ul class="simple">
+<li><p>Requires a kernel that returns a non-void value</p></li>
+<li><p>Returns a list containing all individual execution results</p></li>
+<li><p>Supports scalar types (bool, int, float) and custom data classes as return types</p></li>
+</ul>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a quantum kernel that returns an integer</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">simple_ghz</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="c1"># Allocate qubits</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">)</span>
+
+    <span class="c1"># Create GHZ state</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">):</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="c1"># Measure and return total number of qubits in state |1⟩</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="c1"># Execute the kernel 20 times</span>
+<span class="n">num_qubits</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">simple_ghz</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Executed </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="si">}</span><span class="s2"> shots&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Results: </span><span class="si">{</span><span class="n">results</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Possible values: Either 0 or </span><span class="si">{</span><span class="n">num_qubits</span><span class="si">}</span><span class="s2"> due to GHZ state properties&quot;</span><span class="p">)</span>
+
+<span class="c1"># Count occurrences of each result</span>
+<span class="n">value_counts</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+    <span class="n">value_counts</span><span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Counts of each result:&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">value</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">value_counts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> times&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="c1">// Define a quantum kernel that returns an integer</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">simple_ghz</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">num_qubits</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Allocate qubits</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qubits</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Create GHZ state</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_qubits</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// Measure and return total number of qubits in state |1⟩</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_qubits</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">result</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Execute the kernel 20 times</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">run</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="n">simple_ghz</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Print results</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Executed %zu shots</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">results</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Results: [&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">results</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">results</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;, &quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;]</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Possible values: Either 0 or %d due to GHZ state properties</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Count occurrences of each result</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">value_counts</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">value</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">results</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">value_counts</span><span class="p">[</span><span class="n">value</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">Counts of each result:</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pair</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">value_counts</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d: %d times</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">pair</span><span class="p">.</span><span class="n">first</span><span class="p">,</span><span class="w"> </span><span class="n">pair</span><span class="p">.</span><span class="n">second</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Executed</span> <span class="mi">20</span> <span class="n">shots</span>
+<span class="n">Results</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="n">Possible</span> <span class="n">values</span><span class="p">:</span> <span class="n">Either</span> <span class="mi">0</span> <span class="ow">or</span> <span class="mi">3</span> <span class="n">due</span> <span class="n">to</span> <span class="n">GHZ</span> <span class="n">state</span> <span class="n">properties</span>
+
+<span class="n">Counts</span> <span class="n">of</span> <span class="n">each</span> <span class="n">result</span><span class="p">:</span>
+<span class="mi">0</span><span class="p">:</span> <span class="mi">8</span> <span class="n">times</span>
+<span class="mi">3</span><span class="p">:</span> <span class="mi">12</span> <span class="n">times</span>
+</pre></div>
+</div>
+<section id="return-custom-data-types">
+<h3>Return Custom Data Types<a class="headerlink" href="#return-custom-data-types" title="Permalink to this heading">¶</a></h3>
+<p>The <code class="code docutils literal notranslate"><span class="pre">run</span></code> API also supports returning custom data types using Python’s data classes. This allows returning multiple values from your quantum computation in a structured way.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+
+<span class="c1"># Define a custom `dataclass` to return from our quantum kernel</span>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MeasurementResult</span><span class="p">:</span>
+    <span class="n">first_qubit</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">last_qubit</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">total_ones</span><span class="p">:</span> <span class="nb">int</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bell_pair_with_data</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">MeasurementResult</span><span class="p">:</span>
+    <span class="c1"># Create a bell pair</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Measure both qubits</span>
+    <span class="n">first_result</span> <span class="o">=</span> <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">last_result</span> <span class="o">=</span> <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Return custom data structure with results</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">first_result</span><span class="p">:</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">last_result</span><span class="p">:</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">total</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">MeasurementResult</span><span class="p">(</span><span class="n">first_result</span><span class="p">,</span> <span class="n">last_result</span><span class="p">,</span> <span class="n">total</span><span class="p">)</span>
+
+
+<span class="c1"># Run the kernel 10 times and get all results</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">bell_pair_with_data</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># Analyze the results</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Individual measurement results:&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Shot </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="se">{{</span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">first_qubit</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">last_qubit</span><span class="si">}</span><span class="se">}}\t</span><span class="s2">total ones=</span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">total_ones</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+<span class="c1"># Verify the Bell state correlations</span>
+<span class="n">correlated_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+    <span class="mi">1</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">first_qubit</span> <span class="o">==</span> <span class="n">res</span><span class="o">.</span><span class="n">last_qubit</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Correlated measurements: </span><span class="si">{</span><span class="n">correlated_count</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">correlated_count</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="c1">// Define a custom data structure to return from the quantum kernel</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">MeasurementResult</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">first_qubit</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">last_qubit</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">total</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">// Define a quantum kernel that returns the custom data structure</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="n">MeasurementResult</span><span class="w"> </span><span class="n">bell_pair_with_data</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Create a Bell pair</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qubits</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">m0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">m1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">m0</span><span class="p">)</span>
+<span class="w">    </span><span class="n">total</span><span class="o">++</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">m1</span><span class="p">)</span>
+<span class="w">    </span><span class="n">total</span><span class="o">++</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="n">m0</span><span class="p">,</span><span class="w"> </span><span class="n">m1</span><span class="p">,</span><span class="w"> </span><span class="n">total</span><span class="p">};</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">run</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="n">bell_pair_with_data</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">correlated_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">results</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Shot %d: {%d, %d}	total ones=%d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">first_qubit</span><span class="p">,</span>
+<span class="w">           </span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">last_qubit</span><span class="p">,</span><span class="w"> </span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">total</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">first_qubit</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">last_qubit</span><span class="p">)</span>
+<span class="w">      </span><span class="n">correlated_count</span><span class="o">++</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Correlated measurements: %d/%zu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">correlated_count</span><span class="p">,</span><span class="w"> </span><span class="n">results</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Individual</span> <span class="n">measurement</span> <span class="n">results</span><span class="p">:</span>
+<span class="n">Shot</span> <span class="mi">0</span><span class="p">:</span> <span class="p">{</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">2</span>
+<span class="n">Shot</span> <span class="mi">1</span><span class="p">:</span> <span class="p">{</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">Shot</span> <span class="mi">2</span><span class="p">:</span> <span class="p">{</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">Shot</span> <span class="mi">3</span><span class="p">:</span> <span class="p">{</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">Shot</span> <span class="mi">4</span><span class="p">:</span> <span class="p">{</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">2</span>
+<span class="n">Shot</span> <span class="mi">5</span><span class="p">:</span> <span class="p">{</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">2</span>
+<span class="n">Shot</span> <span class="mi">6</span><span class="p">:</span> <span class="p">{</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">2</span>
+<span class="n">Shot</span> <span class="mi">7</span><span class="p">:</span> <span class="p">{</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">Shot</span> <span class="mi">8</span><span class="p">:</span> <span class="p">{</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">Shot</span> <span class="mi">9</span><span class="p">:</span> <span class="p">{</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">}</span>	<span class="n">total</span> <span class="n">ones</span><span class="o">=</span><span class="mi">2</span>
+
+<span class="n">Correlated</span> <span class="n">measurements</span><span class="p">:</span> <span class="mi">10</span><span class="o">/</span><span class="mi">10</span> <span class="p">(</span><span class="mf">100.0</span><span class="o">%</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="run-asynchronous">
+<h3>Run Asynchronous<a class="headerlink" href="#run-asynchronous" title="Permalink to this heading">¶</a></h3>
+<p>Similar to <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code>, <code class="code docutils literal notranslate"><span class="pre">run</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.run_async">run_async arguments it accepts</a>.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example of `run_async` with a simple integer return type</span>
+<span class="c1"># Define a quantum kernel that returns an integer</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">simple_count</span><span class="p">(</span><span class="n">angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">rx</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+
+
+<span class="c1"># Execute asynchronously with different parameters</span>
+<span class="n">futures</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">angles</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mf">1.4</span><span class="p">]</span>
+
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">angles</span><span class="p">):</span>
+    <span class="n">futures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">run_async</span><span class="p">(</span><span class="n">simple_count</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10</span><span class="p">))</span>
+
+<span class="c1"># Process results as they complete</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">future</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="n">ones_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Angle </span><span class="si">{</span><span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">ones_count</span><span class="si">}</span><span class="s2">/10 ones measured&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
+
+<span class="c1">// Define a quantum kernel that returns an integer based on measurement</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">simple_count</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">angle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="p">();</span>
+<span class="w">  </span><span class="n">rx</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Execute the kernel asynchronously with different parameters</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">angles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span><span class="w"> </span><span class="mf">0.6</span><span class="p">,</span><span class="w"> </span><span class="mf">0.8</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.2</span><span class="p">,</span><span class="w"> </span><span class="mf">1.4</span><span class="p">};</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">future</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="n">futures</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">angles</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">futures</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">run_async</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="n">simple_count</span><span class="p">,</span><span class="w"> </span><span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">]));</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">futures</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">futures</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">get</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">ones_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">accumulate</span><span class="p">(</span><span class="n">results</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">results</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Angle %.1f : %d/10 ones measured</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">ones_count</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Angle</span> <span class="mf">0.0</span><span class="p">:</span> <span class="mi">0</span><span class="o">/</span><span class="mi">10</span> <span class="n">ones</span> <span class="n">measured</span>
+<span class="n">Angle</span> <span class="mf">0.2</span><span class="p">:</span> <span class="mi">0</span><span class="o">/</span><span class="mi">10</span> <span class="n">ones</span> <span class="n">measured</span>
+<span class="n">Angle</span> <span class="mf">0.4</span><span class="p">:</span> <span class="mi">0</span><span class="o">/</span><span class="mi">10</span> <span class="n">ones</span> <span class="n">measured</span>
+<span class="n">Angle</span> <span class="mf">0.6</span><span class="p">:</span> <span class="mi">0</span><span class="o">/</span><span class="mi">10</span> <span class="n">ones</span> <span class="n">measured</span>
+<span class="n">Angle</span> <span class="mf">0.8</span><span class="p">:</span> <span class="mi">1</span><span class="o">/</span><span class="mi">10</span> <span class="n">ones</span> <span class="n">measured</span>
+<span class="n">Angle</span> <span class="mf">1.0</span><span class="p">:</span> <span class="mi">2</span><span class="o">/</span><span class="mi">10</span> <span class="n">ones</span> <span class="n">measured</span>
+<span class="n">Angle</span> <span class="mf">1.2</span><span class="p">:</span> <span class="mi">3</span><span class="o">/</span><span class="mi">10</span> <span class="n">ones</span> <span class="n">measured</span>
+<span class="n">Angle</span> <span class="mf">1.4</span><span class="p">:</span> <span class="mi">5</span><span class="o">/</span><span class="mi">10</span> <span class="n">ones</span> <span class="n">measured</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently, <code class="code docutils literal notranslate"><span class="pre">run</span></code> and <code class="code docutils literal notranslate"><span class="pre">run_async</span></code> are only supported on simulator targets.</p>
+</div>
+</section>
 </section>
 <section id="observe">
 <h2>Observe<a class="headerlink" href="#observe" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="code docutils literal notranslate"><span class="pre">observe</span></code> function allows us to calculate expectation values. We must supply a spin operator in the form of a Hamiltonian, <span class="math notranslate nohighlight">\(H\)</span>, from which we would like to calculate <span class="math notranslate nohighlight">\(\langle\psi|H|\psi\rangle\)</span>.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 
 <span class="c1"># Define a Hamiltonian in terms of Pauli Spin operators.</span>
@@ -1020,11 +1381,8 @@ q1 : ─────┤ x ├
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&lt;H&gt; =&#39;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">H</span><span class="o">&gt;</span> <span class="o">=</span> <span class="mf">0.0</span>
-</pre></div>
 </div>
-</div>
-<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithms/draw.h&gt;</span>
@@ -1053,82 +1411,16 @@ q1 : ─────┤ x ├
 <span class="p">}</span>
 </pre></div>
 </div>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">H</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.000000</span>
+</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">H</span><span class="o">&gt;</span> <span class="o">=</span> <span class="mf">0.0</span>
 </pre></div>
 </div>
-</div>
-</div>
-</section>
-<section id="get-state">
-<h2>Get State<a class="headerlink" href="#get-state" title="Permalink to this heading">¶</a></h2>
-<p>The <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> function gives us access to the quantum statevector of the computation. Remember, that this is only feasible in simulation mode.</p>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the statevector of the kernel</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
-</pre></div>
-</div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mf">0.</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="mf">0.</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="mf">0.</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="mf">1.</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span><span class="p">]</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithms/draw.h&gt;</span>
-
-<span class="c1">// Define a quantum kernel function.</span>
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">);</span>
-<span class="w">  </span><span class="c1">// 2-qubit GHZ state.</span>
-<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">qubit</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="p">],</span><span class="w"> </span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
-
-<span class="w">  </span><span class="c1">// Compute the statevector of the kernel</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
-<span class="w">  </span><span class="n">t</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
-<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
-<span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
-<span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
-<span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-<p>The statevector generated by the <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> command follows Big-endian convention for associating numbers with their binary representations, which places the least significant bit on the left.  That is, for the example of a 2-bit system, we have the following translation between integers and bits:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{matrix}
-\text{Integer} &amp; \text{Binary representation}\\
-&amp; \text{least signinificant bit on left}\\
-0 = \textcolor{red}{0}*2^0 + \textcolor{blue}{0} *2^1 &amp; \textcolor{red}{0}\textcolor{blue}{0} \\
-1 = \textcolor{red}{1}*2^0 + \textcolor{blue}{0} *2^1 &amp; \textcolor{red}{1}\textcolor{blue}{0} \\
-2 = \textcolor{red}{0}*2^0 + \textcolor{blue}{1} *2^1 &amp; \textcolor{red}{0}\textcolor{blue}{1} \\
-3 = \textcolor{red}{1}*2^0 + \textcolor{blue}{1} *2^1 &amp; \textcolor{red}{1}\textcolor{blue}{1}
-\end{matrix}\end{split}\]</div>
-</section>
-<section id="parallelization-techniques">
-<h2>Parallelization Techniques<a class="headerlink" href="#parallelization-techniques" title="Permalink to this heading">¶</a></h2>
-<p>The most intensive task in the computation is the execution of the quantum kernel hence each execution function: <code class="code docutils literal notranslate"><span class="pre">sample</span></code>, <code class="code docutils literal notranslate"><span class="pre">observe</span></code> and <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> can be parallelized given access to multiple quantum processing units (multi-QPU).</p>
-<p>Since multi-QPU platforms are not yet feasible, we emulate each QPU with a GPU.</p>
-</section>
 <section id="observe-asynchronous">
-<h2>Observe Asynchronous<a class="headerlink" href="#observe-asynchronous" title="Permalink to this heading">¶</a></h2>
-<p>Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result.</p>
+<h3>Observe Asynchronous<a class="headerlink" href="#observe-asynchronous" title="Permalink to this heading">¶</a></h3>
 <p><code class="code docutils literal notranslate"><span class="pre">observe</span></code> can be a time intensive task. We can parallelize the execution of <code class="code docutils literal notranslate"><span class="pre">observe</span></code> via the arguments it accepts.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a quantum kernel function.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel1</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
@@ -1150,11 +1442,8 @@ q1 : ─────┤ x ├
 <span class="nb">print</span><span class="p">(</span><span class="n">result_1</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="mf">1.1102230246251565e-16</span>
-</pre></div>
 </div>
-</div>
-<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithms/draw.h&gt;</span>
@@ -1186,28 +1475,27 @@ q1 : ─────┤ x ├
 <span class="p">}</span>
 </pre></div>
 </div>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="mf">0.000000</span>
+</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="mf">1.1102230246251565e-16</span>
 </pre></div>
-</div>
-</div>
 </div>
 <p>Above we parallelized the <code class="code docutils literal notranslate"><span class="pre">observe</span></code> call over the <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> parameter; however, we can parallelize over any of the arguments it accepts by just iterating over the <code class="code docutils literal notranslate"><span class="pre">qpu_id</span></code>.</p>
 </section>
-<section id="sample-asynchronous">
-<h2>Sample Asynchronous<a class="headerlink" href="#sample-asynchronous" title="Permalink to this heading">¶</a></h2>
-<p>Similar to <code class="code docutils literal notranslate"><span class="pre">observe_async</span></code> above, sample also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async">arguments it accepts</a>. One can parallelize over various kernels, variational parameters or even distribute shots counts over multiple QPUs.</p>
+</section>
+<section id="get-state">
+<h2>Get State<a class="headerlink" href="#get-state" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> function gives us access to the quantum statevector of the computation. Remember, that this is only feasible in simulation mode.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result_async</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<input checked="True" class="tab-input" id="tab-set--7-input--1" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the statevector of the kernel</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">result_async</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
-</pre></div>
-</div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">00</span><span class="p">:</span><span class="mi">498</span> <span class="mi">11</span><span class="p">:</span><span class="mi">502</span> <span class="p">}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--7-input--2" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithms/draw.h&gt;</span>
@@ -1220,28 +1508,91 @@ q1 : ─────┤ x ├
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">qubit</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="p">],</span><span class="w"> </span><span class="n">qvector</span><span class="p">[</span><span class="n">qubit</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
 <span class="w">  </span><span class="p">}</span>
-<span class="w">  </span><span class="c1">// If we do not specify measurements, all qubits are measured in</span>
-<span class="w">  </span><span class="c1">// the Z-basis by default or we can manually specify it also</span>
-<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">);</span>
 <span class="p">}</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
-<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// Compute the statevector of the kernel</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">state</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
+<span class="w">  </span><span class="n">t</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"> </span><span class="mo">00</span><span class="o">:</span><span class="mi">510</span><span class="w"> </span><span class="mi">11</span><span class="o">:</span><span class="mi">490</span><span class="w"> </span><span class="p">}</span>
+</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mf">0.</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="mf">0.</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="mf">0.</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="mf">1.</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The statevector generated by the <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> command follows Big-endian convention for associating numbers with their binary representations, which places the least significant bit on the left. That is, for the example of a 2-bit system, we have the following translation between integers and bits:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{matrix}
+\text{Integer} &amp; \text{Binary representation}\\
+&amp; \text{least signinificant bit on left}\\
+0 = \textcolor{red}{0}*2^0 + \textcolor{blue}{0} *2^1 &amp; \textcolor{red}{0}\textcolor{blue}{0} \\
+1 = \textcolor{red}{1}*2^0 + \textcolor{blue}{0} *2^1 &amp; \textcolor{red}{1}\textcolor{blue}{0} \\
+2 = \textcolor{red}{0}*2^0 + \textcolor{blue}{1} *2^1 &amp; \textcolor{red}{0}\textcolor{blue}{1} \\
+3 = \textcolor{red}{1}*2^0 + \textcolor{blue}{1} *2^1 &amp; \textcolor{red}{1}\textcolor{blue}{1}
+\end{matrix}\end{split}\]</div>
+<section id="get-state-asynchronous">
+<h3>Get State Asynchronous<a class="headerlink" href="#get-state-asynchronous" title="Permalink to this heading">¶</a></h3>
+<p>Similar to <code class="code docutils literal notranslate"><span class="pre">observe_async</span></code> above, <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.get_state_async">arguments it accepts</a>.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--8-input--1" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bell_state</span><span class="p">():</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+<span class="c1"># Get state asynchronously</span>
+<span class="n">state_future</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state_async</span><span class="p">(</span><span class="n">bell_state</span><span class="p">)</span>
+
+<span class="c1"># Do other work while waiting for state computation...</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Computing state asynchronously...&quot;</span><span class="p">)</span>
+
+<span class="c1"># Get the state when ready</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">state_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Bell state vector:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--8-input--2" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdio&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="c1">// Define a quantum kernel for Bell state preparation</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">bell_state</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qubits</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Get state asynchronously</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">state_future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_state_async</span><span class="p">(</span><span class="n">bell_state</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Do other work while waiting for state computation</span>
+<span class="w">  </span><span class="c1">// Get and print the state when ready</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state_future</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">state</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Computing</span> <span class="n">state</span> <span class="n">asynchronously</span><span class="o">...</span>
+<span class="n">Bell</span> <span class="n">state</span> <span class="n">vector</span><span class="p">:</span>
+<span class="p">[</span><span class="mf">0.70710678</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="mf">0.70710678</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span><span class="p">]</span>
+</pre></div>
+</div>
 </section>
-<section id="get-state-asynchronous">
-<h2>Get State Asynchronous<a class="headerlink" href="#get-state-asynchronous" title="Permalink to this heading">¶</a></h2>
-<p>Similar to <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code> above, <code class="code docutils literal notranslate"><span class="pre">get_state_async</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.get_state_async">input arguments it accepts</a>.</p>
 </section>
 </section>
 

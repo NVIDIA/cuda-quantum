@@ -156,13 +156,23 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/executing_kernels.html">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state">Get State</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#parallelization-techniques">Parallelization Techniques</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe-asynchronous">Observe Asynchronous</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample-asynchronous">Sample Asynchronous</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state-asynchronous">Get State Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample-asynchronous">Sample Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#run">Run</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#return-custom-data-types">Return Custom Data Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#run-asynchronous">Run Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe-asynchronous">Observe Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state">Get State</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state-asynchronous">Get State Asynchronous</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -930,7 +940,7 @@ using general variational quantum algorithm methods. If the norm of the gradient
 parameter</p>
 <p>3- Optimize all parameters currently in the Ansatz <span class="math notranslate nohighlight">\(\beta_m, \gamma_m = 1, 2, ...k\)</span> such that <span class="math notranslate nohighlight">\(\braket{\psi (k)|H_C|\psi(k)}\)</span> is minimized, and return to the second step.</p>
 <p>Below is a schematic representation of the ADAPT-QAOA algorithm explained above.</p>
-<div><p><img alt="967e5c70f85049a890cce836276425b7" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 1000px;" /></p>
+<div><p><img alt="4376df83a1ed4b419af82bae4d9462f6" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 1000px;" /></p>
 </div><div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>

@@ -153,13 +153,23 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/executing_kernels.html">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state">Get State</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#parallelization-techniques">Parallelization Techniques</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe-asynchronous">Observe Asynchronous</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample-asynchronous">Sample Asynchronous</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state-asynchronous">Get State Asynchronous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#sample-asynchronous">Sample Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#run">Run</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#return-custom-data-types">Return Custom Data Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#run-asynchronous">Run Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#observe-asynchronous">Observe Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state">Get State</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/examples/executing_kernels.html#get-state-asynchronous">Get State Asynchronous</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/expectation_values.html">   Computing Expectation Values</a><ul>
@@ -2308,7 +2318,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">771967981</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">932921510</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random spin operator with the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>) where each term acts on all targets in the open range [0, qubit_count). An optional seed value may also be provided.</p>
@@ -2507,7 +2517,7 @@ on multiple degrees of freedom.</p></li>
 <span class="sig-name descname"><span class="pre">evaluate_coefficient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.operators.spin.SpinOperatorTerm" title="cudaq.operators.spin.SpinOperatorTerm"><span class="pre">SpinOperatorTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><span class="pre">complex</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><span class="pre">complex</span></a></span></span></dt>
 <dd></dd></dl>
 
-<p>Returns the evaluated coefficient of the product operator.</p>
+<p>Returns the evaluated coefficient of the product operator. The parameters is a map of parameter names to their concrete, complex values.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -3234,7 +3244,7 @@ on multiple degrees of freedom.</p></li>
 <span class="sig-name descname"><span class="pre">evaluate_coefficient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.operators.fermion.FermionOperatorTerm" title="cudaq.operators.fermion.FermionOperatorTerm"><span class="pre">FermionOperatorTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><span class="pre">complex</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><span class="pre">complex</span></a></span></span></dt>
 <dd></dd></dl>
 
-<p>Returns the evaluated coefficient of the product operator.</p>
+<p>Returns the evaluated coefficient of the product operator. The parameters is a map of parameter names to their concrete, complex values.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -3772,7 +3782,7 @@ on multiple degrees of freedom.</p></li>
 <span class="sig-name descname"><span class="pre">evaluate_coefficient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.operators.boson.BosonOperatorTerm" title="cudaq.operators.boson.BosonOperatorTerm"><span class="pre">BosonOperatorTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><span class="pre">complex</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><span class="pre">complex</span></a></span></span></dt>
 <dd></dd></dl>
 
-<p>Returns the evaluated coefficient of the product operator.</p>
+<p>Returns the evaluated coefficient of the product operator. The parameters is a map of parameter names to their concrete, complex values.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -4308,7 +4318,7 @@ on multiple degrees of freedom.</p></li>
 <span class="sig-name descname"><span class="pre">evaluate_coefficient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.operators.MatrixOperatorTerm" title="cudaq.operators.MatrixOperatorTerm"><span class="pre">MatrixOperatorTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><span class="pre">complex</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><span class="pre">complex</span></a></span></span></dt>
 <dd></dd></dl>
 
-<p>Returns the evaluated coefficient of the product operator.</p>
+<p>Returns the evaluated coefficient of the product operator. The parameters is a map of parameter names to their concrete, complex values.</p>
 </dd></dl>
 
 <dl class="py method">
