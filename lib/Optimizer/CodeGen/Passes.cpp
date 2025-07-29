@@ -54,8 +54,7 @@ static void addQCIPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   // Note: QCI's basis get set is "sx", "rz", "cz", but QCI currently has
   // a transpiler converting all other gates to that basis.
-  // We use the quantinuum gate set below so we can translate all
-  // gates to QIR.
+  // We use the gate set below so we can translate all gates to QIR.
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
