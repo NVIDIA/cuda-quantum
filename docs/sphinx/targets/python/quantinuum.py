@@ -3,7 +3,7 @@ import cudaq
 # You only have to set the target once! No need to redefine it
 # for every execution call on your kernel.
 # By default, we will submit to the Quantinuum syntax checker.
-cudaq.set_target("quantinuum")
+cudaq.set_target("quantinuum", project="nexus_project")
 
 
 # Create the kernel we'd like to execute on Quantinuum.

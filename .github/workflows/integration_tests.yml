@@ -407,7 +407,7 @@ jobs:
             case $filename in
               targettests/quantinuum/*)
                 [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC
+                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC --quantinuum-project ${{ secrets.QUANTINUUM_PROJECT_ID }}
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out

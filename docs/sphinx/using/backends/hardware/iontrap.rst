@@ -101,6 +101,9 @@ Quantinuum
 
 .. _quantinuum-backend:
 
+Quantinuum Nexus is a cloud-based platform that enables users to seamlessly run, review, and collaborate on quantum computing projects.
+Access to the Quantinuum Nexus is available through `this website <https://nexus.quantinuum.com/>`__ and documentation can be found `here <https://docs.quantinuum.com/nexus/>`__.
+
 Setting Credentials
 ```````````````````
 
@@ -127,6 +130,11 @@ The path to the configuration can be specified as an environment variable:
 
 Submitting
 `````````````````````````
+
+Each job submitted to the Quantinuum Nexus is associated with a `project <https://docs.quantinuum.com/nexus/user_guide/concepts/projects.html>`__.
+Create a project in the Nexus portal. You can find the project ID in the URL of the project page, or you may specify project with its name.
+
+
 .. tab:: Python
 
        
@@ -135,7 +143,9 @@ Submitting
 
         .. code:: python
 
-            cudaq.set_target('quantinuum')
+            cudaq.set_target('quantinuum', project='nexus_project_name')
+            # or
+            cudaq.set_target('quantinuum', project='nexus_project_id')
 
         By default, quantum kernel code will be submitted to the Quantinuum syntax checker.
         Submission to the syntax checker merely validates the program; the kernels are not executed.
@@ -152,12 +162,13 @@ Submitting
         access to the syntax checker for the provided machine, you may append an ``SC`` 
         to the end (e.g, ``H1-1SC``).
 
-        For a comprehensive list of available machines, login to your `Quantinuum user account <https://um.qapi.quantinuum.com/user>`__ 
-        and navigate to the "Account" tab, where you should find a table titled "Machines".
+        For a comprehensive list of available machines, login to your `Quantinuum Nexus user account <https://nexus.quantinuum.com/>`__ 
+        and navigate to the "Profile" tab, where you should find a table titled "Quantinuum Systems Access".
 
         To emulate the Quantinuum machine locally, without submitting through the cloud,
         you can also set the ``emulate`` flag to ``True``. This will emit any target 
         specific compiler warnings and diagnostics, before running a noise free emulation.
+        You do not need to specify project or machine when emulating.
 
         .. code:: python
 
@@ -184,7 +195,9 @@ Submitting
 
         .. code:: bash
 
-            nvq++ --target quantinuum src.cpp ...
+            nvq++ --target quantinuum src.cpp --quantinuum-project nexus_project_name ...
+            # or
+            nvq++ --target quantinuum src.cpp --quantinuum-project nexus_project_id ...
 
         To execute your kernels, pass the ``--quantinuum-machine`` flag to the ``nvq++`` compiler
         to specify which machine to submit quantum kernels to:
@@ -198,12 +211,13 @@ Submitting
         access to the syntax checker for the provided machine, you may append an ``SC`` 
         to the end (e.g, ``H1-1SC``).
 
-        For a comprehensive list of available machines, login to your `Quantinuum user account <https://um.qapi.quantinuum.com/user>`__ 
-        and navigate to the "Account" tab, where you should find a table titled "Machines".
+        For a comprehensive list of available machines, login to your `Quantinuum Nexus user account <https://nexus.quantinuum.com/>`__ 
+        and navigate to the "Profile" tab, where you should find a table titled "Quantinuum Systems Access".
 
         To emulate the Quantinuum machine locally, without submitting through the cloud,
-        you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target 
+        you can also set the ``emulate`` flag to ``True``. This will emit any target 
         specific compiler warnings and diagnostics, before running a noise free emulation.
+        You do not need to specify project or machine when emulating.
 
         .. code:: bash
 
