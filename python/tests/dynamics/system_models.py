@@ -126,14 +126,6 @@ class TestCompositeSystems(TestSystem):
     sm_dag = create(0)
     hamiltonian = 2 * np.pi * number(1) + 2 * np.pi * number(
         0) + 2 * np.pi * 0.25 * (sm * a_dag + sm_dag * a)
-    qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
-    cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
-    cavity_state[5][5] = 1.0
-    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
-    qubit_state = cp.array([1.0, 0.0], dtype=cp.complex128)
-    cavity_state = cp.zeros(10, dtype=cp.complex128)
-    cavity_state[5] = 1.0
-    psi0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
     steps = np.linspace(0, 10, 201)
     tol = 0.1
     # Expected results (from qutips)
@@ -239,8 +231,17 @@ class TestCompositeSystems(TestSystem):
                                    atol=self.tol)
 
     def run_tests(self, integrator):
-        self.run_test_simple(self.rho0, integrator)
-        self.run_test_simple(self.psi0, integrator)
+        qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
+        cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
+        cavity_state[5][5] = 1.0
+        rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
+        self.run_test_simple(rho0, integrator)
+
+        qubit_state = cp.array([1.0, 0.0], dtype=cp.complex128)
+        cavity_state = cp.zeros(10, dtype=cp.complex128)
+        cavity_state[5] = 1.0
+        psi0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
+        self.run_test_simple(psi0, integrator)
 
 
 class TestCrossResonance(TestSystem):
