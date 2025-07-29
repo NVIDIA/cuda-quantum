@@ -143,7 +143,7 @@ Submitting
 
         .. code:: python
 
-            cudaq.set_target("iqm", url="https://<IQM Server>/cocos",**{"qpu-architecture": "Crystal 5"})
+            cudaq.set_target("iqm", url="https://<IQM Server>/cocos",**{"qpu-architecture": "Crystal_5"})
 
         To emulate the IQM Server locally, without submitting to the IQM Server,
         you can also set the ``emulate`` flag to ``True``. This will emit any target
@@ -191,7 +191,7 @@ Submitting
 
             # Executing the same program against an IQM Server with a different underlying QPU
             # architecture will result in an error.
-            IQM_SERVER_URL="https://<Crystal 20 IQM Server>/cocos" ./program
+            IQM_SERVER_URL="https://<Crystal_20 IQM Server>/cocos" ./program
 
         To emulate the IQM machine locally, without submitting to the IQM Server,
         you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target

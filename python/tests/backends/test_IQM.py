@@ -68,7 +68,7 @@ def startUpMockServer():
     cudaq.set_random_seed(13)
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    kwargs = {"qpu-architecture": "Crystal 20"}
+    kwargs = {"qpu-architecture": "Crystal_20"}
     if os.path.isdir(git_top):
         mapping_file = f"{git_top}/targettests/Crystal_20_Variant.txt"
         kwargs["mapping_file"] = mapping_file

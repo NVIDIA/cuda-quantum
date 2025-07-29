@@ -14,7 +14,7 @@
 #include <fstream>
 
 struct crystal_5_kernel {
-  // Crystal 5 QPU.
+  // Crystal_5 QPU.
   //       QB1
   //        |
   // QB2 - QB3 - QB4

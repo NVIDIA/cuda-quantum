@@ -90,7 +90,7 @@ int main() {
     std::cout
         << "Passing large state from another kernel as argument (kernel mode)"
         << std::endl;
-    // TODO: State larger than 5 qubits fails on iqm machines with Crystal 5
+    // TODO: State larger than 5 qubits fails on iqm machines with Crystal_5
     // architecture
     // TODO: State larger than 8 qubits fails on oqc and anyon
     // Up to 14 bits works with quantinuum an ionq

@@ -9,7 +9,7 @@
 
 // Define a simple quantum kernel to execute on IQM Server.
 struct crystal_5_ghz {
-  // Maximally entangled state between 5 qubits on Crystal 5 QPU.
+  // Maximally entangled state between 5 qubits on Crystal_5 QPU.
   //       QB1
   //        |
   // QB2 - QB3 - QB4
@@ -22,7 +22,7 @@ struct crystal_5_ghz {
 
     // Note that the CUDA-Q compiler will automatically generate the
     // necessary instructions to swap qubits to satisfy the required
-    // connectivity constraints for the Crystal 5 QPU. In this program, that
+    // connectivity constraints for the Crystal_5 QPU. In this program, that
     // means that despite QB1 not being physically connected to QB2, the user
     // can still perform joint operations q[0] and q[1] because the compiler
     // will automatically (and transparently) inject the necessary swap
