@@ -407,7 +407,7 @@ jobs:
             case $filename in
               targettests/quantinuum/*)
                 [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC --quantinuum-project ${{ secrets.QUANTINUUM_PROJECT_ID }}
+                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
@@ -424,6 +424,18 @@ jobs:
                 fi
               ;;
             esac
+          done
+          python_tests="docs/sphinx/targets/python/quantinuum.py"
+          for filename in $python_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            QUANTINUUM_NEXUS_PROJECT=${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} python3 $filename 1> /dev/null
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+            else
+              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
           done
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then

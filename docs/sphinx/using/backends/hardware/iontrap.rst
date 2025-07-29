@@ -116,8 +116,8 @@ account details.
 .. code:: bash
 
     # You may need to run: `apt-get update && apt-get install curl`
-    curl -c $HOME/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login \ 
-        -H "Content-Type: application/json" -d '{ "email":"<your_alias>@email.com","password":"<your_password>" }' >/dev/null
+    curl -c $HOME/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login \
+    -H "Content-Type: application/json" -d '{ "email":"<your_alias>@email.com","password":"<your_password>" }' >/dev/null
     awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' $HOME/.quantinuum_cookies.txt > $HOME/.quantinuum_config
     rm $HOME/.quantinuum_cookies.txt
 
