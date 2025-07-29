@@ -113,7 +113,7 @@ CUDAQ_TEST(IQMTester, architectureMismatched) {
         platform.setTargetBackend(backendString);
       },
       testing::ThrowsMessage<std::runtime_error>(testing::StrEq(
-          "IQM QPU architecture mismatch: Expecting Crystal_5 architecture.")));
+          "IQM QPU architecture mismatch: Crystal_5 != Crystal_20")));
 }
 
 CUDAQ_TEST(IQMTester, iqmServerUrlEnvOverride) {
