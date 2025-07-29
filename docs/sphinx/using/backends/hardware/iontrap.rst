@@ -112,14 +112,11 @@ account details.
 
 .. code:: bash
 
-    # You may need to run: `apt-get update && apt-get install curl jq`
-    curl -X POST -H "Content Type: application/json" \
-        -d '{ "email":"<your_alias>@email.com","password":"<your_password>" }' \
-        https://qapi.quantinuum.com/v1/login > $HOME/credentials.json
-    id_token=`cat $HOME/credentials.json | jq -r '."id-token"'`
-    refresh_token=`cat $HOME/credentials.json | jq -r '."refresh-token"'`
-    echo "key: $id_token" >> $HOME/.quantinuum_config
-    echo "refresh: $refresh_token" >> $HOME/.quantinuum_config
+    # You may need to run: `apt-get update && apt-get install curl`
+    curl -c $HOME/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login \ 
+        -H "Content-Type: application/json" -d '{ "email":"<your_alias>@email.com","password":"<your_password>" }' >/dev/null
+    awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' $HOME/.quantinuum_cookies.txt > $HOME/.quantinuum_config
+    rm $HOME/.quantinuum_cookies.txt
 
 The path to the configuration can be specified as an environment variable:
 
