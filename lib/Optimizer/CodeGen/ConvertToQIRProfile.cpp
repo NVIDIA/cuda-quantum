@@ -250,8 +250,12 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
         rewriter.getStrArrayAttr(
             {cudaq::opt::QIROutputNamesAttrName, outputNamesStrRef}),
         rewriter.getStrArrayAttr(
+            // TODO: change to required_num_qubits once providers support it
+            // (issues #385 and #556)
             {cudaq::opt::QIRRequiredQubitsAttrName, requiredQubitsStrRef}),
         rewriter.getStrArrayAttr(
+            // TODO: change to required_num_results once providers support it
+            // (issues #385 and #556)
             {cudaq::opt::QIRRequiredResultsAttrName, requiredResultsStrRef})};
 
     op.setPassthroughAttr(rewriter.getArrayAttr(attrArray));

@@ -402,6 +402,8 @@ LogicalResult cudaq::cc::CastOp::verify() {
   } else if (isa<cc::PointerType, LLVM::LLVMPointerType>(inTy) &&
              isa<cc::PointerType, LLVM::LLVMPointerType>(outTy)) {
     // ok, pointer casts: bitcast, nop
+  } else if (isa<cc::PointerType, LLVM::LLVMPointerType>(inTy)) {
+    // ok, will become pointer casts: nop
   } else if (isa<ComplexType>(inTy) && isa<ComplexType>(outTy)) {
     auto inEleTy = cast<ComplexType>(inTy).getElementType();
     auto outEleTy = cast<ComplexType>(outTy).getElementType();
@@ -1306,8 +1308,7 @@ LogicalResult cudaq::cc::StdvecInitOp::verify() {
 namespace {
 struct ForwardStdvecInitData
     : public OpRewritePattern<cudaq::cc::StdvecDataOp> {
-  using Base = OpRewritePattern<cudaq::cc::StdvecDataOp>;
-  using Base::Base;
+  using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::StdvecDataOp data,
                                 PatternRewriter &rewriter) const override {
@@ -1318,9 +1319,8 @@ struct ForwardStdvecInitData
     // and unwrapped by stdvec_data is the same pointer value. This pattern will
     // arise after inlining, for example.
     if (auto ini = data.getStdvec().getDefiningOp<cudaq::cc::StdvecInitOp>()) {
-      Value cast = rewriter.create<cudaq::cc::CastOp>(
-          data.getLoc(), data.getType(), ini.getBuffer());
-      rewriter.replaceOp(data, cast);
+      rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(data, data.getType(),
+                                                     ini.getBuffer());
       return success();
     }
     return failure();
@@ -1486,8 +1486,6 @@ LogicalResult cudaq::cc::LoopOp::verify() {
   if (hasPythonElse()) {
     if (isPostConditional())
       return emitOpError("post-conditional loop cannot have an else region");
-    if (!hasStep())
-      return emitOpError("python for-else must have step region");
     if (getElseEntryArguments().size() != initArgsSize)
       return emitOpError(
           "size of init args and else region args must be equal");
@@ -1535,7 +1533,7 @@ void cudaq::cc::LoopOp::print(OpAsmPrinter &p) {
     if (hasPythonElse()) {
       p << " else ";
       p.printRegion(getElseRegion(), /*printEntryBlockArgs=*/hasArguments(),
-                    /*printBlockTerminators=*/hasArguments());
+                    /*printBlockTerminators=*/true);
     }
   }
   p.printOptionalAttrDict((*this)->getAttrs(), {postCondAttrName()});
@@ -1872,9 +1870,10 @@ bool hasAllocation(Region &region) {
         if (mem.hasEffect<MemoryEffects::Allocate>())
           if (quantumAllocs || !isa<quake::AllocaOp>(op))
             return true;
-      for (auto &opReg : op.getRegions())
-        if (hasAllocation<quantumAllocs>(opReg))
-          return true;
+      if (!isa<cudaq::cc::ScopeOp>(op))
+        for (auto &opReg : op.getRegions())
+          if (hasAllocation<quantumAllocs>(opReg))
+            return true;
     }
   return false;
 }
@@ -2374,6 +2373,60 @@ LogicalResult cudaq::cc::NoInlineCallOp::verifySymbolUses(
 }
 
 //===----------------------------------------------------------------------===//
+// DeviceCallOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::DeviceCallOp::verify() {
+  if (getNumBlocks().size() > 3)
+    return emitOpError(
+        "the number of blocks  must have a maximum dimension of 3");
+  if (getNumThreadsPerBlock().size() > 3)
+    return emitOpError(
+        "the number of threads per block must have a maximum dimension of 3");
+  return success();
+}
+
+LogicalResult
+cudaq::cc::DeviceCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  // Check that the callee attribute was specified.
+  auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
+  if (!fnAttr)
+    return emitOpError("requires a 'callee' symbol reference attribute");
+  func::FuncOp fn =
+      symbolTable.lookupNearestSymbolFrom<func::FuncOp>(*this, fnAttr);
+  if (!fn)
+    return emitOpError() << "'" << fnAttr.getValue()
+                         << "' does not reference a valid function";
+
+  // Verify that the operand and result types match the callee.
+  auto fnType = fn.getFunctionType();
+  if (fnType.getNumInputs() != getArgs().size())
+    return emitOpError("incorrect number of operands for callee");
+
+  for (unsigned i = 0, e = fnType.getNumInputs(); i != e; ++i)
+    if (getArgs()[i].getType() != fnType.getInput(i)) {
+      return emitOpError("operand type mismatch: expected operand type ")
+             << fnType.getInput(i) << ", but provided "
+             << getArgs()[i].getType() << " for operand number " << i;
+    }
+
+  if (fnType.getResults().empty() && getNumResults() == 0)
+    return success();
+
+  if (fnType.getNumResults() != getNumResults())
+    return emitOpError("number of results does not agree");
+
+  for (auto [myRes, resTy] : llvm::zip(getResults(), fnType.getResults()))
+    if (myRes.getType() != resTy) {
+      auto diag = emitOpError("result type mismatch ");
+      diag.attachNote() << "      op result types: " << myRes.getType();
+      diag.attachNote() << "function result types: " << resTy;
+      return diag;
+    }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // OffsetOfOp
 //===----------------------------------------------------------------------===//
 
@@ -2691,7 +2744,7 @@ cudaq::cc::VarargCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   if (getNumResults() > 1)
     return emitOpError("wrong number of result types: ") << getNumResults();
 
-  if (getResult(1).getType() != fnType.getReturnType()) {
+  if (getResult(0).getType() != fnType.getReturnType()) {
     auto diag = emitOpError("result type mismatch ");
     diag.attachNote() << "      op result types: " << getResultTypes();
     diag.attachNote() << "function result types: " << fnType.getReturnType();

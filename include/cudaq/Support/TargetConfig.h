@@ -116,7 +116,8 @@ struct BackendFeatureMap {
 };
 
 /// Schema of the target configuration file.
-struct TargetConfig {
+class TargetConfig {
+public:
   /// Target name
   std::string Name;
   /// Target description
@@ -191,5 +192,6 @@ template <>
 struct MappingTraits<cudaq::config::TargetConfig> {
   static void mapping(IO &io, cudaq::config::TargetConfig &info);
 };
+
 } // namespace yaml
 } // namespace llvm

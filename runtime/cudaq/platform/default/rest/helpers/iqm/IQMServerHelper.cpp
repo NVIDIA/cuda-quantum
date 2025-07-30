@@ -25,7 +25,7 @@ protected:
   std::string iqmServerUrl = "http://localhost/cocos/";
 
   /// @brief IQM QPU architecture, provided during the compile-time
-  std::string qpuArchitecture = "Adonis";
+  std::string qpuArchitecture = "Crystal_5";
 
   /// @brief The default cortex-cli tokens file path
   std::optional<std::string> tokensFilePath = std::nullopt;

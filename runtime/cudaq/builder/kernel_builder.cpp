@@ -967,6 +967,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+    pm.addPass(cudaq::opt::createQuakePropagateMetadata());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
@@ -981,7 +982,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     // rewrites before lowering to a raw CFG form. Loop unrolling depends on the
     // cc.loop op and GKE generates new code which may have cc.loop ops, etc.
     PassManager pm(context);
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
+    cudaq::opt::addLowerToCFG(pm);
     // We want quantum allocations to stay where they are if
     // we are simulating and have user-provided state vectors.
     // This check could be better / smarter probably, in tandem
