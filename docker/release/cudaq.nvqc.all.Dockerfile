@@ -18,9 +18,6 @@ FROM $base_image
 
 USER root
 
-# Ensure base directories exists
-RUN mkdir -p /opt/tpls /opt/tpls/customizations /opt/tpls/json
-
 # Copy in third-party repositories
 COPY tpls/ /opt/tpls/
 
