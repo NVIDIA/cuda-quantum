@@ -321,6 +321,7 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
   io.mapOptional("linker-flags", info.LinkerFlags);
   io.mapOptional("nvqir-simulation-backend", info.SimulationBackend);
   io.mapOptional("rules", info.ConditionalBuildConfigs);
+  io.mapOptional("server-helper", info.ServerHelper);
 }
 
 void MappingTraits<cudaq::config::BackendFeatureMap>::mapping(
