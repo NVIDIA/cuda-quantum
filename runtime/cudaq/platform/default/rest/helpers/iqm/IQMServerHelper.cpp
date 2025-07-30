@@ -93,6 +93,7 @@ public:
       throw std::runtime_error("QPU architecture is not provided");
     }
     qpuArchitecture = iter->second;
+    std::replace(qpuArchitecture.begin(), qpuArchitecture.end(), '_', ' ');
     cudaq::debug("qpuArchitecture = {}", qpuArchitecture);
 
     // Set an alternate base URL if provided.
