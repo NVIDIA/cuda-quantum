@@ -6,9 +6,9 @@ import cudaq
 # it via another call to `cudaq.set_target()`
 cudaq.set_target("iqm",
                  url="http://localhost/cocos",
-                 **{"qpu-architecture": "Adonis"})
+                 **{"qpu-architecture": "Crystal_5"})
 
-# Adonis QPU architecture:
+# Crystal_5 QPU architecture:
 #       QB1
 #        |
 # QB2 - QB3 - QB4
