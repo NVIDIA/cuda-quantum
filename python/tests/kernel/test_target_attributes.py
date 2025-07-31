@@ -35,6 +35,6 @@ def test_target_invalid_options_attribute():
     """Tests the target invalid options attribute."""
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.set_target("nvidia", options="fp32")
+        cudaq.set_target("nvidia", options="mqpu")
     assert "The keyword `options` argument is not supported in cudaq.set_target()" in str(
         e.value)
