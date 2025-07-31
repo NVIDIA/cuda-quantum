@@ -12,19 +12,19 @@
 
 TEST(OptTester, checkSimple) {
   auto kernel = []() __qpu__ {
-    cudaq::qubit q,p,r;
+    cudaq::qubit q, p, r;
     h(q);
     h(p);
     h(r);
     rz(1.0, p);
     rz(2.0, r);
-    x<cudaq::ctrl>(p,q);
+    x<cudaq::ctrl>(p, q);
     rz(3.0, q);
-    x<cudaq::ctrl>(p,r);
-    x<cudaq::ctrl>(q,p);
+    x<cudaq::ctrl>(p, r);
+    x<cudaq::ctrl>(q, p);
     h(r);
-    x<cudaq::ctrl>(p,r);
-    x<cudaq::ctrl>(q,p);
+    x<cudaq::ctrl>(p, r);
+    x<cudaq::ctrl>(q, p);
     rz(4.0, p);
     h(q);
     h(p);
