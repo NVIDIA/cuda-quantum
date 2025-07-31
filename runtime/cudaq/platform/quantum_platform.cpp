@@ -91,10 +91,10 @@ void quantum_platform::set_current_qpu(const std::size_t device_id) {
         " is not valid (greater than number of available QPUs: " +
         std::to_string(platformNumQPUs) + ").");
   }
-  platformCurrentQPU = device_id;
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
   {
     std::unique_lock lock(threadToQpuIdMutex);
+    platformCurrentQPU = device_id;
     auto iter = threadToQpuId.find(tid);
     if (iter != threadToQpuId.end())
       iter->second = device_id;
