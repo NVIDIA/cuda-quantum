@@ -204,7 +204,7 @@ class PhaseFoldingPass
     // Process all ops in the subcircuit, tracking phases and greedily trying to
     // merge rotations
     for (auto op : subcircuit->getOrderedOps()) {
-      if (::isControlledOp(op)) {
+      if (::isCNOT(op)) {
         // Controlled not, set new target phase to XOR of control and old target
         // phases
         auto control = op->getOperand(0);
@@ -245,7 +245,7 @@ public:
 
     func.walk([&](quake::XOp op) {
       // AXIS-SPECIFIC: controlled not only
-      if (!::isControlledOp(op) || ::processed(op))
+      if (!::isCNOT(op) || ::processed(op))
         return;
 
       if (!isSupportedValue(op.getOperand(0)) ||

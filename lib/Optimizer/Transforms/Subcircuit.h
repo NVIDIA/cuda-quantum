@@ -22,7 +22,7 @@ void markProcessed(Operation *op) {
 }
 
 // AXIS-SPECIFIC: could allow controlled y and z here
-bool isControlledOp(Operation *op) {
+bool isCNOT(Operation *op) {
   return isa<quake::XOp>(op) && op->getNumOperands() == 2;
 }
 
@@ -51,8 +51,8 @@ bool isCircuitBreaker(Operation *op) {
   if (!opi)
     return true;
 
-  // Only allow single control
-  if (opi.getControls().size() > 1)
+  // Only allow control in the case of CNOT
+  if (opi.getControls().size() > 0 && !isCNOT(op))
     return true;
 
   // If any values are unsupported, the operation is also unsupported
@@ -193,7 +193,7 @@ protected:
             otherWrapper = subcircuit->getWrapper(target);
           // If we are pruning along the target of a CNot, we do not
           // need to prune along the control, as it will be unaffected
-          else if (!isControlledOp(op))
+          else if (!isCNOT(op))
             otherWrapper = subcircuit->getWrapper(control);
 
           if (otherWrapper)
