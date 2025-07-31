@@ -9,7 +9,7 @@
 import random
 import math
 import argparse
-from parse import *
+import re
 
 gates = [
     {
@@ -280,32 +280,37 @@ with open(args.template, 'r') as file:
             working_qubits = qubit_stack.pop()
 
         if line.startswith("GEN-QALLOC: "):
-            res = parse("GEN-QALLOC: nqubits={qubits}", line)
-            nQubits = random.choice(parse_range(res['qubits']))
+            #res = parse("GEN-QALLOC: nqubits={qubits}", line)
+            match = re.search(r"GEN-QALLOC: nqubits=(\d+)", line)
+            if match:
+                nQubits = int(match.group(1))
+            else:
+                raise RuntimeError(
+                    "Illegal 'GEN-QALLOC' command, expected 'GEN-QALLOC: nqubits=..., got '{}'"
+                    .format(line))
+            #nQubits = random.choice(parse_range(res['qubits']))
             qubits = generate_qubit_choices(len(working_qubits), nQubits)
             working_qubits = working_qubits + qubits
             program += generate_qvector(nQubits, indent)
-        elif line.startswith("GEN-BLOCKS: "):
-            res = parse("GEN-BLOCKS: <{nBlocks}:{nGates}>", line)
-            nBlocks = random.choice(parse_range(res['nBlocks']))
-            for _ in range(nBlocks):
-                nGates = random.choice(parse_range(res['nGates']))
-                program += generate_block(working_qubits, nGates, indent=indent)
         elif line.startswith("GEN-BLOCK: "):
-            res = parse("GEN-BLOCK: <{nGates}>", line)
-            nGates = random.choice(parse_range(res['nGates']))
+            match = re.search(r"GEN-BLOCK: <(.*)>", line)
+            if match:
+                nGates = match.group(1)
+            else:
+                raise RuntimeError(
+                    "Illegal 'GEN-BLOCK' command, expected 'GEN-BLOCK: <range>, got '{}'"
+                    .format(line))
+            nGates = random.choice(parse_range(nGates))
             program += generate_block(working_qubits, nGates, indent=indent)
-        elif line.startswith("GEN-SUBCIRCUITS: "):
-            res = parse("GEN-SUBCIRCUITS: <{nBlocks}:{nGates}>", line)
-            nBlocks = random.choice(parse_range(res['nBlocks']))
-            for _ in range(nBlocks):
-                nGates = random.choice(parse_range(res['nGates']))
-                program += generate_subcircuit(working_qubits,
-                                               nGates,
-                                               indent=indent)
         elif line.startswith("GEN-SUBCIRCUIT: "):
-            res = parse("GEN-SUBCIRCUIT: <{nGates}>", line)
-            nGates = random.choice(parse_range(res['nGates']))
+            match = re.search(r"GEN-SUBCIRCUIT: <(.*)>", line)
+            if match:
+                nGates = match.group(1)
+            else:
+                raise RuntimeError(
+                    "Illegal 'GEN-SUBCIRCUIT' command, expected 'GEN-SUBCIRCUIT: <range>, got '{}'"
+                    .format(line))
+            nGates = random.choice(parse_range(nGates))
             program += generate_subcircuit(working_qubits,
                                            nGates,
                                            indent=indent)
