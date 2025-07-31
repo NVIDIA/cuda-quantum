@@ -12,7 +12,7 @@
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 // clang-format on
 
-// Note: iqm (and others) that don't use QIR should not beincluded in this test.
+// Note: iqm (and others) that don't use QIR should not be included in this test.
 
 #include <cudaq.h>
 #include <iostream>

@@ -307,7 +307,7 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
       // }
       for (auto it = qubitIndicies.rbegin(); it != qubitIndicies.rend(); ++it) {
         bitstring += std::to_string(static_cast<int>(measurements[*it]));
-      }  
+      }
 
       ++srs[i].counts[bitstring];
       srs[i].sequentialData.emplace_back(std::move(bitstring));
@@ -322,7 +322,8 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
     //   globalBitString += std::to_string(static_cast<int>(measurements[idx]));
     // }
     for (auto it = globalQubitMap.rbegin(); it != globalQubitMap.rend(); ++it) {
-      globalBitString += std::to_string(static_cast<int>(measurements[it->second]));
+      globalBitString +=
+          std::to_string(static_cast<int>(measurements[it->second]));
     }
 
     ++ger.counts[globalBitString];

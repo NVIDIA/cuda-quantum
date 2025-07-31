@@ -16,6 +16,7 @@
 // RUN: nvq++ --target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // RUN: nvq++ --target oqc                      --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>

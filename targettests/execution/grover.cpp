@@ -8,6 +8,7 @@
 
 // REQUIRES: c++20
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 
 #include "cudaq.h"
 #include <cmath>
