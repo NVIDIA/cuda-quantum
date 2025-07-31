@@ -61,6 +61,8 @@ void bindCountResources(py::module &mod) {
         // Switch simulators back
         __internal__::stopUsingResourceCounterSimulator();
 
+        platform.reset_exec_ctx();
+
         return counts;
       },
       py::arg("kernel"), py::kw_only(), py::arg("choice") = std::nullopt,
