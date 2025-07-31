@@ -8,7 +8,7 @@
 
 // RUN: cudaq-opt %s --resource-count-preprocess=dump-preprocessed=true --canonicalize -split-input-file | FileCheck %s
 
-// CHECK: Preprocessing h for 1 counts
+// CHECK: Preprocessing h(0) for 1 counts
 // CHECK-LABEL:   func.func @kernel1() {
 // CHECK:       %0 = quake.alloca !quake.ref
 // CHECK:       return
@@ -26,7 +26,7 @@ func.func @kernel1() {
 
 // -----
 
-// CHECK: Preprocessing h for 1 counts
+// CHECK: Preprocessing h(0) for 1 counts
 // CHECK-LABEL:   func.func @kernel2() {
 // CHECK:       %0 = quake.alloca !quake.ref
 // CHECK:       %1 = quake.alloca !quake.ref
@@ -55,7 +55,7 @@ func.func @kernel2() {
 
 // -----
 
-// CHECK: Preprocessing h for 9 counts
+// CHECK: Preprocessing h(0) for 9 counts
 // CHECK-LABEL:   func.func @kernel3() {
 // CHECK:     %0 = quake.alloca !quake.veq<10>
 // CHECK:     %measOut = quake.mz %0 : (!quake.veq<10>) -> !cc.stdvec<!quake.measure>
@@ -88,7 +88,7 @@ func.func @kernel3() {
 
 // -----
 
-// CHECK: Preprocessing h for 1 count
+// CHECK: Preprocessing h(0) for 1 count
 // CHECK-LABEL: func.func @kernel4() {
 // CHECK:   %cst = arith.constant 1.000000e-01 : f64
 // CHECK:   %0 = quake.alloca !quake.ref
@@ -123,10 +123,10 @@ func.func @kernel4() {
 
 // -----
 
-// CHECK: Preprocessing x for 1 count
-// CHECK: Preprocessing cx for 1 count
-// CHECK: Preprocessing ccx for 1 count
-// CHECK: Preprocessing cccx for 1 count
+// CHECK: Preprocessing x(0) for 1 count
+// CHECK: Preprocessing x(1) for 1 count
+// CHECK: Preprocessing x(2) for 1 count
+// CHECK: Preprocessing x(3) for 1 count
 
 // CHECK-LABEL: func.func @kernel5() {
 // CHECK:   %0 = quake.alloca !quake.ref
