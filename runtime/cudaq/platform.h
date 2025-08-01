@@ -20,6 +20,28 @@ inline quantum_platform &get_platform() {
   return *getQuantumPlatformInternal();
 }
 
+/// @brief Return the number of QPUs (at runtime)
+inline std::size_t platform_num_qpus() {
+  return getQuantumPlatformInternal()->num_qpus();
+}
+
+/// @brief Return true if the quantum platform is remote.
+inline bool is_remote_platform() {
+  return getQuantumPlatformInternal()->is_remote();
+}
+
+/// @brief Return true if the quantum platform is a remote simulator.
+inline bool is_remote_simulator_platform() {
+  return getQuantumPlatformInternal()
+      ->get_remote_capabilities()
+      .isRemoteSimulator;
+}
+
+/// @brief Return true if the quantum platform is emulated.
+inline bool is_emulated_platform() {
+  return getQuantumPlatformInternal()->is_emulated();
+}
+
 // Declare this function, implemented elsewhere
 std::string getQIR(const std::string &);
 

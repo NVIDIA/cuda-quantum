@@ -10,6 +10,7 @@
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
+#include "cudaq/platform.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -65,15 +66,15 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
                     "`cudaq.Target` leverages.")
       .def_readonly("description", &cudaq::RuntimeTarget::description,
                     "A string describing the features for this `cudaq.Target`.")
-      .def("num_qpus", &cudaq::RuntimeTarget::num_qpus,
+      .def("num_qpus", &cudaq::platform_num_qpus,
            "Return the number of QPUs available in this `cudaq.Target`.")
-      .def("is_remote", &cudaq::RuntimeTarget::is_remote,
+      .def("is_remote", &cudaq::is_remote_platform,
            "Returns true if the target consists of a remote REST QPU.")
-      .def("is_emulated", &cudaq::RuntimeTarget::is_emulated,
+      .def("is_emulated", &cudaq::is_emulated_platform,
            "Returns true if the emulation mode for the target has been "
            "activated.")
       .def(
-          "is_remote_simulator", &cudaq::RuntimeTarget::is_remote_simulator,
+          "is_remote_simulator", &cudaq::is_remote_simulator_platform,
           "Returns true if the target consists of a remote REST Simulator QPU.")
       .def("get_precision", &cudaq::RuntimeTarget::get_precision,
            "Return the simulation precision for the current target.")
