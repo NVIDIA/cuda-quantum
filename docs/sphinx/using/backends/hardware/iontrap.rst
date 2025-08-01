@@ -166,7 +166,7 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
         and navigate to the "Profile" tab, where you should find a table titled "Quantinuum Systems Access".
 
         To emulate the Quantinuum machine locally, without submitting through the cloud,
-        you can also set the ``emulate`` flag to ``True``. This will emit any target 
+        you can set the ``emulate`` flag to ``True``. This will emit any target 
         specific compiler warnings and diagnostics, before running a noise free emulation.
         You do not need to specify project or machine when emulating.
 
@@ -215,7 +215,7 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
         and navigate to the "Profile" tab, where you should find a table titled "Quantinuum Systems Access".
 
         To emulate the Quantinuum machine locally, without submitting through the cloud,
-        you can also set the ``emulate`` flag to ``True``. This will emit any target 
+        you can pass the ``--emulate`` flag to ``nvq++``. This will emit any target 
         specific compiler warnings and diagnostics, before running a noise free emulation.
         You do not need to specify project or machine when emulating.
 

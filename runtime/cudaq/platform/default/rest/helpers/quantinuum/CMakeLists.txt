@@ -5,7 +5,6 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
 target_sources(cudaq-rest-qpu PRIVATE QuantinuumServerHelper.cpp)
 add_target_config(quantinuum)
 
@@ -16,3 +15,4 @@ target_link_libraries(cudaq-serverhelper-quantinuum
     fmt::fmt-header-only 
 )
 install(TARGETS cudaq-serverhelper-quantinuum DESTINATION lib)
+
