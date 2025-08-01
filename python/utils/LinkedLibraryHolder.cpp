@@ -10,6 +10,7 @@
 #include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
+#include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform.h"
 #include "cudaq/target_control.h"
 #include "nvqir/CircuitSimulator.h"
