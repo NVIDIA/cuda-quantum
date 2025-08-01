@@ -75,39 +75,23 @@ public:
   /// @brief Initializes the server helper with the provided backend
   /// configuration.
   void initialize(BackendConfig config) override {
-    cudaq::debug("Initializing Quantum Circuits backend.");
+    CUDAQ_INFO("Initializing Quantum Circuits backend.");
 
     auto apiUrl = getEnvVar("QCI_API_URL", DEFAULT_API_URL, false);
     config["apiUrl"] = apiUrl.ends_with("/") ? apiUrl : apiUrl + "/";
-    cudaq::debug("QCI backend API URL: {}", config["apiUrl"]);
+    CUDAQ_INFO("QCI backend API URL: {}", config["apiUrl"]);
 
     config["apiToken"] = getEnvVar("QCI_API_TOKEN", DEFAULT_API_TOKEN, false);
 
-    // TODO: remove this block for release builds
-    if (config["apiToken"].length() >= 20) {
-      std::string truncatedApiToken =
-          config["apiToken"].substr(0, 3) + "..." +
-          config["apiToken"].substr(config["apiToken"].length() - 3);
-      cudaq::debug("QCI backend API-Token: {}", truncatedApiToken);
-    }
-
     config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
-    cudaq::debug("QCI backend machine: {}", config["machine"]);
+    CUDAQ_INFO("QCI backend machine: {}", config["machine"]);
 
     config["authToken"] =
         getEnvVar("QCI_AUTH_TOKEN", "QCI_AUTH_TOKEN_NOT_SET", true);
 
-    // TODO: remove this block for release builds
-    if (config["authToken"].length() >= 20) {
-      std::string truncatedAuthToken =
-          config["authToken"].substr(0, 3) + "..." +
-          config["authToken"].substr(config["authToken"].length() - 3);
-      cudaq::debug("Auth token: {}", truncatedAuthToken);
-    }
-
     if (!config["shots"].empty()) {
       this->setShots(std::stoul(config["shots"]));
-      cudaq::debug("QCI backend configured shots: {}", config["shots"]);
+      CUDAQ_INFO("QCI backend configured shots: {}", config["shots"]);
     }
 
     // Parse parameters common to all jobs, place into member variables, then
@@ -211,7 +195,7 @@ std::string QCIServerHelper::constructGetJobPath(std::string &jobId) {
 }
 
 bool QCIServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  cudaq::debug("getJobResponse: {}", getJobResponse.dump());
+  CUDAQ_DBG("getJobResponse: {}", getJobResponse.dump());
 
   if (!getJobResponse["error"].is_null()) {
     std::string msg = getJobResponse["error"]["message"].get<std::string>();
@@ -248,22 +232,22 @@ ServerMessage QCIServerHelper::getResults(std::string &resultsGetPath) {
 cudaq::sample_result
 QCIServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobId) {
-  cudaq::debug("postJobResponse: {}", postJobResponse.dump());
-  cudaq::debug("jobId: {}", jobId);
+  CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
+  CUDAQ_DBG("jobId: {}", jobId);
 
   auto resultsGetPath = postJobResponse.at("resultUrl").get<std::string>();
   // Get the results
   auto results = getResults(resultsGetPath);
 
-  cudaq::debug("results: {}", results.dump());
+  CUDAQ_INFO("results: {}", results.dump());
 
   if (outputNames.find(jobId) == outputNames.end())
     throw std::runtime_error("Could not find output names for job " + jobId);
 
   auto const &output_names = outputNames[jobId];
   for (auto const &[result, info] : output_names) {
-    cudaq::debug("Qubit {} Result {} Name {}", info.qubitNum, result,
-                 info.registerName);
+    CUDAQ_DBG("Qubit {} Result {} Name {}", info.qubitNum, result,
+              info.registerName);
   }
 
   auto const &index = results.at("index");
