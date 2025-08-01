@@ -18,8 +18,8 @@
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target anyon      --emulate %s -o %t && %t | FileCheck %s
 
 // 2 different IQM machines for 2 different topologies
-// RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target iqm --iqm-machine Crystal_5 --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
