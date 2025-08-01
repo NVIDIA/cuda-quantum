@@ -1,1 +1,0 @@
-../execution/test_explicit_measurements.cpp

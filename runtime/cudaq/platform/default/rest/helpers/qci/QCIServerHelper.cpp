@@ -301,12 +301,8 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
       std::string bitstring;
       bitstring.reserve(qubitIndicies.size());
 
-      // Is there endianess mismatch?
-      // for (std::size_t idx : qubitIndicies) {
-      //   bitstring += std::to_string(static_cast<int>(measurements[idx]));
-      // }
-      for (auto it = qubitIndicies.rbegin(); it != qubitIndicies.rend(); ++it) {
-        bitstring += std::to_string(static_cast<int>(measurements[*it]));
+      for (std::size_t idx : qubitIndicies) {
+        bitstring += std::to_string(static_cast<int>(measurements[idx]));
       }
 
       ++srs[i].counts[bitstring];
@@ -317,13 +313,8 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
     std::string globalBitString;
     globalBitString.reserve(globalQubitMap.size());
 
-    // Is there endianess mismatch here?
-    // for (const auto &[_, idx] : globalQubitMap) {
-    //   globalBitString += std::to_string(static_cast<int>(measurements[idx]));
-    // }
-    for (auto it = globalQubitMap.rbegin(); it != globalQubitMap.rend(); ++it) {
-      globalBitString +=
-          std::to_string(static_cast<int>(measurements[it->second]));
+    for (const auto &[_, idx] : globalQubitMap) {
+      globalBitString += std::to_string(static_cast<int>(measurements[idx]));
     }
 
     ++ger.counts[globalBitString];
