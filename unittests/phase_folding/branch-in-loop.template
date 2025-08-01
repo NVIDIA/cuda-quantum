@@ -11,10 +11,20 @@
 #include <gtest/gtest.h>
 #include <random>
 
-TEST(OptTester, RNGTest0) {
+TEST(OptTester, branchInLoop) {
   auto kernel = []() __qpu__ {
-    GEN-QALLOC: nqubits=5
-    GEN-SUBCIRCUIT: <100>
+    GEN-QALLOC: nqubits=3-5
+    for (size_t i = 0; i < GEN:<nqubits>; i++) {
+      GEN-BLOCK
+      GEN-SUBCIRCUIT
+      GEN-BLOCK
+      if (mz(GEN:<qubit>)) {
+        GEN-BLOCK
+        GEN-SUBCIRCUIT
+        GEN-BLOCK
+      }
+      GEN-MEASURES
+    }
   };
 
   const auto PHASE_SWITCH = "CUDAQ_PHASE_FOLDING";
@@ -22,7 +32,6 @@ TEST(OptTester, RNGTest0) {
   setenv(PHASE_SWITCH, "0", true);
   cudaq::set_random_seed(1);
   auto state1 = cudaq::get_state(kernel);
-  // Add resource counter call (once merged) here to make sure opts are actually done
 
   setenv(PHASE_SWITCH, "1", true);
   cudaq::set_random_seed(1);

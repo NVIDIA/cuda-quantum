@@ -203,16 +203,29 @@ def generate_instruction(qubits, gates, subcircuit=False, indent=0):
     return generate_indent(indent) + gatestr + "(" + operandstr + ");"
 
 
-def generate_qubit_choices(oldQubits, newQubits):
-    return ["q[{}]".format(str(n + oldQubits)) for n in range(newQubits)]
+def generate_qubit_choices(name, newQubits):
+    return ["{}[{}]".format(name, str(n)) for n in range(newQubits)]
+
+
+idx = 0
+
+
+def generate_qvector(nQubits, indent=0):
+    global idx
+    qvector = "q" + str(idx)
+    idx += 1
+    decl = generate_indent(indent) + "cudaq::qvector {}({});\n".format(
+        qvector, str(nQubits))
+    choices = generate_qubit_choices(qvector, nQubits)
+    return [qvector, decl, choices]
 
 
 def generate_subcircuit(qubits, nGates, indent=0):
-    block = generate_block(qubits, nGates, True, indent=indent)
-    breakers = [
-        generate_indent(indent) + "h({});".format(qubit) for qubit in qubits
-    ]
-    return block + "\n".join(breakers) + "\n"
+    return generate_block(qubits, nGates, True, indent=indent)
+    # breakers = [
+    #     generate_indent(indent) + "h({});".format(qubit) for qubit in qubits
+    # ]
+    # return block + "\n".join(breakers) + "\n"
 
 
 def generate_block(qubits, nGates, subcircuit=False, indent=0):
@@ -230,11 +243,6 @@ def generate_inst_list(qubits, nGates, nBlocks):
         else:
             program += generate_block(qubits, nGates) + "\n"
     return program
-
-
-def generate_qvector(nQubits, indent=0):
-    return generate_indent(indent) + "cudaq::qvector q({});\n".format(
-        str(nQubits))
 
 
 def generate_measures(qubits, indent=0):
@@ -264,23 +272,27 @@ argparser = argparse.ArgumentParser(prog='RandomCircuitGenerator',
 
 argparser.add_argument('template', type=str)
 argparser.add_argument('--seed', type=int)
+argparser.add_argument('--block-length', type=str)
 args = argparser.parse_args()
 
+block_length = parse_range(args.block_length)
 program = ""
 with open(args.template, 'r') as file:
     random.seed(args.seed)
     indent = 0
     working_qubits = []
     qubit_stack = []
+    qvectors = []
+    qvector_stack = []
     for raw in file:
         line = raw.strip()
 
         if '}' in line:
             indent -= 1
             working_qubits = qubit_stack.pop()
+            qvectors = qvector_stack.pop()
 
         if line.startswith("GEN-QALLOC: "):
-            #res = parse("GEN-QALLOC: nqubits={qubits}", line)
             match = re.search(r"GEN-QALLOC: nqubits=(\d+)", line)
             if match:
                 nQubits = int(match.group(1))
@@ -288,29 +300,15 @@ with open(args.template, 'r') as file:
                 raise RuntimeError(
                     "Illegal 'GEN-QALLOC' command, expected 'GEN-QALLOC: nqubits=..., got '{}'"
                     .format(line))
-            #nQubits = random.choice(parse_range(res['qubits']))
-            qubits = generate_qubit_choices(len(working_qubits), nQubits)
+            [qvector, decl, qubits] = generate_qvector(nQubits, indent)
             working_qubits = working_qubits + qubits
-            program += generate_qvector(nQubits, indent)
-        elif line.startswith("GEN-BLOCK: "):
-            match = re.search(r"GEN-BLOCK: <(.*)>", line)
-            if match:
-                nGates = match.group(1)
-            else:
-                raise RuntimeError(
-                    "Illegal 'GEN-BLOCK' command, expected 'GEN-BLOCK: <range>, got '{}'"
-                    .format(line))
-            nGates = random.choice(parse_range(nGates))
+            qvectors.append(qvector)
+            program += decl
+        elif line.startswith("GEN-BLOCK"):
+            nGates = random.choice(block_length)
             program += generate_block(working_qubits, nGates, indent=indent)
-        elif line.startswith("GEN-SUBCIRCUIT: "):
-            match = re.search(r"GEN-SUBCIRCUIT: <(.*)>", line)
-            if match:
-                nGates = match.group(1)
-            else:
-                raise RuntimeError(
-                    "Illegal 'GEN-SUBCIRCUIT' command, expected 'GEN-SUBCIRCUIT: <range>, got '{}'"
-                    .format(line))
-            nGates = random.choice(parse_range(nGates))
+        elif line.startswith("GEN-SUBCIRCUIT"):
+            nGates = random.choice(block_length)
             program += generate_subcircuit(working_qubits,
                                            nGates,
                                            indent=indent)
@@ -321,10 +319,13 @@ with open(args.template, 'r') as file:
                 line = line.replace("GEN:<nqubits>", str(len(working_qubits)))
                 line = line.replace("GEN:<qubit>",
                                     random.choice(working_qubits))
+            if len(qvectors) > 0:
+                line = line.replace("GEN:<qvector>", random.choice(qvectors))
             program += generate_indent(indent) + line + "\n"
 
         if '{' in line:
             indent += 1
             qubit_stack.append(working_qubits)
+            qvector_stack.append(qvectors)
 
 print(program)

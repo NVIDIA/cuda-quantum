@@ -27,11 +27,12 @@ target_link_libraries(test_opt
     gtest_main
 )
 
-function(generate_random_test template seed target_name)
+function(generate_random_test template seed target_name block_length)
   if (PYTHON_FOUND)
-    add_custom_command(COMMAND ${Python_EXECUTABLE} random_gen.py ${template} --seed=${seed} > ${CMAKE_CURRENT_BINARY_DIR}/${target_name}.cpp
+    add_custom_command(COMMAND ${Python_EXECUTABLE} random_gen.py ${template} --seed=${seed} --block-length=${block_length} > ${CMAKE_CURRENT_BINARY_DIR}/${target_name}.cpp
       OUTPUT ${target_name}.cpp
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      DEPENDS random_gen.py ${template})
     add_executable(${target_name} ${CMAKE_CURRENT_BINARY_DIR}/${target_name}.cpp)
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
       target_link_options(${target_name} PRIVATE -Wl,--no-as-needed)
@@ -56,6 +57,28 @@ function(generate_random_test template seed target_name)
 endfunction()
 
 gtest_discover_tests(test_opt)
-generate_random_test("testRNG0.template" "27" "test_rng0")
-generate_random_test("testRNG0.template" "4" "test_rng01")
-generate_random_test("testRNG1.template" "100" "test_rng1")
+
+generate_random_test("straight-line.template" "27" "straight-line" "100")
+generate_random_test("subkernel.template" "1" "subkernel-1" "15-25")
+
+generate_random_test("branch-in-loop.template" "1" "branch-in-loop-1" "10-15")
+generate_random_test("branch-in-loop.template" "2" "branch-in-loop-2" "10-15")
+generate_random_test("branch-in-loop.template" "3" "branch-in-loop-3" "10-15")
+generate_random_test("branch-in-loop.template" "4" "branch-in-loop-4" "10-15")
+generate_random_test("branch-in-loop.template" "5" "branch-in-loop-5" "10-15")
+generate_random_test("branch-in-loop.template" "6" "branch-in-loop-6" "10-15")
+generate_random_test("branch-in-loop.template" "7" "branch-in-loop-7" "10-15")
+generate_random_test("branch-in-loop.template" "8" "branch-in-loop-8" "10-15")
+generate_random_test("branch-in-loop.template" "9" "branch-in-loop-9" "10-15")
+generate_random_test("branch-in-loop.template" "10" "branch-in-loop-10" "10-15")
+
+generate_random_test("loop-with-break.template" "1" "loop-with-break-1" "20-30")
+generate_random_test("loop-with-break.template" "2" "loop-with-break-2" "20-30")
+generate_random_test("loop-with-break.template" "3" "loop-with-break-3" "20-30")
+generate_random_test("loop-with-break.template" "4" "loop-with-break-4" "20-30")
+generate_random_test("loop-with-break.template" "5" "loop-with-break-5" "20-30")
+generate_random_test("loop-with-break.template" "6" "loop-with-break-6" "20-30")
+generate_random_test("loop-with-break.template" "7" "loop-with-break-7" "20-30")
+generate_random_test("loop-with-break.template" "8" "loop-with-break-8" "20-30")
+generate_random_test("loop-with-break.template" "9" "loop-with-break-9" "20-30")
+generate_random_test("loop-with-break.template" "10" "loop-with-break-10" "20-30")
