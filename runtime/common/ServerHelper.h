@@ -46,6 +46,9 @@ using ServerMessage = nlohmann::json;
 /// @brief Each REST interaction will require headers
 using RestHeaders = std::map<std::string, std::string>;
 
+/// @brief Cookies are also a map of key-values
+using RestCookies = std::map<std::string, std::string>;
+
 // A Server Job Payload consists of a job post URL path, the headers,
 // and a vector of related Job JSON messages.
 using ServerJobPayload =
@@ -102,6 +105,10 @@ public:
   /// @brief Return the POST/GET required headers.
   /// @return
   virtual RestHeaders getHeaders() = 0;
+
+  /// @brief Return the cookies required for the request.
+  // By default, no cookies.
+  virtual RestCookies getCookies() { return {}; }
 
   /// @brief Given a vector of compiled quantum codes for submission
   /// create and return the Job payload that is compatible with this server.

@@ -1050,7 +1050,10 @@ def test_unsupported_targets_1(target, env_var, emulate):
     if env_var:
         os.environ[env_var] = "foobar"
 
-    cudaq.set_target(target, emulate=emulate)
+    if target == 'quantinuum' and not emulate:
+        pytest.skip("This target needs additional setup.")
+    else:
+        cudaq.set_target(target, emulate=emulate)
 
     with pytest.raises(RuntimeError) as e:
         test_simple_run_ghz()
