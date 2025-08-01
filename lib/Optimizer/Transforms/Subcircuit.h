@@ -301,10 +301,28 @@ protected:
   }
 
 public:
-  Subcircuit(Operation *cnot, Netlist *container) {
+  /// @brief Constructs a subcircuit containing only RZ, NOT, CNOT, and Swap
+  /// gates, using the Netlist representation `netlist`.
+  /// @details A subcircuit is an connected portion of the netlist containing
+  /// only RZ, NOT, CNOT, and Swap gates.
+  ///
+  /// First, we construct an initial subcircuit:
+  /// We start by walking forward and backward along the netlist from the
+  /// initial anchor point, which is the control of `cnot`, and add the
+  /// encountered gates to the subcircuit. If a CNOT or Swap gate is
+  /// encountered, an anchor point is added for the other qubit used in the
+  /// operation, which will later be walked. If a disallowed gate is
+  /// encountered, we stop walking and add a termination point.
+  ///
+  /// Then, we prune the subcircuit, starting at the earlist ending termination
+  /// point (i.e., earliest termination point encountered while walking forward)
+  /// along each qubit, and walk forward, adjusting the termination boundary for
+  /// any connected qubits, and removing operations after the termination
+  /// boundary from the subcircuit.
+  Subcircuit(Operation *cnot, Netlist *netlist) {
     start = cnot;
-    this->container = container;
-    qubits = SmallVector<NetlistWrapper *>(container->size(), nullptr);
+    this->container = netlist;
+    qubits = SmallVector<NetlistWrapper *>(netlist->size(), nullptr);
     calculateInitialSubcircuit();
     pruneSubcircuit();
     for (auto op : ops)
@@ -317,8 +335,7 @@ public:
         delete wrapper;
   }
 
-  Operation *getStart() { return start; }
-
+  /// @brief Gets the !quake.refs used in the subcircuit
   SmallVector<Value> getRefs() {
     SmallVector<Value> refs;
     for (auto wrapper : qubits)
@@ -328,6 +345,7 @@ public:
     return refs;
   }
 
+  /// @brief Gets the number of !quake.refs used in the subcircuit
   size_t numRefs() {
     size_t count = 0;
     for (auto wrapper : qubits)
@@ -350,5 +368,6 @@ public:
     return ordered_ops;
   }
 
+  /// @brief Gets the number of RZs in the subcircuit
   size_t getNumRotations() { return num_rot_gates; }
 };

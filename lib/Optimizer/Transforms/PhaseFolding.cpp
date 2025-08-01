@@ -125,12 +125,12 @@ class PhaseStorage {
   SmallVector<quake::RzOp> rotations;
   size_t numCombined = 0;
 
-  // Merges the rotation at prev_idx with rzop by adding their
-  // rotation angles and overwriting rzop's angle with the new
-  // angle. The old rotation is erased. We keep the latter rotation
-  // to ensure that dynamic rotation angles (e.g., dependent on
-  // measurement results) are indeed available, as earlier angles
-  // will always be available later, but not vice-versa.
+  /// @brief Merges the rotation at prev_idx with rzop by adding their
+  /// rotation angles and overwriting rzop's angle with the new
+  /// angle. The old rotation is erased. We keep the latter rotation
+  /// to ensure that dynamic rotation angles (e.g., dependent on
+  /// measurement results) are indeed available, as earlier angles
+  /// will always be available later, but not vice-versa.
   void combineRotations(size_t prev_idx, quake::RzOp rzop) {
     auto old_rzop = rotations[prev_idx];
     auto rot_arg1 = old_rzop.getOperand(0);
@@ -240,6 +240,8 @@ class PhaseFoldingPass
 public:
   void runOnOperation() override {
     auto func = getOperation();
+    // Get the netlist represention for the qubits in the function,
+    // this will walk the whole function once
     auto nl = Netlist(func);
     SmallVector<Subcircuit *> subcircuits;
 
@@ -252,15 +254,19 @@ public:
           !isSupportedValue(op.getOperand(1)))
         return;
 
+      // Build a subcircuit from the CNot
       auto subcircuit = new Subcircuit(op, &nl);
       subcircuits.push_back(subcircuit);
     });
 
     // Performing the actual optimization over subcircuits after collecting them
-    // A) allows for parallelization of the optimization, and
-    // B) avoids rewriting the AST as it is being walked above.
+    // A) allows for eventually parallelizing the optimization, and
+    // B) avoids rewriting the AST as it is being walked above, causing an
+    // error. This does introduce a requirement that each operation belongs to
+    // at most one subcircuit.
     for (auto subcircuit : subcircuits) {
       doPhaseFolding(subcircuit);
+      // Clean up
       delete subcircuit;
     }
   }
