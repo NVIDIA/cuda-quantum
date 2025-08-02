@@ -1,0 +1,316 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --basis-conversion="basis=h,s,t,rx,ry,rz,x,y,z,x(1) disable-patterns=R1ToU3" %s | FileCheck %s
+
+/// This test covers all the supported CUDA-Q gates along with control and
+/// adjoint modifiers, similar to the test in `python/tests/backends/test_Infleqtion.py::test_all_gates`
+module {
+  func.func @__nvqpp__mlirgen__function_all_gates._Z9all_gatesv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %cst = arith.constant 1.5707963267948966 : f64
+    %cst_0 = arith.constant -1.5707963267948966 : f64
+    %cst_1 = arith.constant 0.39269908169872414 : f64
+    %cst_2 = arith.constant 0.78539816339744828 : f64
+    %cst_3 = arith.constant 3.1415926535897931 : f64
+    %cst_4 = arith.constant 0.000000e+00 : f64
+    %cst_5 = arith.constant 3.140000e+00 : f64
+    %0 = quake.alloca !quake.ref
+    quake.h %0 : (!quake.ref) -> ()
+    quake.x %0 : (!quake.ref) -> ()
+    quake.y %0 : (!quake.ref) -> ()
+    quake.z %0 : (!quake.ref) -> ()
+    quake.r1 (%cst_5) %0 : (f64, !quake.ref) -> ()
+    quake.rx (%cst_5) %0 : (f64, !quake.ref) -> ()
+    quake.ry (%cst_5) %0 : (f64, !quake.ref) -> ()
+    quake.rz (%cst_5) %0 : (f64, !quake.ref) -> ()
+    quake.s %0 : (!quake.ref) -> ()
+    quake.t %0 : (!quake.ref) -> ()
+    quake.rz (%cst_3) %0 : (f64, !quake.ref) -> ()
+    quake.rx (%cst) %0 : (f64, !quake.ref) -> ()
+    quake.rz (%cst_4) %0 : (f64, !quake.ref) -> ()
+    quake.rx (%cst_0) %0 : (f64, !quake.ref) -> ()
+    quake.rz (%cst) %0 : (f64, !quake.ref) -> ()
+    %measOut = quake.mz %0 : (!quake.ref) -> !quake.measure
+    %1 = quake.alloca !quake.veq<2>
+    %2 = quake.extract_ref %1[0] : (!quake.veq<2>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    %3 = quake.extract_ref %1[1] : (!quake.veq<2>) -> !quake.ref
+    quake.swap %2, %3 : (!quake.ref, !quake.ref) -> ()
+    %4 = cc.alloca !cc.array<i8 x 2>
+    %measOut_6 = quake.mz %2 : (!quake.ref) -> !quake.measure
+    %5 = quake.discriminate %measOut_6 : (!quake.measure) -> i1
+    %6 = cc.cast %4 : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+    %7 = cc.cast unsigned %5 : (i1) -> i8
+    cc.store %7, %6 : !cc.ptr<i8>
+    %measOut_7 = quake.mz %3 : (!quake.ref) -> !quake.measure
+    %8 = quake.discriminate %measOut_7 : (!quake.measure) -> i1
+    %9 = cc.compute_ptr %4[1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+    %10 = cc.cast unsigned %8 : (i1) -> i8
+    cc.store %10, %9 : !cc.ptr<i8>
+    %11 = quake.alloca !quake.veq<2>
+    %12 = quake.extract_ref %11[0] : (!quake.veq<2>) -> !quake.ref
+    %13 = quake.extract_ref %11[1] : (!quake.veq<2>) -> !quake.ref
+    quake.h [%12] %13 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%13] %12 : (!quake.ref, !quake.ref) -> ()
+    quake.y [%12] %13 : (!quake.ref, !quake.ref) -> ()
+    quake.z [%13] %12 : (!quake.ref, !quake.ref) -> ()
+    quake.r1 (%cst) [%12] %13 : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rx (%cst_2) [%13] %12 : (f64, !quake.ref, !quake.ref) -> ()
+    quake.ry (%cst_2) [%12] %13 : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_2) [%13] %12 : (f64, !quake.ref, !quake.ref) -> ()
+    quake.s [%12] %13 : (!quake.ref, !quake.ref) -> ()
+    quake.t [%13] %12 : (!quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_3) [%12] %13 : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rx (%cst) [%12] %13 : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rz (%cst_4) [%12] %13 : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rx (%cst_0) [%12] %13 : (f64, !quake.ref, !quake.ref) -> ()
+    quake.rz (%cst) [%12] %13 : (f64, !quake.ref, !quake.ref) -> ()
+    %14 = cc.alloca !cc.array<i8 x 2>
+    %measOut_8 = quake.mz %12 : (!quake.ref) -> !quake.measure
+    %15 = quake.discriminate %measOut_8 : (!quake.measure) -> i1
+    %16 = cc.cast %14 : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+    %17 = cc.cast unsigned %15 : (i1) -> i8
+    cc.store %17, %16 : !cc.ptr<i8>
+    %measOut_9 = quake.mz %13 : (!quake.ref) -> !quake.measure
+    %18 = quake.discriminate %measOut_9 : (!quake.measure) -> i1
+    %19 = cc.compute_ptr %14[1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+    %20 = cc.cast unsigned %18 : (i1) -> i8
+    cc.store %20, %19 : !cc.ptr<i8>
+    %21 = quake.alloca !quake.veq<3>
+    %22 = quake.extract_ref %21[0] : (!quake.veq<3>) -> !quake.ref
+    quake.x %22 : (!quake.ref) -> ()
+    %23 = quake.extract_ref %21[1] : (!quake.veq<3>) -> !quake.ref
+    quake.x %23 : (!quake.ref) -> ()
+    %24 = quake.extract_ref %21[2] : (!quake.veq<3>) -> !quake.ref
+    quake.swap [%22] %23, %24 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    %25 = cc.alloca !cc.array<i8 x 3>
+    %measOut_10 = quake.mz %22 : (!quake.ref) -> !quake.measure
+    %26 = quake.discriminate %measOut_10 : (!quake.measure) -> i1
+    %27 = cc.cast %25 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+    %28 = cc.cast unsigned %26 : (i1) -> i8
+    cc.store %28, %27 : !cc.ptr<i8>
+    %measOut_11 = quake.mz %23 : (!quake.ref) -> !quake.measure
+    %29 = quake.discriminate %measOut_11 : (!quake.measure) -> i1
+    %30 = cc.compute_ptr %25[1] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+    %31 = cc.cast unsigned %29 : (i1) -> i8
+    cc.store %31, %30 : !cc.ptr<i8>
+    %measOut_12 = quake.mz %24 : (!quake.ref) -> !quake.measure
+    %32 = quake.discriminate %measOut_12 : (!quake.measure) -> i1
+    %33 = cc.compute_ptr %25[2] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+    %34 = cc.cast unsigned %32 : (i1) -> i8
+    cc.store %34, %33 : !cc.ptr<i8>
+    %35 = quake.alloca !quake.ref
+    quake.r1<adj> (%cst_3) %35 : (f64, !quake.ref) -> ()
+    quake.rx<adj> (%cst) %35 : (f64, !quake.ref) -> ()
+    quake.ry<adj> (%cst_2) %35 : (f64, !quake.ref) -> ()
+    quake.rz<adj> (%cst_1) %35 : (f64, !quake.ref) -> ()
+    quake.s<adj> %35 : (!quake.ref) -> ()
+    quake.t<adj> %35 : (!quake.ref) -> ()
+    %measOut_13 = quake.mz %35 : (!quake.ref) -> !quake.measure
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_all_gates._Z9all_gatesv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:           %[[VAL_1:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0.39269908169872414 : f64
+// CHECK:           %[[VAL_3:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK:           %[[VAL_4:.*]] = arith.constant 3.1415926535897931 : f64
+// CHECK:           %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK:           %[[VAL_6:.*]] = arith.constant 3.140000e+00 : f64
+// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_7]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
+// CHECK:           quake.y %[[VAL_7]] : (!quake.ref) -> ()
+// CHECK:           quake.z %[[VAL_7]] : (!quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_6]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_6]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_6]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_6]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.s %[[VAL_7]] : (!quake.ref) -> ()
+// CHECK:           quake.t %[[VAL_7]] : (!quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_4]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_0]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_5]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_1]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_9:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_9]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_10]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_9]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.x {{\[}}%[[VAL_11]]] %[[VAL_10]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_11]]] %[[VAL_10]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_12:.*]] = cc.alloca !cc.array<i8 x 2>
+// CHECK:           %[[VAL_13:.*]] = quake.mz %[[VAL_10]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_14:.*]] = quake.discriminate %[[VAL_13]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_12]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_16:.*]] = cc.cast unsigned %[[VAL_14]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_16]], %[[VAL_15]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_17:.*]] = quake.mz %[[VAL_11]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_18:.*]] = quake.discriminate %[[VAL_17]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_12]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_20:.*]] = cc.cast unsigned %[[VAL_18]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_20]], %[[VAL_19]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_21:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_22:.*]] = quake.extract_ref %[[VAL_21]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[VAL_23:.*]] = quake.extract_ref %[[VAL_21]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.s %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.t %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.t<adj> %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.s<adj> %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.s<adj> %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.s %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_22]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_22]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_24:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_25:.*]] = arith.divf %[[VAL_0]], %[[VAL_24]] : f64
+// CHECK:           %[[VAL_26:.*]] = arith.negf %[[VAL_25]] : f64
+// CHECK:           quake.rz (%[[VAL_25]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_26]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_25]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_27:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_28:.*]] = arith.divf %[[VAL_3]], %[[VAL_27]] : f64
+// CHECK:           %[[VAL_29:.*]] = arith.negf %[[VAL_28]] : f64
+// CHECK:           %[[VAL_30:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK:           quake.s %[[VAL_22]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_29]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_28]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_30]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_31:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_32:.*]] = arith.divf %[[VAL_3]], %[[VAL_31]] : f64
+// CHECK:           %[[VAL_33:.*]] = arith.negf %[[VAL_32]] : f64
+// CHECK:           quake.ry (%[[VAL_32]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_33]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_34:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_35:.*]] = arith.divf %[[VAL_3]], %[[VAL_34]] : f64
+// CHECK:           %[[VAL_36:.*]] = arith.negf %[[VAL_35]] : f64
+// CHECK:           quake.rz (%[[VAL_35]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_36]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_37:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:           %[[VAL_38:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_39:.*]] = arith.divf %[[VAL_37]], %[[VAL_38]] : f64
+// CHECK:           %[[VAL_40:.*]] = arith.negf %[[VAL_39]] : f64
+// CHECK:           quake.rz (%[[VAL_39]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_40]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_39]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_41:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK:           %[[VAL_42:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_43:.*]] = arith.divf %[[VAL_41]], %[[VAL_42]] : f64
+// CHECK:           %[[VAL_44:.*]] = arith.negf %[[VAL_43]] : f64
+// CHECK:           quake.rz (%[[VAL_43]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_44]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_43]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_45:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_46:.*]] = arith.divf %[[VAL_4]], %[[VAL_45]] : f64
+// CHECK:           %[[VAL_47:.*]] = arith.negf %[[VAL_46]] : f64
+// CHECK:           quake.rz (%[[VAL_46]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_47]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_48:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_49:.*]] = arith.divf %[[VAL_0]], %[[VAL_48]] : f64
+// CHECK:           %[[VAL_50:.*]] = arith.negf %[[VAL_49]] : f64
+// CHECK:           %[[VAL_51:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK:           quake.s %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_50]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_49]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_51]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_52:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_53:.*]] = arith.divf %[[VAL_5]], %[[VAL_52]] : f64
+// CHECK:           %[[VAL_54:.*]] = arith.negf %[[VAL_53]] : f64
+// CHECK:           quake.rz (%[[VAL_53]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_54]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_55:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_56:.*]] = arith.divf %[[VAL_1]], %[[VAL_55]] : f64
+// CHECK:           %[[VAL_57:.*]] = arith.negf %[[VAL_56]] : f64
+// CHECK:           %[[VAL_58:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK:           quake.s %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_57]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_56]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_58]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[VAL_59:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[VAL_60:.*]] = arith.divf %[[VAL_0]], %[[VAL_59]] : f64
+// CHECK:           %[[VAL_61:.*]] = arith.negf %[[VAL_60]] : f64
+// CHECK:           quake.rz (%[[VAL_60]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_61]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_62:.*]] = cc.alloca !cc.array<i8 x 2>
+// CHECK:           %[[VAL_63:.*]] = quake.mz %[[VAL_22]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_64:.*]] = quake.discriminate %[[VAL_63]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_65:.*]] = cc.cast %[[VAL_62]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_66:.*]] = cc.cast unsigned %[[VAL_64]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_66]], %[[VAL_65]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_67:.*]] = quake.mz %[[VAL_23]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_68:.*]] = quake.discriminate %[[VAL_67]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_69:.*]] = cc.compute_ptr %[[VAL_62]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_70:.*]] = cc.cast unsigned %[[VAL_68]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_70]], %[[VAL_69]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_71:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_72:.*]] = quake.extract_ref %[[VAL_71]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_72]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_73:.*]] = quake.extract_ref %[[VAL_71]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_73]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_74:.*]] = quake.extract_ref %[[VAL_71]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.x {{\[}}%[[VAL_74]]] %[[VAL_73]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_73]]] %[[VAL_74]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_74]]] %[[VAL_73]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_75:.*]] = cc.alloca !cc.array<i8 x 3>
+// CHECK:           %[[VAL_76:.*]] = quake.mz %[[VAL_72]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_77:.*]] = quake.discriminate %[[VAL_76]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_78:.*]] = cc.cast %[[VAL_75]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_79:.*]] = cc.cast unsigned %[[VAL_77]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_79]], %[[VAL_78]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_80:.*]] = quake.mz %[[VAL_73]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_81:.*]] = quake.discriminate %[[VAL_80]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_82:.*]] = cc.compute_ptr %[[VAL_75]][1] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_83:.*]] = cc.cast unsigned %[[VAL_81]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_83]], %[[VAL_82]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_84:.*]] = quake.mz %[[VAL_74]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_85:.*]] = quake.discriminate %[[VAL_84]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_86:.*]] = cc.compute_ptr %[[VAL_75]][2] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_87:.*]] = cc.cast unsigned %[[VAL_85]] : (i1) -> i8
+// CHECK:           cc.store %[[VAL_87]], %[[VAL_86]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_88:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_89:.*]] = arith.negf %[[VAL_4]] : f64
+// CHECK:           quake.rz (%[[VAL_89]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx<adj> (%[[VAL_0]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry<adj> (%[[VAL_3]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz<adj> (%[[VAL_2]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.s<adj> %[[VAL_88]] : (!quake.ref) -> ()
+// CHECK:           quake.t<adj> %[[VAL_88]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_90:.*]] = quake.mz %[[VAL_88]] : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }

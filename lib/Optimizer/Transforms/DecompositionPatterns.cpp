@@ -935,6 +935,42 @@ struct YToPhasedRx : public OpRewritePattern<quake::YOp> {
   }
 };
 
+// quake.y [control] target
+// ───────────────────────────────────
+// quake.s<adj> target;
+// quake.x [control] target;
+// quake.s target;
+
+struct CYToCX : public OpRewritePattern<quake::YOp> {
+  using OpRewritePattern<quake::YOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("CYToCX"); }
+
+  LogicalResult matchAndRewrite(quake::YOp op,
+                                PatternRewriter &rewriter) const override {
+    if (failed(checkNumControls(op, 1)))
+      return failure();
+    // This decomposition does not support `quake.control` types because the
+    // input controls are used as targets during this transformation.
+    if (containsControlTypes(op))
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    SmallVector<Value> controls = op.getControls();
+
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<quake::SOp>(loc, /*isAdj=*/true, target);
+    qRewriter.create<quake::XOp>(loc, controls, target);
+    qRewriter.create<quake::SOp>(loc, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // ZOp decompositions
 //===----------------------------------------------------------------------===//
@@ -1656,6 +1692,7 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     XToPhasedRx,
     // YOp patterns
     YToPhasedRx,
+    CYToCX,
     // ZOp patterns
     CZToCX,
     CCZToCX,
