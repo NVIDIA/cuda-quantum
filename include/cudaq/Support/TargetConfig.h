@@ -141,4 +141,3 @@ std::string processRuntimeArgs(const TargetConfig &config,
                                const std::vector<std::string> &targetArgv);
 } // namespace config
 } // namespace cudaq
-

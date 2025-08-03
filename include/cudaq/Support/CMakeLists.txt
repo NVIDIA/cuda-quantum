@@ -6,6 +6,5 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-include(HandleLLVMOptions)
-add_subdirectory(Optimizer)
-add_subdirectory(Support)
+# Install TargetConfig.h file
+install (FILES TargetConfig.h DESTINATION include/cudaq/Support)
