@@ -1001,6 +1001,15 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
 }
 
+def QuakePropagateMetadata : Pass<"quake-propagate-metadata", "mlir::ModuleOp"> {
+  let summary = "Propagate metadata from callees to callers when needed.";
+  let description = [{
+   This pass propagates function metadata attributes added by `quake-add-metadata`
+   pass, such as `qubitMeasurementFeedback`, to all the callers of the function.
+   This makes sure the attributes are not missing after inlining.
+  }];
+}
+
 def QuakeSimplify : Pass<"quake-simplify"> {
   let summary = "Perform simplifications on the quake ops.";
   let description = [{
@@ -1216,7 +1225,7 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   }];
 }
 
-def VariableCoalesce : Pass<"variable-coalesce"> {
+def VariableCoalesce : Pass<"variable-coalesce", "mlir::func::FuncOp"> {
   let summary = "Coalesce variables in functions.";
   let description = [{
     This pass will move temporaries from inner scopes to the outermost,
@@ -1224,6 +1233,11 @@ def VariableCoalesce : Pass<"variable-coalesce"> {
     live-ranges. It relies on the correct and proper construction and use of
     `cc.scope` ops.
   }];
+
+  let options = [
+    Option<"hoistOnly", "hoist-only", "bool", /*default=*/"false",
+      "Hoist the variables only.">
+  ];
 }
 
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {

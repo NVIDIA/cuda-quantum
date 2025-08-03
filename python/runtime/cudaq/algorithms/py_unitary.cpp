@@ -26,7 +26,7 @@ py::array pyGetUnitary(py::object &kernel, py::args args) {
       details::getKernelLaunchParameters(kernel, args);
 
   // Compute the unitary
-  auto cmat = details::get_unitary_cmat([&]() mutable {
+  auto cmat = contrib::get_unitary_cmat([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
   });

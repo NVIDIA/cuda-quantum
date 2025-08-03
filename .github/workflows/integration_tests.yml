@@ -60,6 +60,7 @@ on:
         - '3.10'
         - '3.11'
         - '3.12'
+        - '3.13'
 
   schedule:
     - cron: 0 3 * * *
@@ -477,7 +478,7 @@ jobs:
           # Create a json file with the Resonance auth token
           echo "{ \"access_token\": \"${{ secrets.IQM_TOKEN }}\" }" > .resonance.api-token.json
           export IQM_TOKENS_FILE=".resonance.api-token.json"
-          # Use IQM Resonance Pyrite mock, which implements the Adonis architecture
+          # Use IQM Resonance Pyrite mock, which implements the Crystal_5 architecture
           export IQM_SERVER_URL="https://cocos.resonance.meetiqm.com/pyrite:test"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
@@ -487,7 +488,7 @@ jobs:
             # Only the following tests are currently supported on IQM
             case $filename in
               targettests/iqm/*)
-                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Adonis $filename
+                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out

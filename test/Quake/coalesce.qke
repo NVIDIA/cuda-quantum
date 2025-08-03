@@ -74,6 +74,7 @@ func.func @f1() {
 // CHECK-DAG:       %[[VAL_13:.*]] = cc.alloca i32
 // CHECK-DAG:       %[[VAL_14:.*]] = cc.alloca i32
 // CHECK-DAG:       %[[VAL_15:.*]] = cc.alloca f64
+// CHECK-NOT:       cc.alloca
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_14]] : !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_15]] : !cc.ptr<f64>
 // CHECK:           call @test(%[[VAL_14]], %[[VAL_15]]) : (!cc.ptr<i32>, !cc.ptr<f64>) -> ()
@@ -99,3 +100,74 @@ func.func @f1() {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+
+func.func @f2() {
+  %0 = cc.alloca i32
+  %1 = cc.alloca f64
+  %c0 = arith.constant 1 : i32
+  cc.store %c0, %0 : !cc.ptr<i32>
+  %c1 = arith.constant 3.0 : f64
+  cc.store %c1, %1 : !cc.ptr<f64>
+  call @test(%0, %1) : (!cc.ptr<i32>, !cc.ptr<f64>) -> ()
+  cc.scope {
+    %2 = cc.alloca i32 {name = "a"}
+    %3 = cc.alloca f64 {name = "b"}
+    %c2 = arith.constant 2 : i32
+    cc.store %c2, %2 : !cc.ptr<i32>
+    %c3 = arith.constant 4.0 : f64
+    cc.store %c3, %3 : !cc.ptr<f64>
+    func.call @test(%2, %3) : (!cc.ptr<i32>, !cc.ptr<f64>) -> ()
+    cc.loop while {
+      %c10 = arith.constant 10 : i32
+      %a = cc.load %2 : !cc.ptr<i32>
+      %b = arith.cmpi slt, %a, %c10 : i32
+      cc.condition %b
+    } do {
+      cc.scope {
+        %4 = cc.alloca i32 {name = "c"}
+        %5 = cc.alloca f64 {name = "d"}
+        %c4 = arith.constant 4 : i32
+        cc.store %c4, %4 : !cc.ptr<i32>
+        %c5 = arith.constant 5.0 : f64
+        cc.store %c5, %5 : !cc.ptr<f64>
+        func.call @test(%4, %5) : (!cc.ptr<i32>, !cc.ptr<f64>) -> ()
+      }
+      cc.scope {
+        %6 = cc.alloca i32 {name = "e"}
+        %7 = cc.alloca f64 {name = "f"}
+        %c6 = arith.constant 6 : i32
+        cc.store %c6, %6 : !cc.ptr<i32>
+        %c7 = arith.constant 6.0 : f64
+        cc.store %c7, %7 : !cc.ptr<f64>
+        func.call @test(%6, %7) : (!cc.ptr<i32>, !cc.ptr<f64>) -> ()
+      }
+      cc.continue
+    } step {
+      %a = cc.load %2 : !cc.ptr<i32>
+      %c10 = arith.constant 1 : i32
+      %b = arith.addi %a, %c10 : i32
+      cc.store %b, %2 : !cc.ptr<i32>
+    }
+    cc.scope {
+      %8 = cc.alloca i32 {name = "g"}
+      %9 = cc.alloca f64 {name = "h"}
+      %c8 = arith.constant 8 : i32
+      cc.store %c8, %8 : !cc.ptr<i32>
+      %c9 = arith.constant 7.0 : f64
+      cc.store %c9, %9 : !cc.ptr<f64>
+      func.call @test(%8, %9) : (!cc.ptr<i32>, !cc.ptr<f64>) -> ()
+    }
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @f2() {
+// CHECK-DAG:       %[[VAL_11:.*]] = cc.alloca f64
+// CHECK-DAG:       %[[VAL_12:.*]] = cc.alloca i32
+// CHECK-DAG:       %[[VAL_13:.*]] = cc.alloca f64
+// CHECK-DAG:       %[[VAL_14:.*]] = cc.alloca i32
+// CHECK-DAG:       %[[VAL_15:.*]] = cc.alloca i32
+// CHECK-DAG:       %[[VAL_16:.*]] = cc.alloca f64
+// CHECK-NOT:       cc.alloca
+// CHECK:           cc.scope
+// CHECK:           cc.loop while

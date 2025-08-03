@@ -262,16 +262,6 @@ TensorNetState<ScalarType>::prepareSample(
     HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
         m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_NUM_HYPER_SAMPLES,
         &numHyperSamples, sizeof(numHyperSamples)));
-
-    // Generate a random seed from the backend simulator's random engine.
-    // Note: Even after a random seed setting at the user's level,
-    // consecutive `cudaq::sample` calls will still return different results
-    // (yet deterministic), i.e., the seed that we send to cutensornet should
-    // not be the user's seed.
-    const int32_t rndSeed = m_randomEngine();
-    HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
-        m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
-        &rndSeed, sizeof(rndSeed)));
   }
 
   // Prepare the quantum circuit sampler
@@ -345,11 +335,23 @@ TensorNetState<ScalarType>::executeSample(
   std::unordered_map<std::string, size_t> counts;
   // If this is a trajectory simulation, each shot needs an independent
   // trajectory sampling.
-  const int MAX_SHOTS_PER_RUNS = m_hasNoiseChannel ? 1 : 10000;
-  int shotsToRun = shots;
+  const int64_t MAX_SHOTS_PER_RUNS = m_hasNoiseChannel ? 1 : shots;
+  int64_t shotsToRun = shots;
   while (shotsToRun > 0) {
-    const int numShots = std::min(shotsToRun, MAX_SHOTS_PER_RUNS);
+    const int64_t numShots = std::min(shotsToRun, MAX_SHOTS_PER_RUNS);
     std::vector<int64_t> samples(measuredBitIds.size() * numShots);
+    {
+      // Generate a random seed from the backend simulator's random engine.
+      // Note: Even after a random seed setting at the user's level,
+      // consecutive `cudaq::sample` calls will still return different results
+      // (yet deterministic), i.e., the seed that we send to cutensornet should
+      // not be the user's seed.
+      const int32_t rndSeed = m_randomEngine();
+      HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
+          m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
+          &rndSeed, sizeof(rndSeed)));
+    }
+
     {
       ScopedTraceWithContext("cutensornetSamplerSample");
       HANDLE_CUTN_ERROR(cutensornetSamplerSample(
@@ -359,7 +361,7 @@ TensorNetState<ScalarType>::executeSample(
 
     const auto numMeasuredQubits = measuredBitIds.size();
     std::string bitstring(numMeasuredQubits, '0');
-    for (int i = 0; i < numShots; ++i) {
+    for (int64_t i = 0; i < numShots; ++i) {
       constexpr char digits[2] = {'0', '1'};
       for (std::size_t j = 0; j < numMeasuredQubits; ++j)
         bitstring[j] = digits[samples[i * numMeasuredQubits + j]];
