@@ -495,7 +495,7 @@ class TestCavityModelSuperOperator(TestSystem):
         me_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
         me_super_op += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
         L = np.sqrt(decay_rate) * annihilate(0)
-        L_dagger = np.sqrt(decay_rate) * create(0)
+        L_dagger = L.adjoint()
         # Lindblad terms
         # L * rho * L_dagger
         me_super_op += cudaq.SuperOperator.left_right_multiply(L, L_dagger)
@@ -572,7 +572,7 @@ class TestCavityModelBatchedInputStateSuperOperator(TestSystem):
         me_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
         me_super_op += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
         L = np.sqrt(decay_rate) * annihilate(0)
-        L_dagger = np.sqrt(decay_rate) * create(0)
+        L_dagger = L.adjoint()
         # Lindblad terms
         # L * rho * L_dagger
         me_super_op += cudaq.SuperOperator.left_right_multiply(L, L_dagger)
@@ -781,7 +781,7 @@ class TestBatchedCavityModelSuperOperator(TestSystem):
             me_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
             me_super_op += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
             L = np.sqrt(decay_rate) * annihilate(0)
-            L_dagger = np.sqrt(decay_rate) * create(0)
+            L_dagger = L.adjoint()
             # Lindblad terms
             # L * rho * L_dagger
             me_super_op += cudaq.SuperOperator.left_right_multiply(L, L_dagger)
@@ -837,7 +837,7 @@ class TestBatchedCavityModelSuperOperatorBroadcastInputState(TestSystem):
             me_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
             me_super_op += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
             L = np.sqrt(decay_rate) * annihilate(0)
-            L_dagger = np.sqrt(decay_rate) * create(0)
+            L_dagger = L.adjoint()
             # Lindblad terms
             # L * rho * L_dagger
             me_super_op += cudaq.SuperOperator.left_right_multiply(L, L_dagger)
@@ -951,7 +951,7 @@ class TestBatchedCavityModelSuperOperatorWithBatchSize(TestSystem):
             me_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
             me_super_op += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
             L = np.sqrt(decay_rate) * annihilate(0)
-            L_dagger = np.sqrt(decay_rate) * create(0)
+            L_dagger = L.adjoint()
             # Lindblad terms
             # L * rho * L_dagger
             me_super_op += cudaq.SuperOperator.left_right_multiply(L, L_dagger)
