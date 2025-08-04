@@ -24,11 +24,10 @@ good_access_token = "Bearer good_access_token"
 server_qpu_architecture = "Crystal_20"
 operations = []  # TBA
 qubits = [
-    "QB1", "QB2", "QB3", "QB4", "QB5",
-    "QB6", "QB7", "QB8", "QB9", "QB10",
-    "QB11", "QB12", "QB13", "QB14", "QB15",
-    "QB16", "QB17", "QB18", "QB19", "QB20"
-]  # yapf: disable
+    "QB1", "QB2", "QB3", "QB4", "QB5", "QB6", "QB7", "QB8", "QB9", "QB10",
+    "QB11", "QB12", "QB13", "QB14", "QB15", "QB16", "QB17", "QB18", "QB19",
+    "QB20"
+]
 qubit_connectivity = [
     ["QB1", "QB2"],
     ["QB1", "QB4"],
@@ -350,7 +349,6 @@ async def get_dynamic_quantum_architecture(
     if access_token != good_access_token:
         raise HTTPException(401)
 
-    # yapf: disable - yapf gets confused by the commented out qubits below
     return iqm_client.DynamicQuantumArchitecture(
         calibration_set_id=str(uuid.uuid4()),
         qubits=qubits,
@@ -384,7 +382,8 @@ async def get_dynamic_quantum_architecture(
                                 ("QB1",),
                                 #("QB2",),
                                 #("QB3",),
-                                ("QB4",),
+                                (
+                                    "QB4",),
                                 ("QB5",),
                                 ("QB6",),
                                 ("QB7",),
@@ -407,7 +406,6 @@ async def get_dynamic_quantum_architecture(
                     override_default_implementation={},
                 ),
         })
-    # yapf: enable
 
 
 @app.post("/circuits")
