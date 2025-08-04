@@ -468,6 +468,11 @@ matrix_handler matrix_handler::adjoint() const {
   return adjoint_op;
 }
 
+matrix_handler &matrix_handler::adjoint_in_place() {
+  this->is_adjoint = !this->is_adjoint; // toggle the adjoint flag
+  return *this;
+}
+
 // comparisons
 
 bool matrix_handler::operator==(const matrix_handler &other) const {

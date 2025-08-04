@@ -317,6 +317,10 @@ public:
   /// @brief Returns the adjoint of the operator.
   matrix_handler adjoint() const;
 
+  /// @brief In-place" version of \c adjoint(): replaces \c *this by its own
+  /// adjoint.
+  matrix_handler &adjoint_in_place();
+
   // comparisons
 
   /// @brief True, if the other value is an elementary operator with the same id

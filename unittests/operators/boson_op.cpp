@@ -800,6 +800,9 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
                                 cudaq::boson_op::annihilate(0) -
                                 cudaq::boson_op::identity(1);
     ASSERT_EQ(adjoint_op, expected_got_adjoint);
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(got, adjoint_op);
 
     auto adjoint_reverse_op = reverse.adjoint();
     utils::checkEqual(adjoint_reverse_op.to_matrix(dimensions),
@@ -843,10 +846,16 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
         (cudaq::boson_op::annihilate(0) + cudaq::boson_op::number(2)) *
         cudaq::boson_op::number(0);
     ASSERT_EQ(adjoint_op, expected_got_adjoint);
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(got, adjoint_op);
 
     auto adjoint_reverse_op = reverse.adjoint();
     utils::checkEqual(adjoint_reverse_op.to_matrix(dimensions),
                       got_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    reverse.adjoint_in_place();
+    ASSERT_EQ(reverse, adjoint_reverse_op);
   }
 
   // `sum_op += boson_handler`
@@ -874,6 +883,9 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
                                 cudaq::boson_op::create(2) +
                                 cudaq::boson_op::position(0);
     ASSERT_EQ(adjoint_op, expected_got_adjoint);
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(sum_op, adjoint_op);
   }
 
   // `sum_op -= boson_handler`
@@ -901,6 +913,9 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
                                cudaq::boson_op::create(1) -
                                cudaq::boson_op::momentum(0);
     ASSERT_EQ(adjoint_op, expected_adjoint_op);
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(sum_op, adjoint_op);
   }
 
   // `sum_op *= boson_handler`
@@ -942,6 +957,9 @@ TEST(OperatorExpressions, checkBosonOpsAdvancedArithmetics) {
          cudaq::boson_op::momentum(
              1)); // position and momentum on DOF 0 is non-commuting.
     ASSERT_EQ(adjoint_op, expected_adjoint);
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(sum_op, adjoint_op);
   }
 }
 

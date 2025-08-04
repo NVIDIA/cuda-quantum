@@ -309,6 +309,9 @@ public:
   /// The adjoint is computed by summing the adjoint of each product term.
   sum_op<HandlerTy> adjoint() const;
 
+  /// In-place" version of \c adjoint(): replaces \c *this by its own adjoint.
+  sum_op<HandlerTy> &adjoint_in_place();
+
   // comparisons
 
   /// @brief True, if the other value is an sum_op<HandlerTy> with
@@ -1223,6 +1226,9 @@ public:
   // For example, adjoint(coeff * A * B * C) = conjugate(coeff) * adjoint(C) *
   // adjoint(B) * adjoint(A) *
   product_op<HandlerTy> adjoint() const;
+
+  /// In-place" version of \c adjoint(): replaces \c *this by its own adjoint.
+  product_op<HandlerTy> &adjoint_in_place();
 
   // comparisons
 

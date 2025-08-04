@@ -594,9 +594,54 @@ sum_op<HandlerTy> sum_op<HandlerTy>::adjoint() const {
   }
 }
 
+template <typename HandlerTy>
+sum_op<HandlerTy> &sum_op<HandlerTy>::adjoint_in_place() {
+  if (HandlerTy::can_be_canonicalized) {
+    // If the operator can be canonicalized, we can use the adjoint of each
+    // product term directly (op-by-op). Canonicalized products guaranteed that
+    // the elemental operators in the product terms act on different degrees of
+    // freedom.
+    for (std::size_t i = 0; i < this->terms.size(); ++i) {
+      this->coefficients[i] = this->coefficients[i].adjoint();
+      for (auto &op : this->terms[i]) {
+        op.adjoint_in_place();
+      }
+    }
+    this->term_map.clear();
+    this->term_map.reserve(this->terms.size());
+    // Rebuild the term map
+    for (std::size_t i = 0; i < this->terms.size(); ++i) {
+      auto [it, inserted] =
+          this->term_map.try_emplace(this->operator[](i).get_term_id(), i);
+      assert(inserted);
+    }
+  } else {
+    // Otherwise, perform the reverse multiplication of op-by-op adjoints to
+    // construct the adjoint.
+    sum_op<HandlerTy> result(this->is_default);
+    for (std::size_t i = 0; i < this->terms.size(); ++i) {
+      auto &productTerms = this->terms[i];
+      auto &coeff = this->coefficients[i];
+      std::vector<HandlerTy> adjointTerms;
+      adjointTerms.reserve(productTerms.size());
+      // Reverse the order
+      product_op<HandlerTy> adjointProduct(coeff.adjoint());
+      for (auto it = productTerms.rbegin(); it != productTerms.rend(); ++it) {
+        // Take the adjoint of each operator
+        adjointProduct *= it->adjoint();
+      }
+
+      result += adjointProduct;
+    }
+    *this = std::move(result);
+  }
+  return *this;
+}
+
 #define INSTANTIATE_SUM_ADJOINT(HandlerTy)                                     \
                                                                                \
-  template sum_op<HandlerTy> sum_op<HandlerTy>::adjoint() const;
+  template sum_op<HandlerTy> sum_op<HandlerTy>::adjoint() const;               \
+  template sum_op<HandlerTy> &sum_op<HandlerTy>::adjoint_in_place();
 #if !defined(__clang__)
 INSTANTIATE_SUM_ADJOINT(matrix_handler);
 INSTANTIATE_SUM_ADJOINT(spin_handler);

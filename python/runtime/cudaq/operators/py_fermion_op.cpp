@@ -223,6 +223,8 @@ void bindFermionOperator(py::module &mod) {
       // Adjoint
       .def("adjoint", &fermion_op::adjoint,
            "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &fermion_op::adjoint_in_place,
+           "In-place adjoint of the operator.")
 
       // comparisons
 
@@ -541,6 +543,8 @@ void bindFermionOperator(py::module &mod) {
       // Adjoint
       .def("adjoint", &fermion_op_term::adjoint,
            "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &fermion_op_term::adjoint_in_place,
+           "In-place adjoint of the operator.")
 
       // comparisons
 

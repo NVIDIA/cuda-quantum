@@ -724,12 +724,15 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
     // Check adjoint
-    utils::checkEqual(
-        got.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
-        want_matrix.adjoint());
+    auto adjoint = got.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}}),
+                      want_matrix.adjoint());
     utils::checkEqual(
         reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
         want_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(adjoint, got);
   }
 
   // `matrix_handler - sum_op`
@@ -757,13 +760,16 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto want_reverse_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    auto adjoint = got.adjoint();
     // Check adjoint
-    utils::checkEqual(
-        got.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
-        want_matrix.adjoint());
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}}),
+                      want_matrix.adjoint());
     utils::checkEqual(
         reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
         want_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(adjoint, got);
   }
 
   // `matrix_handler * sum_op`
@@ -799,14 +805,17 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
     // Check adjoint
-    utils::checkEqual(
-        got.adjoint().to_matrix({{0, level_count}, {1, level_count}},
-                                {{"squeezing", value}}),
-        want_matrix.adjoint());
+    auto adjoint = got.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}},
+                                        {{"squeezing", value}}),
+                      want_matrix.adjoint());
     utils::checkEqual(
         reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}},
                                     {{"squeezing", value}}),
         want_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(adjoint, got);
   }
 
   // `sum_op += matrix_handler`
@@ -829,10 +838,13 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto want_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
     // Check adjoint
-    utils::checkEqual(
-        sum_op.adjoint().to_matrix({{0, level_count}, {1, level_count}},
-                                   {{"displacement", value}}),
-        want_matrix.adjoint());
+    auto adjoint = sum_op.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}},
+                                        {{"displacement", value}}),
+                      want_matrix.adjoint());
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(adjoint, sum_op);
   }
 
   // `sum_op -= matrix_handler`
@@ -853,9 +865,12 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto want_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
     // Check adjoint
-    utils::checkEqual(
-        sum_op.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
-        want_matrix.adjoint());
+    auto adjoint = sum_op.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}}),
+                      want_matrix.adjoint());
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(adjoint, sum_op);
   }
 
   // `sum_op *= matrix_handler`
@@ -881,9 +896,12 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto want_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
     // Check adjoint
-    utils::checkEqual(
-        sum_op.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
-        want_matrix.adjoint());
+    auto adjoint = sum_op.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}}),
+                      want_matrix.adjoint());
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(adjoint, sum_op);
   }
 }
 

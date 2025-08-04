@@ -143,6 +143,9 @@ public:
   /// @brief Returns the adjoint of the operator
   fermion_handler adjoint() const;
 
+  /// In-place" version of \c adjoint(): replaces \c *this by its own adjoint.
+  fermion_handler &adjoint_in_place();
+
   // comparisons
 
   /// @returns True if, and only if, the two operators have the same effect on

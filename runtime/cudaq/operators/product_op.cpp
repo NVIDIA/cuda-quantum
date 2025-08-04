@@ -738,9 +738,31 @@ product_op<HandlerTy> product_op<HandlerTy>::adjoint() const {
   }
 }
 
+template <typename HandlerTy>
+product_op<HandlerTy>& product_op<HandlerTy>::adjoint_in_place() {
+  if (HandlerTy::can_be_canonicalized) {
+    this->coefficient = this->coefficient.adjoint();
+    for (auto &op : this->operators) {
+      op.adjoint_in_place();
+    }
+  } else {
+    // The adjoint of a product is the product of the adjoints in reverse order.
+    // The coefficient is conjugated.
+    product_op<HandlerTy> adjoint_op(this->coefficient.adjoint(),
+                                     std::vector<HandlerTy>());
+    for (auto it = this->operators.crbegin(); it != this->operators.crend();
+         ++it) {
+      adjoint_op.insert(it->adjoint());
+    }
+    *this = std::move(adjoint_op);
+  }
+  return *this;
+}
+
 #define INSTANTIATE_PRODUCT_ADJOINT(HandlerTy)                                 \
                                                                                \
-  template product_op<HandlerTy> product_op<HandlerTy>::adjoint() const;
+  template product_op<HandlerTy> product_op<HandlerTy>::adjoint() const;       \
+  template product_op<HandlerTy> &product_op<HandlerTy>::adjoint_in_place();
 
 #if !defined(__clang__)
 INSTANTIATE_PRODUCT_ADJOINT(matrix_handler);

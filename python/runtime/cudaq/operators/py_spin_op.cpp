@@ -289,6 +289,8 @@ void bindSpinOperator(py::module &mod) {
 
       // Adjoint
       .def("adjoint", &spin_op::adjoint, "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &spin_op::adjoint_in_place,
+           "In-place adjoint of the operator.")
 
       // comparisons
 
@@ -797,6 +799,8 @@ void bindSpinOperator(py::module &mod) {
       // Adjoint
       .def("adjoint", &spin_op_term::adjoint,
            "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &spin_op_term::adjoint_in_place,
+           "In-place adjoint of the operator.")
 
       // comparisons
 

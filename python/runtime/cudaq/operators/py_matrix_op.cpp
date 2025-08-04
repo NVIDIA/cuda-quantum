@@ -189,6 +189,8 @@ void bindMatrixOperator(py::module &mod) {
       // Adjoint
       .def("adjoint", &matrix_op::adjoint,
            "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &matrix_op::adjoint_in_place,
+           "In-place adjoint of the operator.")
 
       // comparisons
 
@@ -468,6 +470,8 @@ void bindMatrixOperator(py::module &mod) {
       // Adjoint
       .def("adjoint", &matrix_op_term::adjoint,
            "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &matrix_op_term::adjoint_in_place,
+           "In-place adjoint of the operator.")
 
       // comparisons
 

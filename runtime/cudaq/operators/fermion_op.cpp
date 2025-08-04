@@ -284,11 +284,19 @@ fermion_handler fermion_handler::adjoint() const {
   // 8 = 1000 = N
   // 9 = 1001 = I
   fermion_handler adjoint = *this;
-  if (this->op_code == 2)
+  if (this->op_code & 2)
     adjoint.op_code = 4; // Ad
-  if (this->op_code == 4)
+  if (this->op_code & 4)
     adjoint.op_code = 2; // A
   return adjoint;
+}
+
+fermion_handler &fermion_handler::adjoint_in_place() {
+  if (this->op_code & 2)
+    this->op_code = 4; // Ad
+  else if (this->op_code & 4)
+    this->op_code = 2; // A
+  return *this;
 }
 
 // comparisons
