@@ -32,7 +32,7 @@ MPI_FOUND = False
 WATCHDOG_TIMEOUT_SEC = 0
 RUN_AS_NOBODY = False  # Expect this to be overridden to true for NVQC deployment
 SUDO_FOUND = False
-CUDAQ_SER_CODE_EXEC = False
+CUDAQ_SER_CODE_EXEC = True
 
 
 def build_command_list(temp_file_name: str) -> list[str]:
