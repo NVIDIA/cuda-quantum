@@ -37,7 +37,7 @@ Parallelizing across Multiple Processors
 One typical use case of :ref:`multi-processor platforms <mqpu-platform>` is to distribute the
 expectation value computations of a multi-term Hamiltonian across multiple virtual QPUs.
 
-The following shows an example using the :code:`nvidia-mqpu` platform:
+The following shows an example using the :code:`nvidia` with :code:`option='mqpu'` platform:
 
 .. tab:: Python
 
@@ -53,13 +53,13 @@ The following shows an example using the :code:`nvidia-mqpu` platform:
         :end-before: [End Documentation]
 
 
-    One can then target the :code:`nvidia-mqpu` platform by executing the following commands:
+    One can then target the :code:`nvidia` with :code:`option='mqpu'` platform by executing the following commands:
 
     .. code-block:: console
 
-        nvq++ observe_mqpu.cpp -target nvidia-mqpu
+        nvq++ observe_mqpu.cpp -target nvidia --target-option mqpu
         ./a.out
 
 In the above code snippets, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
-in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the :code:`nvidia-mqpu` platform
+in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the :code:`nvidia` with :code:`option='mqpu'` platform
 is selected, these circuits will be distributed across all available QPUs. The final expectation value result is computed from all QPU execution results.
