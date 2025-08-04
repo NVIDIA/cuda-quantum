@@ -708,6 +708,69 @@ INSTANTIATE_PRODUCT_EVALUATIONS(boson_handler);
 INSTANTIATE_PRODUCT_EVALUATIONS(fermion_handler);
 #endif
 
+// Adjoint
+
+template <typename HandlerTy>
+product_op<HandlerTy> product_op<HandlerTy>::adjoint() const {
+  if (HandlerTy::can_be_canonicalized) {
+    // If this operator can be canonicalized, we can just take the adjoint of
+    // each atomic operators in the product_op as they are guaranteed to be
+    // acting on different degree of freedom. The resulting list of adjoint
+    // atomic operators is also canonicalized, hence can be used to construct
+    // the product_op directly.
+    std::vector<HandlerTy> atomic_adjoint_operators;
+    atomic_adjoint_operators.reserve(this->operators.size());
+    for (auto it = this->operators.begin(); it != this->operators.end(); ++it) {
+      atomic_adjoint_operators.emplace_back(it->adjoint());
+    }
+    return product_op<HandlerTy>(std::move(this->coefficient.adjoint()),
+                                 std::move(atomic_adjoint_operators));
+  } else {
+    // The adjoint of a product is the product of the adjoints in reverse order.
+    // The coefficient is conjugated.
+    product_op<HandlerTy> adjoint_op(this->coefficient.adjoint(),
+                                     std::vector<HandlerTy>());
+    for (auto it = this->operators.crbegin(); it != this->operators.crend();
+         ++it) {
+      adjoint_op.insert(it->adjoint());
+    }
+    return adjoint_op;
+  }
+}
+
+template <typename HandlerTy>
+product_op<HandlerTy>& product_op<HandlerTy>::adjoint_in_place() {
+  if (HandlerTy::can_be_canonicalized) {
+    this->coefficient = this->coefficient.adjoint();
+    for (auto &op : this->operators) {
+      op.adjoint_in_place();
+    }
+  } else {
+    // The adjoint of a product is the product of the adjoints in reverse order.
+    // The coefficient is conjugated.
+    product_op<HandlerTy> adjoint_op(this->coefficient.adjoint(),
+                                     std::vector<HandlerTy>());
+    for (auto it = this->operators.crbegin(); it != this->operators.crend();
+         ++it) {
+      adjoint_op.insert(it->adjoint());
+    }
+    *this = std::move(adjoint_op);
+  }
+  return *this;
+}
+
+#define INSTANTIATE_PRODUCT_ADJOINT(HandlerTy)                                 \
+                                                                               \
+  template product_op<HandlerTy> product_op<HandlerTy>::adjoint() const;       \
+  template product_op<HandlerTy> &product_op<HandlerTy>::adjoint_in_place();
+
+#if !defined(__clang__)
+INSTANTIATE_PRODUCT_ADJOINT(matrix_handler);
+INSTANTIATE_PRODUCT_ADJOINT(spin_handler);
+INSTANTIATE_PRODUCT_ADJOINT(boson_handler);
+INSTANTIATE_PRODUCT_ADJOINT(fermion_handler);
+#endif
+
 // comparisons
 
 template <typename HandlerTy>

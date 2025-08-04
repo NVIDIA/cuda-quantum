@@ -275,6 +275,30 @@ std::string fermion_handler::to_string(bool include_degrees) const {
     return this->op_code_to_string();
 }
 
+fermion_handler fermion_handler::adjoint() const {
+  // Using the below table:
+  // 0 = 0000 = 0,
+  // 1 = 0001 = (1-N),
+  // 2 = 0010 = A,
+  // 4 = 0100 = Ad
+  // 8 = 1000 = N
+  // 9 = 1001 = I
+  fermion_handler adjoint = *this;
+  if (this->op_code & 2)
+    adjoint.op_code = 4; // Ad
+  if (this->op_code & 4)
+    adjoint.op_code = 2; // A
+  return adjoint;
+}
+
+fermion_handler &fermion_handler::adjoint_in_place() {
+  if (this->op_code & 2)
+    this->op_code = 4; // Ad
+  else if (this->op_code & 4)
+    this->op_code = 2; // A
+  return *this;
+}
+
 // comparisons
 
 bool fermion_handler::operator==(const fermion_handler &other) const {

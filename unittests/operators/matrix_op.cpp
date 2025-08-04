@@ -16,6 +16,11 @@ TEST(OperatorExpressions, checkMatrixOpsUnary) {
   utils::checkEqual((-op).to_matrix({{0, 2}}),
                     -1.0 * utils::position_matrix(2));
   utils::checkEqual(op.to_matrix({{0, 2}}), utils::position_matrix(2));
+  auto adjoint = op.adjoint();
+  utils::checkEqual(adjoint.to_matrix({{0, 2}}),
+                    utils::position_matrix(2).adjoint());
+  // Double adjoint == original
+  EXPECT_EQ(op.adjoint().adjoint(), op);
 }
 
 TEST(OperatorExpressions, checkMatrixOpsConstruction) {
@@ -24,37 +29,44 @@ TEST(OperatorExpressions, checkMatrixOpsConstruction) {
 
   expected[{0, 0}] = 1.;
   utils::checkEqual(prod.to_matrix(), expected);
+  utils::checkEqual(prod.adjoint().to_matrix(), expected.adjoint());
 
   prod *= std::complex<double>(0., -1.);
   expected[{0, 0}] = std::complex<double>(0., -1.);
   utils::checkEqual(prod.to_matrix(), expected);
+  utils::checkEqual(prod.adjoint().to_matrix(), expected.adjoint());
 
   prod *= cudaq::matrix_op::number(0);
   expected = cudaq::complex_matrix(3, 3);
   expected[{1, 1}] = std::complex<double>(0., -1.);
   expected[{2, 2}] = std::complex<double>(0., -2.);
   utils::checkEqual(prod.to_matrix({{0, 3}}), expected);
+  utils::checkEqual(prod.adjoint().to_matrix({{0, 3}}), expected.adjoint());
 
   auto sum = cudaq::matrix_op::empty();
   expected = cudaq::complex_matrix(0, 0);
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum *= cudaq::matrix_op::number(1); // empty times something is still empty
   std::vector<std::size_t> expected_degrees = {};
   ASSERT_EQ(sum.degrees(), expected_degrees);
   utils::checkEqual(sum.to_matrix(), expected);
+  utils::checkEqual(sum.adjoint().to_matrix(), expected.adjoint());
 
   sum += cudaq::matrix_op::identity(1);
   expected = cudaq::complex_matrix(3, 3);
   for (size_t i = 0; i < 3; ++i)
     expected[{i, i}] = 1.;
   utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
+  utils::checkEqual(sum.adjoint().to_matrix({{1, 3}}), expected.adjoint());
 
   sum *= cudaq::matrix_op::number(1);
   expected = cudaq::complex_matrix(3, 3);
   expected[{1, 1}] = 1.;
   expected[{2, 2}] = 2.;
   utils::checkEqual(sum.to_matrix({{1, 3}}), expected);
+  utils::checkEqual(sum.adjoint().to_matrix({{1, 3}}), expected.adjoint());
 
   sum = cudaq::matrix_op::empty();
   sum -= cudaq::matrix_op::identity(0);
@@ -62,6 +74,7 @@ TEST(OperatorExpressions, checkMatrixOpsConstruction) {
   for (size_t i = 0; i < 3; ++i)
     expected[{i, i}] = -1.;
   utils::checkEqual(sum.to_matrix({{0, 3}}), expected);
+  utils::checkEqual(sum.adjoint().to_matrix({{0, 3}}), expected.adjoint());
 }
 
 TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
@@ -77,6 +90,9 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
       auto got_id = id.to_matrix({{degree_index, level_count}});
       auto want_id = utils::id_matrix(level_count);
       utils::checkEqual(want_id, got_id);
+      utils::checkEqual(id.adjoint().to_matrix({{degree_index, level_count}}),
+                        want_id.adjoint());
+      EXPECT_EQ(id.adjoint().adjoint(), id);
     }
   }
 
@@ -87,6 +103,10 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
       auto got_number = number.to_matrix({{degree_index, level_count}});
       auto want_number = utils::number_matrix(level_count);
       utils::checkEqual(want_number, got_number);
+      utils::checkEqual(
+          number.adjoint().to_matrix({{degree_index, level_count}}),
+          want_number.adjoint());
+      EXPECT_EQ(number.adjoint().adjoint(), number);
     }
   }
 
@@ -97,6 +117,10 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
       auto got_parity = parity.to_matrix({{degree_index, level_count}});
       auto want_parity = utils::parity_matrix(level_count);
       utils::checkEqual(want_parity, got_parity);
+      EXPECT_EQ(parity.adjoint().adjoint(), parity);
+      utils::checkEqual(
+          parity.adjoint().to_matrix({{degree_index, level_count}}),
+          want_parity.adjoint());
     }
   }
 
@@ -107,6 +131,10 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
       auto got_position = position.to_matrix({{degree_index, level_count}});
       auto want_position = utils::position_matrix(level_count);
       utils::checkEqual(want_position, got_position);
+      utils::checkEqual(
+          position.adjoint().to_matrix({{degree_index, level_count}}),
+          want_position.adjoint());
+      EXPECT_EQ(position.adjoint().adjoint(), position);
     }
   }
 
@@ -117,6 +145,10 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
       auto got_momentum = momentum.to_matrix({{degree_index, level_count}});
       auto want_momentum = utils::momentum_matrix(level_count);
       utils::checkEqual(want_momentum, got_momentum);
+      EXPECT_EQ(momentum.adjoint().adjoint(), momentum);
+      utils::checkEqual(
+          momentum.adjoint().to_matrix({{degree_index, level_count}}),
+          want_momentum.adjoint());
     }
   }
 
@@ -129,6 +161,11 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
                                              {{"displacement", displacement}});
       auto want_displace = utils::displace_matrix(level_count, displacement);
       utils::checkEqual(want_displace, got_displace);
+      EXPECT_EQ(displace.adjoint().adjoint(), displace);
+      utils::checkEqual(
+          displace.adjoint().to_matrix({{degree_index, level_count}},
+                                       {{"displacement", displacement}}),
+          want_displace.adjoint());
     }
   }
 
@@ -141,6 +178,11 @@ TEST(OperatorExpressions, checkPreBuiltMatrixOps) {
                                            {{"squeezing", squeezing}});
       auto want_squeeze = utils::squeeze_matrix(level_count, squeezing);
       utils::checkEqual(want_squeeze, got_squeeze);
+      EXPECT_EQ(squeeze.adjoint().adjoint(), squeeze);
+      utils::checkEqual(
+          squeeze.adjoint().to_matrix({{degree_index, level_count}},
+                                      {{"squeezing", squeezing}}),
+          want_squeeze.adjoint());
     }
   }
 }
@@ -228,6 +270,18 @@ TEST(OperatorExpressions, checkCustomMatrixOps) {
                     expected_sum_term0 + expected_sum_term1);
   utils::checkEqual((op1 + op0).to_matrix(dimensions),
                     expected_sum_term0 + expected_sum_term1);
+
+  // Adjoint check
+  utils::checkEqual((op0 * op1).adjoint().to_matrix(dimensions),
+                    expected_product.adjoint());
+  utils::checkEqual((op1 * op0).adjoint().to_matrix(dimensions),
+                    expected_product_reverse.adjoint());
+  utils::checkEqual((op0 + op1).adjoint().to_matrix(dimensions),
+                    expected_sum_term0.adjoint() +
+                        expected_sum_term1.adjoint());
+  utils::checkEqual((op1 + op0).adjoint().to_matrix(dimensions),
+                    expected_sum_term0.adjoint() +
+                        expected_sum_term1.adjoint());
 }
 
 TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
@@ -250,6 +304,11 @@ TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Check adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{0, 3}}), want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, 3}}),
+                      want_matrix_reverse.adjoint());
   }
 
   // `matrix_handler` - `complex<double>` and `complex<double>` -
@@ -269,6 +328,12 @@ TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Check adjoint
+    utils::checkEqual(difference.adjoint().to_matrix({{0, 3}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, 3}}),
+                      want_matrix_reverse.adjoint());
   }
 
   // `matrix_handler` * `complex<double>` and `complex<double>` *
@@ -288,6 +353,12 @@ TEST(OperatorExpressions, checkMatrixOpsWithComplex) {
 
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+
+    // Check adjoint
+    utils::checkEqual(product.adjoint().to_matrix({{0, 3}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(reverse.adjoint().to_matrix({{0, 3}}),
+                      want_matrix_reverse.adjoint());
   }
 }
 
@@ -325,6 +396,12 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
         scaled_identity + utils::momentum_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Check adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{degree_index, level_count}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{degree_index, level_count}}),
+        want_reverse_matrix.adjoint());
   }
 
   // `matrix_handler + scalar_operator`
@@ -348,6 +425,15 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
         scaled_identity + utils::parity_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+
+    // Check adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{degree_index, level_count}},
+                                              {{"value", const_scale_factor}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{degree_index, level_count}},
+                                    {{"value", const_scale_factor}}),
+        want_reverse_matrix.adjoint());
   }
 
   // `matrix_handler - scalar_operator`
@@ -369,6 +455,13 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
         scaled_identity - utils::number_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+
+    // Check adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{degree_index, level_count}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{degree_index, level_count}}),
+        want_reverse_matrix.adjoint());
   }
 
   // `matrix_handler - scalar_operator`
@@ -392,6 +485,15 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
         scaled_identity - utils::position_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+
+    // Check adjoint
+    utils::checkEqual(sum.adjoint().to_matrix({{degree_index, level_count}},
+                                              {{"value", const_scale_factor}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{degree_index, level_count}},
+                                    {{"value", const_scale_factor}}),
+        want_reverse_matrix.adjoint());
   }
 
   // `matrix_handler * scalar_operator`
@@ -418,6 +520,14 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
         scaled_identity * utils::momentum_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+
+    // Check adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{degree_index, level_count}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{degree_index, level_count}}),
+        want_reverse_matrix.adjoint());
   }
 
   // `matrix_handler * scalar_operator`
@@ -442,6 +552,16 @@ TEST(OperatorExpressions, checkMatrixOpsWithScalars) {
         scaled_identity * utils::position_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+
+    // Check adjoint
+    utils::checkEqual(
+        product.adjoint().to_matrix({{degree_index, level_count}},
+                                    {{"value", const_scale_factor}}),
+        want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{degree_index, level_count}},
+                                    {{"value", const_scale_factor}}),
+        want_reverse_matrix.adjoint());
   }
 }
 
@@ -463,6 +583,10 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto want_matrix = utils::momentum_matrix(level_count) +
                        utils::position_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
+
+    // Check adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Addition, different DOF's.
@@ -480,6 +604,10 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix({{0, level_count}, {1, level_count}});
     auto want_matrix = annihilate_full + create_full;
     utils::checkEqual(want_matrix, got_matrix);
+
+    // Check adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Subtraction, same DOF.
@@ -494,6 +622,10 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto want_matrix = utils::momentum_matrix(level_count) -
                        utils::position_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
+
+    // Check adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Subtraction, different DOF's.
@@ -511,6 +643,9 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto got_matrix = sum.to_matrix(dimensions);
     auto want_matrix = annihilate_full - create_full;
     utils::checkEqual(want_matrix, got_matrix);
+    // Check adjoint
+    utils::checkEqual(sum.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Multiplication, same DOF.
@@ -528,6 +663,9 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto want_matrix = utils::momentum_matrix(level_count) *
                        utils::position_matrix(level_count);
     utils::checkEqual(want_matrix, got_matrix);
+    // Check adjoint
+    utils::checkEqual(product.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 
   // Multiplication, different DOF's.
@@ -548,6 +686,9 @@ TEST(OperatorExpressions, checkMatrixOpsSimpleArithmetics) {
     auto got_matrix = product.to_matrix(dimensions);
     auto want_matrix = annihilate_full * create_full;
     utils::checkEqual(want_matrix, got_matrix);
+    // Check adjoint
+    utils::checkEqual(product.adjoint().to_matrix(dimensions),
+                      want_matrix.adjoint());
   }
 }
 
@@ -582,6 +723,16 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto want_reverse_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Check adjoint
+    auto adjoint = got.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(adjoint, got);
   }
 
   // `matrix_handler - sum_op`
@@ -609,6 +760,16 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto want_reverse_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    auto adjoint = got.adjoint();
+    // Check adjoint
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}}),
+        want_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(adjoint, got);
   }
 
   // `matrix_handler * sum_op`
@@ -643,6 +804,18 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto want_reverse_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
     utils::checkEqual(want_reverse_matrix, got_reverse_matrix);
+    // Check adjoint
+    auto adjoint = got.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}},
+                                        {{"squeezing", value}}),
+                      want_matrix.adjoint());
+    utils::checkEqual(
+        reverse.adjoint().to_matrix({{0, level_count}, {1, level_count}},
+                                    {{"squeezing", value}}),
+        want_reverse_matrix.adjoint());
+    // Check adjoint in-place
+    got.adjoint_in_place();
+    ASSERT_EQ(adjoint, got);
   }
 
   // `sum_op += matrix_handler`
@@ -664,6 +837,14 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
                                        {{"displacement", value}});
     auto want_matrix = term_0_full + term_1_full + self_full;
     utils::checkEqual(want_matrix, got_matrix);
+    // Check adjoint
+    auto adjoint = sum_op.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}},
+                                        {{"displacement", value}}),
+                      want_matrix.adjoint());
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(adjoint, sum_op);
   }
 
   // `sum_op -= matrix_handler`
@@ -683,6 +864,13 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix({{0, level_count}, {1, level_count}});
     auto want_matrix = term_0_full + term_1_full - self_full;
     utils::checkEqual(want_matrix, got_matrix);
+    // Check adjoint
+    auto adjoint = sum_op.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}}),
+                      want_matrix.adjoint());
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(adjoint, sum_op);
   }
 
   // `sum_op *= matrix_handler`
@@ -707,6 +895,13 @@ TEST(OperatorExpressions, checkMatrixOpsAdvancedArithmetics) {
     auto got_matrix = sum_op.to_matrix({{0, level_count}, {1, level_count}});
     auto want_matrix = sum_full * self_full;
     utils::checkEqual(want_matrix, got_matrix);
+    // Check adjoint
+    auto adjoint = sum_op.adjoint();
+    utils::checkEqual(adjoint.to_matrix({{0, level_count}, {1, level_count}}),
+                      want_matrix.adjoint());
+    // Check adjoint in-place
+    sum_op.adjoint_in_place();
+    ASSERT_EQ(adjoint, sum_op);
   }
 }
 
