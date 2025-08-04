@@ -36,7 +36,7 @@ toolchain=''
 exclude_prereq=''
 install_all=true
 keep_sources=false
-tpls_dir="/opt/tpls"
+tpls_dir="/opt/cudaq/tpls"
 mkdir -p "$tpls_dir"
 __optind__=$OPTIND
 OPTIND=1
