@@ -12,6 +12,24 @@ and is also available as a Docker image. More information about installing the n
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+**0.12.0**
+
+This release contains a range of new features and performance improvements for 
+the dynamics simulation and adds more tools for error correction applications. 
+It introduces new CUDA-Q API for kernels that return values (`run`), and adds 
+support for connecting to Quantum Machines backends. With this release, we also
+include support for Python 3.13.
+
+*Note*: Support for Python 3.10 will be removed in future releases.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.12.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.12.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.12.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.12.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.12.0>`__.
+
 **0.11.0**
 
 This release contains a range of ergonomic improvements and documentation updates.
@@ -21,7 +39,7 @@ addresses some performance issues with the initial introduction of a general ope
 in CUDA-Q. This required some breaking changes. We refer to the 
 `release notes <https://github.com/NVIDIA/cuda-quantum/releases/0.11.0>`__ for further details.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cudaq/0.11.0>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.11.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.11.0>`__
