@@ -15,7 +15,8 @@
 
 std::string mockPort = "62440";
 std::string backendStringTemplate =
-    "quantinuum;emulate;false;url;http://localhost:{};credentials;{}";
+    "quantinuum;emulate;false;url;http://"
+    "localhost:{};credentials;{};project;mock_project_id";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
