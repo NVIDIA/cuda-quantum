@@ -6,7 +6,7 @@ CUDA-Q Applications
 .. 2. Add an html block along with any tags
 .. 3. Add a preview image in the _static folder
 
-:spellcheck-disable:
+.. |:spellcheck-disable:| replace:: \
 
 .. toctree::
    :maxdepth: 1
@@ -42,8 +42,7 @@ CUDA-Q Applications
    /applications/python/mps_encoding
    /applications/python/qm_mm_pe
 
-:spellcheck-enable:
-
+.. |:spellcheck-enable:| replace:: \
 
 .. raw:: html
 
