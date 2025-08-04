@@ -1365,8 +1365,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     // Calling std::_Bit_reference::method().
     auto loadFromReference = [&](mlir::Value ref) -> Value {
       if (auto mrTy = dyn_cast<cc::PointerType>(ref.getType())) {
-        assert(mrTy.getElementType() == builder.getI1Type());
-        return builder.create<cc::LoadOp>(loc, ref);
+        auto loadVal = builder.create<cc::LoadOp>(loc, ref);
+        if (mrTy.getElementType() == builder.getI8Type())
+          return builder.create<cc::CastOp>(loc, builder.getI1Type(), loadVal);
+        return loadVal;
       }
       assert(ref.getType() == builder.getI1Type());
       return ref;
@@ -1388,6 +1390,16 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto rhs = loadFromReference(popValue());
         auto lhs = popValue();
         popValue(); // The assignment operator address.
+        if (rhs.getType() == builder.getI1Type()) {
+          // If we're storing a bool, we may have to zext the value to a byte.
+          auto ptrTy = cast<cc::PointerType>(lhs.getType());
+          auto eleTy = ptrTy.getElementType();
+          if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
+            eleTy = arrTy.getElementType();
+          if (eleTy != rhs.getType())
+            rhs = builder.create<cc::CastOp>(loc, eleTy, rhs,
+                                             cc::CastOpMode::Unsigned);
+        }
         builder.create<cc::StoreOp>(loc, rhs, lhs);
         return pushValue(loadFromReference(lhs));
       }
@@ -2508,6 +2520,8 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         return false;
       }
       auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+      if (eleTy == builder.getI1Type())
+        eleTy = builder.getI8Type();
       auto elePtrTy = cc::PointerType::get(eleTy);
       auto eleArrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
       auto vecPtr = builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec);
@@ -3101,7 +3115,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
             // Create stdvec init op without a buffer. Allocate the required
             // memory chunk.
-            Value alloca = builder.create<cc::AllocaOp>(loc, eleTy, arrSize);
+            Type ty =
+                (eleTy == builder.getI1Type()) ? builder.getI8Type() : eleTy;
+            Value alloca = builder.create<cc::AllocaOp>(loc, ty, arrSize);
 
             // Create the stdvec_init op
             return pushValue(builder.create<cc::StdvecInitOp>(

@@ -28,7 +28,8 @@ struct ak1 {
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] name "vec" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_3]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_7]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i1 x ?>>
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i1 x ?>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i1>
-// CHECK:           return %[[VAL_6]] : i1
+// CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_7]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_6]] : (i8) -> i1
+// CHECK:           return %[[VAL_8]] : i1
