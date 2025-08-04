@@ -906,7 +906,6 @@
           <li class="breadcrumb-item"><a href="examples.html">CUDA-Q by Example</a></li>
       <li class="breadcrumb-item active">Using Quantum Hardware Providers</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/examples/hardware_providers.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="../../examples/python/performance_optimizations.html" class="btn btn-neutral float-left" title="Optimizing Performance" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
@@ -1298,9 +1297,9 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># it via another call to `cudaq.set_target()`</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span>
                  <span class="n">url</span><span class="o">=</span><span class="s2">&quot;http://localhost/cocos&quot;</span><span class="p">,</span>
-                 <span class="o">**</span><span class="p">{</span><span class="s2">&quot;qpu-architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;Adonis&quot;</span><span class="p">})</span>
+                 <span class="o">**</span><span class="p">{</span><span class="s2">&quot;qpu-architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;Crystal_5&quot;</span><span class="p">})</span>
 
-<span class="c1"># Adonis QPU architecture:</span>
+<span class="c1"># Crystal_5 QPU architecture:</span>
 <span class="c1">#       QB1</span>
 <span class="c1">#        |</span>
 <span class="c1"># QB2 - QB3 - QB4</span>
@@ -1357,7 +1356,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
 <span class="c1">// ```</span>
-<span class="c1">// nvq++ --target iqm iqm.cpp --iqm-machine Adonis -o out.x &amp;&amp; ./out.x</span>
+<span class="c1">// nvq++ --target iqm iqm.cpp --iqm-machine Crystal_5 -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// Assumes a valid set of credentials have been stored.</span>
 
@@ -1365,8 +1364,8 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
 
 <span class="c1">// Define a simple quantum kernel to execute on IQM Server.</span>
-<span class="k">struct</span><span class="w"> </span><span class="nc">adonis_ghz</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// Maximally entangled state between 5 qubits on Adonis QPU.</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">crystal_5_ghz</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Maximally entangled state between 5 qubits on Crystal_5 QPU.</span>
 <span class="w">  </span><span class="c1">//       QB1</span>
 <span class="w">  </span><span class="c1">//        |</span>
 <span class="w">  </span><span class="c1">// QB2 - QB3 - QB4</span>
@@ -1379,12 +1378,12 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="w">    </span><span class="c1">// Note that the CUDA-Q compiler will automatically generate the</span>
 <span class="w">    </span><span class="c1">// necessary instructions to swap qubits to satisfy the required</span>
-<span class="w">    </span><span class="c1">// connectivity constraints for the Adonis QPU. In this program, that means</span>
-<span class="w">    </span><span class="c1">// that despite QB1 not being physically connected to QB2, the user can</span>
-<span class="w">    </span><span class="c1">// still perform joint operations q[0] and q[1] because the compiler will</span>
-<span class="w">    </span><span class="c1">// automatically (and transparently) inject the necessary swap instructions</span>
-<span class="w">    </span><span class="c1">// to execute the user&#39;s program without the user having to worry about the</span>
-<span class="w">    </span><span class="c1">// physical constraints.</span>
+<span class="w">    </span><span class="c1">// connectivity constraints for the Crystal_5 QPU. In this program, that</span>
+<span class="w">    </span><span class="c1">// means that despite QB1 not being physically connected to QB2, the user</span>
+<span class="w">    </span><span class="c1">// can still perform joint operations q[0] and q[1] because the compiler</span>
+<span class="w">    </span><span class="c1">// will automatically (and transparently) inject the necessary swap</span>
+<span class="w">    </span><span class="c1">// instructions to execute the user&#39;s program without the user having to</span>
+<span class="w">    </span><span class="c1">// worry about the physical constraints.</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
 <span class="w">    </span><span class="p">}</span>
@@ -1395,7 +1394,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Submit to IQM Server asynchronously. E.g, continue executing</span>
 <span class="w">  </span><span class="c1">// code in the file until the job has been returned.</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">adonis_ghz</span><span class="p">{});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">crystal_5_ghz</span><span class="p">{});</span>
 <span class="w">  </span><span class="c1">// ... classical code to execute in the meantime ...</span>
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
@@ -1415,7 +1414,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="w">  </span><span class="c1">// OR: Submit to IQM Server synchronously. E.g, wait for the job</span>
 <span class="w">  </span><span class="c1">// result to be returned before proceeding.</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">adonis_ghz</span><span class="p">{});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">crystal_5_ghz</span><span class="p">{});</span>
 <span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>

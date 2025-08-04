@@ -907,7 +907,6 @@
           <li class="breadcrumb-item"><a href="../hardware.html">Quantum Hardware (QPU)</a></li>
       <li class="breadcrumb-item active">Superconducting</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/using/backends/hardware/superconducting.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="iontrap.html" class="btn btn-neutral float-left" title="Ion Trap" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
@@ -1021,7 +1020,7 @@ the default location <code class="code docutils literal notranslate"><span class
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://&lt;IQM Server&gt;/cocos&quot;</span><span class="p">,</span><span class="o">**</span><span class="p">{</span><span class="s2">&quot;qpu-architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;Adonis&quot;</span><span class="p">})</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://&lt;IQM Server&gt;/cocos&quot;</span><span class="p">,</span><span class="o">**</span><span class="p">{</span><span class="s2">&quot;qpu-architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;Crystal_5&quot;</span><span class="p">})</span>
 </pre></div>
 </div>
 <p>To emulate the IQM Server locally, without submitting to the IQM Server,
@@ -1047,22 +1046,22 @@ pass the <code class="docutils literal notranslate"><span class="pre">--target</
 the device architecture that the program has been compiled against. The hardware architecture for a
 specific IQM Server may be checked  via <code class="code docutils literal notranslate"><span class="pre">https://&lt;IQM</span> <span class="pre">server&gt;/cocos/quantum-architecture</span></code>.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Crystal_5<span class="w"> </span>src.cpp
 </pre></div>
 </div>
 <p>Once the binary for a specific IQM QPU architecture is compiled, it can be executed against any IQM Server with the same QPU architecture:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Crystal_5<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
 <span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://demo.qc.iqm.fi/cocos&quot;</span><span class="w"> </span>./program
 
 <span class="c1"># Executing the same program against an IQM Server with a different underlying QPU</span>
 <span class="c1"># architecture will result in an error.</span>
-<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;Apollo IQM Server&gt;/cocos&quot;</span><span class="w"> </span>./program
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;Crystal_20 IQM Server&gt;/cocos&quot;</span><span class="w"> </span>./program
 </pre></div>
 </div>
 <p>To emulate the IQM machine locally, without submitting to the IQM Server,
 you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>. This will emit any target
 specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Crystal_5<span class="w"> </span>src.cpp
 </pre></div>
 </div>
 <p>To see a complete example for using IQM server backends, take a look at our <a class="reference internal" href="../../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>

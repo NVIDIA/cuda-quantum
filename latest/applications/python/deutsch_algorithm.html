@@ -909,7 +909,6 @@
           <li class="breadcrumb-item"><a href="../../using/applications.html">CUDA-Q Applications</a></li>
       <li class="breadcrumb-item active">Deutsch’s Algorithm</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/applications/python/deutsch_algorithm.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="cost_minimization.html" class="btn btn-neutral float-left" title="Cost Minimization" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
@@ -997,7 +996,7 @@ The function is constant
 </section>
 <section id="Quantum-oracles">
 <h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="9539a2228aff4f1d9c04e449be044fe6" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
+<p><img alt="62295d02efb7445eb599c84090413c7d" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
 <p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logical gates.</p>
 <p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
 <div class="math notranslate nohighlight">
@@ -1045,7 +1044,7 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 <h2>Deutsch’s Algorithm:<a class="headerlink" href="#Deutsch's-Algorithm:" title="Permalink to this heading">¶</a></h2>
 <p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
 <p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="bee87712a1f345e89acf6feb61d18711" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
+<p><img alt="a6f12504fc3442f497fb04a06c46b6fc" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi_0}  =  \ket{01}
 \tag{1}\]</div>
