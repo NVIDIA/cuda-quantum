@@ -167,11 +167,6 @@ while rdom; do
     fi
 done < "$build_config"
 
-# Move the tpl sources
-if [ -d "$assets/tpls" ]; then
-    move_artifacts "$assets/tpls" "$CUDA_QUANTUM_PATH/tpls-src"
-fi
-
 if [ -d "$assets/cudaq" ]; then
     move_artifacts "$assets/cudaq" "$CUDA_QUANTUM_PATH"
     if [ ! -f "$CUDA_QUANTUM_PATH/build_config.xml" ]; then
