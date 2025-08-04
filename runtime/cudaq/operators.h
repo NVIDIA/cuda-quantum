@@ -151,6 +151,13 @@ public:
   /// @brief Get iterator to end of operator terms
   const_iterator end() const { return const_iterator(this, this->num_terms()); }
 
+  /// @brief Operator to get the product term at a particular index.
+  product_op<HandlerTy> operator[](std::size_t idx) const {
+    if (idx >= this->num_terms())
+      throw std::out_of_range("Index out of range in sum_op::operator[]");
+    return product_op<HandlerTy>(this->coefficients[idx], this->terms[idx]);
+  }
+
   // read-only properties
 
   /// @brief The degrees of freedom that the operator acts on.
@@ -820,6 +827,24 @@ public:
           {},
       bool invert_order = false) const;
 
+  /// @brief Return the multi-diagonal matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
+  mdiag_sparse_matrix to_diagonal_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
+
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<double> get_data_representation() const;
 
@@ -1009,6 +1034,13 @@ public:
   /// @brief Get iterator to end of operator terms
   const_iterator end() const {
     return const_iterator(this, this->operators.size());
+  }
+
+  /// @brief Operator to get the operator at a particular index.
+  HandlerTy operator[](std::size_t idx) const {
+    if (idx >= this->operators.size())
+      throw std::out_of_range("Index out of range in product_op::operator[]");
+    return this->operators[idx];
   }
 
   // read-only properties
@@ -1657,6 +1689,24 @@ public:
           {},
       bool invert_order = false) const;
 
+  /// @brief Return the multi-diagonal matrix representation of the operator.
+  /// By default, the matrix is ordered according to the convention (endianness)
+  /// used in CUDA-Q, and the ordering returned by `degrees`. See
+  /// the documentation for `degrees` for more detail.
+  /// @arg `dimensions` : A mapping that specifies the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0:2, 1:2}`.
+  /// @arg `parameters` : A map of the parameter names to their concrete,
+  /// complex values.
+  /// @arg `invert_order`: if set to true, the ordering convention is reversed.
+  PROPERTY_SPECIFIC_TEMPLATE(product_op<T>::supports_inplace_mult)
+  mdiag_sparse_matrix to_diagonal_matrix(
+      std::unordered_map<std::size_t, std::int64_t> dimensions = {},
+      const std::unordered_map<std::string, std::complex<double>> &parameters =
+          {},
+      bool invert_order = false) const;
+
   // utility functions for backward compatibility
   /// @cond
 
@@ -1712,6 +1762,122 @@ private:
   scalar_operator phase;
   scalar_operator delta_global;
   std::optional<std::pair<scalar_operator, std::vector<double>>> delta_local;
+};
+
+// https://en.wikipedia.org/wiki/Superoperator
+// 'super_op' is a linear operator acting on a vector space of linear
+// operators.
+/// @brief Representation of generic operator action on the state.
+// For example, a given operator might be applied to the density matrix as a
+// left multiplication or a right multiplication.
+class super_op {
+public:
+  // A super_op term is a pair of left/right multiplication operators.
+  // If the first (second) operator of the pair is missing (null), it represents
+  // the right (left) multiplication. If both are present, it represents a
+  // multiplication on both side (`A * rho * B`, `A` and `B` are the first and
+  // second operators in the pair).
+  using term =
+      std::pair<std::optional<cudaq::product_op<cudaq::matrix_handler>>,
+                std::optional<cudaq::product_op<cudaq::matrix_handler>>>;
+  /// @brief Default constructor
+  super_op() = default;
+
+  /// @brief Combine the given super-operator into this
+  /// @param superOp Input super-operator to combine
+  /// @return This super-operator after accumulating terms from the other
+  /// super-operator
+  super_op &operator+=(const super_op &superOp);
+
+  /// @brief Multiply this super-operator by a scalar
+  /// @tparam T Scalar type
+  /// @param coeff Multiplication coefficient
+  /// @return This super-operator after being scaled by the input scalar
+  template <typename T>
+  super_op &operator*=(T coeff) {
+    for (auto &[l_op, r_op] : m_terms) {
+      if (l_op.has_value())
+        l_op->operator*=(coeff);
+
+      assert(r_op.has_value());
+      r_op->operator*=(coeff);
+    }
+    return *this;
+  }
+
+  /// @brief Create a super-operator that represents the left multiplication of
+  /// the input product operator
+  /// @param op Product operator to be applied to the left
+  /// @return Super-operator
+  static super_op
+  left_multiply(const cudaq::product_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the right multiplication of
+  /// the input product operator
+  /// @param op Product operator to be applied to the right
+  /// @return Super-operator
+  static super_op
+  right_multiply(const cudaq::product_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the simultaneous left and
+  /// right multiplication action
+  /// @param leftOp Operator to be applied on the left
+  /// @param rightOp Operator to be applied on the right
+  /// @return Super-operator
+  static super_op
+  left_right_multiply(const cudaq::product_op<cudaq::matrix_handler> &leftOp,
+                      const cudaq::product_op<cudaq::matrix_handler> &rightOp);
+
+  /// @brief Create a super-operator that represents the left multiplication of
+  /// the input sum operator
+  /// @param op Sum operator to be applied to the left
+  /// @return Super-operator
+  static super_op left_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the right multiplication of
+  /// the input sum operator
+  /// @param op Sum operator to be applied to the right
+  /// @return Super-operator
+  static super_op
+  right_multiply(const cudaq::sum_op<cudaq::matrix_handler> &op);
+
+  /// @brief Create a super-operator that represents the simultaneous left and
+  /// right multiplication action
+  /// @param leftOp Operator to be applied on the left
+  /// @param rightOp Operator to be applied on the right
+  /// @return Super-operator
+  static super_op
+  left_right_multiply(const cudaq::sum_op<cudaq::matrix_handler> &leftOp,
+                      const cudaq::sum_op<cudaq::matrix_handler> &rightOp);
+
+  /// @brief Super-operator term iterator
+  using const_iterator = std::vector<term>::const_iterator;
+
+  /// @brief Get iterator to beginning of operator terms
+  const_iterator begin() const;
+
+  /// @brief Get iterator to end of operator terms
+  const_iterator end() const;
+
+  /// @brief Get a reference to a specific term in the super-operator
+  /// @param idx Index of the term to retrieve
+  /// @return Reference to the specified term
+  const term &operator[](std::size_t idx) const { return m_terms[idx]; }
+
+  /// @brief Get the number of terms in the super-operator
+  /// @return Number of terms
+  std::size_t num_terms() const { return m_terms.size(); }
+
+private:
+  /// @brief Construct a super-operator from a term
+  /// @param term Super-operator term
+  super_op(term &&term);
+  /// @brief Construct a super-operator from a list of terms
+  /// @param terms Super-operator term
+  super_op(std::vector<term> &&terms);
+
+private:
+  std::vector<term> m_terms;
 };
 
 // type aliases for convenience

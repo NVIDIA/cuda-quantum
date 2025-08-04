@@ -44,7 +44,7 @@ bool factory::isAArch64(ModuleOp module) {
 }
 
 template <bool isOutput>
-static Type genBufferType(Type ty) {
+Type genBufferType(Type ty) {
   auto *ctx = ty.getContext();
   if (isa<cudaq::cc::CallableType>(ty))
     return cudaq::cc::PointerType::get(ctx);
@@ -78,9 +78,9 @@ Type factory::genArgumentBufferType(Type ty) {
   return genBufferType</*isOutput=*/false>(ty);
 }
 
-cudaq::cc::StructType
-factory::buildInvokeStructType(FunctionType funcTy,
-                               std::size_t startingArgIdx) {
+cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy,
+                                                     std::size_t startingArgIdx,
+                                                     bool packed) {
   auto *ctx = funcTy.getContext();
   SmallVector<Type> eleTys;
   for (auto inTy : llvm::enumerate(funcTy.getInputs()))
@@ -88,7 +88,7 @@ factory::buildInvokeStructType(FunctionType funcTy,
       eleTys.push_back(genBufferType</*isOutput=*/false>(inTy.value()));
   for (auto outTy : funcTy.getResults())
     eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
-  return cudaq::cc::StructType::get(ctx, eleTys);
+  return cudaq::cc::StructType::get(ctx, eleTys, packed);
 }
 
 Value factory::packIsArrayAndLengthArray(Location loc,
@@ -530,6 +530,8 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
   if (isa<cc::SpanLikeType, cc::ArrayType, cc::CallableType>(resTy))
     return true;
   if (auto strTy = dyn_cast<cc::StructType>(resTy)) {
+    if (strTy.getMembers().empty())
+      return false;
     SmallVector<Type> packedTys;
     bool inRegisters = shouldExpand(packedTys, strTy) || !packedTys.empty();
     return !inRegisters;

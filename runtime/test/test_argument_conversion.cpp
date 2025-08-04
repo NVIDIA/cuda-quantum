@@ -343,6 +343,23 @@ void test_scalars(mlir::MLIRContext *ctx) {
 
 void test_vectors(mlir::MLIRContext *ctx) {
   {
+    std::vector<std::int32_t> x;
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<i32>", v);
+  }
+  // clang-format off
+// CHECK: Source module:
+// CHECK:  func.func private @callee(!cc.stdvec<i32>)
+// CHECK: Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK: %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i32>
+// CHECK: %[[VAL_2:.*]] = cc.stdvec_init %[[VAL_1]], %[[VAL_0]] : (!cc.ptr<i32>, i64) -> !cc.stdvec<i32>
+// CHECK: }
+  // clang-format on
+
+  {
     std::vector<std::int32_t> x = {14581, 0xcafe, 42, 0xbeef};
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.stdvec<i32>", v);
@@ -353,21 +370,8 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK:       Substitution module:
 
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<i32 x 4>
-// CHECK:           %[[VAL_1:.*]] = arith.constant 14581 : i32
-// CHECK:           %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
-// CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_3:.*]] = arith.constant 51966 : i32
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
-// CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_5:.*]] = arith.constant 42 : i32
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_0]][2] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
-// CHECK:           cc.store %[[VAL_5]], %[[VAL_6]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_7:.*]] = arith.constant 48879 : i32
-// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_0]][3] : (!cc.ptr<!cc.array<i32 x 4>>) -> !cc.ptr<i32>
-// CHECK:           cc.store %[[VAL_7]], %[[VAL_8]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_9:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_10:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_9]] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.stdvec<i32>
+// CHECK: %[[VAL_0:.*]] = cc.const_array [14581 : i32, 51966 : i32, 42 : i32, 48879 : i32] : !cc.array<i32 x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<i32 x ?>) -> !cc.stdvec<i32>
 // CHECK:         }
   // clang-format on
 
@@ -379,21 +383,49 @@ void test_vectors(mlir::MLIRContext *ctx) {
   }
   // clang-format off
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
-// CHECK:           %[[VAL_1:.*]] = cc.string_literal "XX" : !cc.ptr<!cc.array<i8 x 3>>
-// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<i8>, i64) -> !cc.charspan
-// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
-// CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.charspan>
-// CHECK:           %[[VAL_6:.*]] = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_8:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_9:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_8]] : (!cc.ptr<i8>, i64) -> !cc.charspan
-// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
-// CHECK:           cc.store %[[VAL_9:.*]], %[[VAL_10:.*]] : !cc.ptr<!cc.charspan>
-// CHECK:           %[[VAL_11:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>, i64) -> !cc.stdvec<!cc.charspan>
+// CHECK: %[[VAL_0:.*]] = cc.const_array ["XX", "XY"] : !cc.array<!cc.array<i8 x ?> x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i8 x ?> x ?>) -> !cc.stdvec<!cc.charspan>
+ // CHECK:         }
+  // clang-format on
+
+  {
+    std::vector<std::vector<cudaq::pauli_word>> x = {
+        {cudaq::pauli_word{"XX"}, cudaq::pauli_word{"XY"}},
+        {cudaq::pauli_word{"ZI"}, cudaq::pauli_word{"YY"}},
+        {cudaq::pauli_word{"ZY"}, cudaq::pauli_word{"YX"}}};
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<!cc.stdvec<!cc.charspan>>", v);
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = cc.const_array {{\[}}["XX", "XY"], ["ZI", "YY"], ["ZY", "YX"]] : !cc.array<!cc.array<!cc.array<i8 x ?> x ?> x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<!cc.array<i8 x ?> x ?> x ?>) -> !cc.stdvec<!cc.stdvec<!cc.charspan>>
+// CHECK:         }
+  // clang-format on
+
+  {
+    std::vector<std::vector<double>> x = {
+        {1.0, 2.0, 3.0}, {14.0, 15.0, 16.0}, {27.1, 28.2, 29.3}};
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<!cc.stdvec<f64>>", v);
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = cc.const_array {{\[}}[1.000000e+00, 2.000000e+00, 3.000000e+00], [1.400000e+01, 1.500000e+01, 1.600000e+01], [2.710000e+01, 2.820000e+01, 2.930000e+01]] : !cc.array<!cc.array<f64 x ?> x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<f64 x ?> x ?>) -> !cc.stdvec<!cc.stdvec<f64>>
+// CHECK:         }
+  // clang-format on
+
+  {
+    std::vector<std::vector<std::int64_t>> x = {
+        {1, 2, 3, 0}, {14, 15, 16, 13}, {127, 128, 129, 126}};
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<!cc.stdvec<i64>>", v);
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = cc.const_array {{\[}}[1, 2, 3, 0], [14, 15, 16, 13], [127, 128, 129, 126]] : !cc.array<!cc.array<i64 x ?> x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i64 x ?> x ?>) -> !cc.stdvec<!cc.stdvec<i64>>
 // CHECK:         }
   // clang-format on
 }
@@ -1045,21 +1077,8 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK:       Substitution module:
 
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<f32 x 4>
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0.000000e+00 : f32
-// CHECK:           %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<f32 x 4>>) -> !cc.ptr<f32>
-// CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<f32>
-// CHECK:           %[[VAL_3:.*]] = arith.constant 1.750000e+00 : f32
-// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<f32 x 4>>) -> !cc.ptr<f32>
-// CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<f32>
-// CHECK:           %[[VAL_5:.*]] = arith.constant 4.17232506E-8 : f32
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_0]][2] : (!cc.ptr<!cc.array<f32 x 4>>) -> !cc.ptr<f32>
-// CHECK:           cc.store %[[VAL_5]], %[[VAL_6]] : !cc.ptr<f32>
-// CHECK:           %[[VAL_7:.*]] = arith.constant 1.775000e+00 : f32
-// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_0]][3] : (!cc.ptr<!cc.array<f32 x 4>>) -> !cc.ptr<f32>
-// CHECK:           cc.store %[[VAL_7]], %[[VAL_8]] : !cc.ptr<f32>
-// CHECK:           %[[VAL_9:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_10:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_9]] : (!cc.ptr<!cc.array<f32 x 4>>, i64) -> !cc.stdvec<f32>
+// CHECK: %[[VAL_0:.*]] = cc.const_array [0.000000e+00 : f32, 1.750000e+00 : f32, 4.17232506E-8 : f32, 1.775000e+00 : f32] : !cc.array<f32 x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<f32 x ?>) -> !cc.stdvec<f32>
 // CHECK:         }
 // CHECK-LABEL:   cc.arg_subst[1] {
 // CHECK:           %[[VAL_0:.*]] = cc.address_of @[[VAL_GC:.*]] : !cc.ptr<!cc.array<complex<f64> x 8>>
@@ -1068,21 +1087,8 @@ void test_combinations(mlir::MLIRContext *ctx) {
 // CHECK:         }
 // CHECK-DAG:     cc.global constant private @[[VAL_GC]] (dense<[(0.70710678118654757,0.000000e+00), (0.70710678118654757,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f64>>) : !cc.array<complex<f64> x 8>
 // CHECK-LABEL:   cc.arg_subst[2] {
-// CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<!cc.charspan x 2>
-// CHECK:           %[[VAL_1:.*]] = cc.string_literal "XX" : !cc.ptr<!cc.array<i8 x 3>>
-// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_init %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<i8>, i64) -> !cc.charspan
-// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
-// CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.charspan>
-// CHECK:           %[[VAL_6:.*]] = cc.string_literal "XY" : !cc.ptr<!cc.array<i8 x 3>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_8:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_9:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_8]] : (!cc.ptr<i8>, i64) -> !cc.charspan
-// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_0]][1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) -> !cc.ptr<!cc.charspan>
-// CHECK:           cc.store %[[VAL_9]], %[[VAL_10]] : !cc.ptr<!cc.charspan>
-// CHECK:           %[[VAL_11:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_12:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.charspan x 2>>, i64) -> !cc.stdvec<!cc.charspan>
+// CHECK: %[[VAL_0:.*]] = cc.const_array ["XX", "XY"] : !cc.array<!cc.array<i8 x ?> x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i8 x ?> x ?>) -> !cc.stdvec<!cc.charspan>
 // CHECK:         }
   // clang-format on
 }

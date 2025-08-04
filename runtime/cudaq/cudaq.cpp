@@ -183,15 +183,15 @@ std::pair<void *, std::size_t> comm_dup() {
 }
 
 void finalize() {
-  if (rank() == 0)
-    cudaq::info("Finalizing MPI.");
-
   // Inform the simulator that we are
   // about to run MPI Finalize
   nvqir::tearDownBeforeMPIFinalize();
   auto *commPlugin = getMpiPlugin();
-  if (!commPlugin->is_finalized())
+  if (!commPlugin->is_finalized()) {
+    if (rank() == 0)
+      cudaq::info("Finalizing MPI.");
     commPlugin->finalize();
+  }
 }
 
 } // namespace cudaq::mpi
@@ -353,14 +353,10 @@ std::string get_quake_by_name(const std::string &kernelName,
           throw std::runtime_error("Quake code for '" + kernelName +
                                    "' has multiple matches.\n");
       } else {
-        if (!knownMangledArgs.has_value())
-          result = pair.second;
-        else {
-          if (pair.first.ends_with(knownMangledArgs.value())) {
-            result = pair.second;
-            break;
-          }
-        }
+        result = pair.second;
+        if (knownMangledArgs.has_value() &&
+            pair.first.ends_with(*knownMangledArgs))
+          break;
       }
     }
   }

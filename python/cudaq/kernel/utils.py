@@ -12,6 +12,7 @@ import sys
 import traceback
 import numpy as np
 from typing import get_origin, Callable, List
+import types
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
@@ -42,7 +43,7 @@ globalAstRegistry = {}
 globalRegisteredOperations = {}
 
 # Keep a global registry of any custom data types
-globalRegisteredTypes = {}
+globalRegisteredTypes = cudaq_runtime.DataClassRegistry
 
 
 class Color:
@@ -121,9 +122,9 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if hasattr(annotation, 'attr') and hasattr(annotation.value, 'id'):
         if annotation.value.id == 'cudaq':
             if annotation.attr in ['qview', 'qvector']:
-                return quake.VeqType.get(ctx)
+                return quake.VeqType.get(context=ctx)
             if annotation.attr in ['State']:
-                return cc.PointerType.get(ctx, cc.StateType.get(ctx))
+                return cc.PointerType.get(cc.StateType.get(ctx), ctx)
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
             if annotation.attr == 'pauli_word':
@@ -131,7 +132,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
         if annotation.value.id in ['numpy', 'np']:
             if annotation.attr in ['array', 'ndarray']:
-                return cc.StdvecType.get(ctx, F64Type.get())
+                return cc.StdvecType.get(F64Type.get(), ctx)
             if annotation.attr == 'complex128':
                 return ComplexType.get(F64Type.get())
             if annotation.attr == 'complex64':
@@ -140,6 +141,14 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 return F64Type.get()
             if annotation.attr == 'float32':
                 return F32Type.get()
+            if annotation.attr == 'int64':
+                return IntegerType.get_signless(64)
+            if annotation.attr == 'int32':
+                return IntegerType.get_signless(32)
+            if annotation.attr == 'int16':
+                return IntegerType.get_signless(16)
+            if annotation.attr == 'int8':
+                return IntegerType.get_signless(8)
 
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
@@ -158,7 +167,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 f"Unable to get list elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
         argTypes = [mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts]
-        return cc.CallableType.get(ctx, argTypes)
+        return cc.CallableType.get(argTypes, ctx)
 
     if isinstance(annotation,
                   ast.Subscript) and (annotation.value.id == 'list' or
@@ -171,7 +180,33 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         eleTypeNode = annotation.slice
         # expected that slice is a Name node
         listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
-        return cc.StdvecType.get(ctx, listEleTy)
+        return cc.StdvecType.get(listEleTy, ctx)
+
+    if isinstance(annotation,
+                  ast.Subscript) and (annotation.value.id == 'tuple' or
+                                      annotation.value.id == 'Tuple'):
+        localEmitFatalError(
+            f"Use of tuples is not supported in kernels ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+        )
+
+        #FIXME: re-enable tuple support after we have the spec.
+        # https://github.com/NVIDIA/cuda-quantum/issues/3031
+        if not hasattr(annotation, 'slice'):
+            localEmitFatalError(
+                f"tuple subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+            )
+
+        # slice is an `ast.Tuple` of type annotations
+        elements = None
+        if hasattr(annotation.slice, 'elts'):
+            elements = annotation.slice.elts
+        else:
+            localEmitFatalError(
+                f"Unable to get tuple elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+            )
+
+        eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in elements]
+        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
 
     if hasattr(annotation, 'id'):
         id = annotation.id
@@ -213,18 +248,24 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         id = annotation.attr
 
     # One final check to see if this is a custom data type.
-    if id in globalRegisteredTypes:
-        pyType, memberTys = globalRegisteredTypes[id]
+    if id in globalRegisteredTypes.classes:
+        pyType, memberTys = globalRegisteredTypes.getClassAttributes(id)
         structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
         for ty in structTys:
             if cc.StructType.isinstance(ty):
                 localEmitFatalError(
                     'recursive struct types are not allowed in kernels.')
 
+        if '__slots__' not in pyType.__dict__:
+            emitWarning(
+                f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)."
+            )
+
         if len({
                 k: v
                 for k, v in pyType.__dict__.items()
-                if not (k.startswith('__') and k.endswith('__'))
+                if not (k.startswith('__') and k.endswith('__')) and
+                isinstance(v, types.FunctionType)
         }) != 0:
             localEmitFatalError(
                 'struct types with user specified methods are not allowed.')
@@ -243,18 +284,55 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 )
             if numStruqMemberTys != 0:
                 emitFatalError(f'recursive quantum struct types not allowed.')
-            return quake.StruqType.getNamed(ctx, id, structTys)
+            return quake.StruqType.getNamed(id, structTys, ctx)
 
-        return cc.StructType.getNamed(ctx, id, structTys)
+        return cc.StructType.getNamed(id, structTys, ctx)
 
     localEmitFatalError(
         f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
     )
 
 
+def pyInstanceFromName(name: str):
+    if name == 'bool':
+        return bool(False)
+    if name == 'int':
+        return int(0)
+    if name in ['numpy.int8', 'np.int8']:
+        return np.int8(0)
+    if name in ['numpy.int16', 'np.int16']:
+        return np.int16(0)
+    if name in ['numpy.int32', 'np.int32']:
+        return np.int32(0)
+    if name in ['numpy.int64', 'np.int64']:
+        return np.int64(0)
+    if name == 'int':
+        return int(0)
+    if name == 'float':
+        return float(0.0)
+    if name in ['numpy.float32', 'np.float32']:
+        return np.float32(0.0)
+    if name in ['numpy.float64', 'np.float64']:
+        return np.float64(0.0)
+    if name == 'complex':
+        return 0j
+    if name == 'pauli_word':
+        return pauli_word('')
+    if name in ['numpy.complex128', 'np.complex128']:
+        return np.complex128(0.0)
+    if name in ['numpy.complex64', 'np.complex64']:
+        return np.complex64(0.0)
+
+
 def mlirTypeFromPyType(argType, ctx, **kwargs):
-    if argType == int:
+    if argType in [int, np.int64]:
         return IntegerType.get_signless(64, ctx)
+    if argType == np.int32:
+        return IntegerType.get_signless(32, ctx)
+    if argType == np.int16:
+        return IntegerType.get_signless(16, ctx)
+    if argType == np.int8:
+        return IntegerType.get_signless(8, ctx)
     if argType in [float, np.float64]:
         return F64Type.get(ctx)
     if argType == np.float32:
@@ -270,33 +348,22 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
     if argType == State:
-        return cc.PointerType.get(ctx, cc.StateType.get(ctx))
+        return cc.PointerType.get(cc.StateType.get(ctx), ctx)
 
     if get_origin(argType) == list:
         result = re.search(r'ist\[(.*)\]', str(argType))
         eleTyName = result.group(1)
         argType = list
-        if eleTyName == 'int':
-            kwargs['argInstance'] = [int(0)]
-        elif eleTyName == 'float':
-            kwargs['argInstance'] = [float(0.0)]
-        elif eleTyName == 'bool':
-            kwargs['argInstance'] = [bool(False)]
-        elif eleTyName == 'complex':
-            kwargs['argInstance'] = [0j]
-        elif eleTyName == 'pauli_word':
-            kwargs['argInstance'] = [pauli_word('')]
-        elif eleTyName == 'numpy.complex128':
-            kwargs['argInstance'] = [np.complex128(0.0)]
-        elif eleTyName == 'numpy.complex64':
-            kwargs['argInstance'] = [np.complex64(0.0)]
+        inst = pyInstanceFromName(eleTyName)
+        if (inst != None):
+            kwargs['argInstance'] = [inst]
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+            return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
         if argType != np.ndarray:
             if kwargs['argInstance'] == None:
-                return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+                return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
 
         argInstance = kwargs['argInstance']
         argTypeToCompareTo = kwargs[
@@ -307,40 +374,50 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 emitFatalError('Cannot infer runtime argument type')
 
             eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
-            return cc.StdvecType.get(ctx, eleTy)
-
-        if isinstance(argInstance[0], bool):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
-        if isinstance(argInstance[0], int):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
-        if isinstance(argInstance[0], (float, np.float64)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
-        if isinstance(argInstance[0], np.float32):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.float32, ctx))
-
-        if isinstance(argInstance[0], (complex, np.complex128)):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
-
-        if isinstance(argInstance[0], np.complex64):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.complex64, ctx))
-
-        if isinstance(argInstance[0], pauli_word):
-            return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
+            return cc.StdvecType.get(eleTy, ctx)
 
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
-                ctx,
                 mlirTypeFromPyType(
                     type(argInstance[0]),
                     ctx,
                     argInstance=argInstance[0],
                     argTypeToCompareTo=cc.StdvecType.getElementType(
-                        argTypeToCompareTo)))
+                        argTypeToCompareTo)), ctx)
 
-        emitFatalError(f'Invalid list element type ({argType})')
+        return cc.StdvecType.get(mlirTypeFromPyType(type(argInstance[0]), ctx),
+                                 ctx)
+
+    if get_origin(argType) == tuple:
+        #FIXME: re-enable tuple support after we have the spec.
+        # https://github.com/NVIDIA/cuda-quantum/issues/3031
+        emitFatalError(f'Use of tuples is not supported in kernels ({argType})')
+        result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
+        eleTyNames = result.group('names')
+        eleTypes = []
+        while eleTyNames != None:
+            result = re.search(r'(?P<names>.*),\s*(?P<name>.*)', eleTyNames)
+            eleTyName = result.group('name') if result != None else eleTyNames
+            eleTyNames = result.group('names') if result != None else None
+            pyInstance = pyInstanceFromName(eleTyName)
+            if pyInstance == None:
+                emitFatalError(f'Invalid tuple element type ({eleTyName})')
+            eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
+        eleTypes.reverse()
+        return cc.StructType.getNamed("tuple", eleTypes, ctx)
+
+    if (argType == tuple):
+        #FIXME: re-enable tuple support after we have the spec.
+        # https://github.com/NVIDIA/cuda-quantum/issues/3031
+        emitFatalError(f'Use of tuples is not supported in kernels ({argType})')
+        argInstance = kwargs['argInstance']
+        if argInstance == None or (len(argInstance) == 0):
+            emitFatalError(f'Cannot infer runtime argument type for {argType}')
+        eleTypes = [mlirTypeFromPyType(type(ele), ctx) for ele in argInstance]
+        return cc.StructType.getNamed("tuple", eleTypes, ctx)
 
     if argType == qvector or argType == qreg or argType == qview:
-        return quake.VeqType.get(ctx)
+        return quake.VeqType.get(context=ctx)
     if argType == qubit:
         return quake.RefType.get(ctx)
     if argType == pauli_word:
@@ -349,10 +426,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
-            return cc.CallableType.get(ctx, argInstance.argTypes)
+            return cc.CallableType.get(argInstance.argTypes, ctx)
 
-    for name, (customTys, memberTys) in globalRegisteredTypes.items():
-        if argType == customTys:
+    for name in globalRegisteredTypes.classes:
+        customTy, memberTys = globalRegisteredTypes.getClassAttributes(name)
+        if argType == customTy:
             structTys = [
                 mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
             ]
@@ -371,15 +449,15 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 if numStruqMemberTys != 0:
                     emitFatalError(
                         f'recursive quantum struct types not allowed.')
-                return quake.StruqType.getNamed(ctx, name, structTys)
+                return quake.StruqType.getNamed(name, structTys, ctx)
 
-            return cc.StructType.getNamed(ctx, name, structTys)
+            return cc.StructType.getNamed(name, structTys, ctx)
 
     if 'argInstance' not in kwargs:
         if argType == list[int]:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
+            return cc.StdvecType.get(mlirTypeFromPyType(int, ctx), ctx)
         if argType == list[float]:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+            return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
 
     emitFatalError(
         f"Can not handle conversion of python type {argType} to MLIR type.")
@@ -388,9 +466,17 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 def mlirTypeToPyType(argType):
 
     if IntegerType.isinstance(argType):
-        if IntegerType(argType).width == 1:
+        width = IntegerType(argType).width
+        if width == 1:
             return bool
-        return int
+        if width == 8:
+            return np.int8
+        if width == 16:
+            return np.int16
+        if width == 32:
+            return np.int32
+        if width == 64:
+            return int
 
     if F64Type.isinstance(argType):
         return float
@@ -417,26 +503,28 @@ def mlirTypeToPyType(argType):
         if cc.CharspanType.isinstance(eleTy):
             return list[pauli_word]
 
-        if IntegerType.isinstance(eleTy):
-            if IntegerType(eleTy).width == 1:
-                return list[bool]
-            return list[int]
-        if F64Type.isinstance(eleTy):
-            return list[float]
-        if F32Type.isinstance(eleTy):
-            return list[np.float32]
-        if ComplexType.isinstance(eleTy):
-            ty = complex if F64Type.isinstance(
-                ComplexType(eleTy).element_type) else np.complex64
-            return list[ty]
+        pyEleTy = mlirTypeToPyType(eleTy)
+        return list[pyEleTy]
 
     if cc.PointerType.isinstance(argType):
         valueTy = cc.PointerType.getElementType(argType)
         if cc.StateType.isinstance(valueTy):
             return State
 
+    if cc.StructType.isinstance(argType):
+        if (cc.StructType.getName(argType) == "tuple"):
+            elements = [
+                mlirTypeToPyType(v) for v in cc.StructType.getTypes(argType)
+            ]
+            return types.GenericAlias(tuple, tuple(elements))
+
+        clsName = cc.StructType.getName(argType)
+        if globalRegisteredTypes.isRegisteredClass(clsName):
+            pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
+            return pyType
+
     emitFatalError(
-        f"Cannot infer CUDA-Q type from provided Python type ({argType})")
+        f"Cannot infer python type from provided CUDA-Q type ({argType})")
 
 
 def emitErrorIfInvalidPauli(pauliArg):

@@ -21,6 +21,7 @@ static constexpr const char stdMoveBuiltin[] = ".std::move";
 
 static constexpr const char llvmMemCopyIntrinsic[] =
     "llvm.memcpy.p0i8.p0i8.i64";
+static constexpr const char llvmMemSetIntrinsic[] = "llvm.memset.p0i8.i64";
 
 // cudaq::range(count);
 static constexpr const char setCudaqRangeVector[] = "__nvqpp_CudaqRangeInit";
@@ -60,6 +61,13 @@ static constexpr const char createCudaqStateFromDataFP32[] =
 // Delete a state created by the runtime functions above.
 static constexpr const char deleteCudaqState[] = "__nvqpp_cudaq_state_delete";
 
+// LLVM intrinsics to save and restore the stack pointer. TODO: Newer versions
+// of LLVM have changed the names to have a suffix of ".p0".
+static constexpr const char llvmStackSave[] = "llvm.stacksave";
+static constexpr const char llvmStackRestore[] = "llvm.stackrestore";
+
+static constexpr const char cudaqConvertToInteger[] =
+    "__nvqpp_cudaqConvertToInteger";
 /// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
 /// the transformation of both quantum and classical computation. Different
 /// features of the CUDA-Q programming model are lowered into different dialects

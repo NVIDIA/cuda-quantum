@@ -314,8 +314,8 @@ public:
       trailingData = t;
       args.push_back(a);
     }
-    auto call = builder.create<func::CallOp>(loc, funcTy.getResults(),
-                                             funcOp.getName(), args);
+    auto call = builder.create<cudaq::cc::NoInlineCallOp>(
+        loc, funcTy.getResults(), funcOp.getName(), args);
     const bool hasVectorResult =
         funcTy.getNumResults() == 1 &&
         isa<cudaq::cc::SpanLikeType>(funcTy.getResult(0));
@@ -834,6 +834,9 @@ public:
     if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic)))
       return module.emitError(std::string("could not load ") +
                               cudaq::llvmMemCopyIntrinsic);
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemSetIntrinsic)))
+      return module.emitError(std::string("could not load ") +
+                              cudaq::llvmMemSetIntrinsic);
     if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_zeroDynamicResult")))
       return module.emitError("could not load __nvqpp_zeroDynamicResult");
     if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_createDynamicResult")))

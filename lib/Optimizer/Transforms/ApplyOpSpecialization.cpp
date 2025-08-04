@@ -15,8 +15,13 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_APPLYSPECIALIZATION
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "apply-op-specialization"
 
@@ -38,7 +43,7 @@ struct ApplyVariants {
     bool rv = false;
 
     auto checkAndSet = [&](bool &bit0, bool bit1) {
-      rv = !bit0 & bit1;
+      rv |= !bit0 & bit1;
       bit0 = bit0 | bit1;
     };
 
@@ -61,7 +66,8 @@ using ApplyOpAnalysisInfo = DenseMap<Operation *, ApplyVariants>;
 /// This analysis scans the IR for `ApplyOp`s to see which ones need to have
 /// variants created.
 struct ApplyOpAnalysis {
-  ApplyOpAnalysis(ModuleOp op) : module(op) {
+  ApplyOpAnalysis(ModuleOp op, bool constProp)
+      : module(op), constProp(constProp) {
     performAnalysis(op.getOperation());
   }
 
@@ -70,20 +76,92 @@ struct ApplyOpAnalysis {
 private:
   void performAnalysis(Operation *op) {
     op->walk([&](quake::ApplyOp apply) {
+      if (constProp) {
+        // If some of the arguments in getArgs() are constants, then materialize
+        // those constants in a clone of the variant. The specialized variant
+        // will then be able to perform better constant propagation even if not
+        // inlined.
+        auto calleeName = apply.getCallee()->getRootReference().str();
+        if (func::FuncOp genericFunc =
+                module.lookupSymbol<func::FuncOp>(calleeName)) {
+          SmallVector<Value> newArgs;
+          newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+          IRMapping mapper;
+          SmallVector<Value> preservedArgs;
+          SmallVector<Type> inputTys;
+          SmallVector<arith::ConstantOp> moveConsts;
+          bool updateSignature = false;
+          for (auto [idx, v] : llvm::enumerate(newArgs)) {
+            if (auto c = v.getDefiningOp<arith::ConstantOp>()) {
+              auto newConst = c.clone();
+              moveConsts.push_back(newConst);
+              mapper.map(genericFunc.getArgument(idx), newConst);
+              LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
+            } else {
+              if (auto relax = v.getDefiningOp<quake::RelaxSizeOp>()) {
+                // Also, specialize any relaxed veq types.
+                v = relax.getInputVec();
+                updateSignature = true;
+                LLVM_DEBUG(llvm::dbgs() << "specializing apply veq argument ("
+                                        << v.getType() << ")\n");
+              }
+              inputTys.push_back(v.getType());
+              preservedArgs.push_back(v);
+            }
+          }
+
+          if (!moveConsts.empty()) {
+            // Possible code size improvement: this could avoid cloning
+            // duplicates by appending the position and constant value into the
+            // new cloned function's name.
+            func::FuncOp newFunc = genericFunc.clone(mapper);
+            calleeName += std::string{"."} + std::to_string(counter++);
+            newFunc.setName(calleeName);
+            auto *ctx = apply->getContext();
+            if (updateSignature) {
+              newFunc.setFunctionType(
+                  FunctionType::get(ctx, inputTys, newFunc.getResultTypes()));
+              for (auto [arg, ty] :
+                   llvm::zip(newFunc.front().getArguments(), inputTys))
+                arg.setType(ty);
+            }
+            newFunc.setPrivate();
+            Block &entry = newFunc.front();
+            for (auto c : moveConsts)
+              entry.push_front(c);
+            module.push_back(newFunc);
+            OpBuilder builder(apply);
+            auto newApply = builder.create<quake::ApplyOp>(
+                apply.getLoc(), apply.getResultTypes(),
+                SymbolRefAttr::get(ctx, calleeName), apply.getIndirectCallee(),
+                apply.getIsAdj(), apply.getControls(), preservedArgs);
+            apply->replaceAllUsesWith(newApply.getResults());
+            apply->dropAllReferences();
+            apply->erase();
+            LLVM_DEBUG(llvm::dbgs()
+                       << "apply specialization including constant "
+                          "propagation of arguments\n"
+                       << newFunc << '\n');
+            apply = newApply;
+          }
+        }
+      }
+
       if (!apply.applyToVariant())
         return;
       ApplyVariants variant;
-      auto callee = lookupCallee(apply);
-      auto iter = infoMap.find(callee);
-      if (iter != infoMap.end())
-        variant = iter->second;
-      if (apply.getIsAdj() && !apply.getControls().empty())
-        variant.needsAdjointControlVariant = true;
-      else if (apply.getIsAdj())
-        variant.needsAdjointVariant = true;
-      else if (!apply.getControls().empty())
-        variant.needsControlVariant = true;
-      infoMap[callee.getOperation()] = variant;
+      if (auto callee = lookupCallee(apply)) {
+        auto iter = infoMap.find(callee);
+        if (iter != infoMap.end())
+          variant = iter->second;
+        if (apply.getIsAdj() && !apply.getControls().empty())
+          variant.needsAdjointControlVariant = true;
+        else if (apply.getIsAdj())
+          variant.needsAdjointVariant = true;
+        else if (!apply.getControls().empty())
+          variant.needsControlVariant = true;
+        infoMap[callee.getOperation()] = variant;
+      }
     });
 
     // Propagate the transitive closure over the call tree.
@@ -116,6 +194,8 @@ private:
 
   ModuleOp module;
   ApplyOpAnalysisInfo infoMap;
+  bool constProp;
+  unsigned counter = 0;
 };
 } // namespace
 
@@ -173,7 +253,9 @@ namespace {
 /// Replace an apply op with a call to the correct variant function.
 struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
   using Base = OpRewritePattern<quake::ApplyOp>;
-  using Base::Base;
+
+  explicit ApplyOpPattern(MLIRContext *ctx, bool constProp)
+      : Base(ctx), constProp(constProp) {}
 
   LogicalResult matchAndRewrite(quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
@@ -187,29 +269,39 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
                                                      apply.getControls());
       newArgs.push_back(consOp);
     }
-    newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+    if (constProp) {
+      for (auto v : apply.getArgs()) {
+        if (auto c = v.getDefiningOp<arith::ConstantOp>())
+          continue;
+        newArgs.emplace_back(v);
+      }
+    } else {
+      newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+    }
     rewriter.replaceOpWithNewOp<func::CallOp>(apply, apply.getResultTypes(),
                                               calleeName, newArgs);
     return success();
   }
+
+  const bool constProp;
 };
 
 class ApplySpecializationPass
-    : public cudaq::opt::ApplySpecializationBase<ApplySpecializationPass> {
+    : public cudaq::opt::impl::ApplySpecializationBase<
+          ApplySpecializationPass> {
 public:
-  ApplySpecializationPass() = default;
-  ApplySpecializationPass(bool b) : optComputeActionOptim(b) {}
+  using ApplySpecializationBase::ApplySpecializationBase;
 
   void runOnOperation() override {
-    ApplyOpAnalysis analysis(getOperation());
+    ApplyOpAnalysis analysis(getOperation(), constantPropagation);
     const auto &applyVariants = analysis.getAnalysisInfo();
-    step1(applyVariants);
-    step2();
+    if (succeeded(step1(applyVariants)))
+      step2();
   }
 
   /// Step 1. Instantiate all the implied variants of functions from all
   /// quake.apply operations that were found.
-  void step1(const ApplyOpAnalysisInfo &applyVariants) {
+  [[nodiscard]] LogicalResult step1(const ApplyOpAnalysisInfo &applyVariants) {
     ModuleOp module = getOperation();
 
     // Loop over all the globals in the module.
@@ -227,11 +319,15 @@ public:
         createControlVariantOf(func);
       if (variant.needsAdjointVariant) {
         auto fnName = func.getName().str();
-        createAdjointVariantOf(func, getAdjVariantFunctionName(fnName));
+        if (failed(createAdjointVariantOf(func,
+                                          getAdjVariantFunctionName(fnName))))
+          return failure();
       }
       if (variant.needsAdjointControlVariant)
-        createAdjointControlVariantOf(func);
+        if (failed(createAdjointControlVariantOf(func)))
+          return failure();
     }
+    return success();
   }
 
   /// Look for quake.compute_action operations or quake.apply triple patterns in
@@ -239,7 +335,7 @@ public:
   /// the compute and uncompute functions.
   DenseSet<Operation *> computeActionAnalysis(func::FuncOp func) {
     DenseSet<Operation *> controlNotNeeded;
-    if (getComputeActionOptimization()) {
+    if (computeActionOptimization) {
       func->walk([&](Operation *op) {
         if (auto compAct = dyn_cast<quake::ComputeActionOp>(op)) {
           // This is clearly a compute action. Mark the compute side.
@@ -339,23 +435,22 @@ public:
 
   /// The adjoint variant of the function is the "reverse" computation. We want
   /// to reverse the flow graph so the gates appear "upside down".
-  func::FuncOp createAdjointVariantOf(func::FuncOp func,
-                                      std::string &&funcName) {
+  [[nodiscard]] LogicalResult createAdjointVariantOf(func::FuncOp func,
+                                                     std::string &&funcName) {
     ModuleOp module = getOperation();
     auto loc = func.getLoc();
     auto &funcBody = func.getBody();
 
     // Check our restrictions.
     if (regionHasUnstructuredControlFlow(funcBody)) {
-      emitError(loc,
-                "cannot make adjoint of kernel with unstructured control flow");
-      signalPassFailure();
-      return {};
+      LLVM_DEBUG(
+          llvm::dbgs()
+          << "cannot make adjoint of kernel: unstructured control flow\n");
+      return failure();
     }
     if (cudaq::opt::hasCallOp(func)) {
-      emitError(loc, "cannot make adjoint of kernel with calls");
-      signalPassFailure();
-      return {};
+      LLVM_DEBUG(llvm::dbgs() << "cannot make adjoint of kernel with calls\n");
+      return failure();
     }
     if (cudaq::opt::internal::hasCharacteristic(
             [](Operation &op) {
@@ -363,14 +458,15 @@ public:
                          cudaq::cc::InstantiateCallableOp>(op);
             },
             *func.getOperation())) {
-      emitError(loc, "cannot make adjoint of kernel with callable expressions");
-      signalPassFailure();
-      return {};
+      LLVM_DEBUG(
+          llvm::dbgs()
+          << "cannot make adjoint of kernel with callable expressions\n");
+      return failure();
     }
     if (cudaq::opt::hasMeasureOp(func)) {
-      emitError(loc, "cannot make adjoint of kernel with a measurement");
-      signalPassFailure();
-      return {};
+      LLVM_DEBUG(llvm::dbgs()
+                 << "cannot make adjoint of kernel with a measurement\n");
+      return failure();
     }
 
     auto funcTy = func.getFunctionType();
@@ -381,7 +477,7 @@ public:
     funcBody.cloneInto(&newFunc.getBody(), mapping);
     reverseTheOpsInTheBlock(loc, newFunc.getBody().front().getTerminator(),
                             getOpsToInvert(newFunc.getBody().front()));
-    return newFunc;
+    return success();
   }
 
   static SmallVector<Operation *> getOpsToInvert(Block &block) {
@@ -612,7 +708,7 @@ public:
   /// This is the combination of adjoint and control transformations. We will
   /// create a control variant here, even if it wasn't needed to simplify
   /// things. The dead variant can be eliminated as unreferenced.
-  func::FuncOp createAdjointControlVariantOf(func::FuncOp func) {
+  [[nodiscard]] LogicalResult createAdjointControlVariantOf(func::FuncOp func) {
     ModuleOp module = getOperation();
     auto funcName = func.getName().str();
     auto ctrlFuncName = getCtrlVariantFunctionName(funcName);
@@ -629,34 +725,14 @@ public:
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<ApplyOpPattern>(ctx);
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<func::FuncDialect, quake::QuakeDialect>();
-    target.addDynamicallyLegalOp<quake::ApplyOp>(
-        [](quake::ApplyOp apply) { return apply->hasAttr("replaced"); });
-    if (failed(applyPartialConversion(module, target, std::move(patterns)))) {
-      emitError(module.getLoc(), "could not rewrite all apply ops.");
+    patterns.insert<ApplyOpPattern>(ctx, constantPropagation);
+    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
-    }
+    LLVM_DEBUG(llvm::dbgs() << "After apply specialization:\n"
+                            << module << "\n\n");
   }
-
-  bool getComputeActionOptimization() const {
-    if (optComputeActionOptim)
-      return *optComputeActionOptim;
-    return computeActionOptimization;
-  }
-  std::optional<bool> optComputeActionOptim;
 
   // MLIR dependency: internal name used by tablegen.
   static constexpr char segmentSizes[] = "operand_segment_sizes";
 };
 } // namespace
-
-std::unique_ptr<mlir::Pass> cudaq::opt::createApplyOpSpecializationPass() {
-  return std::make_unique<ApplySpecializationPass>();
-}
-
-std::unique_ptr<mlir::Pass>
-cudaq::opt::createApplyOpSpecializationPass(bool computeActionOpt) {
-  return std::make_unique<ApplySpecializationPass>(computeActionOpt);
-}

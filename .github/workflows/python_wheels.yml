@@ -130,6 +130,7 @@ jobs:
         with:
           endpoint: builder_context
           version: v0.19.0
+          buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
@@ -262,8 +263,11 @@ jobs:
               fi
             done
 
+      # TODO: enable
+      # if: matrix.os_image == 'redhat/ubi9:9.2'
+      # once conda license issues are resolved
       - name: Run Python MPI tests
-        if: matrix.os_image == 'redhat/ubi9:9.2'
+        if: false
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local

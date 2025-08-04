@@ -230,6 +230,8 @@ public:
   // Stmt nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
+  bool TraverseDeclStmt(clang::DeclStmt *x, DataRecursionQueue *q = nullptr);
+
   bool VisitBreakStmt(clang::BreakStmt *x);
   bool TraverseCompoundStmt(clang::CompoundStmt *x,
                             DataRecursionQueue *q = nullptr);
@@ -280,6 +282,8 @@ public:
 
   bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr *x);
   bool VisitBinaryOperator(clang::BinaryOperator *x);
+  bool visitMathLibFunc(clang::CallExpr *x, clang::FunctionDecl *func,
+                        mlir::Location loc, llvm::StringRef funcName);
   bool VisitCallExpr(clang::CallExpr *x);
   bool TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
                                 DataRecursionQueue *q = nullptr);
@@ -345,6 +349,10 @@ public:
   bool VisitUnaryOperator(clang::UnaryOperator *x);
   bool VisitStringLiteral(clang::StringLiteral *x);
   bool VisitCXXScalarValueInitExpr(clang::CXXScalarValueInitExpr *x);
+  bool VisitUnaryExprOrTypeTraitExpr(clang::UnaryExprOrTypeTraitExpr *x);
+
+  bool TraverseCXXDefaultArgExpr(clang::CXXDefaultArgExpr *x,
+                                 DataRecursionQueue *q = nullptr);
 
   bool TraverseMemberExpr(clang::MemberExpr *x,
                           DataRecursionQueue *q = nullptr);
@@ -443,6 +451,12 @@ public:
   /// Coerce an float value, \p value, to be the same width as \p toTypey.
   mlir::Value floatingPointCoercion(mlir::Location loc, mlir::Type toType,
                                     mlir::Value value);
+
+  mlir::SmallVector<mlir::Value>
+  convertKernelArgs(mlir::Location loc, std::size_t dropFrontNum,
+                    const mlir::SmallVector<mlir::Value> &args,
+                    mlir::ArrayRef<mlir::Type> kernelArgTys,
+                    clang::CallExpr *x);
 
   /// Load the value referenced by an addressable value, if \p val is an address
   /// type. Otherwise, just returns \p val.
@@ -623,6 +637,9 @@ private:
   /// Stack of Types built by the visitor. (right-to-left ordering)
   llvm::SmallVector<mlir::Type> typeStack;
   llvm::DenseMap<clang::RecordType *, mlir::Type> records;
+  // Certain productions, such as template functions, may need to traverse and
+  // store an extra type, such as an argument.
+  mlir::Type extraType;
 
   // State Flags
   const bool tuplesAreReversed : 1;
@@ -708,8 +725,8 @@ public:
     /// pipelines which erase private declarations.
     void addFunctionDecl(const clang::FunctionDecl *funcDecl,
                          details::QuakeBridgeVisitor &visitor,
-                         mlir::FunctionType funcTy,
-                         mlir::StringRef devFuncName);
+                         mlir::FunctionType funcTy, mlir::StringRef devFuncName,
+                         bool isDecl);
 
   public:
     ASTBridgeConsumer(clang::CompilerInstance &compiler,

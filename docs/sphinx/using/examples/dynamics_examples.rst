@@ -2,7 +2,7 @@ CUDA-Q Dynamics
 ===============
 .. _dynamics_examples:
 
-Below are a number of examples that use CUDA-Q dynamics to simulate a range of fundamental physical systems and specific qubit modalities. All example problems simulate systems of very low dimension so that the code can be run quickly on any device. For small problems, the GPU will not provide a significant performance advantage over the CPU.  The GPU will start to outperform the CPU for cases where the total dimension of all subsystems is O(1000)
+The notebooks below contain groups of examples using CUDA-Q Dynamics.  The first two notebooks provide an introduction to CUDA-Q Dynamics appropriate for new users.
 
 Download the notebooks below here: https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics
 

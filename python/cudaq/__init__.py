@@ -24,6 +24,10 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
         cutensornet_libs = get_library_path(f"cutensornet-cu{cuda_major}")
         cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
 
+        cudensitymat_libs = get_library_path(f"cudensitymat-cu{cuda_major}")
+        cudensitymat_path = os.path.join(cudensitymat_libs,
+                                         "libcudensitymat.so.0")
+
         cutensor_libs = get_library_path(f"cutensor-cu{cuda_major}")
         cutensor_path = os.path.join(cutensor_libs, "libcutensor.so.2")
 
@@ -38,7 +42,7 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
                                        f"libnvrtc.so.{cuda_major}")
 
         os.environ[
-            "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}"
+            "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudensitymat_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}"
     except:
         import importlib.util
         package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
@@ -52,6 +56,7 @@ from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations
 from .runtime.sample import sample
 from .runtime.observe import observe
+from .runtime.run import run_async
 from .runtime.state import to_cupy
 from .kernel.register_op import register_operation
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -91,11 +96,15 @@ from .operators import custom as operators
 from .operators.definitions import *
 from .operators.manipulation import OperatorArithmetics
 import cudaq.operators.expressions  # needs to be imported, since otherwise e.g. evaluate is not defined
+from .operators.super_op import SuperOperator
 
 # Time evolution API
 from .dynamics.schedule import Schedule
 from .dynamics.evolution import evolve, evolve_async
 from .dynamics.integrators import *
+from .dynamics.helpers import IntermediateResultSave
+
+InitialStateType = cudaq_runtime.InitialStateType
 
 # Optimizers + Gradients
 optimizers = cudaq_runtime.optimizers
@@ -148,6 +157,8 @@ AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult
 vqe = cudaq_runtime.vqe
 draw = cudaq_runtime.draw
+get_unitary = cudaq_runtime.get_unitary
+run = cudaq_runtime.run
 translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG
 getSVGstring = display_trace.getSVGstring

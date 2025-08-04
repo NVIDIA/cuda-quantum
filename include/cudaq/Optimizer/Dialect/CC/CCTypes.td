@@ -295,4 +295,22 @@ def AnyStateInitLike : TypeConstraint<cc_PointerType.predicate,
                          "state initializer types">;
 def AnyStateInitType : Type<AnyStateInitLike.predicate, "initial state type">;
 
+def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
+
+class StdvecOf<list<Type> allowedTypes> : Type<
+    And<[IsStdvecTypePred, Concat<"[](::mlir::Type elementType) { return ",
+      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
+        "; }($_self.cast<::cudaq::cc::StdvecType>().getElementType())">]>,
+    "stdvec of " # AnyTypeOf<allowedTypes>.summary # " values",
+    "::cudaq::cc::StdvecType">;
+
+def IsPointerTypePred : CPred<"$_self.isa<::cudaq::cc::PointerType>()">;
+
+class PointerOf<list<Type> allowedTypes> : Type<
+    And<[IsPointerTypePred, Concat<"[](::mlir::Type elementType) { return ",
+      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
+        "; }($_self.cast<::cudaq::cc::PointerType>().getElementType())">]>,
+    "pointer of " # AnyTypeOf<allowedTypes>.summary # " values",
+    "::cudaq::cc::PointerType">;
+
 #endif // CUDAQ_DIALECT_CC_TYPES_TD

@@ -20,7 +20,7 @@ import numpy as np
 
 # Testing constants
 good_access_token = "Bearer good_access_token"
-server_qpu_architecture = "Apollo"
+server_qpu_architecture = "Crystal_20"
 operations = []  # TBA
 qubits = []  # TBA
 qubit_connectivity = []  # TBA
@@ -144,7 +144,7 @@ def _validate_measurements(job: Job, circuit: iqm_client.Circuit) -> bool:
 
 
 def _validate_connectivity(job: Job, circuit: iqm_client.Circuit) -> bool:
-    """C""check connectivity partially matches Apollo"""
+    """C""check connectivity partially matches Crystal_20"""
     qubit_pairs = [
         instruction.qubits
         for instruction in circuit.instructions

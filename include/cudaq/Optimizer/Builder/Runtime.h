@@ -57,6 +57,8 @@ static constexpr const char CudaqRegisterArgsCreator[] =
     "cudaqRegisterArgsCreator";
 static constexpr const char CudaqRegisterKernelName[] =
     "cudaqRegisterKernelName";
+static constexpr const char CudaqRegisterCallbackName[] =
+    "cudaqRegisterCallbackName";
 
 /// Prefix for an analog kernel entry functions.
 static constexpr const char cudaqAHKPrefixName[] =
@@ -76,4 +78,11 @@ static constexpr const char bindingInitializeString[] =
     "__nvqpp_initializeStringFromSpan";
 static constexpr const char bindingDeconstructString[] =
     "__nvqpp_deconstructString";
+static constexpr const char enableCudaqRun[] = "quake.cudaq_run";
+
+// Runtime layer of a `device_call` application.
+static constexpr const char callDeviceCallback[] =
+    "__nvqpp__device_callback_run";
+static constexpr const char extractDevPtr[] =
+    "__nvqpp__device_extract_device_ptr";
 } // namespace cudaq::runtime

@@ -9,10 +9,11 @@ This page contains a number of different applications implemented using CUDA-Q. 
 .. 2. Add an html block along with any tags
 .. 3. Add a preview image in the _static folder
 
+.. |:spellcheck-disable:| replace:: \
+
 .. toctree::
    :maxdepth: 1
    :hidden:
-
 
    /applications/python/qaoa
    /applications/python/digitized_counterdiabatic_qaoa
@@ -38,8 +39,13 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/edge_detection
    /applications/python/shors
    /applications/python/generate_fermionic_ham
+   /applications/python/grovers
+   /applications/python/quantum_pagerank
+   /applications/python/uccsd_wf_ansatz
+   /applications/python/mps_encoding
+   /applications/python/qm_mm_pe
 
-
+.. |:spellcheck-enable:| replace:: \
 
 .. raw:: html
 
@@ -52,6 +58,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
             <button class="tag-button" data-group="domain" data-tag="fundamental">Fundamental Algorithms</button>
             <button class="tag-button" data-group="domain" data-tag="aiforq">AI for Quantum</button>
             <button class="tag-button" data-group="domain" data-tag="qforai">Quantum for AI</button>
+            <button class="tag-button" data-group="domain" data-tag="dynamics">Dynamics</button>
             <button class="tag-button" data-group="domain" data-tag="collab">Community</button>
         </div>
         
@@ -260,14 +267,52 @@ This page contains a number of different applications implemented using CUDA-Q. 
         <img src="../_static/app_title_images/shors_preview.png" alt="Shors Algorithm" class="notebook-image">
     </div>    
 
-    <div class="notebook-entry" data-tags="chemistry,noisless">
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
         <a href="../applications/python/generate_fermionic_ham.html" class="notebook-title">Generating the Electronic Hamiltonian</a>
         <div class="notebook-content">
             Learn how to generate the electronic hamiltonian and convert it to qubit hamiltonian using CUDA-Q.
         </div>
         <img src="../_static/app_title_images/electronic-ham.png" alt="Electronic Hamiltonian" class="notebook-image">
     </div> 
+    <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
+        <a href="../applications/python/grovers.html" class="notebook-title">Grover's Algorithm</a>
+        <div class="notebook-content">
+            Learn how quantum computers can quadratically speed up searching through an unstructured database by amplifying the probability of finding the desired item.
+        </div>
+        <img src="../_static/app_title_images/grovers_preview.png" alt="DJ Preview" class="notebook-image">
+    </div>
 
+    <div class="notebook-entry" data-tags="dynamics,noiseless,gpu">
+        <a href="../applications/python/quantum_pagerank.html" class="notebook-title">Quantum Pagerank</a>
+        <div class="notebook-content">
+            Quantum stochastic walk using dynamic simulation demonstrated by the Quantum PageRank algorithm for social network analysis.
+        </div>
+        <img src="../_static/app_title_images/quantum_pagerank_preview.png" alt="Quantum Pagerank Preview" class="notebook-image">
+    </div> 
+
+    <div class="notebook-entry" data-tags="chemistry,noisless">
+        <a href="../applications/python/uccsd_wf_ansatz.html" class="notebook-title">UCCSD Wavefunction Ansatz</a>
+        <div class="notebook-content">
+            Learn how to implement the UCCSD wavefunction ansatz using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/uccsd.png" alt="UCCSD Wavefunction Ansatz" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="cpu,fundamental">
+        <a href="../applications/python/mps_encoding.html" class="notebook-title">MPS Sequential Encoding</a>
+        <div class="notebook-content">
+            Learn how to approximately prepare quantum states via MPS using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noisless">
+        <a href="../applications/python/qm_mm_pe.html" class="notebook-title">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a>
+        <div class="notebook-content">
+            Learn how to implement QM/MM with PE framework using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/qmmm-pe.png" alt="QM/MM partitioning in the PE model." class="notebook-image">
+    </div>
 
     <script>
     document.addEventListener("DOMContentLoaded", function() {

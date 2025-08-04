@@ -900,7 +900,7 @@ def test_state_capture():
 
 @skipIfNvidiaFP64NotInstalled
 def test_from_state0():
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     kernel, initState = cudaq.make_kernel(list[complex])
     qubits = kernel.qalloc(initState)
@@ -1396,7 +1396,7 @@ def test_u3_ctrl():
 @skipIfNvidiaFP64NotInstalled
 def test_builder_rotate_state():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     c = [0., 0., 0., 1.]
 
@@ -1442,6 +1442,17 @@ def test_issue_670():
     kernel.ry(0.1, qubits)
 
     cudaq.sample(kernel)
+
+
+def test_call_invalid_attribute_on_a_kernel():
+
+    with pytest.raises(AttributeError) as e:
+        kernel, op = cudaq.make_kernel(cudaq.pauli_word)
+        q = kernel.qalloc(2)
+        kernel.x(q[1])
+        kernel.op(q[0])
+        result = cudaq.sample(kernel, cudaq.pauli_word("X"))
+    assert "not supported on PyKernel" in str(e.value)
 
 
 # leave for gdb debugging

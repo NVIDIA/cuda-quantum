@@ -189,8 +189,11 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
         cublas_version=11.11 && \
+        cusparse_version=11.7 && \
         sed -i "s/-cu12/-cu11/g" pyproject.toml && \
+        sed -i "s/-cuda12/-cuda11/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cusparse-cu[0-9]* ~= )[0-9\.]*/\1${cusparse_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml; \
     fi && \
@@ -226,9 +229,11 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcublasLt.so.11 \
         --exclude libcurand.so.10 \
         --exclude libcusolver.so.11 \
+        --exclude libcusparse.so.11 \
         --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
+        --exclude libcudensitymat.so.0 \
         --exclude libcudart.so.11.0 \
         --exclude libnvToolsExt.so.1 \
         --exclude libnvidia-ml.so.1 \
@@ -263,7 +268,7 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 
 ## [Python MLIR tests]
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest scipy cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)~=25.03 && \
+    python3 -m pip install lit pytest scipy && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
@@ -301,13 +306,13 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         # The tests is marked correctly as requiring nvcc, but since nvcc
         # is available during the build we need to filter it manually.
         filtered=" --filter-out MixedLanguage/cuda-1"; \
-	filtered+="|AST-Quake/calling_convention"; \
+	filtered+="|AST-Quake/calling_convention|test_argument_conversion"; \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
         --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
-    filtered=" --filter-out Kernel/inline-qpu-func" && \
+    filtered=" --filter-out Kernel/inline-qpu-func|execution/vector_bool_parameters" && \
     if [ ! -x "$(command -v nvcc)" ]; then \
         filtered+="|TargetConfig/check_compile"; \
     fi && \
@@ -324,7 +329,8 @@ RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
         libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \
-        libcurand-devel-$(echo ${CUDA_VERSION} | tr . -) && \
+        libcurand-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcusparse-devel-$(echo ${CUDA_VERSION} | tr . -) && \
     if [ $(echo $CUDA_VERSION | cut -d "." -f1) -ge 12 ]; then \
         dnf install -y --nobest --setopt=install_weak_deps=False \
             libnvjitlink-$(echo ${CUDA_VERSION} | tr . -); \

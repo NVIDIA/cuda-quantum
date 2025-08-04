@@ -745,6 +745,90 @@ def test_apply_noise_builtin(target: str):
     cudaq.reset_target()
 
 
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_noise_observe_reset(target: str):
+    cudaq.set_target(target)
+    noise_model = cudaq.NoiseModel()
+    # Amplitude damping channel with `1.0` probability of the qubit
+    # decaying to the ground state.
+    amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
+
+    noise_model.add_all_qubit_channel('x', amplitude_damping)
+
+    test_x = cudaq.make_kernel()
+    qubit = test_x.qalloc(1)
+    test_x.x(qubit)
+
+    observable = cudaq.spin.z(0)
+    for i in range(10):
+        # Run this in a loop to check that noise model argument is isolated to each observe call.
+        result_noiseless = cudaq.observe(test_x, observable)
+        result_noisy = cudaq.observe(test_x,
+                                     observable,
+                                     noise_model=noise_model)
+        assert np.isclose(result_noiseless.expectation(), -1.)
+        assert np.isclose(result_noisy.expectation(), 1.)
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_get_channel(target: str):
+    cudaq.set_target(target)
+    noise_model = cudaq.NoiseModel()
+    # Amplitude damping channel with `1.0` probability of the qubit
+    # decaying to the ground state.
+    amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
+
+    noise_model.add_all_qubit_channel('x', amplitude_damping)
+
+    # Get the channel from the noise model for a specific gate and qubit
+    for iq in range(5):
+        channels = noise_model.get_channels('x', [iq])
+        assert len(channels) == 1
+        channel = channels[0]
+        assert channel.noise_type == cudaq.NoiseModelType.AmplitudeDampingChannel
+        assert len(channel.parameters) == 1
+        assert channel.parameters[0] == 1.0
+
+    noise_model.add_all_qubit_channel('x', amplitude_damping)
+    for iq in range(5):
+        channels = noise_model.get_channels('x', [iq])
+        assert len(channels) == 2
+        for channel in channels:
+            assert channel.noise_type == cudaq.NoiseModelType.AmplitudeDampingChannel
+            assert len(channel.parameters) == 1
+            assert channel.parameters[0] == 1.0
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_get_channel_with_control(target: str):
+    cudaq.set_target(target)
+    noise_model = cudaq.NoiseModel()
+    # Amplitude damping channel with `1.0` probability of the qubit
+    # decaying to the ground state.
+    depol2 = cudaq.Depolarization2(0.2)
+
+    noise_model.add_all_qubit_channel('x', depol2, num_controls=1)
+
+    # Get the channel from the noise model for a specific gate and adjacent qubit pairs
+    for iq in range(5):
+        channels = noise_model.get_channels('x', [iq], [iq + 1])
+        assert len(channels) == 1
+        channel = channels[0]
+        assert channel.noise_type == cudaq.NoiseModelType.Depolarization2
+        assert len(channel.parameters) == 1
+        assert channel.parameters[0] == 0.2
+
+    # Check syntactic sugar for all-qubit channel with control
+    noise_model.add_all_qubit_channel('cx', depol2)
+    for iq in range(5):
+        channels = noise_model.get_channels('x', [iq], [iq + 1])
+        assert len(channels) == 2
+        for channel in channels:
+            assert channel.noise_type == cudaq.NoiseModelType.Depolarization2
+            assert len(channel.parameters) == 1
+            assert channel.parameters[0] == 0.2
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

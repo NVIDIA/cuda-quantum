@@ -100,7 +100,8 @@ mlir::Type genArgumentBufferType(mlir::Type ty);
 ///
 /// The leading `startingArgIdx + 1` parameters are omitted from the struct.
 cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy,
-                                            std::size_t startingArgIdx = 0);
+                                            std::size_t startingArgIdx = 0,
+                                            bool packed = false);
 
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
@@ -171,6 +172,8 @@ inline mlir::Value createFloatConstant(mlir::Location loc,
 inline mlir::Value createFloatConstant(mlir::Location loc,
                                        mlir::OpBuilder &builder, double value,
                                        mlir::FloatType type) {
+  if (type == builder.getF32Type())
+    return createFloatConstant(loc, builder, llvm::APFloat((float)value), type);
   return createFloatConstant(loc, builder, llvm::APFloat(value), type);
 }
 

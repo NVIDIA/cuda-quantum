@@ -14,6 +14,8 @@ Operators
 
 .. doxygenclass:: cudaq::matrix_callback
 
+.. doxygenclass:: cudaq::diag_matrix_callback
+
 .. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
 
     Alias for a tuple containing vectors for complex values, indices, and sizes.
@@ -24,7 +26,13 @@ Operators
     - ``std::vector<std::size_t>``: Indices.
     - ``std::vector<std::size_t>``: Sizes.
 
+.. cpp:type:: mdiag_sparse_matrix = std::pair<std::vector<std::complex<double>>, std::vector<std::int64_t>>
+
+    Alias for a pair, in the multi-diagonal representation, containing vectors for complex values and diagonal offsets.  
+
 .. doxygenclass:: cudaq::operator_handler
+
+.. doxygenclass:: cudaq::mdiag_operator_handler
 
 .. doxygenclass:: cudaq::spin_handler
     :members:
@@ -119,6 +127,11 @@ Common
 .. doxygenfunction:: cudaq::sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args)
 .. doxygenfunction:: cudaq::sample(QuantumKernel &&kernel, Args&&... args)
 
+.. doxygenfunction:: cudaq::run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
+
 .. doxygenclass:: cudaq::SimulationState
 
 .. doxygenstruct:: cudaq::SimulationState::Tensor
@@ -154,8 +167,6 @@ Common
 
 .. doxygenfunction:: cudaq::range(ElementType total)
 .. doxygenfunction:: cudaq::range(ElementType begin, ElementType end, ElementType step)
-
-.. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenfunction:: cudaq::get_state(QuantumKernel &&kernel, Args&&... args)
 
@@ -317,13 +328,11 @@ Platform
 
 .. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
 
+.. doxygenclass:: cudaq::AnalogRemoteRESTQPU    
+
 .. doxygenclass:: cudaq::FermioniqBaseQPU
 
 .. doxygenclass:: cudaq::OrcaRemoteRESTQPU
-
-.. doxygenclass:: cudaq::PasqalBaseQPU
-
-.. doxygenclass:: cudaq::QuEraBaseQPU
 
 .. doxygenclass:: cudaq::quantum_platform
     :members:
@@ -353,6 +362,10 @@ Utilities
 .. doxygentypedef:: cudaq::real 
 
 .. doxygenfunction:: cudaq::range(std::size_t)
+
+.. doxygenfunction:: cudaq::contrib::draw(QuantumKernel &&kernel, Args&&... args)
+
+.. doxygenfunction:: cudaq::contrib::get_unitary_cmat(QuantumKernel &&kernel, Args&&... args)
     
 Namespaces 
 ===========
@@ -364,6 +377,9 @@ Namespaces
 .. doxygenfunction:: cudaq::set_random_seed
 .. doxygenfunction:: cudaq::set_noise
 .. doxygenfunction:: cudaq::unset_noise
+    
+.. doxygennamespace:: cudaq::contrib
+    :desc-only:
 
 .. doxygennamespace:: cudaq::details
     :desc-only:

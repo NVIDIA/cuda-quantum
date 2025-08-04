@@ -200,6 +200,19 @@ def StruqType : QuakeType<"Struq", "struq"> {
   ];
 }
 
+def CableType : QuakeType<"Cable", "cable"> {
+  let summary = "the type of a sequence of wires bound together";
+  let description = [{
+    This is the type of an aggregate of wire types. It is simply syntactic
+    sugar that allows a group of wires to be passed around as a single cable
+    value.
+  }];
+
+  let parameters = (ins "std::uint64_t":$size);
+
+  let assemblyFormat = "`<` $size `>`";
+}
+
 //===----------------------------------------------------------------------===//
 // MeasureType: classical data type
 //===----------------------------------------------------------------------===//
@@ -261,23 +274,5 @@ def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
         ControlType.predicate]>, "quake quantum value types">;
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
 def AnyQLinearType : Type<WireType.predicate, "linear quantum value type">;
-
-def IsStdvecTypePred : CPred<"isa<::cudaq::cc::StdvecType>($_self)">;
-
-class StdvecOf<list<Type> allowedTypes> : Type<
-    And<[IsStdvecTypePred, Concat<"[](::mlir::Type elementType) { return ",
-      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
-        "; }(cast<::cudaq::cc::StdvecType>($_self).getElementType())">]>,
-    "stdvec of " # AnyTypeOf<allowedTypes>.summary # " values",
-    "::cudaq::cc::StdvecType">;
-
-def IsPointerTypePred : CPred<"isa<::cudaq::cc::PointerType>($_self)">;
-
-class PointerOf<list<Type> allowedTypes> : Type<
-    And<[IsPointerTypePred, Concat<"[](::mlir::Type elementType) { return ",
-      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
-        "; }(cast<::cudaq::cc::PointerType>($_self).getElementType())">]>,
-    "pointer of " # AnyTypeOf<allowedTypes>.summary # " values",
-    "::cudaq::cc::PointerType">;
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES

@@ -105,7 +105,7 @@ dependencies:
   - jupyter-lsp=2.2.5
   - jupyter_client=8.6.3
   - jupyter_console=6.6.3
-  - jupyter_core=5.7.2
+  - jupyter_core=5.8.1
   - jupyter_events=0.11.0
   - jupyter_server=2.15.0
   - jupyter_server_terminals=0.5.3
@@ -289,7 +289,7 @@ dependencies:
   - torchaudio=2.5.1
   - torchtriton=3.1.0
   - torchvision=0.20.1
-  - tornado=6.4.2
+  - tornado=6.5
   - tqdm=4.67.1
   - traitlets=5.14.3
   - types-python-dateutil=2.9.0.20241206

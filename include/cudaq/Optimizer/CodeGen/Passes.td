@@ -231,7 +231,7 @@ def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
       "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
-      "mlir::LLVM::LLVMDialect"];
+      "mlir::LLVM::LLVMDialect", "cudaq::codegen::CodeGenDialect"];
 
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
@@ -248,7 +248,7 @@ def QuakeToQIRAPIFinal : Pass<"quake-to-qir-api-final", "mlir::ModuleOp"> {
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
       "mlir::cf::ControlFlowDialect", "mlir::func::FuncDialect",
-      "mlir::LLVM::LLVMDialect"];
+      "mlir::LLVM::LLVMDialect", "cudaq::codegen::CodeGenDialect"];
 
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
@@ -269,6 +269,20 @@ def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
     Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
            "Use opaque pointers.">
   ];
+}
+
+def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
+  let summary = "Convert a kernel to be compatible with cudaq::run().";
+  let description = [{
+    When the target supports the cudaq::run() launch function, the kernel's
+    return value(s) are translated into QIR output logging functions. This
+    conversion allows the kernel to be executed as a group of shots on the QPU
+    and a log file produced for the data produced by each kernel execution.
+    Effectively, this allows for the benefit of running the kernel as a batch
+    of executions and eliminating the overhead of executing the kernel one at
+    a time with all the interprocessor overhead.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 }
 
 

@@ -450,7 +450,7 @@ void printRawString(OpAsmPrinter &printer, OP refOp, Value stringVal,
 
 void quake::ExpPauliOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                     MLIRContext *context) {
-  patterns.add<AdjustAdjointExpPauliPattern>(context);
+  patterns.add<BindExpPauliWord, AdjustAdjointExpPauliPattern>(context);
 }
 
 LogicalResult quake::ExpPauliOp::verify() {
@@ -726,6 +726,19 @@ LogicalResult quake::DiscriminateOp::verify() {
   return success();
 }
 
+LogicalResult quake::BundleCableOp::verify() {
+  auto ty = cast<quake::CableType>(getResult().getType());
+  if (getWires().size() != ty.getSize())
+    return emitOpError("the bundle type size must equal the arity.");
+  return success();
+}
+
+LogicalResult quake::TerminateCableOp::verify() {
+  if (getResults().size() != getCable().getType().getSize())
+    return emitOpError("the bundle type size must equal the coarity.");
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // WireSetOp
 //===----------------------------------------------------------------------===//
@@ -969,9 +982,9 @@ bool cudaq::EnableInlinerInterface::isLegalToInline(Operation *call,
   if (auto applyOp = dyn_cast<quake::ApplyOp>(call))
     if (applyOp.applyToVariant())
       return false;
-  if (auto destFunc = call->getParentOfType<mlir::func::FuncOp>())
+  if (auto destFunc = call->getParentOfType<func::FuncOp>())
     if (destFunc.getName().ends_with(".thunk"))
-      if (auto srcFunc = call->getParentOfType<mlir::func::FuncOp>())
+      if (auto srcFunc = dyn_cast<func::FuncOp>(callable))
         return !(srcFunc->hasAttr(cudaq::entryPointAttrName));
   return true;
 }

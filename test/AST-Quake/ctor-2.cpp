@@ -36,7 +36,7 @@ void S2::operator()(bool b) {
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<"S2" {} [8,1]>
-// CHECK:           call @_ZN2S2C1Ev(%[[VAL_3]]) : (!cc.ptr<!cc.struct<"S2" {} [8,1]>>) -> ()
+// CHECK-NOT:       call @_ZN2S2C1Ev
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i1>
 // CHECK:           call @_ZN2S2clEb(%[[VAL_4]]) : (i1) -> ()
 // CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
@@ -52,7 +52,7 @@ void S2::operator()(bool b) {
 // CHECK:           return
 // CHECK:         }
 
-// CHECK:         func.func private @_ZN2S2C1Ev(!cc.ptr<!cc.struct<"S2" {} [8,1]>>)
+// CHECK-NOT:     func.func private @_ZN2S2C1Ev
 // CHECK:         func.func private @_ZN2S2clEb(i1)
 
 // CHECK:         func.func @_ZN2S1clEb(
