@@ -21,7 +21,7 @@ import numpy as np
 
 # Testing constants
 good_access_token = "Bearer good_access_token"
-server_qpu_architecture = "Apollo"
+server_qpu_architecture = "Crystal_20"
 operations = []  # TBA
 qubits = [
     "QB1", "QB2", "QB3", "QB4", "QB5",
