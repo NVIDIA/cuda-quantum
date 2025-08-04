@@ -41,6 +41,8 @@ header:
     - 'include/cudaq/Optimizer/CodeGen/OptUtils.h'
     - 'lib/Optimizer/CodeGen/OptUtils.cpp'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
+    - 'flake.nix'
+    - 'flake.lock'
 
   comment: on-failure
 
