@@ -580,6 +580,9 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
   auto loc = toLocation(x);
   auto intToIntCast = [&](Location locSub, Value mlirVal) {
     clang::QualType srcTy = x->getSubExpr()->getType();
+    // Check for and handle reference to integer cases.
+    if (isa<cudaq::cc::PointerType>(mlirVal.getType()))
+      mlirVal = builder.create<cudaq::cc::LoadOp>(loc, mlirVal);
     return pushValue(integerCoercion(locSub, srcTy, castToTy, mlirVal));
   };
 
