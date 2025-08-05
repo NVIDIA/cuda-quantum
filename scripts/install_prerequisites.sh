@@ -400,7 +400,7 @@ fi
 
 # Please do include any additional third-party libraries here that will be added to the .gitmodules file.
 if [ "$keep_sources" = true ]; then
-  echo "Downloading additional third-party libraries into $tpls_dir..."
+  echo "Cloning additional third-party libraries into $tpls_dir..."
   mkdir -p "$tpls_dir"
   cd "$tpls_dir"
 
