@@ -440,7 +440,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF">Generate the electronic Hamiltonian using ROHF</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="grovers.html">Grover’s Algorithm</a><ul>
@@ -952,10 +955,10 @@ state vector.</p>
 <h2>Setup<a class="headerlink" href="#Setup" title="Permalink to this heading">¶</a></h2>
 <p>This cell installs the necessary packages.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">pip</span> install cppe pyscf
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">pip</span> install pyscf
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">scipy</span>
@@ -1023,7 +1026,7 @@ overwrite output file: H 0-pyscf.log
 [pyscf] Total number of orbitals =  2
 [pyscf] Total number of electrons =  2
 [pyscf] HF energy =  -1.116325564486115
-[pyscf] Total R-CCSD energy =  -1.1371758844013329
+[pyscf] Total R-CCSD energy =  -1.1371758844013342
 Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  3
 </pre></div></div>
 </div>
@@ -1063,7 +1066,7 @@ Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[(-0.10647701149300504+0j), (0.17028010135220506+0j), (0.17028010135220503+0j), (-0.2200413002242175+0j), (-0.2200413002242175+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
+[(-0.10647701149300526+0j), (0.17028010135220517+0j), (0.17028010135220514+0j), (-0.22004130022421745+0j), (-0.22004130022421745+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
 [&#39;IIII&#39;, &#39;ZIII&#39;, &#39;IZII&#39;, &#39;IIZI&#39;, &#39;IIIZ&#39;, &#39;ZZII&#39;, &#39;ZIZI&#39;, &#39;ZIIZ&#39;, &#39;IZZI&#39;, &#39;IZIZ&#39;, &#39;IIZZ&#39;, &#39;XXYY&#39;, &#39;XYYX&#39;, &#39;YXXY&#39;, &#39;YYXX&#39;]
 </pre></div></div>
 </div>
