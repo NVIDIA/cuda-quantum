@@ -16,15 +16,15 @@
 # bash install_prerequisites.sh
 #
 # For the libraries LLVM, BLAS, ZLIB, OPENSSL, CURL, CUQUANTUM, CUTENSOR, if the
-# library is not found the location defined by the corresponding environment variable 
-# *_INSTALL_PREFIX, it will be built from source and installed that location.
+# library is not found in the location defined by the corresponding environment variable
+# *_INSTALL_PREFIX, it will be built from source and installed in that location.
 # If the LLVM libraries are built from source, the environment variable LLVM_PROJECTS
 # can be used to customize which projects are built, and pybind11 will be built and 
 # installed in the location defined by PYBIND11_INSTALL_PREFIX if necessary.
 # The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler 
 # is installed. 
 # 
-# By default, all prerequisites as outlines above are installed even if the
+# By default, all prerequisites outlined above are installed even if the
 # corresponding *_INSTALL_PREFIX is not defined. The command line flag -m changes
 # that behavior to only install the libraries for which this variable is defined.
 # A compiler toolchain, cmake, and ninja will be installed unless the the -m flag 
@@ -423,11 +423,14 @@ if [ "$keep_sources" = true ]; then
 
   for lib in "${!third_party_libs[@]}"; do
     url="${third_party_libs[$lib]}"
-    filename="${lib}.tar.gz"
-    echo "Downloading $lib from $url..."
-    wget "$url" -O "$filename"
-    tar -xzvf "$filename"
-    rm -rf "$filename"
+    dest_dir="$tpls_dir/$lib"
+
+    if [ ! -d "$dest_dir" ]; then
+      echo "Cloning $lib from $url into $dest_dir..."
+      git clone --depth 1 "$url" "$dest_dir" || echo "Failed to clone $lib from $url"
+    else
+      echo "$lib already exists in $dest_dir, skipping clone."
+    fi
   done
 fi
 
