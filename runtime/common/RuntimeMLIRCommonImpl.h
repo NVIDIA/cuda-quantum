@@ -440,7 +440,7 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
           if (!isValidIntExtension && !isValidFloatExtension &&
               !isValidOutputCall) {
             llvm::errs() << "error - invalid instruction found: " << inst
-                << '\n';
+                         << '\n';
             if (!allowAllInstructions)
               return mlir::failure();
           }

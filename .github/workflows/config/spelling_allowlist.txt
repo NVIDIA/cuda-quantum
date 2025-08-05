@@ -313,6 +313,7 @@ runtimes
 rvalue
 scalability
 scalable
+selectable
 sexualized
 shifter
 shifters
