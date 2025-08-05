@@ -8,17 +8,25 @@
 
 #pragma once
 
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/OwningOpRef.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
+
+#include <map>
 #include <memory>
 
 namespace mlir {
 class MLIRContext;
-class ExecutionEngine;
-class ModuleOp;
+class PassManager;
 } // namespace mlir
 
 namespace llvm {
 class Module;
+}
+
+namespace cudaq::config {
+class TargetConfig;
 }
 
 namespace cudaq {

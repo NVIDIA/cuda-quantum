@@ -115,6 +115,63 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
       }
 }
 
+static bool isValidIntegerArithmeticInstruction(llvm::Instruction &inst) {
+  // Not a valid adaptive profile instruction
+  // Check if it's in the extended instruction set
+  const auto isValidIntegerBinaryInst = [](const auto &inst) {
+    if (!llvm::isa<llvm::BinaryOperator>(inst))
+      return false;
+    const auto opCode = inst.getOpcode();
+    static const std::vector<int> integerOps = {
+        llvm::BinaryOperator::Add,  llvm::BinaryOperator::Sub,
+        llvm::BinaryOperator::Mul,  llvm::BinaryOperator::UDiv,
+        llvm::BinaryOperator::SDiv, llvm::BinaryOperator::URem,
+        llvm::BinaryOperator::SRem, llvm::BinaryOperator::And,
+        llvm::BinaryOperator::Or,   llvm::BinaryOperator::Xor,
+        llvm::BinaryOperator::Shl,  llvm::BinaryOperator::LShr,
+        llvm::BinaryOperator::AShr};
+    return std::find(integerOps.begin(), integerOps.end(), opCode) !=
+           integerOps.end();
+  };
+
+  return isValidIntegerBinaryInst(inst) || llvm::isa<llvm::ICmpInst>(inst) ||
+         llvm::isa<llvm::ZExtInst>(inst) || llvm::isa<llvm::SExtInst>(inst) ||
+         llvm::isa<llvm::TruncInst>(inst) ||
+         llvm::isa<llvm::SelectInst>(inst) || llvm::isa<llvm::PHINode>(inst);
+}
+
+static bool isValidFloatingArithmeticInstruction(llvm::Instruction &inst) {
+  const auto isValidFloatBinaryInst = [](const auto &inst) {
+    if (!llvm::isa<llvm::BinaryOperator>(inst))
+      return false;
+    const auto opCode = inst.getOpcode();
+    static const std::vector<int> floatOps = {
+        llvm::BinaryOperator::FAdd, llvm::BinaryOperator::FSub,
+        llvm::BinaryOperator::FMul, llvm::BinaryOperator::FDiv,
+        llvm::Instruction::FRem};
+    return std::find(floatOps.begin(), floatOps.end(), opCode) !=
+           floatOps.end();
+  };
+
+  return isValidFloatBinaryInst(inst) || llvm::isa<llvm::FCmpInst>(inst) ||
+         llvm::isa<llvm::FPExtInst>(inst) || llvm::isa<llvm::FPTruncInst>(inst);
+}
+
+static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
+  // Not a valid adaptive profile instruction
+  // Check if it's an record output call.
+  if (auto *call = dyn_cast<llvm::CallBase>(&inst)) {
+    auto name = call->getCalledFunction()->getName().str();
+    std::vector<const char *> outputFunctions{
+        cudaq::opt::QIRBoolRecordOutput, cudaq::opt::QIRIntegerRecordOutput,
+        cudaq::opt::QIRDoubleRecordOutput, cudaq::opt::QIRTupleRecordOutput,
+        cudaq::opt::QIRArrayRecordOutput};
+    return std::find(outputFunctions.begin(), outputFunctions.end(),
+                     name.c_str()) == outputFunctions.end();
+  }
+  return false;
+}
+
 // Once a call to a function with irreversible attribute is seen, no more calls
 // to reversible functions are allowed. This is somewhat of an implied
 // specification because the specification describes the program in terms of 4
@@ -309,7 +366,6 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                                            bool integerComputations,
                                            bool floatComputations) {
   bool isAdaptiveProfile = !isBaseProfile;
-  bool allowAllInstructions = getEnvBool("QIR_ALLOW_ALL_INSTRUCTIONS", false);
   for (llvm::Function &func : *llvmModule)
     for (llvm::BasicBlock &block : func)
       for (llvm::Instruction &inst : block) {
@@ -324,58 +380,31 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         // instructions/capabilities can be enabled in the target config. For
         // example, `qir-adaptive[int_computations]` to allow integer
         // computation instructions.
+        const bool allow_all_instructions =
+            getEnvBool("QIR_ALLOW_ALL_INSTRUCTIONS", false);
         bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
         if (isBaseProfile && !isValidBaseProfileInstruction) {
-          llvm::errs() << "error - invalid instruction found: " << inst << '\n';
-          if (!allowAllInstructions)
+          llvm::errs()
+              << "error - invalid instruction found in base QIR profile: "
+              << inst << '\n';
+          if (!allow_all_instructions)
             return mlir::failure();
         } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
           // Not a valid adaptive profile instruction
           // Check if it's in the extended instruction set
-          const auto isValidIntegerBinaryInst = [](const auto &inst) {
-            if (!llvm::isa<llvm::BinaryOperator>(inst))
-              return false;
-            const auto opCode = inst.getOpcode();
-            static const std::vector<int> integerOps = {
-                llvm::BinaryOperator::Add,  llvm::BinaryOperator::Sub,
-                llvm::BinaryOperator::Mul,  llvm::BinaryOperator::UDiv,
-                llvm::BinaryOperator::SDiv, llvm::BinaryOperator::URem,
-                llvm::BinaryOperator::SRem, llvm::BinaryOperator::And,
-                llvm::BinaryOperator::Or,   llvm::BinaryOperator::Xor,
-                llvm::BinaryOperator::Shl,  llvm::BinaryOperator::LShr,
-                llvm::BinaryOperator::AShr};
-            return std::find(integerOps.begin(), integerOps.end(), opCode) !=
-                   integerOps.end();
-          };
-
           const bool isValidIntExtension =
-              integerComputations && (isValidIntegerBinaryInst(inst) ||
-                                      llvm::isa<llvm::ICmpInst>(inst) ||
-                                      llvm::isa<llvm::ZExtInst>(inst) ||
-                                      llvm::isa<llvm::SExtInst>(inst) ||
-                                      llvm::isa<llvm::TruncInst>(inst) ||
-                                      llvm::isa<llvm::SelectInst>(inst) ||
-                                      llvm::isa<llvm::PHINode>(inst));
-
-          const auto isValidFloatBinaryInst = [](const auto &inst) {
-            if (!llvm::isa<llvm::BinaryOperator>(inst))
-              return false;
-            const auto opCode = inst.getOpcode();
-            static const std::vector<int> floatOps = {
-                llvm::BinaryOperator::FAdd, llvm::BinaryOperator::FSub,
-                llvm::BinaryOperator::FMul, llvm::BinaryOperator::FDiv};
-            return std::find(floatOps.begin(), floatOps.end(), opCode) !=
-                   floatOps.end();
-          };
+              integerComputations && isValidIntegerArithmeticInstruction(inst);
 
           const bool isValidFloatExtension =
-              floatComputations && (isValidFloatBinaryInst(inst) ||
-                                    llvm::isa<llvm::FPExtInst>(inst) ||
-                                    llvm::isa<llvm::FPTruncInst>(inst));
-          if (!isValidIntExtension && !isValidFloatExtension) {
-            llvm::errs() << "error - invalid instruction found: " << inst
-                         << '\n';
-            if (!allowAllInstructions)
+              floatComputations && isValidFloatingArithmeticInstruction(inst);
+
+          const bool isValidOutputCall = isValidOutputCallInstruction(inst);
+          if (!isValidIntExtension && !isValidFloatExtension &&
+              !isValidOutputCall) {
+            llvm::errs()
+                << "error - invalid instruction found in adaptive QIR profile: "
+                << inst << '\n';
+            if (!allow_all_instructions)
               return mlir::failure();
           }
         }
@@ -390,9 +419,10 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                 constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
                 constExpr->getOpcode() != llvm::Instruction::IntToPtr &&
                 constExpr->getOpcode() != llvm::Instruction::BitCast) {
-              llvm::errs() << "error - invalid instruction found: "
-                           << *constExpr << '\n';
-              if (!allowAllInstructions)
+              llvm::errs()
+                  << "error - invalid instruction found in QIR profile: "
+                  << *constExpr << '\n';
+              if (!allow_all_instructions)
                 return mlir::failure();
             }
           }

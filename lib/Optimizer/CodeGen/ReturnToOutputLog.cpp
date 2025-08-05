@@ -28,6 +28,25 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
+// WARNING: This code is enabled under the special pass option
+// `erase-all-result-record-calls=1`.  For the demo, this option can be used to
+// have the compiler erase calls to `__quantum__rt__result_record_output`. No
+// checking is performed and correctness is obviously not guaranteed.  As such,
+// enabling this hack in a pipeline should be viewed with healthy skepticism.
+class EraseResultRecordCalls : public OpRewritePattern<func::CallOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(func::CallOp call,
+                                PatternRewriter &rewriter) const override {
+    if (call.getCallee() == cudaq::opt::QIRRecordOutput) {
+      rewriter.eraseOp(call);
+      return success();
+    }
+    return failure();
+  }
+};
+
 class ReturnRewrite : public OpRewritePattern<func::ReturnOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -237,6 +256,8 @@ struct ReturnToOutputLogPass
 
     RewritePatternSet patterns(ctx);
     patterns.insert<ReturnRewrite>(ctx);
+    if (!module->hasAttr(cudaq::runtime::enableCudaqRun))
+      patterns.insert<EraseResultRecordCalls>(ctx);
     LLVM_DEBUG(llvm::dbgs() << "Before return to output logging:\n" << module);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();

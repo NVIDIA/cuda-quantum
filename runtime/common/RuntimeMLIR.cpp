@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "RuntimeMLIR.h"
+#include "ThunkInterface.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -16,6 +17,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/InitAllPasses.h"
+#include "cudaq/Support/TargetConfig.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/MC/SubtargetFeature.h"
@@ -91,6 +93,22 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
   context->loadAllAvailableDialects();
   registerLLVMDialectTranslation(*context);
   return context;
+}
+
+std::optional<std::string> getEntryPointName(OwningOpRef<ModuleOp> &module) {
+  std::string name;
+  module->walk([&name](mlir::func::FuncOp op) {
+    if (op.getName().endswith(".thunk")) {
+      name = op.getName();
+      return mlir::WalkResult::interrupt();
+    }
+    return mlir::WalkResult::advance();
+  });
+
+  if (!name.empty())
+    return name;
+
+  return std::nullopt;
 }
 
 } // namespace cudaq
