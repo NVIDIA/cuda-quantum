@@ -12,7 +12,6 @@ except ValueError:
     print('PySCF should be installed. Use pip install pyscf')
 
 from pyscf.tools import molden
-from qchem.cppe_lib import PolEmbed
 
 #######################################################
 # Generate the spin molecular orbital hamiltonian
@@ -163,7 +162,7 @@ def get_mol_hamiltonian(xyz:str, spin:int, charge: int, basis:str, symmetry:bool
         myhf.init_guess = initguess
         myhf.kernel()
 
-        norb = myhf.mo_coeff[0].shape[1]
+        norb = myhf.mo_coeff[0].shape[0]
         if verbose:
             print('[pyscf] Total number of orbitals = ', norb)
 
@@ -412,6 +411,9 @@ def get_mol_pe_hamiltonian(xyz:str, potfile:str, spin:int, charge: int, basis:st
                        initguess:str='minao', nele_cas=None, norb_cas=None, MP2:bool=False, natorb:bool=False, casci:bool=False, \
                         ccsd:bool=False, casscf:bool=False, integrals_natorb:bool=False, integrals_casscf:bool=False, verbose:bool=False):
 
+
+    from qchem.cppe_lib import PolEmbed
+    
     if spin != 0:
         print(
             'WARN: UHF is not implemented yet for PE model. RHF & ROHF are only supported.'
