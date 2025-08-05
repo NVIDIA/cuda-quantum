@@ -704,7 +704,7 @@ index pair.
           return pyGetStateRemote(kernel, args);
         if (holder.getTarget().name == "orca-photonics")
           return pyGetStateLibraryMode(kernel, args);
-        if (holder.getTarget().is_remote() || holder.getTarget().is_emulated())
+        if (cudaq::is_remote_platform() || cudaq::is_emulated_platform())
           return pyGetStateQPU(kernel, args);
         return pyGetState(kernel, args);
       },
