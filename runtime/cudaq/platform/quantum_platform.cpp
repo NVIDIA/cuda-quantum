@@ -87,15 +87,20 @@ void quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
 void quantum_platform::set_current_qpu(const std::size_t device_id) {
   if (device_id >= platformNumQPUs) {
     throw std::invalid_argument(
-        "QPU device id is not valid (greater than number of available QPUs).");
+        "QPU device id " + std::to_string(device_id) +
+        " is not valid (greater than number of available QPUs: " +
+        std::to_string(platformNumQPUs) + ").");
   }
-  platformCurrentQPU = device_id;
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  auto iter = threadToQpuId.find(tid);
-  if (iter != threadToQpuId.end())
-    iter->second = device_id;
-  else
-    threadToQpuId.emplace(tid, device_id);
+  {
+    std::unique_lock lock(threadToQpuIdMutex);
+    platformCurrentQPU = device_id;
+    auto iter = threadToQpuId.find(tid);
+    if (iter != threadToQpuId.end())
+      iter->second = device_id;
+    else
+      threadToQpuId.emplace(tid, device_id);
+  }
 }
 
 std::size_t quantum_platform::get_current_qpu() { return platformCurrentQPU; }
@@ -148,9 +153,12 @@ void quantum_platform::launchVQE(const std::string kernelName,
   std::size_t qpu_id = 0;
 
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  auto iter = threadToQpuId.find(tid);
-  if (iter != threadToQpuId.end())
-    qpu_id = iter->second;
+  {
+    std::shared_lock lock(threadToQpuIdMutex);
+    auto iter = threadToQpuId.find(tid);
+    if (iter != threadToQpuId.end())
+      qpu_id = iter->second;
+  }
 
   auto &qpu = platformQPUs[qpu_id];
   qpu->launchVQE(kernelName, kernelArgs, gradient, H, optimizer, n_params,
@@ -171,10 +179,12 @@ KernelThunkResultType quantum_platform::launchKernel(
   std::size_t qpu_id = 0;
 
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  auto iter = threadToQpuId.find(tid);
-  if (iter != threadToQpuId.end())
-    qpu_id = iter->second;
-
+  {
+    std::shared_lock lock(threadToQpuIdMutex);
+    auto iter = threadToQpuId.find(tid);
+    if (iter != threadToQpuId.end())
+      qpu_id = iter->second;
+  }
   auto &qpu = platformQPUs[qpu_id];
   return qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize,
                            resultOffset, rawArgs);
@@ -185,10 +195,12 @@ void quantum_platform::launchKernel(std::string kernelName,
   std::size_t qpu_id = 0;
 
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  auto iter = threadToQpuId.find(tid);
-  if (iter != threadToQpuId.end())
-    qpu_id = iter->second;
-
+  {
+    std::shared_lock lock(threadToQpuIdMutex);
+    auto iter = threadToQpuId.find(tid);
+    if (iter != threadToQpuId.end())
+      qpu_id = iter->second;
+  }
   auto &qpu = platformQPUs[qpu_id];
   qpu->launchKernel(kernelName, rawArgs);
 }
@@ -199,10 +211,12 @@ void quantum_platform::launchSerializedCodeExecution(
   std::size_t qpu_id = 0;
 
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  auto iter = threadToQpuId.find(tid);
-  if (iter != threadToQpuId.end())
-    qpu_id = iter->second;
-
+  {
+    std::shared_lock lock(threadToQpuIdMutex);
+    auto iter = threadToQpuId.find(tid);
+    if (iter != threadToQpuId.end())
+      qpu_id = iter->second;
+  }
   auto &qpu = platformQPUs[qpu_id];
   qpu->launchSerializedCodeExecution(name, serializeCodeExecutionObject);
 }

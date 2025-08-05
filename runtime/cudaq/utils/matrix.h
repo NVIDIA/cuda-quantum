@@ -23,20 +23,9 @@ template <typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_,
 class Matrix;
 } // namespace Eigen
 
-namespace pybind11 {
-class module_;
-template <typename T, int ExtraFlags>
-class array_t;
-} // namespace pybind11
-
 namespace cudaq {
 
 class complex_matrix;
-
-namespace details {
-pybind11::array_t<std::complex<double>, 0x0010>
-cmat_to_numpy(const complex_matrix &cmat);
-} // namespace details
 
 complex_matrix operator*(const complex_matrix &, const complex_matrix &);
 std::vector<std::complex<double>>
@@ -62,29 +51,39 @@ public:
   using EigenMatrix =
       Eigen::Matrix<value_type, -1, -1, 0x1, -1, -1>; // row major
 
+  enum class order { row_major, column_major };
+
   complex_matrix() = default;
 
   // Instantiates a matrix of the given size.
   // All entries are set to zero by default.
-  complex_matrix(std::size_t rows, std::size_t cols, bool set_zero = true)
+  complex_matrix(std::size_t rows, std::size_t cols, bool set_zero = true,
+                 order order = order::row_major)
       : dimensions(std::make_pair(rows, cols)),
-        data{new value_type[rows * cols]} {
+        data{new value_type[rows * cols]}, internal_order(order) {
     if (set_zero)
       this->set_zero();
   }
 
   complex_matrix(const complex_matrix &other)
       : dimensions{other.dimensions},
-        data{new value_type[get_size(other.dimensions)]} {
+        data{new value_type[get_size(other.dimensions)]},
+        internal_order(other.internal_order) {
     std::copy(other.data, other.data + get_size(dimensions), data);
   }
+
+  complex_matrix(const complex_matrix &other, order order);
+
   complex_matrix(complex_matrix &&other)
-      : dimensions{other.dimensions}, data{other.data} {
+      : dimensions{other.dimensions}, data{other.data},
+        internal_order(other.internal_order) {
     other.data = nullptr;
   }
+
   complex_matrix(const std::vector<value_type> &v,
-                 const Dimensions &dim = {2, 2})
-      : dimensions{dim}, data{new value_type[get_size(dim)]} {
+                 const Dimensions &dim = {2, 2}, order order = order::row_major)
+      : dimensions{dim}, data{new value_type[get_size(dim)]},
+        internal_order(order) {
     check_size(v.size(), dimensions);
     std::copy(v.begin(), v.begin() + get_size(dimensions), data);
   }
@@ -93,6 +92,7 @@ public:
     dimensions = other.dimensions;
     data = new value_type[get_size(other.dimensions)];
     std::copy(other.data, other.data + get_size(dimensions), data);
+    internal_order = other.internal_order;
     return *this;
   }
 
@@ -100,6 +100,7 @@ public:
     dimensions = other.dimensions;
     data = other.data;
     other.data = nullptr;
+    internal_order = other.internal_order;
     return *this;
   }
 
@@ -207,15 +208,13 @@ public:
 
   const EigenMatrix as_eigen() const;
 
-  // 0x0010 is the default flags for pybind11::array_t
-  friend pybind11::array_t<std::complex<double>, 0x0010>
-  cudaq::details::cmat_to_numpy(const complex_matrix &cmat);
-  friend void bindComplexMatrix(pybind11::module_ &mod);
+  complex_matrix::value_type *get_data(order order);
 
 private:
-  complex_matrix(const complex_matrix::value_type *v,
-                 const Dimensions &dim = {2, 2})
-      : dimensions{dim}, data{new complex_matrix::value_type[get_size(dim)]} {
+  complex_matrix(const complex_matrix::value_type *v, const Dimensions &dim,
+                 order order)
+      : dimensions{dim}, data{new complex_matrix::value_type[get_size(dim)]},
+        internal_order(order) {
     auto size = get_size(dimensions);
     std::copy(v, v + size, data);
   }
@@ -241,6 +240,7 @@ private:
 
   Dimensions dimensions = {};
   complex_matrix::value_type *data = nullptr;
+  complex_matrix::order internal_order = complex_matrix::order::row_major;
 };
 
 //===----------------------------------------------------------------------===//
