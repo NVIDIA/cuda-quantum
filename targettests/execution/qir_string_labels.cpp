@@ -37,4 +37,5 @@ int main() {
 // CHECK-SAME:    () local_unnamed_addr #[[ATTR_1:[0-9]+]] {
 // QUANTINUUM:         call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([14 x i8], [14 x i8]* @cstr.[[ADDRESS]], i64 0, i64 0))
 // IONQ:         tail call void @__quantum__qis__x__body(
-// CHECK:     attributes #[[ATTR_1]] = { "entry_point" {{.*}}"qir_profiles"="{{.*}}_profile" "requiredQubits"="1" "requiredQubits"="1" }
+// CHECK:     attributes #[[ATTR_1]] = { "entry_point" {{.*}}"qir_profiles"="{{.*}}_profile" "requiredQubits"="1" "requiredResults"="1" }
+

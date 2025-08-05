@@ -79,6 +79,14 @@ def getKernelFunction(module):
     return None
 
 
+def getNumRequiredQubits(function):
+    for a in function.attributes:
+        if "requiredQubits" in str(a):
+            return int(
+                str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
+
+
 # Here we expose a way to post jobs,
 # Must have a Access Token, Job Program must be Adaptive Profile
 # with entry_point tag

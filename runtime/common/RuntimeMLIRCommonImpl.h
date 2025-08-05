@@ -26,9 +26,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
-#include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/Operator.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Base64.h"
@@ -88,7 +86,7 @@ void optimizeLLVM(llvm::Module *module) {
   // sometimes applies it to degenerate cases (empty programs), and IonQ cannot
   // support that.
   for (llvm::Function &func : *module)
-    if (func.hasFnAttribute(cudaq::opt::QIREntryPointAttrName))
+    if (func.hasFnAttribute("entry_point"))
       func.removeFnAttr(llvm::Attribute::Memory);
 }
 
@@ -263,8 +261,7 @@ verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
         if (callInst && callInst->getCalledFunction()) {
           auto calledFunc = callInst->getCalledFunction();
           auto funcName = calledFunc->getName();
-          bool isIrreversible =
-              calledFunc->hasFnAttribute(cudaq::opt::QIRIrreversibleFlagName);
+          bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
           bool isReversible = !isIrreversible;
           bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
@@ -443,6 +440,7 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                                            bool integerComputations,
                                            bool floatComputations) {
   bool isAdaptiveProfile = !isBaseProfile;
+  bool allowAllInstructions = getEnvBool("QIR_ALLOW_ALL_INSTRUCTIONS", false);
   for (llvm::Function &func : *llvmModule)
     for (llvm::BasicBlock &block : func)
       for (llvm::Instruction &inst : block) {
@@ -459,47 +457,76 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         // computation instructions.
         bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
         if (isBaseProfile && !isValidBaseProfileInstruction) {
-          llvm::errs()
-              << "error - invalid instruction found in base QIR profile: "
-              << inst << '\n';
-          return mlir::failure();
+          llvm::errs() << "error - invalid instruction found: " << inst << '\n';
+          if (!allowAllInstructions)
+            return mlir::failure();
         } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
           // Not a valid adaptive profile instruction
           // Check if it's in the extended instruction set
+          const auto isValidIntegerBinaryInst = [](const auto &inst) {
+            if (!llvm::isa<llvm::BinaryOperator>(inst))
+              return false;
+            const auto opCode = inst.getOpcode();
+            static const std::vector<int> integerOps = {
+                llvm::BinaryOperator::Add,  llvm::BinaryOperator::Sub,
+                llvm::BinaryOperator::Mul,  llvm::BinaryOperator::UDiv,
+                llvm::BinaryOperator::SDiv, llvm::BinaryOperator::URem,
+                llvm::BinaryOperator::SRem, llvm::BinaryOperator::And,
+                llvm::BinaryOperator::Or,   llvm::BinaryOperator::Xor,
+                llvm::BinaryOperator::Shl,  llvm::BinaryOperator::LShr,
+                llvm::BinaryOperator::AShr};
+            return std::find(integerOps.begin(), integerOps.end(), opCode) !=
+                   integerOps.end();
+          };
 
           const bool isValidIntExtension =
-              integerComputations && isValidIntegerArithmeticInstruction(inst);
+              integerComputations && (isValidIntegerBinaryInst(inst) ||
+                                      llvm::isa<llvm::ICmpInst>(inst) ||
+                                      llvm::isa<llvm::ZExtInst>(inst) ||
+                                      llvm::isa<llvm::SExtInst>(inst) ||
+                                      llvm::isa<llvm::TruncInst>(inst) ||
+                                      llvm::isa<llvm::SelectInst>(inst) ||
+                                      llvm::isa<llvm::PHINode>(inst));
+
+          const auto isValidFloatBinaryInst = [](const auto &inst) {
+            if (!llvm::isa<llvm::BinaryOperator>(inst))
+              return false;
+            const auto opCode = inst.getOpcode();
+            static const std::vector<int> floatOps = {
+                llvm::BinaryOperator::FAdd, llvm::BinaryOperator::FSub,
+                llvm::BinaryOperator::FMul, llvm::BinaryOperator::FDiv};
+            return std::find(floatOps.begin(), floatOps.end(), opCode) !=
+                   floatOps.end();
+          };
 
           const bool isValidFloatExtension =
-              floatComputations && isValidFloatingArithmeticInstruction(inst);
-
-          const bool isValidOutputCall = isValidOutputCallInstruction(inst);
-          if (!isValidIntExtension && !isValidFloatExtension &&
-              !isValidOutputCall) {
-            llvm::errs()
-                << "error - invalid instruction found in adaptive QIR profile: "
-                << inst << '\n';
-            return mlir::failure();
+              floatComputations && (isValidFloatBinaryInst(inst) ||
+                                    llvm::isa<llvm::FPExtInst>(inst) ||
+                                    llvm::isa<llvm::FPTruncInst>(inst));
+          if (!isValidIntExtension && !isValidFloatExtension) {
+            llvm::errs() << "error - invalid instruction found: " << inst
+                         << '\n';
+            if (!allowAllInstructions)
+              return mlir::failure();
           }
         }
-
         // Only inttoptr and getelementptr instructions are present as inlined
         // call argument operations. These instructions may not be present
         // unless they inlined call argument operations.
-        if (auto *call = dyn_cast<llvm::CallBase>(&inst)) {
+        auto call = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
+        if (call)
           for (auto &arg : call->args()) {
             auto constExpr = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg);
             if (constExpr &&
                 constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
                 constExpr->getOpcode() != llvm::Instruction::IntToPtr &&
                 constExpr->getOpcode() != llvm::Instruction::BitCast) {
-              llvm::errs()
-                  << "error - invalid instruction found in QIR profile: "
-                  << *constExpr << '\n';
-              return mlir::failure();
+              llvm::errs() << "error - invalid instruction found: "
+                           << *constExpr << '\n';
+              if (!allowAllInstructions)
+                return mlir::failure();
             }
           }
-        }
       }
   return mlir::success();
 }
@@ -576,19 +603,35 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
 
   // Add required module flags for the Base Profile
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            cudaq::opt::QIRMajorVersionFlagName,
-                            qir_major_version);
+                            "qir_major_version", qir_major_version);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Max,
-                            cudaq::opt::QIRMinorVersionFlagName,
-                            qir_minor_version);
+                            "qir_minor_version", qir_minor_version);
   auto falseValue =
       llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(*llvmContext));
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            cudaq::opt::QIRDynamicQubitsManagementFlagName,
-                            falseValue);
+                            "dynamic_qubit_management", falseValue);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            cudaq::opt::QIRDynamicResultManagementFlagName,
-                            falseValue);
+                            "dynamic_result_management", falseValue);
+  if (isAdaptiveProfile) {
+    auto trueValue =
+        llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "qubit_resetting", trueValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "classical_ints", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "classical_floats", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "classical_fixed_points", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "user_functions", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "dynamic_float_args", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "extern_functions", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "backwards_branching", falseValue);
+  }
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on
   // the @__quantum__rt__result_record_output calls.

@@ -32,8 +32,9 @@ public:
   GPUEmulatedQPU(std::size_t id) : QPU(id) {}
 
   void enqueue(cudaq::QuantumTask &task) override {
+    // Note: enqueue is executed on the main thread, not the QPU execution
+    // thread. Hence, do not set the CUDA device here.
     cudaq::info("Enqueue Task on QPU {}", qpu_id);
-    cudaSetDevice(qpu_id);
     execution_queue->enqueue(task);
   }
 

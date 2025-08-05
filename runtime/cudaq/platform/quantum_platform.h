@@ -204,6 +204,9 @@ protected:
   /// that it is running in a multi-QPU context.
   std::unordered_map<std::size_t, std::size_t> threadToQpuId;
 
+  /// @brief Mutex to protect access to the thread-QPU map.
+  std::shared_mutex threadToQpuIdMutex;
+
   /// Optional number of shots.
   std::optional<int> platformNumShots;
 

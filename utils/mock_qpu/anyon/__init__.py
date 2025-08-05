@@ -59,6 +59,14 @@ def getKernelFunction(module):
     return None
 
 
+def getNumRequiredQubits(function):
+    for a in function.attributes:
+        if "requiredQubits" in str(a):
+            return int(
+                str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
+
+
 # Here we test that the login endpoint works
 @app.post("/login")
 async def login(token: Union[str, None] = Header(alias="Authorization",

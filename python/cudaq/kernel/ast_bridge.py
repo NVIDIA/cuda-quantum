@@ -2189,6 +2189,10 @@ class PyASTBridge(ast.NodeVisitor):
                     callable = cc.CallableFuncOp(callableTy, val).result
                     func.CallIndirectOp([], callable, values)
                     return
+                else:
+                    self.emitFatalError(
+                        f"`{node.func.id}` object is not callable, found symbol of type {val.type}",
+                        node)
 
             elif node.func.id == 'exp_pauli':
                 pauliWord = self.popValue()
@@ -4658,7 +4662,7 @@ def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
 
     # Canonicalize the code, check for measurement(s) readout
     pm = PassManager.parse(
-        "builtin.module(canonicalize,cse,func.func(quake-add-metadata))",
+        "builtin.module(func.func(canonicalize,cse,quake-add-metadata),quake-propagate-metadata)",
         context=bridge.ctx)
 
     try:
