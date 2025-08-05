@@ -38,6 +38,7 @@ install_all=true
 keep_sources=false
 tpls_dir="/opt/cudaq/tpls"
 mkdir -p "$tpls_dir"
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":e:t:m-:" opt; do
@@ -398,39 +399,32 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
   fi
 fi
 
-# Please do include any additional third-party libraries here that will be added to the .gitmodules file.
+# Clone the third-party libraries to include its source code in the NVQC docker image.
 if [ "$keep_sources" = true ]; then
   echo "Cloning additional third-party libraries into $tpls_dir..."
   mkdir -p "$tpls_dir"
-  cd "$tpls_dir"
+  # make sure we are at the repo root
+  cd "$this_file_dir" && cd "$(git rev-parse --show-toplevel)"
 
-  declare -a third_party_libs=(
-    [armadillo]="https://gitlab.com/conradsnicta/armadillo-code.git"
-    [asio]="https://github.com/chriskohlhoff/asio.git"
-    [cpr]="https://github.com/libcpr/cpr.git"
-    [Crow]="https://github.com/CrowCpp/Crow.git"
-    [eigen]="https://gitlab.com/libeigen/eigen.git"
-    [ensmallen]="https://github.com/mlpack/ensmallen"
-    [fmt]="https://github.com/fmtlib/fmt"
-    [gooletest-src]="https://github.com/google/googletest"
-    [json]="https://github.com/nlohmann/json"
-    [qpp]="https://github.com/softwareQinc/qpp.git"
-    [spdlog]="https://github.com/gabime/spdlog"
-    [Stim]="https://github.com/quantumlib/Stim"
-    [xtensor]="https://github.com/xtensor-stack/xtensor"
-    [xtl]="https://github.com/xtensor-stack/xtl"
-  )
+  # for each submodule.<name>.url in .gitmodules
+  git config --file .gitmodules --get-regexp 'submodules\..*\.url' | \
+  while read -r key url; do
+    # key = "submodule.tpls/foo.url"
+    sub=${key#submodule.}         # -> "tpls/foo.url"
+    sub=${sub%.url}               # -> "tpls/foo"
+    path=$(git config --file .gitmodules --get "submodule.$sub.path")
+    lib=$(basename "$path")       # -> "foo"
+    dest="$tpls_dir/$lib"
 
-  for lib in "${!third_party_libs[@]}"; do
-    url="${third_party_libs[$lib]}"
-    dest_dir="$tpls_dir/$lib"
+    repo="$(git config --file=.gitmodules submodule.$path.url)"
+    commit="$(git submodule | grep "$path" | cut -c2- | cut -d ' ' -f1)"
 
-    if [ ! -d "$dest_dir" ]; then
-      echo "Cloning $lib from $url into $dest_dir..."
-      git clone --depth 1 "$url" "$dest_dir" || echo "Failed to clone $lib from $url"
-    else
-      echo "$lib already exists in $dest_dir, skipping clone."
-    fi
+    echo "Cloning $lib@$commit from $repo into $dest..."
+    git clone --filter=tree:0 "$repo" "$dest" \
+    && cd "$dest" \
+    && git checkout "$commit" \
+    && cd - \
+    || echo "Failed to clone $lib"
   done
 fi
 
