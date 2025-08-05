@@ -88,7 +88,6 @@ def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
   }];
 
 let options = [
-
     Option<"qirVersionUnderDevelopment", "qir-version-under-development", "bool", /*default=*/"false",
            "Use version under development to create qir">
   ];
