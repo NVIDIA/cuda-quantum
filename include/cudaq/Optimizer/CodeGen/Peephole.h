@@ -56,12 +56,14 @@ inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
 }
 
 inline mlir::Value createReadResultCall(mlir::PatternRewriter &builder,
-                                        mlir::Location loc,
-                                        mlir::Value result) {
+                                        mlir::Location loc, mlir::Value result,
+                                        bool qirVersionUnderDevelopment) {
+
   auto i1Ty = mlir::IntegerType::get(builder.getContext(), 1);
   return builder
-      .create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{i1Ty},
-                                  cudaq::opt::QIRReadResultBody,
-                                  mlir::ArrayRef<mlir::Value>{result})
+      .create<mlir::LLVM::CallOp>(
+          loc, mlir::TypeRange{i1Ty},
+          cudaq::opt::getQIRReadResultBody(qirVersionUnderDevelopment),
+          mlir::ArrayRef<mlir::Value>{result})
       .getResult();
 }
