@@ -380,15 +380,12 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         // instructions/capabilities can be enabled in the target config. For
         // example, `qir-adaptive[int_computations]` to allow integer
         // computation instructions.
-        const bool allow_all_instructions =
-            getEnvBool("QIR_ALLOW_ALL_INSTRUCTIONS", false);
         bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
         if (isBaseProfile && !isValidBaseProfileInstruction) {
           llvm::errs()
               << "error - invalid instruction found in base QIR profile: "
               << inst << '\n';
-          if (!allow_all_instructions)
-            return mlir::failure();
+          return mlir::failure();
         } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
           // Not a valid adaptive profile instruction
           // Check if it's in the extended instruction set
@@ -404,8 +401,7 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
             llvm::errs()
                 << "error - invalid instruction found in adaptive QIR profile: "
                 << inst << '\n';
-            if (!allow_all_instructions)
-              return mlir::failure();
+            return mlir::failure();
           }
         }
         // Only inttoptr and getelementptr instructions are present as inlined
@@ -422,8 +418,7 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
               llvm::errs()
                   << "error - invalid instruction found in QIR profile: "
                   << *constExpr << '\n';
-              if (!allow_all_instructions)
-                return mlir::failure();
+              return mlir::failure();
             }
           }
       }

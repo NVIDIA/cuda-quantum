@@ -19,7 +19,7 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the lowering pipeline
-  platform-lowering-config: "func.func(erase-noise),classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,CCZToCX,CRyToCX,CRxToCX,R1AdjToR1,RxAdjToRx,RyAdjToRy,RzAdjToRz,ExpPauliDecomposition},quake-to-cc-prep,func.func(memtoreg{quantum=0}),symbol-dce"
+  platform-lowering-config: "func.func(erase-noise),classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,CCZToCX,CRyToCX,CRxToCX,R1AdjToR1,RxAdjToRx,RyAdjToRy,RzAdjToRz,ExpPauliDecomposition},quake-to-cc-prep,func.func(memtoreg{quantum=0}),symbol-dce,distributed-device-call"
   # Tell the rest-qpu that we are generating OpenQASM 2.0.
   codegen-emission: qasm2
   # Library mode is only for simulators, physical backends must turn this off
