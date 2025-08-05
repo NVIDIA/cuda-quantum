@@ -18,7 +18,7 @@ This release contains a range of new features and performance improvements for
 the dynamics simulation and adds more tools for error correction applications. 
 It introduces new CUDA-Q API for kernels that return values (`run`), and adds 
 support for connecting to Quantum Machines backends. This release also contains
-contributions from UnitaryHack. With this release, we now include support for
+contributions from unitaryHACK. With this release, we now include support for
 Python 3.13.
 
 *Note*: Support for Python 3.10 will be removed in future releases.
