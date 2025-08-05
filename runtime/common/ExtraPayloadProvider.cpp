@@ -25,4 +25,3 @@ getExtraPayloadProviders() {
 }
 
 } // namespace cudaq
-                    

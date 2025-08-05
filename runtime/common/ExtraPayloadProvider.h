@@ -35,4 +35,3 @@ const std::vector<std::unique_ptr<ExtraPayloadProvider>> &
 getExtraPayloadProviders();
 
 } // namespace cudaq
-                    
