@@ -906,7 +906,6 @@
           <li class="breadcrumb-item"><a href="examples.html">CUDA-Q by Example</a></li>
       <li class="breadcrumb-item active">Using Quantum Hardware Providers</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/examples/hardware_providers.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="../../examples/python/performance_optimizations.html" class="btn btn-neutral float-left" title="Optimizing Performance" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
@@ -1877,11 +1876,22 @@ parameters of the time bin interferometer.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--7-input--1" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
-<span class="c1"># You only have to set the target once! No need to redefine it</span>
-<span class="c1"># for every execution call on your kernel.</span>
+<span class="c1"># You only have to set the target once! No need to redefine it for every</span>
+<span class="c1"># execution call on your kernel.</span>
 <span class="c1"># By default, we will submit to the Quantinuum syntax checker.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">)</span>
+<span class="c1">## NOTE: It is mandatory to specify the Nexus project by name or ID.</span>
+<span class="c1"># Update and un-comment the line below.</span>
+<span class="c1"># ```</span>
+<span class="c1"># cudaq.set_target(&quot;quantinuum&quot;, project=&quot;nexus_project&quot;)</span>
+<span class="c1"># ```</span>
+<span class="c1"># Or use environment variable</span>
+<span class="c1"># ```</span>
+<span class="c1"># os.environ[&quot;QUANTINUUM_NEXUS_PROJECT&quot;] = &quot;nexus_project&quot;</span>
+<span class="c1"># ```</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">,</span>
+                 <span class="n">project</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;QUANTINUUM_NEXUS_PROJECT&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
 
 
 <span class="c1"># Create the kernel we&#39;d like to execute on Quantinuum.</span>
@@ -1908,7 +1918,9 @@ parameters of the time bin interferometer.</p>
 
 <span class="c1"># Now we can update the target to the Quantinuum emulator and</span>
 <span class="c1"># execute our program.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;H1-2E&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">,</span>
+                 <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;H1-1E&quot;</span><span class="p">,</span>
+                 <span class="n">project</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;QUANTINUUM_NEXUS_PROJECT&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
 
 <span class="c1"># Option B:</span>
 <span class="c1"># By using the asynchronous `cudaq.sample_async`, the remaining</span>
@@ -1941,8 +1953,8 @@ parameters of the time bin interferometer.</p>
 <input class="tab-input" id="tab-set--7-input--2" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
 <span class="c1">// ```</span>
-<span class="c1">// nvq++ --target quantinuum --quantinuum-machine H1-2E quantinuum.cpp -o out.x</span>
-<span class="c1">// ./out.x</span>
+<span class="c1">// nvq++ --target quantinuum --quantinuum-machine H1-2E --quantinuum-project \</span>
+<span class="c1">// &lt;nexus_project&gt; quantinuum.cpp  -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
 <span class="c1">// Assumes a valid set of credentials have been stored.</span>
 <span class="c1">// To first confirm the correctness of the program locally,</span>
