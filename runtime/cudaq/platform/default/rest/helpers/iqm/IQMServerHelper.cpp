@@ -362,17 +362,17 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     auto &cz = dynamicQuantumArchitecture["gates"]["cz"];
     auto implementation = cz["default_implementation"];
     auto &cz_loci = cz["implementations"][implementation]["loci"];
-    cudaq::debug("cz-gates ({}) loci={}", implementation, cz_loci.dump());
+    //cudaq::debug("cz-gates ({}) loci={}", implementation, cz_loci.dump());
 
     auto &prx = dynamicQuantumArchitecture["gates"]["prx"];
     implementation = prx["default_implementation"];
     auto prx_loci = prx["implementations"][implementation]["loci"];
-    cudaq::debug("prx-gates ({}) loci={}", implementation, prx_loci.dump());
+    //cudaq::debug("prx-gates ({}) loci={}", implementation, prx_loci.dump());
 
     auto &measure = dynamicQuantumArchitecture["gates"]["measure"];
     implementation = measure["default_implementation"];
     auto &measure_loci = measure["implementations"][implementation]["loci"];
-    cudaq::debug("measure ({}) loci={}", implementation, measure_loci.dump());
+    //cudaq::debug("measure ({}) loci={}", implementation, measure_loci.dump());
 
     // For each qubit set flags to indicate whether they can be used in cz,
     // prx or measurement operations. Then crop all qubits which are not
