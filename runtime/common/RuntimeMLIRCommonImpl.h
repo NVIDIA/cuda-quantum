@@ -407,6 +407,7 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                                            bool integerComputations,
                                            bool floatComputations) {
   bool isAdaptiveProfile = !isBaseProfile;
+  bool allowAllInstructions = getEnvBool("QIR_ALLOW_ALL_INSTRUCTIONS", false);
   for (llvm::Function &func : *llvmModule)
     for (llvm::BasicBlock &block : func)
       for (llvm::Instruction &inst : block) {
@@ -421,14 +422,10 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         // instructions/capabilities can be enabled in the target config. For
         // example, `qir-adaptive[int_computations]` to allow integer
         // computation instructions.
-        const bool allow_all_instructions =
-            getEnvBool("QIR_ALLOW_ALL_INSTRUCTIONS", false);
         bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
         if (isBaseProfile && !isValidBaseProfileInstruction) {
-          llvm::errs()
-              << "error - invalid instruction found in base QIR profile: "
-              << inst << '\n';
-          if (!allow_all_instructions)
+          llvm::errs() << "error - invalid instruction found: " << inst << '\n';
+          if (!allowAllInstructions)
             return mlir::failure();
         } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
           // Not a valid adaptive profile instruction
@@ -442,10 +439,9 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
           const bool isValidOutputCall = isValidOutputCallInstruction(inst);
           if (!isValidIntExtension && !isValidFloatExtension &&
               !isValidOutputCall) {
-            llvm::errs()
-                << "error - invalid instruction found in adaptive QIR profile: "
-                << inst << '\n';
-            if (!allow_all_instructions)
+            llvm::errs() << "error - invalid instruction found: " << inst
+                << '\n';
+            if (!allowAllInstructions)
               return mlir::failure();
           }
         }
@@ -460,10 +456,9 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                 constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
                 constExpr->getOpcode() != llvm::Instruction::IntToPtr &&
                 constExpr->getOpcode() != llvm::Instruction::BitCast) {
-              llvm::errs()
-                  << "error - invalid instruction found in QIR profile: "
-                  << *constExpr << '\n';
-              if (!allow_all_instructions)
+              llvm::errs() << "error - invalid instruction found: "
+                           << *constExpr << '\n';
+              if (!allowAllInstructions)
                 return mlir::failure();
             }
           }
