@@ -115,63 +115,6 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
       }
 }
 
-bool isValidIntegerArithmeticInstruction(llvm::Instruction &inst) {
-  // Not a valid adaptive profile instruction
-  // Check if it's in the extended instruction set
-  const auto isValidIntegerBinaryInst = [](const auto &inst) {
-    if (!llvm::isa<llvm::BinaryOperator>(inst))
-      return false;
-    const auto opCode = inst.getOpcode();
-    static const std::vector<int> integerOps = {
-        llvm::BinaryOperator::Add,  llvm::BinaryOperator::Sub,
-        llvm::BinaryOperator::Mul,  llvm::BinaryOperator::UDiv,
-        llvm::BinaryOperator::SDiv, llvm::BinaryOperator::URem,
-        llvm::BinaryOperator::SRem, llvm::BinaryOperator::And,
-        llvm::BinaryOperator::Or,   llvm::BinaryOperator::Xor,
-        llvm::BinaryOperator::Shl,  llvm::BinaryOperator::LShr,
-        llvm::BinaryOperator::AShr};
-    return std::find(integerOps.begin(), integerOps.end(), opCode) !=
-           integerOps.end();
-  };
-
-  return isValidIntegerBinaryInst(inst) || llvm::isa<llvm::ICmpInst>(inst) ||
-         llvm::isa<llvm::ZExtInst>(inst) || llvm::isa<llvm::SExtInst>(inst) ||
-         llvm::isa<llvm::TruncInst>(inst) ||
-         llvm::isa<llvm::SelectInst>(inst) || llvm::isa<llvm::PHINode>(inst);
-}
-
-bool isValidFloatingArithmeticInstruction(llvm::Instruction &inst) {
-  const auto isValidFloatBinaryInst = [](const auto &inst) {
-    if (!llvm::isa<llvm::BinaryOperator>(inst))
-      return false;
-    const auto opCode = inst.getOpcode();
-    static const std::vector<int> floatOps = {
-        llvm::BinaryOperator::FAdd, llvm::BinaryOperator::FSub,
-        llvm::BinaryOperator::FMul, llvm::BinaryOperator::FDiv,
-        llvm::Instruction::FRem};
-    return std::find(floatOps.begin(), floatOps.end(), opCode) !=
-           floatOps.end();
-  };
-
-  return isValidFloatBinaryInst(inst) || llvm::isa<llvm::FCmpInst>(inst) ||
-         llvm::isa<llvm::FPExtInst>(inst) || llvm::isa<llvm::FPTruncInst>(inst);
-}
-
-bool isValidOutputCallInstruction(llvm::Instruction &inst) {
-  // Not a valid adaptive profile instruction
-  // Check if it's an record output call.
-  if (auto *call = dyn_cast<llvm::CallBase>(&inst)) {
-    auto name = call->getCalledFunction()->getName().str();
-    std::vector<const char *> outputFunctions{
-        cudaq::opt::QIRBoolRecordOutput, cudaq::opt::QIRIntegerRecordOutput,
-        cudaq::opt::QIRDoubleRecordOutput, cudaq::opt::QIRTupleRecordOutput,
-        cudaq::opt::QIRArrayRecordOutput};
-    return std::find(outputFunctions.begin(), outputFunctions.end(),
-                     name.c_str()) == outputFunctions.end();
-  }
-  return false;
-}
-
 /// @brief Add module flags according to the spec:
 /// https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Adaptive_Profile.md#module-flags-metadata
 void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule,
@@ -612,26 +555,6 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
                             "dynamic_qubit_management", falseValue);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                             "dynamic_result_management", falseValue);
-  if (isAdaptiveProfile) {
-    auto trueValue =
-        llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "qubit_resetting", trueValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_ints", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_floats", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_fixed_points", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "user_functions", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "dynamic_float_args", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "extern_functions", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "backwards_branching", falseValue);
-  }
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on
   // the @__quantum__rt__result_record_output calls.
