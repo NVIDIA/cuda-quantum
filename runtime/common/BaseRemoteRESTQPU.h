@@ -552,10 +552,10 @@ public:
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
-      // Each pass may run in a separate thread, so we have to make sure to grab
-      // this reference in this thread
-      auto resource_counts = nvqir::getResourceCounts();
-      if (executionContext->name == "resource-count") {
+      if (executionContext && executionContext->name == "resource-count") {
+        // Each pass may run in a separate thread, so we have to make sure to
+        // grab this reference in this thread
+        auto resource_counts = nvqir::getResourceCounts();
         std::function<void(std::string, size_t, size_t)> f =
             [&](std::string gate, size_t nControls, size_t count) {
               cudaq::info("Appending: {}", gate);
@@ -655,7 +655,8 @@ public:
     } else
       modules.emplace_back(kernelName, moduleOp);
 
-    if (emulate || executionContext->name == "resource-count") {
+    if (emulate ||
+        (executionContext && executionContext->name == "resource-count")) {
       // If we are in emulation mode, we need to first get a full QIR
       // representation of the code. Then we'll map to an LLVM Module, create a
       // JIT ExecutionEngine pointer and use that for execution
