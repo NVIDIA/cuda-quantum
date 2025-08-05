@@ -16,6 +16,13 @@ std::vector<std::unique_ptr<ExtraPayloadProvider>> extraPayloadProviders;
 
 void registerExtraPayloadProvider(
     std::unique_ptr<ExtraPayloadProvider> provider) {
+  // Check if this has not been registered already
+  const auto it = std::find_if(
+      extraPayloadProviders.begin(), extraPayloadProviders.end(),
+      [&](const auto &entry) { return entry->name() == provider->name(); });
+  if (it != extraPayloadProviders.end())
+    throw std::runtime_error("ExtraPayloadProvider with name " +
+                             provider->name() + " already registered.");
   extraPayloadProviders.push_back(std::move(provider));
 }
 

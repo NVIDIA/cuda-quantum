@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#pragma once
 
 #include "RuntimeTarget.h"
 #include "ServerHelper.h"
@@ -16,6 +17,9 @@ class ExtraPayloadProvider {
 public:
   ExtraPayloadProvider() = default;
   virtual ~ExtraPayloadProvider() = default;
+
+  /// @brief Get the name of the extra payload provider.
+  virtual const std::string name() const = 0;
 
   /// @brief Inject extra payload into the server message.
   /// @param target The RuntimeTarget to generate the payload for.

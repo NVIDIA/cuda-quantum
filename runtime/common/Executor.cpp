@@ -25,9 +25,38 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
   auto config = serverHelper->getConfig();
 
   std::vector<details::future::Job> ids;
+
+  auto *extraPayloadProvider = [&]() -> cudaq::ExtraPayloadProvider * {
+    if (!runtimeTarget.config.BackendConfig.has_value())
+      return nullptr;
+
+    if (runtimeTarget.config.BackendConfig->ExtraPayloadProvider == "")
+      return nullptr;
+
+    auto &extraProviders = cudaq::getExtraPayloadProviders();
+    const auto it = std::find_if(
+        extraProviders.begin(), extraProviders.end(), [&](const auto &entry) {
+          return entry->name() ==
+                 runtimeTarget.config.BackendConfig->ExtraPayloadProvider;
+        });
+    if (it == extraProviders.end())
+      throw std::runtime_error(
+          "ExtraPayloadProvider with name " +
+          runtimeTarget.config.BackendConfig->ExtraPayloadProvider +
+          " not found.");
+    cudaq::info("Setting ExtraPayloadProvider to {}",
+                runtimeTarget.config.BackendConfig->ExtraPayloadProvider);
+    return it->get();
+  }();
+
   for (std::size_t i = 0; auto &job : jobs) {
     cudaq::info("Job (name={}) created, posting to {}", codesToExecute[i].name,
                 jobPostPath);
+
+    // Add extra payload if any
+    if (extraPayloadProvider) {
+      extraPayloadProvider->injectExtraPayload(runtimeTarget, job);
+    }
 
     // Post it, get the response
     auto response = client.post(jobPostPath, "", job, headers, true, false,
