@@ -371,3 +371,140 @@ public:
   /// @brief Gets the number of RZs in the subcircuit
   size_t getNumRotations() { return num_rot_gates; }
 };
+
+struct PhaseVariable {
+public:
+  size_t idx;
+  // Q: do we really need the initial_wire here? I think it's just useful for
+  // debugging
+  Value initial_wire;
+  PhaseVariable(size_t index, Value wire) : idx(index), initial_wire(wire) {}
+
+  bool operator==(PhaseVariable other) { return idx == other.idx; }
+};
+
+/// A `Phase` is an exclusive sum of all of the `PhaseVariable`s involved in the
+/// current state of a qubit, as well as 1, representing inversion from a Not
+/// gate. The simplest Phase contains exactly the `PhaseVariable` representing
+/// the initial state of a qubit in a subcircuit. There are two operations on
+/// `Phase`s to generate new `Phase`s: `Phase::sum` sums two Phases,
+/// corresponding to the effect of a CNot on the target qubit. `Phase::invert`
+/// inverts a Phase, corresponding to the effect of a Not a qubit.
+///
+/// Generally, a Phase is an exclusive sum of products.
+/// However, our Phases are currently only exclusive sums;
+/// products are not currently supported.
+///
+/// Any two rotations on qubits with equal Phases can be merged into one
+/// rotation.
+class Phase {
+  SetVector<PhaseVariable *> vars;
+  bool isInverted;
+
+public:
+  Phase() : isInverted(false) {}
+
+  Phase(PhaseVariable *var) : isInverted(false) { vars.insert(var); }
+
+  /// @brief Two phases are equal if they contain exactly the same vars
+  /// and have the same inversion flag.
+  bool operator==(Phase other) {
+    for (auto var : vars)
+      if (!other.vars.contains(var))
+        return false;
+    for (auto var : other.vars)
+      if (!vars.contains(var))
+        return false;
+    return isInverted == other.isInverted;
+  }
+
+  /// @brief Returns a new phase equal to the sum of `p1` and `p2`
+  /// @returns A new phase containing the exclusive or of `p1` and `p2`
+  static Phase sum(Phase &p1, Phase &p2) {
+    Phase new_phase = Phase();
+    for (auto var : p1.vars)
+      new_phase.vars.insert(var);
+    for (auto var : p2.vars)
+      if (new_phase.vars.contains(var))
+        new_phase.vars.remove(var);
+      else
+        new_phase.vars.insert(var);
+    new_phase.isInverted = (p1.isInverted != p2.isInverted);
+    return new_phase;
+  }
+
+  /// @brief Returns a new phase equal to `p1` with the opposite inversion flag
+  static Phase invert(Phase &p1) {
+    auto new_phase = Phase();
+    for (auto var : p1.vars)
+      new_phase.vars.insert(var);
+    new_phase.isInverted = !p1.isInverted;
+    return new_phase;
+  }
+
+  void dump() {
+    llvm::outs() << "Phase: ";
+    if (isInverted)
+      llvm::outs() << "!";
+    llvm::outs() << "{";
+    auto first = true;
+    for (auto var : vars) {
+      if (!first)
+        llvm::outs() << " ^ ";
+      llvm::outs() << var->idx;
+      first = false;
+    }
+    llvm::outs() << "}\n";
+  }
+
+  std::optional<int64_t> getIntRepresentation() {
+    int64_t sum = 0;
+    for (auto var : vars) {
+      if (var->idx > sizeof(int64_t) - 1)
+        return std::nullopt;
+      sum += 1 << var->idx;
+    }
+  }
+};
+
+class PhaseStorage {
+  SmallVector<Phase> phases;
+  SmallVector<quake::RzOp> rotations;
+  size_t numCombined = 0;
+
+  /// @brief Merges the rotation at prev_idx with rzop by adding their
+  /// rotation angles and overwriting rzop's angle with the new
+  /// angle. The old rotation is erased. We keep the latter rotation
+  /// to ensure that dynamic rotation angles (e.g., dependent on
+  /// measurement results) are indeed available, as earlier angles
+  /// will always be available later, but not vice-versa.
+  void combineRotations(size_t prev_idx, quake::RzOp rzop) {
+    auto old_rzop = rotations[prev_idx];
+    auto rot_arg1 = old_rzop.getOperand(0);
+    auto rot_arg2 = rzop.getOperand(0);
+    auto builder = OpBuilder(rzop);
+    auto new_rot_arg =
+        builder.create<arith::AddFOp>(rzop.getLoc(), rot_arg1, rot_arg2);
+    rzop->setOperand(0, new_rot_arg.getResult());
+    old_rzop.erase();
+    rotations[prev_idx] = rzop;
+    numCombined++;
+  }
+
+public:
+  /// @brief registers a new rotation op for the given phase
+  /// @returns true if the rotation was combined, false otherwise
+  bool addOrCombineRotationForPhase(quake::RzOp op, Phase phase) {
+    for (size_t i = 0; i < phases.size(); i++)
+      if (phases[i] == phase) {
+        combineRotations(i, op);
+        return true;
+      }
+
+    phases.push_back(phase);
+    rotations.push_back(op);
+    return false;
+  }
+
+  size_t getNumCombined() { return numCombined; }
+};
