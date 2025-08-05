@@ -12,6 +12,7 @@
 #include "Logger.h"
 #include "Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -360,6 +361,46 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
   return mlir::success();
 }
 
+/// Filter out code patterns that do not meet the accepted QIR specification for
+/// a particular target. The patterns are selectable via environment variables.
+/// Note that no analysis is used and this simply drops code on the floor. As
+/// such, the code may not function correctly nor as expected.
+static mlir::LogicalResult
+filterSpecificCodePatterns(llvm::Module *llvmModule) {
+  // If CUDAQ_ENABLE_QUANTUM_DEVICE_RUN is true, erase all "offending" isns.
+  const bool erasePatterns =
+      getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
+  // If CUDAQ_QIR_ERASE_STACK_INTRINSIC is true, erase stacksave/stackrestore.
+  const bool eraseStackBounding =
+      erasePatterns || getEnvBool("CUDAQ_QIR_ERASE_STACK_INTRINSIC", false);
+  // If CUDAQ_QIR_ERASE_RESULT_RECORD is true, erase result_record_output.
+  const bool eraseResultRecordCalls =
+      erasePatterns || getEnvBool("CUDAQ_QIR_ERASE_RESULT_RECORD", false);
+
+  if (erasePatterns || eraseStackBounding || eraseResultRecordCalls) {
+    llvm::SmallVector<llvm::Instruction *> eraseInst;
+    for (llvm::Function &func : *llvmModule)
+      for (llvm::BasicBlock &block : func)
+        for (llvm::Instruction &inst : block)
+          if (auto *call = llvm::dyn_cast<llvm::CallInst>(&inst)) {
+            auto *calledFunc = call->getCalledFunction();
+            auto name = calledFunc->getGlobalIdentifier();
+            if (eraseStackBounding && calledFunc->isIntrinsic() &&
+                (name == cudaq::llvmStackSave ||
+                 name == cudaq::llvmStackRestore))
+              eraseInst.push_back(&inst);
+            if (eraseResultRecordCalls && name == cudaq::opt::QIRRecordOutput)
+              eraseInst.push_back(&inst);
+          }
+    for (auto *insn : eraseInst) {
+      if (insn->hasNUsesOrMore(1))
+        insn->replaceAllUsesWith(llvm::UndefValue::get(insn->getType()));
+      insn->eraseFromParent();
+    }
+  }
+  return mlir::success();
+}
+
 // Verify that only the allowed LLVM instructions are present
 mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                                            bool isBaseProfile,
@@ -380,12 +421,15 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         // instructions/capabilities can be enabled in the target config. For
         // example, `qir-adaptive[int_computations]` to allow integer
         // computation instructions.
+        const bool allow_all_instructions =
+            getEnvBool("QIR_ALLOW_ALL_INSTRUCTIONS", false);
         bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
         if (isBaseProfile && !isValidBaseProfileInstruction) {
           llvm::errs()
               << "error - invalid instruction found in base QIR profile: "
               << inst << '\n';
-          return mlir::failure();
+          if (!allow_all_instructions)
+            return mlir::failure();
         } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
           // Not a valid adaptive profile instruction
           // Check if it's in the extended instruction set
@@ -401,7 +445,8 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
             llvm::errs()
                 << "error - invalid instruction found in adaptive QIR profile: "
                 << inst << '\n';
-            return mlir::failure();
+            if (!allow_all_instructions)
+              return mlir::failure();
           }
         }
         // Only inttoptr and getelementptr instructions are present as inlined
@@ -418,7 +463,8 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
               llvm::errs()
                   << "error - invalid instruction found in QIR profile: "
                   << *constExpr << '\n';
-              return mlir::failure();
+              if (!allow_all_instructions)
+                return mlir::failure();
             }
           }
       }
@@ -521,6 +567,11 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
     llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                               "backwards_branching", falseValue);
   }
+
+  // There are certain function calls that may be produced that we want to drop
+  // on the floor instead of passing to the QIR consumer.
+  if (failed(filterSpecificCodePatterns(llvmModule.get())))
+    return mlir::failure();
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on
   // the @__quantum__rt__result_record_output calls.
