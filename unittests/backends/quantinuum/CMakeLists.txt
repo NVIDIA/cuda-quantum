@@ -27,3 +27,20 @@ target_link_libraries(test_quantinuum
 
 configure_file("QuantinuumStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/quantinuum/QuantinuumStartServerAndTest.sh" @ONLY)
 add_test(NAME quantinuum-tests COMMAND bash QuantinuumStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/quantinuum/)
+
+# Test for Nexus helper functions
+add_executable(test_quantinuum_util QuantinuumUtilTester.cpp)
+target_include_directories(test_quantinuum_util
+  PRIVATE 
+  ../.. 
+  ${CMAKE_SOURCE_DIR}/runtime/cudaq/platform/default/rest/helpers/quantinuum)
+target_link_libraries(test_quantinuum_util
+  PRIVATE 
+  cudaq
+  cudaq-common 
+  cudaq-operator
+  gtest_main)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_quantinuum_util PRIVATE -Wl,--no-as-needed)
+endif()
+gtest_discover_tests(test_quantinuum_util)

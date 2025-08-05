@@ -93,12 +93,18 @@ public:
       throw std::runtime_error("QPU architecture is not provided");
     }
     qpuArchitecture = iter->second;
+    std::replace(qpuArchitecture.begin(), qpuArchitecture.end(), '_', ' ');
     cudaq::debug("qpuArchitecture = {}", qpuArchitecture);
 
     // Set an alternate base URL if provided.
     iter = backendConfig.find("url");
     if (iter != backendConfig.end()) {
       iqmServerUrl = iter->second;
+      // For running unittests
+      if (iqmServerUrl.find("localhost") != std::string::npos) {
+        std::replace(qpuArchitecture.begin(), qpuArchitecture.end(), ' ', '_');
+        cudaq::debug("qpuArchitecture = {}", qpuArchitecture);
+      }
     }
 
     // Allow overriding IQM Server Url, the compiled program will still work if
