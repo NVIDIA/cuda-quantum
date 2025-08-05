@@ -10,15 +10,30 @@
 #
 # Usage:
 # Must be built from the repo root with:
+#   # to skip prerequisites (default)
 #   docker build -f docker/release/cudaq.nvqc.Dockerfile .
+#
+#   # to install and clone prerequisites
+#   docker build --build-arg WITH_TPLS=true \
+#       -f docker/release/cudaq.nvqc.Dockerfile .
 
 # Base image is CUDA-Q image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
+# Flag to control whether to install/clone prerequisites
+ARG WITH_TPLS=false
+
 FROM $base_image AS nvcf_image
 
-# Copy the install_prerequisites script into the image
-COPY scripts/install_prerequisites.sh /tmp/install_prerequisites.sh
-RUN chmod +x /tmp/install_prerequisites.sh
+# Copy and run the install_prerequisites script into the image
+RUN if [ "${WITH_TPLS}" = "true" ]; then \
+        echo "WITH_TPLS=true; adding install_prerequisites.sh"; \
+        mkdir -p /tmp && \
+        cp scripts/install_prerequisites.sh /tmp/install_prerequisites.sh && \
+        chmod +x /tmp/install_prerequisites.sh && \
+        /tmp/install_prerequisites.sh -m -k; \
+    else \
+        echo "Default build without prerequisites;" \
+    fi
 
 # run it in "keep-sources" mode but skip any builds (-m), since base image already has them
 RUN /tmp/install_prerequisites.sh -m -k
