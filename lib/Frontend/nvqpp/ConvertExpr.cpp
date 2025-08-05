@@ -1364,7 +1364,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   }
 
   if (isInClassInNamespace(func, "_Bit_reference", "std") ||
-      isInClassInNamespace(func, "__bit_reference", "std")) {
+      isInClassInNamespace(func, "__bit_reference", "std") ||
+      isInClassInNamespace(func, "__bit_const_reference", "std")) {
     // Calling std::_Bit_reference::method().
     auto loadFromReference = [&](mlir::Value ref) -> Value {
       if (auto mrTy = dyn_cast<cc::PointerType>(ref.getType())) {
@@ -2422,7 +2423,8 @@ std::optional<std::string> QuakeBridgeVisitor::isInterceptedSubscriptOperator(
         if (typeName == "vector")
           return {typeName};
       } else if (isInNamespace(decl, "std")) {
-        if (typeName == "_Bit_reference" || typeName == "__bit_reference")
+        if (typeName == "_Bit_reference" || typeName == "__bit_reference" ||
+            typeName == "__bit_const_reference")
           return {typeName};
       }
     }
@@ -2532,7 +2534,8 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
                                                       ValueRange{indexVar});
       return replaceTOSValue(eleAddr);
     }
-    if (typeName == "_Bit_reference" || typeName == "__bit_reference") {
+    if (typeName == "_Bit_reference" || typeName == "__bit_reference" ||
+        typeName == "__bit_const_reference") {
       // For vector<bool>, on the kernel side this is represented as a sequence
       // of byte-sized boolean values (true and false). On the host side, C++ is
       // likely going to pack the booleans as bits in words.
