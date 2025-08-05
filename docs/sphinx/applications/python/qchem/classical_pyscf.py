@@ -411,9 +411,8 @@ def get_mol_pe_hamiltonian(xyz:str, potfile:str, spin:int, charge: int, basis:st
                        initguess:str='minao', nele_cas=None, norb_cas=None, MP2:bool=False, natorb:bool=False, casci:bool=False, \
                         ccsd:bool=False, casscf:bool=False, integrals_natorb:bool=False, integrals_casscf:bool=False, verbose:bool=False):
 
-
     from qchem.cppe_lib import PolEmbed
-    
+
     if spin != 0:
         print(
             'WARN: UHF is not implemented yet for PE model. RHF & ROHF are only supported.'

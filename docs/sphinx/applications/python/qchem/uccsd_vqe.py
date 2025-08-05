@@ -5,7 +5,7 @@ from qchem.uccsd import uccsd_circuit_double, uccsd_circuit_single
 import numpy as np
 from scipy.optimize import minimize
 
-#cudaq.set_target("nvidia", option='fp64')
+#cudaq.set_target("`nvidia`", option='`fp64`')
 
 
 def uccsd_circuit_vqe(spin_mult,
