@@ -16,6 +16,13 @@
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
 FROM $base_image AS nvcf_image
 
+# Copy the install_prerequisites script into the image
+COPY scripts/install_prerequisites.sh /tmp/install_prerequisites.sh
+RUN chmod +x /tmp/install_prerequisites.sh
+
+# run it in "keep-sources" mode but skip any builds (-m), since base image already has them
+RUN /tmp/install_prerequisites.sh -m -k
+
 # Run the tar command and then uncomment ADD cudaq.tar.gz ... in order to
 # override the installation.
 # tar czvf /workspaces/cuda-quantum/cudaq.tar.gz -C /usr/local/cudaq .
