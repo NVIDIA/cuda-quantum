@@ -359,6 +359,7 @@ uncompute
 unitaries
 unitarity
 unitary
+unitaryHACK
 unoptimized
 upvote
 variadic
