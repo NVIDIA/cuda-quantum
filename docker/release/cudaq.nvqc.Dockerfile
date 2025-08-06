@@ -27,6 +27,7 @@ ARG WITH_TPLS=false
 # COPY install_prerequisites into the image
 RUN sudo mkdir -p /tmp
 COPY --chmod=0755 scripts/install_prerequisites.sh /tmp/install_prerequisites.sh
+COPY .gitmodules /tmp/.gitmodules
 
 # Copy and run the install_prerequisites script into the image
 RUN if [ "${WITH_TPLS}" = "true" ]; then \
