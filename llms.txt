@@ -6,6 +6,10 @@
 
 - [Quick Start](using/quick_start.md)
 
+## API
+
+- [API Reference](api/api.md)
+
 ## Examples
 
 - [Basics](using/basics/basics.md)
@@ -22,5 +26,4 @@
 - [Integration](using/integration/integration.md)
 - [Extending](using/extending/extending.md)
 - [Specifications](specification/index.md)
-- [API Reference](api/api.md)
 - [llms-full.txt](llms-full.txt): Full concatenated content of this documentation
