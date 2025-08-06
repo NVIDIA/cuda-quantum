@@ -13,8 +13,8 @@ if not os.path.exists(input_file_path):
 with open(input_file_path, 'r', encoding='utf-8') as f:
     data = f.read()
 n = len(data)
-train_data = data[:int(n*0.9)]
-val_data = data[int(n*0.9):]
+train_data = data[:int(n * 0.9)]
+val_data = data[int(n * 0.9):]
 
 # encode with tiktoken gpt2 bpe
 enc = tiktoken.get_encoding("gpt2")

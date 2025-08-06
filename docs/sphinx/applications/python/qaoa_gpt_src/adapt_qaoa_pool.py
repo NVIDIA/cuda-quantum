@@ -16,6 +16,7 @@
 import cudaq
 from cudaq import spin
 
+
 def qaoa_mixer(n):
 
     term = spin.x(0)
@@ -26,6 +27,7 @@ def qaoa_mixer(n):
     pool = [term]
     return pool
 
+
 def qaoa_single_x(n):
 
     pool = []
@@ -35,22 +37,25 @@ def qaoa_single_x(n):
 
     return pool
 
+
 def qaoa_double(n):
 
     pool = []
 
-    for i in range(n-1):
-        for j in range(i+1, n):
-            pool.append(cudaq.SpinOperator(spin.x(i)) * cudaq.SpinOperator(spin.x(j)))
-            pool.append(cudaq.SpinOperator(spin.y(i)) * cudaq.SpinOperator(spin.y(j)))
-            pool.append(cudaq.SpinOperator(spin.y(i)) * cudaq.SpinOperator(spin.z(j)))
-            pool.append(cudaq.SpinOperator(spin.z(i)) * cudaq.SpinOperator(spin.y(j)))
+    for i in range(n - 1):
+        for j in range(i + 1, n):
+            pool.append(
+                cudaq.SpinOperator(spin.x(i)) * cudaq.SpinOperator(spin.x(j)))
+            pool.append(
+                cudaq.SpinOperator(spin.y(i)) * cudaq.SpinOperator(spin.y(j)))
+            pool.append(
+                cudaq.SpinOperator(spin.y(i)) * cudaq.SpinOperator(spin.z(j)))
+            pool.append(
+                cudaq.SpinOperator(spin.z(i)) * cudaq.SpinOperator(spin.y(j)))
 
     return pool
 
+
 def all_pool(qubits_num):
-    return (
-          qaoa_single_x(qubits_num)
-        + qaoa_mixer(qubits_num)
-        + qaoa_double(qubits_num)
-    )
+    return (qaoa_single_x(qubits_num) + qaoa_mixer(qubits_num) +
+            qaoa_double(qubits_num))

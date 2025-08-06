@@ -17,13 +17,16 @@ import networkx as nx
 import numpy as np
 import random
 
+
 def graph_to_adj_m(g):
     """Convert a NetworkX graph to an adjacency matrix (numpy array)."""
     return nx.to_numpy_array(g)
 
+
 def graph_to_edgelist(g):
     """Return a weighted edge list: (src, dst, weight) for all edges."""
     return [(u, v, d.get('weight', 1.0)) for u, v, d in g.edges(data=True)]
+
 
 def edgelist_to_graph(edgelist, num_vertices=0):
     """Create a weighted undirected graph from an edge list."""
@@ -35,6 +38,7 @@ def edgelist_to_graph(edgelist, num_vertices=0):
         g.add_edge(src, dst, weight=w)
     return g
 
+
 def generate_random_graph(n, methods=None):
     """
     Generate a connected random graph using specified methods with random parameters.
@@ -42,11 +46,8 @@ def generate_random_graph(n, methods=None):
     """
     if methods is None:
         methods = [
-            "erdos_renyi",
-            "barabasi_albert",
-            "watts_strogatz",
-            "random_regular",
-            "bipartite"
+            "erdos_renyi", "barabasi_albert", "watts_strogatz",
+            "random_regular", "bipartite"
         ]
     method = random.choice(methods)
     while True:
@@ -93,6 +94,7 @@ def add_rand_weights_to_graph(g, neg_weights=False):
             w *= random.choice([-1, 1])
         g_weighted.add_edge(u, v, weight=w)
     return g_weighted
+
 
 def norm_elist_weights(e_list):
     """

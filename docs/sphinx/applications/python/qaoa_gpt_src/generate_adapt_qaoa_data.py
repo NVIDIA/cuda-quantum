@@ -36,11 +36,14 @@ from qaoa_gpt_src.max_cut_classical_sol import brute_force_max_cut, one_exchange
 cudaq.set_target("nvidia", option="fp64")
 #######################################################
 
+
 def ensure_dirs(output_dir):
     for sub in ['hams', 'res', 'graphs', 'traces']:
         os.makedirs(os.path.join(output_dir, sub), exist_ok=True)
 
+
 #######################################################
+
 
 # Scale the weights of the edges in the edge list by a given coefficient
 def scale_elist_weights(e_list, coef):
@@ -58,14 +61,28 @@ def scale_elist_weights(e_list, coef):
 
 
 ######################################################
-def generate_data_max_cut(output_dir = 'adapt_results', graphs_number = 1, graphs_input_json = "N/A",
-                          n_nodes = 8, weighted = True, use_negative_weights = False, 
-                          use_brute_force = True, use_simulated_annealing = True, use_one_exchange = True ,
-                          op_pool = 'all_pool', init_gamma: list[float] = [0.01], scaling_coef = 1.0,
-                          norm_weights = False, norm_coef = 1.0, trials_per_graph = 1, optimizer = 'BFGS', 
-                          approx_ratio = 0.97, max_iter = 10, norm_threshold = 1e-3, 
-                          energy_threshold = 1e-9, multi_gamma = False, verbose = True):
-    
+def generate_data_max_cut(output_dir='adapt_results',
+                          graphs_number=1,
+                          graphs_input_json="N/A",
+                          n_nodes=8,
+                          weighted=True,
+                          use_negative_weights=False,
+                          use_brute_force=True,
+                          use_simulated_annealing=True,
+                          use_one_exchange=True,
+                          op_pool='all_pool',
+                          init_gamma: list[float] = [0.01],
+                          scaling_coef=1.0,
+                          norm_weights=False,
+                          norm_coef=1.0,
+                          trials_per_graph=1,
+                          optimizer='BFGS',
+                          approx_ratio=0.97,
+                          max_iter=10,
+                          norm_threshold=1e-3,
+                          energy_threshold=1e-9,
+                          multi_gamma=False,
+                          verbose=True):
     """
     Generates data for ADAPT-QAOA on the Max-Cut problem.
     Args:
@@ -97,20 +114,19 @@ def generate_data_max_cut(output_dir = 'adapt_results', graphs_number = 1, graph
         None: The function saves results to the specified output directory.
     
     """
-    
 
-    
     ensure_dirs(output_dir)
-    
+
     pid = os.getpid()
     hostname = socket.gethostname()
     ts_string = datetime.now().strftime("%y-%m-%d__%H_%M")
-    
+
     results_df = pd.DataFrame()
     hams_df = pd.DataFrame()
-    graphs_df = pd.DataFrame(columns=['graph_num', 'g_method', 'edgelist_json', 'H_frob_norm'])
+    graphs_df = pd.DataFrame(
+        columns=['graph_num', 'g_method', 'edgelist_json', 'H_frob_norm'])
     traces_df = pd.DataFrame()
-    
+
     # Load graphs from JSON if provided
     if graphs_input_json != "N/A":
         with open(graphs_input_json, 'r') as f:
@@ -120,26 +136,22 @@ def generate_data_max_cut(output_dir = 'adapt_results', graphs_number = 1, graph
     else:
         graphs_number = graphs_number
 
-
     # Loop through the number of graphs to generate or process
-    if verbose: print(f"Generating or processing {graphs_number} graphs...")
-    
+    if verbose:
+        print(f"Generating or processing {graphs_number} graphs...")
+
     graph_rows = []
     result_rows = []
-    
+
     for graph_num in range(graphs_number):
 
         if graphs_input_json == "N/A":
             cur_graph_name = f"Graph_{graph_num+1}"
             g_unweighted, g_method = generate_random_graph(
-                n_nodes,
-                methods=["erdos_renyi"]
-            )
+                n_nodes, methods=["erdos_renyi"])
             if weighted:
-                g = add_rand_weights_to_graph(
-                    g_unweighted,
-                    neg_weights = use_negative_weights
-                )
+                g = add_rand_weights_to_graph(g_unweighted,
+                                              neg_weights=use_negative_weights)
             else:
                 g = g_unweighted
         else:
@@ -148,82 +160,94 @@ def generate_data_max_cut(output_dir = 'adapt_results', graphs_number = 1, graph
             n_nodes = json_graphs_dict[cur_graph_name]["n_nodes"]
             g = edgelist_to_graph(cur_graph_elist, num_vertices=n_nodes)
             g_method = "input_file"
-            
-        
-        if verbose: print (f"Processing {cur_graph_name}...")
-        if verbose: print (f"Graph method: {g_method}")
-        if verbose: print (f"Graph edgelist: {graph_to_edgelist(g)}")
-        
+
+        if verbose:
+            print(f"Processing {cur_graph_name}...")
+        if verbose:
+            print(f"Graph method: {g_method}")
+        if verbose:
+            print(f"Graph edgelist: {graph_to_edgelist(g)}")
+
         e_list = graph_to_edgelist(g)
-        
+
         # update e_list to change index to 1 based for tokenization later.
-        e_list_mod = [(node1 + 1, node2 + 1, weight) for (node1, node2, weight) in e_list]
+        e_list_mod = [
+            (node1 + 1, node2 + 1, weight) for (node1, node2, weight) in e_list
+        ]
         edgelist_json = json.dumps(e_list_mod)
-        
+
         if scaling_coef != 1.0:
             e_list = scale_elist_weights(e_list, scaling_coef)
-        
+
         if norm_weights:
             e_list, norm_coef = norm_elist_weights(e_list)
-        
-        
-        
+
         ###############################################
         # Build up the problem hamiltonian
-        
+
         spin_ham = max_cut_ham(e_list)
         #if verbose: print(f"Problem Hamiltonian: {spin_ham}")
-        
+
         h_frob_norm = np.linalg.norm(spin_ham.to_matrix())
-        if verbose: print(f"Frobenius norm of the Hamiltonian: {h_frob_norm}")
-        
+        if verbose:
+            print(f"Frobenius norm of the Hamiltonian: {h_frob_norm}")
+
         # Store the graph data
         graph_rows.append({
-        'graph_num': graph_num + 1 ,  
-        'g_method': g_method,
-        'edgelist_json': edgelist_json,
-        'H_frob_norm': h_frob_norm
-    })
+            'graph_num': graph_num + 1,
+            'g_method': g_method,
+            'edgelist_json': edgelist_json,
+            'H_frob_norm': h_frob_norm
+        })
 
         # After the loop:
-        graphs_df = pd.DataFrame(graph_rows, columns=['graph_num', 'g_method', 'edgelist_json', 'H_frob_norm'])
+        graphs_df = pd.DataFrame(
+            graph_rows,
+            columns=['graph_num', 'g_method', 'edgelist_json', 'H_frob_norm'])
 
-        
         ############################################
         # Classical solutions of max-cut problem
         if use_brute_force:
-        # Brute Force
-            brute_force_cut_value, partition, binary_vector = brute_force_max_cut(g)
-            
+            # Brute Force
+            brute_force_cut_value, partition, binary_vector = brute_force_max_cut(
+                g)
+
         if use_simulated_annealing:
-        # Simulated Annealing
-            sa_partition, sa_cut_value, sa_binary_vector = simulated_annealing_maxcut(g)
-        
+            # Simulated Annealing
+            sa_partition, sa_cut_value, sa_binary_vector = simulated_annealing_maxcut(
+                g)
+
         if use_one_exchange:
-        # one_exchange
-            one_exchange_cut_value, one_exchange_partition, one_exchange_binary_vector = one_exchange(g)
+            # one_exchange
+            one_exchange_cut_value, one_exchange_partition, one_exchange_binary_vector = one_exchange(
+                g)
         ################################################
-        
+
         # Quantum solutions of max-cut problem using ADAPT-QAOA
-        if verbose: print(f"Preparing to run ADAPT-QAOA for graph {graph_num+1}...")
-        
-        
-        for gamma in init_gamma:  
+        if verbose:
+            print(f"Preparing to run ADAPT-QAOA for graph {graph_num+1}...")
+
+        for gamma in init_gamma:
             for trial_num in range(trials_per_graph):
-                
-                if verbose: print(f"Running ADAPT-QAOA for graph {graph_num+1}, trial {trial_num+1}...")
-                if verbose: print(f"Using initial gamma: {gamma}")
-                
+
+                if verbose:
+                    print(
+                        f"Running ADAPT-QAOA for graph {graph_num+1}, trial {trial_num+1}..."
+                    )
+                if verbose:
+                    print(f"Using initial gamma: {gamma}")
+
                 # Run ADAPT-QAOA
-                if verbose: print("Running ADAPT-QAOA...")
-                
+                if verbose:
+                    print("Running ADAPT-QAOA...")
+
                 # Run the ADAPT-QAOA algorithm
                 qubits_num = len(g.nodes)
                 pool = op_pool
                 g0 = gamma
-                
+
                 if use_simulated_annealing:
-                    true_energy = sa_cut_value # Use the simulated annealing cut value as the true energy
+                    true_energy = sa_cut_value  # Use the simulated annealing cut value as the true energy
                     classical_cut = sa_binary_vector
                 elif use_one_exchange:
                     true_energy = one_exchange_cut_value
@@ -234,27 +258,43 @@ def generate_data_max_cut(output_dir = 'adapt_results', graphs_number = 1, graph
                 else:
                     true_energy = -999.0
                     classical_cut = "N/A"
-                
+
                 start_time = time.time()
-                
-                # Run the adapt_qaoa function       
-                adapt_qaoa_result = adapt_qaoa_run(spin_ham, qubits_num, pool = pool, gamma_0 = g0, 
-                            norm_threshold = norm_threshold, energy_threshold = energy_threshold, approx_ratio = approx_ratio, 
-                            true_energy = true_energy, optimizer = optimizer, max_iter = max_iter, verbose = verbose)
-                
+
+                # Run the adapt_qaoa function
+                adapt_qaoa_result = adapt_qaoa_run(
+                    spin_ham,
+                    qubits_num,
+                    pool=pool,
+                    gamma_0=g0,
+                    norm_threshold=norm_threshold,
+                    energy_threshold=energy_threshold,
+                    approx_ratio=approx_ratio,
+                    true_energy=true_energy,
+                    optimizer=optimizer,
+                    max_iter=max_iter,
+                    verbose=verbose)
+
                 end_time = time.time()
                 elapsed_time = end_time - start_time
-                
+
                 if isinstance(adapt_qaoa_result, tuple):
-                    adapt_qaoa_result = list(adapt_qaoa_result)  # Convert to list
-                    adapt_qaoa_result[2] = [int(i)+1 for i in adapt_qaoa_result[2]]  # Modify the third element indexes to be 1-based
-                    adapt_qaoa_result = tuple(adapt_qaoa_result)  # Convert back to tuple (if required)
+                    adapt_qaoa_result = list(
+                        adapt_qaoa_result)  # Convert to list
+                    adapt_qaoa_result[2] = [
+                        int(i) + 1 for i in adapt_qaoa_result[2]
+                    ]  # Modify the third element indexes to be 1-based
+                    adapt_qaoa_result = tuple(
+                        adapt_qaoa_result
+                    )  # Convert back to tuple (if required)
                 else:
-                    adapt_qaoa_result[2] = [int(i)+1 for i in adapt_qaoa_result[2]]  # Modify directly if not a tuple
-                
-                
-                if verbose: 
-                    print(f"ADAPT-QAOA completed in {elapsed_time:.2f} seconds.")
+                    adapt_qaoa_result[2] = [
+                        int(i) + 1 for i in adapt_qaoa_result[2]
+                    ]  # Modify directly if not a tuple
+
+                if verbose:
+                    print(
+                        f"ADAPT-QAOA completed in {elapsed_time:.2f} seconds.")
                     print('Energy list: ', adapt_qaoa_result[0])
                     print('Mixer pool as pauli word: ', adapt_qaoa_result[1])
                     print('Mixer pool as index: ', adapt_qaoa_result[2])
@@ -265,13 +305,13 @@ def generate_data_max_cut(output_dir = 'adapt_results', graphs_number = 1, graph
                     print('Number of layers: ', adapt_qaoa_result[7])
                     print('Optimizer success flag: ', adapt_qaoa_result[8])
                     print('\n')
-                
+
                 # Prepare the results for saving
                 result_rows.append({
                     'method': 'ADAPT-QAOA',
                     'graph_name': cur_graph_name,
-                    'graph_num': graph_num + 1 ,  
-                    'trial_num': trial_num + 1,  
+                    'graph_num': graph_num + 1,
+                    'trial_num': trial_num + 1,
                     'n_nodes': n_nodes,
                     'init_gamma': gamma,
                     'optimizer': optimizer,
@@ -291,38 +331,49 @@ def generate_data_max_cut(output_dir = 'adapt_results', graphs_number = 1, graph
                     'optimizer_success_flag': adapt_qaoa_result[8],
                     'elapsed_time': elapsed_time
                 })
-                
-                results_df = pd.DataFrame(result_rows, columns=[
-                    'method', 'graph_name', 'graph_num', 'trial_num', 'n_nodes', 'init_gamma', 
-                    'energy_list', 'true_energy', 'optimizer', 'pool_type', 
-                    'edge_weight_scaling_coef', 'edge_weight_norm_coef',
-                    'mixer_pool_pauli_word', 'mixer_pool_index', 'gamma_coef',
-                    'beta_coef', 'approx_ratio', 'cut_adapt', 'cut_classical', 'num_layers', 
-                    'optimizer_success_flag', 'elapsed_time'
-                ])
+
+                results_df = pd.DataFrame(
+                    result_rows,
+                    columns=[
+                        'method', 'graph_name', 'graph_num', 'trial_num',
+                        'n_nodes', 'init_gamma', 'energy_list', 'true_energy',
+                        'optimizer', 'pool_type', 'edge_weight_scaling_coef',
+                        'edge_weight_norm_coef', 'mixer_pool_pauli_word',
+                        'mixer_pool_index', 'gamma_coef', 'beta_coef',
+                        'approx_ratio', 'cut_adapt', 'cut_classical',
+                        'num_layers', 'optimizer_success_flag', 'elapsed_time'
+                    ])
                 # Early stopping: End of trial if approximation ratio is reached
                 if adapt_qaoa_result[5] >= approx_ratio:
-                    if verbose: print(f"Approximation ratio {adapt_qaoa_result[5]} reached, stopping early.")
+                    if verbose:
+                        print(
+                            f"Approximation ratio {adapt_qaoa_result[5]} reached, stopping early."
+                        )
                     break
             # Early stopping: End of graph processing if approximation ratio is reached
             if adapt_qaoa_result[5] >= approx_ratio and not multi_gamma:
-                if verbose: print(f"Approximation ratio {adapt_qaoa_result[5]} reached for graph {graph_num+1}, stopping further trials.")
+                if verbose:
+                    print(
+                        f"Approximation ratio {adapt_qaoa_result[5]} reached for graph {graph_num+1}, stopping further trials."
+                    )
                 # uncomment if you do not want to check for more validated circuits
                 break
-                
-                
-    #write results to files
-    if verbose: print("Writing results to files...")
-    
-    # Save results DataFrame to CSV
-    results_df.to_csv(os.path.join(output_dir, 'res', f'pid{pid}_{ts_string}_results.csv'), index=False)
-    
-    # Save graphs DataFrame to CSV
-    graphs_df.to_csv(os.path.join(output_dir, 'graphs', f'pid{pid}_{ts_string}_graphs.csv'), index=False)
-    
-    
-    if verbose: print("Data generation completed successfully.")
-    
-    return
-        
 
+    #write results to files
+    if verbose:
+        print("Writing results to files...")
+
+    # Save results DataFrame to CSV
+    results_df.to_csv(os.path.join(output_dir, 'res',
+                                   f'pid{pid}_{ts_string}_results.csv'),
+                      index=False)
+
+    # Save graphs DataFrame to CSV
+    graphs_df.to_csv(os.path.join(output_dir, 'graphs',
+                                  f'pid{pid}_{ts_string}_graphs.csv'),
+                     index=False)
+
+    if verbose:
+        print("Data generation completed successfully.")
+
+    return

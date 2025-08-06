@@ -32,23 +32,22 @@ from matplotlib import pyplot as plt
 from collections import defaultdict
 from pathlib import Path
 
-from qaoa_gpt_src.util import (
-    generate_circ_from_df, 
-    eval_adapt_gpt_circ_cudaq,
-    prepare_model_input
-)
+from qaoa_gpt_src.util import (generate_circ_from_df, eval_adapt_gpt_circ_cudaq,
+                               prepare_model_input)
+
 
 class QAOA_GPT():
+
     def __init__(
         self,
         model_ckpt,
         config_file,
         data_dir,
-        device, # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
+        device,  # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
         n_nodes='infer',
         temp_folder='adapt_gpt_temp_data',
     ):
-        
+
         config_fpath = Path(config_file)
         assert config_fpath.is_file()
 
@@ -66,8 +65,7 @@ class QAOA_GPT():
                     """Number of nodes is not found in the provided config.
                     You need to supply it as an argument in AdaptGPT constructor:
                     AdaptGPT(..., n_nodes=<N>,...)
-                    """
-                )
+                    """)
             else:
                 assert type(n_nodes) == int
                 self.n_nodes = n_nodes
@@ -78,25 +76,31 @@ class QAOA_GPT():
         self.data_dir = Path(data_dir)
         self.model_ckpt = Path(model_ckpt)
         self.temp_folder = Path(temp_folder)
-        
+
         self.seed = 1337
-        self.init_from = 'resume' # either 'resume' (from an out_dir) or a gpt2 variant (e.g. 'gpt2-xl')
+        self.init_from = 'resume'  # either 'resume' (from an out_dir) or a gpt2 variant (e.g. 'gpt2-xl')
         self.device = device
         if self.device == 'cuda':
             if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
                 self.dtype = 'bfloat16'
         else:
             self.dtype = 'float16'
-        
-        self.compile = False # use PyTorch 2.0 to compile the model to be faster
-        
+
+        self.compile = False  # use PyTorch 2.0 to compile the model to be faster
+
         torch.manual_seed(self.seed)
         torch.cuda.manual_seed(self.seed)
-        torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
-        torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
-        self.device_type = 'cuda' if 'cuda' in self.device else 'cpu' # for later use in torch.autocast
-        ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[self.dtype]
-        self.ctx = nullcontext() if self.device_type == 'cpu' else torch.amp.autocast(device_type=self.device_type, dtype=ptdtype)
+        torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
+        torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
+        self.device_type = 'cuda' if 'cuda' in self.device else 'cpu'  # for later use in torch.autocast
+        ptdtype = {
+            'float32': torch.float32,
+            'bfloat16': torch.bfloat16,
+            'float16': torch.float16
+        }[self.dtype]
+        self.ctx = nullcontext(
+        ) if self.device_type == 'cpu' else torch.amp.autocast(
+            device_type=self.device_type, dtype=ptdtype)
 
         self.meta = pd.read_pickle(f'{data_dir}/meta.pkl')
 
@@ -108,7 +112,7 @@ class QAOA_GPT():
             self.gpt = GPT_nogemb
 
         self.model = self.open_model(self.model_ckpt)
-            
+
         return None
 
     def open_model(
@@ -122,24 +126,24 @@ class QAOA_GPT():
         model = self.gpt(gptconf)
         state_dict = checkpoint['model']
         unwanted_prefix = '_orig_mod.'
-        for k,v in list(state_dict.items()):
+        for k, v in list(state_dict.items()):
             if k.startswith(unwanted_prefix):
                 state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
         model.load_state_dict(state_dict)
         model.eval()
         model.to(self.device)
-        
+
         return model
-    
+
     def generate_circ_from_nx(
         self,
         graphs_container,
         calculate_classic_maxcut=True,
-        n_samples_per_batch=50, # max number of distinct graphs in a batch
-        num_samples=5, # number of samples to draw
-        max_new_tokens=150, # number of tokens generated in each sample
-        temperature=0.1, # 1.0 = no change, < 1.0 = less random, > 1.0 = more random, in predictions
-        top_k=200, # retain only the top_k most likely tokens, clamp others to have 0 probability
+        n_samples_per_batch=50,  # max number of distinct graphs in a batch
+        num_samples=5,  # number of samples to draw
+        max_new_tokens=150,  # number of tokens generated in each sample
+        temperature=0.1,  # 1.0 = no change, < 1.0 = less random, > 1.0 = more random, in predictions
+        top_k=200,  # retain only the top_k most likely tokens, clamp others to have 0 probability
     ):
         graphs_nx_df, feather_par_emb, emb_graph_id_to_idx_dict = prepare_model_input(
             graphs_container,
@@ -166,23 +170,15 @@ class QAOA_GPT():
 
         return gc_df
 
-    def eval_circ_df_cudaq(
-        self,
-        qaoa_gpt_circ_df,
-        adapt_gpt_path='.'
-    ):
+    def eval_circ_df_cudaq(self, qaoa_gpt_circ_df, adapt_gpt_path='.'):
         qaoa_gpt_circ_eval_df = eval_adapt_gpt_circ_cudaq(
             qaoa_gpt_circ_df,
             n_nodes=self.n_nodes,
             temp_folder=self.temp_folder,
-            pool_type=self.pool_type
-        )
+            pool_type=self.pool_type)
 
-        output_columns_list =[
-            "graph_prefix",
-            "graph",
-            "n_edges",
-            "q_circuits",
+        output_columns_list = [
+            "graph_prefix", "graph", "n_edges", "q_circuits",
             "adapt_gpt_energies"
         ]
 
@@ -191,9 +187,5 @@ class QAOA_GPT():
 
         if "energy_gurobi" in qaoa_gpt_circ_df.columns:
             output_columns_list.append("energy_gurobi")
-        
+
         return qaoa_gpt_circ_eval_df[output_columns_list]
-    
-        
-        
-        

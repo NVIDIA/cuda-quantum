@@ -17,6 +17,7 @@ import random
 import numpy as np
 import networkx as nx
 
+
 # Compute the max cut of a graph and its value using brute force, simulated annealing, or one-exchange algorithm.
 # The brute force method is exact but computationally expensive for large graphs.
 # Simulated annealing provides a probabilistic approach that can yield good results in reasonable time.
@@ -40,18 +41,23 @@ def brute_force_max_cut(graph):
 
     for i in range(1, 2**len(nodes) - 1):
         binary_representation = bin(i)[2:].zfill(len(nodes))
-        group1 = {nodes[j] for j, bit in enumerate(binary_representation) if bit == '1'}
+        group1 = {
+            nodes[j]
+            for j, bit in enumerate(binary_representation)
+            if bit == '1'
+        }
         group2 = set(nodes) - group1
-        
+
         cut_value = 0
         for u, v, data in graph.edges(data=True):
             if (u in group1 and v in group2) or (u in group2 and v in group1):
-                cut_value += data.get('weight', 1)  # Use 1 as default weight if not specified
+                cut_value += data.get(
+                    'weight', 1)  # Use 1 as default weight if not specified
 
         if cut_value > max_cut_value:
             max_cut_value = cut_value
             best_partition = (group1, group2)
-        
+
         # convert to binary representation
         binary_vector_1 = [0] * len(nodes)
         for node in best_partition[0]:
@@ -60,22 +66,24 @@ def brute_force_max_cut(graph):
         binary_vector_2 = [0] * len(nodes)
         for node in best_partition[1]:
             binary_vector_2[node] = 1
-        
-        binary_vector = (''.join(str(bit) for bit in binary_vector_1) , ''.join(str(bit) for bit in binary_vector_2))
+
+        binary_vector = (''.join(str(bit) for bit in binary_vector_1),
+                         ''.join(str(bit) for bit in binary_vector_2))
 
     return (-1 * max_cut_value), best_partition, binary_vector
 
 
-def simulated_annealing_maxcut(graph, initial_temp=1000, cooling_rate=0.95, iterations=1000):
+def simulated_annealing_maxcut(graph,
+                               initial_temp=1000,
+                               cooling_rate=0.95,
+                               iterations=1000):
     nodes = list(graph.nodes)
     current_solution = {node: random.choice([0, 1]) for node in nodes}
 
     def cut_value(solution):
-        return sum(
-            data['weight']
-            for u, v, data in graph.edges(data=True)
-            if solution[u] != solution[v]
-        )
+        return sum(data['weight']
+                   for u, v, data in graph.edges(data=True)
+                   if solution[u] != solution[v])
 
     current_value = cut_value(current_solution)
     best_solution = current_solution.copy()
@@ -100,7 +108,7 @@ def simulated_annealing_maxcut(graph, initial_temp=1000, cooling_rate=0.95, iter
 
     set1 = [node for node in best_solution if best_solution[node] == 0]
     set2 = [node for node in best_solution if best_solution[node] == 1]
-    
+
     binary_vector_1 = [0] * len(nodes)
     for node in set1:
         binary_vector_1[node] = 1
@@ -108,14 +116,17 @@ def simulated_annealing_maxcut(graph, initial_temp=1000, cooling_rate=0.95, iter
     binary_vector_2 = [0] * len(nodes)
     for node in set2:
         binary_vector_2[node] = 1
-    
-    binary_vector = (''.join(str(bit) for bit in binary_vector_1) , ''.join(str(bit) for bit in binary_vector_2))
-    
+
+    binary_vector = (''.join(str(bit) for bit in binary_vector_1),
+                     ''.join(str(bit) for bit in binary_vector_2))
+
     return (set(set1), set(set2)), (-1 * best_value), binary_vector
 
+
 def one_exchange(graph):
-    
-    curr_cut_size, partition = nx.approximation.one_exchange(graph, weight='weight')
+
+    curr_cut_size, partition = nx.approximation.one_exchange(graph,
+                                                             weight='weight')
     # convert to binary representation
     binary_vector_1 = [0] * len(graph.nodes)
     for node in partition[0]:
@@ -123,6 +134,7 @@ def one_exchange(graph):
     binary_vector_2 = [0] * len(graph.nodes)
     for node in partition[1]:
         binary_vector_2[node] = 1
-    binary_vector = (''.join(str(bit) for bit in binary_vector_1), ''.join(str(bit) for bit in binary_vector_2))
+    binary_vector = (''.join(str(bit) for bit in binary_vector_1),
+                     ''.join(str(bit) for bit in binary_vector_2))
 
     return (curr_cut_size * -1), partition, binary_vector

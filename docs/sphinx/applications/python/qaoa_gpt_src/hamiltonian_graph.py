@@ -32,12 +32,13 @@ def max_cut_ham(edges):
 
         qubitu = edges[edge][0]
         qubitv = edges[edge][1]
-        weight = edges[edge][2] 
+        weight = edges[edge][2]
         # Add a term to the Hamiltonian for the edge (u,v)
         ham += 0.5 * (weight * spin.z(qubitu) * spin.z(qubitv) -
-                            weight * spin.i(qubitu) * spin.i(qubitv))
+                      weight * spin.i(qubitu) * spin.i(qubitv))
 
     return ham
+
 
 # Collect coefficients from a spin operator so we can pass them to a kernel
 def term_coefficients(ham: cudaq.SpinOperator) -> list[complex]:
@@ -46,11 +47,12 @@ def term_coefficients(ham: cudaq.SpinOperator) -> list[complex]:
         result.append(term.evaluate_coefficient())
     return result
 
+
 # Collect Pauli words from a spin operator so we can pass them to a kernel
 def term_words(ham: cudaq.SpinOperator, qubits_num) -> list[str]:
     # Our kernel uses these words to apply exp_pauli to the entire state.
     # we hence ensure that each pauli word covers the entire space.
-    
+
     result = []
     for term in ham:
         result.append(term.get_pauli_word(qubits_num))
