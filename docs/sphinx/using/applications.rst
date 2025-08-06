@@ -311,6 +311,15 @@ CUDA-Q Applications
         <img src="../_static/app_title_images/qmmm-pe.png" alt="QM/MM partitioning in the PE model." class="notebook-image">
     </div>
 
+    <div class="notebook-entry" data-tags="noisless,optimization,gpu,aiforq">
+        <a href="../applications/python/qaoa_gpt.html" class="notebook-title">QAOA-GPT: GPT model for generating efficient QAOA quantum circuit.</a>
+        <div class="notebook-content">
+            Learn how to implement QAOA-GPT algorithm using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/qaoa_gpt_toc.png" alt="QAOA-GPt for generating QAOa circuit." class="notebook-image">
+    </div>
+
+
     <script>
     document.addEventListener("DOMContentLoaded", function() {
         document.querySelectorAll('.notebook-entry').forEach(entry => {
