@@ -238,17 +238,15 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
   auto resultsGetPath = postJobResponse.at("resultUrl").get<std::string>();
   // Get the results
   auto results = getResults(resultsGetPath);
-
   CUDAQ_INFO("results: {}", results.dump());
 
   if (outputNames.find(jobId) == outputNames.end())
     throw std::runtime_error("Could not find output names for job " + jobId);
 
   auto const &output_names = outputNames[jobId];
-  for (auto const &[result, info] : output_names) {
-    CUDAQ_DBG("Qubit {} Result {} Name {}", info.qubitNum, result,
-              info.registerName);
-  }
+  for (auto const &[result, info] : output_names)
+    CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
+               info.registerName);
 
   auto const &index = results.at("index");
   std::map<std::string, std::vector<std::size_t>> registerMap;
@@ -262,7 +260,6 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
         if (std::find(indices.begin(), indices.end(), i) == indices.end()) {
           indices.push_back(i);
         }
-
         break;
       }
       ++i;
