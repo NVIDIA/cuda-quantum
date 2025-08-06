@@ -312,6 +312,7 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
   io.mapOptional("codegen-emission", info.CodegenEmission);
   io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
   io.mapOptional("extra-payload-provider", info.ExtraPayloadProvider);
+  io.mapOptional("extra-payload-path", info.ExtraPayloadPath);
   io.mapOptional("platform-library", info.PlatformLibrary);
   io.mapOptional("library-mode-execution-manager",
                  info.LibraryModeExecutionManager);

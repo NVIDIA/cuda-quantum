@@ -50,14 +50,14 @@ CUDAQ_TEST(ExtraPayloadProviderTester, checkWrongProvider) {
 // Proper provider requested by the target
 class SunriseProvider : public cudaq::ExtraPayloadProvider {
 public:
-  static inline std::string extraDataFieldName =
-      "dummy"; // Not the proper field name for testing
   SunriseProvider() = default;
   virtual ~SunriseProvider() = default;
   virtual const std::string name() const override { return "sunrise"; }
   virtual void injectExtraPayload(const cudaq::RuntimeTarget &target,
                                   cudaq::ServerMessage &msg) override {
-    msg[extraDataFieldName] = "test";
+    nlohmann::json_pointer<std::string> path(
+        target.config.BackendConfig->ExtraPayloadPath);
+    msg[path] = "test";
   }
 };
 
@@ -69,12 +69,6 @@ CUDAQ_TEST(ExtraPayloadProviderTester, checkProvider) {
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
   kernel.mz(qubit[0]);
-  // This still throws as the extra field that we set is not correct (expected
-  // 'unicorn'); hence the mock server will respond with an error code.
-  EXPECT_THROW(cudaq::sample(kernel), std::runtime_error);
-
-  // Set the correct extra field:
-  SunriseProvider::extraDataFieldName = "unicorn";
   EXPECT_NO_THROW(cudaq::sample(kernel)); // No throw
 }
 

@@ -20,18 +20,18 @@ app = FastAPI()
 async def postJob(request: Request):
     payload = await request.json()
     print("Received payload:", payload)
-    if "unicorn" not in payload:
-        print("No unicorn in payload")
-        raise HTTPException(status_code=401,
-                            detail="Cannot find the extra payload")
+    if "foo" not in payload:
+        raise HTTPException(status_code=400,
+                            detail="Payload must contain 'foo' key")
+        if "bar" not in payload["foo"]:
+            raise HTTPException(status_code=400,
+                                detail="Payload must contain 'foo/bar' key")
 
     newId = str(uuid.uuid4())
     # Job "created", return the id
     return ({"job_token": newId}, 201)
 
 
-# Retrieve the job, simulate having to wait by counting to 3
-# until we return the job results
 @app.get("/job/{jobId}")
 async def getJob(jobId: str):
     res = ({"status": "done"}, 201)

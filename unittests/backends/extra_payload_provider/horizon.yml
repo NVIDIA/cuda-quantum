@@ -25,3 +25,5 @@ config:
   library-mode: false
   # Specify the extra payload provider to use
   extra-payload-provider: sunrise
+  # Specify the extra payload path
+  extra-payload-path: "/foo/bar"

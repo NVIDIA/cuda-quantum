@@ -20,9 +20,12 @@ void registerExtraPayloadProvider(
   const auto it = std::find_if(
       extraPayloadProviders.begin(), extraPayloadProviders.end(),
       [&](const auto &entry) { return entry->name() == provider->name(); });
-  if (it != extraPayloadProviders.end())
-    throw std::runtime_error("ExtraPayloadProvider with name " +
-                             provider->name() + " already registered.");
+  if (it != extraPayloadProviders.end()) {
+    // If so, replace it.
+    *it = std::move(provider);
+    return;
+  }
+
   extraPayloadProviders.push_back(std::move(provider));
 }
 
