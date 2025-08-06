@@ -41,8 +41,10 @@ int main() {
     gateCounts.dump();
   } catch (std::runtime_error error) {
     printf("Error caught: \"%s\"\n", error.what());
+    exception_thrown = true;
     // CHECK: Error caught: "Illegal use of resource counter simulator! (Did you attempt to run a kernel inside of a choice function?)"
   }
+  assert(exception_thrown);
 
   return 0;
 }

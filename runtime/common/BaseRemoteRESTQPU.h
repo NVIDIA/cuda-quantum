@@ -62,6 +62,7 @@ namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
 cudaq::Resources *getResourceCounts();
+bool isUsingResourceCounterSimulator();
 } // namespace nvqir
 
 namespace cudaq {
@@ -213,7 +214,8 @@ public:
     // be expanded more broadly to ensure that the execution context is
     // always fully reset, implying the end of the invocation, being being
     // set again, signaling a new invocation.
-    if (executionContext && executionContext->name == "resource-count")
+    if (nvqir::isUsingResourceCounterSimulator() &&
+        context->name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");

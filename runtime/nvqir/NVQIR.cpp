@@ -105,6 +105,8 @@ void stopUsingResourceCounterSimulator() {
   getResourceCounterSimulator()->setToZeroState();
 }
 
+bool isUsingResourceCounterSimulator() { return using_resource_counter; }
+
 void setRandomSeed(std::size_t seed) {
   getCircuitSimulatorInternal()->setRandomSeed(seed);
 }
