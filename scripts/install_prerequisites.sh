@@ -37,11 +37,11 @@ exclude_prereq=''
 install_all=true
 keep_sources=false
 tpls_dir="/opt/cudaq/tpls"
-mkdir -p "$tpls_dir"
+sudo mkdir -p "$tpls_dir"
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":e:t:m-:" opt; do
+while getopts ":e:t:mk-:" opt; do
   case $opt in
     e) exclude_prereq="${OPTARG,,}"
     ;;
