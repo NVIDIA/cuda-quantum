@@ -28,7 +28,6 @@ func.func @__nvqpp__mlirgen__function_callback.2(%arg0 : i64, %arg1 : i64) attri
   %3 = cc.device_call @addThem on %2 (%arg0, %arg1) : (i64, i64, i64) -> i64
   return
 }
-  
 func.func private @addThem(i64, i64) -> i64 attributes {"cudaq-devicecall"}
 
 // clang-format off
