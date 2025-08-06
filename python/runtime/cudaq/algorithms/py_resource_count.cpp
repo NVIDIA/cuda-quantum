@@ -81,7 +81,7 @@ Args:
     function at. Leave empty if the kernel doesn't accept any arguments.
 
 Returns:
-  :class:`ResourceCounts`:
+  :class:`Resources`:
   A dictionary containing the resource count results for the :class:`Kernel`.)#");
 }
 } // namespace cudaq
