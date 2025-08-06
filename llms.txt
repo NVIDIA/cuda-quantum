@@ -1,26 +1,26 @@
 # NVIDIA CUDA-Q
 
-> CUDA-Q is a programming model and toolchain for using quantum acceleration in heterogenous computing architectures. It streamlines hybrid application development-CPUs, GPUs, and QPUs working together-and offers support in both Python and C++.
+> CUDA-Q streamlines hybrid application development and promotes productivity and scalability in quantum computing. It offers a unified programming model designed for a hybrid setting—that is, CPUs, GPUs, and QPUs working together. CUDA-Q contains support for programming in Python and in C++.
 
-## Documentation
+## Docs
 
-- [Home](index.md): Introduction to CUDA-Q
-- [Gen Index](genindex.md): Complete index of terms
-- [Search](search.md): Search docs
 - [Quick Start](using/quick_start.md)
+
+## Examples
+
 - [Basics](using/basics/basics.md)
 - [Examples](using/examples/examples.md)
 - [Applications](using/applications.md)
 - [Backends](using/backends/backends.md)
 - [Dynamics](using/dynamics.md)
 - [CUDA-QX](using/cudaqx/cudaqx.md)
+- [Release Notes](releases.md)
+
+## Optional
+
 - [Installation](using/install/install.md)
 - [Integration](using/integration/integration.md)
 - [Extending](using/extending/extending.md)
 - [Specifications](specification/index.md)
 - [API Reference](api/api.md)
-- [Other Versions](versions.md)
-
-## Optional
-
 - [llms-full.txt](llms-full.txt): Full concatenated content of this documentation
