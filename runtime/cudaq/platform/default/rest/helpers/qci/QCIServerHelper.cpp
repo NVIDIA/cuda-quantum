@@ -254,7 +254,8 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
 
   for (auto const &[_, info] : output_names) {
     for (std::size_t i = 0; auto const &entry : index) {
-      if (info.registerName == entry[0] && info.qubitNum == entry[1]) {
+      if (info.registerName == entry[0].get<std::string>() &&
+          info.qubitNum == entry[1].get<std::size_t>()) {
         globalQubitMap[info.qubitNum] = i;
         auto &indices = registerMap[info.registerName];
         if (std::find(indices.begin(), indices.end(), i) == indices.end()) {
