@@ -35,6 +35,4 @@ target-arguments:
     required: false
     type: string
     platform-arg: machine
-    help-string: >
-      Specify a QCI QPU identifier. Omit or specify "simulator" for QCI's
-      hardware simulator.
+    help-string: Specify a QCI QPU identifier. Omit or specify "simulator" for QCI's hardware simulator.
