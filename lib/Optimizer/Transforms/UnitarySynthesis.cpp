@@ -22,6 +22,7 @@
 #include "mlir/Transforms/Passes.h"
 #include <unsupported/Eigen/KroneckerProduct>
 #include <unsupported/Eigen/MatrixFunctions>
+#include <iostream>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_UNITARYSYNTHESIS
@@ -36,6 +37,12 @@ using namespace std::complex_literals;
 namespace {
 
 constexpr double TOL = 1e-7;
+
+void printmatrix(Eigen::MatrixXcd &matrix){
+  Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", " [", " ]", "[", "]" );
+  std::cout << matrix.format(CleanFmt) << std::endl;
+}
+
 
 /// Base class for unitary synthesis, i.e. decomposing an arbitrary unitary
 /// matrix into native gate set. The native gate set here includes all the
@@ -434,6 +441,333 @@ struct TwoQubitOpKAK : public Decomposer {
   }
 };
 
+/// This logic is based on the Cosine-Sine Decomposition:
+/// https://arxiv.org/pdf/quant-ph/0404089
+/// And explanation given in:
+/// https://nhigham.com/2020/10/27/what-is-the-cs-decomposition/
+
+
+Eigen::VectorXcd householdervector(const Eigen::VectorXcd& x){
+  printf("Inside householdervector\n");
+  double norm = x.norm();
+  std::complex<double> sign = (x(0) == std::complex<double>(0.0, 0.0)) ? 1.0 : (x(0)/std::abs(x(0)));
+  std::complex<double> alpha = -sign * norm;
+  Eigen::VectorXcd v = x;
+  v(0) -= alpha; // Might need to subtract instead
+  return v;
+}
+
+Eigen::MatrixXcd createhouseholder(const Eigen::VectorXcd& x){
+  printf("Inside createhouseholder\n");
+  if(x.isApprox(Eigen::VectorXcd::Zero(x.size()),TOL)){
+    return Eigen::MatrixXcd::Identity(x.size(), x.size());
+  }
+  if(x.norm() == std::abs(x(0))){
+    return Eigen::MatrixXcd::Identity(x.size(), x.size());
+  }
+  printf("Non-zero vector in createhouseholder\n");
+  Eigen::VectorXcd v = householdervector(x);
+  double tau = 2.0 / (v.squaredNorm());
+  Eigen::MatrixXcd house = Eigen::MatrixXcd::Identity(v.size(), v.size()) - tau * v * v.adjoint();
+  return house;
+}
+
+Eigen::MatrixXcd createmultiplexor(const Eigen::MatrixXcd &firstmatrix, const Eigen::MatrixXcd &secondmatrix){
+  printf("Inside createmultiplexor\n");
+  Eigen::MatrixXcd multiplexedmatrix = Eigen::MatrixXcd::Identity(firstmatrix.rows() + secondmatrix.rows(), firstmatrix.cols() + secondmatrix.cols());
+
+  multiplexedmatrix.block(0, 0, firstmatrix.rows(), firstmatrix.cols()) = firstmatrix;
+  multiplexedmatrix.block(firstmatrix.rows(), firstmatrix.cols(), secondmatrix.rows(), secondmatrix.cols()) = secondmatrix;
+
+  printf("Returning multiplexed matrix\n");
+  return multiplexedmatrix;
+}
+
+std::tuple<Eigen::MatrixXcd, Eigen::MatrixXcd, Eigen::MatrixXcd>
+blockbidiagonalize(const Eigen::MatrixXcd &matrix){
+  printf("Inside blockbidiagonalize\n");
+  int p = 4, q = 4, m = 8;
+  std::vector<double> theta = {0.0, 0.0}, phi = {0.0, 0.0};
+  Eigen::MatrixXcd Y = matrix;
+  printf("Original Matrix\n");
+  printmatrix(Y);
+  Eigen::MatrixXcd P1 = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd P2 = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd Q1 = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd Q2 = Eigen::MatrixXcd::Identity(p, p);
+
+  Eigen::MatrixXcd P1_i = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd P2_i = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd Q1_i = Eigen::MatrixXcd::Identity(p, p);
+  Eigen::MatrixXcd Q2_i = Eigen::MatrixXcd::Identity(p, p);
+
+  Eigen::VectorXcd u1;
+  Eigen::VectorXcd u2;
+  Eigen::VectorXcd v1;
+  Eigen::VectorXcd v2;
+
+  // Eigen::MatrixXcd left_op, right_op;
+
+
+  for (int i=0; i<q; i++){
+    printf("i = %d\n", i);
+    //Steps 5 and 6
+    if(i==0){
+      u1 = Y.block(0, 0, p, 1);
+      u2 = -Y.block(p, 0, m-p, 1);
+    }
+    else{
+      u1 = std::cos(phi[(i+1)%2])*Y.block(i, i, p-i, 1) + std::sin(phi[(i+1)%2])*Y.block(i, q-1+i, p-i, 1);
+      u2 = -std::cos(phi[(i+1)%2])*Y.block(p+i, i, m-p-i, 1) - std::sin(phi[(i+1)%2])*Y.block(p+i, q-1+i, m-p-i, 1);
+    }
+    printf("Assigned u1,u2\n");
+    //Step 7
+    printf("u1 = %lf, u2 = %lf\n", u1.norm(), u2.norm());
+    // if(u2.norm() < TOL){
+    //   theta[i%2] = 0;
+    // }else{
+    theta[i%2] = std::atan2(u2.norm(), u1.norm());
+    // }
+    printf("Calculated theta\n");
+
+    //Step 8
+    if(i==0){
+      P1_i = createhouseholder(u1).adjoint();
+      P2_i = createhouseholder(u2).adjoint();
+    }
+    else{
+      P1_i = createmultiplexor(Eigen::MatrixXcd::Identity(i, i), createhouseholder(u1).adjoint());
+      P2_i = createmultiplexor(Eigen::MatrixXcd::Identity(i, i), createhouseholder(u2).adjoint());
+    }
+    printf("Created multiplexors for P1_i and P2_i\n");
+    printmatrix(P1_i);
+    printmatrix(P2_i);
+
+    //Step 9
+    auto left_op = createmultiplexor(P1_i, P2_i);
+    printf("Created left_op with %ld rows and %ld cols", left_op.rows(), left_op.cols());
+    Y = left_op * Y;
+
+    printf("Left multiplied Y with left_op\n");
+    //Step 12
+    v2 = (std::sin(theta[i%2])*Y.block(i, p+i, 1, p-i) + std::cos(theta[i%2])*Y.block(p+i, p+i, 1, p-i)).transpose();
+    printf("Assigned v2\n");
+    if(i<p){
+      // Step 11
+      v1 = -(std::sin(theta[i%2])*Y.block(i, i+1, 1, p-i-1) - std::cos(theta[i%2])*Y.block(p+i, i+1, 1, p-i-1)).transpose();
+
+      // Step 14
+      phi[i%2] = std::atan2(v1.norm(), v2.norm());
+
+      // Step 15
+      // if(i==0){
+      //   Q1_i = createhouseholder(v1.adjoint()).adjoint();
+      // }
+      // else{
+        Q1_i = createmultiplexor(Eigen::MatrixXcd::Identity(i+1, i+1), createhouseholder(v1.adjoint()).adjoint());
+      // }
+    }
+    else{
+      // Step 17
+      Q1_i = Eigen::MatrixXcd::Identity(p, p);
+    }
+
+    printf("Created Q1_i\n");
+    /// Step 19
+    if(i==0){
+      Q2_i = createhouseholder(v2.adjoint()).adjoint();
+    }
+    else{
+      Q2_i = createmultiplexor(Eigen::MatrixXcd::Identity(i, i), createhouseholder(v2.adjoint()).adjoint());
+    }
+
+    printf("Created Q2_i\n");
+    printmatrix(Q1_i);
+    printmatrix(Q2_i);
+    // Step 20
+    auto right_op = createmultiplexor(Q1_i, Q2_i);
+    printf("Created right_op with %ld rows and %ld cols", right_op.rows(), right_op.cols());
+    Y = Y*right_op;
+
+    printf("Right multiplied Y with right_op\n");
+    // Step 24
+    P1 = P1 * P1_i;
+    P1 = P2 * P2_i;
+    Q2 = Q2 * Q2_i;
+    if(i!=(p-1)){
+      Q1 = Q1 * Q1_i;
+    }
+    printf("End of loop iteration\n");
+    printmatrix(Y);
+  }
+
+  Eigen::MatrixXcd P = createmultiplexor(P1, P2);
+  Eigen::MatrixXcd Q = createmultiplexor(Q1, Q2);
+
+  Eigen::MatrixXcd reconstructedmatrix = P * Y * Q.adjoint();
+  printf("Reconstructed Matrix:\n");
+  printmatrix(reconstructedmatrix);
+  assert(reconstructedmatrix.isApprox(matrix, TOL));
+  assert(Y.isUnitary(TOL));
+  assert(P.isUnitary(TOL));
+  assert(Q.isUnitary(TOL));
+
+
+  return std::make_tuple(P, Y, Q);
+}
+
+
+
+/// Result for 3-q CSD decomposition
+struct CSDComponents {
+  /// This struct is defined to support the decomposition of a 3-qubit unitary
+  /// and hence has 4x4 sized matrices.
+  Eigen::Matrix4cd u1;
+  Eigen::Matrix4cd u2;
+  Eigen::Matrix4cd v1;
+  Eigen::Matrix4cd v2;
+  Eigen::Matrix4cd c;
+  Eigen::Matrix4cd s;
+  std::vector<std::complex<double>> theta;
+};
+
+/// CSD expresses arbitrary n-qubit unitary (Q) in the form:
+/// Q = (u1⊕ u2) x ([C, -S], [S, C]) x (v1⊕ v2) 
+/// where, u1, u2, v1, v2 are (n-1)-qubit unitaries.
+struct ThreeQubitOpCSD : public Decomposer {
+  Eigen::Matrix<std::complex<double>, 8, 8> targetMatrix;
+  CSDComponents components;
+  /// Updates to the global phase
+  std::complex<double> phase;
+
+    void decompose() override {
+    /// Convert to special unitary to maintain global phase
+    /// appropriately for future recursive decomposition
+    phase = std::pow(targetMatrix.determinant(), 0.125);
+    auto specialUnitary = targetMatrix / phase;
+
+    printf("Calling blockbidiagonalize\n");
+    auto [left, diagonal, right] = blockbidiagonalize(targetMatrix);
+    Eigen::Matrix4cd Q11 = specialUnitary.template block<4, 4>(0, 0);
+    Eigen::Matrix4cd Q12 = specialUnitary.template block<4, 4>(0, 4);
+    Eigen::Matrix4cd Q21 = specialUnitary.template block<4, 4>(4, 0);
+    // Eigen::Matrix4cd Q22 = specialUnitary.template block<4, 4>(4, 4);
+
+    /// Stack Q11 and Q12 before decomposing to link the generated SVDs
+    Eigen::MatrixXcd Qx1(8, 4);
+    Qx1 << Q11, Q21;
+
+    /// Compute SVD of stacked matrix
+    Eigen::JacobiSVD<Eigen::MatrixXcd> svd(Qx1, Eigen::ComputeFullU |
+                                                    Eigen::ComputeFullV);
+    Eigen::Matrix4cd U1 = svd.matrixU().block<4, 4>(0, 0);
+    Eigen::Matrix4cd U2 = svd.matrixU().block<4, 4>(4, 0);
+    Eigen::Matrix4cd V1 = svd.matrixV();
+    Eigen::Vector4d svalues = svd.singularValues();
+
+    /// JacobiSVD does not guarantee ordering of Singular Values.
+    /// Hence sort the values and rearrange U1, U2 and V1 as necessary.
+    std::vector<int> reorder(svalues.size());
+    for (int i = 0; i < svalues.size(); i++) {
+      reorder[i] = i;
+    }
+
+    std::sort(reorder.begin(), reorder.end(),
+              [&svalues](int i, int j) { return svalues(i) > svalues(j); });
+
+    Eigen::PermutationMatrix<4> reordermatrix;
+    reordermatrix.indices() = Eigen::Map<Eigen::VectorXi>(reorder.data(), 4);
+
+    components.u1 = U1 * reordermatrix;
+    components.u2 = U2 * reordermatrix;
+    components.v1 = V1 * reordermatrix;
+
+    assert(components.u1.isUnitary(TOL));
+    assert(components.u2.isUnitary(TOL));
+    assert(components.v1.isUnitary(TOL));
+    Eigen::Vector4d svalues_sorted = reordermatrix.transpose() * svalues;
+
+    Eigen::Matrix4cd C = Eigen::Matrix4cd::Zero();
+    Eigen::Matrix4cd S = Eigen::Matrix4cd::Zero();
+
+    /// Create C and S matrices from singularvalues
+    /// Clamp the singular values to avoid errors from floating point
+    for (int i = 0; i < 4; i++) {
+      double theta = std::acos(std::min(svalues_sorted[i], 1.0));
+      C(i, i) = std::cos(theta);
+      S(i, i) = std::sin(theta);
+    }
+
+    components.c = C;
+    components.s = S;
+
+    /// Compute V2 from existing components
+    Eigen::Vector4d s_inv_diag;
+    for (int i = 0; i < 4; i++) {
+      s_inv_diag(i) = (std::abs(components.s(i, i).real()) < TOL)
+                          ? 0
+                          : (1.0 / components.s(i, i).real());
+    }
+    Eigen::Matrix4cd s_inv = s_inv_diag.asDiagonal();
+
+    components.v2 = (Q12.adjoint() * components.u1 * s_inv);
+
+    /// Verify if decomposition matches the original matrix
+    // Eigen::Matrix8cd reconstructedmatrix;
+    Eigen::Matrix<std::complex<double>, 8, 8> reconstructedmatrix;
+    reconstructedmatrix.template block<4,4>(0, 0) = components.u1 * components.c * components.v1;
+    reconstructedmatrix.template block<4,4>(0, 4) = components.u1 * components.s * components.v2;
+    reconstructedmatrix.template block<4,4>(4, 0) = -components.u2 * components.s * components.v1;
+    reconstructedmatrix.template block<4,4>(4, 4) = components.u2 * components.c * components.v2;
+    reconstructedmatrix = reconstructedmatrix * phase;
+
+    assert(reconstructedmatrix.isApprox(targetMatrix, TOL));
+  }
+
+  void emitDecomposedFuncOp(quake::CustomUnitarySymbolOp customOp,
+                            PatternRewriter &rewriter,
+                            std::string funcName) override {
+
+    auto u1 = TwoQubitOpKAK(components.u1);
+    u1.emitDecomposedFuncOp(customOp, rewriter, funcName + "u1");
+    auto u2 = TwoQubitOpKAK(components.u2);
+    u2.emitDecomposedFuncOp(customOp, rewriter, funcName + "u2");
+    auto v1 = TwoQubitOpKAK(components.v1);
+    v1.emitDecomposedFuncOp(customOp, rewriter, funcName + "v1");
+    auto v2 = TwoQubitOpKAK(components.v2);
+    v2.emitDecomposedFuncOp(customOp, rewriter, funcName + "v2");
+    auto parentModule = customOp->getParentOfType<ModuleOp>();
+    Location loc = customOp->getLoc();
+    auto targets = customOp.getTargets();
+    auto funcTy =
+        FunctionType::get(parentModule.getContext(), targets.getTypes(), {});
+    // auto insPt = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+    auto func =
+        rewriter.create<func::FuncOp>(parentModule->getLoc(), funcName, funcTy);
+    func.setPrivate();
+    auto *block = func.addEntryBlock();
+    rewriter.setInsertionPointToStart(block);
+    auto arguments = func.getArguments();
+    // FloatType floatTy = rewriter.getF64Type();
+
+    rewriter.create<quake::ApplyOp>(
+        loc, TypeRange{},
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "v1"), false,
+        ValueRange{}, ValueRange{arguments[0], arguments[1]});
+    rewriter.create<quake::XOp>(loc, arguments[2], arguments[1]);
+    rewriter.create<quake::ApplyOp>(
+        loc, TypeRange{},
+        SymbolRefAttr::get(rewriter.getContext(), funcName + "v2"), false,
+        ValueRange{}, ValueRange{arguments[0], arguments[1]});
+  }
+
+  ThreeQubitOpCSD(const Eigen::MatrixXcd &vec) {
+    targetMatrix = vec;
+    decompose();
+  }
+};
+
 class CustomUnitaryPattern
     : public OpRewritePattern<quake::CustomUnitarySymbolOp> {
 public:
@@ -469,6 +803,10 @@ public:
       case 4: {
         auto kak = TwoQubitOpKAK(unitary);
         kak.emitDecomposedFuncOp(customOp, rewriter, funcName);
+      } break;
+      case 8: {
+        auto csd = ThreeQubitOpCSD(unitary);
+        csd.emitDecomposedFuncOp(customOp, rewriter, funcName);
       } break;
       default:
         customOp.emitWarning(
