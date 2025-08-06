@@ -201,9 +201,7 @@ if [ "$docs_exit_code" -eq "0" ]; then
     find "$DOCS_INSTALL_PREFIX" -type f -name "*.html" | while read -r html_file; do
         md_file="${html_file%.html}.md"
         pandoc "$html_file" -f html -t markdown -o "$md_file"
-        if [ "$?" -eq "0" ]; then
-            echo "Converted $html_file to $md_file"
-        else
+        if [ "$?" -ne "0" ]; then
             echo "Failed to convert $html_file"
             docs_exit_code=13
         fi
@@ -211,6 +209,9 @@ if [ "$docs_exit_code" -eq "0" ]; then
 
     if [ "$docs_exit_code" -eq "0" ]; then
         echo "Markdown documentation generated successfully."
+        find "$sphinx_output_dir" -type f -name "*.md" \
+            -exec cp --parents '{}' "$DOCS_INSTALL_PREFIX" \;
+        echo "Markdown files copied successfully to $DOCS_INSTALL_PREFIX."
     else
         echo "Markdown documentation encountered issues."
     fi
