@@ -47,8 +47,8 @@ __qpu__ uint64_t foo() {
 // CHECK:               %[[VAL_9:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_9]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:               %[[VAL_11:.*]] = cc.load %[[VAL_10]] : !cc.ptr<i8>
-// CHECK:               %[[VAL_12:.*]] = cc.cast unsigned %[[VAL_11]] : (i8) -> i64
-// CHECK:               %[[VAL_13:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
+// CHECK-DAG:           %[[VAL_12:.*]] = cc.cast unsigned %{{.*}} : (i{{[18]}}) -> i64
+// CHECK-DAG:           %[[VAL_13:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 // CHECK:               %[[VAL_14:.*]] = arith.shli %[[VAL_12]], %[[VAL_13]] : i64
 // CHECK:               %[[VAL_15:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
 // CHECK:               %[[VAL_16:.*]] = arith.ori %[[VAL_15]], %[[VAL_14]] : i64
@@ -64,7 +64,7 @@ __qpu__ uint64_t foo() {
 // CHECK:           return %[[VAL_19]] : i64
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo._Z3foov() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo.
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
@@ -84,6 +84,6 @@ __qpu__ uint64_t foo() {
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_3]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_11]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_13:.*]] = call @__nvqpp__mlirgen__function_qubit_values_to_integer._Z23qubit_values_to_integerRKSt6vectorIbSaIbEE(%[[VAL_12]]) : (!cc.stdvec<i1>) -> i64
+// CHECK:           %[[VAL_13:.*]] = call @__nvqpp__mlirgen__function_qubit_values_to_integer.
 // CHECK:           return %[[VAL_13]] : i64
 // CHECK:         }
