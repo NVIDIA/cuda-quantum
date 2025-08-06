@@ -404,7 +404,7 @@ if [ "$keep_sources" = true ]; then
   echo "Cloning additional third-party libraries into $tpls_dir..."
   sudo mkdir -p "$tpls_dir"
   # make sure we are at the repo root
-  cd "$this_file_dir" && cd "$(git rev-parse --show-toplevel)"
+  cd "$this_file_dir" # && git init && cd "$(git rev-parse --show-toplevel)"
   # for each submodule.<name>.url in .gitmodules
   git config --file .gitmodules --get-regexp 'submodule\..*\.url' | \
   while read -r key url; do
@@ -415,16 +415,20 @@ if [ "$keep_sources" = true ]; then
     lib=$(basename "$path")       # -> "foo"
     dest="$tpls_dir/$lib"
 
+    echo "Processing submodule $lib at path $path ..."
     repo="$(git config --file=.gitmodules submodule.$path.url)"
-    commit="$(git submodule | grep "$path" | cut -c2- | cut -d ' ' -f1)"
+    echo "Repository URL: $repo"
+    # commit="$(git submodule | grep "$path" | cut -c2- | cut -d ' ' -f1)"
+    # echo "Commit: $commit"
 
     echo "Adding $dest as a safe.directory..."
     sudo git config --global --add safe.directory "$dest"
 
-    echo "Cloning $lib@$commit from $repo into $dest..."
+    # && sudo git checkout "$commit" \
+    echo "Cloning $lib@$commit from $repo into $dest ..."
     sudo git clone --filter=tree:0 "$repo" "$dest" \
-    && cd "$dest" \
-    && git checkout "$commit" \
+    && sudo cd "$dest" \
+    && sudo git checkout main \
     && cd - \
     || echo "Failed to clone $lib"
   done
