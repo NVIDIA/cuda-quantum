@@ -19,24 +19,22 @@
 
 # Base image is CUDA-Q image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
+FROM $base_image AS nvcf_image
+
 # Flag to control whether to install/clone prerequisites
 ARG WITH_TPLS=false
 
-FROM $base_image AS nvcf_image
+# COPY install_prerequisites into the image
+RUN sudo mkdir -p /tmp
+COPY --chmod=0755 scripts/install_prerequisites.sh /tmp/install_prerequisites.sh
 
 # Copy and run the install_prerequisites script into the image
 RUN if [ "${WITH_TPLS}" = "true" ]; then \
         echo "WITH_TPLS=true; adding install_prerequisites.sh"; \
-        mkdir -p /tmp && \
-        cp scripts/install_prerequisites.sh /tmp/install_prerequisites.sh && \
-        chmod +x /tmp/install_prerequisites.sh && \
-        /tmp/install_prerequisites.sh -m -k; \
+        bash /tmp/install_prerequisites.sh -m -k; \
     else \
-        echo "Default build without prerequisites;" \
+        echo "Default build without prerequisites";  \
     fi
-
-# run it in "keep-sources" mode but skip any builds (-m), since base image already has them
-RUN /tmp/install_prerequisites.sh -m -k
 
 # Run the tar command and then uncomment ADD cudaq.tar.gz ... in order to
 # override the installation.
