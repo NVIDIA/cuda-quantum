@@ -337,6 +337,7 @@ runtimes
 rvalue
 scalability
 scalable
+selectable
 sexualized
 shakespeare
 shifter

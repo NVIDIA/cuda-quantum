@@ -89,19 +89,23 @@ mlir::Type genArgumentBufferType(mlir::Type ty);
 ///
 /// A kernel signature of
 /// ```c++
-/// i32_t operator() (i16_t, std::vector<double>, double);
+///   i32_t operator() (i16_t, std::vector<double>, double);
 /// ```
 /// will generate the LLVM struct
 /// ```llvm
-/// { i16, i64, double, i32 }
+///   { i16, i64, double, i32 }
 /// ```
 /// where the values of the vector argument are pass-by-value and appended to
 /// the end of the struct as a sequence of \i n double values.
 ///
 /// The leading `startingArgIdx + 1` parameters are omitted from the struct.
+///
+/// NB: It is DEEPLY INCORRECT to add a packed attribute to this data structure
+/// and pass it to other APIs, since there is absolutely, positively NO chance
+/// that foreign code will be able to decode this buffer correctly. To do so
+/// requires information that is erased by the NVQ++ compiler.
 cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy,
-                                            std::size_t startingArgIdx = 0,
-                                            bool packed = false);
+                                            std::size_t startingArgIdx = 0);
 
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
