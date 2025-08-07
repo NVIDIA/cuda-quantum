@@ -399,12 +399,22 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
   fi
 fi
 
+lookup_tpls_sha() {
+  local path="$1"
+
+  # Using lock file
+  if [[ -f /tmp/tpls_commits.lock ]]; then
+    awk -v p="$path" '$2==p{print $1}' /tmp/tpls_commits.lock && return 0
+  fi
+}
+
 # Clone the third-party libraries to include its source code in the NVQC docker image.
 if [ "$keep_sources" = true ]; then
   echo "Cloning additional third-party libraries into $tpls_dir..."
   sudo mkdir -p "$tpls_dir"
   # make sure we are at the repo root
-  cd "$this_file_dir" # && git init && cd "$(git rev-parse --show-toplevel)"
+  cd "$this_file_dir"
+
   # for each submodule.<name>.url in .gitmodules
   git config --file .gitmodules --get-regexp 'submodule\..*\.url' | \
   while read -r key url; do
@@ -418,19 +428,21 @@ if [ "$keep_sources" = true ]; then
     echo "Processing submodule $lib at path $path ..."
     repo="$(git config --file=.gitmodules submodule.$path.url)"
     echo "Repository URL: $repo"
-    # commit="$(git submodule | grep "$path" | cut -c2- | cut -d ' ' -f1)"
-    # echo "Commit: $commit"
 
     echo "Adding $dest as a safe.directory..."
     sudo git config --global --add safe.directory "$dest"
 
-    # && sudo git checkout "$commit" \
+    commit="$(lookup_tpls_sha "$path")" || {
+      echo "ERROR: could not resolve pinned commit for $path. Aborting $lib." >&2
+      continue
+    }
+    echo "Using commit $commit for $lib."
+
     echo "Cloning $lib@$commit from $repo into $dest ..."
-    sudo git clone --filter=tree:0 "$repo" "$dest" \
-    && sudo cd "$dest" \
-    && sudo git checkout main \
-    && cd - \
-    || echo "Failed to clone $lib"
+    sudo git clone --no-checkout --filter=tree:0 "$repo" "$dest" \
+    && sudo git -C "$dest" fetch --depth 1 origin "$commit" \
+    && sudo git -C "$dest" checkout --detach FETCH_HEAD \
+    || { echo "Failed to clone $lib"; continue; }
   done
 fi
 
