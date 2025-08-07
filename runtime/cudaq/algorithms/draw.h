@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <concepts>
-
 #include "common/ExecutionContext.h"
 #include "cudaq/platform.h"
+#include <concepts>
+#include <iostream>
 
 namespace cudaq {
 
@@ -32,9 +32,13 @@ cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
   // Get the platform.
   auto &platform = cudaq::get_platform();
 
-  // This can only be done in simulation
-  if (!platform.is_simulator())
-    throw std::runtime_error("Cannot use draw on a physical QPU.");
+  // This is not supported on hardware backends, but we don't want callers to
+  // crash on unhandled exceptions.
+  if (!platform.is_simulator()) {
+    std::cerr << "Warning: `draw` can only be used with a simulator platform. "
+              << "Returning an empty trace." << std::endl;
+    return Trace();
+  }
 
   // Create an execution context, indicate this is for tracing the execution
   // path
@@ -107,6 +111,7 @@ std::string extractTraceLatex(KernelFunctor &&kernel) {
 /// */      
 /// \endcode
 ///
+/// @note This function is only available when using simulator backends.
 // clang-format on
 
 #if CUDAQ_USE_STD20
