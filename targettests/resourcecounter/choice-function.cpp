@@ -58,7 +58,8 @@ int main() {
   auto default2Counts = cudaq::estimate_resources(kernel);
   // CHECK-LABEL: False default path
 
-  // Unfortunately, even setting the random seed isn't enough to guaranteee proper behavior, so handle either case here and hope for the best
+  // Unfortunately, even setting the random seed isn't enough to guarantee
+  // proper behavior, so handle either case here and hope for the best
   assert(default1Counts.count("x") == 1 || default2Counts.count("x") == 1);
   assert(default1Counts.count("x") == 0 || default2Counts.count("x") == 0);
 
