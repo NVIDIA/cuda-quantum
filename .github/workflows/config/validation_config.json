@@ -6,7 +6,7 @@
             "operating_systems": 
             [
                 "ubuntu:22.04",
-                "fedora:39"
+                "fedora:41"
             ]
         },
         {
@@ -15,7 +15,7 @@
             [
                 "ubuntu:22.04",
                 "debian:12",
-                "fedora:38",
+                "fedora:41",
                 "redhat/ubi9:9.2"
             ]
         },
@@ -24,7 +24,7 @@
             "operating_systems": 
             [
                 "ubuntu:24.04",
-                "fedora:39",
+                "fedora:41",
                 "redhat/ubi9:9.2"
             ]
         },
@@ -32,7 +32,7 @@
             "version": "3.13",
             "operating_systems":
             [
-                "fedora:39"
+                "fedora:41"
             ]
         }
     ],
@@ -47,7 +47,7 @@
                 "debian:12",
                 "redhat/ubi9:9.2",
                 "opensuse/leap:15.5",
-                "fedora:39"
+                "fedora:41"
             ],
             "ubuntu:22.04": 
             {
@@ -73,7 +73,7 @@
                 "cudart_version": "12.0",
                 "cuda_distribution": "opensuse15"
             },
-            "fedora:39": 
+            "fedora:41":
             {
                 "libcdev_package": "glibc-devel",
                 "cudart_version": "12.4",
