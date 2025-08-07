@@ -197,6 +197,7 @@ cuQuantum
 cuTensor
 cudaq
 dataflow
+dataset
 datasets
 ddots
 deallocate
@@ -317,6 +318,7 @@ pretrained
 probability
 programmatically
 pybind
+pytorch
 qaoa
 qed
 quantize
@@ -324,8 +326,6 @@ quantized
 qubit
 qubits
 qudit
-dataset
-pytorch
 qudits
 qumode
 qumodes
