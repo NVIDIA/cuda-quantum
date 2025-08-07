@@ -77,7 +77,7 @@
             {
                 "libcdev_package": "glibc-devel",
                 "cudart_version": "12.4",
-                "cuda_distribution": "fedora39"
+                "cuda_distribution": "fedora41"
             }
         },
         {
