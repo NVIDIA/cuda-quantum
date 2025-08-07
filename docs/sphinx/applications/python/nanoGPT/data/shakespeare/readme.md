@@ -1,4 +1,3 @@
-
 # tiny shakespeare
 
 Tiny shakespeare, of the good old `char-rnn` fame :)

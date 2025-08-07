@@ -1,4 +1,4 @@
-## openwebtext dataset
+# openwebtext dataset
 
 after running `prepare.py` (preprocess) we get:
 
