@@ -148,10 +148,10 @@ public:
 
   // This method is the hook for the kernel rewrites to invoke quantum kernels.
   [[nodiscard]] KernelThunkResultType
-  launchKernel(std::string kernelName, KernelThunkType kernelFunc, void *args,
-               std::uint64_t voidStarSize, std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs);
-  void launchKernel(std::string kernelName, const std::vector<void *> &);
+  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
+               void *args, std::uint64_t voidStarSize,
+               std::uint64_t resultOffset, const std::vector<void *> &rawArgs);
+  void launchKernel(const std::string &kernelName, const std::vector<void *> &);
 
   // This method is the hook for executing SerializedCodeExecutionContext
   // objects.
@@ -240,8 +240,7 @@ streamlinedLaunchKernel(const char *kernelName,
 hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
                    std::uint64_t argsSize, std::uint64_t resultOffset,
                    const std::vector<void *> &rawArgs);
-}
-
+} // extern "C"
 } // namespace cudaq
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)
