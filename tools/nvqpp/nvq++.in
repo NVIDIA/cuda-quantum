@@ -709,7 +709,7 @@ RUN_OPT=false
 OPT_PASSES=
 if ${ENABLE_UNWIND_LOWERING}; then
 	RUN_OPT=true
-	OPT_PASSES="func.func(unwind-lowering)"
+	OPT_PASSES="func.func(variable-coalesce,unwind-lowering)"
 fi
 if ${ENABLE_LAMBDA_LIFTING}; then
 	RUN_OPT=true
