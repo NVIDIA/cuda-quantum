@@ -1,19 +1,19 @@
 """
-This training script can be run both on a single gpu in debug mode,
-and also in a larger training run with distributed data parallel (ddp).
+`This training script can be run both on a single gpu in debug mode,`
+`and also in a larger training run with distributed data parallel (ddp).`
 
-To run on a single GPU, example:
-$ python train.py --batch_size=32 --compile=False
+`To run on a single GPU, example:`
+`$ python train.py --batch_size=32 --compile=False`
 
-To run with DDP on 4 gpus on 1 node, example:
-$ torchrun --standalone --nproc_per_node=4 train.py
+`To run with DDP on 4 gpus on 1 node, example:`
+`$ torchrun --standalone --nproc_per_node=4 train.py`
 
-To run with DDP on 4 gpus across 2 nodes, example:
-- Run on the first (master) node with example IP 123.456.123.456:
-$ torchrun --nproc_per_node=8 --nnodes=2 --node_rank=0 --master_addr=123.456.123.456 --master_port=1234 train.py
-- Run on the worker node:
-$ torchrun --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=123.456.123.456 --master_port=1234 train.py
-(If your cluster does not have Infiniband interconnect prepend NCCL_IB_DISABLE=1)
+`To run with DDP on 4 gpus across 2 nodes, example:`
+`- Run on the first (master) node with example IP 123.456.123.456:`
+`$ torchrun --nproc_per_node=8 --nnodes=2 --node_rank=0 --master_addr=123.456.123.456 --master_port=1234 train.py`
+`- Run on the worker node:`
+`$ torchrun --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=123.456.123.456 --master_port=1234 train.py`
+`(If your cluster does not have Infiniband interconnect prepend NCCL_IB_DISABLE=1)`
 """
 
 import os
@@ -42,12 +42,10 @@ from nanoGPT.model_pad import GPT as GPT_nogemb
 
 from qaoa_gpt_src.util import generate_circ_from_df, eval_adapt_gpt_circ_cudaq
 
-# val_sampled_df = pd.read_pickle('data/qaoa_n10w_012325_v7/test_run_df.pkl')
-# val_graph_emb_np = np.load(
-#     'data/qaoa_n10w_012325_v7/feather_emb_d500.npy'
-# )
-# val_meta = pd.read_pickle("data/qaoa_n10w_012325_v7/meta.pkl")
-# val_emb_graph_id_to_idx_dict = val_meta['emb_graph_id_to_idx_dict']
+# `val_sampled_df = pd.read_pickle('data/qaoa_n10w_012325_v7/test_run_df.pkl')`
+# `val_graph_emb_np = np.load('data/qaoa_n10w_012325_v7/feather_emb_d500.npy')`
+# `val_meta = pd.read_pickle("data/qaoa_n10w_012325_v7/meta.pkl")`
+# `val_emb_graph_id_to_idx_dict = val_meta['emb_graph_id_to_idx_dict']`
 
 n_epochs = 100  # (approximately)
 eval_ar_every = 1000
@@ -59,13 +57,13 @@ out_dir = 'out'
 eval_interval = 20000
 log_interval = 1
 eval_iters = 200
-eval_only = False  # if True, script exits right after the first eval
-always_save_checkpoint = True  # if True, always save a checkpoint after each eval
+eval_only = False  # if True, script exits right after the first `eval`
+always_save_checkpoint = True  # if True, always save a checkpoint after each `eval`
 init_from = 'scratch'  # 'scratch' or 'resume' or 'gpt2*'
-# wandb logging
+# `wandb` logging
 wandb_log = False  # disabled by default
 wandb_project = 'owt'
-wandb_run_name = 'gpt2'  # 'run' + str(time.time())
+wandb_run_name = 'gpt2'  # `'run' + str(time.time())`
 # data
 dataset = 'openwebtext'
 gradient_accumulation_steps = 5 * 8  # used to simulate larger batch sizes
@@ -75,9 +73,9 @@ block_size = 1024
 n_layer = 12
 n_head = 12
 n_embd = 768
-dropout = 0.0  # for pretraining 0 is good, for finetuning try 0.1+
+dropout = 0.0  # for `pretraining` 0 is good, for finetuning try 0.1+
 bias = False  # do we use bias inside LayerNorm and Linear layers?
-# adamw optimizer
+# `adamw` optimizer
 learning_rate = 6e-4  # max learning rate
 max_iters = 600000  # total number of training iterations
 weight_decay = 1e-1
@@ -87,15 +85,15 @@ grad_clip = 1.0  # clip gradients at this value, or disable if == 0.0
 # learning rate decay settings
 decay_lr = True  # whether to decay the learning rate
 warmup_iters = 2000  # how many steps to warm up for
-lr_decay_iters = 600000  # should be ~= max_iters per Chinchilla
+lr_decay_iters = 600000  # `should be ~= max_iters per Chinchilla`
 min_lr = 6e-5  # minimum learning rate, should be ~= learning_rate/10 per Chinchilla
 # DDP settings
-backend = 'nccl'  # 'nccl', 'gloo', etc.
+backend = 'nccl'  # `'nccl', 'gloo', etc.`
 # system
-device = 'cuda'  # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1' etc., or try 'mps' on macbooks
+device = 'cuda'  # `examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1' etc., or try 'mps' on macbooks`
 dtype = 'bfloat16' if torch.cuda.is_available(
 ) and torch.cuda.is_bf16_supported(
-) else 'float16'  # 'float32', 'bfloat16', or 'float16', the latter will auto implement a GradScaler
+) else 'float16'  # 'float32', '`bfloat16`', or 'float16', the latter will auto implement a GradScaler
 compile = True  # use PyTorch 2.0 to compile the model to be faster
 # -----------------------------------------------------------------------------
 config_keys = [
@@ -118,8 +116,8 @@ else:
     print("Training model with NO graph embeddings")
     model_suf = 'nogemb'
 
-# various inits, derived attributes, I/O setup
-ddp = int(os.environ.get('RANK', -1)) != -1  # is this a ddp run?
+# various `inits`, derived attributes, I/O setup
+ddp = int(os.environ.get('RANK', -1)) != -1  # is this a `ddp` run?
 if ddp:
     init_process_group(backend=backend)
     ddp_rank = int(os.environ['RANK'])
@@ -127,14 +125,14 @@ if ddp:
     ddp_world_size = int(os.environ['WORLD_SIZE'])
     device = f'cuda:{ddp_local_rank}'
     torch.cuda.set_device(device)
-    master_process = ddp_rank == 0  # this process will do logging, checkpointing etc.
+    master_process = ddp_rank == 0  # this process will do logging, `checkpointing` etc.
     seed_offset = ddp_rank  # each process gets a different seed
     # world_size number of processes will be training simultaneously, so we can scale
     # down the desired gradient accumulation iterations per process proportionally
     assert gradient_accumulation_steps % ddp_world_size == 0
     gradient_accumulation_steps //= ddp_world_size
 else:
-    # if not ddp, we are running on a single gpu, and one process
+    # if not `ddp`, we are running on a single `gpu`, and one process
     master_process = True
     seed_offset = 0
     ddp_world_size = 1
@@ -144,9 +142,9 @@ print(f"tokens per iteration will be: {tokens_per_iter:,}")
 if master_process:
     os.makedirs(out_dir, exist_ok=True)
 torch.manual_seed(1337 + seed_offset)
-torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
-torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
-device_type = 'cuda' if 'cuda' in device else 'cpu'  # for later use in torch.autocast
+torch.backends.cuda.matmul.allow_tf32 = True  # `allow tf32 on matmul`
+torch.backends.cudnn.allow_tf32 = True  # `allow tf32 on cudnn`
+device_type = 'cuda' if 'cuda' in device else 'cpu'  # for later use in `torch.autocast`
 # note: float16 data type will automatically use a GradScaler
 ptdtype = {
     'float32': torch.float32,
@@ -184,7 +182,7 @@ def get_batch(split):
     data_batch_np = data[ix]
     graph_emb_data = torch.tensor(graph_emb_np[emb_idx_data[ix]])
 
-    #print(f"Get batch graph_emb_data shape: {graph_emb_data.shape}, {graph_emb_data.dtype}")
+    #`print(f"Get batch graph_emb_data shape: {graph_emb_data.shape}, {graph_emb_data.dtype}")`
     x = torch.tensor(data_batch_np[:, :1, :].astype(np.int64)).flatten(1)
     y = torch.tensor(data_batch_np[:, 1:2, :].astype(np.int64)).flatten(1)
     if device_type == 'cuda':
@@ -197,13 +195,13 @@ def get_batch(split):
     else:
         x, y = x.to(device), y.to(device)
         graph_emb_data = graph_emb_data.to(device)
-    #print(f"graph_emb_data dtype: {graph_emb_data.dtype}\n\n\n")
+    #`print(f"graph_emb_data dtype: {graph_emb_data.dtype}\n\n\n")`
 
     return x, y, graph_emb_data
 
 
 #########################################
-# init these up here, can override if init_from='resume' (i.e. from a checkpoint)
+# `init` these up here, can override if `init_from='resume'` (i.e. from a checkpoint)
 iter_num = 0
 best_val_loss = 1e9
 
@@ -216,7 +214,7 @@ if os.path.exists(meta_path):
     meta_vocab_size = meta['vocab_size']
     print(f"found vocab_size = {meta_vocab_size} (inside {meta_path})")
 
-# For graph embeddings
+# For graph `embeddings`
 emb_graph_id_to_idx_dict = meta['emb_graph_id_to_idx_dict']
 emb_graph_idx_to_id_dict = meta['emb_graph_idx_to_id_dict']
 train_data_graph_idx_list = np.array(meta['train_data_graph_idx_list'])
@@ -307,16 +305,16 @@ def eval_model_ar():
 #-------------------------
 ##########################################
 
-# model init
+# model `init`
 model_args = dict(n_layer=n_layer,
                   n_head=n_head,
                   n_embd=n_embd,
                   block_size=block_size,
                   bias=bias,
                   vocab_size=None,
-                  dropout=dropout)  # start with model_args from command line
+                  dropout=dropout)  # start with `model_args` from command line
 if init_from == 'scratch':
-    # init a new model from scratch
+    # `init` a new model from scratch
     print("Initializing a new model from scratch")
     # determine the vocab size we'll use for from-scratch training
     if meta_vocab_size is None:
@@ -365,7 +363,7 @@ elif init_from.startswith('gpt2'):
     # initialize from OpenAI GPT-2 weights
     override_args = dict(dropout=dropout)
     model = GPT.from_pretrained(init_from, override_args)
-    # read off the created config params, so we can store them into checkpoint correctly
+    # read off the created config `params`, so we can store them into checkpoint correctly
     for k in [
             'n_layer', 'n_head', 'n_embd', 'block_size', 'bias', 'vocab_size'
     ]:
@@ -377,8 +375,8 @@ if block_size < model.config.block_size:
         'block_size'] = block_size  # so that the checkpoint will have the right value
 model.to(device)
 
-# initialize a GradScaler. If enabled=False scaler is a no-op
-#scaler = torch.cuda.amp.GradScaler(enabled=(dtype == 'float16'))
+# `initialize a GradScaler. If enabled=False scaler is a no-op`
+# `scaler = torch.cuda.amp.GradScaler(enabled=(dtype == 'float16'))`
 scaler = torch.amp.GradScaler('cuda', enabled=(dtype == 'float16'))
 
 # optimizer
@@ -419,18 +417,18 @@ def estimate_loss():
     return out
 
 
-# learning rate decay scheduler (cosine with warmup)
+# learning rate decay scheduler (cosine with `warmup`)
 def get_lr(it):
-    # 1) linear warmup for warmup_iters steps
+    # 1) linear `warmup` for `warmup_iters` steps
     if it < warmup_iters:
         return learning_rate * (it + 1) / (warmup_iters + 1)
-    # 2) if it > lr_decay_iters, return min learning rate
+    # 2) if `it > lr_decay_iters`, return min learning rate
     if it > lr_decay_iters:
         return min_lr
     # 3) in between, use cosine decay down to min learning rate
     decay_ratio = (it - warmup_iters) / (lr_decay_iters - warmup_iters)
     assert 0 <= decay_ratio <= 1
-    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
+    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # `coeff` ranges 0..1
     return min_lr + coeff * (learning_rate - min_lr)
 
 
@@ -441,7 +439,7 @@ if wandb_log and master_process:
 
 # training loop
 X, Y, cur_graph_emb = get_batch('train')  # fetch the very first batch
-#print(f"From training loop cur_graph_emb: {cur_graph_emb.shape}")
+#`print(f"From training loop cur_graph_emb: {cur_graph_emb.shape}")`
 t0 = time.time()
 local_iter_num = 0  # number of iterations in the lifetime of this process
 raw_model = model.module if ddp else model  # unwrap DDP container if needed
@@ -483,7 +481,7 @@ for i in pbar:
             with open(logging_json_file, 'w') as f:
                 json.dump(logging_list, f)
 
-        #print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        #`print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")`
         pbar.set_description(
             f"train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
         if wandb_log:
@@ -508,7 +506,7 @@ for i in pbar:
             }
             print(f"saving checkpoint to {out_dir}")
             torch.save(checkpoint, os.path.join(out_dir, saving_model_name))
-        #torch.save(checkpoint, os.path.join(out_dir, 'ckpt_overfit.pt'))
+        #`torch.save(checkpoint, os.path.join(out_dir, 'ckpt_overfit.pt'))`
 
     if iter_num == 0 and eval_only:
         break
@@ -529,15 +527,15 @@ for i in pbar:
             else:
                 logits, loss = model(X, Y)
             loss = loss / gradient_accumulation_steps  # scale the loss to account for gradient accumulation
-        # immediately async prefetch next batch while model is doing the forward pass on the GPU
+        # immediately `async prefetch` next batch while model is doing the forward pass on the GPU
         X, Y, cur_graph_emb = get_batch('train')
-        # backward pass, with gradient scaling if training in fp16
+        # backward pass, with gradient scaling if training in `fp16`
         scaler.scale(loss).backward()
     # clip the gradient
     if grad_clip != 0.0:
         scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-    # step the optimizer and scaler if training in fp16
+    # step the optimizer and `scaler` if training in `fp16`
     scaler.step(optimizer)
     scaler.update()
     # flush the gradients as soon as we can, no need for this memory anymore
@@ -555,7 +553,7 @@ for i in pbar:
             mfu = raw_model.estimate_mfu(
                 batch_size * gradient_accumulation_steps, dt)
             running_mfu = mfu if running_mfu == -1.0 else 0.9 * running_mfu + 0.1 * mfu
-        #print(f"iter {iter_num}: loss {lossf:.4f}, time {dt*1000:.2f}ms, mfu {running_mfu*100:.2f}%")
+        #`print(f"iter {iter_num}: loss {lossf:.4f}, time {dt*1000:.2f}ms, mfu {running_mfu*100:.2f}%")`
     iter_num += 1
     local_iter_num += 1
 

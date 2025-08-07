@@ -1,7 +1,7 @@
 """
 Prepare the Shakespeare dataset for character-level language modeling.
-So instead of encoding with GPT-2 BPE tokens, we just map characters to ints.
-Will save train.bin, val.bin containing the ids, and meta.pkl containing the
+So instead of encoding with GPT-2 BPE tokens, we just map characters to `ints`.
+Will save train.bin, val.bin containing the ids, and `meta.pkl` containing the
 encoder and decoder and some other related info.
 """
 import os
@@ -69,7 +69,7 @@ with open(os.path.join(os.path.dirname(__file__), 'meta.pkl'), 'wb') as f:
 
 # length of dataset in characters:  1115394
 # all the unique characters:
-#  !$&',-.3:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+#  `!$&',-.3:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz`
 # vocab size: 65
 # train has 1003854 tokens
 # val has 111540 tokens
