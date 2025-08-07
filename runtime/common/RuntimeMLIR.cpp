@@ -97,7 +97,8 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
 
 std::optional<std::string> getEntryPointName(OwningOpRef<ModuleOp> &module) {
   std::string name;
-  // FIXME: don't use a recursive `walk` to DFS for FuncOps, which appear as children, in a Module.
+  // FIXME: don't use a recursive `walk` to DFS for FuncOps, which appear as
+  // children, in a Module.
   module->walk([&name](mlir::func::FuncOp op) {
     if (op.getName().endswith(".thunk")) {
       name = op.getName();
