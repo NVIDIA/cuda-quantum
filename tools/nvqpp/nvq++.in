@@ -119,6 +119,12 @@ function f_option_handling {
 	-fno-array-conversion)
 		ENABLE_ARRAY_CONVERSION=false
 		;;
+	-fvariable-coalesce)
+		ENABLE_VARIABLE_COALESCE=true
+		;;
+	-fno-variable-coalesce)
+		ENABLE_VARIABLE_COALESCE=false
+		;;
 	*)
 		# Pass any unrecognized options on to the clang++ tool.
 		ARGS="${ARGS} $1"
@@ -350,6 +356,7 @@ LLC_FLAGS=-O2
 DO_LINK=true
 SHOW_VERSION=false
 ENABLE_ARRAY_CONVERSION=true
+ENABLE_VARIABLE_COALESCE=true
 ENABLE_UNWIND_LOWERING=true
 ENABLE_DEVICE_CODE_LOADER=true
 ENABLE_KERNEL_EXECUTION=true
@@ -707,9 +714,13 @@ fi
 
 RUN_OPT=false
 OPT_PASSES=
+if ${ENABLE_VARIABLE_COALESCE}; then
+	RUN_OPT=true
+	OPT_PASSES="func.func(variable-coalesce)"
+fi
 if ${ENABLE_UNWIND_LOWERING}; then
 	RUN_OPT=true
-	OPT_PASSES="func.func(variable-coalesce,unwind-lowering)"
+	OPT_PASSES="func.func(unwind-lowering)"
 fi
 if ${ENABLE_LAMBDA_LIFTING}; then
 	RUN_OPT=true
