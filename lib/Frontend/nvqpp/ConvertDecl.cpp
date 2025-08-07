@@ -536,8 +536,28 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
   auto typeFromStack = peelPointerFromFunction(popType());
   if (auto f = module.lookupSymbol<func::FuncOp>(kernSym)) {
     auto fTy = f.getFunctionType();
-    assert(typeFromStack == fTy);
     auto fSym = f.getSymNameAttr();
+    if (typeFromStack != fTy) {
+      // This may be a call to an entry-point kernel. Determine if that is the
+      // case, and convert this to a direct call. Otherwise, this an calling
+      // convention violation.
+      bool found = false;
+      for (auto pair : namesMap)
+        if (pair.second == kernName) {
+          if (auto f = module.lookupSymbol<func::FuncOp>(pair.first)) {
+            fTy = f.getFunctionType();
+            fSym = f.getSymNameAttr();
+            found = true;
+          }
+          break;
+        }
+      if (!found) {
+        reportClangError(
+            x, mangler,
+            "invalid call from kernel: calling convention violation");
+        return false;
+      }
+    }
     return pushValue(builder.create<func::ConstantOp>(loc, fTy, fSym));
   }
   auto [funcOp, alreadyAdded] = getOrAddFunc(loc, kernName, typeFromStack);
