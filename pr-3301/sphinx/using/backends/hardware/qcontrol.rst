@@ -1,15 +1,15 @@
-Aggregators
-============
+Quantum Control Systems
+========================
 
 Quantum Machines
 +++++++++++++++++++++
 
 .. _quantum-machines-backend:
 
-Quantum Machines provides a unified quantum computing platform that enables 
-users to execute quantum programs on various hardware backends through their 
-Quantum Orchestration - a platform that abstracts the complexities of different
-quantum hardware implementations.
+Quantum Machines provides a unified quantum computing control system that enables 
+users to execute quantum programs on various QPU types (hardware backends) through
+their Quantum Orchestration Platform (QOP) - a platform that controls different 
+quantum hardware implementations through a unified software API.
 
 For information about available hardware backends and their capabilities, 
 please consult the `Quantum Machines documentation <https://www.quantum-machines.co/>`__.
