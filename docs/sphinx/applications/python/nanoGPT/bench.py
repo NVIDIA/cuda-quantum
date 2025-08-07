@@ -1,5 +1,5 @@
 """
-A much shorter version of train.py for benchmarking
+`A much shorter version of train.py for benchmarking`
 """
 import os
 from contextlib import nullcontext
@@ -14,21 +14,21 @@ block_size = 1024
 bias = False
 real_data = True
 seed = 1337
-device = 'cuda'  # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
+device = 'cuda'  # `examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.`
 dtype = 'bfloat16' if torch.cuda.is_available(
 ) and torch.cuda.is_bf16_supported(
-) else 'float16'  # 'float32' or 'bfloat16' or 'float16'
+) else 'float16'  # `'float32' or 'bfloat16' or 'float16'`
 compile = True  # use PyTorch 2.0 to compile the model to be faster
-profile = False  # use pytorch profiler, or just simple benchmarking?
+profile = False  # `use pytorch profiler, or just simple benchmarking?`
 exec(open(
     'configurator.py').read())  # overrides from command line or config file
 # -----------------------------------------------------------------------------
 
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
-torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
-torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
-device_type = 'cuda' if 'cuda' in device else 'cpu'  # for later use in torch.autocast
+torch.backends.cuda.matmul.allow_tf32 = True  # `allow tf32 on matmul`
+torch.backends.cudnn.allow_tf32 = True  # `allow tf32 on cudnn`
+device_type = 'cuda' if 'cuda' in device else 'cpu'  # `for later use in torch.autocast`
 ptdtype = {
     'float32': torch.float32,
     'bfloat16': torch.bfloat16,
@@ -37,7 +37,7 @@ ptdtype = {
 ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(
     device_type=device_type, dtype=ptdtype)
 
-# data loading init
+# data loading `init`
 if real_data:
     dataset = 'openwebtext'
     data_dir = os.path.join('data', dataset)
@@ -46,7 +46,7 @@ if real_data:
                            mode='r')
 
     def get_batch(split):
-        data = train_data  # note ignore split in benchmarking script
+        data = train_data  # `note ignore split in benchmarking script`
         ix = torch.randint(len(data) - block_size, (batch_size,))
         x = torch.stack([
             torch.from_numpy((data[i:i + block_size]).astype(np.int64))
@@ -65,7 +65,7 @@ else:
     y = torch.randint(50304, (batch_size, block_size), device=device)
     get_batch = lambda split: (x, y)
 
-# model init
+# model `init`
 gptconf = GPTConfig(
     block_size=block_size,  # how far back does the model look? i.e. context size
     n_layer=12,
@@ -87,9 +87,9 @@ if compile:
     model = torch.compile(model)  # pytorch 2.0
 
 if profile:
-    # useful docs on pytorch profiler:
+    # `useful docs on pytorch profiler:`
     # - tutorial https://pytorch.org/tutorials/intermediate/tensorboard_profiler_tutorial.html
-    # - api https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile
+    # - `api` https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile
     wait, warmup, active = 5, 5, 5
     num_steps = wait + warmup + active
     with torch.profiler.profile(
@@ -108,7 +108,7 @@ if profile:
             with_stack=
             False,  # incurs an additional overhead, disable if not needed
             with_flops=True,
-            with_modules=False,  # only for torchscript models atm
+            with_modules=False,  # `only for torchscript models atm`
     ) as prof:
 
         X, Y = get_batch('train')
@@ -122,13 +122,13 @@ if profile:
             lossf = loss.item()
             print(f"{k}/{num_steps} loss: {lossf:.4f}")
 
-            prof.step()  # notify the profiler at end of each step
+            prof.step()  # `notify the profiler at end of each step`
 
 else:
 
-    # simple benchmarking
+    # simple `benchmarking`
     torch.cuda.synchronize()
-    for stage, num_steps in enumerate([10, 20]):  # burnin, then benchmark
+    for stage, num_steps in enumerate([10, 20]):  # `burnin`, then benchmark
         t0 = time.time()
         X, Y = get_batch('train')
         for k in range(num_steps):
