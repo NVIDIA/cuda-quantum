@@ -12,7 +12,7 @@ their Quantum Orchestration Platform (QOP) - a platform that controls different
 quantum hardware implementations through a unified software API.
 
 For information about available hardware backends and their capabilities, 
-please consult the `Quantum Machines documentation <https://www.quantum-machines.co/>`__.
+please consult the `Quantum Machines website <https://www.quantum-machines.co/>`__.
 
 
 Setting Credentials
