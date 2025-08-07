@@ -4,7 +4,7 @@ CUDA-Q Dynamics
 
 The notebooks below contain groups of examples using CUDA-Q Dynamics.  The first two notebooks provide an introduction to CUDA-Q Dynamics appropriate for new users.
 
-Download the notebooks below here: https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics
+Download the notebooks below `here <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics>`_.
 
 
 .. toctree::
@@ -16,5 +16,3 @@ Download the notebooks below here: https://github.com/NVIDIA/cuda-quantum/tree/m
       Spin Qubits <../../examples/python/dynamics/spinqubits.ipynb>
       Trapped Ion Qubits <../../examples/python/dynamics/iontrap.ipynb>
       Control <../../examples/python/dynamics/control.ipynb>
-      Multi-GPU Multi-Node <../../examples/python/dynamics/mgmn.ipynb>
-
