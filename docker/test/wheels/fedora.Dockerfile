@@ -15,9 +15,7 @@ ARG preinstalled_modules="numpy pytest nvidia-cublas-cu12"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Some Python versions need the latest version of libexpat on Fedora, and the
-# base fedora:41 image doesn't have the latest version installed.
-RUN dnf update -y --nobest expat \
+RUN dnf install -y --refresh --setopt=install_weak_deps=False expat \
     && dnf install -y --nobest --setopt=install_weak_deps=False wget \
         python$(echo $python_version | tr -d .) \
     && python${python_version} -m ensurepip --upgrade
