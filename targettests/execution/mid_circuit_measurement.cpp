@@ -12,8 +12,9 @@
 // RUN: nvq++ %cpp_std --library-mode %s -o %t && %t | FileCheck %s
 
 // Quantum emulators (qir-adaptive profile only)
-// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target anyon                    --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum              --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target anyon                   --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
