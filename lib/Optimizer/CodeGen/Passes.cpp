@@ -52,7 +52,7 @@ static void addOQCPipeline(OpPassManager &pm) {
 
 static void addQCIPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
-  // Note: QCI's basis get set is "sx", "rz", "cz", but QCI currently has
+  // Note: QCI's basis gate set is "sx", "rz", "cz", but QCI currently has
   // a transpiler converting all other gates to that basis.
   // We use the gate set below so we can translate all gates to QIR.
   std::string basis[] = {

@@ -29,7 +29,7 @@ jobResults = {}
 jobStatuses = {}
 jobCountRequests = {}
 
-# Could how many times the client has requested the Job
+# Count how many times the client has requested the Job
 countJobGetRequests = 0
 # Save how many qubits were needed for each test (emulates real backend)
 numQubitsRequired = 0
