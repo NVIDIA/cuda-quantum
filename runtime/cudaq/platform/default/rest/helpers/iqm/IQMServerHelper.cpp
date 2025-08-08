@@ -91,6 +91,9 @@ protected:
   /// @brief Write the dynamic quantum architecture file
   std::string writeQuantumArchitectureFile(void);
 
+  /// @brief Emulation mode flag
+  bool emulation_mode = false;
+
 public:
   /// @brief Return the name of this server helper, must be the
   /// same as the qpu config file.
@@ -140,10 +143,22 @@ public:
 void IQMServerHelper::initialize(BackendConfig config) {
   backendConfig = config;
 
-  bool emulate = false;
   auto iter = backendConfig.find("emulate");
   if (iter != backendConfig.end()) {
-    emulate = iter->second == "true";
+    emulation_mode = iter->second == "true";
+  }
+
+  // In emulation mode no server is contacted. So there is no need for
+  // an URL or tokens. As there is no server information no mapping file
+  // will be created but one can be given via commandline parameter.
+  // When the pass pipeline is prepared the mapping file parameter is
+  // in most cases '' which is ok despite the warning from LLVM about
+  // the non existing path. LLVM emulates the server and no job will be
+  // created here.
+
+  if (emulation_mode) {
+    cudaq::info("Emulation is enabled, ignore tokens file and IQM Server URL");
+    return;
   }
 
   // Set an alternate base URL if provided.
@@ -164,11 +179,6 @@ void IQMServerHelper::initialize(BackendConfig config) {
   if (!iqmServerUrl.ends_with("/"))
     iqmServerUrl += "/";
   cudaq::debug("iqmServerUrl = {}", iqmServerUrl);
-
-  if (emulate) {
-    cudaq::info("Emulation is enabled, ignore tokens file and IQM Server URL");
-    return;
-  }
 
   auto token = getenv("IQM_TOKEN");
   if (token) {
@@ -321,9 +331,11 @@ void IQMServerHelper::updatePassPipeline(
     // Use provided string as path+filename
     pathToFile = iter->second;
   } else {
-    // Use the dynamic quantum architecture of the configured IQM server
-    fetchQuantumArchitecture();
-    pathToFile = writeQuantumArchitectureFile();
+    if (!emulation_mode) {
+      // Use the dynamic quantum architecture of the configured IQM server
+      fetchQuantumArchitecture();
+      pathToFile = writeQuantumArchitectureFile();
+    }
   }
   cudaq::info("Using quantum architecture file: {}", pathToFile);
 

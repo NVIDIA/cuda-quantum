@@ -11,9 +11,7 @@
 // RUN: nvq++ %cpp_std --target infleqtion      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target anyon                    --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// 2 different IQM machines for 2 different topologies
-// RUN: nvq++ --target iqm --iqm-machine Crystal_5 --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target iqm                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
@@ -38,7 +36,7 @@ struct ansatz {
 int main() {
 
   // Build up your spin op algebraically
-   cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 
+   cudaq::spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
                      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
                      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
 
