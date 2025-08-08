@@ -173,7 +173,7 @@ quantum_platform::get_remote_capabilities(const std::size_t qpu_id) const {
 }
 
 KernelThunkResultType quantum_platform::launchKernel(
-    std::string kernelName, KernelThunkType kernelFunc, void *args,
+    const std::string &kernelName, KernelThunkType kernelFunc, void *args,
     std::uint64_t voidStarSize, std::uint64_t resultOffset,
     const std::vector<void *> &rawArgs) {
   std::size_t qpu_id = 0;
@@ -190,7 +190,7 @@ KernelThunkResultType quantum_platform::launchKernel(
                            resultOffset, rawArgs);
 }
 
-void quantum_platform::launchKernel(std::string kernelName,
+void quantum_platform::launchKernel(const std::string &kernelName,
                                     const std::vector<void *> &rawArgs) {
   std::size_t qpu_id = 0;
 
