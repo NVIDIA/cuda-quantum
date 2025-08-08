@@ -86,7 +86,7 @@ struct VerifyQIRProfilePass
     if (!func->hasAttr(cudaq::entryPointAttrName))
       return;
     auto *ctx = &getContext();
-    bool isBaseProfile = convertTo.getValue() == "qir-base";
+    const bool isBaseProfile = convertTo.getValue() == "qir-base";
     func.walk([&](Operation *op) {
       if (auto call = dyn_cast<LLVM::CallOp>(op)) {
         // Always accept device_call functions
@@ -97,10 +97,9 @@ struct VerifyQIRProfilePass
         if (!funcNameAttr)
           return WalkResult::advance();
         auto funcName = funcNameAttr.getValue();
-        if (!funcName.startswith("__quantum_") ||
-            funcName == cudaq::opt::QIRCustomOp) {
-          call.emitOpError("unexpected call in QIR base profile: " +
-                           funcName.str());
+        if (isBaseProfile && (!funcName.startswith("__quantum_") ||
+                              funcName.equals(cudaq::opt::QIRCustomOp))) {
+          call.emitOpError("unexpected call in QIR base profile");
           passFailed = true;
           return WalkResult::advance();
         }
