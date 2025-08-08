@@ -77,7 +77,7 @@
             "platforms": "linux/amd64,linux/arm64",
             "tags": 
             [
-                "38", "39"
+                "38", "39", "41", "42"
             ]
         },
         {
@@ -94,6 +94,14 @@
             "tags": 
             [
                 "9.2"
+            ]
+        },
+        {
+            "source": "redhat/ubi10",
+            "platforms": "linux/amd64,linux/arm64",
+            "tags":
+            [
+                "10.0"
             ]
         },
         {
