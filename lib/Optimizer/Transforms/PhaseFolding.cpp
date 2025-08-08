@@ -475,15 +475,6 @@ public:
     }
     llvm::outs() << "}\n";
   }
-
-  std::optional<int64_t> getIntRepresentation() {
-    int64_t sum = 0;
-    for (auto var : vars) {
-      if (var->idx > sizeof(int64_t) - 1)
-        return std::nullopt;
-      sum += 1 << var->idx;
-    }
-  }
 };
 
 class PhaseStorage {
