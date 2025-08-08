@@ -23,7 +23,10 @@ config:
   codegen-emission: qir-base
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
-  # Specify the extra payload provider to use
-  extra-payload-provider: sunrise
-  # Specify the extra payload path
-  extra-payload-path: "/foo/bar"
+
+target-arguments:
+  - key: extra-payload-provider
+    required: false
+    type: string
+    platform-arg: extra_payload_provider
+    help-string: "Specify the extra payload provider."

@@ -27,25 +27,21 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
   std::vector<details::future::Job> ids;
 
   auto *extraPayloadProvider = [&]() -> cudaq::ExtraPayloadProvider * {
-    if (!runtimeTarget.config.BackendConfig.has_value())
+    const auto extraPayloadProvider =
+        runtimeTarget.runtimeConfig.find("extra_payload_provider");
+    if (extraPayloadProvider == runtimeTarget.runtimeConfig.end())
       return nullptr;
-
-    if (runtimeTarget.config.BackendConfig->ExtraPayloadProvider == "")
-      return nullptr;
+    const auto &extraPayloadProviderName = extraPayloadProvider->second;
 
     auto &extraProviders = cudaq::getExtraPayloadProviders();
     const auto it = std::find_if(
         extraProviders.begin(), extraProviders.end(), [&](const auto &entry) {
-          return entry->name() ==
-                 runtimeTarget.config.BackendConfig->ExtraPayloadProvider;
+          return entry->name() == extraPayloadProviderName;
         });
     if (it == extraProviders.end())
-      throw std::runtime_error(
-          "ExtraPayloadProvider with name " +
-          runtimeTarget.config.BackendConfig->ExtraPayloadProvider +
-          " not found.");
-    cudaq::info("Setting ExtraPayloadProvider to {}",
-                runtimeTarget.config.BackendConfig->ExtraPayloadProvider);
+      throw std::runtime_error("ExtraPayloadProvider with name " +
+                               extraPayloadProviderName + " not found.");
+    cudaq::info("Setting ExtraPayloadProvider to {}", extraPayloadProviderName);
     return it->get();
   }();
 

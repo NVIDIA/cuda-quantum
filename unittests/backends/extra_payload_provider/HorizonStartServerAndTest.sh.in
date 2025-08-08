@@ -40,7 +40,44 @@ echo "Server started successfully"
 ./test_fake_extra_payload_provider
 # Did they fail? 
 testsPassed=$?
+test_err_sum=0
+if [ $testsPassed -eq 0 ]; then
+  echo ":white_check_mark: Successfully ran test_fake_extra_payload_provider" 
+else
+  echo ":x: test_fake_extra_payload_provider failed" 
+  test_err_sum=$((test_err_sum+1))
+fi
+
+# Test nvq++ 
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target horizon --horizon-extra-payload-provider sunrise @CMAKE_SOURCE_DIR@/unittests/backends/extra_payload_provider/test_app.cpp -L@CMAKE_BINARY_DIR@/unittests/backends/extra_payload_provider/ -lsunrise-provider -o test_app
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_app with nvq++"
+  # Run the test app
+  ./test_app
+  if [ $? -ne 0 ]; then
+    echo ":x: test_app failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_app"
+  fi
+fi
+
+# Run the Python test
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/extra_payload_provider/test_app.py @CMAKE_BINARY_DIR@/unittests/backends/extra_payload_provider/libsunrise-provider.so
+if [ $? -ne 0 ]; then
+  echo ":x: Python test_app failed"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully ran Python test_app"
+fi
+
 # kill the server
 kill -INT $pid
 # return success / failure
-exit $testsPassed
+if [ ! $test_err_sum -eq 0 ]; then
+  echo "::error::${test_err_sum} tests failed."
+  exit 1
+fi

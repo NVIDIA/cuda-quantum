@@ -16,7 +16,10 @@
 
 CUDAQ_TEST(ExtraPayloadProviderTester, checkNoProvier) {
   auto &platform = cudaq::get_platform();
-  platform.setTargetBackend("horizon;emulate;false"); // disable emulate
+  // This target backend string is parsed by nvq++ driver
+  platform.setTargetBackend(
+      "horizon;emulate;false;extra_payload_provider;sunrise"); // disable
+                                                               // emulate
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -38,7 +41,10 @@ CUDAQ_TEST(ExtraPayloadProviderTester, checkWrongProvider) {
   // Register a wrong provider
   cudaq::registerExtraPayloadProvider(std::make_unique<DummyProvider>());
   auto &platform = cudaq::get_platform();
-  platform.setTargetBackend("horizon;emulate;false"); // disable emulate
+  // This target backend string is parsed by nvq++ driver
+  platform.setTargetBackend(
+      "horizon;emulate;false;extra_payload_provider;sunrise"); // disable
+                                                               // emulate
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -55,8 +61,7 @@ public:
   virtual const std::string name() const override { return "sunrise"; }
   virtual void injectExtraPayload(const cudaq::RuntimeTarget &target,
                                   cudaq::ServerMessage &msg) override {
-    nlohmann::json_pointer<std::string> path(
-        target.config.BackendConfig->ExtraPayloadPath);
+    nlohmann::json_pointer<std::string> path("/foo/bar"); // The path to inject
     msg[path] = "test";
   }
 };
@@ -64,7 +69,10 @@ public:
 CUDAQ_TEST(ExtraPayloadProviderTester, checkProvider) {
   cudaq::registerExtraPayloadProvider(std::make_unique<SunriseProvider>());
   auto &platform = cudaq::get_platform();
-  platform.setTargetBackend("horizon;emulate;false"); // disable emulate
+  // This target backend string is parsed by nvq++ driver
+  platform.setTargetBackend(
+      "horizon;emulate;false;extra_payload_provider;sunrise"); // disable
+                                                               // emulate
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);

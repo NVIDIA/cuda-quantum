@@ -378,6 +378,8 @@ public:
     runtimeTarget.config = config;
     runtimeTarget.name = mutableBackend;
     runtimeTarget.description = config.Description;
+    runtimeTarget.runtimeConfig = backendConfig;
+    runtimeTarget.serverHelper = serverHelper.get();
     executor->setRuntimeTarget(runtimeTarget);
   }
 

@@ -76,10 +76,6 @@ struct BackendEndConfigEntry {
   std::string CodegenEmission;
   /// Post code generation IR passes configuration (hardware REST QPU)
   std::string PostCodeGenPasses;
-  /// Name of the extra payload provider to use
-  std::string ExtraPayloadProvider;
-  /// Path to additional payloads to be used by the target
-  std::string ExtraPayloadPath;
   /// Name of the platform library to use
   std::string PlatformLibrary;
   /// Name of the execution manager to use in library mode

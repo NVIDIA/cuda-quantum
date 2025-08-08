@@ -14,7 +14,19 @@ target_link_libraries(cudaq-serverhelper-horizon
     cudaq-common 
     fmt::fmt-header-only 
 )
+set_target_properties(cudaq-serverhelper-horizon
+  PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+)
+
 install(TARGETS cudaq-serverhelper-horizon DESTINATION lib)
+
+add_library(sunrise-provider SHARED ProviderLib.cpp)
+target_link_libraries(sunrise-provider
+  PUBLIC 
+    cudaq-common 
+    fmt::fmt-header-only 
+)
 
 
 add_executable(test_fake_extra_payload_provider FakeHorizonTester.cpp)

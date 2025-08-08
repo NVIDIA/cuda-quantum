@@ -1,3 +1,4 @@
+
 /*******************************************************************************
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
@@ -6,23 +7,28 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "RuntimeTarget.h"
-#include <sstream>
+// Test extra payload provider with nvq++
+#include <cudaq.h>
 
-namespace cudaq {
+// Define a CUDA-Q kernel that is fully specified
+// at compile time via templates.
+template <std::size_t N>
+struct ghz {
+  auto operator()() __qpu__ {
 
-simulation_precision RuntimeTarget::get_precision() const { return precision; }
-
-std::string RuntimeTarget::get_target_args_help_string() const {
-  std::stringstream ss;
-  for (const auto &argConfig : config.TargetArguments) {
-    ss << "  - " << argConfig.KeyName;
-    if (!argConfig.HelpString.empty()) {
-      ss << " (" << argConfig.HelpString << ")";
+    // Compile-time sized array like std::array
+    cudaq::qarray<N> q;
+    h(q[0]);
+    for (int i = 0; i < N - 1; i++) {
+      x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    ss << "\n";
+    mz(q);
   }
-  return ss.str();
-}
+};
 
-} // namespace cudaq
+int main() {
+  auto kernel = ghz<10>{};
+  auto counts = cudaq::sample(kernel);
+
+  return 0;
+}
