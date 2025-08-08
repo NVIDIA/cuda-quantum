@@ -198,26 +198,97 @@ pr-3308
             Computing](hardware_providers.html#quera-computing){.reference
             .internal}
     -   [Dynamics Examples](#){.current .reference .internal}
-        -   [Cavity QED](#cavity-qed){.reference .internal}
-        -   [Cross Resonance](#cross-resonance){.reference .internal}
-        -   [Gate Calibration](#gate-calibration){.reference .internal}
-        -   [Heisenberg Model](#heisenberg-model){.reference .internal}
-        -   [Ion Trap](#ion-trap){.reference .internal}
-        -   [Landau Zener](#landau-zener){.reference .internal}
-        -   [Pulse](#pulse){.reference .internal}
-        -   [Qubit Control](#qubit-control){.reference .internal}
-        -   [Qubit Dynamics](#qubit-dynamics){.reference .internal}
-        -   [Silicon Spin Qubit](#silicon-spin-qubit){.reference
+        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+            Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
             .internal}
-        -   [Tensor Callback](#tensor-callback){.reference .internal}
-        -   [Transmon Resonator](#transmon-resonator){.reference
+            -   [Why dynamics simulations vs. circuit
+                simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+                .internal}
+            -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
+                .internal}
+            -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
+                .internal}
+            -   [Section 1 - Simulating the Jaynes-Cummings
+                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+                .internal}
+            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
+                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+                .internal}
+            -   [Section 2 - Simulating open quantum systems with the
+                `collapse_operators`{.docutils .literal
+                .notranslate}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                .internal}
+            -   [Exercise 2 - Adding additional jump operators
+                [\\(L\_i\\)]{.math .notranslate
+                .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
+                .internal}
+            -   [Section 3 - Many qubits coupled to the
+                resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
+                .internal}
+        -   [Introduction to CUDA-Q Dynamics (Time Dependent
+            Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
             .internal}
-        -   [Initial State (Multi-GPU
-            Multi-Node)](#initial-state-multi-gpu-multi-node){.reference
+            -   [The Landau-Zener
+                model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+                .internal}
+            -   [Section 1 - Implementing time dependent
+                terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+                .internal}
+            -   [Section 2 - Implementing custom
+                operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+                .internal}
+            -   [Section 3 - Heisenberg Model with a time-varying
+                magnetic
+                field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+                .internal}
+            -   [Exercise 1 - Define a time-varying magnetic
+                field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+                .internal}
+            -   [Exercise 2
+                (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+                .internal}
+        -   [Superconducting
+            Qubits](../../examples/python/dynamics/superconducting.html){.reference
             .internal}
-        -   [Heisenberg Model (Multi-GPU
-            Multi-Node)](#heisenberg-model-multi-gpu-multi-node){.reference
+            -   [Cavity
+                QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
+                .internal}
+            -   [Cross
+                Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
+                .internal}
+            -   [Transmon
+                Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
+                .internal}
+        -   [Spin
+            Qubits](../../examples/python/dynamics/spinqubits.html){.reference
             .internal}
+            -   [Silicon Spin
+                Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
+                .internal}
+            -   [Heisenberg
+                Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
+                .internal}
+        -   [Trapped Ion
+            Qubits](../../examples/python/dynamics/iontrap.html){.reference
+            .internal}
+            -   [GHZ
+                state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
+                .internal}
+        -   [Control](../../examples/python/dynamics/control.html){.reference
+            .internal}
+            -   [Gate
+                Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
+                .internal}
+            -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
+                .internal}
+            -   [Qubit
+                Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
+                .internal}
+            -   [Qubit
+                Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
+                .internal}
+            -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
+                .internal}
 -   [Applications](../applications.html){.reference .internal}
     -   [Max-Cut with
         QAOA](../../applications/python/qaoa.html){.reference .internal}
@@ -1522,7 +1593,7 @@ pr-3308
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
 .btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../applications.html "CUDA-Q Applications"){.btn
+aria-hidden="true"}](../../examples/python/dynamics/dynamics_intro_1.html "Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
 .btn-neutral .float-right}
 :::
 
@@ -1535,1478 +1606,105 @@ aria-hidden="true"}](../applications.html "CUDA-Q Applications"){.btn
 CUDA-Q Dynamics[¶](#cuda-q-dynamics "Permalink to this heading"){.headerlink}
 =============================================================================
 
-This page contains a number of examples that use CUDA-Q dynamics to
-simulate a range of fundamental physical systems and specific qubit
-modalities. All example problems simulate systems of very low dimension
-so that the code can be run quickly on any device. For small problems,
-the GPU will not provide a significant performance advantage over the
-CPU. The GPU will start to outperform the CPU for cases where the total
-dimension of all subsystems is O(1000).
-
-::: {#cavity-qed .section}
-Cavity QED[¶](#cavity-qed "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------
-
-::: {#id1 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import boson, Schedule, ScipyZvodeIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # This example demonstrate a simulation of cavity quantum electrodynamics (interaction between light confined in a reflective cavity and atoms)
-
-    # System dimensions: atom (2-level system) and cavity (10-level system)
-    dimensions = {0: 2, 1: 10}
-
-    # Alias for commonly used operators
-    # Cavity operators
-    a = boson.annihilate(1)
-    a_dag = boson.create(1)
-
-    # Atom operators
-    sm = boson.annihilate(0)
-    sm_dag = boson.create(0)
-
-    # Defining the Hamiltonian for the system: self-energy terms and cavity-atom interaction term.
-    # This is the so-called Jaynes-Cummings model:
-    # https://en.wikipedia.org/wiki/Jaynes%E2%80%93Cummings_model
-    hamiltonian = 2 * np.pi * boson.number(1) + 2 * np.pi * boson.number(
-        0) + 2 * np.pi * 0.25 * (sm * a_dag + sm_dag * a)
-
-    # Initial state of the system
-    # Atom in ground state
-    qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
-
-    # Cavity in a state which has 5 photons initially
-    cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
-    cavity_state[5][5] = 1.0
-    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
-
-    steps = np.linspace(0, 10, 201)
-    schedule = Schedule(steps, ["time"])
-
-    # First, evolve the system without any collapse operators (ideal).
-    evolution_result = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        rho0,
-        observables=[boson.number(1), boson.number(0)],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    # Then, evolve the system with a collapse operator modeling cavity decay (leaking photons)
-    evolution_result_decay = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        rho0,
-        observables=[boson.number(1), boson.number(0)],
-        collapse_operators=[np.sqrt(0.1) * a],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
-    ideal_results = [
-        get_result(0, evolution_result),
-        get_result(1, evolution_result)
-    ]
-    decay_results = [
-        get_result(0, evolution_result_decay),
-        get_result(1, evolution_result_decay)
-    ]
-
-    fig = plt.figure(figsize=(18, 6))
-
-    plt.subplot(1, 2, 1)
-    plt.plot(steps, ideal_results[0])
-    plt.plot(steps, ideal_results[1])
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Cavity Photon Number", "Atom Excitation Probability"))
-    plt.title("No decay")
-
-    plt.subplot(1, 2, 2)
-    plt.plot(steps, decay_results[0])
-    plt.plot(steps, decay_results[1])
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Cavity Photon Number", "Atom Excitation Probability"))
-    plt.title("With decay")
-
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    fig.savefig('cavity_qed.png', dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#cross-resonance .section}
-Cross Resonance[¶](#cross-resonance "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------
-
-::: {#id2 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import spin, Schedule, ScipyZvodeIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # This example simulates cross-resonance interactions between superconducting qubits.
-    # Cross-resonance interaction is key to implementing two-qubit conditional gates, e.g., the CNOT gate.
-    # Ref: A simple all-microwave entangling gate for fixed-frequency superconducting qubits (Physical Review Letters 107, 080502)
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # Device parameters
-    # Detuning between two qubits
-    delta = 100 * 2 * np.pi
-    # Static coupling between qubits
-    J = 7 * 2 * np.pi
-    # spurious electromagnetic `crosstalk` due to stray electromagnetic coupling in the device circuit and package
-    # see (Physical Review Letters 107, 080502)
-    m_12 = 0.2
-    # Drive strength
-    Omega = 20 * 2 * np.pi
-
-    # Qubit Hamiltonian (in the rotating frame w.r.t. the target qubit)
-    hamiltonian = delta / 2 * spin.z(0) + J * (
-        spin.minus(1) * spin.plus(0) +
-        spin.plus(1) * spin.minus(0)) + Omega * spin.x(0) + m_12 * Omega * spin.x(1)
-
-    # Dimensions of sub-system
-    dimensions = {0: 2, 1: 2}
-
-    # Two initial states: |00> and |10>.
-    # We show the 'conditional' evolution when controlled qubit is in |1> state.
-    psi_00 = cudaq.State.from_data(
-        cp.array([1.0, 0.0, 0.0, 0.0], dtype=cp.complex128))
-    psi_10 = cudaq.State.from_data(
-        cp.array([0.0, 1.0, 0.0, 0.0], dtype=cp.complex128))
-
-    # Schedule of time steps.
-    steps = np.linspace(0.0, 1.0, 1001)
-    schedule = Schedule(steps, ["time"])
-
-    # Run the simulations (batched).
-    evolution_results = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule, [psi_00, psi_10],
-        observables=[
-            spin.x(0),
-            spin.y(0),
-            spin.z(0),
-            spin.x(1),
-            spin.y(1),
-            spin.z(1)
-        ],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
-    results_00 = [get_result(i, evolution_results[0]) for i in range(6)]
-    results_10 = [get_result(i, evolution_results[1]) for i in range(6)]
-
-    # The changes in recession frequencies of the target qubit when control qubit is in |1> state allow us to implement two-qubit conditional gates.
-    fig = plt.figure(figsize=(18, 6))
-
-    plt.subplot(1, 2, 1)
-    plt.plot(steps, results_00[5])
-    plt.plot(steps, results_10[5])
-    plt.ylabel(r"$\langle Z_2\rangle$")
-    plt.xlabel("Time")
-    plt.legend((r"$|\psi_0\rangle=|00\rangle$", r"$|\psi_0\rangle=|10\rangle$"))
-
-    plt.subplot(1, 2, 2)
-    plt.plot(steps, results_00[4])
-    plt.plot(steps, results_10[4])
-    plt.ylabel(r"$\langle Y_2\rangle$")
-    plt.xlabel("Time")
-    plt.legend((r"$|\psi_0\rangle=|00\rangle$", r"$|\psi_0\rangle=|10\rangle$"))
-
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    fig.savefig('cross_resonance.png', dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#gate-calibration .section}
-Gate Calibration[¶](#gate-calibration "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------------------
-
-::: {#id3 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import boson, Schedule, ScalarOperator, ScipyZvodeIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # This example demonstrates the use of the dynamics simulator and optimizer to optimize a pulse.
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # Sample device parameters
-    # Assuming a simple transmon device Hamiltonian in rotating frame.
-    detuning = 0.0  # Detuning of the drive; assuming resonant drive
-    anharmonicity = -340.0  # Anharmonicity
-    sigma = 0.01  # sigma of the Gaussian pulse
-    cutoff = 4.0 * sigma  # total length of drive pulse
-
-    # Dimensions of sub-system
-    # We model `transmon` as a 3-level system to account for leakage.
-    dimensions = {0: 3}
-
-    # Initial state of the system (ground state).
-    psi0 = cudaq.State.from_data(cp.array([1.0, 0.0, 0.0], dtype=cp.complex128))
-
-
-    def gaussian(t):
-        """
-        Gaussian shape with cutoff. Starts at t = 0, amplitude normalized to one
-        """
-        val = (np.exp(-((t-cutoff/2)/sigma)**2/2)-np.exp(-(cutoff/sigma)**2/8)) \
-               / (1-np.exp(-(cutoff/sigma)**2/8))
-        return val
-
-
-    def dgaussian(t):
-        """
-        Derivative of Gaussian. Starts at t = 0, amplitude normalized to one
-        """
-        return -(t - cutoff / 2) / sigma * np.exp(-(
-            (t - cutoff / 2) / sigma)**2 / 2 + 0.5)
-
-
-    # Schedule of time steps.
-    steps = np.linspace(0.0, cutoff, 201)
-    schedule = Schedule(steps, ["t"])
-
-    # We optimize for a X(pi/2) rotation
-    target_state = np.array([1.0 / np.sqrt(2), -1j / np.sqrt(2), 0.0],
-                            dtype=cp.complex128)
-
-
-    # Optimize the amplitude of the drive pulse (DRAG - Derivative Removal by Adiabatic Gate)
-    def cost_function(amps):
-        amplitude = 100 * amps[0]
-        drag_amp = 100 * amps[1]
-        # Qubit Hamiltonian
-        hamiltonian = detuning * boson.number(0) + (
-            anharmonicity / 2) * boson.create(0) * boson.create(
-                0) * boson.annihilate(0) * boson.annihilate(0)
-        # Drive term
-        hamiltonian += amplitude * ScalarOperator(gaussian) * (boson.create(0) +
-                                                               boson.annihilate(0))
-
-        # Drag term (leakage reduction)
-        hamiltonian += 1j * drag_amp * ScalarOperator(dgaussian) * (
-            boson.annihilate(0) - boson.create(0))
-
-        # We optimize for a X(pi/2) rotation
-        evolution_result = cudaq.evolve(
-            hamiltonian,
-            dimensions,
-            schedule,
-            psi0,
-            observables=[],
-            collapse_operators=[],
-            store_intermediate_results=cudaq.IntermediateResultSave.NONE,
-            integrator=ScipyZvodeIntegrator())
-        final_state = evolution_result.final_state()
-
-        overlap = np.abs(final_state.overlap(target_state))
-        print(
-            f"Gaussian amplitude = {amplitude}, derivative amplitude = {drag_amp}, Overlap: {overlap}"
-        )
-        return 1.0 - overlap
-
-
-    # Specify the optimizer
-    optimizer = cudaq.optimizers.NelderMead()
-    optimal_error, optimal_parameters = optimizer.optimize(dimensions=2,
-                                                           function=cost_function)
-
-    print("optimal overlap =", 1.0 - optimal_error)
-    print("optimal parameters =", optimal_parameters)
-:::
-:::
-:::
-
-::: {#heisenberg-model .section}
-Heisenberg Model[¶](#heisenberg-model "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------------------
-
-::: {#id4 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import spin, Schedule, ScipyZvodeIntegrator
-
-    import numpy as np
-    import cupy as cp
-    import matplotlib.pyplot as plt
-    import os
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # In this example, we solve the Quantum Heisenberg model (https://en.wikipedia.org/wiki/Quantum_Heisenberg_model),
-    # which exhibits the so-called quantum quench effect.
-    # e.g., see `Quantum quenches in the anisotropic spin-1/2 Heisenberg chain: different approaches to many-body dynamics far from equilibrium`
-    # (New J. Phys. 12 055017)
-
-    # Specifically, we demonstrate the use of batched Hamiltonian operators to simulate the Heisenberg model
-    # with different coupling strengths.
-    # These batched Hamiltonian operators allow us to efficiently compute the dynamics of multiple systems in a single simulation run.
-    # Number of spins
-    N = 9
-    dimensions = {}
-    for i in range(N):
-        dimensions[i] = 2
-
-    # Initial state: alternating spin up and down
-    spin_state = ''
-    for i in range(N):
-        spin_state += str(int(i % 2))
-
-    # Observable is the staggered magnetization operator
-    staggered_magnetization_op = spin.empty()
-    for i in range(N):
-        if i % 2 == 0:
-            staggered_magnetization_op += spin.z(i)
-        else:
-            staggered_magnetization_op -= spin.z(i)
-
-    staggered_magnetization_op /= N
-
-    observe_results = []
-    batched_hamiltonian = []
-    anisotropy_parameters = [0.0, 0.25, 4.0]
-    for g in anisotropy_parameters:
-        # Heisenberg model spin coupling strength
-        Jx = 1.0
-        Jy = 1.0
-        Jz = g
-
-        # Construct the Hamiltonian
-        H = spin.empty()
-
-        for i in range(N - 1):
-            H += Jx * spin.x(i) * spin.x(i + 1)
-            H += Jy * spin.y(i) * spin.y(i + 1)
-            H += Jz * spin.z(i) * spin.z(i + 1)
-        # Append the Hamiltonian to the batched list
-        batched_hamiltonian.append(H)
-
-    steps = np.linspace(0.0, 5, 1000)
-    schedule = Schedule(steps, ["time"])
-
-    # Prepare the initial state vector
-    psi0_ = cp.zeros(2**N, dtype=cp.complex128)
-    psi0_[int(spin_state, 2)] = 1.0
-    psi0 = cudaq.State.from_data(psi0_)
-
-    # Run the simulation in batched mode
-    evolution_results = cudaq.evolve(
-        batched_hamiltonian,
-        dimensions,
-        schedule,
-        psi0,  # Same initial state for all Hamiltonian operators
-        observables=[staggered_magnetization_op],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    for g, evolution_result in zip(anisotropy_parameters, evolution_results):
-        exp_val = [
-            exp_vals[0].expectation()
-            for exp_vals in evolution_result.expectation_values()
-        ]
-
-        observe_results.append((g, exp_val))
-
-    # Plot the results
-    fig = plt.figure(figsize=(12, 6))
-    for g, exp_val in observe_results:
-        plt.plot(steps, exp_val, label=f'$ g = {g}$')
-    plt.legend(fontsize=16)
-    plt.ylabel("Staggered Magnetization")
-    plt.xlabel("Time")
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    fig.savefig("heisenberg_model.png", dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#ion-trap .section}
-Ion Trap[¶](#ion-trap "Permalink to this heading"){.headerlink}
----------------------------------------------------------------
-
-::: {#id5 .highlight-python .notranslate}
-::: {.highlight}
-    """
-    Tutorial: Creating a GHZ State with Trapped Ions
-
-    This example shows how to prepare a GHZ (`Greenberger-Horne-Zeilinger`) state 
-    using trapped ions and CUDA-Q. We'll use the effective spin model from the 
-    famous `Sørensen-Mølmer` paper.
-
-    What we're doing:
-    - Start with N ions all in ground state `|gg...g⟩`
-    - Apply an effective Hamiltonian H = 4χJ_x²  
-    - Watch the system evolve into a GHZ superposition: `(|gg...g⟩ + |ee...e⟩)/√2`
-
-    This tutorial uses the simplified effective model (`Eq. 2` from the paper).
-
-    Reference:
-    Mølmer, Klaus, and Anders `Sørensen`. "`Multiparticle` entanglement of hot trapped ions." Physical Review Letters 82.9 (1999): 1835.
-    """
-
-    import cudaq
-    from cudaq import spin, Schedule, RungeKuttaIntegrator
-    import numpy as np
-    import cupy as cp
-    import matplotlib.pyplot as plt
-
-    cudaq.set_target("dynamics")
-
-    # Physical parameters, these come from the `Sørensen-Mølmer` paper
-    nu = 1.0  # Trap frequency (our reference)
-    delta = 0.9 * nu  # Laser detuning
-    Omega = 0.1 * nu  # Laser strength
-    eta = 0.1  # How strongly lasers couple to motion
-
-    # The effective coupling strength (this is the key parameter!)
-    chi = (eta**2 * Omega**2 * nu) / (2 * (nu**2 - delta**2))
-
-    N = 8  # Number of ions (start small!)
-    evolution_time = 1.0 / chi  # How long to evolve
-    num_steps = 100  # Time resolution
-
-    dimensions = {i: 2 for i in range(N)}  # Each ion is a 2-level system
-
-    # collective spin operator J_x
-    J_x = spin.empty()
-    for i in range(N):
-        J_x += spin.x(i)
-    J_x /= 2  # Normalize
-
-    hamiltonian = 4 * chi * J_x * J_x
-
-    # Set up initial state and time evolution
-    # Start with all ions in ground state `|gg...g⟩`
-    initial_state_vector = cp.zeros(2**N, dtype=cp.complex128)
-    initial_state_vector[0] = 1.0  # |00...0⟩ = `|gg...g⟩`
-    initial_state = cudaq.State.from_data(initial_state_vector)
-
-    # Set up time points for evolution
-    times = np.linspace(0, evolution_time, num_steps)
-    chi_times = chi * times  # Dimensionless time χt
-    schedule = Schedule(times, ["t"])
-
-    # Create observables to track the populations
-    # We want to measure the probability of being in `|gg...g⟩` and `|ee...e⟩`
-
-    # Projector onto `|gg...g⟩ = |00...0⟩`
-    P_ground = spin.empty()
-    for i in range(N):
-        if i == 0:
-            P_ground = (spin.identity(i) - spin.z(i)) / 2  # `|0⟩⟨0|`
-        else:
-            P_ground = P_ground * (spin.identity(i) - spin.z(i)) / 2
-
-    # Projector onto `|ee...e⟩ = |11...1⟩`
-    P_excited = spin.empty()
-    for i in range(N):
-        if i == 0:
-            P_excited = (spin.identity(i) + spin.z(i)) / 2  # `|1⟩⟨1|`
-        else:
-            P_excited = P_excited * (spin.identity(i) + spin.z(i)) / 2
-
-    observables = [P_ground, P_excited]
-
-    # Run the simulation!
-    print("Running time evolution...")
-    evolution_result = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        initial_state,
-        observables=observables,
-        collapse_operators=[],  # No decoherence for this tutorial
-        store_intermediate_results=cudaq.IntermediateResultSave.
-        EXPECTATION_VALUE,  # Save expectation values
-        integrator=RungeKuttaIntegrator())
-
-    # Extract the results
-    exp_vals = evolution_result.expectation_values()
-    pop_ground = [exp_vals[i][0].expectation() for i in range(len(times))]
-    pop_excited = [exp_vals[i][1].expectation() for i in range(len(times))]
-
-    # The GHZ state appears at a special time: χt = π/8
-    ghz_chi_t = np.pi / 8
-    ghz_time_idx = np.argmin(np.abs(chi_times - ghz_chi_t))
-    ghz_pop_ground = pop_ground[ghz_time_idx]
-    ghz_pop_excited = pop_excited[ghz_time_idx]
-
-    print(f"\nResults at GHZ time (χt = {ghz_chi_t:.3f}):")
-    print(f"P(|{'g'*N}⟩) = {ghz_pop_ground:.3f}")
-    print(f"P(|{'e'*N}⟩) = {ghz_pop_excited:.3f}")
-    print(f"Total in extremes: {ghz_pop_ground + ghz_pop_excited:.3f}")
-
-    # Check GHZ state quality
-    # For perfect GHZ state: `P(gg) = P(ee) = 0.5`
-    ghz_quality = 1 - 2 * abs(
-        ghz_pop_ground - 0.5)  # Distance from ideal probability
-    print(f"GHZ state quality: {ghz_quality:.3f} (1.0 = perfect)")
-    print(f"Perfect GHZ would have P(gg) = P(ee) = 0.5")
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(chi_times,
-             pop_ground,
-             'b-',
-             linewidth=2,
-             label=f"|{'g'*N}⟩ (all ground)")
-    plt.plot(chi_times,
-             pop_excited,
-             'r-',
-             linewidth=2,
-             label=f"|{'e'*N}⟩ (all excited)")
-    plt.axvline(ghz_chi_t,
-                color='gray',
-                linestyle='--',
-                alpha=0.7,
-                label="GHZ time")
-    plt.axhline(0.5, color='black', linestyle=':', alpha=0.5, label="Perfect GHZ")
-
-    plt.xlabel("Dimensionless time (χt)")
-    plt.ylabel("Population")
-    plt.title(f"Evolution to GHZ State ({N} trapped ions)")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.xlim(0, 1)
-    plt.ylim(0, 1)
-    plt.tight_layout()
-    plt.savefig("ghz_trapped_ions.png")
-    plt.show()
-:::
-:::
-:::
-
-::: {#landau-zener .section}
-Landau Zener[¶](#landau-zener "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------
-
-::: {#id6 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import spin, boson, ScalarOperator, Schedule, ScipyZvodeIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # This example simulates the so-called Landau–Zener transition: given a time-dependent Hamiltonian such that the energy separation
-    # of the two states is a linear function of time, an analytical formula exists to calculate
-    # the probability of finding the system in the excited state after the transition.
-
-    # References:
-    # - https://en.wikipedia.org/wiki/Landau%E2%80%93Zener_formula
-    # - `The Landau-Zener formula made simple`, `Eric P Glasbrenner and Wolfgang P Schleich 2023 J. Phys. B: At. Mol. Opt. Phys. 56 104001`
-    # - QuTiP notebook: https://github.com/qutip/qutip-notebooks/blob/master/examples/landau-zener.ipynb
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # Define some shorthand operators
-    sx = spin.x(0)
-    sz = spin.z(0)
-    sm = boson.annihilate(0)
-    sm_dag = boson.create(0)
-
-    # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
-    dimensions = {0: 2}
-
-    # Landau–Zener Hamiltonian:
-    # `[[-alpha*t, g], [g, alpha*t]] = g * pauli_x - alpha * t * pauli_z`
-    g = 2 * np.pi
-    # Analytical equation:
-    # `P(0) = exp(-pi * g ^ 2/ alpha)`
-    # The target ground state probability that we want to achieve
-    target_p0 = 0.75
-    # Compute `alpha` parameter:
-    alpha = (-np.pi * g**2) / np.log(target_p0)
-
-    # Hamiltonian
-    hamiltonian = g * sx - alpha * ScalarOperator(lambda t: t) * sz
-
-    # Initial state of the system (ground state)
-    psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
-
-    # Schedule of time steps (simulating a long time range)
-    steps = np.linspace(-2.0, 2.0, 5000)
-    schedule = Schedule(steps, ["t"])
-
-    # Run the simulation.
-    evolution_result = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        psi0,
-        observables=[boson.number(0)],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    prob1 = [
-        exp_vals[0].expectation()
-        for exp_vals in evolution_result.expectation_values()
-    ]
-
-    prob0 = [1 - val for val in prob1]
-    fig, ax = plt.subplots(figsize=(12, 8))
-    ax.plot(steps, prob1, 'b', steps, prob0, 'r')
-    ax.plot(steps, (1.0 - target_p0) * np.ones(np.shape(steps)), 'k')
-    ax.plot(steps, target_p0 * np.ones(np.shape(steps)), 'm')
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Occupation probability")
-    ax.set_title("Landau-Zener transition")
-    ax.legend(("Excited state", "Ground state", "LZ formula (Excited state)",
-               "LZ formula (Ground state)"),
-              loc=0)
-
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    plt.savefig('landau_zener.png', dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#pulse .section}
-Pulse[¶](#pulse "Permalink to this heading"){.headerlink}
----------------------------------------------------------
-
-::: {#id7 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import spin, boson, ScalarOperator, Schedule, ScipyZvodeIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # This example simulates time evolution of a qubit (`transmon`) being driven by a pulse.
-    # The pulse is a modulated signal with a Gaussian envelop.
-    # The simulation is performed in the 'lab' frame.
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # Device parameters
-    # Strength of the Rabi-rate in GHz.
-    rabi_rate = 0.1
-
-    # Frequency of the qubit transition in GHz.
-    omega = 5.0 * 2 * np.pi
-
-    # Define Gaussian envelope function to approximately implement a `rx(pi/2)` gate.
-    amplitude = 1. / 2.0  # Pi/2 rotation
-    sigma = 1.0 / rabi_rate / amplitude
-    pulse_duration = 6 * sigma
-
-
-    def gaussian(t, duration, amplitude, sigma):
-        # Gaussian envelope function
-        return amplitude * np.exp(-0.5 * (t - duration / 2)**2 / (sigma)**2)
-
-
-    def signal(t):
-        # Modulated signal
-        return np.cos(omega * t) * gaussian(t, pulse_duration, amplitude, sigma)
-
-
-    # Qubit Hamiltonian
-    hamiltonian = omega * spin.z(0) / 2
-    # Add modulated driving term to the Hamiltonian
-    hamiltonian += np.pi * rabi_rate * ScalarOperator(signal) * spin.x(0)
-
-    # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
-    dimensions = {0: 2}
-
-    # Initial state of the system (ground state).
-    psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
-
-    # Schedule of time steps.
-    # Since this is a lab-frame simulation, the time step must be small to accurately capture the modulated signal.
-    dt = 1 / omega / 20
-    n_steps = int(np.ceil(pulse_duration / dt)) + 1
-    steps = np.linspace(0, pulse_duration, n_steps)
-    schedule = Schedule(steps, ["t"])
-
-    # Run the simulation.
-    # First, we run the simulation without any collapse operators (no decoherence).
-    evolution_result = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        psi0,
-        observables=[boson.number(0)],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    pop1 = [
-        exp_vals[0].expectation()
-        for exp_vals in evolution_result.expectation_values()
-    ]
-    pop0 = [1.0 - x for x in pop1]
-    fig = plt.figure(figsize=(6, 16))
-    envelop = [gaussian(t, pulse_duration, amplitude, sigma) for t in steps]
-
-    plt.subplot(3, 1, 1)
-    plt.plot(steps, envelop)
-    plt.ylabel("Amplitude")
-    plt.xlabel("Time")
-    plt.title("Envelope")
-
-    modulated_signal = [
-        np.cos(omega * t) * gaussian(t, pulse_duration, amplitude, sigma)
-        for t in steps
-    ]
-    plt.subplot(3, 1, 2)
-    plt.plot(steps, modulated_signal)
-    plt.ylabel("Amplitude")
-    plt.xlabel("Time")
-    plt.title("Signal")
-
-    plt.subplot(3, 1, 3)
-    plt.plot(steps, pop0)
-    plt.plot(steps, pop1)
-    plt.ylabel("Population")
-    plt.xlabel("Time")
-    plt.legend(("Population in |0>", "Population in |1>"))
-    plt.title("Qubit State")
-
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    fig.savefig("pulse.png", dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#qubit-control .section}
-Qubit Control[¶](#qubit-control "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------------
-
-::: {#id8 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import spin, ScalarOperator, Schedule, ScipyZvodeIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # This example simulates time evolution of a qubit (`transmon`) being driven close to resonance in the presence of noise (decoherence).
-    # Thus, it exhibits Rabi oscillations.
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # Qubit Hamiltonian reference: https://qiskit-community.github.io/qiskit-dynamics/tutorials/Rabi_oscillations.html
-    # Device parameters
-    # Qubit resonant frequency
-    omega_z = 10.0 * 2 * np.pi
-    # Transverse term
-    omega_x = 2 * np.pi
-    # Harmonic driving frequency
-    # Note: we chose a frequency slightly different from the resonant frequency to demonstrate the off-resonance effect.
-    omega_drive = 0.99 * omega_z
-
-    # Qubit Hamiltonian
-    hamiltonian = 0.5 * omega_z * spin.z(0)
-    # Add modulated driving term to the Hamiltonian
-    hamiltonian += omega_x * ScalarOperator(
-        lambda t: np.cos(omega_drive * t)) * spin.x(0)
-
-    # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
-    dimensions = {0: 2}
-
-    # Initial state of the system (ground state).
-    rho0 = cudaq.State.from_data(
-        cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
-
-    # Schedule of time steps.
-    t_final = np.pi / omega_x
-    dt = 2.0 * np.pi / omega_drive / 100
-    n_steps = int(np.ceil(t_final / dt)) + 1
-    steps = np.linspace(0, t_final, n_steps)
-    schedule = Schedule(steps, ["t"])
-
-    # Run the simulation.
-    # First, we run the simulation without any collapse operators (no decoherence).
-    evolution_result = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        rho0,
-        observables=[spin.x(0), spin.y(0), spin.z(0)],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    # Now, run the simulation with qubit decoherence
-    gamma_sm = 4.0
-    gamma_sz = 1.0
-    evolution_result_decay = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        rho0,
-        observables=[spin.x(0), spin.y(0), spin.z(0)],
-        collapse_operators=[
-            np.sqrt(gamma_sm) * spin.plus(0),
-            np.sqrt(gamma_sz) * spin.z(0)
-        ],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
-    ideal_results = [
-        get_result(0, evolution_result),
-        get_result(1, evolution_result),
-        get_result(2, evolution_result)
-    ]
-    decoherence_results = [
-        get_result(0, evolution_result_decay),
-        get_result(1, evolution_result_decay),
-        get_result(2, evolution_result_decay)
-    ]
-
-    fig = plt.figure(figsize=(18, 6))
-
-    plt.subplot(1, 2, 1)
-    plt.plot(steps, ideal_results[0])
-    plt.plot(steps, ideal_results[1])
-    plt.plot(steps, ideal_results[2])
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
-    plt.title("No decoherence")
-
-    plt.subplot(1, 2, 2)
-    plt.plot(steps, decoherence_results[0])
-    plt.plot(steps, decoherence_results[1])
-    plt.plot(steps, decoherence_results[2])
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
-    plt.title("With decoherence")
-
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    fig.savefig('qubit_control.png', dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#qubit-dynamics .section}
-Qubit Dynamics[¶](#qubit-dynamics "Permalink to this heading"){.headerlink}
----------------------------------------------------------------------------
-
-::: {#id9 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import spin, Schedule, RungeKuttaIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # Qubit Hamiltonian
-    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
-
-    # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
-    dimensions = {0: 2}
-
-    # Initial state of the system (ground state).
-    rho0 = cudaq.State.from_data(
-        cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
-
-    # Schedule of time steps.
-    steps = np.linspace(0, 10, 101)
-    schedule = Schedule(steps, ["time"])
-
-    # Run the simulation.
-    # First, we run the simulation without any collapse operators (ideal).
-    evolution_result = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        rho0,
-        observables=[spin.y(0), spin.z(0)],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=RungeKuttaIntegrator())
-
-    # Now, run the simulation with qubit decaying due to the presence of a collapse operator.
-    evolution_result_decay = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        rho0,
-        observables=[spin.y(0), spin.z(0)],
-        collapse_operators=[np.sqrt(0.05) * spin.x(0)],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=RungeKuttaIntegrator())
-
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
-    ideal_results = [
-        get_result(0, evolution_result),
-        get_result(1, evolution_result)
-    ]
-    decay_results = [
-        get_result(0, evolution_result_decay),
-        get_result(1, evolution_result_decay)
-    ]
-
-    fig = plt.figure(figsize=(18, 6))
-
-    plt.subplot(1, 2, 1)
-    plt.plot(steps, ideal_results[0])
-    plt.plot(steps, ideal_results[1])
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Sigma-Y", "Sigma-Z"))
-    plt.title("No decay")
-
-    plt.subplot(1, 2, 2)
-    plt.plot(steps, decay_results[0])
-    plt.plot(steps, decay_results[1])
-    plt.ylabel("Expectation value")
-    plt.xlabel("Time")
-    plt.legend(("Sigma-Y", "Sigma-Z"))
-    plt.title("With decay")
-
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    fig.savefig('qubit_dynamics.png', dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#silicon-spin-qubit .section}
-Silicon Spin Qubit[¶](#silicon-spin-qubit "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------------
-
-::: {#id10 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import spin, boson, Schedule, ScalarOperator, ScipyZvodeIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # This example demonstrates simulation of an electrically-driven silicon spin qubit.
-    # The system dynamics is taken from https://journals.aps.org/prapplied/pdf/10.1103/PhysRevApplied.19.044078
-
-    dimensions = {0: 2}
-    resonance_frequency = 2 * np.pi * 10  # 10 Ghz
-
-    # Run the simulation:
-
-    # Sweep the amplitude
-    amplitudes = np.linspace(0.0, 0.5, 20)
-    # Construct a list of Hamiltonian operator for each amplitude so that we can batch them all together
-    batched_hamiltonian = []
-    for amplitude in amplitudes:
-        # Electric dipole spin resonance (`EDSR`) Hamiltonian
-        H = 0.5 * resonance_frequency * spin.z(0) + amplitude * ScalarOperator(
-            lambda t: 0.5 * np.sin(resonance_frequency * t)) * spin.x(0)
-        # Append the Hamiltonian to the batched list
-        # This allows us to compute the dynamics for all amplitudes in a single simulation run
-        batched_hamiltonian.append(H)
-
-    # Initial state is the ground state of the spin qubit
-    # We run all simulations for the same initial state, but with different Hamiltonian operators.
-    psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
-
-    # Simulation schedule
-    t_final = 100
-    dt = 0.005
-    n_steps = int(np.ceil(t_final / dt)) + 1
-    steps = np.linspace(0, t_final, n_steps)
-    schedule = Schedule(steps, ["t"])
-
-    results = cudaq.evolve(
-        batched_hamiltonian,
-        dimensions,
-        schedule,
-        psi0,
-        observables=[boson.number(0)],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
-
-    evolution_results = []
-    for result in results:
-        evolution_results.append(get_result(0, result))
-
-    fig, ax = plt.subplots()
-    im = ax.contourf(steps, amplitudes, evolution_results)
-    ax.set_xlabel("Time (ns)")
-    ax.set_ylabel(f"Amplitude (a.u.)")
-    fig.suptitle(f"Excited state probability")
-    fig.colorbar(im)
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    # For reference, see figure 5 in https://journals.aps.org/prapplied/pdf/10.1103/PhysRevApplied.19.044078
-    fig.savefig("spin_qubit_edsr.png", dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#tensor-callback .section}
-Tensor Callback[¶](#tensor-callback "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------
-
-::: {#id11 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import MatrixOperatorElement, operators, boson, Schedule, ScipyZvodeIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # This example demonstrates the use of callback functions to define time-dependent operators.
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # Consider a simple 2-level system Hamiltonian exhibits the Landau–Zener transition:
-    # `[[-alpha*t, g], [g, alpha*t]]
-    # This can be defined as a callback tensor:
-    g = 2.0 * np.pi
-    alpha = 10.0 * 2 * np.pi
-
-
-    def callback_tensor(t):
-        return np.array([[-alpha * t, g], [g, alpha * t]], dtype=np.complex128)
-
-
-    # Analytical formula
-    lz_formula_p0 = np.exp(-np.pi * g**2 / (alpha))
-    lz_formula_p1 = 1.0 - lz_formula_p0
-
-    # Let's define the control term as a callback tensor that acts on 2-level systems
-    operators.define("lz_op", [2], callback_tensor)
-
-    # Hamiltonian
-    hamiltonian = operators.instantiate("lz_op", [0])
-
-    # Dimensions of sub-system. We only have a single degree of freedom of dimension 2 (two-level system).
-    dimensions = {0: 2}
-
-    # Initial state of the system (ground state)
-    psi0 = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
-
-    # Schedule of time steps (simulating a long time range)
-    steps = np.linspace(-4.0, 4.0, 10000)
-    schedule = Schedule(steps, ["t"])
-
-    # Run the simulation.
-    evolution_result = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        psi0,
-        observables=[boson.number(0)],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    prob1 = [
-        exp_vals[0].expectation()
-        for exp_vals in evolution_result.expectation_values()
-    ]
-
-    prob0 = [1 - val for val in prob1]
-    fig, ax = plt.subplots(figsize=(12, 8))
-    ax.plot(steps, prob1, 'b', steps, prob0, 'r')
-    ax.plot(steps, lz_formula_p1 * np.ones(np.shape(steps)), 'k')
-    ax.plot(steps, lz_formula_p0 * np.ones(np.shape(steps)), 'm')
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Occupation probability")
-    ax.set_title("Landau-Zener transition")
-    ax.legend(("Excited state", "Ground state", "LZ formula (Excited state)",
-               "LZ formula (Ground state)"),
-              loc=0)
-
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    fig.savefig('tensor_callback.png', dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#transmon-resonator .section}
-Transmon Resonator[¶](#transmon-resonator "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------------
-
-::: {#id12 .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import operators, spin, operators, Schedule, ScipyZvodeIntegrator
-    import numpy as np
-    import cupy as cp
-    import os
-    import matplotlib.pyplot as plt
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # This example demonstrates a simulation of a superconducting transmon qubit coupled to a resonator (i.e., cavity).
-    # References:
-    # - "Charge-insensitive qubit design derived from the Cooper pair box", PRA 76, 042319
-    # - QuTiP lecture: https://github.com/jrjohansson/qutip-lectures/blob/master/Lecture-10-cQED-dispersive-regime.ipynb
-
-    # Number of cavity photons
-    N = 20
-
-    # System dimensions: transmon + cavity
-    dimensions = {0: 2, 1: N}
-
-    # See III.B of PRA 76, 042319
-    # System parameters
-    # Unit: GHz
-    omega_01 = 3.0 * 2 * np.pi  # transmon qubit frequency
-    omega_r = 2.0 * 2 * np.pi  # resonator frequency
-    # Dispersive shift
-    chi_01 = 0.025 * 2 * np.pi
-    chi_12 = 0.0
-
-    omega_01_prime = omega_01 + chi_01
-    omega_r_prime = omega_r - chi_12 / 2.0
-    chi = chi_01 - chi_12 / 2.0
-
-    # System Hamiltonian
-    hamiltonian = 0.5 * omega_01_prime * spin.z(0) + (
-        omega_r_prime + chi * spin.z(0)) * operators.number(1)
-
-    # Initial state of the system
-    # Transmon in a superposition state
-    transmon_state = cp.array([1. / np.sqrt(2.), 1. / np.sqrt(2.)],
-                              dtype=cp.complex128)
-
-
-    # Helper to create a coherent state in Fock basis truncated at `num_levels`.
-    # Note: There are a couple of ways of generating a coherent state,
-    # e.g., see https://qutip.readthedocs.io/en/v5.0.3/apidoc/functions.html#qutip.core.states.coherent
-    # or https://en.wikipedia.org/wiki/Coherent_state
-    # Here, in this example, we use a the formula: `|alpha> = D(alpha)|0>`,
-    # i.e., apply the displacement operator on a zero (or vacuum) state to compute the corresponding coherent state.
-    def coherent_state(num_levels, amplitude):
-        displace_mat = operators.displace(0).to_matrix({0: num_levels},
-                                                       displacement=amplitude)
-        # `D(alpha)|0>` is the first column of `D(alpha)` matrix
-        return cp.array(np.transpose(displace_mat)[0])
-
-
-    # Cavity in a coherent state
-    cavity_state = coherent_state(N, 2.0)
-    psi0 = cudaq.State.from_data(cp.kron(transmon_state, cavity_state))
-
-    steps = np.linspace(0, 250, 1000)
-    schedule = Schedule(steps, ["time"])
-
-    # Evolve the system
-    evolution_result = cudaq.evolve(
-        hamiltonian,
-        dimensions,
-        schedule,
-        psi0,
-        observables=[
-            operators.number(1),
-            operators.number(0),
-            operators.position(1),
-            operators.position(0)
-        ],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=ScipyZvodeIntegrator())
-
-    get_result = lambda idx, res: [
-        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-    ]
-    count_results = [
-        get_result(0, evolution_result),
-        get_result(1, evolution_result)
-    ]
-
-    quadrature_results = [
-        get_result(2, evolution_result),
-        get_result(3, evolution_result)
-    ]
-
-    fig = plt.figure(figsize=(18, 6))
-
-    plt.subplot(1, 2, 1)
-    plt.plot(steps, count_results[0])
-    plt.plot(steps, count_results[1])
-    plt.ylabel("n")
-    plt.xlabel("Time [ns]")
-    plt.legend(("Cavity Photon Number", "Transmon Excitation Probability"))
-    plt.title("Excitation Numbers")
-
-    plt.subplot(1, 2, 2)
-    plt.plot(steps, quadrature_results[0])
-    plt.ylabel("x")
-    plt.xlabel("Time [ns]")
-    plt.legend(("cavity"))
-    plt.title("Resonator Quadrature")
-
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
-    fig.savefig('transmon_resonator.png', dpi=fig.dpi)
-:::
-:::
-:::
-
-::: {#initial-state-multi-gpu-multi-node .section}
-Initial State (Multi-GPU Multi-Node)[¶](#initial-state-multi-gpu-multi-node "Permalink to this heading"){.headerlink}
----------------------------------------------------------------------------------------------------------------------
-
-::: {#initial-state-mgmn .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import spin, Schedule, RungeKuttaIntegrator
-
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import os
-
-    # On a system with multiple GPUs, `mpiexec` can be used as follows:
-    # `mpiexec -np <N> python3 multi_gpu.py `
-    cudaq.mpi.initialize()
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # Large number of spins
-    N = 20
-    dimensions = {}
-    for i in range(N):
-        dimensions[i] = 2
-
-    # Observable is the average magnetization operator
-    avg_magnetization_op = spin.empty()
-    for i in range(N):
-        avg_magnetization_op += (spin.z(i) / N)
-
-    # Arbitrary coupling constant
-    g = 1.0
-    # Construct the Hamiltonian
-    H = spin.empty()
-    for i in range(N):
-        H += 2 * np.pi * spin.x(i)
-        H += 2 * np.pi * spin.y(i)
-    for i in range(N - 1):
-        H += 2 * np.pi * g * spin.x(i) * spin.x(i + 1)
-        H += 2 * np.pi * g * spin.y(i) * spin.z(i + 1)
-
-    steps = np.linspace(0.0, 1, 200)
-    schedule = Schedule(steps, ["time"])
-
-    # Initial state (expressed as an enum)
-    psi0 = cudaq.dynamics.InitialState.ZERO
-    # This can also be used to initialize a uniformly-distributed wave-function instead.
-    # `psi0 = cudaq.dynamics.InitialState.UNIFORM`
-
-    # Run the simulation
-    evolution_result = cudaq.evolve(
-        H,
-        dimensions,
-        schedule,
-        psi0,
-        observables=[avg_magnetization_op],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=RungeKuttaIntegrator())
-
-    exp_val = [
-        exp_vals[0].expectation()
-        for exp_vals in evolution_result.expectation_values()
-    ]
-
-    if cudaq.mpi.rank() == 0:
-        # Plot the results
-        fig = plt.figure(figsize=(12, 6))
-        plt.plot(steps, exp_val)
-        plt.ylabel("Average Magnetization")
-        plt.xlabel("Time")
-        abspath = os.path.abspath(__file__)
-        dname = os.path.dirname(abspath)
-        os.chdir(dname)
-        fig.savefig("spin_model.png", dpi=fig.dpi)
-
-    cudaq.mpi.finalize()
-:::
-:::
-:::
-
-::: {#heisenberg-model-multi-gpu-multi-node .section}
-Heisenberg Model (Multi-GPU Multi-Node)[¶](#heisenberg-model-multi-gpu-multi-node "Permalink to this heading"){.headerlink}
----------------------------------------------------------------------------------------------------------------------------
-
-::: {#heisenberg-model-mgmn .highlight-python .notranslate}
-::: {.highlight}
-    import cudaq
-    from cudaq import spin, Schedule, RungeKuttaIntegrator
-
-    import numpy as np
-    import cupy as cp
-    import matplotlib.pyplot as plt
-    import os
-
-    # On a system with multiple GPUs, `mpiexec` can be used as follows:
-    # `mpiexec -np <N> python3 multi_gpu.py `
-    cudaq.mpi.initialize()
-
-    # Set the target to our dynamics simulator
-    cudaq.set_target("dynamics")
-
-    # In this example, we solve the Quantum Heisenberg model (https://en.wikipedia.org/wiki/Quantum_Heisenberg_model),
-    # which exhibits the so-called quantum quench effect.
-    # e.g., see `Quantum quenches in the anisotropic spin-1/2 Heisenberg chain: different approaches to many-body dynamics far from equilibrium`
-    # (New J. Phys. 12 055017)
-    # Large number of spins
-    N = 21
-    dimensions = {}
-    for i in range(N):
-        dimensions[i] = 2
-
-    # Initial state: alternating spin up and down
-    spin_state = ''
-    for i in range(N):
-        spin_state += str(int(i % 2))
-
-    # Observable is the staggered magnetization operator
-    staggered_magnetization_op = spin.empty()
-    for i in range(N):
-        if i % 2 == 0:
-            staggered_magnetization_op += spin.z(i)
-        else:
-            staggered_magnetization_op -= spin.z(i)
-
-    staggered_magnetization_op /= N
-
-    observe_results = []
-    batched_hamiltonian = []
-    anisotropy_parameters = [0.25, 4.0]
-    for g in anisotropy_parameters:
-        # Heisenberg model spin coupling strength
-        Jx = 1.0
-        Jy = 1.0
-        Jz = g
-
-        # Construct the Hamiltonian
-        H = spin.empty()
-
-        for i in range(N - 1):
-            H += Jx * spin.x(i) * spin.x(i + 1)
-            H += Jy * spin.y(i) * spin.y(i + 1)
-            H += Jz * spin.z(i) * spin.z(i + 1)
-
-        # Append the Hamiltonian to the batched list
-        batched_hamiltonian.append(H)
-
-    steps = np.linspace(0.0, 5, 500)
-    schedule = Schedule(steps, ["time"])
-
-    # Prepare the initial state vector
-    psi0_ = cp.zeros(2**N, dtype=cp.complex128)
-    psi0_[int(spin_state, 2)] = 1.0
-    psi0 = cudaq.State.from_data(psi0_)
-
-    # Run the simulation in batched mode
-    # This allows us to compute the dynamics for all Hamiltonian operators in a single simulation run
-    evolution_results = cudaq.evolve(
-        batched_hamiltonian,
-        dimensions,
-        schedule,
-        psi0,
-        observables=[staggered_magnetization_op],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.EXPECTATION_VALUE,
-        integrator=RungeKuttaIntegrator())
-
-    for g, evolution_result in zip(anisotropy_parameters, evolution_results):
-        exp_val = [
-            exp_vals[0].expectation()
-            for exp_vals in evolution_result.expectation_values()
-        ]
-
-        observe_results.append((g, exp_val))
-
-    if cudaq.mpi.rank() == 0:
-        # Plot the results
-        fig = plt.figure(figsize=(12, 6))
-        for g, exp_val in observe_results:
-            plt.plot(steps, exp_val, label=f'$ g = {g}$')
-        plt.legend(fontsize=16)
-        plt.ylabel("Staggered Magnetization")
-        plt.xlabel("Time")
-        abspath = os.path.abspath(__file__)
-        dname = os.path.dirname(abspath)
-        os.chdir(dname)
-        fig.savefig("heisenberg_model_mgpu.png", dpi=fig.dpi)
-
-    cudaq.mpi.finalize()
-:::
-:::
+The notebooks below contain groups of examples using CUDA-Q Dynamics.
+The first two notebooks provide an introduction to CUDA-Q Dynamics
+appropriate for new users.
+
+Download the notebooks below
+[here](https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics){.reference
+.external}.
+
+::: {.toctree-wrapper .compound}
+-   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+    Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
+    .internal}
+    -   [Why dynamics simulations vs. circuit
+        simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+        .internal}
+    -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
+        .internal}
+    -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
+        .internal}
+    -   [Section 1 - Simulating the Jaynes-Cummings
+        Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+        .internal}
+    -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
+        Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+        .internal}
+    -   [Section 2 - Simulating open quantum systems with the
+        `collapse_operators`{.docutils .literal
+        .notranslate}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+        .internal}
+    -   [Exercise 2 - Adding additional jump operators
+        [\\(L\_i\\)]{.math .notranslate
+        .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
+        .internal}
+    -   [Section 3 - Many qubits coupled to the
+        resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
+        .internal}
+-   [Introduction to CUDA-Q Dynamics (Time Dependent
+    Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
+    .internal}
+    -   [The Landau-Zener
+        model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+        .internal}
+    -   [Section 1 - Implementing time dependent
+        terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+        .internal}
+    -   [Section 2 - Implementing custom
+        operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+        .internal}
+    -   [Section 3 - Heisenberg Model with a time-varying magnetic
+        field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+        .internal}
+    -   [Exercise 1 - Define a time-varying magnetic
+        field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+        .internal}
+    -   [Exercise 2
+        (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+        .internal}
+-   [Superconducting
+    Qubits](../../examples/python/dynamics/superconducting.html){.reference
+    .internal}
+    -   [Cavity
+        QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
+        .internal}
+    -   [Cross
+        Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
+        .internal}
+    -   [Transmon
+        Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
+        .internal}
+-   [Spin
+    Qubits](../../examples/python/dynamics/spinqubits.html){.reference
+    .internal}
+    -   [Silicon Spin
+        Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
+        .internal}
+    -   [Heisenberg
+        Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
+        .internal}
+-   [Trapped Ion
+    Qubits](../../examples/python/dynamics/iontrap.html){.reference
+    .internal}
+    -   [GHZ
+        state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
+        .internal}
+-   [Control](../../examples/python/dynamics/control.html){.reference
+    .internal}
+    -   [Gate
+        Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
+        .internal}
+    -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
+        .internal}
+    -   [Qubit
+        Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
+        .internal}
+    -   [Qubit
+        Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
+        .internal}
+    -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
+        .internal}
 :::
 :::
 :::
@@ -3016,7 +1714,7 @@ Heisenberg Model (Multi-GPU Multi-Node)[¶](#heisenberg-model-multi-gpu-multi-no
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
 .btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../applications.html "CUDA-Q Applications"){.btn
+aria-hidden="true"}](../../examples/python/dynamics/dynamics_intro_1.html "Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
 .btn-neutral .float-right}
 :::
 

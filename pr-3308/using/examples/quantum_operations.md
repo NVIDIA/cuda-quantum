@@ -193,44 +193,97 @@ pr-3308
             .internal}
     -   [Dynamics Examples](dynamics_examples.html){.reference
         .internal}
-        -   [Cavity QED](dynamics_examples.html#cavity-qed){.reference
+        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+            Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
             .internal}
-        -   [Cross
-            Resonance](dynamics_examples.html#cross-resonance){.reference
+            -   [Why dynamics simulations vs. circuit
+                simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+                .internal}
+            -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
+                .internal}
+            -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
+                .internal}
+            -   [Section 1 - Simulating the Jaynes-Cummings
+                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+                .internal}
+            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
+                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+                .internal}
+            -   [Section 2 - Simulating open quantum systems with the
+                `collapse_operators`{.docutils .literal
+                .notranslate}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                .internal}
+            -   [Exercise 2 - Adding additional jump operators
+                [\\(L\_i\\)]{.math .notranslate
+                .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
+                .internal}
+            -   [Section 3 - Many qubits coupled to the
+                resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
+                .internal}
+        -   [Introduction to CUDA-Q Dynamics (Time Dependent
+            Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
             .internal}
-        -   [Gate
-            Calibration](dynamics_examples.html#gate-calibration){.reference
+            -   [The Landau-Zener
+                model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+                .internal}
+            -   [Section 1 - Implementing time dependent
+                terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+                .internal}
+            -   [Section 2 - Implementing custom
+                operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+                .internal}
+            -   [Section 3 - Heisenberg Model with a time-varying
+                magnetic
+                field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+                .internal}
+            -   [Exercise 1 - Define a time-varying magnetic
+                field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+                .internal}
+            -   [Exercise 2
+                (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+                .internal}
+        -   [Superconducting
+            Qubits](../../examples/python/dynamics/superconducting.html){.reference
             .internal}
-        -   [Heisenberg
-            Model](dynamics_examples.html#heisenberg-model){.reference
+            -   [Cavity
+                QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
+                .internal}
+            -   [Cross
+                Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
+                .internal}
+            -   [Transmon
+                Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
+                .internal}
+        -   [Spin
+            Qubits](../../examples/python/dynamics/spinqubits.html){.reference
             .internal}
-        -   [Ion Trap](dynamics_examples.html#ion-trap){.reference
+            -   [Silicon Spin
+                Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
+                .internal}
+            -   [Heisenberg
+                Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
+                .internal}
+        -   [Trapped Ion
+            Qubits](../../examples/python/dynamics/iontrap.html){.reference
             .internal}
-        -   [Landau
-            Zener](dynamics_examples.html#landau-zener){.reference
+            -   [GHZ
+                state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
+                .internal}
+        -   [Control](../../examples/python/dynamics/control.html){.reference
             .internal}
-        -   [Pulse](dynamics_examples.html#pulse){.reference .internal}
-        -   [Qubit
-            Control](dynamics_examples.html#qubit-control){.reference
-            .internal}
-        -   [Qubit
-            Dynamics](dynamics_examples.html#qubit-dynamics){.reference
-            .internal}
-        -   [Silicon Spin
-            Qubit](dynamics_examples.html#silicon-spin-qubit){.reference
-            .internal}
-        -   [Tensor
-            Callback](dynamics_examples.html#tensor-callback){.reference
-            .internal}
-        -   [Transmon
-            Resonator](dynamics_examples.html#transmon-resonator){.reference
-            .internal}
-        -   [Initial State (Multi-GPU
-            Multi-Node)](dynamics_examples.html#initial-state-multi-gpu-multi-node){.reference
-            .internal}
-        -   [Heisenberg Model (Multi-GPU
-            Multi-Node)](dynamics_examples.html#heisenberg-model-multi-gpu-multi-node){.reference
-            .internal}
+            -   [Gate
+                Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
+                .internal}
+            -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
+                .internal}
+            -   [Qubit
+                Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
+                .internal}
+            -   [Qubit
+                Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
+                .internal}
+            -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
+                .internal}
 -   [Applications](../applications.html){.reference .internal}
     -   [Max-Cut with
         QAOA](../../applications/python/qaoa.html){.reference .internal}
