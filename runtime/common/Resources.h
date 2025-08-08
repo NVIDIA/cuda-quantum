@@ -29,8 +29,6 @@ private:
   };
 
 public:
-  static Resources compute(const Trace &trace);
-
   /// @brief The Resources::Instruction is a data type that
   /// encapsulates the name of a quantum operation, the set of
   /// optional control indices, and the target qubit index.
@@ -38,19 +36,13 @@ public:
     /// @brief The name of the quantum instruction
     std::string name;
 
-    /// @brief The optional set of control qubit indices
-    std::vector<std::size_t> controls;
+    /// @brief The number of controls
+    std::size_t nControls;
 
-    /// @brief The target qubit index
-    std::size_t target;
-
-    Instruction(const std::string &n, const std::size_t &t)
-        : name(n), target(t) {}
+    Instruction(const std::string &n) : name(n) {}
 
     /// @brief The constructor
-    Instruction(const std::string &n, const std::vector<std::size_t> &c,
-                const std::size_t &t)
-        : name(n), controls(c), target(t) {}
+    Instruction(const std::string &n, const size_t c) : name(n), nControls(c) {}
 
     /// @brief Return true if this Instruction is equal to the given one.
     bool operator==(const Instruction &other) const;
@@ -64,22 +56,6 @@ public:
   /// used in the current kernel execution
   std::size_t count(const Instruction &instruction) const;
 
-  /// @brief Return the number of times the instruction with
-  /// the given name on the given qubit is used in the current
-  /// kernel execution.
-  std::size_t count(const std::string &name, std::size_t target) {
-    return count(Instruction(name, {}, target));
-  }
-
-  /// @brief Return the number of times the instruction with
-  /// the given name, the given control qubits, and on the given target qubit is
-  /// used in the current kernel execution.
-  std::size_t count(const std::string &name,
-                    const std::vector<std::size_t> &controls,
-                    std::size_t target) {
-    return count(Instruction(name, controls, target));
-  }
-
   /// @brief Return the number of instructions with the given name and number of
   /// control qubits.
   std::size_t count_controls(const std::string &name,
@@ -91,17 +67,32 @@ public:
   /// @brief Return the total number of operations
   std::size_t count() const;
 
-  /// @brief Append the given instruction to the resource estimate.
-  void appendInstruction(const Instruction &instruction);
+  /// @brief Append the instruction with the given name and number of controls
+  /// to the resource estimate.
+  void appendInstruction(const std::string &name, std::size_t nControls,
+                         std::size_t count = 1);
 
   /// @brief Dump resource count to the given output stream
   void dump(std::ostream &os) const;
   void dump() const;
 
+  /// @brief Clear the resource usage counts
+  void clear();
+
+  /// @brief Register the usage of an additional qubit
+  void addQubit();
+
 private:
   /// @brief Map of Instructions in the current kernel to the
   /// number of times the Instruction is used.
   std::unordered_map<Instruction, std::size_t, InstructionHash> instructions;
+
+  /// @brief Keep track of the total number of gates. We keep this
+  /// here so we don't have to keep recomputing it.
+  std::size_t totalGates = 0;
+
+  /// @brief Keep track of the total number of qubits used.
+  std::size_t numQubits = 0;
 };
 
 } // namespace cudaq

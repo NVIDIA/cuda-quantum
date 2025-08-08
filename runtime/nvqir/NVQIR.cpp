@@ -12,6 +12,8 @@
 #include "common/PluginUtils.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
+// TODO: do we want to avoid including this here?
+#include "resourcecounter/ResourceCounter.h"
 #include <cmath>
 #include <complex>
 #include <sstream>
@@ -34,6 +36,7 @@
 
 // Is the library initialized?
 thread_local bool initialized = false;
+thread_local bool using_resource_counter = false;
 thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
@@ -78,6 +81,9 @@ namespace nvqir {
 /// already.
 /// @return
 CircuitSimulator *getCircuitSimulatorInternal() {
+  if (using_resource_counter)
+    return getResourceCounterSimulator();
+
   if (simulator)
     return simulator;
 
@@ -91,6 +97,15 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   cudaq::info("Creating the {} backend.", simulator->name());
   return simulator;
 }
+
+void switchToResourceCounterSimulator() { using_resource_counter = true; }
+
+void stopUsingResourceCounterSimulator() {
+  using_resource_counter = false;
+  getResourceCounterSimulator()->setToZeroState();
+}
+
+bool isUsingResourceCounterSimulator() { return using_resource_counter; }
 
 void setRandomSeed(std::size_t seed) {
   getCircuitSimulatorInternal()->setRandomSeed(seed);
