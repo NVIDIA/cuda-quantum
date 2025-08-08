@@ -44,6 +44,8 @@ static constexpr const char deviceCodeHolderAdd[] =
 
 static constexpr const char registerLinkableKernel[] =
     "__cudaq_registerLinkableKernel";
+static constexpr const char registerRunnableKernel[] =
+    "__cudaq_registerRunnableKernel";
 static constexpr const char getLinkableKernelKey[] =
     "__cudaq_getLinkableKernelKey";
 static constexpr const char getLinkableKernelName[] =

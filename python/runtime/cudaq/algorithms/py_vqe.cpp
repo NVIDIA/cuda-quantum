@@ -35,7 +35,7 @@ mlir::func::FuncOp getKernelFuncOp(mlir::ModuleOp &mod,
                                    const std::string &kernelName) {
   mlir::func::FuncOp kernel;
   mod.walk([&](mlir::func::FuncOp func) {
-    if (func.getName().equals("__nvqpp__mlirgen__" + kernelName))
+    if (func.getName() == cudaq::runtime::cudaqGenPrefixName + kernelName)
       kernel = func;
     return mlir::WalkResult::advance();
   });

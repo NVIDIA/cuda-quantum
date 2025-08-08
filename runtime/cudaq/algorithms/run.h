@@ -43,7 +43,8 @@ struct RunResultSpan {
 // pointer to a buffer and the size of that buffer in bytes.
 RunResultSpan runTheKernel(std::function<void()> &&kernel,
                            quantum_platform &platform,
-                           const std::string &kernel_name, std::size_t shots,
+                           const std::string &kernel_name,
+                           const std::string &original_name, std::size_t shots,
                            std::size_t qpu_id = 0);
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
@@ -85,9 +86,20 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
   spanIn.lengthInBytes = 0;
 }
 
+/// Get the `runnable` kernel from a name and cast it to the intended type. The
+/// intended type is the kernel's invocation signature sans return type.
+#ifndef CUDAQ_LIBRARY_MODE
+template <typename R, typename... As>
+void (*get_run_entry_point(qkernel<R(As...)>, const std::string &name))(As...) {
+  void *runEntry = cudaq::registry::__cudaq_getRunnableKernel(name.c_str());
+  return reinterpret_cast<void (*)(As...)>(runEntry);
+}
+#endif
+
 } // namespace details
 
 #if CUDAQ_USE_STD20
+// Type checking helper.
 template <typename T>
 struct isVectorType : std::false_type {};
 
@@ -128,14 +140,18 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
     results.emplace_back(kernel(std::forward<ARGS>(args)...));
     platform.reset_exec_ctx();
   }
-  return results;
-#endif
+#else
   // Launch the kernel in the appropriate context.
   std::string kernelName{details::getKernelName(kernel)};
   details::RunResultSpan span = details::runTheKernel(
-      [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
-      kernelName, shots);
+      [&]() mutable {
+        auto *runKernel =
+            details::get_run_entry_point(qkernel{kernel}, kernelName);
+        (*runKernel)(std::forward<ARGS>(args)...);
+      },
+      platform, kernelName, kernelName, shots);
   details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+#endif
   return results;
 }
 
@@ -180,16 +196,20 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
     platform.reset_exec_ctx();
   }
   platform.reset_noise();
-  return results;
-#endif
+#else
   // Launch the kernel in the appropriate context.
   platform.set_noise(&noise_model);
   std::string kernelName{details::getKernelName(kernel)};
   details::RunResultSpan span = details::runTheKernel(
-      [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
-      kernelName, shots);
+      [&]() mutable {
+        auto *runKernel =
+            details::get_run_entry_point(qkernel{kernel}, kernelName);
+        (*runKernel)(std::forward<ARGS>(args)...);
+      },
+      platform, kernelName, kernelName, shots);
   platform.reset_noise();
   details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+#endif
   return results;
 }
 
@@ -241,15 +261,19 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
           platform.reset_exec_ctx();
         }
         p.set_value(std::move(res));
-        return;
-#endif
+#else
         const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
-            [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
-            kernelName, shots, qpu_id);
+            [&]() mutable {
+              auto *runKernel =
+                  details::get_run_entry_point(qkernel{kernel}, kernelName);
+              (*runKernel)(std::forward<ARGS>(args)...);
+            },
+            platform, kernelName, kernelName, shots, qpu_id);
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
+#endif
       });
 #else
   QuantumTask wrapped = detail::make_copyable_function(
@@ -274,21 +298,23 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
           platform.reset_exec_ctx();
         }
         p.set_value(std::move(res));
-        return;
-#endif
+#else
         const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               std::apply(
-                  [&kernel](ARGS &&...args) {
-                    return kernel(std::forward<ARGS>(args)...);
+                  [&kernel, kernelName](ARGS &&...args) {
+                    auto *runKernel = details::get_run_entry_point(
+                        qkernel{kernel}, kernelName);
+                    (*runKernel)(std::forward<ARGS>(args)...);
                   },
                   std::move(args));
             },
-            platform, kernelName, shots, qpu_id);
+            platform, kernelName, kernelName, shots, qpu_id);
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
+#endif
       });
 #endif
   platform.enqueueAsyncTask(qpu_id, wrapped);
@@ -351,17 +377,21 @@ run_async(std::size_t qpu_id, std::size_t shots,
         }
         platform.reset_noise();
         p.set_value(std::move(res));
-        return;
-#endif
+#else
         platform.set_noise(&noise_model);
         const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
-            [&]() mutable { kernel(std::forward<ARGS>(args)...); }, platform,
-            kernelName, shots, qpu_id);
+            [&]() mutable {
+              auto *runKernel =
+                  details::get_run_entry_point(qkernel{kernel}, kernelName);
+              (*runKernel)(std::forward<ARGS>(args)...);
+            },
+            platform, kernelName, kernelName, shots, qpu_id);
         platform.reset_noise();
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
+#endif
       });
 #else
   QuantumTask wrapped = detail::make_copyable_function(
@@ -389,23 +419,25 @@ run_async(std::size_t qpu_id, std::size_t shots,
         }
         platform.reset_noise();
         p.set_value(std::move(res));
-        return;
-#endif
+#else
         platform.set_noise(&noise_model);
         const std::string kernelName{details::getKernelName(kernel)};
         details::RunResultSpan span = details::runTheKernel(
             [&]() mutable {
               std::apply(
-                  [&kernel](ARGS &&...args) {
-                    return kernel(std::forward<ARGS>(args)...);
+                  [&kernel, kernelName](ARGS &&...args) {
+                    auto *runKernel = details::get_run_entry_point(
+                        qkernel{kernel}, kernelName);
+                    (*runKernel)(std::forward<ARGS>(args)...);
                   },
                   std::move(args));
             },
-            platform, kernelName, shots, qpu_id);
+            platform, kernelName, kernelName, shots, qpu_id);
         platform.reset_noise();
         std::vector<ResultTy> results;
         details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
+#endif
       });
 #endif
   platform.enqueueAsyncTask(qpu_id, wrapped);

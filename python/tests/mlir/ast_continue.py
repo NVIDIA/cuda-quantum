@@ -28,14 +28,14 @@ def test_continue():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
-# CHECK-SAME:          %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1.000000e+01 : f64
-# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 2 : i64
-# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64
-# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 0 : i64
-# CHECK-DAG:           %[[VAL_5:.*]] = arith.constant 10 : i64
-# CHECK-DAG:           %[[VAL_6:.*]] = arith.constant 4 : i64
-# CHECK:           %[[VAL_7:.*]] = cc.alloca f64
+# CHECK-SAME:      %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.000000e+01 : f64
+# CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2 : i64
+# CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i64
+# CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : i64
+# CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 10 : i64
+# CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 4 : i64
+# CHECK-DAG:       %[[VAL_7:.*]] = cc.alloca f64
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_7]] : !cc.ptr<f64>
 # CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<4>
 # CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_4]]) -> (i64)) {
@@ -49,12 +49,13 @@ def test_continue():
 # CHECK:             cc.store %[[VAL_15]], %[[VAL_7]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_16:.*]] = cc.load %[[VAL_7]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_17:.*]] = arith.cmpf ogt, %[[VAL_16]], %[[VAL_1]] : f64
-# CHECK:             cc.if(%[[VAL_17]]) {
-# CHECK:               %[[VAL_18:.*]] = arith.remui %[[VAL_12]], %[[VAL_6]] : i64
-# CHECK:               %[[VAL_19:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_18]]] : (!quake.veq<4>, i64) -> !quake.ref
-# CHECK:               quake.x %[[VAL_19]] : (!quake.ref) -> ()
-# CHECK:               cc.unwind_continue %[[VAL_12]] : i64
-# CHECK:             }
+# CHECK:             cf.cond_br %[[VAL_17]], ^bb1, ^bb2
+# CHECK:           ^bb1:
+# CHECK:             %[[VAL_18:.*]] = arith.remui %[[VAL_12]], %[[VAL_6]] : i64
+# CHECK:             %[[VAL_19:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_18]]] : (!quake.veq<4>, i64) -> !quake.ref
+# CHECK:             quake.x %[[VAL_19]] : (!quake.ref) -> ()
+# CHECK:             cc.continue %[[VAL_12]] : i64
+# CHECK:           ^bb2:
 # CHECK:             %[[VAL_20:.*]] = cc.load %[[VAL_7]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_21:.*]] = arith.remui %[[VAL_12]], %[[VAL_6]] : i64
 # CHECK:             %[[VAL_22:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_21]]] : (!quake.veq<4>, i64) -> !quake.ref
@@ -65,4 +66,5 @@ def test_continue():
 # CHECK:             %[[VAL_24:.*]] = arith.addi %[[VAL_23]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_24]] : i64
 # CHECK:           } {invariant}
-# CHECK:          }
+# CHECK:           return
+# CHECK:         }

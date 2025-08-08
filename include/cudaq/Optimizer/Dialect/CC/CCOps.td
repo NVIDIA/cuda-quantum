@@ -1885,8 +1885,8 @@ def cc_ResolveDevicePtrOp : CCOp<"resolve_device_ptr", []> {
   }];
 }
 
-def cc_VarargCallOp :
-    CCOp<"call_vararg", [CallOpInterface, SymbolUserOpInterface]> {
+def cc_VarargCallOp : CCOp<"call_vararg",
+    [CallOpInterface, SymbolUserOpInterface]> {
   let summary = "Create a call to an llvm.func with variadic arguments.";
   let description = [{
     This operation lets us create a call to an LLVMIR FuncOp with variadic
@@ -1925,12 +1925,25 @@ def cc_VarargCallOp :
   }];
 }
 
+def cc_LogOutputOp : CCOp<"log_output"> {
+  let summary = "Auto-generate calls to log the output of a runnable kernel.";
+  let description = [{
+    This operation is an abstraction for auto-generation of the necessary code
+    in the transport layer to log output results from a runnable kernel. The
+    assumption is that the transport layer supports something analogous to a
+    set of file output functions, something like `fprintf()`.
+  }];
+
+  let arguments = (ins Variadic<AnyType>:$args);
+  let assemblyFormat = "$args `:` type(operands) attr-dict";
+}
+
 //===----------------------------------------------------------------------===//
 // Argument synthesis support
 //===----------------------------------------------------------------------===//
 
 def cc_ArgumentSubstitutionOp : CCOp<"arg_subst",
-  [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {
+    [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {
   let summary = "An argument substition.";
   let description = [{
     This operation is used to define computations to produce a particular value.

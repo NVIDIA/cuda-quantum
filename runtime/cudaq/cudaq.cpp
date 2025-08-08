@@ -246,10 +246,31 @@ static std::vector<std::string> kernelRegistry;
 static std::map<std::string, cudaq::KernelArgsCreator> argsCreators;
 static std::map<std::string, std::string> lambdaNames;
 static std::map<void *, std::pair<const char *, void *>> linkableKernelRegistry;
+static std::map<std::string, void *> runnableKernelRegistry;
 
 void cudaq::registry::cudaqRegisterKernelName(const char *kernelName) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   kernelRegistry.emplace_back(kernelName);
+}
+
+void cudaq::registry::__cudaq_registerRunnableKernel(const char *kernelName,
+                                                     void *runnableEntry) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
+  runnableKernelRegistry.insert({std::string{kernelName}, runnableEntry});
+}
+
+void *cudaq::registry::getRunnableKernelOrNull(const std::string &kernelName) {
+  auto iter = runnableKernelRegistry.find(kernelName);
+  return (iter != runnableKernelRegistry.end()) ? iter->second : nullptr;
+}
+
+void *
+cudaq::registry::__cudaq_getRunnableKernel(const std::string &kernelName) {
+  void *result = getRunnableKernelOrNull(kernelName);
+  if (!result)
+    throw std::runtime_error("runnable kernel is not present: kernel cannot be "
+                             "called by cudaq::run");
+  return result;
 }
 
 void cudaq::registry::__cudaq_registerLinkableKernel(void *hostSideFunc,
@@ -269,9 +290,7 @@ std::intptr_t cudaq::registry::__cudaq_getLinkableKernelKey(void *p) {
 
 const char *cudaq::registry::getLinkableKernelNameOrNull(std::intptr_t key) {
   auto iter = linkableKernelRegistry.find(reinterpret_cast<void *>(key));
-  if (iter != linkableKernelRegistry.end())
-    return iter->second.first;
-  return nullptr;
+  return (iter != linkableKernelRegistry.end()) ? iter->second.first : nullptr;
 }
 
 const char *cudaq::registry::__cudaq_getLinkableKernelName(std::intptr_t key) {
@@ -302,14 +321,14 @@ void cudaq::registry::cudaqRegisterLambdaName(const char *name,
   lambdaNames.insert({std::string(name), std::string(value)});
 }
 
-bool cudaq::__internal__::isKernelGenerated(const std::string &kernelName) {
+bool cudaq::detail::isKernelGenerated(const std::string &kernelName) {
   std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
   return std::find(kernelRegistry.begin(), kernelRegistry.end(), kernelName) !=
          kernelRegistry.end();
 }
 
 bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
-  return !isKernelGenerated(kernelname);
+  return !detail::isKernelGenerated(kernelname);
 }
 
 //===----------------------------------------------------------------------===//
