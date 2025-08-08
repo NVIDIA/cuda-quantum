@@ -26,7 +26,7 @@ def test_resource_counter():
             m3 = mz(p)
 
     def choice():
-        return False
+        return True
 
     cudaq.set_target("quantinuum", emulate=True)
 
@@ -37,8 +37,8 @@ def test_resource_counter():
 
     assert counts1.count("00") + counts1.count("11") == 5
     assert counts2.count("h") == 1
-    assert counts2.count("x") == 1
     assert counts3.count("h") == 1
+    assert counts3.count("x") == 1
     assert counts4.count("00") + counts4.count("11") == 10
 
 
