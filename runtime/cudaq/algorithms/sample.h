@@ -16,7 +16,7 @@
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
-namespace __internal__ {
+namespace detail {
 bool isKernelGenerated(const std::string &);
 }
 /// @brief Return type for asynchronous sampling.
@@ -64,7 +64,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 #ifdef CUDAQ_LIBRARY_MODE
   // If we have a kernel that has its quake code registered, we
   // won't check for if statements with the tracer.
-  auto isRegistered = cudaq::__internal__::isKernelGenerated(kernelName);
+  auto isRegistered = detail::isKernelGenerated(kernelName);
 
   // One extra check to see if we have mid-circuit
   // measures in library mode

@@ -848,12 +848,43 @@ public:
     return success();
   }
 
+  /// Copy the argument attributes from \p origEntryFunc to \p runEntryKern.
+  /// This assumes that \p origEntryFunc \e must have a return value which is
+  /// elided in \p runEntryKern.
+  static void copyArgumentAttributes(func::FuncOp origEntryFunc,
+                                     func::FuncOp runEntryKern) {
+    assert(runEntryKern && "must have a run entry FuncOp");
+    auto ua = UnitAttr::get(runEntryKern->getContext());
+    runEntryKern->setAttr("no_this", ua);
+    if (!origEntryFunc)
+      return;
+    auto attrs = origEntryFunc.getArgAttrs();
+    if (!attrs)
+      return;
+    auto arrAttrs = dyn_cast<ArrayAttr>(*attrs);
+    if (!arrAttrs)
+      return;
+    const bool hasSRet =
+        cudaq::opt::factory::hasHiddenSRet(origEntryFunc.getFunctionType());
+    const bool hasThis = !origEntryFunc->hasAttr("no_this");
+    const unsigned numHidden = cudaq::cc::numberOfHiddenArgs(hasThis, hasSRet);
+
+    // TODO: this assumes that the layout of the argument array attrs uses
+    // the 0-th position for the result attributes. We should find a more
+    // robust way to make copies that doesn't rely on this assumption.
+    for (unsigned i = numHidden + 1, j = 0, end = arrAttrs.size(); i < end;
+         ++i, ++j)
+      if (auto dict = dyn_cast_if_present<DictionaryAttr>(arrAttrs[i])) {
+        SmallVector<NamedAttribute> attrCopy;
+        attrCopy.append(dict.getValue().begin(), dict.getValue().end());
+        runEntryKern.setArgAttrs(j, attrCopy);
+      }
+  }
+
   void runOnOperation() override {
     auto module = getOperation();
     auto *ctx = module.getContext();
     auto builder = OpBuilder::atBlockEnd(module.getBody());
-    auto mangledNameMap =
-        module->getAttrOfType<DictionaryAttr>(cudaq::runtime::mangledNameMap);
     std::error_code ec;
     llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
     if (ec) {
@@ -873,101 +904,189 @@ public:
             !funcOp.empty() && !funcOp->hasAttr(cudaq::generatorAnnotation))
           workList.push_back(funcOp);
 
-    LLVM_DEBUG(llvm::dbgs()
-               << workList.size() << " kernel entry functions to process\n");
-    for (auto funcOp : workList) {
-      auto loc = funcOp.getLoc();
-      [[maybe_unused]] auto className =
-          funcOp.getName().drop_front(cudaq::runtime::cudaqGenPrefixLength);
-      LLVM_DEBUG(llvm::dbgs() << "processing function " << className << '\n');
-      auto classNameStr = className.str();
+    if (genRunStack) {
+      // For each kernel on the worklist, create a duplicate entry-point kernel
+      // but drop the return values on the floor.
+      SmallVector<func::FuncOp> runKernels;
+      for (auto epKern : workList) {
+        if (epKern.getFunctionType().getResults().empty() ||
+            epKern->hasAttr(cudaq::generatorAnnotation))
+          continue;
 
-      // Create a constant with the name of the kernel as a C string.
-      auto kernelNameObj = builder.create<LLVM::GlobalOp>(
-          loc, cudaq::opt::factory::getStringType(ctx, className.size() + 1),
-          /*isConstant=*/true, LLVM::Linkage::External,
-          classNameStr + ".kernelName",
-          builder.getStringAttr(classNameStr + '\0'), /*alignment=*/0);
-
-      // Create a new struct type to pass arguments and results.
-      auto funcTy = funcOp.getFunctionType();
-      auto structTy = cudaq::opt::factory::buildInvokeStructType(funcTy);
-
-      if (!mangledNameMap.contains(funcOp.getName()))
-        continue;
-      auto mangledAttr = mangledNameMap.getAs<StringAttr>(funcOp.getName());
-      assert(mangledAttr && "funcOp must appear in mangled name map");
-      StringRef mangledName = mangledAttr.getValue();
-      auto [hostEntryNeeded, hostFunc] =
-          cudaq::opt::marshal::lookupHostEntryPointFunc(mangledName, module,
-                                                        funcOp);
-      FunctionType hostFuncTy;
-      const bool hasThisPtr = !funcOp->hasAttr("no_this");
-      if (hostEntryNeeded) {
-        if (hostFunc) {
-          hostFuncTy = hostFunc.getFunctionType();
-        } else {
-          // Fatal error was already raised in lookupHostEntryPointFunc().
-          return;
+        std::string runKernName = epKern.getName().str() + ".run";
+        auto runKernTy =
+            FunctionType::get(ctx, epKern.getFunctionType().getInputs(), {});
+        auto loc = epKern.getLoc();
+        {
+          // Create the run kernel and drop the return result on the floor.
+          auto runKern =
+              builder.create<func::FuncOp>(loc, runKernName, runKernTy);
+          auto unitAttr = builder.getUnitAttr();
+          runKern->setAttr(cudaq::entryPointAttrName, unitAttr);
+          runKern->setAttr(cudaq::kernelAttrName, unitAttr);
+          runKern->setAttr("no_this", unitAttr);
+          OpBuilder::InsertionGuard guard(builder);
+          Block *entry = runKern.addEntryBlock();
+          builder.setInsertionPointToStart(entry);
+          auto kern = builder.create<func::CallOp>(
+              loc, epKern.getFunctionType().getResults(), epKern.getName(),
+              entry->getArguments());
+          builder.create<cudaq::cc::LogOutputOp>(loc, kern.getResults());
+          builder.create<func::ReturnOp>(loc);
+          runKernels.push_back(runKern);
         }
-      } else {
-        // Autogenerate an assumed host side function signature for the purpose
-        // of constructing the argsCreator function.
-        hostFuncTy =
-            cudaq::opt::factory::toHostSideFuncType(funcTy, hasThisPtr, module);
-      }
+        {
+          // Create the run kernel entry point and drop the return result on the
+          // floor.
 
-      func::FuncOp thunk;
-      func::FuncOp argsCreatorFunc;
-
-      if (cudaq::opt::marshal::isCodegenPackedData(codegenKind)) {
-        // Generate the function that computes the return offset.
-        cudaq::opt::marshal::genReturnOffsetFunction(loc, builder, funcTy,
-                                                     structTy, classNameStr);
-
-        // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
-        thunk = genThunkFunction(loc, builder, classNameStr, structTy, funcTy,
-                                 funcOp);
-
-        // Generate the argsCreator function used by synthesis.
-        if (startingArgIdx == 0) {
-          argsCreatorFunc = genKernelArgsCreatorFunction(
-              loc, builder, module, funcTy, structTy, classNameStr, hostFuncTy,
-              hasThisPtr);
-        } else {
-          // We are operating in a very special case where we want the
-          // argsCreator function to ignore the first `startingArgIdx`
-          // arguments. In this situation, the argsCreator function will not be
-          // compatible with the other helper functions created in this pass, so
-          // it is assumed that the caller is OK with that.
-          auto structTy_argsCreator =
-              cudaq::opt::factory::buildInvokeStructType(funcTy,
-                                                         startingArgIdx);
-          argsCreatorFunc = genKernelArgsCreatorFunction(
-              loc, builder, module, funcTy, structTy_argsCreator, classNameStr,
-              hostFuncTy, hasThisPtr);
+          // TODO: This design of cudaq::run translates calls of both plain old
+          // functions and member functions into an autogenerated specialization
+          // which appears to clang as a plain old function (the autogeneration
+          // will take place here). This necessarily means that the run_entry
+          // function will never have a hidden `this` pointer, regardless of
+          // whether the original call was a member function or not. Obviously,
+          // without the `this` pointer, a call operator cannot access any data
+          // members from this instance.
+          auto runKernEntryName = runKernName + ".entry";
+          auto runEntryKernTy = cudaq::opt::factory::toHostSideFuncType(
+              runKernTy, /*hasThisPointer=*/false, module);
+          runEntryKernTy =
+              FunctionType::get(ctx, runEntryKernTy.getInputs(), {});
+          auto runEntryKern = builder.create<func::FuncOp>(
+              loc, runKernEntryName, runEntryKernTy);
+          auto origEntryFunc = [&]() -> func::FuncOp {
+            auto mangledNameMap = module->getAttrOfType<DictionaryAttr>(
+                cudaq::runtime::mangledNameMap);
+            if (!mangledNameMap)
+              return {};
+            auto kernName = mangledNameMap.getAs<StringAttr>(epKern.getName());
+            if (!kernName)
+              return {};
+            return module.lookupSymbol<func::FuncOp>(kernName.getValue());
+          }();
+          copyArgumentAttributes(origEntryFunc, runEntryKern);
+          OpBuilder::InsertionGuard guard(builder);
+          Block *entry = runEntryKern.addEntryBlock();
+          builder.setInsertionPointToStart(entry);
+          builder.create<func::ReturnOp>(loc);
+          // Append this to the kernel name map.
+          auto dict = module->getAttrOfType<DictionaryAttr>(
+              cudaq::runtime::mangledNameMap);
+          SmallVector<NamedAttribute> mapVals{dict.begin(), dict.end()};
+          mapVals.emplace_back(StringAttr::get(ctx, runKernName),
+                               StringAttr::get(ctx, runKernEntryName));
+          module->setAttr(cudaq::runtime::mangledNameMap,
+                          DictionaryAttr::get(ctx, mapVals));
         }
       }
+      workList.append(runKernels.begin(), runKernels.end());
+    }
 
-      // Generate a new mangled function on the host side to call the
-      // callback function.
-      if (hostEntryNeeded)
-        genNewHostEntryPoint(loc, builder, module, funcTy, kernelNameObj,
-                             hostFunc, hasThisPtr, structTy, thunk);
+    if (deferToJIT) {
+      // TODO: In Python, GKE is used to generate thunks at JIT time which skip
+      // some kernel arguments. It needs to be investigated why that isn't done
+      // earlier when the kernel is first compiled.
+      LLVM_DEBUG(llvm::dbgs() << "deferring GKE until JIT compilation\n");
+    } else {
+      auto mangledNameMap =
+          module->getAttrOfType<DictionaryAttr>(cudaq::runtime::mangledNameMap);
+      LLVM_DEBUG(llvm::dbgs()
+                 << workList.size() << " kernel entry functions to process\n");
 
-      // Generate a function at startup to register this kernel as having
-      // been processed for kernel execution.
-      auto initFun = registerKernelWithRuntimeForExecution(
-          loc, builder, classNameStr, kernelNameObj, argsCreatorFunc,
-          mangledName);
+      for (auto funcOp : workList) {
+        auto loc = funcOp.getLoc();
+        [[maybe_unused]] auto className =
+            funcOp.getName().drop_front(cudaq::runtime::cudaqGenPrefixLength);
+        LLVM_DEBUG(llvm::dbgs() << "processing function " << className << '\n');
+        auto classNameStr = className.str();
 
-      // Create a global with a default ctor to be run at program startup.
-      // The ctor will execute the above function, which will register this
-      // kernel as having been processed.
-      cudaq::opt::factory::createGlobalCtorCall(
-          module, FlatSymbolRefAttr::get(ctx, initFun.getName()));
+        // Create a constant with the name of the kernel as a C string.
+        auto kernelNameObj = builder.create<LLVM::GlobalOp>(
+            loc, cudaq::opt::factory::getStringType(ctx, className.size() + 1),
+            /*isConstant=*/true, LLVM::Linkage::External,
+            classNameStr + ".kernelName",
+            builder.getStringAttr(classNameStr + '\0'), /*alignment=*/0);
 
-      LLVM_DEBUG(llvm::dbgs() << "final module:\n" << module << '\n');
+        // Create a new struct type to pass arguments and results.
+        auto funcTy = funcOp.getFunctionType();
+        auto structTy = cudaq::opt::factory::buildInvokeStructType(funcTy);
+
+        if (!mangledNameMap.contains(funcOp.getName()))
+          continue;
+        auto mangledAttr = mangledNameMap.getAs<StringAttr>(funcOp.getName());
+        assert(mangledAttr && "funcOp must appear in mangled name map");
+        StringRef mangledName = mangledAttr.getValue();
+        auto [hostEntryNeeded, hostFunc] =
+            cudaq::opt::marshal::lookupHostEntryPointFunc(mangledName, module,
+                                                          funcOp);
+        FunctionType hostFuncTy;
+        const bool hasThisPtr = !funcOp->hasAttr("no_this");
+        if (hostEntryNeeded) {
+          if (hostFunc) {
+            hostFuncTy = hostFunc.getFunctionType();
+          } else {
+            // Fatal error was already raised in lookupHostEntryPointFunc().
+            return;
+          }
+        } else {
+          // Autogenerate an assumed host side function signature for the
+          // purpose of constructing the argsCreator function.
+          hostFuncTy = cudaq::opt::factory::toHostSideFuncType(
+              funcTy, hasThisPtr, module);
+        }
+
+        func::FuncOp thunk;
+        func::FuncOp argsCreatorFunc;
+
+        if (cudaq::opt::marshal::isCodegenPackedData(codegenKind)) {
+          // Generate the function that computes the return offset.
+          cudaq::opt::marshal::genReturnOffsetFunction(loc, builder, funcTy,
+                                                       structTy, classNameStr);
+
+          // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
+          thunk = genThunkFunction(loc, builder, classNameStr, structTy, funcTy,
+                                   funcOp);
+
+          // Generate the argsCreator function used by synthesis.
+          if (startingArgIdx == 0) {
+            argsCreatorFunc = genKernelArgsCreatorFunction(
+                loc, builder, module, funcTy, structTy, classNameStr,
+                hostFuncTy, hasThisPtr);
+          } else {
+            // We are operating in a very special case where we want the
+            // argsCreator function to ignore the first `startingArgIdx`
+            // arguments. In this situation, the argsCreator function will not
+            // be compatible with the other helper functions created in this
+            // pass, so it is assumed that the caller is OK with that.
+            auto structTy_argsCreator =
+                cudaq::opt::factory::buildInvokeStructType(funcTy,
+                                                           startingArgIdx);
+            argsCreatorFunc = genKernelArgsCreatorFunction(
+                loc, builder, module, funcTy, structTy_argsCreator,
+                classNameStr, hostFuncTy, hasThisPtr);
+          }
+        }
+
+        // Generate a new mangled function on the host side to call the
+        // callback function.
+        if (hostEntryNeeded)
+          genNewHostEntryPoint(loc, builder, module, funcTy, kernelNameObj,
+                               hostFunc, hasThisPtr, structTy, thunk);
+
+        // Generate a function at startup to register this kernel as having
+        // been processed for kernel execution.
+        auto initFun = registerKernelWithRuntimeForExecution(
+            loc, builder, classNameStr, kernelNameObj, argsCreatorFunc,
+            mangledName);
+
+        // Create a global with a default ctor to be run at program startup.
+        // The ctor will execute the above function, which will register this
+        // kernel as having been processed.
+        cudaq::opt::factory::createGlobalCtorCall(
+            module, FlatSymbolRefAttr::get(ctx, initFun.getName()));
+
+        LLVM_DEBUG(llvm::dbgs() << "final module:\n" << module << '\n');
+      }
     }
     out.keep();
   }

@@ -12,16 +12,11 @@
 #include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
@@ -155,12 +150,13 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
         SmallVector<StringRef>(names.begin(), names.end())));
-    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
+    pm.addPass(cudaq::opt::createLambdaLiftingPass());
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
-    pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    pm.addPass(createSymbolDCEPass());
+    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
+    pm.addPass(cudaq::opt::createReturnToOutputLog());
     cudaq::opt::addPipelineConvertToQIR(pm, qirVersionUnderDevelopment);
+    pm.addPass(createSymbolDCEPass());
 
     auto enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
@@ -231,7 +227,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   // We need to append the return type to the OpaqueArguments here
   // so that we get a spot in the `rawArgs` memory for the
   // altLaunchKernel function to dump the result
-  if (!isa<NoneType>(returnType))
+  if (returnType && !isa<NoneType>(returnType))
     TypeSwitch<Type, void>(returnType)
         .Case([&](IntegerType type) {
           if (type.getIntOrFloatBitWidth() == 1) {
@@ -838,6 +834,7 @@ std::string getQIR(const std::string &name, MlirModule module,
 
   PassManager pm(context);
   pm.addPass(cudaq::opt::createLambdaLiftingPass());
+  pm.addPass(cudaq::opt::createReturnToOutputLog());
   if (profile.empty())
     cudaq::opt::addPipelineConvertToQIR(pm, qirVersionUnderDevelopment);
   else
@@ -863,10 +860,8 @@ std::string getQIR(const std::string &name, MlirModule module,
     throw std::runtime_error("getQIR Failed to optimize LLVM IR ");
 
   std::string str;
-  {
-    llvm::raw_string_ostream os(str);
-    llvmModule->print(os, nullptr);
-  }
+  llvm::raw_string_ostream os(str);
+  llvmModule->print(os, nullptr);
   return str;
 }
 

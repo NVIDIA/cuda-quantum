@@ -40,7 +40,7 @@ std::tuple<bool, std::string> isValidObserveKernel(py::object &kernel) {
   ModuleOp mod = unwrap(kernelMod);
   func::FuncOp kernelFunc;
   mod.walk([&](func::FuncOp function) {
-    if (function.getName().equals("__nvqpp__mlirgen__" + kernelName)) {
+    if (function.getName() == cudaq::runtime::cudaqGenPrefixName + kernelName) {
       kernelFunc = function;
       return WalkResult::interrupt();
     }

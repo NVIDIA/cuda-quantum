@@ -4610,7 +4610,7 @@ def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
 
     # Canonicalize the code, check for measurement(s) readout
     pm = PassManager.parse(
-        "builtin.module(func.func(canonicalize,cse,quake-add-metadata),quake-propagate-metadata)",
+        "builtin.module(func.func(unwind-lowering,canonicalize,cse,quake-add-metadata),quake-propagate-metadata)",
         context=bridge.ctx)
 
     try:

@@ -888,12 +888,12 @@ def test_modify_struct():
         y: bool
 
     @cudaq.kernel
-    def simple_struct(t: MyClass) -> MyClass:
+    def simple_strucA(t: MyClass) -> MyClass:
         q = cudaq.qubit()
         t.x = 42
         return t
 
-    results = cudaq.run(simple_struct, MyClass(-13, True), shots_count=2)
+    results = cudaq.run(simple_strucA, MyClass(-13, True), shots_count=2)
     print(results)
     assert len(results) == 2
     assert results[0] == MyClass(42, True)
@@ -906,14 +906,14 @@ def test_modify_struct():
         z: int
 
     @cudaq.kernel
-    def kernel(t: Foo) -> Foo:
+    def kerneB(t: Foo) -> Foo:
         q = cudaq.qubit()
         t.z = 100
         t.y = 3.14
         t.x = True
         return t
 
-    results = cudaq.run(kernel, Foo(False, 6.28, 17), shots_count=2)
+    results = cudaq.run(kerneB, Foo(False, 6.28, 17), shots_count=2)
     print(results)
     assert len(results) == 2
     assert results[0] == Foo(True, 3.14, 100)
@@ -928,13 +928,13 @@ def test_create_and_modify_struct():
         y: bool
 
     @cudaq.kernel
-    def simple_struct() -> MyClass:
+    def simple_strucC() -> MyClass:
         q = cudaq.qubit()
         t = MyClass(-13, True)
         t.x = 42
         return t
 
-    results = cudaq.run(simple_struct, shots_count=2)
+    results = cudaq.run(simple_strucC, shots_count=2)
     print(results)
     assert len(results) == 2
     assert results[0] == MyClass(42, True)
@@ -947,14 +947,14 @@ def test_create_and_modify_struct():
         z: float
 
     @cudaq.kernel
-    def kernel(n: int) -> Bar:
+    def kerneD(n: int) -> Bar:
         q = cudaq.qvector(n)
         t = Bar(False, False, 4.14)
         t.x = True
         t.y = True
         return t
 
-    results = cudaq.run(kernel, 2, shots_count=1)
+    results = cudaq.run(kerneD, 2, shots_count=1)
     print(results)
     assert len(results) == 1
     assert results[0] == Bar(True, True, 4.14)
@@ -963,11 +963,11 @@ def test_create_and_modify_struct():
 def test_unsupported_return_type():
 
     @cudaq.kernel
-    def kerenl_with_no_args() -> complex:
+    def kernel_with_no_args() -> complex:
         return 1 + 2j
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run(kerenl_with_no_args, shots_count=2)
+        cudaq.run(kernel_with_no_args, shots_count=2)
     assert 'unsupported return type' in str(e.value)
 
     @cudaq.kernel
